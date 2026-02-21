@@ -8,6 +8,8 @@ import {
     Model,
     AppSettings,
     ApprovalStatus,
+    AuditScanPayload,
+    AuditScanResult,
 } from '../types';
 import { mockAllUsersExtended, mockAllEquipment, mockLocationCountries, mockPendingApprovals, mockApprovalHistory, mockHistoryEvents, mockCategories, mockModels, CATEGORY_ICONS } from '../data/mockData';
 import { useAuth } from './AuthContext';
@@ -19,6 +21,9 @@ import {
     canDeleteEquipmentByBusinessRule,
     canDeleteUserByBusinessRule,
     canManageInventoryByRole,
+    canManageLocationsByRole,
+    canManageSystemByRole,
+    canManageUsersByRole,
     canTransitionApprovalStatus,
     canUpdateUserByBusinessRule,
     getEquipmentUpdatesForApprovalStatus,
@@ -49,6 +54,14 @@ interface DataContextType {
     addEquipment: (item: Equipment) => void;
     updateEquipment: (id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => void;
     deleteEquipment: (id: string) => boolean;
+    upsertEquipmentFromAuditScan: (
+        payload: AuditScanPayload,
+        scope: { country: string; site: string; service: string },
+    ) => AuditScanResult;
+    removeEquipmentFromServiceAfterAudit: (
+        equipmentId: string,
+        scope: { country: string; site: string; service: string },
+    ) => boolean;
     updateApproval: (id: string, status: ApprovalStatus) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
     logEvent: (event: Omit<HistoryEvent, 'id' | 'timestamp'>) => void;
@@ -108,6 +121,11 @@ const extractPersistedIds = (items: unknown[]): Set<string> => {
 
     return new Set(ids);
 };
+
+const normalizeMatch = (value?: string) => (value || '').trim().toLowerCase();
+
+const buildScanAvatar = (seed: string) =>
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'user')}`;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
@@ -321,13 +339,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const assignManagerToService = useCallback((serviceName: string, managerId: string) => {
+        const permissionDecision = canManageLocationsByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         setServiceManagers(prev => ({ ...prev, [serviceName]: managerId }));
 
         // OPTIONNEL : Mettre à jour rétroactivement les utilisateurs existants de ce service ?
         // Pour l'instant, on laisse l'existant tel quel, la règle s'applique aux nouveaux/modifiés.
-    }, []);
+    }, [currentUser?.role]);
 
     const addUser = useCallback((user: User): BusinessRuleDecision => {
+        const permissionDecision = canManageUsersByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return permissionDecision;
+        }
+
         if (user.role === 'SuperAdmin' && currentUser?.role !== 'SuperAdmin') {
             return {
                 allowed: false,
@@ -379,6 +407,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [currentUser, logEvent, users, serviceManagers]);
 
     const updateUser = useCallback((id: string, updates: Partial<User>): BusinessRuleDecision => {
+        const permissionDecision = canManageUsersByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return permissionDecision;
+        }
+
         const oldUser = users.find(u => u.id === id);
         if (!oldUser) {
             return { allowed: false, reason: 'Utilisateur introuvable.' };
@@ -671,6 +704,214 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
     }, [equipment, events, currentUser, logEvent]);
 
+    const upsertEquipmentFromAuditScan = useCallback((
+        payload: AuditScanPayload,
+        scope: { country: string; site: string; service: string },
+    ): AuditScanResult => {
+        const permissionDecision = canManageInventoryByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return {
+                ok: false,
+                message: permissionDecision.reason || 'Action refusée: permissions insuffisantes.',
+            };
+        }
+
+        const scopedCountry = scope.country?.trim();
+        const scopedSite = scope.site?.trim();
+        const scopedService = scope.service?.trim();
+        const scannedAt = payload.scannedAt || new Date().toISOString();
+
+        const byAssetId = normalizeMatch(payload.assetId);
+        const bySerial = normalizeMatch(payload.serialNumber);
+        const byHostname = normalizeMatch(payload.hostname || payload.machineName);
+
+        const existing = equipment.find((item) => {
+            if (byAssetId && normalizeMatch(item.assetId) === byAssetId) return true;
+            if (bySerial && normalizeMatch(item.serialNumber) === bySerial) return true;
+            if (byHostname && normalizeMatch(item.hostname || item.name) === byHostname) return true;
+            return false;
+        });
+
+        const scannedUserName = payload.userName?.trim();
+        const scannedUserEmail = payload.userEmail?.trim().toLowerCase();
+        const matchedUser = users.find((user) =>
+            (scannedUserEmail && user.email.toLowerCase() === scannedUserEmail)
+            || (scannedUserName && normalizeMatch(user.name) === normalizeMatch(scannedUserName)),
+        );
+        const scannedUser = scannedUserName || scannedUserEmail
+            ? {
+                id: matchedUser?.id,
+                name: scannedUserName || matchedUser?.name || scannedUserEmail || 'Utilisateur détecté',
+                email: scannedUserEmail || matchedUser?.email || '',
+                avatar: matchedUser?.avatar || buildScanAvatar(scannedUserName || scannedUserEmail || 'user'),
+            }
+            : null;
+
+        if (existing) {
+            const updates: Partial<Equipment> = {};
+
+            if (payload.machineName && payload.machineName !== existing.name) updates.name = payload.machineName;
+            if (payload.assetId && payload.assetId !== existing.assetId) updates.assetId = payload.assetId;
+            if (payload.hostname && payload.hostname !== existing.hostname) updates.hostname = payload.hostname;
+            if (payload.serialNumber && payload.serialNumber !== existing.serialNumber) updates.serialNumber = payload.serialNumber;
+            if (payload.os && payload.os !== existing.os) updates.os = payload.os;
+            if (payload.ram && payload.ram !== existing.ram) updates.ram = payload.ram;
+            if (payload.storage && payload.storage !== existing.storage) updates.storage = payload.storage;
+            if (payload.model && payload.model !== existing.model) updates.model = payload.model;
+            if (payload.type && payload.type !== existing.type) updates.type = payload.type;
+
+            if (scannedUser) {
+                const previousName = existing.user?.name || '';
+                const previousEmail = existing.user?.email || '';
+                if (
+                    normalizeMatch(previousName) !== normalizeMatch(scannedUser.name)
+                    || normalizeMatch(previousEmail) !== normalizeMatch(scannedUser.email)
+                ) {
+                    updates.user = scannedUser;
+                }
+            }
+
+            if (payload.agents) {
+                const previousAgents = existing.securityAgents || {
+                    sentinelOne: false,
+                    matrix42: false,
+                    manageEngine: false,
+                    lastCheckedAt: scannedAt,
+                };
+                updates.securityAgents = {
+                    sentinelOne: payload.agents.sentinelOne ?? previousAgents.sentinelOne,
+                    matrix42: payload.agents.matrix42 ?? previousAgents.matrix42,
+                    manageEngine: payload.agents.manageEngine ?? previousAgents.manageEngine,
+                    lastCheckedAt: scannedAt,
+                };
+            }
+
+            const wasUpdated = Object.keys(updates).length > 0;
+            if (wasUpdated) {
+                updateEquipment(existing.id, updates, {
+                    source: 'audit_scan',
+                    scannedAt,
+                    scopeCountry: scopedCountry,
+                    scopeSite: scopedSite,
+                    scopeService: scopedService,
+                });
+            }
+
+            const serviceMatches =
+                normalizeMatch(existing.country) === normalizeMatch(scopedCountry)
+                && normalizeMatch(existing.site) === normalizeMatch(scopedSite)
+                && normalizeMatch(existing.department) === normalizeMatch(scopedService);
+
+            return {
+                ok: true,
+                resolution: serviceMatches ? 'found_in_service' : 'found_out_of_service',
+                equipmentId: existing.id,
+                equipmentName: existing.name,
+                serviceMatches,
+                wasUpdated,
+                message: serviceMatches
+                    ? `Machine retrouvée dans le bon service (${scopedService}).`
+                    : `Machine détectée mais rattachée à un autre service (${existing.department || 'Non défini'}).`,
+            };
+        }
+
+        const now = new Date().toISOString();
+        const generatedId = `scan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        const generatedAssetId = payload.assetId || `ASSET-SCAN-${Date.now().toString().slice(-6)}`;
+        const generatedName = payload.machineName || payload.hostname || generatedAssetId;
+
+        const newEquipment: Equipment = {
+            id: generatedId,
+            name: generatedName,
+            assetId: generatedAssetId,
+            type: payload.type || 'Laptop',
+            model: payload.model || payload.os || 'Machine détectée',
+            status: 'Disponible',
+            assignmentStatus: 'NONE',
+            image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop',
+            user: scannedUser,
+            serialNumber: payload.serialNumber,
+            hostname: payload.hostname || payload.machineName,
+            os: payload.os,
+            ram: payload.ram,
+            storage: payload.storage,
+            country: scopedCountry,
+            site: scopedSite,
+            department: scopedService,
+            securityAgents: {
+                sentinelOne: payload.agents?.sentinelOne ?? false,
+                matrix42: payload.agents?.matrix42 ?? false,
+                manageEngine: payload.agents?.manageEngine ?? false,
+                lastCheckedAt: scannedAt,
+            },
+            notes: `Ajouté automatiquement via scan QR d'audit le ${new Date(now).toLocaleString('fr-FR')}.`,
+        };
+
+        setEquipment((prev) => [newEquipment, ...prev]);
+        logEvent({
+            type: 'CREATE',
+            actorId: currentUser?.id || 'system',
+            actorName: currentUser?.name || 'Système',
+            actorRole: currentUser?.role || 'SuperAdmin',
+            targetType: 'EQUIPMENT',
+            targetId: newEquipment.id,
+            targetName: newEquipment.name,
+            description: `Nouvel équipement ajouté depuis scan QR d'audit`,
+            metadata: {
+                source: 'audit_scan',
+                scopeCountry: scopedCountry,
+                scopeSite: scopedSite,
+                scopeService: scopedService,
+            },
+            isSystem: false,
+            isSensitive: false,
+        });
+
+        return {
+            ok: true,
+            resolution: 'created',
+            equipmentId: newEquipment.id,
+            equipmentName: newEquipment.name,
+            serviceMatches: true,
+            wasUpdated: true,
+            message: `Nouvelle machine ajoutée au stock (${newEquipment.assetId}).`,
+        };
+    }, [currentUser, equipment, logEvent, updateEquipment, users]);
+
+    const removeEquipmentFromServiceAfterAudit = useCallback((
+        equipmentId: string,
+        scope: { country: string; site: string; service: string },
+    ): boolean => {
+        const permissionDecision = canManageInventoryByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return false;
+        }
+
+        const item = equipment.find((entry) => entry.id === equipmentId);
+        if (!item) return false;
+
+        const note = `Audit: non retrouvé dans ${scope.service} (${scope.site}, ${scope.country}) le ${new Date().toLocaleDateString('fr-FR')}. Requalification IT requise.`;
+        const mergedNotes = item.notes ? `${item.notes}\n${note}` : note;
+
+        updateEquipment(
+            equipmentId,
+            {
+                department: undefined,
+                status: 'Manquant',
+                notes: mergedNotes,
+            },
+            {
+                source: 'audit_finalize',
+                reason: 'missing_in_service',
+                scopeCountry: scope.country,
+                scopeSite: scope.site,
+                scopeService: scope.service,
+            },
+        );
+
+        return true;
+    }, [currentUser?.role, equipment, updateEquipment]);
+
     const updateApproval = useCallback((id: string, status: ApprovalStatus): BusinessRuleDecision => {
         const oldApproval = approvals.find(a => a.id === id);
         if (!oldApproval) {
@@ -769,6 +1010,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- Location Management ---
     const addLocation = useCallback((type: 'country' | 'site' | 'service', name: string, parentId?: string) => {
+        const permissionDecision = canManageLocationsByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return false;
+        }
+
         let success = false;
         setLocationData(prev => {
             const newData = { ...prev };
@@ -790,9 +1036,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return newData;
         });
         return success;
-    }, []);
+    }, [currentUser?.role]);
 
     const renameLocation = useCallback((type: 'country' | 'site' | 'service', oldName: string, newName: string, parentId?: string) => {
+        const permissionDecision = canManageLocationsByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return false;
+        }
+
         let success = false;
         setLocationData(prev => {
             const newData = { ...prev };
@@ -832,9 +1083,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return newData;
         });
         return success;
-    }, [serviceManagers]);
+    }, [currentUser?.role, serviceManagers]);
 
     const deleteLocation = useCallback((type: 'country' | 'site' | 'service', name: string, parentId?: string) => {
+        const permissionDecision = canManageLocationsByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         setLocationData(prev => {
             const newData = { ...prev };
             if (type === 'country') {
@@ -853,30 +1109,60 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return newData;
         });
-    }, []);
+    }, [currentUser?.role]);
 
     const addCategory = useCallback((catData: Omit<Category, 'id'>) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         const newId = Date.now().toString();
         setCategories(prev => [...prev, { ...catData, id: newId }]);
-    }, []);
+    }, [currentUser?.role]);
     const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    }, []);
+    }, [currentUser?.role]);
     const deleteCategory = useCallback((id: string) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return false;
+        }
+
         setCategories(prev => prev.filter(c => c.id !== id));
         return true;
-    }, []);
+    }, [currentUser?.role]);
     const addModel = useCallback((modelData: Omit<Model, 'id'>) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         const newId = Date.now().toString();
         setModels(prev => [...prev, { ...modelData, id: newId }]);
-    }, []);
+    }, [currentUser?.role]);
     const updateModel = useCallback((id: string, updates: Partial<Model>) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+
         setModels(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    }, []);
+    }, [currentUser?.role]);
     const deleteModel = useCallback((id: string) => {
+        const permissionDecision = canManageSystemByRole(currentUser?.role);
+        if (!permissionDecision.allowed) {
+            return false;
+        }
+
         setModels(prev => prev.filter(m => m.id !== id));
         return true;
-    }, []);
+    }, [currentUser?.role]);
 
     const contextValue = useMemo(() => ({
         users,
@@ -894,6 +1180,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addEquipment,
         updateEquipment,
         deleteEquipment,
+        upsertEquipmentFromAuditScan,
+        removeEquipmentFromServiceAfterAudit,
         updateApproval,
         addApproval,
         logEvent,
@@ -908,7 +1196,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateModel,
         deleteModel,
         updateSettings,
-    }), [users, equipment, categories, models, approvals, events, locationData, serviceManagers, settings, addUser, updateUser, deleteUser, addEquipment, updateEquipment, deleteEquipment, updateApproval, addApproval, logEvent, addLocation, renameLocation, deleteLocation, assignManagerToService, addCategory, updateCategory, deleteCategory, addModel, updateModel, deleteModel, updateSettings]);
+    }), [users, equipment, categories, models, approvals, events, locationData, serviceManagers, settings, addUser, updateUser, deleteUser, addEquipment, updateEquipment, deleteEquipment, upsertEquipmentFromAuditScan, removeEquipmentFromServiceAfterAudit, updateApproval, addApproval, logEvent, addLocation, renameLocation, deleteLocation, assignManagerToService, addCategory, updateCategory, deleteCategory, addModel, updateModel, deleteModel, updateSettings]);
 
     return (
         <DataContext.Provider value={contextValue}>

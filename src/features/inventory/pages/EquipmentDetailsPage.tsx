@@ -149,6 +149,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         }
     };
 
+    const getStatusVariant = (status: string): 'success' | 'info' | 'warning' | 'danger' => {
+        if (status === 'Disponible') return 'success';
+        if (status === 'Attribué' || status === 'Assigné') return 'info';
+        if (status === 'En réparation' || status === 'Perdu' || status === 'Manquant') return 'danger';
+        return 'warning';
+    };
+
     const formatStatus = (status: string) => getStatusLabel(status, { short: true });
 
     const formatDate = (dateString: string | undefined) => {
@@ -283,7 +290,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     >
                         <div className="space-y-2 pt-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : item.status === 'En réparation' ? 'danger' : 'warning'}>
+                                <Badge variant={getStatusVariant(item.status)}>
                                     {formatStatus(item.status)}
                                 </Badge>
                                 <span className="inline-flex items-center rounded-xs border border-outline-variant bg-surface-container px-2 py-0.5 text-label-small text-on-surface-variant">{item.type}</span>
@@ -390,7 +397,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             className="border-b-0"
                             pretitle={(
                                 <div className="flex flex-wrap items-center gap-3">
-                                    <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : item.status === 'En réparation' ? 'danger' : 'warning'}>
+                                    <Badge variant={getStatusVariant(item.status)}>
                                         {formatStatus(item.status)}
                                     </Badge>
                                     <span className="text-on-surface-variant font-mono text-body-small bg-surface-container px-2 py-0.5 rounded-xs border border-outline-variant">{item.assetId}</span>
@@ -513,7 +520,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                     <p className="text-body-medium font-semibold text-on-surface truncate">{item.name}</p>
                                     <div className="flex items-center gap-2">
                                         <span className="text-label-small text-on-surface-variant font-mono truncate">{item.assetId}</span>
-                                        <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : item.status === 'En réparation' ? 'danger' : 'warning'}>
+                                        <Badge variant={getStatusVariant(item.status)}>
                                             {formatStatus(item.status)}
                                         </Badge>
                                     </div>

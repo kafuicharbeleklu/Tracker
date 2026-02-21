@@ -15,6 +15,7 @@ import SelectField from '../../../components/ui/SelectField';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import Modal from '../../../components/ui/Modal';
+import { buildCsvLine } from '../../../lib/csv';
 
 type EntityType = 'country' | 'site' | 'service';
 
@@ -163,14 +164,8 @@ const LocationsPage = () => {
         });
 
         const csvLines = [
-            headers.join(';'),
-            ...rows.map((row) => row.map((cell) => {
-                const normalized = (cell || '').replace(/\r?\n/g, ' ').trim();
-                if (/[",;]/.test(normalized)) {
-                    return `"${normalized.replace(/"/g, '""')}"`;
-                }
-                return normalized;
-            }).join(';')),
+            buildCsvLine(headers),
+            ...rows.map((row) => buildCsvLine(row)),
         ];
 
         const blob = new Blob([`\uFEFF${csvLines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });

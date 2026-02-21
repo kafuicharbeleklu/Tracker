@@ -8,6 +8,7 @@ import Button from '../../../components/ui/Button';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../../config';
+import { buildCsvLine } from '../../../lib/csv';
 
 type CsvExportRow = Record<string, string | number | null | undefined>;
 
@@ -50,9 +51,12 @@ const ReportsPage = () => {
         }
 
         // Création du CSV
-        const headers = Object.keys(dataToExport[0]).join(',');
-        const rows = dataToExport.map(row => Object.values(row).map(v => `"${v}"`).join(','));
-        const csvContent = [headers, ...rows].join('\n');
+        const headers = Object.keys(dataToExport[0]);
+        const rows = dataToExport.map((row) => Object.values(row));
+        const csvContent = [
+            buildCsvLine(headers, ','),
+            ...rows.map((row) => buildCsvLine(row, ',')),
+        ].join('\n');
 
         // Déclenchement du téléchargement
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -63,6 +67,7 @@ const ReportsPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
         showToast(`Export CSV "${filename}" téléchargé`, 'success');
     };

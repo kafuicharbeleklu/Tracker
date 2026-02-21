@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authSource, setAuthSource] = useState<'msal' | 'demo' | null>(null);
 
   /**
    * CORE AUTH VERIFICATION LOGIC (Level 2)
@@ -42,11 +43,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
 
     try {
-      // In a real app, we would acquire a token silently here:
-      // const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
-      const mockAccessToken = "mock_token";
+      let accessToken = '';
+      const primaryAccount = accounts[0];
+      if (primaryAccount) {
+        try {
+          const tokenResponse = await instance.acquireTokenSilent({
+            ...loginRequest,
+            account: primaryAccount,
+          });
+          accessToken = tokenResponse.accessToken;
+        } catch (tokenError) {
+          console.warn('[AuthContext] Silent token acquisition failed', tokenError);
+        }
+      }
 
-      const result = await authService.verifyUser(mockAccessToken, email);
+      const result = await authService.verifyUser(accessToken, email);
 
       if (result.success && result.user) {
         // Map SharePoint User to App User
@@ -65,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(appUser);
         setNeedsPasswordChange(!!result.needsPasswordChange);
         setAccessDenied(false);
+        setAuthSource('msal');
 
       } else {
         console.warn(`[AuthContext] Access Denied: ${result.error}`);
@@ -80,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, [showToast]);
+  }, [accounts, instance, showToast]);
 
   // Check auth status (exposed for re-checks after password change)
   const checkAuthStatus = async () => {
@@ -93,8 +105,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (accounts.length > 0 && !currentUser && !accessDenied) {
       verifyUserWithBackend(accounts[0].username);
+      return;
     }
-  }, [accounts, verifyUserWithBackend, currentUser, accessDenied]);
+
+    // If an MSAL-backed session loses its account, force local logout state.
+    if (accounts.length === 0 && authSource === 'msal') {
+      setCurrentUser(null);
+      setNeedsPasswordChange(false);
+      setAccessDenied(false);
+      setAuthSource(null);
+    }
+  }, [accounts, verifyUserWithBackend, currentUser, accessDenied, authSource]);
 
   const login = (email: string) => {
     // Dev/Mock login
@@ -108,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       setNeedsPasswordChange(false);
       setAccessDenied(false);
+      setAuthSource('demo');
     } else {
       console.error("User not found for simulation");
       showToast("Utilisateur de démonstration introuvable.", "error");
@@ -134,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
     setNeedsPasswordChange(false);
     setAccessDenied(false);
+    setAuthSource(null);
     sessionStorage.clear();
   };
 

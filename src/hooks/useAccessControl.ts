@@ -11,6 +11,7 @@ export const useAccessControl = () => {
     // Inventory
     canViewInventory: true, // Everyone can see inventory (filtered)
     canManageInventory: role === 'SuperAdmin' || role === 'Admin', // Create/Edit/Delete
+    canManageFinance: role === 'SuperAdmin' || role === 'Admin',
 
     // Users
     canViewUsers: role === 'SuperAdmin' || role === 'Admin' || role === 'Manager',

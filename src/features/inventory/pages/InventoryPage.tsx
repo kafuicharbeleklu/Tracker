@@ -19,7 +19,8 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useToast } from '../../../context/ToastContext';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import { useConfirmation } from '../../../context/ConfirmationContext';
-import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
+import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/businessRules';
+import { buildCsvLine } from '../../../lib/csv';
 
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'inventory_search';
@@ -82,6 +83,36 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         });
     }, [accessibleEquipment, debouncedSearch, statusFilter]);
 
+    const statusFilterOptions = useMemo(() => {
+        const preferredOrder = [
+            'Disponible',
+            'Attribué',
+            'En attente',
+            'En réparation',
+            'En maintenance préventive',
+            'Manquant',
+            'Perdu',
+            'Retiré',
+            'Réformé',
+        ];
+
+        const seen = new Set<string>();
+        const dynamicStatuses = accessibleEquipment
+            .map((item) => item.status)
+            .filter(Boolean)
+            .filter((status): status is string => {
+                if (seen.has(status)) return false;
+                seen.add(status);
+                return true;
+            });
+
+        const merged = [...new Set([...preferredOrder, ...dynamicStatuses])];
+        return merged.map((status) => ({
+            value: status,
+            label: getStatusLabel(status),
+        }));
+    }, [accessibleEquipment]);
+
     useEffect(() => {
         setSelectedEquipmentIds((prev) => {
             const filteredIds = new Set(filteredEquipment.map((item) => item.id));
@@ -103,15 +134,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             currentPage * ITEMS_PER_PAGE
         );
     }, [filteredEquipment, currentPage]);
-    const escapeCsv = (value: unknown): string => {
-        const raw = value === null || value === undefined ? '' : String(value);
-        const normalized = raw.replace(/\r?\n/g, ' ').trim();
-        if (/[",;]/.test(normalized)) {
-            return `"${normalized.replace(/"/g, '""')}"`;
-        }
-        return normalized;
-    };
-
     const handleExport = (itemsToExport = filteredEquipment) => {
         if (itemsToExport.length === 0) {
             showToast('Aucune donnée à exporter avec les filtres actuels.', 'info');
@@ -153,8 +175,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         ]);
 
         const csvContent = [
-            headers.join(';'),
-            ...rows.map(row => row.map(cell => escapeCsv(cell)).join(';'))
+            buildCsvLine(headers),
+            ...rows.map(row => buildCsvLine(row))
         ].join('\n');
 
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
@@ -332,12 +354,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                             value={statusFilter}
                             onChange={setStatusFilter}
                             placeholder="Tous les statuts"
-                            options={[
-                                { value: 'Disponible', label: 'Disponible' },
-                                { value: 'Attribué', label: 'Attribué' },
-                                { value: 'En attente', label: 'En attente' },
-                                { value: 'En réparation', label: 'En réparation' },
-                            ]}
+                            options={statusFilterOptions}
                             className="w-full medium:w-64"
                         />
                         {(statusFilter || searchQuery) && (

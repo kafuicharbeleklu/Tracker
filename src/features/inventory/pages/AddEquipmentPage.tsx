@@ -27,6 +27,24 @@ const GLOBAL_FINANCIAL_SETTINGS = {
     salvagePercent: 0
 };
 
+const EQUIPMENT_STATUS_OPTIONS = [
+    { value: 'Disponible', label: 'Disponible' },
+    { value: 'Attribué', label: 'Attribué' },
+    { value: 'En attente', label: 'En attente' },
+    { value: 'En réparation', label: 'En réparation' },
+    { value: 'En maintenance préventive', label: 'En maintenance préventive' },
+    { value: 'Manquant', label: 'Manquant' },
+    { value: 'Perdu', label: 'Perdu' },
+    { value: 'Retiré', label: 'Retiré' },
+    { value: 'Réformé', label: 'Réformé' },
+];
+
+const OPERATIONAL_STATUS_OPTIONS = [
+    { value: 'Actif', label: 'Actif' },
+    { value: 'Inactif', label: 'Inactif' },
+    { value: 'Retiré', label: 'Retiré' },
+];
+
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
     const { locationData, categories, equipment, addEquipment, updateEquipment, settings } = useData();
@@ -499,6 +517,20 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 onChange={handleChange}
                                 disabled={!formData.country}
                                 placeholder={!formData.country ? "Sélectionnez un pays" : "Choisir un site"}
+                            />
+                            <SelectField
+                                label="Statut inventaire"
+                                name="status"
+                                options={EQUIPMENT_STATUS_OPTIONS}
+                                value={formData.status}
+                                onChange={handleChange}
+                            />
+                            <SelectField
+                                label="Statut opérationnel"
+                                name="operationalStatus"
+                                options={OPERATIONAL_STATUS_OPTIONS}
+                                value={formData.operationalStatus}
+                                onChange={handleChange}
                             />
                         </div>
                     </section>

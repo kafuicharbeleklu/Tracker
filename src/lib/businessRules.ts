@@ -39,6 +39,15 @@ export const canManageInventoryByRole = (actorRole?: UserRole): BusinessRuleDeci
 export const canManageFinanceByRole = (actorRole?: UserRole): BusinessRuleDecision =>
     buildAdministrativeGuardDecision(actorRole, 'Finances');
 
+export const canManageUsersByRole = (actorRole?: UserRole): BusinessRuleDecision =>
+    buildAdministrativeGuardDecision(actorRole, 'Utilisateurs');
+
+export const canManageSystemByRole = (actorRole?: UserRole): BusinessRuleDecision =>
+    buildAdministrativeGuardDecision(actorRole, 'Gestion');
+
+export const canManageLocationsByRole = (actorRole?: UserRole): BusinessRuleDecision =>
+    buildAdministrativeGuardDecision(actorRole, 'Emplacements');
+
 interface ApprovalTransitionContext {
     approval: Approval;
     nextStatus: ApprovalStatus;
@@ -172,6 +181,7 @@ const STATUS_DISPLAY_LABELS: Record<string, { default: string; short?: string }>
     Retiré: { default: 'Retiré' },
     Perdu: { default: 'Perdu' },
     Réformé: { default: 'Réformé' },
+    Manquant: { default: 'Manquant' },
 
     // Approval
     Pending: { default: 'En attente' },

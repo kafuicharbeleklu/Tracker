@@ -149,7 +149,17 @@ export interface Equipment {
   assetId: string;
   type: string; // Linked to Category name
   model: string;
-  status: 'Disponible' | 'Attribué' | 'En attente' | 'En réparation' | string;
+  status:
+    | 'Disponible'
+    | 'Attribué'
+    | 'En attente'
+    | 'En réparation'
+    | 'En maintenance préventive'
+    | 'Retiré'
+    | 'Perdu'
+    | 'Réformé'
+    | 'Manquant'
+    | string;
 
   // 3.2 - Workflow Status & Traçabilité
   assignmentStatus?: AssignmentStatus;
@@ -192,6 +202,12 @@ export interface Equipment {
   os?: string;
   ram?: string;
   storage?: string;
+  securityAgents?: {
+    sentinelOne: boolean;
+    matrix42: boolean;
+    manageEngine: boolean;
+    lastCheckedAt: string;
+  };
 
   // Financial & Dates
   financial?: FinancialData; // New Financial Object
@@ -323,6 +339,41 @@ export interface AuditCountryStats {
   sites: number;
   completed: number;
   total: number;
+}
+
+export interface AuditScanPayload {
+  machineName?: string;
+  hostname?: string;
+  assetId?: string;
+  serialNumber?: string;
+  os?: string;
+  ram?: string;
+  storage?: string;
+  type?: string;
+  model?: string;
+  userName?: string;
+  userEmail?: string;
+  country?: string;
+  site?: string;
+  service?: string;
+  scannedAt?: string;
+  agents?: {
+    sentinelOne?: boolean;
+    matrix42?: boolean;
+    manageEngine?: boolean;
+  };
+}
+
+export type AuditScanResolution = 'found_in_service' | 'found_out_of_service' | 'created';
+
+export interface AuditScanResult {
+  ok: boolean;
+  resolution?: AuditScanResolution;
+  equipmentId?: string;
+  equipmentName?: string;
+  serviceMatches?: boolean;
+  wasUpdated?: boolean;
+  message: string;
 }
 
 // --- HISTORY & EVENTS (Phase 3) ---

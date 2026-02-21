@@ -2,7 +2,17 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import { getStatusLabel } from '../../lib/businessRules';
 
-type EquipmentStatus = 'Disponible' | 'Attribué' | 'Assigné' | 'En attente' | 'En réparation';
+type EquipmentStatus =
+  | 'Disponible'
+  | 'Attribué'
+  | 'Assigné'
+  | 'En attente'
+  | 'En réparation'
+  | 'En maintenance préventive'
+  | 'Retiré'
+  | 'Perdu'
+  | 'Réformé'
+  | 'Manquant';
 type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected' | 'Completed' | 'Cancelled';
 type UrgencyStatus = 'low' | 'normal' | 'high';
 
@@ -22,6 +32,11 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label?: string }
   'Assigné': { bg: 'bg-secondary-container', text: 'text-on-secondary-container' },
   'En attente': { bg: 'bg-primary-container', text: 'text-on-primary-container' },
   'En réparation': { bg: 'bg-error-container', text: 'text-on-error-container', label: 'En réparation' },
+  'En maintenance préventive': { bg: 'bg-secondary-container', text: 'text-on-secondary-container' },
+  'Retiré': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
+  'Perdu': { bg: 'bg-error-container', text: 'text-on-error-container' },
+  'Réformé': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
+  'Manquant': { bg: 'bg-error-container', text: 'text-on-error-container' },
 
   // Approvals
   'Pending': { bg: 'bg-primary-container', text: 'text-on-primary-container', label: 'En attente' },

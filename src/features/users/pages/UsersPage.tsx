@@ -21,6 +21,7 @@ import ListActionFab from '../../../components/ui/ListActionFab';
 import { APP_CONFIG } from '../../../config';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
+import { buildCsvLine } from '../../../lib/csv';
 
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'users_search';
@@ -114,15 +115,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
     return depts.map(d => ({ value: d, label: d }));
   }, [users]);
 
-  const escapeCsv = (value: unknown): string => {
-    const raw = value === null || value === undefined ? '' : String(value);
-    const normalized = raw.replace(/\r?\n/g, ' ').trim();
-    if (/[",;]/.test(normalized)) {
-      return `"${normalized.replace(/"/g, '""')}"`;
-    }
-    return normalized;
-  };
-
   const handleExport = (itemsToExport = filteredUsers) => {
     if (itemsToExport.length === 0) {
       showToast('Aucune donnée à exporter avec les filtres actuels.', 'info');
@@ -142,8 +134,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
     ]);
 
     const csvContent = [
-      headers.join(';'),
-      ...rows.map(row => row.map(cell => escapeCsv(cell)).join(';'))
+      buildCsvLine(headers),
+      ...rows.map(row => buildCsvLine(row))
     ].join('\n');
 
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });

@@ -9,6 +9,7 @@ import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { APP_CONFIG } from '../../config';
+import { useAccessControl } from '../../hooks/useAccessControl';
 
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
@@ -58,6 +59,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const useRailNavigation = isMedium || isCompactLandscape;
 
     const { currentView, selectedId: selectedItemId, navigateToView, navigateToItem, goBack } = useAppNavigation();
+    const { permissions } = useAccessControl();
     const [inventoryFilter, setInventoryFilter] = useState<string | null>(null);
 
     const handleViewChange = (view: ViewType) => {
@@ -138,6 +140,48 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     }, [isExpandedUp, isMobileMenuOpen]);
 
     const renderContent = () => {
+        const canAccessView = (view: ViewType): boolean => {
+            if (view === 'add_equipment' || view === 'edit_equipment' || view === 'import_equipment') {
+                return permissions.canManageInventory;
+            }
+            if (view === 'assignment_wizard' || view === 'return_wizard') {
+                return permissions.canManageInventory;
+            }
+            if (view === 'users' || view === 'user_details') return permissions.canViewUsers;
+            if (view === 'add_user' || view === 'edit_user' || view === 'import_users' || view === 'admin_users') {
+                return permissions.canManageUsers;
+            }
+            if (view === 'finance') return permissions.canManageFinance;
+            if (
+                view === 'management'
+                || view === 'add_category'
+                || view === 'add_model'
+                || view === 'import_models'
+                || view === 'category_details'
+                || view === 'model_details'
+            ) {
+                return permissions.canManageSystem;
+            }
+            if (view === 'locations' || view === 'import_locations') return permissions.canManageLocations;
+            if (view === 'audit' || view === 'audit_details') return permissions.canManageAudit;
+            if (view === 'reports') return permissions.canViewReports;
+            return true;
+        };
+
+        if (!canAccessView(currentView)) {
+            return (
+                <div className="p-8 text-center">
+                    <h2 className="text-display-small mb-4">Accès refusé</h2>
+                    <p className="text-body-large text-on-surface-variant mb-6">
+                        Vous n'avez pas les permissions nécessaires pour cette page.
+                    </p>
+                    <Button variant="filled" onClick={() => handleViewChange('dashboard')}>
+                        Retour au tableau de bord
+                    </Button>
+                </div>
+            );
+        }
+
         switch (currentView) {
             case 'dashboard':
                 return <DashboardPage onViewChange={handleViewChange} onNavigate={handleNavigate} />;
