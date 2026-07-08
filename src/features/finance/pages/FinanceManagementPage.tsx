@@ -1,6 +1,8 @@
 
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useMemo, useEffect } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
+import DemoBadge from '../../../components/ui/DemoBadge';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import Card from '../../../components/ui/Card';
@@ -14,7 +16,7 @@ import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { AddBudgetModal } from '../components/AddBudgetModal';
-import { PageTabs, TabItem } from '../../../components/ui/PageTabs';
+import { PageTabs, TabItem, getTabElementId, getTabPanelId } from '../../../components/ui/PageTabs';
 import SelectField from '../../../components/ui/SelectField';
 import InputField from '../../../components/ui/InputField';
 import Modal from '../../../components/ui/Modal';
@@ -34,6 +36,7 @@ const MOCK_LOCATION_VALUE = [
     { country: 'Togo', value: 25000, percent: 17, color: 'var(--md-sys-color-tertiary)' },
 ];
 type FinanceView = 'overview' | 'expenses' | 'budget';
+const FINANCE_TABS_ID_BASE = 'finance-main-tabs';
 
 // Fonction simple simulant une classification IA
 const classifyBudgetLine = (category: string, amount: number): 'CAPEX' | 'OPEX' => {
@@ -155,7 +158,7 @@ const FinanceManagementPage = () => {
         description: '',
         invoiceNumber: '',
     });
-    const isCompact = useMediaQuery('(max-width: 599px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
 
     // Budget State
     const [selectedYear, setSelectedYear] = useState<number>(() => {
@@ -681,7 +684,13 @@ const FinanceManagementPage = () => {
                     />
                 </div>
 
-                <PageTabs items={tabs} activeId={activeView} onChange={handleTabChange} />
+                <PageTabs
+                    items={tabs}
+                    activeId={activeView}
+                    onChange={handleTabChange}
+                    idBase={FINANCE_TABS_ID_BASE}
+                    ariaLabel="Navigation finance"
+                />
             </div>
 
             {/* Main Content Area */}
@@ -719,7 +728,12 @@ const FinanceManagementPage = () => {
                         )}
 
                         {activeView === 'overview' && (
-                            <div className="space-y-8">
+                            <section
+                                role="tabpanel"
+                                id={getTabPanelId(FINANCE_TABS_ID_BASE, 'overview')}
+                                aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'overview')}
+                                className="space-y-8"
+                            >
                                 {/* SECTION 1: TOP KPIS */}
                                 <div className="grid grid-cols-1 expanded:grid-cols-12 gap-4">
                                     <div className="expanded:col-span-5 bg-primary-container/35 rounded-card p-6 border border-primary/25 shadow-elevation-2">
@@ -730,33 +744,26 @@ const FinanceManagementPage = () => {
                                         <p className="text-display-small text-on-surface leading-none">
                                             {formatCurrency(stats.current, settings.currency, settings.compactNotation)}
                                         </p>
-                                        <div className="mt-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-error-container text-error text-label-small">
-                                            <MaterialIcon name="trending_down" size={14} />
-                                            -2.4% net comptable
-                                        </div>
+                                        <p className="mt-4 text-label-small text-on-primary-container/80">
+                                            Valeur nette comptable après amortissement
+                                        </p>
                                     </div>
 
                                     <div className="expanded:col-span-7 grid grid-cols-1 medium:grid-cols-3 gap-4">
                                         <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
                                             <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Amortissement mensuel</p>
                                             <p className="text-headline-small text-on-surface mt-2">{formatCurrency(stats.monthlyDep, settings.currency, settings.compactNotation)}</p>
-                                            <p className="inline-flex items-center gap-1 text-label-small text-error mt-2">
-                                                <MaterialIcon name="trending_up" size={14} />
-                                                +0.8% charge estimée
-                                            </p>
+                                            <p className="text-label-small text-on-surface-variant mt-2">Charge mensuelle calculée</p>
                                         </div>
                                         <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
                                             <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Efficacité des actifs</p>
                                             <p className="text-headline-small text-on-surface mt-2">{stats.efficiency.toFixed(1)}%</p>
-                                            <p className="inline-flex items-center gap-1 text-label-small text-tertiary mt-2">
-                                                <MaterialIcon name="trending_up" size={14} />
-                                                +1.2% ROI optimisé
-                                            </p>
+                                            <p className="text-label-small text-on-surface-variant mt-2">Valeur résiduelle du parc</p>
                                         </div>
                                         <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
                                             <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Risque fin de vie</p>
                                             <p className="text-headline-small text-on-surface mt-2">{stats.criticalRenew}</p>
-                                            <p className="text-label-small text-error mt-2">14 actifs à traiter</p>
+                                            <p className="text-label-small text-error mt-2">Amortis à plus de 85 %</p>
                                         </div>
                                     </div>
                                 </div>
@@ -806,14 +813,19 @@ const FinanceManagementPage = () => {
                                         </div>
                                         <div className="mt-4 p-4 bg-secondary-container rounded-xl border border-secondary/20 flex items-start gap-3">
                                             <MaterialIcon name="auto_awesome" size={18} className="text-secondary shrink-0 mt-0.5" />
-                                            <p className="text-xs text-on-secondary-container leading-relaxed">
-                                                <strong>IA Note :</strong> La valeur du parc atteindra son point d'équilibre en <strong>Mai</strong>. Prévoyez une injection de capital pour maintenir la santé technologique.
+                                            <p className="text-body-small text-on-secondary-container leading-relaxed">
+                                                <strong>IA Note :</strong>{' '}
+                                                <DemoBadge className="align-middle mr-1" title="Analyse illustrative de démonstration — non générée par un moteur d'analyse" />
+                                                La valeur du parc atteindra son point d'équilibre en <strong>Mai</strong>. Prévoyez une injection de capital pour maintenir la santé technologique.
                                             </p>
                                         </div>
                                     </Card>
 
                                     {/* DISTRIBUTION PAR PAYS */}
                                     <Card title="Valeur par Entité">
+                                        <div className="flex justify-end pt-2">
+                                            <DemoBadge title="Répartition d'exemple — la ventilation réelle par entité n'est pas encore calculée" />
+                                        </div>
                                         <div className="space-y-6 pt-4">
                                             {MOCK_LOCATION_VALUE.map((loc, i) => (
                                                 <div key={i} className="group cursor-pointer">
@@ -823,11 +835,11 @@ const FinanceManagementPage = () => {
                                                                 <MaterialIcon name="language" size={14} className="text-on-surface-variant" />
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-bold text-on-surface">{loc.country}</p>
+                                                                <p className="text-label-large font-bold text-on-surface">{loc.country}</p>
                                                                 <p className="text-label-small text-on-surface-variant font-bold uppercase">{formatCurrency(loc.value, settings.currency, settings.compactNotation)}</p>
                                                             </div>
                                                         </div>
-                                                        <span className="text-sm font-black text-on-surface">{loc.percent}%</span>
+                                                        <span className="text-body-medium font-black text-on-surface">{loc.percent}%</span>
                                                     </div>
                                                     <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
                                                         <div
@@ -838,21 +850,26 @@ const FinanceManagementPage = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                        <Button variant="outlined" className="w-full mt-8 border-dashed text-on-surface-variant text-xs font-bold uppercase tracking-widest hover:text-primary">
+                                        <Button variant="outlined" className="w-full mt-8 border-dashed text-on-surface-variant text-label-medium font-bold uppercase tracking-widest hover:text-primary">
                                             Voir le détail complet
                                         </Button>
                                     </Card>
                                 </div>
-                            </div>
+                            </section>
                         )}
 
                         {activeView === 'expenses' && (
-                            <div className="space-y-8">
+                            <section
+                                role="tabpanel"
+                                id={getTabPanelId(FINANCE_TABS_ID_BASE, 'expenses')}
+                                aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'expenses')}
+                                className="space-y-8"
+                            >
                                 <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
                                     <div className="bg-gradient-to-br from-primary to-primary/80 rounded-card p-6 text-on-primary shadow-elevation-3">
                                         <p className="text-label-small uppercase font-bold opacity-70 mb-2">Total Dépenses Q1</p>
                                         <div className="text-headline-medium font-black mb-1">{formatCurrency(q1Expenses, settings.currency, settings.compactNotation)}</div>
-                                        <div className="flex items-center gap-2 text-xs font-medium bg-on-primary/20 w-fit px-2 py-1 rounded-lg">
+                                        <div className="flex items-center gap-2 text-label-medium font-medium bg-on-primary/20 w-fit px-2 py-1 rounded-lg">
                                             <MaterialIcon name="schedule" size={14} /> Exercice {currentYear}
                                         </div>
                                     </div>
@@ -862,7 +879,7 @@ const FinanceManagementPage = () => {
                                         <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden mt-3">
                                             <div className="bg-tertiary h-full" style={{ width: `${spentPercent}%` }} />
                                         </div>
-                                        <p className="text-xs text-on-surface-variant mt-2 text-right">{spentPercent.toFixed(1)}% consommé</p>
+                                        <p className="text-body-small text-on-surface-variant mt-2 text-right">{spentPercent.toFixed(1)}% consommé</p>
                                     </div>
                                     <div
                                         onClick={() => setIsAddExpenseModalOpen(true)}
@@ -872,15 +889,15 @@ const FinanceManagementPage = () => {
                                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
                                             <MaterialIcon name="add" size={20} />
                                         </div>
-                                        <p className="font-bold text-on-surface text-sm">Nouvelle Dépense</p>
+                                        <p className="font-bold text-on-surface text-label-large">Nouvelle Dépense</p>
                                         <p className="text-label-small text-on-surface-variant">Scanner facture ou saisie manuelle</p>
                                     </div>
                                 </div>
 
                                 <Card title="Historique des Transactions">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-xs">
+                                    <div className="hidden medium:block overflow-x-auto">
+                                        <table className="w-full text-body-medium text-left">
+                                            <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
                                                 <tr>
                                                     <th className="px-6 py-4">Date</th>
                                                     <th className="px-6 py-4">Fournisseur</th>
@@ -899,7 +916,7 @@ const FinanceManagementPage = () => {
                                                             className="hover:bg-surface-container/50 transition-colors group cursor-pointer"
                                                             onClick={() => setSelectedExpense(exp)}
                                                         >
-                                                            <td className="px-6 py-4 text-on-surface-variant font-mono text-xs whitespace-nowrap">
+                                                            <td className="px-6 py-4 text-on-surface-variant font-mono text-body-small whitespace-nowrap">
                                                                 {formatExpenseDate(exp.date)}
                                                             </td>
                                                             <td className="px-6 py-4 font-bold text-on-surface whitespace-nowrap">
@@ -913,7 +930,7 @@ const FinanceManagementPage = () => {
                                                             <td className="px-6 py-4">
                                                                 <div className="flex items-center gap-2">
                                                                     <MaterialIcon name={getExpenseTypeIcon(exp.type)} size={14} className="text-on-surface-variant" />
-                                                                    <span className="text-xs font-medium whitespace-nowrap">{EXPENSE_TYPE_LABELS[exp.type]}</span>
+                                                                    <span className="text-label-medium font-medium whitespace-nowrap">{EXPENSE_TYPE_LABELS[exp.type]}</span>
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 font-bold text-on-surface text-right tabular-nums whitespace-nowrap">
@@ -950,18 +967,87 @@ const FinanceManagementPage = () => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Vue cartes (compact) — Historique des transactions */}
+                                    <div className="medium:hidden divide-y divide-outline-variant">
+                                        {financeExpenses.length > 0 ? (
+                                            financeExpenses.map((exp) => (
+                                                <div
+                                                    key={exp.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => setSelectedExpense(exp)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter' || event.key === ' ') {
+                                                            event.preventDefault();
+                                                            setSelectedExpense(exp);
+                                                        }
+                                                    }}
+                                                    className="p-4 space-y-2 cursor-pointer hover:bg-surface-container/50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <span className="font-bold text-on-surface min-w-0 truncate">{exp.supplier}</span>
+                                                        <Badge variant={getExpenseStatusVariant(exp.status)}>
+                                                            {getExpenseStatusLabel(exp.status)}
+                                                        </Badge>
+                                                    </div>
+                                                    {exp.description && (
+                                                        <p className="text-body-small text-on-surface-variant truncate" title={exp.description}>
+                                                            {toExpenseDescriptionPreview(exp.description)}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 text-label-small text-on-surface-variant min-w-0">
+                                                            <span className="font-mono whitespace-nowrap">{formatExpenseDate(exp.date)}</span>
+                                                            <span className="inline-flex items-center gap-1 truncate">
+                                                                <MaterialIcon name={getExpenseTypeIcon(exp.type)} size={14} />
+                                                                {EXPENSE_TYPE_LABELS[exp.type]}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-bold text-on-surface tabular-nums whitespace-nowrap">
+                                                            {formatExpenseAmount(exp.amount, exp.currencyCode || settings.currency)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-end">
+                                                        <Button
+                                                            variant="text"
+                                                            size="sm"
+                                                            className="h-9 min-w-0 px-2 rounded-full text-error hover:bg-error-container/40"
+                                                            aria-label={`Supprimer la dépense ${exp.id}`}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                handleDeleteExpense(exp);
+                                                            }}
+                                                            icon={<MaterialIcon name="delete" size={16} />}
+                                                        >
+                                                            Supprimer
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="px-6 py-10 text-center text-on-surface-variant">
+                                                Aucune dépense enregistrée pour le moment.
+                                            </div>
+                                        )}
+                                    </div>
                                 </Card>
-                            </div>
+                            </section>
                         )}
 
                         {activeView === 'budget' && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-macro">
+                            <section
+                                role="tabpanel"
+                                id={getTabPanelId(FINANCE_TABS_ID_BASE, 'budget')}
+                                aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'budget')}
+                                className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-macro"
+                            >
                                 {/* Summary Cards */}
                                 <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
                                     <div className="bg-surface rounded-card p-6 border border-outline-variant shadow-elevation-1 flex flex-col justify-between">
                                         <p className="text-label-small text-on-surface-variant uppercase font-black tracking-widest mb-2">Budget Total {selectedYear}</p>
                                         <div className="text-headline-medium font-black text-on-surface">{formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)}</div>
-                                        <div className="flex items-center gap-2 mt-4 text-xs font-bold text-on-surface-variant">
+                                        <div className="flex items-center gap-2 mt-4 text-label-medium font-bold text-on-surface-variant">
                                             <span className={cn("px-2 py-0.5 rounded text-label-small uppercase", currentBudget.status === 'En cours' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container')}>
                                                 {currentBudget.status}
                                             </span>
@@ -1030,8 +1116,8 @@ const FinanceManagementPage = () => {
                                             </Button>
                                         </div>
                                     </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
+                                    <div className="hidden medium:block overflow-x-auto">
+                                        <table className="w-full text-body-medium text-left">
                                             <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-small tracking-widest">
                                                 <tr>
                                                     <th className="px-6 py-4">Catégorie</th>
@@ -1102,6 +1188,65 @@ const FinanceManagementPage = () => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Vue cartes (compact) — table simplifiée en mobile */}
+                                    <div className="medium:hidden divide-y divide-outline-variant">
+                                        {currentBudget.items.map((item, idx) => {
+                                            const itemPercent = (item.spent / item.allocated) * 100;
+                                            const itemRemaining = item.allocated - item.spent;
+                                            const budgetType = classifyBudgetLine(item.category, item.allocated);
+                                            return (
+                                                <div key={idx} className="p-4 space-y-3">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className={cn(
+                                                                "p-2 rounded-lg shrink-0",
+                                                                item.type === 'Purchase' ? "bg-secondary-container text-secondary" :
+                                                                    item.type === 'License' ? "bg-secondary-container text-on-secondary-container" :
+                                                                        item.type === 'Cloud' ? "bg-tertiary-container text-tertiary" : "bg-surface-container text-on-surface-variant"
+                                                            )}>
+                                                                {item.type === 'Purchase' && <MaterialIcon name="work" size={16} />}
+                                                                {item.type === 'License' && <MaterialIcon name="vpn_key" size={16} />}
+                                                                {item.type === 'Cloud' && <MaterialIcon name="cloud_upload" size={16} />}
+                                                                {item.type === 'Maintenance' && <MaterialIcon name="build" size={16} />}
+                                                                {item.type === 'Service' && <MaterialIcon name="layers" size={16} />}
+                                                            </div>
+                                                            <span className="font-bold text-on-surface truncate">{item.category}</span>
+                                                        </div>
+                                                        <Badge variant={budgetType === 'CAPEX' ? 'info' : 'warning'}>
+                                                            {budgetType}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                                        <div>
+                                                            <p className="text-label-small text-on-surface-variant uppercase">Alloué</p>
+                                                            <p className="font-medium text-on-surface-variant">{formatCurrency(item.allocated, settings.currency, settings.compactNotation)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-label-small text-on-surface-variant uppercase">Dépensé</p>
+                                                            <p className="font-bold text-on-surface">{formatCurrency(item.spent, settings.currency, settings.compactNotation)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-label-small text-on-surface-variant uppercase">Restant</p>
+                                                            <p className={cn("font-bold", itemRemaining < 0 ? "text-error" : "text-tertiary")}>{formatCurrency(itemRemaining, settings.currency, settings.compactNotation)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={cn(
+                                                                    "h-full rounded-full",
+                                                                    itemPercent > 100 ? "bg-error" : itemPercent > 80 ? "bg-secondary" : "bg-tertiary"
+                                                                )}
+                                                                style={{ width: `${Math.min(itemPercent, 100)}%` }}
+                                                            />
+                                                        </div>
+                                                        <div className="text-label-small text-on-surface-variant mt-1 font-medium text-right">{itemPercent.toFixed(0)}% utilisé</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 <div
@@ -1112,11 +1257,11 @@ const FinanceManagementPage = () => {
                                         <MaterialIcon name="table_chart" size={24} />
                                     </div>
                                     <h3 className="font-bold text-on-surface">Importer un nouveau budget</h3>
-                                    <p className="text-sm text-on-surface-variant mt-1">
+                                    <p className="text-body-medium text-on-surface-variant mt-1">
                                         Écrasez les données actuelles en important un fichier Excel validé pour l'année en cours.
                                     </p>
                                 </div>
-                            </div>
+                            </section>
                         )}
                     </div>
                 </PageContainer>

@@ -303,7 +303,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                     <div className="h-2 bg-surface-container rounded-full overflow-hidden">
                                         <div className="h-full bg-tertiary animate-[width_2s_var(--md-sys-motion-easing-emphasized)_infinite]" style={{ width: '60%' }} />
                                     </div>
-                                    <div className="flex justify-between text-xs text-on-surface-variant font-bold">
+                                    <div className="flex justify-between text-label-medium text-on-surface-variant font-bold">
                                         <span>Analyse structurelle...</span>
                                         <span>60%</span>
                                     </div>
@@ -311,10 +311,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             </div>
 
                             <div className="w-full bg-surface-container rounded-xl p-4 border border-outline-variant text-left space-y-2">
-                                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-sm text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargÃ©</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-sm text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> DÃ©tection de l'exercice fiscal</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-sm text-on-surface-variant"><MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" /> Extraction des lignes budgÃ©taires...</span>
+                                <p className="text-label-medium font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargÃ©</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> DÃ©tection de l'exercice fiscal</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" /> Extraction des lignes budgÃ©taires...</span>
                             </div>
                         </div>
                     )}
@@ -328,10 +328,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><MaterialIcon name="auto_awesome" size={16} /></div>
                                 <div>
-                                    <p className="text-xs font-bold text-on-tertiary-container uppercase">DonnÃ©es prÃ©-remplies par IA</p>
-                                    <p className="text-xs text-tertiary">VÃ©rifiez les montants ci-dessous.</p>
+                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">DonnÃ©es prÃ©-remplies par IA</p>
+                                    <p className="text-body-small text-tertiary">VÃ©rifiez les montants ci-dessous.</p>
                                     {importMeta && (
-                                        <p className="text-[11px] text-on-tertiary-container/80 mt-0.5">
+                                        <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
                                             Confiance: {importMeta.confidence === 'high' ? 'elevee' : importMeta.confidence === 'medium' ? 'moyenne' : 'faible'}
                                         </p>
                                     )}
@@ -351,13 +351,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                     )}
 
                     {importMeta?.warnings?.length ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
                             {importMeta.warnings[0]}
                         </div>
                     ) : null}
 
                     {requiresLowConfidenceReview ? (
-                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
                             <input
                                 type="checkbox"
                                 className="mt-0.5 h-4 w-4"
@@ -383,15 +383,15 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             />
                         </div>
                         <div className="flex-1 bg-surface-container-low p-3 rounded-xl border border-outline-variant flex justify-between items-center h-[54px]">
-                            <span className="text-sm font-bold text-on-surface-variant pl-2">Budget Global CalculÃ©</span>
-                            <span className="text-xl font-black text-on-surface pr-2">{formatCurrency(totalBudget, settings.currency)}</span>
+                            <span className="text-label-large font-bold text-on-surface-variant pl-2">Budget Global CalculÃ©</span>
+                            <span className="text-title-large font-black text-on-surface pr-2">{formatCurrency(totalBudget, settings.currency)}</span>
                         </div>
                     </div>
 
                     {/* Table Container exactly like Finance Detail List */}
                     <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-body-medium text-left">
                                 <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-small tracking-widest">
                                     <tr>
                                         <th className="px-6 py-4">CatÃ©gorie</th>
@@ -424,7 +424,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                 </td>
                                                 <td className="px-6 py-3">
                                                     <div className="relative">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-xs">{settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}</span>
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-label-medium">{settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}</span>
                                                         <InputField
                                                             type="number"
                                                             value={line.amount}
@@ -441,7 +441,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                             {details.type}
                                                         </Badge>
                                                     ) : (
-                                                        <span className="text-on-surface-variant text-xs">-</span>
+                                                        <span className="text-on-surface-variant text-body-small">-</span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-3 text-right">
@@ -460,7 +460,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
                                     {budgetLines.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant italic text-sm">
+                                            <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant italic text-body-medium">
                                                 Aucune ligne budgÃ©taire.
                                             </td>
                                         </tr>

@@ -421,7 +421,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                 </div>
                             </div>
                             <h3 className="text-title-medium font-bold text-on-surface mt-6">Analyse en cours...</h3>
-                            <div className="flex flex-col gap-1 mt-2 text-sm text-on-surface-variant">
+                            <div className="flex flex-col gap-1 mt-2 text-body-medium text-on-surface-variant">
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-100 flex items-center gap-2">
                                     <MaterialIcon name="check" size={12} className="text-tertiary" />
                                     Détection du fournisseur
@@ -449,20 +449,20 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                     <MaterialIcon name="auto_awesome" size={16} />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-bold text-on-tertiary-container uppercase">Données extraites par IA</p>
-                                    <p className="text-xs text-tertiary truncate max-w-[260px]">{scannedFile.name}</p>
+                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données extraites par IA</p>
+                                    <p className="text-body-small text-tertiary truncate max-w-[260px]">{scannedFile.name}</p>
                                     {extractionMeta && (
-                                        <p className="text-[11px] text-on-tertiary-container/80 mt-0.5">
+                                        <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
                                             Confiance: {confidenceLabel(extractionMeta.confidence)}
                                         </p>
                                     )}
                                     {extractionMeta?.currencyCode ? (
-                                        <p className="text-[11px] text-on-tertiary-container/80">
+                                        <p className="text-label-small text-on-tertiary-container/80">
                                             Devise détectée: {extractionMeta.currencyCode}
                                         </p>
                                     ) : null}
                                     {extractionMeta ? (
-                                        <p className="text-[11px] text-on-tertiary-container/80">
+                                        <p className="text-label-small text-on-tertiary-container/80">
                                             Source lecture: {textSourceLabel(extractionMeta.textSource)}
                                         </p>
                                     ) : null}
@@ -482,19 +482,19 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                     )}
 
                     {extractionMeta?.warnings?.length ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
                             {extractionMeta.warnings[0]}
                         </div>
                     ) : null}
 
                     {extractionMeta?.fieldConfidence ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-[11px] text-on-surface-variant">
+                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant">
                             Champs détectés: fournisseur {confidenceLabel(extractionMeta.fieldConfidence.supplier)} · montant {confidenceLabel(extractionMeta.fieldConfidence.amount)} · référence {confidenceLabel(extractionMeta.fieldConfidence.invoiceNumber)} · date {confidenceLabel(extractionMeta.fieldConfidence.date)}
                         </div>
                     ) : null}
 
                     {requiresLowConfidenceReview ? (
-                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
                             <input
                                 type="checkbox"
                                 className="mt-0.5 h-4 w-4"
