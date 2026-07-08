@@ -498,7 +498,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     }}
                     items={[
                         { id: 'overview', label: 'Vue globale' },
-                        { id: 'details', label: 'Détails campagne' },
+                        { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
                     ]}
                 />
             </div>

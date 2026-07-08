@@ -28,7 +28,7 @@ const AuditPage: React.FC<AuditPageProps> = ({ onViewChange }) => {
                 }}
                 items={[
                     { id: 'overview', label: 'Vue globale' },
-                    { id: 'details', label: 'Détails campagne' },
+                    { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
                 ]}
             />
 
