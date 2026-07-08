@@ -308,7 +308,8 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
             <section className="rounded-card border border-outline-variant bg-surface p-4 medium:p-5 shadow-elevation-1">
                 <div className="flex flex-col gap-4 medium:flex-row medium:items-start medium:justify-between">
                     <div>
-                        <p className="mb-1 inline-flex items-center gap-2 text-label-small font-semibold uppercase tracking-wider text-primary">
+                        {/* Règle X12 : libellé sombre, pas de jaune en texte sur fond clair */}
+                        <p className="mb-1 inline-flex items-center gap-2 text-label-small font-semibold uppercase tracking-wider text-on-surface-variant">
                             <MaterialIcon name="fact_check" size={16} />
                             Audit physique
                         </p>
