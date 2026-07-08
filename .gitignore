@@ -14,6 +14,11 @@ dist
 dist-ssr
 *.local
 .appdata/
+backend/data/*
+!backend/data/.gitkeep
+
+# Artefact d'origine inconnue (mars 2026), non référencé — ignoré en attendant identification
+projects_data.json
 
 # Editor directories and files
 .vscode/*
