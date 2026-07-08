@@ -11,13 +11,15 @@ const FORBIDDEN_PATTERNS = [
   /\bbg-dark\b/g,
   /\bsurface-subtle\b/g,
   /variant\s*=\s*["']outline["']/g,
+  // Design System Caterpillar : interdiction du jaune/ambre Tailwind brut
+  // (la marque passe par les tokens ; warning = orange). Voir docs/DESIGN_TOKENS_SPEC.md.
+  /\b(?:bg|text|border|ring)-(?:amber|yellow)-(?:50|100|200|300|400|500|600|700|800|900)\b/g,
 ];
 const NATIVE_CONTROL_PATTERN = /<(button|input|select|textarea)\b/;
 
 const HEX_COLOR_PATTERN = /#[0-9A-Fa-f]{3,8}\b/g;
 const HEX_ALLOWLIST = new Set([
   path.normalize('src/features/auth/pages/LoginPage.tsx'),
-  path.normalize('src/lib/md3Theme.ts'),
 ]);
 
 const findings = [];

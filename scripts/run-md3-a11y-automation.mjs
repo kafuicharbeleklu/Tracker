@@ -10,6 +10,13 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 const RUN_DATE = new Date().toISOString().slice(0, 10);
 
 const ROUTES = [
+  // '/dashboard' (not '/') : évite un goto same-URL après login, qui rechargerait la page
+  // et perdrait la session démo (état React uniquement, non persisté).
+  { id: 'dashboard', hash: '/dashboard', label: 'Dashboard' },
+  { id: 'approvals', hash: '/approvals', label: 'Approvals' },
+  { id: 'locations', hash: '/locations', label: 'Locations' },
+  { id: 'management', hash: '/management', label: 'Management catalog' },
+  { id: 'reports', hash: '/reports', label: 'Reports' },
   { id: 'settings', hash: '/settings', label: 'Settings' },
   { id: 'assignment_wizard', hash: '/wizards/assignment', label: 'Assignment wizard' },
   { id: 'return_wizard', hash: '/wizards/return', label: 'Return wizard' },
@@ -61,14 +68,16 @@ const startDevServer = () => {
 const loginWithDemoAccount = async (page) => {
   const byLabel = page.getByLabel('Adresse e-mail').first();
   const byPlaceholder = page.getByPlaceholder(/Ex:\s*nom@/i).first();
+  // Cold Vite dev on a slow disk can take minutes before the login form renders.
+  await byPlaceholder.waitFor({ state: 'visible', timeout: 180000 });
   const emailInput = (await byLabel.count()) > 0 ? byLabel : byPlaceholder;
 
-  if ((await emailInput.count()) > 0) {
-    await emailInput.fill('alice.admin@tracker.app');
-    await page.getByPlaceholder('Votre mot de passe').fill('demo-password');
-    await page.getByRole('button', { name: /Se connecter/i }).click();
-    await page.waitForTimeout(1300);
-  }
+  await emailInput.fill('alice.admin@tracker.app');
+  await page.getByPlaceholder('Votre mot de passe').fill('demo-password');
+  const submitButton = page.getByRole('button', { name: /Se connecter/i }).first();
+  await submitButton.click();
+  await submitButton.waitFor({ state: 'detached', timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(1300);
 };
 
 const focusProbe = async (page, presses = 12) => {
@@ -146,6 +155,7 @@ const collectPageMetrics = async (page) =>
 
 const run = async () => {
   let server = null;
+  let browser = null;
 
   const stopServer = () => {
     if (server && !server.killed) {
@@ -157,8 +167,10 @@ const run = async () => {
     server = startDevServer();
     await waitForServer(BASE_URL);
 
-    const browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ reducedMotion: 'reduce' });
+    // Cold Vite dev on a slow disk can take minutes to transform the module graph.
+    context.setDefaultNavigationTimeout(180000);
     const page = await context.newPage();
 
     // Login via demo account.
@@ -191,6 +203,12 @@ const run = async () => {
     for (const route of ROUTES) {
       await page.goto(`${BASE_URL}/#${route.hash}`);
       await page.waitForTimeout(900);
+      // Lazy route chunks can outlive the fixed wait on slow disks: wait out the Suspense fallback.
+      await page
+        .waitForFunction(() => !document.body.innerText.includes('Chargement de la vue'), {
+          timeout: 30000,
+        })
+        .catch(() => {});
 
       const pageMetrics = await collectPageMetrics(page);
       const focusMetrics = await focusProbe(page, 12);
@@ -258,6 +276,8 @@ const run = async () => {
     process.stderr.write(`MD3 A11Y automation failed: ${error instanceof Error ? error.stack : String(error)}\n`);
     process.exitCode = 1;
   } finally {
+    // Close the browser even on failure: a live CDP connection keeps the process alive forever.
+    if (browser) await browser.close().catch(() => {});
     stopServer();
   }
 };

@@ -24,6 +24,13 @@ const DEVICES = [
 const LOGIN_CHECKPOINT = { id: 'login', label: 'Login', hash: '/' };
 
 const AUTH_CHECKPOINTS = [
+  // '/dashboard' (not '/') : évite un goto same-URL après login, qui rechargerait la page
+  // et perdrait la session démo (état React uniquement, non persisté).
+  { id: 'dashboard', label: 'Dashboard', hash: '/dashboard' },
+  { id: 'approvals', label: 'Approvals', hash: '/approvals' },
+  { id: 'locations', label: 'Locations', hash: '/locations' },
+  { id: 'management', label: 'Management catalog', hash: '/management' },
+  { id: 'reports', label: 'Reports', hash: '/reports' },
   { id: 'settings', label: 'Settings', hash: '/settings' },
   { id: 'assignment_wizard', label: 'Assignment wizard', hash: '/wizards/assignment' },
   { id: 'return_wizard', label: 'Return wizard', hash: '/wizards/return' },
@@ -133,6 +140,11 @@ const bootstrapDeterministicSession = async (page) => {
     );
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
+  // Cold Vite dev on a slow disk can take minutes before the login form renders.
+  await page
+    .getByPlaceholder(/Ex:\s*nom@/i)
+    .first()
+    .waitFor({ state: 'visible', timeout: 180000 });
   await page.waitForTimeout(500);
 };
 
@@ -174,7 +186,7 @@ const waitForStablePaint = async (page) => {
       () =>
         !document.querySelector('[data-testid="route-loading-fallback"]')
         && !document.querySelector('[data-testid="app-shell-loading"]'),
-      { timeout: 8000 }
+      { timeout: 30000 }
     )
     .catch(() => {});
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -272,6 +284,7 @@ const snapshotCheckpoint = async (page, device, checkpoint) => {
 
 const run = async () => {
   let server = null;
+  let browser = null;
 
   const stopServer = () => {
     if (server && !server.killed) {
@@ -285,7 +298,7 @@ const run = async () => {
     server = startDevServer();
     await waitForServer(BASE_URL);
 
-    const browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true });
     const results = [];
 
     for (const device of ACTIVE_DEVICES) {
@@ -297,6 +310,18 @@ const run = async () => {
         deviceScaleFactor: device.deviceScaleFactor,
         reducedMotion: 'reduce',
       });
+      // Cold Vite dev on a slow disk can take minutes to transform the module graph.
+      context.setDefaultNavigationTimeout(180000);
+      // Remote images (avatars, equipment photos) load nondeterministically: block them so
+      // the UI always renders its local fallbacks. CDN fonts/styles are still allowed.
+      await context.route(
+        '**/*',
+        (route) =>
+          route.request().resourceType() === 'image'
+          && !route.request().url().startsWith(BASE_URL)
+            ? route.abort()
+            : route.continue()
+      );
 
       const page = await context.newPage();
       await bootstrapDeterministicSession(page);
@@ -419,6 +444,8 @@ const run = async () => {
     process.stderr.write(`MD3 visual regression failed: ${error instanceof Error ? error.stack : String(error)}\n`);
     process.exitCode = 1;
   } finally {
+    // Close the browser even on failure: a live CDP connection keeps the process alive forever.
+    if (browser) await browser.close().catch(() => {});
     stopServer();
     await rm(TEMP_DIR, { recursive: true, force: true }).catch(() => {});
   }
