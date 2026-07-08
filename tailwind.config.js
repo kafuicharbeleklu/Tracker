@@ -54,6 +54,27 @@ module.exports = {
                     DEFAULT: 'var(--md-sys-color-on-error)',
                     container: 'var(--md-sys-color-on-error-container)',
                 },
+                // Couleurs sémantiques (adossées aux tokens --color-*)
+                success: {
+                    DEFAULT: 'var(--color-success)',
+                    light: 'var(--color-success-light)',
+                    strong: 'var(--color-success-strong)',
+                },
+                warning: {
+                    DEFAULT: 'var(--color-warning)',
+                    light: 'var(--color-warning-light)',
+                    strong: 'var(--color-warning-strong)',
+                },
+                info: {
+                    DEFAULT: 'var(--color-info)',
+                    light: 'var(--color-info-light)',
+                    strong: 'var(--color-info-strong)',
+                },
+                danger: {
+                    DEFAULT: 'var(--color-danger)',
+                    light: 'var(--color-danger-light)',
+                    strong: 'var(--color-danger-strong)',
+                },
                 // MD3 Surface & Background
                 surface: {
                     DEFAULT: 'var(--md-sys-color-surface)',
@@ -115,8 +136,8 @@ module.exports = {
                 'lg': 'var(--md-sys-shape-large)',
                 'xl': 'var(--md-sys-shape-extra-large)',
                 'full': 'var(--md-sys-shape-full)',
-                // @deprecated — Use rounded-md (shape-medium) instead
-                'card': 'var(--md-sys-shape-medium)',
+                // Rayon de carte unifié (= rounded-xl / shape-extra-large) pour cohérence des surfaces
+                'card': 'var(--md-sys-shape-extra-large)',
                 // @deprecated — Use rounded-full (shape-full) instead
                 'pill': 'var(--md-sys-shape-full)',
             },
@@ -157,8 +178,8 @@ module.exports = {
 
             /* ---- MD3 TYPOGRAPHY ---- */
             fontFamily: {
-                sans: ['Roboto Flex', 'Roboto', 'sans-serif'],
-                brand: ['Google Sans', 'Roboto Flex', 'Roboto', 'sans-serif'],
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                brand: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
         },
     },

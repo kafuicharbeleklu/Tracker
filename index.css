@@ -1,4 +1,5 @@
 @config "./tailwind.config.js";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ============================================================
@@ -852,4 +853,251 @@ body {
     .animate-out {
         animation: none !important;
     }
+}
+
+/* ============================================================
+   SmartProcure UI compatibility layer
+   Keeps the app architecture intact while aligning shared tokens
+   with the SmartProcure visual system.
+   ============================================================ */
+:root {
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* ---- Références marque Caterpillar (Neemba — concessionnaire CAT) ---- */
+    --cat-yellow: #FDC910;   /* logo Neemba / CAT machine yellow */
+    --cat-black: #2E2725;    /* CAT warm black (officiel) */
+    --color-anthracite: #2E2725;
+    --color-anthracite-strong: #1C1917;
+
+    --color-sidebar-bg: #1C1917;
+    --color-sidebar-border: #2E2725;
+    --color-sidebar-active-text: #1A1A1A;
+    --color-sidebar-logo-bg: #262320;
+
+    --color-brand: var(--cat-yellow);
+    --color-brand-hover: #E3B40C;
+    --color-brand-dark: #B88E09;
+    --color-brand-text: #1A1A1A;
+
+    --color-app-bg: #FAF9F7;
+    --color-surface: #ffffff;
+    --color-surface-muted: #F4F2EF;
+    --color-text-primary: #1C1917;
+    --color-text-secondary: #57514A;
+    --color-text-muted: #6E675F;
+
+    --color-success: #10b981;
+    --color-success-light: #d1fae5;
+    --color-success-strong: #166534;
+    --color-warning: #E8710A;
+    --color-warning-light: #FDEBD9;
+    --color-warning-strong: #9A3412;
+    --color-danger: #ef4444;
+    --color-danger-light: #fee2e2;
+    --color-danger-strong: #991B1B;
+    --color-info: #3b82f6;
+    --color-info-light: #dbeafe;
+    --color-info-strong: #1E40AF;
+
+    --color-neutral-50: #FAF9F7;
+    --color-neutral-100: #F4F2EF;
+    --color-neutral-200: #E8E4DF;
+    --color-neutral-300: #D6D0C8;
+    --color-neutral-400: #A8A199;
+    --color-neutral-500: #79736B;
+    --color-neutral-600: #57514A;
+    --color-neutral-700: #3D3833;
+    --color-neutral-800: #2E2725;
+    --color-neutral-900: #1C1917;
+
+    --color-border-default: var(--color-neutral-200);
+    --color-border-subtle: var(--color-neutral-100);
+    --color-border-strong: #8E877E; /* AA 3:1 — bordures de contrôles (inputs, outline) */
+
+    /* Rayons — 4 crans carrés/industriels (CAT) : 2 / 4 / 6 / 8 px + full */
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-lg: 4px;
+    --radius-xl: 8px;
+    --radius-2xl: 8px;
+    --radius-full: 9999px;
+
+    --text-title-1: 1.875rem;
+    --text-title-2: 1.375rem;
+    --text-title-3: 1.125rem;
+    --text-body: 0.875rem;
+    --text-caption: 0.75rem;
+
+    --md-sys-color-primary: var(--color-brand);
+    --md-sys-color-on-primary: var(--color-brand-text);
+    --md-sys-color-primary-container: #fff4b8;
+    --md-sys-color-on-primary-container: #2f2500;
+    --md-sys-color-inverse-primary: var(--color-brand);
+
+    --md-sys-color-secondary: var(--color-neutral-700);
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: var(--color-neutral-100);
+    --md-sys-color-on-secondary-container: var(--color-neutral-900);
+
+    /* Tertiary carries the "positive / success" semantic across the app
+       (available stock, up-trends, success toasts, validated states).
+       SmartProcure uses green for these — keep it green, not blue. */
+    --md-sys-color-tertiary: var(--color-success);
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: var(--color-success-light);
+    --md-sys-color-on-tertiary-container: #065f46;
+
+    --md-sys-color-error: var(--color-danger);
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: var(--color-danger-light);
+    --md-sys-color-on-error-container: #7f1d1d;
+
+    --md-sys-color-surface: var(--color-surface);
+    --md-sys-color-surface-variant: var(--color-neutral-100);
+    --md-sys-color-surface-dim: var(--color-neutral-100);
+    --md-sys-color-surface-bright: var(--color-surface);
+    --md-sys-color-surface-container-lowest: var(--color-surface);
+    --md-sys-color-surface-container-low: var(--color-surface);
+    --md-sys-color-surface-container: var(--color-surface-muted);
+    --md-sys-color-surface-container-high: var(--color-neutral-100);
+    --md-sys-color-surface-container-highest: var(--color-neutral-100);
+    --md-sys-color-on-surface: var(--color-text-primary);
+    --md-sys-color-on-surface-variant: var(--color-text-muted);
+    --md-sys-color-inverse-surface: var(--color-neutral-900);
+    --md-sys-color-inverse-on-surface: #ffffff;
+    --md-sys-color-outline: var(--color-border-strong);
+    --md-sys-color-outline-variant: var(--color-border-default);
+    --md-sys-color-background: var(--color-app-bg);
+    --md-sys-color-on-background: var(--color-text-primary);
+
+    --color-primary-default: var(--color-brand);
+    --color-primary-hover: var(--color-brand-hover);
+    --color-primary-light: #fff4b8;
+    --color-primary-dark: var(--color-brand-dark);
+
+    --md-sys-shape-extra-small: var(--radius-sm);
+    --md-sys-shape-small: var(--radius-md);
+    --md-sys-shape-medium: var(--radius-lg);
+    --md-sys-shape-large: var(--radius-xl);
+    --md-sys-shape-extra-large: var(--radius-2xl);
+    --md-sys-shape-full: var(--radius-full);
+
+    --md-sys-elevation-1: 0 1px 2px rgb(15 23 42 / 0.04);
+    --md-sys-elevation-2: 0 4px 12px rgb(15 23 42 / 0.08);
+    --md-sys-elevation-3: 0 10px 24px rgb(15 23 42 / 0.10);
+    --md-sys-elevation-4: 0 18px 42px rgb(15 23 42 / 0.14);
+    --md-sys-elevation-5: 0 24px 60px rgb(15 23 42 / 0.16);
+
+    --md-sys-typescale-font-brand: var(--font-sans);
+    --md-sys-typescale-font-plain: var(--font-sans);
+    --md-sys-typescale-display-small-size: 30px;
+    --md-sys-typescale-display-small-line-height: 36px;
+    --md-sys-typescale-display-small-weight: 600;
+    --md-sys-typescale-display-small-tracking: 0;
+    --md-sys-typescale-headline-medium-size: 22px;
+    --md-sys-typescale-headline-medium-line-height: 30px;
+    --md-sys-typescale-headline-medium-weight: 600;
+    --md-sys-typescale-headline-medium-tracking: 0;
+    --md-sys-typescale-headline-small-size: 18px;
+    --md-sys-typescale-headline-small-line-height: 24px;
+    --md-sys-typescale-headline-small-weight: 700;
+    --md-sys-typescale-headline-small-tracking: 0;
+    --md-sys-typescale-title-large-size: 18px;
+    --md-sys-typescale-title-large-line-height: 24px;
+    --md-sys-typescale-title-large-weight: 700;
+    --md-sys-typescale-title-large-tracking: 0;
+    --md-sys-typescale-title-medium-size: 16px;
+    --md-sys-typescale-title-medium-line-height: 22px;
+    --md-sys-typescale-title-medium-weight: 700;
+    --md-sys-typescale-title-medium-tracking: 0;
+    --md-sys-typescale-title-small-tracking: 0;
+    --md-sys-typescale-body-large-size: 14px;
+    --md-sys-typescale-body-large-line-height: 20px;
+    --md-sys-typescale-body-large-tracking: 0;
+    --md-sys-typescale-body-medium-size: 14px;
+    --md-sys-typescale-body-medium-line-height: 20px;
+    --md-sys-typescale-body-medium-tracking: 0;
+    --md-sys-typescale-body-small-tracking: 0;
+    --md-sys-typescale-label-large-size: 14px;
+    --md-sys-typescale-label-large-line-height: 20px;
+    --md-sys-typescale-label-large-weight: 600;
+    --md-sys-typescale-label-large-tracking: 0;
+    --md-sys-typescale-label-medium-tracking: 0;
+    --md-sys-typescale-label-small-tracking: 0.075em;
+}
+
+html,
+body,
+#root {
+    background: var(--color-app-bg);
+    color: var(--color-text-primary);
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.tracking-tight,
+.tracking-tighter {
+    letter-spacing: 0 !important;
+}
+
+.section-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.page-title {
+    color: var(--color-text-primary);
+    font-size: var(--text-title-1);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0;
+}
+
+.section-title {
+    color: var(--color-text-primary);
+    font-size: var(--text-title-3);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0;
+}
+
+.ui-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.control-field {
+    min-height: 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+::selection {
+    background: rgba(253, 201, 16, 0.3);
+    color: var(--color-brand-text);
 }
