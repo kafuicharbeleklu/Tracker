@@ -661,6 +661,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
         {
             id: 'roles',
             label: 'Rôles & groupes',
+            shortLabel: 'Rôles',
             icon: <MaterialIcon name="admin_panel_settings" size={18} />,
         },
         {

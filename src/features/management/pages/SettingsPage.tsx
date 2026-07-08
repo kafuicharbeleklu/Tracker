@@ -287,18 +287,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
     };
 
     // --- SECTIONS ---
-    // Libellés courts en compact/medium (même pattern que les onglets finance)
-    const sections: Array<{ id: SettingsSection; label: string; icon: string }> = [
+    // Libellés courts en compact via TabItem.shortLabel (X8-bis)
+    const sections: Array<{ id: SettingsSection; label: string; shortLabel?: string; icon: string }> = [
         { id: 'general', label: 'Affichage', icon: 'palette' },
-        { id: 'finance', label: isCompactOrMedium ? 'Finances' : 'Finances & Paramètres', icon: 'account_balance' },
-        { id: 'collection', label: isCompactOrMedium ? 'Collecte' : 'Collecte automatique', icon: 'developer_board' },
-        { id: 'account', label: isCompactOrMedium ? 'Compte' : 'Compte & Sécurité', icon: 'manage_accounts' },
+        { id: 'finance', label: 'Finances & Paramètres', shortLabel: 'Finances', icon: 'account_balance' },
+        { id: 'collection', label: 'Collecte automatique', shortLabel: 'Collecte', icon: 'developer_board' },
+        { id: 'account', label: 'Compte & Sécurité', shortLabel: 'Compte', icon: 'manage_accounts' },
         { id: 'help', label: 'Aide', icon: 'help' },
     ];
 
     const sectionTabs: TabItem[] = sections.map((section) => ({
         id: section.id,
         label: section.label,
+        shortLabel: section.shortLabel,
         icon: <MaterialIcon name={section.icon} size={20} />,
     }));
 

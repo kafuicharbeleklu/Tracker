@@ -40,7 +40,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                         onChange={(tabId) => setActiveTab(tabId as 'models' | 'assets')}
                         items={[
                             { id: 'models', label: 'Modèles' },
-                            { id: 'assets', label: 'Tous les actifs' }
+                            { id: 'assets', label: 'Tous les actifs', shortLabel: 'Actifs' }
                         ]}
                     />
                 )}
