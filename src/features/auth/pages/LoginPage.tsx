@@ -15,13 +15,7 @@ interface LoginPageProps {
 type AuthView = 'login' | 'forgot-password';
 
 const DEMO_LOGIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_LOGIN === 'true';
-const LOGIN_FOOTER_CONTACT = {
-    year: 2026,
-    developerName: 'Kafui Charbel EKLU',
-    githubUrl: 'https://github.com/CharbelKaf',
-    linkedinUrl: 'https://www.linkedin.com/in/charbelkaf',
-    gmailAddress: 'charbeleklu@gmail.com',
-};
+const LOGIN_FOOTER_YEAR = new Date().getFullYear();
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
@@ -29,7 +23,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [emailError, setEmailError] = useState<string | undefined>(undefined);
     const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
-    const [authMethod, setAuthMethod] = useState<'email' | null>(null);
+    const [authMethod, setAuthMethod] = useState<'email' | 'microsoft' | null>(null);
 
     const [authView, setAuthView] = useState<AuthView>('login');
     const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
@@ -37,13 +31,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [isSubmittingForgotPassword, setIsSubmittingForgotPassword] = useState(false);
 
     const { showToast } = useToast();
-    const { login } = useAuth();
+    const { login, loginWithMicrosoft } = useAuth();
     const { logEvent } = useData();
+    const isProductionOnlyMode = !DEMO_LOGIN_ENABLED;
+    const disabledDemoToastMessage =
+        'Connexion démo désactivée dans cet environnement. Utilisez le bouton Microsoft SSO.';
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (isProductionOnlyMode) {
+            showToast(disabledDemoToastMessage, 'error');
+            return;
+        }
 
         const trimmedEmail = email.trim();
         let hasValidationError = false;
@@ -67,11 +69,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         if (hasValidationError) {
             showToast('Veuillez corriger les erreurs du formulaire.', 'error');
-            return;
-        }
-
-        if (!DEMO_LOGIN_ENABLED) {
-            showToast("Connexion démo désactivée dans cet environnement.", 'error');
             return;
         }
 
@@ -106,6 +103,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 showToast('Identifiants incorrects.', 'error');
             }
         }, 800);
+    };
+
+    const handleMicrosoftLogin = async () => {
+        setIsLoading(true);
+        setAuthMethod('microsoft');
+
+        try {
+            await loginWithMicrosoft();
+        } finally {
+            setIsLoading(false);
+            setAuthMethod(null);
+        }
     };
 
     const openForgotPassword = () => {
@@ -154,8 +163,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     };
 
     const fillDemoCredentials = (userEmail: string) => {
-        if (!DEMO_LOGIN_ENABLED) {
-            showToast("Connexion démo désactivée dans cet environnement.", 'error');
+        if (isProductionOnlyMode) {
+            showToast(disabledDemoToastMessage, 'error');
             return;
         }
 
@@ -173,85 +182,127 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     ];
 
     return (
-        <div className="flex min-h-screen w-full font-sans bg-surface-container-lowest text-on-surface">
+        <div className="flex min-h-screen w-full font-sans bg-[#F8FAFC] text-[var(--color-text-primary)] overflow-x-hidden">
 
-            {/* LEFT PANEL - MARKETING HERO (MD3 Inverse Surface) */}
+            {/* LEFT PANEL - SMARTPROCURE-ALIGNED BRAND HERO */}
             <section
-                className="hidden expanded:flex expanded:w-5/12 large:w-1/2 fixed inset-y-0 left-0 z-10 flex-col items-center justify-center p-10 large:p-12 bg-surface-container text-on-surface overflow-hidden"
+                className="hidden expanded:flex expanded:w-5/12 large:w-[40%] fixed inset-y-0 left-0 z-10 flex-col bg-[#090A0B] text-white overflow-hidden border-r border-white/5"
             >
-                <div className="absolute -top-28 -left-24 w-96 h-96 rounded-full bg-primary opacity-10 blur-3xl" />
-                <div className="absolute -bottom-20 -right-16 w-80 h-80 rounded-full bg-tertiary opacity-10 blur-3xl" />
+                <div className="relative z-10 flex h-full w-full flex-col justify-between px-10 py-10 large:px-14 large:py-12">
+                    <div className="flex items-center gap-3 mb-14">
+                        <div className="w-9 h-9 rounded-lg bg-primary text-on-primary flex items-center justify-center text-body-medium font-black">
+                            TR
+                        </div>
+                        <span className="text-title-large font-extrabold text-white">{APP_CONFIG.appName}</span>
+                    </div>
 
-                <div className="relative z-10 max-w-lg">
-                    <h2 className="text-display-small mb-6 leading-tight text-on-surface animate-in fade-in slide-in-from-left-8 duration-700 delay-100">
-                        Pilotez votre parc <br />
-                        <span className="text-primary">en toute sérénité.</span>
-                    </h2>
+                    <div className="max-w-lg">
+                        <h2 className="text-4xl large:text-5xl font-black mb-6 leading-[1.15] text-white">
+                            Pilotez vos actifs avec une expérience{' '}
+                            <span className="text-primary font-light italic">unifiée</span>.
+                        </h2>
 
-                    <p className="text-body-large text-on-surface-variant mb-12 leading-relaxed animate-in fade-in slide-in-from-left-8 duration-700 delay-200">
-                        Accédez à la plateforme centralisée de gestion des actifs informatiques. Suivi, attribution et maintenance simplifiés.
-                    </p>
+                        <p className="text-body-medium large:text-title-medium text-slate-400 max-w-md leading-relaxed mb-10 font-normal">
+                            Une plateforme opérationnelle pour suivre les affectations, les retours, les audits et les coûts du parc interne.
+                        </p>
 
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                        {featuresTracker.map((feature) => (
-                            <div key={feature} className="flex items-center gap-4 group">
-                                <div className="w-10 h-10 rounded-lg bg-primary-container/50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors duration-medium2 ease-emphasized">
-                                    <MaterialIcon name="check_circle" size={20} />
+                        <div className="space-y-6">
+                            {featuresTracker.map((feature) => (
+                                <div key={feature} className="group flex items-start gap-3.5">
+                                    <div className="h-5 w-[2px] bg-primary/40 mt-1 shrink-0 group-hover:bg-primary transition-colors" />
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-label-large large:text-title-medium font-bold text-slate-200 group-hover:text-white transition-colors">
+                                            {feature}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-body-large font-medium text-on-surface">{feature}</span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="text-label-small uppercase font-semibold text-slate-400 flex justify-between items-center border-t border-white/[0.05] pt-6">
+                        <span>© {LOGIN_FOOTER_YEAR} {APP_CONFIG.companyName}</span>
+                        <span>{APP_CONFIG.version}</span>
                     </div>
                 </div>
-
-
             </section>
 
             {/* RIGHT PANEL */}
-            <main className="w-full expanded:w-7/12 large:w-1/2 expanded:ml-auto min-h-screen flex flex-col items-center justify-center p-6 medium:p-8 large:p-16 animate-in fade-in zoom-in-95 duration-500">
-                <div className="w-full max-w-md space-y-7 rounded-xl border border-outline-variant bg-surface-container-low p-5 medium:p-7 expanded:space-y-8 expanded:rounded-none expanded:border-none expanded:bg-transparent expanded:p-0">
+            <main className="w-full expanded:w-7/12 large:w-[60%] expanded:ml-auto min-h-screen flex flex-col items-center justify-center px-6 py-12 medium:px-8 large:px-16 bg-[#FBFBFA] animate-in fade-in zoom-in-95 duration-500">
+                <div className="w-full max-w-[480px] space-y-7 ui-panel p-6 medium:p-8">
 
                     {/* MEDIUM HERO (600-839) */}
-                    <section className="hidden medium:block expanded:hidden rounded-lg border border-outline-variant bg-primary-container/25 p-5">
-                        <p className="text-title-large text-on-surface mb-1">{APP_CONFIG.appName}</p>
-                        <p className="text-body-medium text-on-surface-variant mb-4">
+                    <section className="hidden medium:block expanded:hidden rounded-lg border border-[var(--color-border-default)] bg-[var(--color-neutral-50)] p-5">
+                        <p className="text-title-large text-[var(--color-text-primary)] mb-1">{APP_CONFIG.appName}</p>
+                        <p className="text-body-medium text-[var(--color-text-muted)] mb-4">
                             Gérez vos actifs IT avec une vue unifiée et des workflows simplifiés.
                         </p>
                         <div className="space-y-2">
                             {featuresTracker.map((feature) => (
-                                <div key={`medium-${feature}`} className="flex items-center gap-2 text-on-surface-variant">
+                                <div key={`medium-${feature}`} className="flex items-center gap-2 text-[var(--color-text-muted)]">
                                     <MaterialIcon name="check_circle" size={18} className="text-primary" />
-                                    <span className="text-body-small">{feature}</span>
+                                    <span className="text-label-medium font-medium">{feature}</span>
                                 </div>
                             ))}
                         </div>
                     </section>
 
                     {/* MOBILE BRANDING */}
-                    <div className="medium:hidden flex items-center justify-center gap-2 text-on-surface">
-                        <div className="w-8 h-8 rounded-md bg-primary-container text-on-primary-container flex items-center justify-center">
-                            <MaterialIcon name="dashboard" size={18} />
+                    <div className="medium:hidden flex items-center justify-center gap-2 text-[var(--color-text-primary)]">
+                        <div className="w-8 h-8 rounded-md bg-primary text-on-primary flex items-center justify-center text-body-small font-black">
+                            TR
                         </div>
-                        <span className="text-title-medium font-medium tracking-tight">{APP_CONFIG.appName}</span>
+                        <span className="text-title-medium font-bold">{APP_CONFIG.appName}</span>
                     </div>
 
                     {/* Header */}
-                    <div className="text-center space-y-2">
+                    <div className="space-y-2">
                         {authView === 'login' ? (
                             <>
-                                <h1 className="text-headline-large text-on-surface">Connexion</h1>
-                                <p className="text-body-large text-on-surface-variant">Heureux de vous revoir !</p>
+                                <h1 className="text-headline-medium font-bold text-[var(--color-text-primary)]">Connexion</h1>
+                                <p className="text-body-medium text-[var(--color-text-muted)]">Heureux de vous revoir !</p>
                             </>
                         ) : (
                             <>
-                                <h1 className="text-headline-large text-on-surface">Réinitialiser le mot de passe</h1>
-                                <p className="text-body-large text-on-surface-variant">Saisissez votre e-mail pour recevoir un lien.</p>
+                                <h1 className="text-headline-medium font-bold text-[var(--color-text-primary)]">Réinitialiser le mot de passe</h1>
+                                <p className="text-body-medium text-[var(--color-text-muted)]">Saisissez votre e-mail pour recevoir un lien.</p>
                             </>
                         )}
                     </div>
 
                     {authView === 'login' ? (
                         <>
+                            {isProductionOnlyMode && (
+                                <section className="rounded-lg border border-primary/40 bg-primary/10 p-4 space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-0.5 text-primary">
+                                            <MaterialIcon name="info" size={20} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-label-large font-bold text-[var(--color-text-primary)]">
+                                                Environnement de production
+                                            </p>
+                                            <p className="text-body-small text-[var(--color-text-muted)]">
+                                                La connexion e-mail/mot de passe de démonstration est désactivée.
+                                                Utilisez Microsoft SSO pour ouvrir votre session Azure AD.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleMicrosoftLogin}
+                                        loading={isLoading && authMethod === 'microsoft'}
+                                        loadingLabel="Ouverture de Microsoft SSO"
+                                        variant="filled"
+                                        size="lg"
+                                        className="w-full h-12"
+                                        icon={<MaterialIcon name="login" size={18} />}
+                                    >
+                                        Se connecter avec Microsoft SSO
+                                    </Button>
+                                </section>
+                            )}
+
                             <form noValidate onSubmit={handleLogin} className="space-y-6">
                                 <div className="space-y-5">
                                     <InputField
@@ -267,9 +318,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                         }}
                                         icon={<MaterialIcon name="mail" size={20} />}
                                         variant="filled"
-                                        className="!bg-surface-container-low"
+                                        className="!bg-white"
                                         autoComplete="username"
                                         error={emailError}
+                                        disabled={isProductionOnlyMode}
                                         required
                                     />
 
@@ -287,10 +339,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                             }}
                                             icon={<MaterialIcon name="lock" size={20} />}
                                             variant="filled"
-                                            className="!bg-surface-container-low"
+                                            className="!bg-white"
                                             isPassword
                                             autoComplete="current-password"
                                             error={passwordError}
+                                            disabled={isProductionOnlyMode}
                                             required
                                         />
                                         <div className="flex justify-end mt-2">
@@ -298,7 +351,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                                 type="button"
                                                 variant="text"
                                                 onClick={openForgotPassword}
-                                                disabled={isLoading}
+                                                disabled={isLoading || isProductionOnlyMode}
                                                 className="!rounded-sm"
                                             >
                                                 Mot de passe oublié ?
@@ -309,7 +362,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
                                 <Button
                                     type="submit"
-                                    disabled={isLoading}
+                                    disabled={isLoading || isProductionOnlyMode}
                                     variant="filled"
                                     size="lg"
                                     loading={isLoading && authMethod === 'email'}
@@ -322,7 +375,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
                             {DEMO_LOGIN_ENABLED && (
                                 <div className="pt-8">
-                                    <p className="text-label-small text-on-surface-variant uppercase tracking-widest text-center mb-4">
+                                    <p className="text-label-medium text-[var(--color-text-muted)] uppercase font-bold text-center mb-4">
                                         Comptes Démo
                                     </p>
                                     <div className="flex justify-center gap-3">
@@ -339,7 +392,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-short4 ease-emphasized">
                                                     <img
                                                         src={user.avatar}
-                                                        className="w-full h-full object-contain bg-surface-container p-0.5"
+                                                        className="w-full h-full object-contain bg-[var(--color-neutral-100)] p-0.5"
                                                         alt={user.name}
                                                     />
                                                 </div>
@@ -367,7 +420,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 }}
                                 icon={<MaterialIcon name="mail" size={20} />}
                                 variant="filled"
-                                className="!bg-surface-container-low"
+                                className="!bg-white"
                                 autoComplete="email"
                                 error={forgotPasswordError}
                                 required
@@ -394,36 +447,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         </form>
                     )}
 
-                    <div className="pt-2 text-center text-label-small text-on-surface-variant space-y-1">
+                    <div className="pt-2 text-center text-body-small text-[var(--color-text-muted)] space-y-1">
                         <p>
-                            © {LOGIN_FOOTER_CONTACT.year} {APP_CONFIG.companyName}. Tous droits réservés.
+                            © {LOGIN_FOOTER_YEAR} {APP_CONFIG.companyName}. Tous droits réservés.
                         </p>
                         <p>
-                            Développé par {LOGIN_FOOTER_CONTACT.developerName} ·{' '}
-                            <a
-                                href={LOGIN_FOOTER_CONTACT.githubUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary hover:underline"
-                            >
-                                GitHub
-                            </a>
-                            {' · '}
-                            <a
-                                href={LOGIN_FOOTER_CONTACT.linkedinUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary hover:underline"
-                            >
-                                LinkedIn
-                            </a>
-                            {' · '}
-                            <a
-                                href={`mailto:${LOGIN_FOOTER_CONTACT.gmailAddress}`}
-                                className="text-primary hover:underline"
-                            >
-                                Gmail
-                            </a>
+                            Application interne — pour toute assistance, contactez votre support informatique.
                         </p>
                     </div>
                 </div>

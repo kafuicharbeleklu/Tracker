@@ -1,37 +1,78 @@
+import { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import { Equipment, User, Approval } from '../types';
+import {
+  buildRbacAssignmentFromUser,
+  RBAC_PERMISSIONS,
+} from '../config/rbacDefaults';
+import { isPermissionGranted, resolveEffectiveAccess } from '../lib/rbac';
 
 export const useAccessControl = () => {
   const { currentUser } = useAuth();
+  const { rbacRoles, rbacGroups, getRbacAssignmentForUser } = useData();
 
   const role = currentUser?.role;
 
-  // RBAC Permission Matrix
+  const effectiveAccess = useMemo(() => {
+    if (!currentUser) {
+      return resolveEffectiveAccess({
+        userId: 'anonymous',
+        assignment: { userId: 'anonymous', roleIds: [] },
+        roles: rbacRoles,
+        groups: rbacGroups,
+      });
+    }
+
+    const assignment = getRbacAssignmentForUser(currentUser.id)
+      || buildRbacAssignmentFromUser(currentUser);
+
+    return resolveEffectiveAccess({
+      userId: currentUser.id,
+      assignment,
+      roles: rbacRoles,
+      groups: rbacGroups,
+    });
+  }, [currentUser, getRbacAssignmentForUser, rbacGroups, rbacRoles]);
+
   const permissions = {
+    // Core views
+    canViewDashboard: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.dashboard, 'read'),
+
     // Inventory
-    canViewInventory: true, // Everyone can see inventory (filtered)
-    canManageInventory: role === 'SuperAdmin' || role === 'Admin', // Create/Edit/Delete
-    canManageFinance: role === 'SuperAdmin' || role === 'Admin',
+    canViewInventory: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.inventory, 'read'),
+    canManageInventory: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.inventoryManage, 'write'),
 
     // Users
-    canViewUsers: role === 'SuperAdmin' || role === 'Admin' || role === 'Manager',
-    canManageUsers: role === 'SuperAdmin' || role === 'Admin',
+    canViewUsers: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.users, 'read'),
+    canManageUsers: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.usersManage, 'write'),
 
     // Approvals
-    canViewApprovals: true, // Everyone sees approvals (filtered)
-    canManageApprovals: role === 'SuperAdmin' || role === 'Admin' || role === 'Manager', // Approve/Reject
+    canViewApprovals: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.approvals, 'read'),
+    canManageApprovals: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.approvalsManage, 'write'),
+
+    // Finance
+    canViewFinance: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.finance, 'read'),
+    canManageFinance: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.financeManage, 'write'),
 
     // Management (Categories, Models)
-    canManageSystem: role === 'SuperAdmin' || role === 'Admin',
+    canViewManagement: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.management, 'read'),
+    canManageSystem: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.managementManage, 'write'),
 
     // Locations
-    canManageLocations: role === 'SuperAdmin' || role === 'Admin',
+    canViewLocations: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.locations, 'read'),
+    canManageLocations: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.locationsManage, 'write'),
 
     // Audit
-    canManageAudit: role === 'SuperAdmin', // Only SuperAdmin
+    canViewAudit: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.audit, 'read'),
+    canScanAudit: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.auditScan, 'write'),
+    canManageAudit: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.auditManage, 'write'),
 
     // Reports
-    canViewReports: role !== 'User', // User cannot see global reports
+    canViewReports:
+      isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.reports, 'read')
+      || isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.reportsView, 'read'),
+    canExportReports: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.reportsExport, 'write'),
   };
 
   // Filter Equipment based on Role (Data Row Level Security)
@@ -86,6 +127,7 @@ export const useAccessControl = () => {
 
   // Granular Permissions
   const canValidateRequest = (request: Approval, allUsers: User[]) => {
+    if (!permissions.canManageApprovals) return false;
     if (role === 'SuperAdmin') return true;
     if (role === 'Manager') {
       const resolveUser = (userId?: string, userName?: string) => {
@@ -108,6 +150,7 @@ export const useAccessControl = () => {
   };
 
   const canProcessRequest = (request: Approval, requesterUser?: User) => {
+    if (!permissions.canManageApprovals) return false;
     if (role === 'SuperAdmin') return true;
     if (role === 'Admin') {
       // Check perimeter (Country)
@@ -121,12 +164,25 @@ export const useAccessControl = () => {
   };
 
   const canAssignAsset = (asset: Equipment) => {
+    if (!permissions.canManageInventory) return false;
     if (role === 'SuperAdmin') return true;
     if (role === 'Admin') {
       return currentUser?.managedCountries?.includes(asset.country || '');
     }
     return false;
   };
+
+  const simulateAccess = (roleIds: string[], groupIds?: string[]) =>
+    resolveEffectiveAccess({
+      userId: 'simulation-user',
+      assignment: {
+        userId: 'simulation-user',
+        roleIds,
+        groupIds: groupIds || [],
+      },
+      roles: rbacRoles,
+      groups: rbacGroups,
+    });
 
   return {
     filterEquipment,
@@ -136,6 +192,8 @@ export const useAccessControl = () => {
     canAssignAsset,
     role: currentUser?.role,
     user: currentUser,
-    permissions
+    permissions,
+    effectiveAccess,
+    simulateAccess,
   };
 };

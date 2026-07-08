@@ -6,9 +6,13 @@
  * Valide le code PIN administrateur.
  * En production, cette fonction appellerait une API pour vérifier le hash.
  */
+// PIN de step-up administrateur.
+// Configurable via VITE_ADMIN_PIN ; fallback dev uniquement.
+// Cible : vérification côté backend (hash) — cf. docs/AUDIT_MECANISMES_SIMULES.md (E-A1).
+const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
+
 export function validateAdminPIN(pin: string): boolean {
-  // Mock pour la démo : le code est 123456
-  return pin === '123456';
+  return pin === ADMIN_PIN;
 }
 
 /**

@@ -128,9 +128,9 @@ const ReportsPage = () => {
                 body: body,
                 startY: 35,
                 theme: 'grid',
-                headStyles: { fillColor: [255, 193, 7], textColor: [33, 37, 41], fontStyle: 'bold' }, // Couleurs primaires (Yellow)
+                headStyles: { fillColor: [253, 201, 16], textColor: [26, 25, 23], fontStyle: 'bold' }, // Jaune marque CAT + texte noir chaud
                 styles: { fontSize: 8, cellPadding: 3 },
-                alternateRowStyles: { fillColor: [248, 249, 250] } // surface-container-low
+                alternateRowStyles: { fillColor: [244, 242, 239] } // neutral-100 (chaud)
             });
 
             // Pied de page (numéros de page)
@@ -166,7 +166,7 @@ const ReportsPage = () => {
                             {report.icon}
                         </div>
                         <h3 className="font-bold text-on-surface text-title-medium mb-2">{report.title}</h3>
-                        <p className="text-sm text-on-surface-variant mb-6 flex-1">
+                        <p className="text-body-medium text-on-surface-variant mb-6 flex-1">
                             {report.description}
                         </p>
                         <div className="flex items-center gap-4 mt-auto">
