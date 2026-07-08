@@ -1,3 +1,4 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { ViewType, AppUser } from '../../../types';
@@ -9,13 +10,16 @@ import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useConfirmation } from '../../../context/ConfirmationContext';
-import { PageTabs } from '../../../components/ui/PageTabs';
+import { PageTabs, getTabElementId, getTabPanelId } from '../../../components/ui/PageTabs';
 import Menu, { MenuItem } from '../../../components/ui/Menu';
 import { DetailHeader } from '../../../components/layout/DetailHeader';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
+import DemoBadge from '../../../components/ui/DemoBadge';
+import { getCategoryIcon } from '../../../constants/categoryIcons';
 import {
+    ACTIVE_APPROVAL_STATUSES,
     canDeleteUserByRoleRule,
     getHistoryEventIcon,
     getStatusLabel,
@@ -30,11 +34,12 @@ interface UserDetailsPageProps {
 }
 
 type UserDetailsTab = 'overview' | 'equipment';
+const USER_DETAILS_TABS_ID_BASE = 'user-details-tabs';
 
 const MAX_USER_MOVEMENT_HISTORY_ITEMS = 200;
 
 const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEquipmentClick }) => {
-    const { users, equipment, events, deleteUser } = useData();
+    const { users, equipment, events, approvals, deleteUser } = useData();
     const { showToast } = useToast();
     const { permissions, user: currentUserAuth } = useAccessControl();
     const { navigate } = useAppNavigation();
@@ -43,18 +48,24 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
     const user = users.find(u => u.id === userId);
     const [activeTab, setActiveTab] = useState<UserDetailsTab>('overview');
     const [authUser, setAuthUser] = useState<AppUser | null>(null);
+    const [latestTempPassword, setLatestTempPassword] = useState<string | null>(null);
+    const [latestTempPin, setLatestTempPin] = useState<string | null>(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const isCompactLayout = useMediaQuery('(max-width: 839px)');
+    const isCompactLayout = useMediaQuery(MEDIA.belowExpanded);
+    const isPhone = useMediaQuery(MEDIA.compact);
+    const canManageAccountSecurity = permissions.canManageUsers
+        || currentUserAuth?.role === 'SuperAdmin'
+        || currentUserAuth?.role === 'Admin';
 
     useEffect(() => {
-        if (user?.email && permissions.canManageUsers) {
+        if (user?.email && canManageAccountSecurity) {
             authService.getAllUsers().then(appUsers => {
                 const found = appUsers.find(u => u.MicrosoftEmail?.toLowerCase() === user.email.toLowerCase());
                 setAuthUser(found || null);
             });
         }
-    }, [user, permissions.canManageUsers]);
+    }, [user, canManageAccountSecurity]);
 
     const targetUserId = user?.id ?? userId;
     const targetUserName = user?.name ?? '';
@@ -185,10 +196,14 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
 
     if (!user) return <div className="p-page-sm medium:p-page text-center text-on-surface-variant">Utilisateur non trouvé</div>;
 
+    const pendingApprovalCount = approvals.filter((approval) =>
+        ACTIVE_APPROVAL_STATUSES.includes(approval.status)
+        && (approval.requesterId === targetUserId || approval.beneficiaryId === targetUserId),
+    ).length;
+
     const summaryStats = [
         { label: 'Équipements Assignés', value: userEquipment.length },
-        { label: 'Licences Actives', value: 2 },
-        { label: 'Demande en Attente', value: 1 }
+        { label: 'Demandes en Attente', value: pendingApprovalCount }
     ];
 
     const isOwnProfile = currentUserAuth?.id === userId;
@@ -250,6 +265,159 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
         });
     };
 
+    const ensureSystemAccount = async (): Promise<AppUser | null> => {
+        if (authUser) return authUser;
+
+        try {
+            const account = await authService.createUser({
+                MicrosoftEmail: user?.email || '',
+                FirstName: user?.name.split(' ')[0] || '',
+                LastName: user?.name.split(' ').slice(1).join(' ') || '',
+                Role: user.role,
+                Title: user?.name,
+            });
+            setAuthUser(account);
+            showToast('Compte système créé automatiquement.', 'info');
+            return account;
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Impossible de créer le compte système.";
+            showToast(message, 'error');
+            return null;
+        }
+    };
+
+    const handleResetPassword = () => {
+        if (!canManageAccountSecurity) {
+            showToast("Action réservée aux administrateurs.", "error");
+            return;
+        }
+
+        const accountMissing = !authUser;
+        requestConfirmation({
+            title: 'Réinitialiser le mot de passe',
+            message: accountMissing
+                ? `Aucun compte système n'existe pour ${user.name}. Un compte sera créé puis un mot de passe temporaire sera généré.`
+                : `Un mot de passe temporaire sera généré pour ${user.name}. L'utilisateur devra le changer à la prochaine connexion.`,
+            confirmText: 'Réinitialiser',
+            variant: 'warning',
+            onConfirm: async () => {
+                const account = await ensureSystemAccount();
+                if (!account) return;
+
+                try {
+                    const result = await authService.resetUserPassword(account.id);
+                    setAuthUser(result.user);
+                    setLatestTempPassword(result.temporaryPassword);
+                    setLatestTempPin(null);
+
+                    try {
+                        if (navigator?.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(result.temporaryPassword);
+                            showToast(`Mot de passe temporaire: ${result.temporaryPassword} (copié).`, 'success');
+                            return;
+                        }
+                    } catch {
+                        // Clipboard may be unavailable (permissions/non secure context).
+                    }
+
+                    showToast(`Mot de passe temporaire: ${result.temporaryPassword}`, 'success');
+                } catch (error) {
+                    const message = error instanceof Error
+                        ? error.message
+                        : 'Réinitialisation du mot de passe impossible.';
+                    showToast(message, 'error');
+                }
+            },
+        });
+    };
+
+    const handleResetPin = () => {
+        if (!canManageAccountSecurity) {
+            showToast("Action réservée aux administrateurs.", "error");
+            return;
+        }
+
+        const accountMissing = !authUser;
+        requestConfirmation({
+            title: 'Réinitialiser le PIN',
+            message: accountMissing
+                ? `Aucun compte système n'existe pour ${user.name}. Un compte sera créé puis un PIN temporaire sera généré.`
+                : `Un PIN temporaire sera généré pour ${user.name}. L'utilisateur devra le changer lors de sa prochaine validation sécurisée.`,
+            confirmText: 'Réinitialiser PIN',
+            variant: 'warning',
+            onConfirm: async () => {
+                const account = await ensureSystemAccount();
+                if (!account) return;
+
+                try {
+                    const result = await authService.resetUserPin(account.id);
+                    setAuthUser(result.user);
+                    setLatestTempPin(result.temporaryPin);
+                    setLatestTempPassword(null);
+
+                    try {
+                        if (navigator?.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(result.temporaryPin);
+                            showToast(`PIN temporaire: ${result.temporaryPin} (copié).`, 'success');
+                            return;
+                        }
+                    } catch {
+                        // Clipboard may be unavailable (permissions/non secure context).
+                    }
+
+                    showToast(`PIN temporaire: ${result.temporaryPin}`, 'success');
+                } catch (error) {
+                    const message = error instanceof Error
+                        ? error.message
+                        : 'Réinitialisation du PIN impossible.';
+                    showToast(message, 'error');
+                }
+            },
+        });
+    };
+
+    const handleToggleAccountStatus = () => {
+        if (!canManageAccountSecurity) {
+            showToast("Action réservée aux administrateurs.", "error");
+            return;
+        }
+        if (!authUser) {
+            showToast("Aucun compte système trouvé. Créez ou réinitialisez d'abord le compte.", "warning");
+            return;
+        }
+
+        const isInactive = authUser.Status === 'inactive';
+        const nextStatus: AppUser['Status'] = isInactive ? 'active' : 'inactive';
+
+        requestConfirmation({
+            title: isInactive ? 'Activer le compte' : 'Suspendre le compte',
+            message: isInactive
+                ? `Le compte de ${user.name} sera réactivé immédiatement.`
+                : `Le compte de ${user.name} sera suspendu et ne pourra plus se connecter.`,
+            confirmText: isInactive ? 'Activer' : 'Suspendre',
+            variant: isInactive ? 'info' : 'warning',
+            onConfirm: async () => {
+                try {
+                    const updated = await authService.setUserStatus(authUser.id, nextStatus);
+                    setAuthUser(updated);
+                    showToast(
+                        nextStatus === 'inactive'
+                            ? 'Compte suspendu.'
+                            : 'Compte réactivé.',
+                        'success',
+                    );
+                } catch (error) {
+                    const message = error instanceof Error
+                        ? error.message
+                        : 'Mise à jour du statut impossible.';
+                    showToast(message, 'error');
+                }
+            },
+        });
+    };
+
     const formatDateTime = (value?: string) => {
         if (!value) return 'Jamais';
         const parsed = new Date(value);
@@ -263,11 +431,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
         });
     };
 
-    const getDeviceIcon = (type: string) => {
-        if (type === 'Laptop') return 'laptop_mac';
-        if (type === 'Phone') return 'smartphone';
-        return 'monitor';
-    };
+    const getDeviceIcon = (type: string) => getCategoryIcon(type);
 
     const handleScroll = () => {
         if (scrollContainerRef.current) {
@@ -304,21 +468,23 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                     aria-label="Modifier le profil"
                 />
             )}
-            <Menu
-                title="Options de gestion"
-                items={menuItems}
-                align="end"
-                widthClassName="w-56"
-                trigger={(
-                    <Button
-                        variant="text"
-                        className="rounded-full w-11 h-11 p-0 flex items-center justify-center transition-colors"
-                        aria-label="Menu d'actions"
-                    >
-                        <MaterialIcon name="more_vert" size={24} />
-                    </Button>
-                )}
-            />
+            {menuItems.length > 0 && (
+                <Menu
+                    title="Options de gestion"
+                    items={menuItems}
+                    align="end"
+                    widthClassName="w-56"
+                    trigger={(
+                        <Button
+                            variant="text"
+                            className="rounded-full w-11 h-11 p-0 flex items-center justify-center transition-colors"
+                            aria-label="Menu d'actions"
+                        >
+                            <MaterialIcon name="more_vert" size={24} />
+                        </Button>
+                    )}
+                />
+            )}
         </div>
     ) : canEdit ? (
         <Button
@@ -427,6 +593,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                         activeId={activeTab}
                         onChange={(tabId) => setActiveTab(tabId as UserDetailsTab)}
                         className="border-b border-outline-variant"
+                        idBase={USER_DETAILS_TABS_ID_BASE}
+                        ariaLabel="Navigation détails utilisateur"
                         items={userDetailsTabs}
                     />
                 </div>
@@ -519,6 +687,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                         activeId={activeTab}
                         onChange={(tabId) => setActiveTab(tabId as UserDetailsTab)}
                         className="border-t border-outline-variant"
+                        idBase={USER_DETAILS_TABS_ID_BASE}
+                        ariaLabel="Navigation détails utilisateur"
                         items={userDetailsTabs}
                     />
                 </div>
@@ -532,9 +702,35 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
             >
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
+                        <section
+                            role="tabpanel"
+                            id={getTabPanelId(USER_DETAILS_TABS_ID_BASE, 'overview')}
+                            aria-labelledby={getTabElementId(USER_DETAILS_TABS_ID_BASE, 'overview')}
+                        >
+                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
                             <div className="expanded:col-span-3 space-y-6">
-                            {primaryDevice ? (
+                            {primaryDevice && isPhone ? (
+                                /* Variante compacte téléphone (X9) : rangée fonctionnelle au lieu du héro décoratif */
+                                <div
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={handlePrimaryDeviceClick}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePrimaryDeviceClick(); }}
+                                    className="bg-surface rounded-md border border-outline-variant shadow-elevation-1 p-4 flex items-center gap-4 w-full cursor-pointer hover:bg-surface-container-low transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                >
+                                    <div className="shrink-0 w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center border border-outline-variant">
+                                        <MaterialIcon name={getDeviceIcon(primaryDevice.type)} size={24} className="text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-label-small text-on-surface-variant uppercase tracking-wide">Appareil principal</p>
+                                        <p className="text-title-medium text-on-surface truncate">{primaryDevice.name}</p>
+                                        <p className="text-body-small text-on-surface-variant truncate">
+                                            <span className="font-mono">{primaryDevice.assetId}</span> · {primaryDevice.status}
+                                        </p>
+                                    </div>
+                                    <MaterialIcon name="chevron_right" size={20} className="text-outline shrink-0" />
+                                </div>
+                            ) : primaryDevice ? (
                                 <div
                                     role="button"
                                     tabIndex={0}
@@ -554,8 +750,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                             <div className="flex items-center justify-center expanded:justify-start gap-3 mb-2">
                                                 <span className="text-primary text-label-medium font-bold uppercase tracking-widest border border-primary/30 px-2 py-0.5 rounded text-[10px]">Appareil principal</span>
                                                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-tertiary/20 text-tertiary text-label-small">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></div>
-                                                    En ligne
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+                                                    {primaryDevice.status}
                                                 </div>
                                             </div>
 
@@ -602,7 +798,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                 </div>
                             )}
 
-                            {permissions.canManageUsers && (
+                            {canManageAccountSecurity && (
                                 <div className="bg-surface rounded-md p-card shadow-elevation-1 border border-outline-variant">
                                     <div className="flex flex-col medium:flex-row medium:items-center justify-between gap-6">
                                         <div className="flex items-start gap-4">
@@ -610,59 +806,141 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                 <MaterialIcon name="security" size={24} className="text-on-primary-container" />
                                             </div>
                                             <div>
-                                                <h3 className="text-title-medium text-on-surface">Sécurité du Compte</h3>
+                                                <h3 className="text-title-medium text-on-surface flex items-center gap-2">
+                                                    Sécurité du Compte
+                                                    {!import.meta.env.VITE_AUTH_API_BASE_URL && (
+                                                        <DemoBadge title="Statuts issus du service d'authentification de démonstration — aucun backend configuré" />
+                                                    )}
+                                                </h3>
                                                 <p className="text-body-medium text-on-surface-variant mt-1">Gérez les accès et le statut de connexion.</p>
 
                                                 <div className="flex items-center gap-3 mt-3">
-                                                    <div className={`px-2 py-0.5 rounded text-label-small font-medium border ${authUser?.Status === 'Active' ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20' : 'bg-notebook-danger/10 text-notebook-danger border-notebook-danger/20'}`}>
-                                                        {authUser?.Status === 'Active' ? 'ENTRA ID: ACTIF' : 'ENTRA ID: INACTIF'}
+                                                    <div className={`px-2 py-0.5 rounded text-label-small font-medium border ${
+                                                        authUser?.Status === 'active'
+                                                            ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
+                                                            : authUser?.Status === 'pending'
+                                                                ? 'bg-warning/10 text-warning border-warning/30'
+                                                                : 'bg-notebook-danger/10 text-notebook-danger border-notebook-danger/20'
+                                                    }`}>
+                                                        {authUser?.Status === 'active'
+                                                            ? 'ENTRA ID: ACTIF'
+                                                            : authUser?.Status === 'pending'
+                                                                ? 'ENTRA ID: EN ATTENTE'
+                                                                : 'ENTRA ID: INACTIF'}
                                                     </div>
-                                                    <span className="text-body-small text-on-surface-variant">•</span>
-                                                    <span className="text-body-small text-on-surface-variant">Dernière synchro: Aujourd'hui</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <div className={`px-2 py-0.5 rounded text-label-small font-medium border ${
+                                                        authUser?.PinStatus === 'active'
+                                                            ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
+                                                            : authUser?.PinStatus === 'pending'
+                                                                ? 'bg-warning/10 text-warning border-warning/30'
+                                                                : 'bg-outline-variant/50 text-on-surface-variant border-outline-variant'
+                                                    }`}>
+                                                        {authUser?.PinStatus === 'active'
+                                                            ? 'PIN: ACTIF'
+                                                            : authUser?.PinStatus === 'pending'
+                                                                ? 'PIN: À RÉINITIALISER'
+                                                                : 'PIN: NON CONFIGURÉ'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-3 shrink-0">
-                                            {authUser ? (
-                                                <>
-                                                    <Button
-                                                        variant="outlined"
-                                                        onClick={() => showToast("Email de réinitialisation envoyé.", "success")}
-                                                        startIcon={<MaterialIcon name="lock_reset" size={18} />}
-                                                    >
-                                                        Réinitialiser MDP
-                                                    </Button>
-                                                    <Button
-                                                        variant="outlined"
-                                                        className="!text-error !border-error/30 hover:!bg-error/5"
-                                                        onClick={() => showToast("Compte désactivé temporairement.", "warning")}
-                                                        startIcon={<MaterialIcon name="block" size={18} />}
-                                                    >
-                                                        Suspendre
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <Button
-                                                    variant="filled"
-                                                    onClick={() => {
-                                                        authService.createUser({
-                                                            MicrosoftEmail: user?.email || '',
-                                                            FirstName: user?.name.split(' ')[0] || '',
-                                                            LastName: user?.name.split(' ').slice(1).join(' ') || '',
-                                                            Role: user.role,
-                                                            Title: user?.name
-                                                        }).then(() => {
-                                                            showToast("Invitation envoyée.", "success");
-                                                        });
-                                                    }}
-                                                    startIcon={<MaterialIcon name="person_add" size={18} />}
-                                                >
-                                                    Créer le compte système
-                                                </Button>
-                                            )}
+                                            <Button
+                                                variant="outlined"
+                                                onClick={handleResetPassword}
+                                                icon={<MaterialIcon name="lock_reset" size={18} />}
+                                            >
+                                                Réinitialiser MDP
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={handleResetPin}
+                                                icon={<MaterialIcon name="pin" size={18} />}
+                                            >
+                                                Réinitialiser PIN
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                className={
+                                                    authUser?.Status === 'inactive'
+                                                        ? '!text-notebook-success !border-notebook-success/40 hover:!bg-notebook-success/10'
+                                                        : '!text-error !border-error/30 hover:!bg-error/5'
+                                                }
+                                                onClick={handleToggleAccountStatus}
+                                                icon={<MaterialIcon name={authUser?.Status === 'inactive' ? 'check_circle' : 'block'} size={18} />}
+                                                disabled={!authUser}
+                                            >
+                                                {authUser?.Status === 'inactive' ? 'Activer' : 'Suspendre'}
+                                            </Button>
                                         </div>
                                     </div>
+                                    {!authUser && (
+                                        <p className="mt-3 text-body-small text-on-surface-variant">
+                                            Aucun compte système lié. Les actions de réinitialisation créeront le compte automatiquement.
+                                        </p>
+                                    )}
+
+                                    {latestTempPassword && (
+                                        <div className="mt-4 rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Mot de passe temporaire</p>
+                                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                <code className="rounded-sm bg-surface px-2 py-1 text-body-medium text-on-surface">
+                                                    {latestTempPassword}
+                                                </code>
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    icon={<MaterialIcon name="content_copy" size={16} />}
+                                                    onClick={async () => {
+                                                        try {
+                                                            if (navigator?.clipboard?.writeText) {
+                                                                await navigator.clipboard.writeText(latestTempPassword);
+                                                                showToast('Mot de passe temporaire copié.', 'success');
+                                                            } else {
+                                                                showToast("Copie automatique indisponible dans ce navigateur.", 'warning');
+                                                            }
+                                                        } catch {
+                                                            showToast('Impossible de copier automatiquement le mot de passe.', 'warning');
+                                                        }
+                                                    }}
+                                                >
+                                                    Copier
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {latestTempPin && (
+                                        <div className="mt-4 rounded-md border border-primary/30 bg-primary-container/20 px-3 py-2">
+                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">PIN temporaire</p>
+                                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                <code className="rounded-sm bg-surface px-2 py-1 text-body-medium text-on-surface">
+                                                    {latestTempPin}
+                                                </code>
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    icon={<MaterialIcon name="content_copy" size={16} />}
+                                                    onClick={async () => {
+                                                        try {
+                                                            if (navigator?.clipboard?.writeText) {
+                                                                await navigator.clipboard.writeText(latestTempPin);
+                                                                showToast('PIN temporaire copié.', 'success');
+                                                            } else {
+                                                                showToast("Copie automatique indisponible dans ce navigateur.", 'warning');
+                                                            }
+                                                        } catch {
+                                                            showToast('Impossible de copier automatiquement le PIN.', 'warning');
+                                                        }
+                                                    }}
+                                                >
+                                                    Copier
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -709,11 +987,17 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                     </Button>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+                        </section>
                     )}
 
                     {activeTab === 'equipment' && (
-                        <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
+                        <section
+                            role="tabpanel"
+                            id={getTabPanelId(USER_DETAILS_TABS_ID_BASE, 'equipment')}
+                            aria-labelledby={getTabElementId(USER_DETAILS_TABS_ID_BASE, 'equipment')}
+                        >
+                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
                             {userEquipment.length > 0 ? (
                                 userEquipment.map(item => (
                                     <div
@@ -753,7 +1037,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                     <span className="text-label-large text-on-surface-variant group-hover:text-on-surface">Assigner un nouvel équipement</span>
                                 </Button>
                             )}
-                        </div>
+                            </div>
+                        </section>
                     )}
                 </div>
 

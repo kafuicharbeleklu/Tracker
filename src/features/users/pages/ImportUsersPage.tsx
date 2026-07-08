@@ -6,6 +6,7 @@ import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
 
 interface ImportUsersPageProps {
     onCancel: () => void;
@@ -53,10 +54,10 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const headers = parseCsvLine(lines[0], ',');
 
             const data = lines.slice(1).map((line, index) => {
-                const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const values = parseCsvLine(line, ',');
                 const row: ParsedUserRow = {
                     _id: index,
                     _status: 'valid',
@@ -98,6 +99,25 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
         };
     }, [parsedData]);
 
+    const handleDownloadTemplate = () => {
+        // Delimiter ',' to stay re-importable by parseFile, which splits on commas.
+        const csvContent = [
+            buildCsvLine(['Name', 'Email', 'Role', 'Department'], ','),
+            buildCsvLine(['Awa Diop', 'awa.diop@exemple.com', 'User', 'IT'], ','),
+        ].join('\n');
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.href = url;
+        link.download = 'modele-import-utilisateurs.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const handleImport = () => {
         if (!file || stats.valid === 0) return;
         setTimeout(() => {
@@ -122,13 +142,13 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
         >
             {!previewMode ? (
                 <div className="bg-surface rounded-card p-page shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95 duration-300">
-                    <h3 className="text-sm font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
-                    <p className="text-sm text-on-surface-variant mb-6">
+                    <h3 className="text-label-large font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
+                    <p className="text-body-medium text-on-surface-variant mb-6">
                         Colonnes attendues : <span className="font-mono bg-surface-container px-1 rounded">Name</span>, <span className="font-mono bg-surface-container px-1 rounded">Email</span>, <span className="font-mono bg-surface-container px-1 rounded">Role</span>, <span className="font-mono bg-surface-container px-1 rounded">Department</span>.
                     </p>
 
                     <div className="mb-8">
-                        <Button variant="outlined" onClick={() => { }} icon={<MaterialIcon name="download" size={18} />}>
+                        <Button variant="outlined" onClick={handleDownloadTemplate} icon={<MaterialIcon name="download" size={18} />}>
                             Télécharger le modèle
                         </Button>
                     </div>
@@ -147,8 +167,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                 <MaterialIcon name="description" size={20} />
                             </div>
                             <div>
-                                <p className="font-bold text-on-surface text-sm">{file?.name}</p>
-                                <div className="flex items-center gap-3 text-xs mt-0.5">
+                                <p className="font-bold text-on-surface text-label-large">{file?.name}</p>
+                                <div className="flex items-center gap-3 text-body-small mt-0.5">
                                     <span className="text-on-surface-variant">{stats.total} lignes</span>
                                     <span className="text-tertiary font-bold">{stats.valid} valides</span>
                                     {stats.invalid > 0 && <span className="text-error font-bold">{stats.invalid} erreurs</span>}
@@ -160,8 +180,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
 
                     <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
                         <div className="overflow-x-auto max-h-[400px]">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-xs sticky top-0 z-10">
+                            <table className="w-full text-body-medium text-left">
+                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0 z-10">
                                     <tr>
                                         <th className="px-4 py-3">Statut</th>
                                         <th className="px-4 py-3">Nom</th>
@@ -181,7 +201,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                             <td className="px-4 py-3 text-on-surface-variant">{row.email || '-'}</td>
                                             <td className="px-4 py-3">{row.role || 'User'}</td>
                                             <td className="px-4 py-3 text-on-surface-variant">{row.department || '-'}</td>
-                                            <td className="px-4 py-3 text-xs text-error font-bold">{row._error}</td>
+                                            <td className="px-4 py-3 text-label-medium text-error font-bold">{row._error}</td>
                                         </tr>
                                     ))}
                                 </tbody>

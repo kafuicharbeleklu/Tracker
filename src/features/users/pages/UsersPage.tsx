@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { MEDIA } from '../../../constants/breakpoints';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useData } from '../../../context/DataContext';
 import StatusBadge from '../../../components/ui/StatusBadge';
@@ -27,6 +28,7 @@ const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'users_search';
 const STORAGE_KEY_DEPT = 'users_department';
 const STORAGE_KEY_ROLE = 'users_role';
+const USERS_FILTER_PANEL_ID = 'users-filter-panel';
 
 interface UsersPageProps {
   onUserClick?: (id: string) => void;
@@ -40,6 +42,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
   const [showFilters, setShowFilters] = useState(() => Boolean(sessionStorage.getItem(STORAGE_KEY_DEPT) || sessionStorage.getItem(STORAGE_KEY_ROLE)));
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,7 +51,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
   const { role, user: currentUser, filterUsers, permissions } = useAccessControl();
   const { showToast } = useToast();
   const { requestConfirmation } = useConfirmation();
-  const isCompact = useMediaQuery('(max-width: 599px)');
+  const isCompact = useMediaQuery(MEDIA.compact);
 
   const users = useMemo(() => filterUsers(allUsers), [allUsers, filterUsers]);
   const activeSuperAdminCount = useMemo(
@@ -71,6 +74,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, departmentFilter, roleFilter]);
+
+  useEffect(() => {
+    if (!showFilters) return;
+    const focusFirstFilterControl = () => {
+      const firstFocusable = filterPanelRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      firstFocusable?.focus();
+    };
+    const timeoutId = window.setTimeout(focusFirstFilterControl, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [showFilters]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
@@ -272,6 +287,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
     roleFilter ? 'Rôle: ' + roleFilter : null,
     searchQuery ? 'Recherche: "' + searchQuery + '"' : null,
   ].filter(Boolean).join(' • ');
+  const resetFilters = () => {
+    setSearchQuery('');
+    setDepartmentFilter('');
+    setRoleFilter('');
+  };
   return (
     <PageContainer>
       <PageHeader
@@ -293,6 +313,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 onSearchChange={setSearchQuery}
                 onFilterClick={() => setShowFilters((prev) => !prev)}
                 filterActive={showFilters}
+                filterPanelId={USERS_FILTER_PANEL_ID}
                 placeholder="Rechercher par nom, email, département..."
               />
             </div>
@@ -304,6 +325,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
             onSearchChange={setSearchQuery}
             onFilterClick={() => setShowFilters((prev) => !prev)}
             filterActive={showFilters}
+            filterPanelId={USERS_FILTER_PANEL_ID}
             resultCount={filteredUsers.length}
             placeholder="Rechercher par nom, email, département..."
           />
@@ -328,7 +350,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
         )}
 
         {showFilters && (
-          <div className="flex flex-col medium:flex-row gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-short4">
+          <div
+            id={USERS_FILTER_PANEL_ID}
+            ref={filterPanelRef}
+            className="flex flex-col medium:flex-row gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-short4"
+            role="region"
+            aria-label="Filtres utilisateurs"
+          >
             <SelectFilter
               options={departments}
               value={departmentFilter}
@@ -353,11 +381,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 variant="outlined"
                 icon={<MaterialIcon name="restart_alt" size={16} />}
                 className="w-full medium:w-auto"
-                onClick={() => {
-                  setSearchQuery('');
-                  setDepartmentFilter('');
-                  setRoleFilter('');
-                }}
+                onClick={resetFilters}
               >
                 Réinitialiser les filtres
               </Button>
@@ -484,7 +508,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                   </div>
                 }
                 status={
-                  <div className="flex w-[164px] items-center justify-end pr-1">
+                  <div className="flex medium:w-[164px] items-center justify-end pr-1">
                     <StatusBadge status={user.role} size="sm" />
                   </div>
                 }
@@ -515,11 +539,21 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 icon="person_off"
                 title="Aucun utilisateur trouvé"
                 description="Ajustez vos critères de recherche ou ajoutez un nouveau collaborateur."
-                action={users.length === 0 && permissions.canManageUsers && (
-                  <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_user')}>
-                    Ajouter un utilisateur
-                  </Button>
-                )}
+                action={
+                  users.length === 0 && permissions.canManageUsers ? (
+                    <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_user')}>
+                      Ajouter un utilisateur
+                    </Button>
+                  ) : hasActiveFilters ? (
+                    <Button
+                      variant="outlined"
+                      icon={<MaterialIcon name="restart_alt" size={18} />}
+                      onClick={resetFilters}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  ) : undefined
+                }
               />
             </div>
           )}

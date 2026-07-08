@@ -337,7 +337,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                             <h3 className="text-inverse-on-surface text-title-medium font-bold line-clamp-2 break-words px-4">
                                 {formData.name || (isEditMode ? "Utilisateur" : "Nouveau Profil")}
                             </h3>
-                            <p className="text-on-surface-variant text-xs uppercase tracking-widest font-black mt-1">
+                            <p className="text-on-surface-variant text-label-medium uppercase tracking-widest font-black mt-1">
                                 {formData.role}
                             </p>
                         </div>
@@ -365,30 +365,30 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                             <div className="p-4 bg-surface-container rounded-lg border border-outline-variant">
                                 <div className="flex items-start gap-2">
                                     <MaterialIcon name="info" size={14} className="text-on-surface-variant mt-0.5 shrink-0" />
-                                    <p className="text-xs text-on-surface-variant leading-relaxed italic">
+                                    <p className="text-body-small text-on-surface-variant leading-relaxed italic">
                                         {getRoleDescription(formData.role)}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="pt-4 space-y-3">
-                                <div className="flex items-center gap-2 text-xs font-bold text-tertiary">
+                                <div className="flex items-center gap-2 text-label-medium font-bold text-tertiary">
                                     <MaterialIcon name="check_circle" size={14} />
                                     Compte actif
                                 </div>
                                 {isEditMode ? (
-                                    <div className="flex items-center gap-2 text-xs font-bold text-secondary">
+                                    <div className="flex items-center gap-2 text-label-medium font-bold text-secondary">
                                         <MaterialIcon name="sync" size={14} />
                                         Historique conservé
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex items-center gap-2 text-xs font-bold text-secondary">
+                                        <div className="flex items-center gap-2 text-label-medium font-bold text-secondary">
                                             <MaterialIcon name="check_circle" size={14} />
                                             Invitation e-mail envoyée
                                         </div>
                                         {formData.managerId && (
-                                            <div className="flex items-center gap-2 text-xs font-bold text-tertiary animate-pulse">
+                                            <div className="flex items-center gap-2 text-label-medium font-bold text-tertiary animate-pulse">
                                                 <MaterialIcon name="check_circle" size={14} />
                                                 Notification manager (Dotation)
                                             </div>
