@@ -36,6 +36,35 @@ export const renderCategoryIcon = (category: Category | undefined, size = 24) =>
 };
 
 // --- User Data ---
+const inferCountryFromUser = (user: User): string => {
+    if (user.country) return user.country;
+    if (user.managedCountries && user.managedCountries.length > 0) return user.managedCountries[0];
+    const department = user.department.toLowerCase();
+    if (department.includes('sénégal') || department.includes('afrique')) return 'Sénégal';
+    if (department.includes('togo') || department.includes('direction')) return 'Togo';
+    return 'France';
+};
+
+const inferSiteFromCountry = (country: string): string => {
+    if (country === 'Sénégal') return 'Campus Dakar';
+    if (country === 'Togo') return 'Lomé Siège';
+    return 'Bureau Paris';
+};
+
+const normalizeUserForDemo = (user: User): User => {
+    const country = inferCountryFromUser(user);
+    const site = user.site || inferSiteFromCountry(country);
+    const dialingCode = country === 'Sénégal' ? '+221' : country === 'Togo' ? '+228' : '+33';
+    const paddedId = user.id.padStart(2, '0');
+    return {
+        ...user,
+        country,
+        site,
+        status: user.status || 'active',
+        phone: user.phone || `${dialingCode} 6 00 00 00 ${paddedId}`,
+    };
+};
+
 export const mockAllUsersExtended: User[] = [
     {
         id: '1',
@@ -54,6 +83,7 @@ export const mockAllUsersExtended: User[] = [
         role: "Admin",
         department: "IT Sénégal",
         managedCountries: ["Sénégal"],
+        rbacGroupIds: ['group.it.senegal'],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob"
     },
     {
@@ -94,6 +124,7 @@ export const mockAllUsersExtended: User[] = [
         department: "IT France",
         country: "France",
         managedCountries: ["France"],
+        rbacGroupIds: ['group.it.france'],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Clara"
     },
     {
@@ -105,6 +136,7 @@ export const mockAllUsersExtended: User[] = [
         department: "Support Afrique",
         country: "Sénégal",
         site: "Campus Dakar",
+        rbacGroupIds: ['group.audit.operators'],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Oumar"
     },
     {
@@ -129,6 +161,7 @@ export const mockAllUsersExtended: User[] = [
         country: "France",
         site: "Bureau Paris",
         managerId: '10',
+        rbacGroupIds: ['group.finance.reviewers'],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marc"
     },
     {
@@ -140,6 +173,7 @@ export const mockAllUsersExtended: User[] = [
         department: "Finance",
         country: "France",
         site: "Bureau Paris",
+        rbacRoleIds: ['role.custom.finance_controller'],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nora"
     },
     {
@@ -152,12 +186,109 @@ export const mockAllUsersExtended: User[] = [
         country: "France",
         site: "Bureau Paris",
         managerId: '3',
+        rbacDirectPermissions: [
+            { key: 'action.reports.export', effect: 'allow', access: 'write' },
+        ],
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lea"
     }
-];
+].map(normalizeUserForDemo);
 
 
 // --- Equipment Data with Financials ---
+const WARRANTY_YEARS_BY_TYPE: Record<string, number> = {
+    Laptop: 3,
+    Monitor: 3,
+    Keyboard: 2,
+    Mouse: 2,
+    Server: 5,
+    Headphones: 2,
+    Printer: 3,
+};
+
+const DEFAULT_SITE_BY_COUNTRY: Record<string, string> = {
+    France: 'Bureau Paris',
+    'Sénégal': 'Campus Dakar',
+    Togo: 'Lomé Siège',
+};
+
+const DEFAULT_DEPARTMENT_BY_COUNTRY: Record<string, string> = {
+    France: 'IT HQ',
+    'Sénégal': 'Support Afrique',
+    Togo: 'Direction',
+};
+
+const buildHostnameFromName = (name: string, assetId: string): string => {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return slug || assetId.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+};
+
+const addYearsToDate = (dateValue: string | undefined, years: number): string | undefined => {
+    if (!dateValue) return undefined;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return undefined;
+    date.setFullYear(date.getFullYear() + years);
+    return date.toISOString().slice(0, 10);
+};
+
+const normalizeEquipmentForDemo = (item: Equipment): Equipment => {
+    const country = item.country || 'France';
+    const site = item.site || DEFAULT_SITE_BY_COUNTRY[country] || 'Bureau Paris';
+    const department = item.department || item.user?.department || DEFAULT_DEPARTMENT_BY_COUNTRY[country] || 'IT HQ';
+    const typeWarrantyYears = WARRANTY_YEARS_BY_TYPE[item.type] || 2;
+    const warrantyEnd = item.warrantyEnd || addYearsToDate(item.financial?.purchaseDate, typeWarrantyYears);
+    const serialNumber = item.serialNumber || `SN-${item.assetId.replace(/[^A-Za-z0-9]/g, '')}`;
+    const hostname = item.hostname || buildHostnameFromName(item.name, item.assetId);
+    const isComputingAsset = ['Laptop', 'Server', 'Printer'].includes(item.type);
+
+    const os = item.os || (
+        item.type === 'Laptop'
+            ? (item.model.toLowerCase().includes('macbook') ? 'macOS Sonoma 14' : 'Windows 11 Pro')
+            : item.type === 'Server'
+                ? 'Ubuntu Server 22.04 LTS'
+                : item.type === 'Printer'
+                    ? 'HP FutureSmart'
+                    : 'N/A'
+    );
+
+    const ram = item.ram || (
+        item.type === 'Laptop'
+            ? '16 GB'
+            : item.type === 'Server'
+                ? '128 GB ECC'
+                : item.type === 'Printer'
+                    ? '2 GB'
+                    : 'N/A'
+    );
+
+    const storage = item.storage || (
+        item.type === 'Laptop'
+            ? '512 GB SSD'
+            : item.type === 'Server'
+                ? '2 TB NVMe'
+                : item.type === 'Printer'
+                    ? '16 GB eMMC'
+                    : 'N/A'
+    );
+
+    return {
+        ...item,
+        country,
+        site,
+        department,
+        warrantyEnd,
+        serialNumber,
+        hostname,
+        os,
+        ram,
+        storage,
+        securityAgents: item.securityAgents || {
+            sentinelOne: isComputingAsset,
+            matrix42: isComputingAsset,
+            manageEngine: isComputingAsset,
+            lastCheckedAt: '2026-01-15T09:00:00Z',
+        },
+    };
+};
 
 export const mockAllEquipment: Equipment[] = [
     {
@@ -273,7 +404,7 @@ export const mockAllEquipment: Equipment[] = [
         assignmentStatus: 'CONFIRMED',
         department: 'Marketing Europe'
     },
-];
+].map(normalizeEquipmentForDemo);
 
 
 // --- Management Data with Defaults ---

@@ -3,7 +3,7 @@ import { useAccessControl } from './useAccessControl';
 import { HistoryEvent, HistoryFilter } from '../types';
 
 export const useHistory = () => {
-  const { events, users, logEvent: contextLogEvent } = useData(); // events: HistoryEvent[]
+  const { events, users, equipment, logEvent: contextLogEvent } = useData(); // events: HistoryEvent[]
   const { user: currentUser } = useAccessControl();
   
   /**
@@ -27,9 +27,11 @@ export const useHistory = () => {
         // Événements où il est la cible
         if (event.targetType === 'USER' && event.targetId === currentUser.id) return true;
         if (event.targetType === 'EQUIPMENT') {
-          // Vérifier si l'équipement lui a été/est attribué
-          // (nécessite d'avoir accès aux équipements dans le contexte)
-          return event.metadata?.beneficiaryId === currentUser.id;
+          // Visible si l'événement le désigne comme bénéficiaire (snapshot historique)
+          // OU si l'équipement lui est actuellement attribué (événements sans metadata).
+          if (event.metadata?.beneficiaryId === currentUser.id) return true;
+          const eq = equipment.find((item) => item.id === event.targetId);
+          return eq?.user?.id === currentUser.id;
         }
         
         return false;
@@ -64,7 +66,9 @@ export const useHistory = () => {
         
         // Équipements de son équipe
         if (event.targetType === 'EQUIPMENT') {
-          return event.metadata?.beneficiaryId && teamUserIds.includes(event.metadata.beneficiaryId);
+          if (event.metadata?.beneficiaryId && teamUserIds.includes(event.metadata.beneficiaryId)) return true;
+          const eq = equipment.find((item) => item.id === event.targetId);
+          return Boolean(eq?.user?.id && teamUserIds.includes(eq.user.id));
         }
         
         return false;
@@ -76,11 +80,9 @@ export const useHistory = () => {
       );
     }
     
-    // Admin voit tout de son pays (si géo-scoped)
-    if (role === 'Admin' && currentUser.managedCountries) {
-      // Logic à implémenter selon la géo-localisation
-      // Pour l'instant, on laisse passer tout, une implémentation plus fine nécessiterait de croiser les localisations
-    }
+    // Admin : visibilité globale de l'historique à ce stade (pas de cloisonnement géographique).
+    // Le géo-scoping par pays gérés (managedCountries) sera implémenté avec le backend,
+    // où la localisation des événements sera fiable. Cf. docs/AUDIT_LOGIQUE_METIER.md (D4).
     
     // SuperAdmin voit tout (pas de filtrage)
     

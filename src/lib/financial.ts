@@ -174,6 +174,17 @@ export const formatCurrency = (
 };
 
 /**
+ * Formatage de date localisé fr-FR (jj/mm/aaaa).
+ * À utiliser à la place de `toLocaleDateString()` sans locale,
+ * qui suit la locale du navigateur (formats US visibles).
+ */
+export const formatDate = (date: string | number | Date = new Date()) => {
+  const parsed = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleDateString('fr-FR');
+};
+
+/**
  * Formatage de nombres simples (compteurs, stats)
  */
 export const formatNumber = (amount: number, compact = false) => {
