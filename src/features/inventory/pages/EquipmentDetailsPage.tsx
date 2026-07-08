@@ -605,7 +605,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         <MaterialIcon name="monitor_heart" size={16} /> Santé
                                         {item.status !== 'En réparation' && <DemoBadge className="ml-auto" />}
                                     </div>
-                                    <div className={`text-headline-small font-bold ${item.status === 'En réparation' ? 'text-primary' : 'text-tertiary'}`}>
+                                    {/* Règle X12 : état réparation en on-surface, pas de jaune en texte sur fond clair */}
+                                    <div className={`text-headline-small font-bold ${item.status === 'En réparation' ? 'text-on-surface' : 'text-tertiary'}`}>
                                         {item.status === 'En réparation' ? 'Maintenance' : '100%'}
                                     </div>
                                     <div className="text-label-small text-on-surface-variant mt-1">
@@ -867,7 +868,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         </div>
                                     </button>
                                 </div>
-                                <Button variant="outlined" className="w-full mt-4 text-primary font-bold hover:underline justify-center">Voir tout</Button>
+                                {/* Règle X12 : couleur par défaut du bouton outlined (sombre) */}
+                                <Button variant="outlined" className="w-full mt-4 font-bold hover:underline justify-center">Voir tout</Button>
                             </div>
                         </div>
 

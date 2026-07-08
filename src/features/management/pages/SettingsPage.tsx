@@ -463,7 +463,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
 
                                         <div className="space-y-6">
                                             <div className="p-6 bg-primary-container/20 rounded-lg border border-primary/20 h-full">
-                                                <h3 className="text-title-medium font-semibold mb-4 flex items-center gap-2 text-primary">
+                                                {/* Règle X12 : pas de jaune en texte sur fond clair — l'accent reste le fond teinté */}
+                                                <h3 className="text-title-medium font-semibold mb-4 flex items-center gap-2 text-on-surface">
                                                     <MaterialIcon name="preview" size={20} />
                                                     Aperçu Amortissement
                                                 </h3>
@@ -474,7 +475,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                     </div>
                                                     <div className="flex justify-between py-2 border-b border-outline-variant/50">
                                                         <span className="text-on-surface-variant">Mensualité</span>
-                                                        <span className="font-mono font-bold text-primary">{formatCurrency(simulation.monthly, financeForm.currency, financeForm.compactNotation)}</span>
+                                                        <span className="font-mono font-bold text-on-surface">{formatCurrency(simulation.monthly, financeForm.currency, financeForm.compactNotation)}</span>
                                                     </div>
                                                     <div className="flex justify-between py-2">
                                                         <span className="text-on-surface-variant">Valeur Résiduelle</span>
@@ -547,7 +548,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         </div>
                                         <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
                                             <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Liées existant</p>
-                                            <p className="text-title-large font-semibold text-primary">{detectedStats.linked}</p>
+                                            {/* Règle X12 : valeur en on-surface, pas de jaune en texte sur fond clair */}
+                                            <p className="text-title-large font-semibold text-on-surface">{detectedStats.linked}</p>
                                         </div>
                                         <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
                                             <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Importées</p>
@@ -741,7 +743,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                     <h2 className="text-title-large font-bold">Mon Compte</h2>
 
                                     <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex items-start gap-6">
-                                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary text-display-small font-bold border-2 border-surface shadow-elevation-1 shrink-0">
+                                        {/* Règle X12 : initiales sombres sur fond teinté primaire (jaune jamais en texte sur fond clair) */}
+                                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-on-primary-container text-display-small font-bold border-2 border-surface shadow-elevation-1 shrink-0">
                                             AA
                                         </div>
                                         <div className="flex-1">
@@ -782,7 +785,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                         <p className="font-medium">Mot de passe</p>
                                                         <p className="text-body-medium text-on-surface-variant">Dernière modification il y a 90 jours</p>
                                                     </div>
-                                                    <Button variant="outlined" className="text-primary whitespace-nowrap !px-4">Mettre à jour</Button>
+                                                    {/* Règle X12 : couleur de texte par défaut du bouton outlined (sombre), pas de jaune */}
+                                                    <Button variant="outlined" className="whitespace-nowrap !px-4">Mettre à jour</Button>
                                                 </div>
                                                 <div className="h-px bg-outline-variant/50" />
                                                 <div className="flex items-center justify-between py-2 gap-3">

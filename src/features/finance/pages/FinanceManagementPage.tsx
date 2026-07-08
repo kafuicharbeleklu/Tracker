@@ -579,7 +579,7 @@ const FinanceManagementPage = () => {
                                             onClick={() => {
                                                 void handlePreviewSourceFile(selectedExpense);
                                             }}
-                                            className="text-label-medium text-primary hover:underline truncate text-right"
+                                            className="text-label-medium text-on-surface underline underline-offset-2 hover:text-on-surface-variant truncate text-right"
                                             title={selectedExpense.sourceFileName || 'Document source'}
                                         >
                                             {selectedExpense.sourceFileName || 'Document source'}
@@ -1067,7 +1067,8 @@ const FinanceManagementPage = () => {
 
                                     <div className="bg-surface rounded-card p-6 border border-outline-variant shadow-elevation-1 flex flex-col justify-between">
                                         <p className="text-label-small text-on-surface-variant uppercase font-black tracking-widest mb-2">Restant</p>
-                                        <div className={cn("text-headline-medium font-black", budgetStats.remaining < 0 ? "text-error" : "text-primary")}>
+                                        {/* Règle X12 : valeur en on-surface (le jaune n'est jamais une couleur de texte sur fond clair) */}
+                                        <div className={cn("text-headline-medium font-black", budgetStats.remaining < 0 ? "text-error" : "text-on-surface")}>
                                             {formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}
                                         </div>
                                         <div className="text-label-small text-on-surface mt-4 font-semibold">
@@ -1083,7 +1084,8 @@ const FinanceManagementPage = () => {
                                             <div className="space-y-1">
                                                 <h2 className="font-bold text-on-surface text-title-medium">Détails du budget</h2>
                                                 <div className="flex items-center gap-2 text-label-small text-on-surface-variant">
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold">
+                                                    {/* Règle X12 : texte sombre sur fond teinté primaire */}
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-on-primary-container font-semibold">
                                                         <MaterialIcon name="psychology" size={12} /> Analyse IA CAPEX/OPEX
                                                     </span>
                                                     <Tooltip

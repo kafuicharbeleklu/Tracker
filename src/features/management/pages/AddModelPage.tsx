@@ -127,7 +127,8 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                         <div className="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mb-3 text-on-surface-variant group-hover:text-primary transition-colors">
                             <MaterialIcon name="cloud_upload" size={24} />
                         </div>
-                        <p className="text-title-small font-medium text-primary">Télécharger l'image</p>
+                        {/* Règle X12 : libellé sombre, pas de jaune en texte sur fond clair */}
+                        <p className="text-title-small font-medium text-on-surface">Télécharger l'image</p>
                     </div>
                 </div>
             </div>

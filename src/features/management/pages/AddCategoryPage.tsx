@@ -147,7 +147,8 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                             <div className="flex justify-between items-start mb-2">
                                 <div className={cn(
                                     "p-2 rounded-lg transition-colors",
-                                    formData.method === 'linear' ? "bg-primary-container text-primary" : "bg-surface-container text-on-surface-variant"
+                                    // Règle X12 : glyphe sombre sur primary-container (jaune/jaune-pâle ≈1,4:1)
+                                    formData.method === 'linear' ? "bg-primary-container text-on-primary-container" : "bg-surface-container text-on-surface-variant"
                                 )}>
                                     <MaterialIcon name="trending_down" size={18} />
                                 </div>
@@ -175,7 +176,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                             <div className="flex justify-between items-start mb-2">
                                 <div className={cn(
                                     "p-2 rounded-lg transition-colors",
-                                    formData.method === 'degressive' ? "bg-primary-container text-primary" : "bg-surface-container text-on-surface-variant"
+                                    formData.method === 'degressive' ? "bg-primary-container text-on-primary-container" : "bg-surface-container text-on-surface-variant"
                                 )}>
                                     <MaterialIcon name="show_chart" size={18} />
                                 </div>
@@ -228,9 +229,10 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                                 onClick={() => setFormData({ ...formData, iconName: name })}
                                 className={cn(
                                     "aspect-square !w-auto !h-auto !p-0 !min-w-0 !min-h-0 !rounded-xl !border-2 transition-all hover:scale-105 active:scale-95 !items-center !justify-center",
+                                    // Règle X12 : icône sombre, l'accent jaune reste sur la bordure/ring (non textuel)
                                     formData.iconName === name
-                                        ? "!bg-primary-container/45 !border-primary text-primary shadow-elevation-1 ring-1 ring-primary/20"
-                                        : "!bg-surface-container-low !border-transparent text-on-surface-variant hover:!bg-surface hover:!border-outline-variant hover:!text-primary"
+                                        ? "!bg-primary-container/45 !border-primary text-on-primary-container shadow-elevation-1 ring-1 ring-primary/20"
+                                        : "!bg-surface-container-low !border-transparent text-on-surface-variant hover:!bg-surface hover:!border-outline-variant hover:!text-on-surface"
                                 )}
                                 title={name}
                             >
