@@ -13,6 +13,7 @@ import { useData } from '../../../context/DataContext';
 import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import { PageContainer } from '../../../components/layout/PageContainer';
+import { PageTabs, TabItem } from '../../../components/ui/PageTabs';
 import type { AgentCheckInPayload } from '../../../types';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { APP_CONFIG } from '../../../config';
@@ -286,13 +287,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
     };
 
     // --- SECTIONS ---
+    // Libellés courts en compact/medium (même pattern que les onglets finance)
     const sections: Array<{ id: SettingsSection; label: string; icon: string }> = [
-        { id: 'general', label: isCompactOrMedium ? 'Affichage' : 'Affichage', icon: 'palette' },
+        { id: 'general', label: 'Affichage', icon: 'palette' },
         { id: 'finance', label: isCompactOrMedium ? 'Finances' : 'Finances & Paramètres', icon: 'account_balance' },
-        { id: 'collection', label: isCompactOrMedium ? 'Collecte auto' : 'Collecte automatique', icon: 'developer_board' },
+        { id: 'collection', label: isCompactOrMedium ? 'Collecte' : 'Collecte automatique', icon: 'developer_board' },
         { id: 'account', label: isCompactOrMedium ? 'Compte' : 'Compte & Sécurité', icon: 'manage_accounts' },
         { id: 'help', label: 'Aide', icon: 'help' },
     ];
+
+    const sectionTabs: TabItem[] = sections.map((section) => ({
+        id: section.id,
+        label: section.label,
+        icon: <MaterialIcon name={section.icon} size={20} />,
+    }));
 
     const canSaveSettings = activeSection === 'finance' || activeSection === 'collection';
     const saveButtonLabel = activeSection === 'collection' ? 'Enregistrer collecte' : 'Enregistrer finances';
@@ -349,29 +357,38 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
             <div className="flex-1 overflow-hidden">
                 <PageContainer className="h-full flex flex-col expanded:flex-row gap-0 expanded:gap-8 !p-0 md:!px-page max-w-[1600px] mx-auto">
 
-                    {/* SIDEBAR NAVIGATION */}
-                    <aside className="w-full expanded:w-64 shrink-0 bg-surface expanded:bg-transparent border-b expanded:border-b-0 border-outline-variant p-4 expanded:py-8 overflow-x-auto expanded:overflow-visible">
-                        <nav className={cn('flex expanded:flex-col gap-2', isCompactOrMedium && 'min-w-max')}>
-                            {sections.map(section => (
-                                <Button
-                                    key={section.id}
-                                    type="button"
-                                    variant={activeSection === section.id ? 'tonal' : 'text'}
-                                    onClick={() => setActiveSection(section.id)}
-                                    className={cn(
-                                        isCompactOrMedium
-                                            ? "h-11 !w-auto shrink-0 !rounded-full !px-4 !py-2 !text-label-medium !font-medium whitespace-nowrap !justify-center"
-                                            : "h-auto w-full !rounded-md !px-4 !py-3 !text-title-small !font-medium !transition-all whitespace-nowrap expanded:whitespace-normal !justify-start",
-                                        activeSection === section.id
-                                            ? "!bg-primary-container !text-on-primary-container shadow-elevation-1"
-                                            : "!text-on-surface-variant hover:!bg-surface-container-high hover:!text-on-surface"
-                                    )}
-                                >
-                                    <MaterialIcon name={section.icon} size={20} className={activeSection === section.id ? "text-primary" : "text-on-surface-variant"} />
-                                    {section.label}
-                                </Button>
-                            ))}
-                        </nav>
+                    {/* SIDEBAR NAVIGATION — compact/medium : PageTabs (affordance d'overflow
+                        intégrée, X8) ; expanded : nav verticale */}
+                    <aside className="w-full expanded:w-64 shrink-0 bg-surface expanded:bg-transparent border-b expanded:border-b-0 border-outline-variant p-4 expanded:py-8">
+                        {isCompactOrMedium ? (
+                            <PageTabs
+                                items={sectionTabs}
+                                activeId={activeSection}
+                                onChange={(id) => setActiveSection(id as SettingsSection)}
+                                idBase="settings-sections"
+                                ariaLabel="Sections des paramètres"
+                            />
+                        ) : (
+                            <nav className="flex flex-col gap-2">
+                                {sections.map(section => (
+                                    <Button
+                                        key={section.id}
+                                        type="button"
+                                        variant={activeSection === section.id ? 'tonal' : 'text'}
+                                        onClick={() => setActiveSection(section.id)}
+                                        className={cn(
+                                            "h-auto w-full !rounded-md !px-4 !py-3 !text-title-small !font-medium !transition-all whitespace-nowrap expanded:whitespace-normal !justify-start",
+                                            activeSection === section.id
+                                                ? "!bg-primary-container !text-on-primary-container shadow-elevation-1"
+                                                : "!text-on-surface-variant hover:!bg-surface-container-high hover:!text-on-surface"
+                                        )}
+                                    >
+                                        <MaterialIcon name={section.icon} size={20} className={activeSection === section.id ? "text-primary" : "text-on-surface-variant"} />
+                                        {section.label}
+                                    </Button>
+                                ))}
+                            </nav>
+                        )}
                     </aside>
 
                     {/* MAIN CONTENT AREA */}
