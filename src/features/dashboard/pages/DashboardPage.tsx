@@ -1,3 +1,4 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useMemo, useState, useEffect } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import Card from '../../../components/ui/Card';
@@ -9,7 +10,8 @@ import { GLOSSARY } from '../../../constants/glossary';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import Button from '../../../components/ui/Button';
 import { useToast } from '../../../context/ToastContext';
-import { calculateLinearDepreciation, formatCurrency, formatNumber } from '../../../lib/financial';
+import { useConfirmation } from '../../../context/ConfirmationContext';
+import { calculateLinearDepreciation, formatCurrency, formatDate, formatNumber } from '../../../lib/financial';
 import { MetricCard } from '../../../components/ui/MetricCard';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
 import { useHistory } from '../../../hooks/useHistory';
@@ -17,6 +19,7 @@ import { cn } from '../../../lib/utils';
 import TransactionTicketModal from '../../../components/modals/TransactionTicketModal';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import {
+    ACTIVE_APPROVAL_STATUSES,
     canUserActOnApproval,
     getHistoryEventIcon,
     getHistoryEventSentence,
@@ -33,8 +36,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
     const { showToast } = useToast();
-    const isCompact = useMediaQuery('(max-width: 599px)');
-    const isMedium = useMediaQuery('(min-width: 600px) and (max-width: 839px)');
+    const { requestConfirmation } = useConfirmation();
+    const isCompact = useMediaQuery(MEDIA.compact);
+    const isMedium = useMediaQuery(MEDIA.medium);
     const [animateChart, setAnimateChart] = useState(false);
 
     useEffect(() => {
@@ -250,14 +254,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         };
     }, [equipment]);
     const handleConfirmReceipt = (approvalId: string) => {
-        if (confirm("Confirmez-vous avoir bien reçu cet équipement ?")) {
-            const decision = updateApproval(approvalId, 'Completed');
-            if (!decision.allowed) {
-                showToast(decision.reason || 'Action non autorisée.', 'error');
-                return;
-            }
-            showToast("Réception confirmée.", 'success');
-        }
+        requestConfirmation({
+            title: 'Confirmer la réception',
+            message: 'Confirmez-vous avoir bien reçu cet équipement ?',
+            variant: 'info',
+            onConfirm: () => {
+                const decision = updateApproval(approvalId, 'Completed');
+                if (!decision.allowed) {
+                    showToast(decision.reason || 'Action non autorisée.', 'error');
+                    return;
+                }
+                showToast('Réception confirmée.', 'success');
+            },
+        });
     };
 
     const handleManagerValidation = (
@@ -300,11 +309,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const diffDays = Math.floor((startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24));
-        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
         if (diffDays === 0) return `Aujourd'hui, ${timeStr}`;
         if (diffDays === 1) return `Hier, ${timeStr}`;
-        return date.toLocaleDateString() + ', ' + timeStr;
+        return formatDate(date) + ', ' + timeStr;
     };
 
     const handleStatusClick = (status: string) => {
@@ -313,12 +322,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         }
     };
 
-    const KPI_CARDS = [
+    // Composition par persona (audit D2) : les KPIs de flotte n'ont pas de sens
+    // pour un utilisateur simple — il voit « mes équipements / mes demandes ».
+    const myEquipmentCount = allEquipment.filter(
+        (item) => item.user?.id === currentUser?.id || item.user?.name === currentUser?.name,
+    ).length;
+    const myActiveRequestCount = approvals.filter(
+        (approval) =>
+            ACTIVE_APPROVAL_STATUSES.includes(approval.status)
+            && (approval.requesterId === currentUser?.id || approval.beneficiaryId === currentUser?.id),
+    ).length;
+    const myPendingReceiptCount = approvals.filter(
+        (approval) => approval.status === 'PENDING_DELIVERY' && approval.beneficiaryId === currentUser?.id,
+    ).length;
+
+    const KPI_CARDS = permissions.canManageInventory ? [
         { label: 'Total Actifs', count: totalCount, icon: 'inventory_2', color: 'text-primary', onClick: () => handleStatusClick('') },
         { label: 'Attribués', count: assignedCount, icon: 'person_check', color: 'text-secondary', onClick: () => handleStatusClick('Attribué') },
         { label: 'En attente', count: pendingCount, icon: 'hourglass_top', color: 'text-primary', onClick: () => handleStatusClick('En attente') },
         { label: 'Disponibles', count: availableCount, icon: 'check_circle', color: 'text-tertiary', onClick: () => handleStatusClick('Disponible') },
         { label: 'En Réparation', count: repairCount, icon: 'build', color: 'text-error', onClick: () => handleStatusClick('En réparation') },
+    ] : [
+        { label: 'Mes équipements', count: myEquipmentCount, icon: 'devices', color: 'text-primary', onClick: () => handleStatusClick('') },
+        { label: 'Demandes en cours', count: myActiveRequestCount, icon: 'pending_actions', color: 'text-secondary', onClick: () => onViewChange('approvals') },
+        { label: 'Réceptions à confirmer', count: myPendingReceiptCount, icon: 'move_to_inbox', color: 'text-tertiary', onClick: () => onViewChange('approvals') },
     ];
     const dashboardHeaderActions = !isCompact && !isMedium ? (
         <div className="flex gap-2">
@@ -395,16 +422,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 </div>
             )}
 
-            {/* KPI ROW - TOP LEVEL */}
-            <div className="grid grid-cols-2 medium:grid-cols-3 expanded:grid-cols-5 gap-4 mb-6 relative z-10">
+            {/* KPI ROW - TOP LEVEL (cartes demi-hauteur sur téléphone — X9) */}
+            <div className={cn(
+                "grid grid-cols-2 mb-6 relative z-10",
+                isCompact ? "gap-2" : "medium:grid-cols-3 gap-4",
+                !isCompact && (KPI_CARDS.length > 3 ? "expanded:grid-cols-5" : "expanded:grid-cols-3")
+            )}>
                 {KPI_CARDS.map((kpi, idx) => (
                     <MetricCard
                         key={idx}
+                        compact={isCompact}
                         title={kpi.label}
                         value={formatNumber(kpi.count, settings.compactNotation)}
                         onClick={kpi.onClick}
-                        className={cn("min-h-[132px]", idx === KPI_CARDS.length - 1 && KPI_CARDS.length % 2 === 1 ? "col-span-2 medium:col-span-1" : "")}
-                        icon={<MaterialIcon name={kpi.icon} size={24} className={kpi.color} />}
+                        className={cn(!isCompact && "min-h-[132px]", idx === KPI_CARDS.length - 1 && KPI_CARDS.length % 2 === 1 ? "col-span-2 medium:col-span-1" : "")}
+                        icon={<MaterialIcon name={kpi.icon} size={isCompact ? 20 : 24} className={kpi.color} />}
                     />
                 ))}
             </div>
@@ -573,7 +605,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     ))}
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span className="text-2xl font-black text-on-surface">{totalCount}</span>
+                                    <span className="text-headline-medium font-black text-on-surface">{totalCount}</span>
                                     <span className="text-label-small uppercase tracking-widest text-on-surface-variant">Actifs</span>
                                 </div>
                             </div>
