@@ -139,10 +139,11 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
           : 'grid-cols-1 expanded:[grid-template-columns:minmax(0,_2fr)_minmax(220px,_1fr)]'
       )}>
         <div className="min-w-0">
+          {/* Règle X12 : pas de jaune en couleur de texte sur fond clair — le
+              feedback hover est porté par le fond (hover:bg-surface-container) */}
           <h3 className={cn(
             isCardVariant ? 'text-title-medium text-on-surface truncate' : 'text-title-small text-on-surface leading-snug line-clamp-2 medium:line-clamp-1 break-words',
-            'transition-colors',
-            isSelectable && 'group-hover:text-primary'
+            'transition-colors'
           )}>
             {title}
           </h3>
