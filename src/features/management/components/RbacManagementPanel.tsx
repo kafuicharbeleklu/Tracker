@@ -84,23 +84,23 @@ const PERMISSION_LABELS: Record<PermissionKey, string> = {
     'view.reports': 'Rapports',
     'view.management': 'Gestion',
     'view.locations': 'Emplacements',
-    'view.settings': 'Parametres',
+    'view.settings': 'Paramètres',
     'view.users': 'Utilisateurs',
-    'action.inventory.manage': 'Gerer inventaire',
+    'action.inventory.manage': 'Gérer inventaire',
     'action.inventory.import': 'Importer inventaire',
     'action.inventory.export': 'Exporter inventaire',
-    'action.finance.manage': 'Gerer finances',
+    'action.finance.manage': 'Gérer finances',
     'action.finance.import': 'Importer finances',
     'action.finance.export': 'Exporter finances',
-    'action.users.manage': 'Gerer utilisateurs',
-    'action.approvals.manage': 'Gerer approbations',
-    'action.audit.manage': 'Gerer audit',
+    'action.users.manage': 'Gérer utilisateurs',
+    'action.approvals.manage': 'Gérer approbations',
+    'action.audit.manage': 'Gérer audit',
     'action.audit.scan': 'Scanner audit',
     'action.reports.view': 'Consulter rapports',
     'action.reports.export': 'Exporter rapports',
-    'action.management.manage': 'Gerer configuration',
-    'action.locations.manage': 'Gerer emplacements',
-    'action.settings.manage': 'Gerer parametres',
+    'action.management.manage': 'Gérer configuration',
+    'action.locations.manage': 'Gérer emplacements',
+    'action.settings.manage': 'Gérer paramètres',
 };
 
 const AUTH_METHOD_OPTIONS: Array<{ id: AuthMethod; label: string }> = [
@@ -109,7 +109,7 @@ const AUTH_METHOD_OPTIONS: Array<{ id: AuthMethod; label: string }> = [
     { id: 'pin', label: 'PIN' },
     { id: 'sso', label: 'SSO' },
     { id: 'otp', label: 'OTP' },
-    { id: 'biometric', label: 'Biometrie' },
+    { id: 'biometric', label: 'Biométrie' },
 ];
 
 const isPermissionAllowed = (permissions: PermissionRule[], key: PermissionKey): boolean => {
@@ -156,7 +156,7 @@ const cloneWorkflowFromTemplate = (template: WorkflowDefinition, name: string): 
 
 const buildNewWorkflowStep = (index: number, defaultRoleId?: string): WorkflowStepDefinition => ({
     id: `step_${Date.now()}_${index}`,
-    label: `Etape ${index + 1}`,
+    label: `Étape ${index + 1}`,
     approverType: 'role',
     approverId: defaultRoleId || '',
     required: true,
@@ -400,15 +400,15 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     const onSaveRoleConfiguration = () => {
         if (!editingRole) {
-            showToast('Aucun role selectionne.', 'warning');
+            showToast('Aucun rôle sélectionné.', 'warning');
             return;
         }
         if (!canManageConfig) {
-            showToast('Seul un SuperAdmin peut modifier un role.', 'error');
+            showToast('Seul un SuperAdmin peut modifier un rôle.', 'error');
             return;
         }
         if (editingRole.kind !== 'custom') {
-            showToast('Les roles systeme sont en lecture seule.', 'warning');
+            showToast('Les rôles système sont en lecture seule.', 'warning');
             return;
         }
 
@@ -428,11 +428,11 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
         });
 
         if (!decision.allowed) {
-            showToast(decision.reason || 'Mise a jour du role refusee.', 'error');
+            showToast(decision.reason || 'Mise à jour du rôle refusée.', 'error');
             return;
         }
 
-        showToast(`Role "${editingRole.name}" mis a jour.`, 'success');
+        showToast(`Rôle "${editingRole.name}" mis à jour.`, 'success');
     };
 
     const onCreateGroup = () => {
@@ -469,7 +469,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     const onCreateWorkflow = () => {
         if (!canManageConfig) {
-            showToast('Seul un SuperAdmin peut creer des workflows.', 'error');
+            showToast('Seul un SuperAdmin peut créer des workflows.', 'error');
             return;
         }
 
@@ -481,26 +481,26 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
         const duplicate = sortedWorkflows.some((workflow) => workflow.name.trim().toLowerCase() === trimmedName.toLowerCase());
         if (duplicate) {
-            showToast('Un workflow avec ce nom existe deja.', 'warning');
+            showToast('Un workflow avec ce nom existe déjà.', 'warning');
             return;
         }
 
         const template = sortedWorkflows.find((entry) => entry.id === workflowTemplateId);
         if (!template) {
-            showToast('Workflow modele introuvable.', 'error');
+            showToast('Workflow modèle introuvable.', 'error');
             return;
         }
 
         const nextWorkflow = cloneWorkflowFromTemplate(template, trimmedName);
         const decision = upsertRbacWorkflow(nextWorkflow);
         if (!decision.allowed) {
-            showToast(decision.reason || 'Creation du workflow refusee.', 'error');
+            showToast(decision.reason || 'Création du workflow refusée.', 'error');
             return;
         }
 
         setWorkflowName('');
         setEditingWorkflowId(nextWorkflow.id);
-        showToast(`Workflow "${trimmedName}" cree.`, 'success');
+        showToast(`Workflow "${trimmedName}" créé.`, 'success');
     };
 
     const onDeleteWorkflow = (workflow: WorkflowDefinition) => {
@@ -512,13 +512,13 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
             onConfirm: () => {
                 const decision = deleteRbacWorkflow(workflow.id);
                 if (!decision.allowed) {
-                    showToast(decision.reason || 'Suppression refusee.', 'error');
+                    showToast(decision.reason || 'Suppression refusée.', 'error');
                     return;
                 }
 
                 const remaining = sortedWorkflows.filter((entry) => entry.id !== workflow.id);
                 setEditingWorkflowId(remaining[0]?.id || '');
-                showToast(`Workflow "${workflow.name}" supprime.`, 'success');
+                showToast(`Workflow "${workflow.name}" supprimé.`, 'success');
             },
         });
     };
@@ -548,7 +548,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     const onRemoveWorkflowStep = (stepId: string) => {
         if (draftWorkflowSteps.length <= 1) {
-            showToast('Le workflow doit contenir au moins une etape.', 'warning');
+            showToast('Le workflow doit contenir au moins une étape.', 'warning');
             return;
         }
         setDraftWorkflowSteps((prev) => prev.filter((step) => step.id !== stepId));
@@ -556,7 +556,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     const onSaveWorkflowConfiguration = () => {
         if (!editingWorkflow) {
-            showToast('Aucun workflow selectionne.', 'warning');
+            showToast('Aucun workflow sélectionné.', 'warning');
             return;
         }
         if (!canManageConfig) {
@@ -570,20 +570,20 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
             return;
         }
         if (draftWorkflowSteps.length === 0) {
-            showToast('Ajoutez au moins une etape.', 'warning');
+            showToast('Ajoutez au moins une étape.', 'warning');
             return;
         }
 
         const missingApprover = draftWorkflowSteps.find((step) => !step.approverId);
         if (missingApprover) {
-            showToast(`Etape sans validateur: "${missingApprover.label}".`, 'warning');
+            showToast(`Étape sans validateur: "${missingApprover.label}".`, 'warning');
             return;
         }
 
         const normalizedSteps = draftWorkflowSteps.map((step, index) => ({
             ...step,
             id: step.id?.trim() || `step_${Date.now()}_${index}`,
-            label: step.label?.trim() || `Etape ${index + 1}`,
+            label: step.label?.trim() || `Étape ${index + 1}`,
             timeout: {
                 ...step.timeout,
                 slaHours: Math.max(1, Math.round(step.timeout.slaHours || 1)),
@@ -603,11 +603,11 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
         });
 
         if (!decision.allowed) {
-            showToast(decision.reason || 'Mise a jour du workflow refusee.', 'error');
+            showToast(decision.reason || 'Mise à jour du workflow refusée.', 'error');
             return;
         }
 
-        showToast(`Workflow "${trimmedName}" mis a jour.`, 'success');
+        showToast(`Workflow "${trimmedName}" mis à jour.`, 'success');
     };
 
     const onDeleteGroup = (groupId: string, groupNameValue: string) => {
@@ -689,9 +689,9 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     const getApproverLabel = (step: WorkflowStepDefinition): string => {
         if (step.approverType === 'role') {
-            return roleNameById.get(step.approverId) || 'Role non defini';
+            return roleNameById.get(step.approverId) || 'Rôle non défini';
         }
-        return groupNameById.get(step.approverId) || 'Groupe non defini';
+        return groupNameById.get(step.approverId) || 'Groupe non défini';
     };
 
     const workflowConfigStepIndex = Math.max(
@@ -896,18 +896,18 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
             {activeSection === 'permissions' && (
                 <div className="rounded-card border border-outline-variant bg-surface p-4 space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-title-medium text-on-surface">Edition des permissions</h3>
+                    <h3 className="text-title-medium text-on-surface">Édition des permissions</h3>
                     {!canManageConfig && <Badge variant="neutral">Lecture seule</Badge>}
                 </div>
 
                 <SelectField
-                    label="Role a modifier"
+                    label="Rôle à modifier"
                     name="editingRoleId"
                     value={editingRoleId}
                     onChange={(event) => setEditingRoleId(event.target.value)}
                     options={sortedRoles.map((role) => ({
                         value: role.id,
-                        label: `${role.name} (${role.kind === 'system' ? 'Systeme' : 'Personnalise'})`,
+                        label: `${role.name} (${role.kind === 'system' ? 'Système' : 'Personnalisé'})`,
                     }))}
                 />
 
@@ -915,16 +915,16 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                     <>
                         <div className="flex flex-wrap items-center gap-2">
                             <Badge variant={editingRole.kind === 'system' ? 'info' : 'warning'}>
-                                {editingRole.kind === 'system' ? 'Role systeme' : 'Role personnalise'}
+                                {editingRole.kind === 'system' ? 'Rôle système' : 'Rôle personnalisé'}
                             </Badge>
-                            <Badge variant="neutral">{draftPermissions.length} regles</Badge>
-                            <Badge variant="neutral">{draftRequiredMethods.length} methode(s) auth</Badge>
+                            <Badge variant="neutral">{draftPermissions.length} règles</Badge>
+                            <Badge variant="neutral">{draftRequiredMethods.length} méthode(s) auth</Badge>
                         </div>
 
                         {editingRole.kind === 'system' && (
                             <div className="rounded-sm border border-outline-variant bg-surface-container px-3 py-2 text-body-small text-on-surface-variant">
-                                Ce role est systeme et ne peut pas etre modifie directement.
-                                Dupliquez-le pour creer une variante personnalisable.
+                                Ce rôle est système et ne peut pas être modifié directement.
+                                Dupliquez-le pour créer une variante personnalisable.
                             </div>
                         )}
 
@@ -948,7 +948,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                             </div>
 
                             <div>
-                                <p className="text-body-small text-on-surface-variant mb-2">Actions metier</p>
+                                <p className="text-body-small text-on-surface-variant mb-2">Actions métier</p>
                                 <div className="rounded-card border border-outline-variant p-3 space-y-2 max-h-64 overflow-y-auto">
                                     {ACTION_PERMISSION_KEYS.map((permissionKey) => (
                                         <label key={permissionKey} className="flex items-center gap-2 text-body-small text-on-surface">
@@ -968,7 +968,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
                         <div className="grid grid-cols-1 medium:grid-cols-3 gap-4">
                             <div className="medium:col-span-2">
-                                <p className="text-body-small text-on-surface-variant mb-2">Methodes d'authentification</p>
+                                <p className="text-body-small text-on-surface-variant mb-2">Méthodes d'authentification</p>
                                 <div className="rounded-card border border-outline-variant p-3 grid grid-cols-1 medium:grid-cols-2 gap-2">
                                     {AUTH_METHOD_OPTIONS.map((option) => (
                                         <label key={option.id} className="flex items-center gap-2 text-body-small text-on-surface">
@@ -992,7 +992,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
                             <div className="space-y-3">
                                 <InputField
-                                    label="Duree session (min)"
+                                    label="Durée session (min)"
                                     type="number"
                                     min={15}
                                     max={1440}
@@ -1020,15 +1020,15 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 onClick={onSaveRoleConfiguration}
                                 disabled={!canEditSelectedRole}
                             >
-                                Enregistrer le role
+                                Enregistrer le rôle
                             </Button>
                         </div>
                     </>
                 ) : (
                     <EmptyState
                         icon="admin_panel_settings"
-                        title="Aucun role selectionne"
-                        description="Selectionnez un role pour consulter et modifier ses permissions."
+                        title="Aucun rôle sélectionné"
+                        description="Sélectionnez un rôle pour consulter et modifier ses permissions."
                     />
                 )}
                 </div>
@@ -1052,7 +1052,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                     variant={workflowEditorMode === 'advanced' ? 'filled' : 'text'}
                                     onClick={() => setWorkflowEditorMode('advanced')}
                                 >
-                                    Avance
+                                    Avancé
                                 </Button>
                             </div>
                             {!canManageConfig && <Badge variant="neutral">Lecture seule</Badge>}
@@ -1061,8 +1061,8 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
                     <p className="text-body-small text-on-surface-variant">
                         {workflowEditorMode === 'simple'
-                            ? "Mode simple: focus sur validateur, delai, action en retard."
-                            : "Mode avance: reglage complet (type de validateur, escalade, logique conditionnelle)."}
+                            ? "Mode simple: focus sur validateur, délai, action en retard."
+                            : "Mode avancé: réglage complet (type de validateur, escalade, logique conditionnelle)."}
                     </p>
 
                     <div className="rounded-sm border border-outline-variant bg-surface-container-low p-3 space-y-3">
@@ -1119,7 +1119,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                     disabled={!canManageConfig}
                                 />
                                 <SelectField
-                                    label="Workflow modele"
+                                    label="Workflow modèle"
                                     name="workflowTemplateId"
                                     value={workflowTemplateId}
                                     onChange={(event) => setWorkflowTemplateId(event.target.value)}
@@ -1134,14 +1134,14 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         disabled={!canManageConfig}
                                         className="w-full"
                                     >
-                                        Creer
+                                        Créer
                                     </Button>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 medium:grid-cols-[1fr_auto] gap-3">
                                 <SelectField
-                                    label="Workflow a modifier"
+                                    label="Workflow à modifier"
                                     name="editingWorkflowId"
                                     value={editingWorkflowId}
                                     onChange={(event) => setEditingWorkflowId(event.target.value)}
@@ -1169,9 +1169,9 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                     <Badge variant={draftWorkflowEnabled ? 'success' : 'neutral'}>
                                         {draftWorkflowEnabled ? 'Workflow actif' : 'Workflow inactif'}
                                     </Badge>
-                                    <Badge variant="neutral">{draftWorkflowSteps.length} etape(s)</Badge>
+                                    <Badge variant="neutral">{draftWorkflowSteps.length} étape(s)</Badge>
                                 </div>
-                                <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Apercu du pipeline</p>
+                                <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Aperçu du pipeline</p>
                                 <div className="space-y-2">
                                     {draftWorkflowSteps.map((step, index) => (
                                         <div
@@ -1183,7 +1183,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-body-medium text-on-surface truncate">
-                                                    {step.label || `Etape ${index + 1}`}
+                                                    {step.label || `Étape ${index + 1}`}
                                                 </p>
                                                 <p className="text-label-small text-on-surface-variant truncate">
                                                     {getApproverLabel(step)} • SLA {formatSlaLabel(step.timeout.slaHours)} • {getTimeoutPolicyLabel(step.timeout.onTimeout)}
@@ -1239,7 +1239,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 onClick={onAddWorkflowStep}
                                 disabled={!canManageConfig}
                             >
-                                Ajouter une etape
+                                Ajouter une étape
                             </Button>
                             </div>
                         )}
@@ -1250,7 +1250,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 <div key={step.id} className="rounded-sm border border-outline-variant bg-surface-container-low p-3 space-y-3">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
-                                            <p className="text-label-medium text-on-surface">Etape {index + 1}</p>
+                                            <p className="text-label-medium text-on-surface">Étape {index + 1}</p>
                                             <p className="text-label-small text-on-surface-variant">
                                                 {getApproverLabel(step)} • SLA {formatSlaLabel(step.timeout.slaHours)}
                                             </p>
@@ -1258,21 +1258,21 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <div className="flex items-center gap-1">
                                             <IconButton
                                                 icon="arrow_upward"
-                                                aria-label={`Monter l'etape ${index + 1}`}
+                                                aria-label={`Monter l'étape ${index + 1}`}
                                                 variant="standard"
                                                 onClick={() => onMoveWorkflowStep(index, 'up')}
                                                 disabled={!canManageConfig || index === 0}
                                             />
                                             <IconButton
                                                 icon="arrow_downward"
-                                                aria-label={`Descendre l'etape ${index + 1}`}
+                                                aria-label={`Descendre l'étape ${index + 1}`}
                                                 variant="standard"
                                                 onClick={() => onMoveWorkflowStep(index, 'down')}
                                                 disabled={!canManageConfig || index === draftWorkflowSteps.length - 1}
                                             />
                                             <IconButton
                                                 icon="delete"
-                                                aria-label={`Supprimer l'etape ${index + 1}`}
+                                                aria-label={`Supprimer l'étape ${index + 1}`}
                                                 variant="standard"
                                                 className="text-error"
                                                 onClick={() => onRemoveWorkflowStep(step.id)}
@@ -1285,7 +1285,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-4 gap-3">
                                         <div className="expanded:col-span-2">
                                             <InputField
-                                                label="Libelle de l'etape"
+                                                label="Libellé de l'étape"
                                                 value={step.label}
                                                 onChange={(event) => updateWorkflowStep(step.id, (current) => ({ ...current, label: event.target.value }))}
                                                 disabled={!canManageConfig}
@@ -1312,7 +1312,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                                 }}
                                                 disabled={!canManageConfig}
                                                 options={[
-                                                    { value: 'role', label: 'Role' },
+                                                    { value: 'role', label: 'Rôle' },
                                                     { value: 'group', label: 'Groupe' },
                                                 ]}
                                             />
@@ -1336,7 +1336,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                                 onChange={(event) => updateWorkflowStep(step.id, (current) => ({ ...current, required: event.target.checked }))}
                                                 disabled={!canManageConfig}
                                             />
-                                            <span>Etape obligatoire</span>
+                                            <span>Étape obligatoire</span>
                                         </label>
                                         </div>
                                     )}
@@ -1377,7 +1377,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         />
                                         {workflowEditorMode === 'advanced' && (
                                             <SelectField
-                                                label="Escalade vers role"
+                                                label="Escalade vers rôle"
                                                 name={`escalationTargetRoleId-${step.id}`}
                                                 value={step.timeout.escalationTargetRoleId || ''}
                                                 onChange={(event) => updateWorkflowStep(step.id, (current) => ({
@@ -1395,7 +1395,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                     )}
 
                                     <div className="rounded-sm border border-outline-variant bg-surface px-3 py-2 text-body-small text-on-surface-variant">
-                                        <span className="font-medium text-on-surface">Resume:</span>{' '}
+                                        <span className="font-medium text-on-surface">Résumé:</span>{' '}
                                         {getApproverLabel(step)} • SLA {formatSlaLabel(step.timeout.slaHours)} •{' '}
                                         {getTimeoutPolicyLabel(step.timeout.onTimeout)}
                                         {workflowEditorMode === 'advanced' ? ` • Condition: ${getConditionSummary(step)}` : ''}
@@ -1422,7 +1422,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                     <EmptyState
                         icon="timeline"
                         title="Aucun workflow"
-                        description="Creez ou selectionnez un workflow pour le configurer."
+                        description="Créez ou sélectionnez un workflow pour le configurer."
                     />
                 )}
                 </div>
