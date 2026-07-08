@@ -1,7 +1,8 @@
 
-import React, { useRef, useCallback, useId } from 'react';
+import React, { useRef, useCallback, useEffect, useId, useState } from 'react';
 import { cn } from '../../lib/utils';
 import Badge from './Badge';
+import MaterialIcon from './MaterialIcon';
 
 export interface TabItem {
   id: string;
@@ -10,11 +11,17 @@ export interface TabItem {
   badge?: number | string;
 }
 
+const sanitizeIdPart = (value: string): string => value.replace(/[^a-zA-Z0-9_-]/g, '-');
+export const getTabElementId = (idBase: string, itemId: string): string => `${idBase}-tab-${sanitizeIdPart(itemId)}`;
+export const getTabPanelId = (idBase: string, itemId: string): string => `${idBase}-panel-${sanitizeIdPart(itemId)}`;
+
 interface PageTabsProps {
   items: TabItem[];
   activeId: string;
   onChange: (id: string) => void;
   className?: string;
+  idBase?: string;
+  ariaLabel?: string;
 }
 
 /**
@@ -26,11 +33,39 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   items,
   activeId,
   onChange,
-  className
+  className,
+  idBase,
+  ariaLabel = 'Navigation par onglets',
 }) => {
-  const baseId = useId().replace(/:/g, '');
+  const generatedBaseId = useId().replace(/:/g, '');
+  const baseId = idBase ? sanitizeIdPart(idBase) : generatedBaseId;
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [overflow, setOverflow] = useState({ left: false, right: false });
   const activeIndex = Math.max(0, items.findIndex((item) => item.id === activeId));
+
+  const updateOverflow = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const left = scroller.scrollLeft > 1;
+    const right = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1;
+    setOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+
+  useEffect(() => {
+    updateOverflow();
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [items, updateOverflow]);
+
+  const scrollTabs = useCallback((direction: -1 | 1) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollBy({ left: direction * scroller.clientWidth * 0.6, behavior: 'smooth' });
+  }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     if (items.length === 0) {
@@ -75,17 +110,20 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   }, [items, onChange]);
 
   return (
-    <div className={cn("w-full border-b border-outline-variant bg-surface", className)}>
+    <div className={cn("w-full bg-surface border border-outline-variant rounded-xl p-1 shadow-elevation-1", className)}>
+      <div className="relative">
       <div
-        className="flex items-center gap-0 overflow-x-auto no-scrollbar px-page-sm medium:px-page"
+        ref={scrollerRef}
+        onScroll={updateOverflow}
+        className="flex items-center gap-1 overflow-x-auto no-scrollbar"
         role="tablist"
         aria-orientation="horizontal"
-        aria-label="Navigation par onglets"
+        aria-label={ariaLabel}
       >
         {items.map((item, index) => {
           const isActive = activeId === item.id;
-          const tabId = `${baseId}-tab-${index}`;
-          const panelId = `${baseId}-panel-${index}`;
+          const tabId = getTabElementId(baseId, item.id);
+          const panelId = getTabPanelId(baseId, item.id);
 
           return (
             <button
@@ -99,18 +137,18 @@ export const PageTabs: React.FC<PageTabsProps> = ({
               onClick={() => onChange(item.id)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
-                "group relative flex items-center gap-2 min-h-12 px-4 py-3 text-title-small transition-all duration-short4 ease-emphasized outline-none select-none whitespace-nowrap state-layer",
-                "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+                "group relative flex items-center gap-2 min-h-10 px-3 py-2 rounded-lg text-label-large transition-all duration-short4 ease-emphasized outline-none select-none whitespace-nowrap",
+                "focus-visible:ring-2 focus-visible:ring-primary/30",
                 isActive
-                  ? "text-primary"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
               )}
             >
               {/* Icon */}
               {item.icon && (
                 <span className={cn(
                   "transition-colors",
-                  isActive ? "text-primary" : "text-on-surface-variant group-hover:text-on-surface"
+                  isActive ? "text-on-primary" : "text-on-surface-variant group-hover:text-on-surface"
                 )}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon as React.ReactElement<Record<string, unknown>>, { size: 18 })
@@ -125,19 +163,49 @@ export const PageTabs: React.FC<PageTabsProps> = ({
               {item.badge !== undefined && (
                 <Badge
                   variant={isActive ? 'warning' : 'neutral'}
-                  className={cn("ml-1 px-1.5 py-0 h-4 min-w-[16px]", isActive ? "bg-primary text-on-primary" : "")}
+                  className={cn("ml-1 px-1.5 py-0 h-4 min-w-[16px]", isActive ? "bg-on-primary text-primary" : "")}
                 >
                   {item.badge}
                 </Badge>
               )}
 
               {/* Active indicator — 3px bar */}
-              {isActive && (
-                <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-primary rounded-t-full animate-in fade-in duration-200" />
-              )}
             </button>
           );
         })}
+      </div>
+
+      {/* Affordance d'overflow : fondu + chevron quand des onglets sont hors écran (nav clavier via ←/→) */}
+      {overflow.left && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-12 items-center justify-start rounded-l-lg bg-gradient-to-r from-surface via-surface/80 to-transparent"
+        >
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => scrollTabs(-1)}
+            className="pointer-events-auto ml-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface-container text-on-surface-variant shadow-elevation-1 transition-colors duration-short4 hover:text-on-surface"
+          >
+            <MaterialIcon name="chevron_left" size={18} />
+          </button>
+        </div>
+      )}
+      {overflow.right && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-end rounded-r-lg bg-gradient-to-l from-surface via-surface/80 to-transparent"
+        >
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => scrollTabs(1)}
+            className="pointer-events-auto mr-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface-container text-on-surface-variant shadow-elevation-1 transition-colors duration-short4 hover:text-on-surface"
+          >
+            <MaterialIcon name="chevron_right" size={18} />
+          </button>
+        </div>
+      )}
       </div>
     </div>
   );
