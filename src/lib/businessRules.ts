@@ -8,22 +8,21 @@ import {
     User,
     UserRole,
 } from '../types';
+import { RBAC_PERMISSIONS } from '../config/rbacDefaults';
+import { isPermissionGranted } from './rbac';
+import { EffectiveAccessProfile } from '../types/rbac';
 
 export interface BusinessRuleDecision {
     allowed: boolean;
     reason?: string;
 }
 
-const ADMINISTRATIVE_ROLES: readonly UserRole[] = ['SuperAdmin', 'Admin'];
-
-const isAdministrativeRole = (role?: UserRole): boolean =>
-    role !== undefined && ADMINISTRATIVE_ROLES.includes(role);
-
-const buildAdministrativeGuardDecision = (
-    actorRole: UserRole | undefined,
+const buildPermissionGuardDecision = (
+    access: EffectiveAccessProfile | null | undefined,
+    permissionKey: typeof RBAC_PERMISSIONS.actions[keyof typeof RBAC_PERMISSIONS.actions],
     areaLabel: string,
 ): BusinessRuleDecision => {
-    if (isAdministrativeRole(actorRole)) {
+    if (access && isPermissionGranted(access, permissionKey, 'write')) {
         return { allowed: true };
     }
 
@@ -33,20 +32,20 @@ const buildAdministrativeGuardDecision = (
     };
 };
 
-export const canManageInventoryByRole = (actorRole?: UserRole): BusinessRuleDecision =>
-    buildAdministrativeGuardDecision(actorRole, 'Inventaire');
+export const canManageInventoryByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.inventoryManage, 'Inventaire');
 
-export const canManageFinanceByRole = (actorRole?: UserRole): BusinessRuleDecision =>
-    buildAdministrativeGuardDecision(actorRole, 'Finances');
+export const canManageFinanceByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.financeManage, 'Finances');
 
-export const canManageUsersByRole = (actorRole?: UserRole): BusinessRuleDecision =>
-    buildAdministrativeGuardDecision(actorRole, 'Utilisateurs');
+export const canManageUsersByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.usersManage, 'Utilisateurs');
 
-export const canManageSystemByRole = (actorRole?: UserRole): BusinessRuleDecision =>
-    buildAdministrativeGuardDecision(actorRole, 'Gestion');
+export const canManageSystemByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.managementManage, 'Gestion');
 
-export const canManageLocationsByRole = (actorRole?: UserRole): BusinessRuleDecision =>
-    buildAdministrativeGuardDecision(actorRole, 'Emplacements');
+export const canManageLocationsByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.locationsManage, 'Emplacements');
 
 interface ApprovalTransitionContext {
     approval: Approval;

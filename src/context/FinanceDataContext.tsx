@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { mockFinanceBudgets, mockFinanceExpenses } from '../data/mockFinanceData';
@@ -11,6 +11,7 @@ import {
 import { canManageFinanceByRole } from '../lib/businessRules';
 import { deleteExpenseSourceFile } from '../lib/financeFileStorage';
 import { getPersistedValue } from '../lib/persistence';
+import { EffectiveAccessProfile } from '../types/rbac';
 
 interface FinanceDataContextType {
     financeExpenses: FinanceExpense[];
@@ -142,7 +143,11 @@ const adjustBudgetWithExpense = (
 
 export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
-    const { logEvent } = useData();
+    const { logEvent, getEffectiveAccessForUser } = useData();
+
+    // Accès RBAC effectif (même moteur que l'UI) pour les gardes de mutation finance — via ref (lint-safe).
+    const currentUserAccessRef = useRef<EffectiveAccessProfile | null>(null);
+    currentUserAccessRef.current = currentUser ? getEffectiveAccessForUser(currentUser.id) : null;
 
     const [financeExpenses, setFinanceExpenses] = useState<FinanceExpense[]>(() => {
         try {
@@ -177,7 +182,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [financeBudgets]);
 
     const addFinanceExpense = useCallback((expenseData: Omit<FinanceExpense, 'id' | 'createdAt'>): FinanceExpenseInsertResult => {
-        const permissionDecision = canManageFinanceByRole(currentUser?.role);
+        const permissionDecision = canManageFinanceByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
             return {
                 ok: false,
@@ -325,7 +330,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [currentUser, financeExpenses, logEvent]);
 
     const updateFinanceExpense = useCallback((id: string, updates: Partial<Omit<FinanceExpense, 'id' | 'createdAt'>>) => {
-        const permissionDecision = canManageFinanceByRole(currentUser?.role);
+        const permissionDecision = canManageFinanceByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
             return false;
         }
@@ -426,7 +431,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [currentUser, financeExpenses, logEvent]);
 
     const deleteFinanceExpense = useCallback((id: string) => {
-        const permissionDecision = canManageFinanceByRole(currentUser?.role);
+        const permissionDecision = canManageFinanceByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
             return false;
         }
@@ -476,7 +481,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [currentUser, financeExpenses, logEvent]);
 
     const upsertFinanceBudget = useCallback((budgetData: Omit<FinanceBudget, 'updatedAt'> & { updatedAt?: string }) => {
-        const permissionDecision = canManageFinanceByRole(currentUser?.role);
+        const permissionDecision = canManageFinanceByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
             return;
         }
