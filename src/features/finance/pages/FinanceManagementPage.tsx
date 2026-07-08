@@ -250,16 +250,27 @@ const FinanceManagementPage = () => {
         }];
     }, [financeBudgets, selectedYear, currentBudget.status]);
 
-    // Données pour le graphique d'aire (Projection)
-    const projectionSteps = [
-        { m: 'Jan', val: stats.current },
-        { m: 'Fév', val: stats.current - stats.monthlyDep },
-        { m: 'Mar', val: stats.current - (stats.monthlyDep * 2) },
-        { m: 'Avr', val: stats.current - (stats.monthlyDep * 3) },
-        { m: 'Mai', val: stats.current - (stats.monthlyDep * 4) },
-        { m: 'Juin', val: stats.current - (stats.monthlyDep * 5) },
-    ];
+    // Données pour le graphique d'aire (Projection) — X5 : ancrée sur le mois courant, plus de « Jan–Juin » figé
+    const projectionMonthLabel = (offset: number, format: 'short' | 'long' = 'short') => {
+        const d = new Date();
+        d.setDate(1); // évite le débordement de fin de mois (31 + 1 mois)
+        d.setMonth(d.getMonth() + offset);
+        const sameYear = d.getFullYear() === new Date().getFullYear();
+        const label = d.toLocaleDateString('fr-FR', {
+            month: format,
+            year: format === 'long' && !sameYear ? 'numeric' : undefined,
+        }).replace('.', '');
+        return format === 'short' ? label.charAt(0).toUpperCase() + label.slice(1) : label;
+    };
+    const projectionSteps = Array.from({ length: 6 }, (_, i) => ({
+        m: projectionMonthLabel(i),
+        val: stats.current - stats.monthlyDep * i,
+    }));
     const maxProj = Math.max(...projectionSteps.map(s => s.val));
+    // X5 : mois du point d'équilibre dérivé des données (valeur projetée ≤ 50 % du parc), plus de « Mai » codé en dur
+    const breakEvenMonth = stats.monthlyDep > 0 && stats.current > 0
+        ? projectionMonthLabel(Math.ceil(stats.current / 2 / stats.monthlyDep), 'long')
+        : null;
 
     const tabs: TabItem[] = [
         { id: 'overview', label: 'Synthèse Globale', shortLabel: 'Synthèse', icon: <MaterialIcon name="dashboard" size={20} /> },
@@ -816,7 +827,9 @@ const FinanceManagementPage = () => {
                                             <p className="text-body-small text-on-secondary-container leading-relaxed">
                                                 <strong>IA Note :</strong>{' '}
                                                 <DemoBadge className="align-middle mr-1" title="Analyse illustrative de démonstration — non générée par un moteur d'analyse" />
-                                                La valeur du parc atteindra son point d'équilibre en <strong>Mai</strong>. Prévoyez une injection de capital pour maintenir la santé technologique.
+                                                {breakEvenMonth
+                                                    ? <>La valeur du parc passera sous 50 % de sa valeur actuelle en <strong>{breakEvenMonth}</strong>. Prévoyez une injection de capital pour maintenir la santé technologique.</>
+                                                    : <>Aucune dépréciation mensuelle détectée sur le parc — pas de point d'équilibre à projeter.</>}
                                             </p>
                                         </div>
                                     </Card>
