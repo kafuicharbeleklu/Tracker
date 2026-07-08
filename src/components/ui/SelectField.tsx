@@ -28,7 +28,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   options,
   value,
   onChange,
-  placeholder = 'Selectionnez...',
+  placeholder = 'Sélectionnez...',
   className,
   error,
   supportingText,
@@ -217,24 +217,24 @@ const SelectField: React.FC<SelectFieldProps> = ({
         aria-required={required || undefined}
         aria-describedby={resolvedAriaDescribedBy}
         className={cn(
-          'w-full min-h-14 px-4 py-4 pr-12 text-left relative text-body-large',
+          'w-full min-h-10 px-3 py-2 pr-10 text-left relative text-body-medium',
           'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized outline-none',
           'disabled:cursor-not-allowed disabled:text-on-surface/[0.38]',
           variant === 'outlined'
             ? cn(
-              'bg-transparent border rounded-xs',
+              'bg-surface border rounded-lg',
               error
                 ? 'border-error hover:border-error'
-                : 'border-outline hover:border-on-surface',
+                : 'border-outline-variant hover:border-outline',
               isFocused && (error ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20'),
-              'disabled:border-on-surface/[0.12] disabled:bg-transparent'
+              'disabled:border-on-surface/[0.12] disabled:bg-surface'
             )
             : cn(
-              'bg-surface-container-highest border-b-2 rounded-t-xs rounded-b-none',
+              'bg-surface border rounded-lg',
               error
                 ? 'border-error hover:border-error'
-                : 'border-on-surface-variant hover:bg-surface-container-high hover:border-on-surface',
-              isFocused && (error ? 'border-error' : 'border-primary'),
+                : 'border-outline-variant hover:border-outline',
+              isFocused && (error ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20'),
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             ),
           disabled ? 'pointer-events-none' : 'cursor-pointer',
@@ -257,7 +257,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       {(isOpen || closing) && !disabled && (
         <div
           className={cn(
-            'absolute z-50 w-full mt-1 bg-surface-container rounded-xs border border-outline-variant shadow-elevation-3 py-1 origin-top overflow-hidden',
+            'absolute z-50 w-full mt-1 bg-surface rounded-lg border border-outline-variant shadow-elevation-2 py-1 origin-top overflow-hidden',
             closing ? 'animate-out fade-out zoom-out-95 duration-150' : 'animate-in fade-in zoom-in-95 duration-200',
           )}
           role="listbox"
@@ -276,16 +276,16 @@ const SelectField: React.FC<SelectFieldProps> = ({
                   role="option"
                   aria-selected={value === opt.value}
                   className={cn(
-                    'cursor-pointer min-h-12 px-4 py-3 text-body-medium transition-colors duration-short3 flex items-center justify-between state-layer',
+                    'cursor-pointer min-h-10 px-3 py-2 text-body-medium transition-colors duration-short3 flex items-center justify-between',
                     value === opt.value
-                      ? 'bg-secondary-container text-on-secondary-container'
+                      ? 'bg-primary text-on-primary'
                       : highlightedIndex === index
-                        ? 'bg-on-surface/[0.12] text-on-surface'
-                        : 'text-on-surface hover:bg-on-surface/[0.08]',
+                        ? 'bg-surface-container text-on-surface'
+                        : 'text-on-surface hover:bg-surface-container',
                   )}
                 >
                   <span className="truncate">{opt.label}</span>
-                  {value === opt.value && <MaterialIcon name="check" size={18} className="text-primary" />}
+                  {value === opt.value && <MaterialIcon name="check" size={18} className="text-on-primary" />}
                 </div>
               ))
             ) : (

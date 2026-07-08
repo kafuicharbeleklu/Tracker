@@ -26,7 +26,7 @@ interface ChipProps {
 /**
  * MD3 Chip — Assist, Filter, Input, and Suggestion chip variants.
  * Follows Material Design 3 specification:
- * - Stadium shape (rounded-full)
+ * - Compact SmartProcure radius
  * - Surface container-low fill, on-surface text
  * - State layer on hover/focus/press
  * - Selected state uses secondary-container
@@ -53,17 +53,17 @@ const Chip: React.FC<ChipProps> = ({
             disabled={disabled}
             className={cn(
                 // Base — MD3 chip shape & layout
-                "inline-flex items-center gap-2 rounded-full px-4 h-8 text-label-large border transition-all duration-short4 ease-emphasized outline-none select-none",
+                "inline-flex items-center gap-2 rounded-md px-3 h-8 text-label-large border transition-all duration-short4 ease-emphasized outline-none select-none",
                 // Focus ring
-                "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+                "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
                 // State layer for interactive chips
-                isInteractive && !disabled && "state-layer cursor-pointer",
+                isInteractive && !disabled && "cursor-pointer hover:bg-surface-container",
                 // Disabled state
                 disabled && "opacity-38 cursor-not-allowed",
 
                 // Variant-specific styles
                 selected
-                    ? "bg-secondary-container text-on-secondary-container border-transparent"
+                    ? "bg-primary text-on-primary border-transparent hover:bg-primary/90"
                     : "bg-surface-container-low text-on-surface border-outline",
 
                 className
@@ -73,7 +73,7 @@ const Chip: React.FC<ChipProps> = ({
         >
             {/* Leading icon or checkmark */}
             {showCheckmark && (
-                <MaterialIcon name="check" size={18} className="text-on-secondary-container" />
+                <MaterialIcon name="check" size={18} className="text-on-primary" />
             )}
             {leadingIcon && !showCheckmark && (
                 <MaterialIcon name={leadingIcon} size={18} />
@@ -99,7 +99,7 @@ const Chip: React.FC<ChipProps> = ({
                             onClose?.();
                         }
                     }}
-                    className="ml-0.5 -mr-1 rounded-full p-2 -m-1.5 hover:bg-on-surface/[0.08] transition-colors cursor-pointer"
+                    className="ml-0.5 -mr-1 rounded-md p-2 -m-1.5 hover:bg-on-surface/[0.08] transition-colors cursor-pointer"
                 >
                     <MaterialIcon name="close" size={16} />
                 </span>

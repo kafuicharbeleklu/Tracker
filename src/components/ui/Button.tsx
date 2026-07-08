@@ -25,18 +25,18 @@ const LEGACY_VARIANT_MAP: Record<LegacyButtonVariant, CanonicalButtonVariant> = 
 };
 
 const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
-  filled: "bg-primary text-on-primary shadow-elevation-0 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
-  tonal: "bg-secondary-container text-on-secondary-container shadow-elevation-0 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
-  outlined: "bg-transparent text-primary border border-outline disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]",
-  text: "bg-transparent text-primary disabled:text-on-surface/[0.38]",
-  elevated: "bg-surface-container-low text-primary shadow-elevation-1 hover:shadow-elevation-2 focus-visible:shadow-elevation-1 active:shadow-elevation-1 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
-  danger: "bg-error text-on-error shadow-elevation-0 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  filled: "bg-primary text-on-primary shadow-sm hover:bg-primary-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  tonal: "bg-[var(--color-anthracite)] text-white shadow-sm hover:bg-[var(--color-anthracite-strong)] disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  outlined: "bg-white text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)] disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  text: "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] disabled:text-on-surface/[0.38]",
+  elevated: "bg-white text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
+  danger: "bg-error text-on-error shadow-sm hover:bg-error/90 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
 };
 
 const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: "px-4 py-2 text-label-medium",
-  md: "px-6 py-2.5 text-label-large",
-  lg: "px-7 py-3 text-label-large",
+  sm: "min-h-8 px-3 py-1.5 text-label-medium gap-1.5",
+  md: "min-h-10 px-4 py-2 text-label-large gap-2",
+  lg: "min-h-11 px-5 py-2.5 text-label-large gap-2",
 };
 
 const resolveVariant = (variant: ButtonProps['variant'] | string | undefined): CanonicalButtonVariant => {
@@ -96,12 +96,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const hasVisibleLabel = React.Children.count(children) > 0;
 
     const baseStyles = cn(
-      "inline-flex items-center justify-center gap-2 rounded-full min-h-12 min-w-12",
-      "transition-[color,background-color,box-shadow,opacity] duration-short4 ease-emphasized",
-      "outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+      "inline-flex items-center justify-center rounded-lg min-w-10 leading-none",
+      "transition-[color,background-color,box-shadow,opacity,transform,filter] duration-short4 ease-emphasized",
+      "outline-none focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
       "disabled:cursor-not-allowed disabled:pointer-events-none",
-      "state-layer select-none",
-      "text-label-large"
+      "active:scale-[0.98] select-none whitespace-nowrap",
+      "font-bold"
     );
 
     return (

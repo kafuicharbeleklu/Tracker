@@ -51,14 +51,14 @@ const Card: React.FC<CardProps> = ({
 }) => {
   const isInteractive = Boolean(onClick) && !disabled;
   const variantStyles = {
-    elevated: 'bg-surface-container-low shadow-elevation-1',
-    filled: 'bg-surface-container-high shadow-elevation-0',
-    outlined: 'bg-surface border border-outline-variant shadow-elevation-0',
+    elevated: 'bg-white border border-[var(--color-border-default)] shadow-sm',
+    filled: 'bg-[var(--color-surface-muted)] border border-[var(--color-border-default)] shadow-none',
+    outlined: 'bg-white border border-[var(--color-border-default)] shadow-none',
   };
   const interactiveVariantStyles = {
-    elevated: 'hover:shadow-elevation-2 active:shadow-elevation-1',
-    filled: 'hover:bg-surface-container active:bg-surface-container-low',
-    outlined: 'hover:bg-surface-container-low active:bg-surface-container',
+    elevated: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
+    filled: 'hover:bg-white hover:border-[var(--color-border-strong)]',
+    outlined: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
   };
 
   const resolvedAriaLabel = isInteractive
@@ -81,17 +81,17 @@ const Card: React.FC<CardProps> = ({
       aria-label={resolvedAriaLabel}
       aria-disabled={disabled || undefined}
       className={cn(
-        'rounded-md flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized',
+        'rounded-xl flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized overflow-hidden',
         variantStyles[variant],
         isInteractive && interactiveVariantStyles[variant],
-        isInteractive && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none state-layer',
+        isInteractive && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none',
         disabled && 'opacity-60 pointer-events-none',
         className
       )}
     >
       {/* Media slot */}
       {media && (
-        <div className="rounded-t-md overflow-hidden">
+        <div className="rounded-t-xl overflow-hidden">
           {media}
         </div>
       )}
@@ -101,18 +101,18 @@ const Card: React.FC<CardProps> = ({
           <div className="flex justify-between items-center mb-4 min-h-8">
             <div className="flex items-center gap-3">
               {icon && (
-                <div className="text-on-surface-variant">
+                <div className="text-[var(--color-neutral-500)]">
                   {icon}
                 </div>
               )}
-              {title && <h3 className="text-title-medium text-on-surface">{title}</h3>}
+              {title && <h3 className="text-title-medium text-[var(--color-text-primary)]">{title}</h3>}
             </div>
 
             {actionIcon && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onActionClick?.(); }}
-                className="text-on-surface-variant cursor-pointer hover:text-on-surface h-12 w-12 inline-flex items-center justify-center rounded-full transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-2 state-layer disabled:opacity-[0.38] disabled:cursor-not-allowed"
+                className="text-[var(--color-neutral-500)] cursor-pointer hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
                 aria-label={actionLabel || "Action"}
                 disabled={!onActionClick}
               >

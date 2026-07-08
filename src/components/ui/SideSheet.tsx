@@ -1,3 +1,4 @@
+import { MEDIA } from '../../constants/breakpoints';
 import React, { useEffect, useRef, useCallback, useState, useId } from 'react';
 import { cn } from '../../lib/utils';
 import CloseButton from './CloseButton';
@@ -58,7 +59,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
     const previousBodyOverflowRef = useRef<string>('');
     const [visible, setVisible] = useState(false);
     const [closing, setClosing] = useState(false);
-    const isCompactOrMedium = useMediaQuery('(max-width: 839px)');
+    const isCompactOrMedium = useMediaQuery(MEDIA.belowExpanded);
     const titleId = useId();
     const internalDescriptionId = useId();
     const resolvedDescriptionId = ariaDescribedBy ?? (description ? internalDescriptionId : undefined);
@@ -208,7 +209,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 aria-describedby={resolvedDescriptionId}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    'absolute bg-surface-container-low shadow-elevation-1 flex flex-col',
+                    'absolute bg-surface shadow-elevation-2 flex flex-col',
                     renderAsBottomSheet ? 'max-h-[90vh] w-full' : `top-0 bottom-0 ${widthClass}`,
                     sideClass,
                     animationClass,
@@ -216,9 +217,9 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 )}
             >
                 {(title || dismissible) && (
-                    <div className="px-6 py-4 border-b border-outline-variant flex items-start justify-between gap-4 shrink-0">
+                    <div className="px-5 py-4 border-b border-outline-variant flex items-start justify-between gap-4 shrink-0">
                         <div className="min-w-0">
-                            {title && <h2 id={titleId} className="text-title-large text-on-surface">{title}</h2>}
+                            {title && <h2 id={titleId} className="section-title">{title}</h2>}
                             {description && (
                                 <p id={resolvedDescriptionId} className="mt-1 text-body-small text-on-surface-variant">
                                     {description}
@@ -229,12 +230,12 @@ const SideSheet: React.FC<SideSheetProps> = ({
                     </div>
                 )}
 
-                <div className={cn('flex-1 overflow-y-auto custom-scrollbar px-6 py-4', contentClassName)}>
+                <div className={cn('flex-1 overflow-y-auto custom-scrollbar px-5 py-4', contentClassName)}>
                     {children}
                 </div>
 
                 {footer && (
-                    <div className="px-6 py-4 border-t border-outline-variant shrink-0">
+                    <div className="px-5 py-4 border-t border-outline-variant bg-surface-container shrink-0">
                         {footer}
                     </div>
                 )}

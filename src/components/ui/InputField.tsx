@@ -114,8 +114,8 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
         <label
           htmlFor={inputId}
           className={cn(
-            "block text-body-small ml-1 mb-1 transition-colors duration-short4",
-            error ? "text-error" : isFocused ? "text-primary" : "text-on-surface-variant",
+            "block text-label-medium font-bold uppercase mb-2 transition-colors duration-short4",
+            error ? "text-error" : isFocused ? "text-[var(--color-text-primary)]" : "text-[var(--color-neutral-500)]",
             isDisabled && "text-on-surface/[0.38]"
           )}
         >
@@ -128,14 +128,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           <div
             className={cn(
               'absolute inset-y-0 left-4 flex items-center gap-2 pointer-events-none transition-colors duration-short4',
-              error ? 'text-error' : isFocused ? 'text-primary' : 'text-on-surface-variant',
+              error ? 'text-error' : isFocused ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-neutral-500)]',
               isDisabled && 'text-on-surface/[0.38]'
             )}
             aria-hidden="true"
           >
             {icon}
             {prefix && (
-              <span className="text-body-medium text-on-surface-variant">
+              <span className="text-body-medium text-[var(--color-neutral-500)]">
                 {prefix}
               </span>
             )}
@@ -154,24 +154,24 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           onFocus={(e) => { setIsFocused(true); props.onFocus?.(e); }}
           onBlur={(e) => { setIsFocused(false); props.onBlur?.(e); }}
           className={cn(
-            'w-full min-h-14 px-4 py-4 text-body-large text-on-surface',
+            'w-full min-h-11 px-4 py-3 text-title-small font-medium text-[var(--color-text-primary)]',
             'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized',
             'focus:outline-none',
-            'placeholder:text-on-surface-variant/80',
+            'placeholder:text-[var(--color-neutral-400)]',
             'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
             isOutlined
               ? cn(
-                'bg-surface rounded-xs border',
+                'bg-surface rounded-lg border',
                 error
                   ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                  : 'border-outline hover:border-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20',
+                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-black focus:ring-4 focus:ring-black/10',
                 'disabled:border-on-surface/[0.12] disabled:bg-surface'
               )
               : cn(
-                'bg-surface-container-highest rounded-t-xs rounded-b-none border-b-2',
+                'bg-surface rounded-lg border',
                 error
-                  ? 'border-error hover:border-error focus:border-error'
-                  : 'border-on-surface-variant hover:bg-surface-container-high hover:border-on-surface focus:border-primary',
+                  ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
+                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-black focus:ring-4 focus:ring-black/10',
                 'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
               ),
             hasLeadingElement ? 'pl-12' : 'pl-4',
@@ -184,7 +184,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
         {hasTrailingElement && (
           <div className="absolute inset-y-0 right-3 flex items-center gap-1">
             {suffix && (
-              <span className="text-body-small text-on-surface-variant pointer-events-none">
+              <span className="text-body-small text-[var(--color-neutral-500)] pointer-events-none">
                 {suffix}
               </span>
             )}
@@ -194,13 +194,13 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
                 <button
                   type="button"
                   onClick={onTrailingIconClick}
-                  className="h-12 w-12 inline-flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors duration-short4 state-layer"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-black/10 transition-colors duration-short4"
                   aria-label={trailingIconLabel}
                 >
                   {trailingIcon}
                 </button>
               ) : (
-                <span className="h-12 w-12 inline-flex items-center justify-center text-on-surface-variant pointer-events-none" aria-hidden="true">
+                <span className="h-10 w-10 inline-flex items-center justify-center text-[var(--color-neutral-500)] pointer-events-none" aria-hidden="true">
                   {trailingIcon}
                 </span>
               )
@@ -210,7 +210,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="h-12 w-12 inline-flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors duration-short4 state-layer"
+                className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-black/10 transition-colors duration-short4"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPassword}
               >
@@ -231,14 +231,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
             )}
 
             {!error && supportingText && (
-              <p id={supportingId} className="text-body-small text-on-surface-variant">
+              <p id={supportingId} className="text-body-small text-[var(--color-text-muted)]">
                 {supportingText}
               </p>
             )}
           </div>
 
           {showCounter && (
-            <p id={counterId} className="text-body-small text-on-surface-variant tabular-nums whitespace-nowrap" aria-live="polite">
+            <p id={counterId} className="text-body-small text-[var(--color-text-muted)] tabular-nums whitespace-nowrap" aria-live="polite">
               {currentValue.length}/{props.maxLength}
             </p>
           )}

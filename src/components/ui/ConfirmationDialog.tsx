@@ -72,7 +72,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       title={title}
       maxWidth="max-w-md"
       icon={
-        <div className={cn("p-2 rounded-full", config.iconBg)}>
+        <div className={cn("p-2 rounded-lg", config.iconBg)}>
           <MaterialIcon name={config.icon} size={24} className={config.iconColor} />
         </div>
       }

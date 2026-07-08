@@ -24,7 +24,7 @@ const VARIANT_STYLES = {
 };
 
 /**
- * Snackbar overlay — Top-center notification with queue, action, and auto-dismiss.
+ * Snackbar overlay — Bottom-center notification with queue, action, and auto-dismiss.
  * Handles one message at a time; remaining messages queue.
  *
  * Usage:
@@ -94,8 +94,10 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
     return (
         <div
             className={cn(
-                "fixed top-4 left-4 right-4 z-[110] flex justify-center pointer-events-none",
-                "expanded:top-6",
+                "fixed left-4 right-4 z-[110] flex justify-center pointer-events-none",
+                "bottom-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]",
+                "compact:bottom-[max(6rem,calc(env(safe-area-inset-bottom,0px)+1rem))]",
+                "expanded:bottom-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))]",
                 className
             )}
         >
@@ -104,12 +106,12 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                 aria-live="polite"
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    "pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-xs shadow-elevation-3 min-w-0",
+                    "pointer-events-auto inline-flex items-center gap-2 px-4 py-3 rounded-lg shadow-elevation-3 min-w-0",
                     "max-w-[calc(100vw-32px)] expanded:min-w-[344px] expanded:max-w-[560px]",
                     VARIANT_STYLES[variant],
                     closing
-                        ? "animate-out fade-out slide-out-to-top-4 duration-150"
-                        : "animate-in fade-in slide-in-from-top-4 duration-300"
+                        ? "animate-out fade-out slide-out-to-bottom-4 duration-150"
+                        : "animate-in fade-in slide-in-from-bottom-4 duration-300"
                 )}
             >
                 {/* Message text */}
@@ -126,7 +128,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                             handleDismiss();
                         }}
                         className={cn(
-                            'shrink-0 min-h-12 text-label-large font-medium transition-opacity duration-short4 px-3 py-1 rounded-xs outline-none',
+                            'shrink-0 min-h-10 text-label-large font-medium transition-opacity duration-short4 px-3 py-1 rounded-lg outline-none',
                             'focus-visible:ring-2 focus-visible:ring-current',
                             actionColorClass
                         )}
@@ -140,7 +142,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                     <button
                         type="button"
                         onClick={handleDismiss}
-                        className="shrink-0 w-12 h-12 inline-flex items-center justify-center -mr-1 rounded-full hover:opacity-80 transition-opacity duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-current"
+                        className="shrink-0 w-10 h-10 inline-flex items-center justify-center -mr-1 rounded-lg hover:opacity-80 transition-opacity duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-current"
                         aria-label="Fermer la notification"
                     >
                         <MaterialIcon name="close" size={20} />

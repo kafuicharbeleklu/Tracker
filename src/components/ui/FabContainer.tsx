@@ -5,12 +5,13 @@ interface FabContainerProps {
     children: React.ReactNode;
     className?: string;
     description?: string; // For accessibility
+    style?: React.CSSProperties;
 }
 
 /**
  * Container to position FABs on the screen (usually bottom-right).
  */
-export const FabContainer: React.FC<FabContainerProps> = ({ children, className, description }) => {
+export const FabContainer: React.FC<FabContainerProps> = ({ children, className, description, style }) => {
     return (
         <div
             className={cn(
@@ -18,6 +19,7 @@ export const FabContainer: React.FC<FabContainerProps> = ({ children, className,
                 "pointer-events-none [&>*]:pointer-events-auto", // Allow clicking through empty space
                 className
             )}
+            style={style}
             role="group"
             aria-label={description || "Floating Actions"}
         >

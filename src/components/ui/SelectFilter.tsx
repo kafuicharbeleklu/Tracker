@@ -162,11 +162,11 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
         aria-controls={isOpen ? listboxId : undefined}
         aria-activedescendant={isOpen ? activeDescendantId : undefined}
         className={cn(
-          "inline-flex items-center gap-2 px-4 min-h-12 rounded-full border text-label-large transition-all duration-short4 outline-none max-w-full",
+          "inline-flex items-center gap-2 px-3 min-h-10 rounded-lg border text-label-large transition-all duration-short4 outline-none max-w-full bg-surface",
           isOpen
-            ? "border-primary bg-primary/[0.08] text-primary ring-1 ring-primary"
-            : "border-outline-variant text-on-surface hover:bg-on-surface/[0.04]",
-          "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            ? "border-primary text-primary ring-2 ring-primary/20"
+            : "border-outline-variant text-on-surface hover:bg-surface-container",
+          "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1"
         )}
       >
         <span className="truncate">{selectedOption ? selectedOption.label : defaultLabel}</span>
@@ -181,7 +181,7 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
       {(isOpen || closing) && (
         <div
           className={cn(
-            "absolute z-50 mt-1 min-w-[160px] max-w-[300px] bg-surface-container rounded-md border border-outline-variant shadow-elevation-3 py-1 origin-top-left",
+            "absolute z-50 mt-1 min-w-[160px] max-w-[300px] bg-surface rounded-lg border border-outline-variant shadow-elevation-2 py-1 origin-top-left overflow-hidden",
             closing
               ? "animate-out fade-out zoom-out-95 duration-150"
               : "animate-in fade-in zoom-in-95 duration-200"
@@ -200,16 +200,16 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
                 role="option"
                 aria-selected={value === opt.value}
                 className={cn(
-                  "cursor-pointer px-4 py-3 min-h-12 text-body-medium flex items-center justify-between transition-colors duration-short3",
+                  "cursor-pointer px-3 py-2 min-h-10 text-body-medium flex items-center justify-between transition-colors duration-short3",
                   value === opt.value
-                    ? "bg-secondary-container text-on-secondary-container"
+                    ? "bg-primary text-on-primary"
                     : highlightedIndex === index
-                      ? "bg-on-surface/[0.12] text-on-surface"
-                      : "text-on-surface hover:bg-on-surface/[0.08]"
+                      ? "bg-surface-container text-on-surface"
+                      : "text-on-surface hover:bg-surface-container"
                 )}
               >
                 <span className="truncate">{opt.label}</span>
-                {value === opt.value && <MaterialIcon name="check" size={18} className="text-primary ml-2 shrink-0" />}
+                {value === opt.value && <MaterialIcon name="check" size={18} className="text-on-primary ml-2 shrink-0" />}
               </div>
             ))}
           </div>

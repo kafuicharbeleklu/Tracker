@@ -23,51 +23,63 @@ interface StatusBadgeProps {
 }
 
 /**
- * MD3 StatusBadge — Uses MD3 container color tokens.
+ * StatusBadge — palette sémantique adossée aux tokens du DS :
+ * success → vert, info → bleu, warning → orange (≠ jaune marque),
+ * danger → rouge, neutral → neutre chaud.
  */
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label?: string }> = {
+type StatusTone = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
+
+const TONE_CLASSES: Record<StatusTone, string> = {
+  success: 'bg-success-light text-success-strong',
+  info: 'bg-info-light text-info-strong',
+  warning: 'bg-warning-light text-warning-strong',
+  danger: 'bg-danger-light text-danger-strong',
+  neutral: 'bg-surface-container text-on-surface',
+};
+
+const STATUS_CONFIG: Record<string, { tone: StatusTone; label?: string }> = {
   // Equipment
-  'Disponible': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container' },
-  'Attribué': { bg: 'bg-secondary-container', text: 'text-on-secondary-container' },
-  'Assigné': { bg: 'bg-secondary-container', text: 'text-on-secondary-container' },
-  'En attente': { bg: 'bg-primary-container', text: 'text-on-primary-container' },
-  'En réparation': { bg: 'bg-error-container', text: 'text-on-error-container', label: 'En réparation' },
-  'En maintenance préventive': { bg: 'bg-secondary-container', text: 'text-on-secondary-container' },
-  'Retiré': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
-  'Perdu': { bg: 'bg-error-container', text: 'text-on-error-container' },
-  'Réformé': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
-  'Manquant': { bg: 'bg-error-container', text: 'text-on-error-container' },
+  'Disponible': { tone: 'success' },
+  'Attribué': { tone: 'info' },
+  'Assigné': { tone: 'info' },
+  'En attente': { tone: 'warning' },
+  'En réparation': { tone: 'danger', label: 'En réparation' },
+  'En maintenance préventive': { tone: 'warning' },
+  'Retiré': { tone: 'neutral' },
+  'Perdu': { tone: 'danger' },
+  'Réformé': { tone: 'neutral' },
+  'Manquant': { tone: 'danger' },
 
   // Approvals
-  'Pending': { bg: 'bg-primary-container', text: 'text-on-primary-container', label: 'En attente' },
-  'Processing': { bg: 'bg-secondary-container', text: 'text-on-secondary-container', label: 'En traitement' },
-  'Approved': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', label: 'Approuvé' },
-  'Rejected': { bg: 'bg-error-container', text: 'text-on-error-container', label: 'Rejeté' },
-  'Completed': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', label: 'Terminé' },
-  'Cancelled': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant', label: 'Annulé' },
-  'Expired': { bg: 'bg-error-container', text: 'text-on-error-container', label: 'Expiré' },
+  'Pending': { tone: 'warning', label: 'En attente' },
+  'Processing': { tone: 'info', label: 'En traitement' },
+  'Approved': { tone: 'success', label: 'Approuvé' },
+  'Rejected': { tone: 'danger', label: 'Rejeté' },
+  'Completed': { tone: 'success', label: 'Terminé' },
+  'Cancelled': { tone: 'neutral', label: 'Annulé' },
+  'Expired': { tone: 'danger', label: 'Expiré' },
 
-  // Approval workflow states (MD3 workflow)
-  'WAITING_MANAGER_APPROVAL': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', label: 'Validation en cours' },
-  'WAITING_IT_PROCESSING': { bg: 'bg-secondary-container', text: 'text-on-secondary-container', label: 'Traitement en cours' },
-  'WAITING_DOTATION_APPROVAL': { bg: 'bg-primary-container', text: 'text-on-primary-container', label: 'Validation en cours' },
-  'PENDING_DELIVERY': { bg: 'bg-primary-container', text: 'text-on-primary-container', label: 'En attente' },
-  'PENDING_RETURN': { bg: 'bg-secondary-container', text: 'text-on-secondary-container', label: 'Retour en cours' },
+  // Approval workflow states
+  'WAITING_MANAGER_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
+  'WAITING_IT_PROCESSING': { tone: 'info', label: 'Traitement en cours' },
+  'WAITING_DOTATION_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
+  'PENDING_DELIVERY': { tone: 'warning', label: 'En attente' },
+  'PENDING_RETURN': { tone: 'info', label: 'Retour en cours' },
 
   // Legacy workflow
-  'WaitingManager': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', label: 'Validation en cours' },
-  'WaitingUser': { bg: 'bg-secondary-container', text: 'text-on-secondary-container', label: 'En attente' },
+  'WaitingManager': { tone: 'warning', label: 'Validation en cours' },
+  'WaitingUser': { tone: 'warning', label: 'En attente' },
 
   // Urgency
-  'high': { bg: 'bg-error-container', text: 'text-on-error-container', label: 'Urgent' },
-  'normal': { bg: 'bg-surface-container-highest', text: 'text-on-surface', label: 'Normal' },
-  'low': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant', label: 'Basse' },
+  'high': { tone: 'danger', label: 'Urgent' },
+  'normal': { tone: 'neutral', label: 'Normal' },
+  'low': { tone: 'neutral', label: 'Basse' },
 
   // Roles
-  'SuperAdmin': { bg: 'bg-tertiary-container', text: 'text-on-tertiary-container', label: 'Super Admin' },
-  'Admin': { bg: 'bg-secondary-container', text: 'text-on-secondary-container', label: 'Admin' },
-  'Manager': { bg: 'bg-primary-container', text: 'text-on-primary-container', label: 'Manager' },
-  'User': { bg: 'bg-surface-container-high', text: 'text-on-surface-variant', label: 'Utilisateur' },
+  'SuperAdmin': { tone: 'success', label: 'Super Admin' },
+  'Admin': { tone: 'info', label: 'Admin' },
+  'Manager': { tone: 'warning', label: 'Manager' },
+  'User': { tone: 'neutral', label: 'Utilisateur' },
 };
 
 const SIZE_CLASSES = {
@@ -81,17 +93,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   size = 'md',
   className
 }) => {
-  const config = STATUS_CONFIG[status] || {
-    bg: 'bg-surface-container-highest',
-    text: 'text-on-surface-variant'
-  };
+  const config = STATUS_CONFIG[status] ?? { tone: 'neutral' as StatusTone };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center font-medium uppercase tracking-wider rounded-sm whitespace-nowrap transition-all duration-short4",
-        config.bg,
-        config.text,
+        "inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-md whitespace-nowrap transition-all duration-short4",
+        TONE_CLASSES[config.tone],
         SIZE_CLASSES[size],
         className
       )}

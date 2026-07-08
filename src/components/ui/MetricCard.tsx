@@ -13,6 +13,8 @@ interface MetricCardProps {
     direction: 'up' | 'down';
     label?: string;
   };
+  /** Variante carte demi-hauteur (écrans compacts — X9). Masque subtitle et trend. */
+  compact?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -26,6 +28,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   subtitle,
   icon,
   trend,
+  compact = false,
   onClick,
   className
 }) => {
@@ -37,6 +40,32 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     }
   };
 
+  if (compact) {
+    return (
+      <div
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        className={cn(
+          "bg-surface border border-outline-variant rounded-xl p-3 shadow-elevation-1 flex flex-col gap-1.5 transition-all duration-short4 ease-emphasized group",
+          onClick && "cursor-pointer hover:shadow-elevation-2 hover:border-outline active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          className
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="section-label min-w-0 truncate">{title}</p>
+          {icon && (
+            <div className="shrink-0 text-on-surface-variant group-hover:text-primary transition-colors duration-short4">
+              {icon}
+            </div>
+          )}
+        </div>
+        <p className="text-title-large font-semibold text-on-surface leading-none">{value}</p>
+      </div>
+    );
+  }
+
   return (
     <div
       onClick={onClick}
@@ -44,14 +73,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       className={cn(
-        "bg-surface-container-low rounded-md p-6 min-h-[140px] shadow-elevation-1 flex flex-col transition-all duration-short4 ease-emphasized group",
-        onClick && "cursor-pointer hover:shadow-elevation-2 active:scale-[0.98] state-layer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+        "bg-surface border border-outline-variant rounded-xl p-5 min-h-[128px] shadow-elevation-1 flex flex-col transition-all duration-short4 ease-emphasized group",
+        onClick && "cursor-pointer hover:shadow-elevation-2 hover:border-outline active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         className
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-label-small text-on-surface-variant uppercase tracking-widest">{title}</p>
+        <p className="section-label">{title}</p>
         {icon && (
           <div className="text-on-surface-variant group-hover:text-primary transition-colors duration-short4">
             {icon}
@@ -61,7 +90,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Value */}
       <div className="flex-1">
-        <p className="text-display-small text-on-surface mb-1 leading-none">{value}</p>
+        <p className="text-[1.875rem] font-semibold text-on-surface mb-1 leading-none tracking-normal">{value}</p>
         {subtitle && (
           <p className="text-body-small text-on-surface-variant mt-2">{subtitle}</p>
         )}
@@ -74,7 +103,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           trend.direction === 'up' ? "text-tertiary" : "text-error"
         )}>
           <div className={cn(
-            "p-1 rounded-full",
+            "p-1 rounded-md",
             trend.direction === 'up' ? "bg-tertiary-container" : "bg-error-container"
           )}>
             <MaterialIcon name={trend.direction === 'up' ? "trending_up" : "trending_down"} size={14} />

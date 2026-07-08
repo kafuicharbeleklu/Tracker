@@ -3,6 +3,8 @@ import { cn } from '../../lib/utils';
 import CloseButton from './CloseButton';
 
 interface BottomSheetProps {
+    /** Optional id for aria-controls linkage */
+    id?: string;
     /** Whether the sheet is open */
     open: boolean;
     /** Close handler */
@@ -24,6 +26,7 @@ interface BottomSheetProps {
  * @see https://m3.material.io/components/bottom-sheets/overview
  */
 const BottomSheet: React.FC<BottomSheetProps> = ({
+    id,
     open,
     onClose,
     children,
@@ -171,6 +174,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
             {/* Sheet */}
             <div
+                id={id}
                 ref={sheetRef}
                 role="dialog"
                 aria-modal="true"
@@ -178,7 +182,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 aria-label={title ? undefined : 'Panneau inférieur'}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    "relative w-full max-h-[90vh] bg-surface-container-low rounded-t-xl shadow-elevation-5 flex flex-col",
+                    "relative w-full max-h-[90vh] bg-surface rounded-t-xl shadow-elevation-4 border border-outline-variant flex flex-col",
                     closing
                         ? "animate-out slide-out-to-bottom-4 fade-out duration-300"
                         : "animate-in slide-in-from-bottom-4 duration-300",
@@ -203,14 +207,14 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
                 {/* Title */}
                 {title && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-                        <h2 id={titleId} className="text-title-large text-on-surface">{title}</h2>
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+                        <h2 id={titleId} className="section-title">{title}</h2>
                         <CloseButton onClick={onClose} />
                     </div>
                 )}
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4">
                     {children}
                 </div>
             </div>

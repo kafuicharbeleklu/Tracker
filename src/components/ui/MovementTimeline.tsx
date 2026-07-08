@@ -60,7 +60,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
     const visibleTo = Math.min(pageStart + pageItems.length, items.length);
 
     return (
-        <div className={cn('bg-surface rounded-md shadow-elevation-1 border border-outline-variant p-card', className)}>
+        <div className={cn('bg-surface rounded-xl shadow-elevation-1 border border-outline-variant p-card', className)}>
             <h3 className="text-label-large text-on-surface mb-6">{title}</h3>
             {items.length > 0 ? (
                 <>
@@ -87,7 +87,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                                 </p>
                                             )}
                                         </div>
-                                        <span className="text-label-small font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-xs whitespace-nowrap">
+                                        <span className="text-label-small font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-md whitespace-nowrap">
                                             {formatTimelineDate(item.timestamp)}
                                         </span>
                                     </div>
@@ -102,7 +102,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                 type="button"
                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className="inline-flex h-9 items-center gap-1 rounded-full border border-outline-variant px-3 text-label-small text-on-surface-variant state-layer disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
                                 aria-label="Page précédente de l'historique"
                             >
                                 <MaterialIcon name="chevron_left" size={16} />
@@ -113,7 +113,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                 type="button"
                                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
-                                className="inline-flex h-9 items-center gap-1 rounded-full border border-outline-variant px-3 text-label-small text-on-surface-variant state-layer disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
                                 aria-label="Page suivante de l'historique"
                             >
                                 Suivant

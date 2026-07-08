@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import BottomSheet from './BottomSheet';
 import Button from './Button';
@@ -31,6 +31,7 @@ const ListActionFab: React.FC<ListActionFabProps> = ({
     disabled = false,
 }) => {
     const [open, setOpen] = useState(false);
+    const sheetId = `list-action-sheet-${useId().replace(/:/g, '')}`;
 
     const resolvedActions = useMemo(() => actions.filter((action) => Boolean(action.label)), [actions]);
 
@@ -40,19 +41,26 @@ const ListActionFab: React.FC<ListActionFabProps> = ({
 
     return (
         <>
-            <FabContainer className={cn('bottom-32 right-4', className)} description={`Actions ${label}`}>
+            <FabContainer
+                className={cn('right-4', className)}
+                style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
+                description={`Actions ${label}`}
+            >
                 <FloatingActionButton
                     icon="add"
                     size="medium"
                     variant="primary"
                     className="!bg-primary !text-on-primary"
                     aria-label={`Ouvrir les actions ${label.toLowerCase()}`}
+                    aria-controls={sheetId}
+                    aria-expanded={open}
                     onClick={() => setOpen(true)}
                     disabled={disabled}
                 />
             </FabContainer>
 
             <BottomSheet
+                id={sheetId}
                 open={open}
                 onClose={() => setOpen(false)}
                 title={sheetTitle ?? `Actions ${label}`}

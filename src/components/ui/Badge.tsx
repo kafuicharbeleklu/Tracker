@@ -10,16 +10,17 @@ interface BadgeProps {
 }
 
 /**
- * MD3 Badge / Chip-like indicator.
- * Uses MD3 color container tokens for each variant.
+ * Status / category indicator badge.
+ * Palette sémantique adossée aux tokens du DS (var(--color-*)) :
+ * success → vert, warning → orange (≠ jaune marque), danger → rouge, info → bleu, neutral → neutre chaud.
  */
 const variants: Record<BadgeVariant, string> = {
-  default: 'bg-surface-container-highest text-on-surface border-outline-variant',
-  success: 'bg-tertiary-container text-on-tertiary-container border-transparent',
-  warning: 'bg-primary-container text-on-primary-container border-transparent',
-  danger: 'bg-error-container text-on-error-container border-transparent',
-  info: 'bg-secondary-container text-on-secondary-container border-transparent',
-  neutral: 'bg-surface-container-high text-on-surface-variant border-outline-variant',
+  default: 'bg-surface-container text-on-surface',
+  success: 'bg-success-light text-success-strong',
+  warning: 'bg-warning-light text-warning-strong',
+  danger: 'bg-danger-light text-danger-strong',
+  info: 'bg-info-light text-info-strong',
+  neutral: 'bg-surface-container text-on-surface',
 };
 
 const Badge: React.FC<BadgeProps> = ({
@@ -29,7 +30,7 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   return (
     <span className={cn(
-      "inline-flex items-center justify-center px-2.5 py-0.5 rounded-sm text-label-small border whitespace-nowrap",
+      "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-label-small uppercase whitespace-nowrap",
       variants[variant],
       className
     )}>

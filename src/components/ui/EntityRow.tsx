@@ -72,12 +72,12 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
           ? 'group flex items-center gap-4 p-4 min-h-[80px] rounded-xl border border-outline-variant/50 bg-surface relative outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset transition-all duration-short4 shadow-elevation-0'
           : 'group flex items-center gap-4 p-4 min-h-[80px] border-b border-outline-variant/50 last:border-0 relative outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset transition-all duration-short4',
         selected
-          ? (isCardVariant ? 'bg-secondary-container border-secondary/30' : 'bg-secondary-container')
+          ? (isCardVariant ? 'bg-primary-container/45 border-primary/30' : 'bg-primary-container/45')
           : 'bg-surface',
         isSelectable && !disabled && (
           isCardVariant
-            ? 'state-layer hover:bg-surface-container-low hover:shadow-elevation-1 cursor-pointer active:scale-[0.995]'
-            : 'state-layer hover:bg-surface-container-low cursor-pointer active:scale-[0.99]'
+            ? 'hover:bg-surface-container hover:shadow-elevation-1 cursor-pointer active:scale-[0.995]'
+            : 'hover:bg-surface-container cursor-pointer active:scale-[0.99]'
         ),
         disabled && 'opacity-[0.38] cursor-not-allowed',
         className
@@ -100,7 +100,7 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
             'overflow-hidden border border-outline-variant flex items-center justify-center',
             isCardVariant
               ? 'w-14 h-14 bg-surface-container rounded-lg'
-              : 'w-12 h-12 bg-surface-container-low rounded-md'
+              : 'w-12 h-12 bg-surface-container rounded-md'
           )}>
             <img
               src={image}
@@ -124,7 +124,7 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
             'border border-outline-variant flex items-center justify-center text-on-surface-variant',
             isCardVariant
               ? 'w-14 h-14 rounded-lg bg-surface-container'
-              : 'w-12 h-12 rounded-md bg-surface-container-low'
+              : 'w-12 h-12 rounded-md bg-surface-container'
           )}>
             {imageFallback ?? <MaterialIcon name="inventory_2" size={18} className="text-outline" />}
           </div>
@@ -154,6 +154,12 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
               {subtitle}
             </div>
           )}
+          {/* Statut : empilé sous le nom en compact (jamais tronqué) ; en colonne dédiée dès medium */}
+          {status && (
+            <div className="mt-1.5 medium:hidden [&>div]:w-auto [&>div]:justify-start [&>div]:pr-0">
+              {status}
+            </div>
+          )}
         </div>
 
         {location && (
@@ -174,7 +180,7 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
 
       {/* Status & Action */}
       <div className="flex items-center gap-3 shrink-0 ml-auto">
-        {status}
+        <div className="hidden medium:flex items-center">{status}</div>
         {actions}
         {onClick && !actions && (
           <MaterialIcon name="chevron_right" size={18} className="text-outline group-hover:text-primary transition-colors duration-short4" />

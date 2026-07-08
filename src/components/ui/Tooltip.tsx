@@ -148,7 +148,7 @@ const Tooltip: React.FC<TooltipProps> = ({
                         "animate-in fade-in zoom-in-95 duration-150",
                         placementClasses[placement],
                         isPlain
-                            ? "bg-inverse-surface text-inverse-on-surface text-body-small rounded-xs px-2 py-1 max-w-[200px] shadow-elevation-1 pointer-events-none"
+                            ? "bg-inverse-surface text-inverse-on-surface text-body-small rounded-md px-2 py-1 max-w-[200px] shadow-elevation-1 pointer-events-none"
                             : "bg-surface-container text-on-surface text-body-medium rounded-md p-4 max-w-[320px] shadow-elevation-2 pointer-events-auto",
                         className
                     )}

@@ -33,7 +33,7 @@ const VARIANT_STYLES = {
     tonal: {
         base: 'bg-surface-container-high text-on-surface-variant',
         hover: 'hover:shadow-elevation-1',
-        selected: 'bg-secondary-container text-on-secondary-container',
+        selected: 'bg-primary text-on-primary',
         selectedHover: 'hover:shadow-elevation-1',
     },
     outlined: {
@@ -71,9 +71,9 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                 disabled={disabled}
                 className={cn(
                     // Base: 48×48dp touch target, centered icon
-                    "inline-flex items-center justify-center w-12 h-12 rounded-full",
+                    "inline-flex items-center justify-center w-10 h-10 rounded-lg",
                     "transition-all duration-short4 ease-emphasized",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    "outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
                     "disabled:opacity-[0.38] disabled:cursor-not-allowed disabled:shadow-none",
                     "active:scale-[0.92] state-layer",
                     // Variant-specific

@@ -115,15 +115,15 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
       {isProcessing ? (
         <div className="flex flex-col items-center animate-in fade-in zoom-in duration-medium2">
-          <div className="w-16 h-16 rounded-full border-4 border-surface-container-high flex items-center justify-center relative mb-4">
-            <MaterialIcon name="progress_activity" size={32} className="text-primary animate-spin" />
+          <div className="w-14 h-14 rounded-lg border border-outline-variant bg-surface flex items-center justify-center relative mb-4">
+            <MaterialIcon name="progress_activity" size={28} className="text-primary animate-spin" />
           </div>
           <p className="text-title-small text-on-surface">Traitement en cours...</p>
         </div>
       ) : (
         <>
           <div className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-medium2 ease-emphasized",
+            "w-14 h-14 rounded-lg flex items-center justify-center mb-4 transition-all duration-medium2 ease-emphasized border border-outline-variant",
             isDragging ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant group-hover:text-primary group-hover:bg-surface-container-low shadow-elevation-1"
           )}>
             <MaterialIcon name="cloud_upload" size={32} />

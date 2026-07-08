@@ -82,25 +82,25 @@ export const TextArea: React.FC<TextAreaProps> = ({
         aria-required={resolvedAriaRequired}
         aria-describedby={resolvedAriaDescribedBy}
         className={cn(
-          'w-full min-h-14 px-4 py-3.5',
+          'w-full min-h-24 px-3 py-2',
           'focus:outline-none',
           'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized resize-none',
-          'text-on-surface text-body-large',
+          'text-on-surface text-body-medium',
           'placeholder:text-on-surface-variant/80',
           'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
           variant === 'filled'
             ? cn(
-              'bg-surface-container-highest border-b-2 rounded-t-xs rounded-b-none',
+              'bg-surface border rounded-lg',
               error
-                ? 'border-error hover:border-error focus:border-error'
-                : 'border-on-surface-variant hover:bg-surface-container-high hover:border-on-surface focus:border-primary',
+                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
+                : 'border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20',
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             )
             : cn(
-              'bg-surface border rounded-xs',
+              'bg-surface border rounded-lg',
               error
                 ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                : 'border-outline hover:border-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20',
+                : 'border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20',
               'disabled:border-on-surface/[0.12] disabled:bg-surface'
             ),
           className

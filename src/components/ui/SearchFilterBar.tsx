@@ -7,6 +7,7 @@ interface SearchFilterBarProps {
   onSearchChange: (value: string) => void;
   onFilterClick?: () => void;
   filterActive?: boolean;
+  filterPanelId?: string;
   resultCount?: number;
   placeholder?: string;
   className?: string;
@@ -21,6 +22,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   onSearchChange,
   onFilterClick,
   filterActive,
+  filterPanelId,
   resultCount,
   placeholder = "Rechercher...",
   className
@@ -47,8 +49,8 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   };
 
   return (
-    <div role="search" className={cn("bg-surface-container-high rounded-full shadow-elevation-1 transition-shadow duration-short4 hover:shadow-elevation-2 focus-within:shadow-elevation-2", className)}>
-      <div className="relative group flex items-center min-h-14">
+    <div role="search" className={cn("bg-surface border border-outline-variant rounded-xl shadow-elevation-1 transition-shadow duration-short4 hover:shadow-elevation-2 focus-within:shadow-elevation-2", className)}>
+      <div className="relative group flex items-center min-h-12">
         {/* Leading icon */}
         <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none">
           <MaterialIcon name="search" size={20} className="text-on-surface-variant group-focus-within:text-primary transition-colors duration-short4" />
@@ -61,7 +63,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           placeholder={placeholder}
           aria-label={placeholder}
           className={cn(
-            "w-full h-14 bg-transparent text-on-surface rounded-full py-0 pl-12 focus:outline-none placeholder-on-surface-variant text-body-large",
+            "w-full h-12 bg-transparent text-on-surface rounded-lg py-0 pl-12 focus:outline-none placeholder-on-surface-variant text-body-medium",
             trailingSpaceClass
           )}
         />
@@ -72,7 +74,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="h-12 w-12 inline-flex items-center justify-center rounded-full text-on-surface-variant hover:bg-on-surface/[0.08] transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Effacer la recherche"
             >
               <MaterialIcon name="close" size={18} />
@@ -97,13 +99,15 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
               }
             }}
             className={cn(
-              "h-12 w-12 rounded-full transition-all duration-short4 ease-emphasized flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95 state-layer",
+              "h-10 w-10 rounded-lg transition-all duration-short4 ease-emphasized flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95 state-layer",
               isFilterActive
-                ? "bg-secondary-container text-on-secondary-container shadow-elevation-1"
-                : "bg-primary-container text-on-primary-container hover:shadow-elevation-1"
+                ? "bg-primary text-on-primary shadow-elevation-1"
+                : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
             )}
             aria-label={isFilterActive ? "Masquer les filtres" : "Afficher les filtres"}
             aria-pressed={isFilterActive}
+            aria-controls={onFilterClick ? filterPanelId : undefined}
+            aria-expanded={onFilterClick ? isFilterActive : undefined}
           >
             <MaterialIcon name="tune" size={18} />
           </button>

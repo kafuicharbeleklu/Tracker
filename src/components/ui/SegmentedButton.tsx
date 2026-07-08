@@ -58,14 +58,13 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
         <div
             role="group"
             className={cn(
-                "inline-flex border border-outline rounded-full overflow-hidden",
+                "inline-flex gap-1 rounded-xl border border-outline-variant bg-surface p-1 shadow-elevation-1",
                 disabled && "opacity-[0.38] cursor-not-allowed",
                 className
             )}
         >
-            {options.map((option, index) => {
+            {options.map((option) => {
                 const isSelected = selectedValues.includes(option.value);
-                const isFirst = index === 0;
 
                 return (
                     <button
@@ -76,16 +75,15 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
                         aria-pressed={isSelected}
                         className={cn(
                             "relative flex items-center justify-center gap-2 transition-all duration-short4 ease-emphasized outline-none",
-                            "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+                            "focus-visible:ring-2 focus-visible:ring-primary/30",
                             density === 'compact' ? "px-3 h-8 text-label-medium" : "px-4 h-10 text-label-large",
-                            !isFirst && "border-l border-outline",
+                            "rounded-lg",
                             isSelected
-                                ? "bg-secondary-container text-on-secondary-container"
+                                ? "bg-primary text-on-primary shadow-sm"
                                 : "bg-surface text-on-surface",
-                            !disabled && !isSelected && "hover:bg-on-surface/[0.08]",
-                            !disabled && isSelected && "hover:bg-secondary-container/80",
-                            !disabled && "active:scale-[0.97]",
-                            "state-layer",
+                            !disabled && !isSelected && "hover:bg-surface-container",
+                            !disabled && isSelected && "hover:bg-primary/90",
+                            !disabled && "active:scale-[0.98]",
                         )}
                     >
                         {/* Checkmark for selected state */}
