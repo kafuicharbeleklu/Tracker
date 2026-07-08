@@ -1,0 +1,142 @@
+{
+    "checkins": [
+        {
+            "schema": "neemba.agent.checkin.v1",
+            "generatedAt": "2026-02-21T10:20:00Z",
+            "source": "agent",
+            "agentVersion": "1.0.0",
+            "checkinId": "chk-20260221-102000-001",
+            "auth": {
+                "apiKey": "NEEMBA_AGENT_KEY"
+            },
+            "device": {
+                "machineName": "PC-HQ-001",
+                "hostname": "pc-hq-001",
+                "assetId": "ASSET-90001",
+                "serialNumber": "SN123456",
+                "biosUuid": "4c4c4544-0038-3110-8052-b7c04f4e5332",
+                "os": "Windows 11 Pro 23H2",
+                "ramGb": 16,
+                "storageGb": 512,
+                "cpu": "Intel Core i7-1260P",
+                "macAddress": "00:1A:2B:3C:4D:5E",
+                "ipAddress": "10.10.0.25",
+                "domain": "tracker.local",
+                "type": "Laptop",
+                "model": "Dell Latitude 7420"
+            },
+            "user": {
+                "name": "Alice SuperAdmin",
+                "email": "alice.admin@tracker.app"
+            },
+            "context": {
+                "country": "France",
+                "site": "Bureau Paris",
+                "service": "IT"
+            },
+            "apps": {
+                "sentinelOne": true,
+                "matrix42": true,
+                "manageEngine": true
+            }
+        },
+        {
+            "schema": "neemba.agent.checkin.v1",
+            "generatedAt": "2026-02-21T10:25:00Z",
+            "source": "agent",
+            "agentVersion": "1.0.0",
+            "checkinId": "chk-20260221-102500-002",
+            "auth": {
+                "apiKey": "NEEMBA_AGENT_KEY"
+            },
+            "device": {
+                "machineName": "PC-DKR-018",
+                "hostname": "pc-dkr-018",
+                "assetId": "ASSET-91018",
+                "serialNumber": "SN223456",
+                "biosUuid": "6f656361-4f31-5a47-4b4f-515a54443245",
+                "os": "Windows 10 Enterprise",
+                "ramGb": 8,
+                "storageGb": 256,
+                "cpu": "Intel Core i5-10310U",
+                "macAddress": "10:2B:3C:4D:5E:6F",
+                "ipAddress": "10.20.0.18",
+                "domain": "tracker.local",
+                "type": "Desktop",
+                "model": "HP ProDesk 600"
+            },
+            "user": {
+                "name": "Fatou Support",
+                "email": "fatou.support@tracker.app"
+            },
+            "context": {
+                "country": "Sénégal",
+                "site": "Campus Dakar",
+                "service": "Support Afrique"
+            },
+            "apps": {
+                "sentinelOne": true,
+                "matrix42": false,
+                "manageEngine": true
+            }
+        },
+        {
+            "machineName": "PC-LYON-002",
+            "hostname": "pc-lyon-002",
+            "assetId": "ASSET-92002",
+            "serialNumber": "SN323456",
+            "apiKey": "NEEMBA_AGENT_KEY",
+            "os": "Windows 11 Pro",
+            "ram": "32 GB",
+            "storage": "1 TB",
+            "type": "Laptop",
+            "model": "Lenovo ThinkPad T14",
+            "userName": "Jane Manager",
+            "userEmail": "jane.manager@tracker.app",
+            "country": "France",
+            "site": "Bureau Lyon",
+            "service": "Commercial",
+            "scannedAt": "2026-02-21T10:30:00Z",
+            "sentinelOne": true,
+            "matrix42": true,
+            "manageEngine": false
+        },
+        {
+            "schema": "neemba.agent.checkin.v1",
+            "generatedAt": "2026-02-21T10:40:00Z",
+            "source": "network_scan",
+            "agentVersion": "1.0.0",
+            "checkinId": "chk-20260221-104000-004",
+            "device": {
+                "machineName": "SRV-HQ-01",
+                "hostname": "srv-hq-01",
+                "assetId": "ASSET-93001",
+                "serialNumber": "SN423456",
+                "biosUuid": "53525648-512d-3031-2020-202020202020",
+                "os": "Windows Server 2022",
+                "ramGb": 64,
+                "storageGb": 2048,
+                "cpu": "Xeon Silver",
+                "macAddress": "20:3C:4D:5E:6F:70",
+                "ipAddress": "10.10.0.200",
+                "domain": "tracker.local",
+                "type": "Server",
+                "model": "Dell PowerEdge R450"
+            },
+            "user": {
+                "name": "IT Service",
+                "email": "it.service@tracker.app"
+            },
+            "context": {
+                "country": "France",
+                "site": "Bureau Paris",
+                "service": "IT"
+            },
+            "apps": {
+                "sentinelOne": true,
+                "matrix42": true,
+                "manageEngine": true
+            }
+        }
+    ]
+}

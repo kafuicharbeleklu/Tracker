@@ -1,0 +1,40 @@
+{
+    "schema": "neemba.agent.checkin.v1",
+    "generatedAt": "2026-02-21T10:20:00Z",
+    "source": "agent",
+    "agentVersion": "1.0.0",
+    "checkinId": "chk-20260221-102000-001",
+    "auth": {
+        "apiKey": "NEEMBA_AGENT_KEY"
+    },
+    "device": {
+        "machineName": "PC-HQ-001",
+        "hostname": "pc-hq-001",
+        "assetId": "ASSET-90001",
+        "serialNumber": "SN123456",
+        "biosUuid": "4c4c4544-0038-3110-8052-b7c04f4e5332",
+        "os": "Windows 11 Pro 23H2",
+        "ramGb": 16,
+        "storageGb": 512,
+        "cpu": "Intel Core i7-1260P",
+        "macAddress": "00:1A:2B:3C:4D:5E",
+        "ipAddress": "10.10.0.25",
+        "domain": "tracker.local",
+        "type": "Laptop",
+        "model": "Dell Latitude 7420"
+    },
+    "user": {
+        "name": "Alice SuperAdmin",
+        "email": "alice.admin@tracker.app"
+    },
+    "context": {
+        "country": "France",
+        "site": "Bureau Paris",
+        "service": "IT"
+    },
+    "apps": {
+        "sentinelOne": true,
+        "matrix42": true,
+        "manageEngine": true
+    }
+}
