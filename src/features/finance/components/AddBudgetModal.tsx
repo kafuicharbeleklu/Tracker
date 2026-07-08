@@ -50,7 +50,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
     // Dynamic Rows State
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
-        { id: '1', category: 'MatÃ©riel IT', amount: '' },
+        { id: '1', category: 'Matériel IT', amount: '' },
         { id: '2', category: 'Licences Logiciel', amount: '' }
     ]);
 
@@ -58,7 +58,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         return budgetLines.reduce((acc, line) => acc + (parseFloat(line.amount) || 0), 0);
     }, [budgetLines]);
 
-    // Helper pour dÃ©terminer le type (CAPEX/OPEX) et l'icÃ´ne dynamiquement
+    // Helper pour déterminer le type (CAPEX/OPEX) et l'icône dynamiquement
     const getCategoryDetails = (category: string, amount: string) => {
         const lower = category.toLowerCase();
         const amountVal = parseFloat(amount) || 0;
@@ -67,8 +67,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         let icon = <MaterialIcon name="layers" size={16} />;
         let iconBg = 'bg-surface-container text-on-surface-variant';
 
-        // DÃ©tection IcÃ´ne & Style
-        if (lower.includes('matÃ©riel') || lower.includes('capex') || lower.includes('hardware') || lower.includes('serveur')) {
+        // Détection Icône & Style
+        if (lower.includes('matériel') || lower.includes('capex') || lower.includes('hardware') || lower.includes('serveur')) {
             icon = <MaterialIcon name="work" size={16} />;
             iconBg = 'bg-secondary-container text-secondary';
         } else if (lower.includes('licence') || lower.includes('software')) {
@@ -82,8 +82,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             iconBg = 'bg-surface-container text-on-surface-variant';
         }
 
-        // DÃ©tection Type (IA logic simulation)
-        if (lower.includes('matÃ©riel') || lower.includes('hardware') || lower.includes('ordinateur')) {
+        // Détection Type (IA logic simulation)
+        if (lower.includes('matériel') || lower.includes('hardware') || lower.includes('ordinateur')) {
             type = 'CAPEX';
         } else if (lower.includes('licence') || lower.includes('cloud') || lower.includes('service') || lower.includes('maintenance')) {
             type = 'OPEX';
@@ -111,7 +111,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         setIsLowConfidenceReviewed(false);
         setYear(new Date().getFullYear().toString());
         setBudgetLines([
-            { id: '1', category: 'MatÃ©riel IT', amount: '' },
+            { id: '1', category: 'Matériel IT', amount: '' },
             { id: '2', category: 'Licences Logiciel', amount: '' }
         ]);
     };
@@ -196,7 +196,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         }
 
         if (totalBudget <= 0) {
-            showToast("Le budget total ne peut pas Ãªtre nul.", "error");
+            showToast("Le budget total ne peut pas être nul.", "error");
             return;
         }
         const emptyLines = budgetLines.filter(l => !l.category || !l.amount);
@@ -231,7 +231,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             sourceFileName: importedFile?.name,
         });
 
-        showToast(`Budget ${year} de ${formatCurrency(totalBudget, settings.currency)} enregistrÃ© avec succÃ¨s.`, "success");
+        showToast(`Budget ${year} de ${formatCurrency(totalBudget, settings.currency)} enregistré avec succès.`, "success");
         handleClose();
     };
 
@@ -249,7 +249,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     );
 
     const categoryOptions = [
-        { value: 'MatÃ©riel IT', label: 'MatÃ©riel IT' },
+        { value: 'Matériel IT', label: 'Matériel IT' },
         { value: 'Licences Logiciel', label: 'Licences Logiciel' },
         { value: 'Cloud Infrastructure', label: 'Cloud Infrastructure' },
         { value: 'Maintenance & Services', label: 'Maintenance & Services' },
@@ -262,7 +262,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="DÃ©finir le Budget Annuel"
+            title="Définir le Budget Annuel"
             footer={mode === 'manual' ? footer : undefined}
             maxWidth="max-w-4xl" // Wider modal for table view
         >
@@ -312,9 +312,9 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
                             <div className="w-full bg-surface-container rounded-xl p-4 border border-outline-variant text-left space-y-2">
                                 <p className="text-label-medium font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargÃ©</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> DÃ©tection de l'exercice fiscal</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" /> Extraction des lignes budgÃ©taires...</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Détection de l'exercice fiscal</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
                             </div>
                         </div>
                     )}
@@ -328,8 +328,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><MaterialIcon name="auto_awesome" size={16} /></div>
                                 <div>
-                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">DonnÃ©es prÃ©-remplies par IA</p>
-                                    <p className="text-body-small text-tertiary">VÃ©rifiez les montants ci-dessous.</p>
+                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données pré-remplies par IA</p>
+                                    <p className="text-body-small text-tertiary">Vérifiez les montants ci-dessous.</p>
                                     {importMeta && (
                                         <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
                                             Confiance: {importMeta.confidence === 'high' ? 'elevee' : importMeta.confidence === 'medium' ? 'moyenne' : 'faible'}
@@ -383,7 +383,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             />
                         </div>
                         <div className="flex-1 bg-surface-container-low p-3 rounded-xl border border-outline-variant flex justify-between items-center h-[54px]">
-                            <span className="text-label-large font-bold text-on-surface-variant pl-2">Budget Global CalculÃ©</span>
+                            <span className="text-label-large font-bold text-on-surface-variant pl-2">Budget Global Calculé</span>
                             <span className="text-title-large font-black text-on-surface pr-2">{formatCurrency(totalBudget, settings.currency)}</span>
                         </div>
                     </div>
@@ -394,8 +394,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                             <table className="w-full text-body-medium text-left">
                                 <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-small tracking-widest">
                                     <tr>
-                                        <th className="px-6 py-4">CatÃ©gorie</th>
-                                        <th className="px-6 py-4 w-48 text-right">Montant AllouÃ©</th>
+                                        <th className="px-6 py-4">Catégorie</th>
+                                        <th className="px-6 py-4 w-48 text-right">Montant Alloué</th>
                                         <th className="px-6 py-4 text-center w-32">Type (IA)</th>
                                         <th className="px-6 py-4 w-16"></th>
                                     </tr>
@@ -416,7 +416,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                                 options={categoryOptions}
                                                                 value={line.category}
                                                                 onChange={(e) => updateLine(line.id, 'category', e.target.value)}
-                                                                placeholder="Choisir une catÃ©gorie..."
+                                                                placeholder="Choisir une catégorie..."
                                                                 className="mb-0 w-full border-none bg-transparent hover:bg-transparent px-0 py-0 h-auto"
                                                             />
                                                         </div>
@@ -461,7 +461,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                     {budgetLines.length === 0 && (
                                         <tr>
                                             <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant italic text-body-medium">
-                                                Aucune ligne budgÃ©taire.
+                                                Aucune ligne budgétaire.
                                             </td>
                                         </tr>
                                     )}

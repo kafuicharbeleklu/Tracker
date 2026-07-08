@@ -45,7 +45,7 @@ const classifyBudgetLine = (category: string, amount: number): 'CAPEX' | 'OPEX' 
     if (lowerCat.includes('matériel') || lowerCat.includes('hardware') || lowerCat.includes('serveur')) return 'CAPEX';
     if (lowerCat.includes('licence') || lowerCat.includes('cloud') || lowerCat.includes('maintenance') || lowerCat.includes('service')) return 'OPEX';
 
-    // Fallback basÃ© sur le montant (Investissement lourd vs Frais courants)
+    // Fallback basé sur le montant (Investissement lourd vs Frais courants)
     return amount > 5000 ? 'CAPEX' : 'OPEX';
 };
 
@@ -172,7 +172,7 @@ const FinanceManagementPage = () => {
         }
     }, [financeBudgets, selectedYear]);
 
-    // --- ANALYSE FINANCIÃˆRE ---
+    // --- ANALYSE FINANCIÈRE ---
     const stats = useMemo(() => {
         let purchase = 0;
         let current = 0;
@@ -250,7 +250,7 @@ const FinanceManagementPage = () => {
         }];
     }, [financeBudgets, selectedYear, currentBudget.status]);
 
-    // DonnÃ©es pour le graphique d'aire (Projection)
+    // Données pour le graphique d'aire (Projection)
     const projectionSteps = [
         { m: 'Jan', val: stats.current },
         { m: 'Fév', val: stats.current - stats.monthlyDep },
