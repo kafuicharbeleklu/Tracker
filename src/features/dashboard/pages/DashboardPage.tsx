@@ -552,7 +552,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         >
                                             <div className="relative">
                                                 <UserAvatar name={event.actorName} src={actor?.avatar} size="sm" />
-                                                <div className="absolute -bottom-1 -right-1 bg-surface rounded-full p-0.5 border border-outline-variant">
+                                                <div className="absolute -bottom-1 -right-1 bg-surface rounded-full p-0.5 border border-outline-variant flex items-center justify-center leading-none">
                                                     <MaterialIcon name={getHistoryEventIcon(event.type)} size={12} className="text-primary" />
                                                 </div>
                                             </div>
