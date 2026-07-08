@@ -68,6 +68,9 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 min-w-0">
                             <span className="text-body-medium font-medium text-on-surface truncate">{equipmentTitle}</span>
+                            {approval.urgency === 'high' && (
+                                <StatusBadge status="high" size="sm" className="py-0 leading-none shrink-0" />
+                            )}
                             <span className="hidden medium:inline text-label-small text-on-surface-variant truncate">
                                 {approval.equipmentCategory || 'Demande'}
                             </span>
@@ -88,6 +91,45 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     <span className="text-label-small text-on-surface-variant whitespace-nowrap shrink-0">
                         {formatDate(approval.createdAt)}
                     </span>
+
+                    {/* Actions inline en rangée dense (Approbations desktop, X14/§4.3) —
+                        mêmes SecurityGate que la carte, logique de transition inchangée */}
+                    {showActions && onApprove && onReject && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <SecurityGate
+                                onVerified={() => onReject(approval)}
+                                title={rejectLabel}
+                                description={`${rejectLabel} cette demande ?`}
+                                entityId={approval.id}
+                                trigger={
+                                    <Button
+                                        variant="outlined"
+                                        size="sm"
+                                        className="min-w-0 px-3 text-error border-error/40 hover:bg-error-container/20"
+                                        icon={<MaterialIcon name={rejectIcon} size={16} />}
+                                    >
+                                        {rejectLabel}
+                                    </Button>
+                                }
+                            />
+                            <SecurityGate
+                                onVerified={() => onApprove(approval)}
+                                title={stepDetails.btnText}
+                                description="Confirmer cette action."
+                                entityId={approval.id}
+                                trigger={
+                                    <Button
+                                        variant="tonal"
+                                        size="sm"
+                                        className="min-w-0 px-3"
+                                        icon={stepDetails.icon}
+                                    >
+                                        {stepDetails.btnText}
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         );

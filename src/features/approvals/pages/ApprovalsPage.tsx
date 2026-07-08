@@ -451,7 +451,9 @@ const ApprovalsPage = () => {
                                                             key={approval.id}
                                                             approval={approval}
                                                             stepDetails={stepDetails}
-                                                            compact={activeView === 'history'}
+                                                            // Rangées denses partout sauf « En cours » sur
+                                                            // téléphone, qui garde les cartes (§4.3, X14)
+                                                            compact={activeView === 'history' || !isCompact}
                                                             showActions={isActionable}
                                                             onApprove={handleAction}
                                                             onReject={handleReject}
