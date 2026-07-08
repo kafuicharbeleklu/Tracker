@@ -266,7 +266,7 @@ Pas de top 10 cette fois : le solde utile tient en 6 lots, classés par rapport 
 | # | Lot | Réf. | Sévérité | Effort |
 |---|---|---|---|---|
 | 1 | **X12 : solder les ≈15 instances texte** (tableau §7.3) — la règle est actée, il ne reste que l'application. **Livré 08-07** : 14 corrigées + 1 faux positif exclu (note §7.3) | 7 fichiers, §7.3 | Majeur | XS×15 ≈ S–M |
-| 2 | **CTA morts ×2** : « Voir le détail complet » (Synthèse finance) et « Voir tout » (documents de la fiche équipement) — même famille qu'INV-7 ; câbler ou retirer | `FinanceManagementPage.tsx:853`, `EquipmentDetailsPage.tsx:870` | Mineur | XS |
+| 2 | **CTA morts ×2** : « Voir le détail complet » (Synthèse finance) et « Voir tout » (documents de la fiche équipement) — même famille qu'INV-7 ; câbler ou retirer. **Livré 08-07 : retirés** — les deux étaient des affordances mortes sous des blocs déjà étiquetés DemoBadge (« Valeur par Entité » simulée, documents fictifs), aucune cible réelle à câbler | `FinanceManagementPage.tsx:853`, `EquipmentDetailsPage.tsx:870` | Mineur | XS |
 | 3 | **X6 : solder les 6 appels de date sans locale** — dont ReturnWizard qui écrit la locale du navigateur dans des notes persistées | 3 fichiers, §7.1 | Mineur | XS |
 | 4 | **X5 résiduel Synthèse** : ancrer les mois de projection sur la date courante et dé-coder « Mai » de l'IA Note (ou dériver la phrase des données) | `FinanceManagementPage.tsx:254-261, 819` | Mineur | XS–S |
 | 5 | **X4 : sémantique radiogroup sur les cartes-options** (état du retour + méthode d'amortissement) ; extraction d'un composant DS seulement si un 3ᵉ usage apparaît | `ReturnWizardPage.tsx:301-360`, `AddCategoryPage.tsx:150-240` | Mineur | S |

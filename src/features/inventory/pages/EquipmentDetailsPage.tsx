@@ -868,8 +868,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         </div>
                                     </button>
                                 </div>
-                                {/* Règle X12 : couleur par défaut du bouton outlined (sombre) */}
-                                <Button variant="outlined" className="w-full mt-4 font-bold hover:underline justify-center">Voir tout</Button>
                             </div>
                         </div>
 

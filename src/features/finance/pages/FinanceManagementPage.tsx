@@ -850,9 +850,6 @@ const FinanceManagementPage = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                        <Button variant="outlined" className="w-full mt-8 border-dashed text-on-surface-variant text-label-medium font-bold uppercase tracking-widest hover:text-primary">
-                                            Voir le détail complet
-                                        </Button>
                                     </Card>
                                 </div>
                             </section>
