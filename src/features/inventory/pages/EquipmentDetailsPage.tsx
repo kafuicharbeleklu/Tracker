@@ -647,10 +647,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                 </p>
                                             </div>
 
-                                            <div>
+                                            {/* Règle X12 : accent jaune en filet, jamais en couleur de texte */}
+                                            <div className="border-l-4 border-l-primary pl-3">
                                                 <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">VALEUR ACTUELLE</p>
                                                 <div className="flex items-end gap-3">
-                                                    <p className="text-headline-medium font-black text-primary leading-none">
+                                                    <p className="text-headline-medium font-black text-on-surface leading-none">
                                                         {formatCurrency(financialStats.currentValue, settings.currency)}
                                                     </p>
                                                     <span className="text-body-small font-bold text-on-surface-variant mb-1">
