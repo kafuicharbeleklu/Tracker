@@ -527,8 +527,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
         </div>
     ) : null;
 
-    const userDetailsTabs: Array<{ id: UserDetailsTab; label: string }> = [
-        { id: 'overview', label: 'Aperçu & Sécurité' },
+    const userDetailsTabs: Array<{ id: UserDetailsTab; label: string; shortLabel?: string }> = [
+        { id: 'overview', label: 'Aperçu & Sécurité', shortLabel: 'Aperçu' },
         { id: 'equipment', label: 'Équipements' },
     ];
 
