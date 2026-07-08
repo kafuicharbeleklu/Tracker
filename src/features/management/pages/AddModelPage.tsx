@@ -122,12 +122,12 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                 />
 
                 <div>
-                    <label className="block text-xs font-bold text-on-surface-variant mb-3 ml-1">Image du modèle</label>
+                    <label className="block text-label-medium font-bold text-on-surface-variant mb-3 ml-1">Image du modèle</label>
                     <div className="border-2 border-dashed border-outline-variant rounded-card p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low transition-all group">
                         <div className="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mb-3 text-on-surface-variant group-hover:text-primary transition-colors">
                             <MaterialIcon name="cloud_upload" size={24} />
                         </div>
-                        <p className="text-sm font-medium text-primary">Télécharger l'image</p>
+                        <p className="text-title-small font-medium text-primary">Télécharger l'image</p>
                     </div>
                 </div>
             </div>

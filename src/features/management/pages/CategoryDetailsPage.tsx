@@ -67,9 +67,9 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                                         />
                                     </div>
                                     <h3 className="font-bold text-on-surface text-title-medium text-center group-hover:text-primary transition-colors">{model.name}</h3>
-                                    <p className="text-on-surface-variant text-sm">{model.type}</p>
+                                    <p className="text-on-surface-variant text-body-medium">{model.type}</p>
                                 </div>
-                                <div className="border-t border-outline-variant/30 pt-4 flex justify-between items-center text-sm">
+                                <div className="border-t border-outline-variant/30 pt-4 flex justify-between items-center text-body-medium">
                                     <span className="text-on-surface-variant">Unités</span>
                                     <span className="font-bold text-on-surface">{model.count}</span>
                                 </div>
@@ -83,8 +83,8 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                     </div>
                 ) : (
                     <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-xs">
+                        <table className="w-full text-body-medium text-left">
+                            <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
                                 <tr>
                                     <th className="px-6 py-4">Nom</th>
                                     <th className="px-6 py-4">Asset ID</th>

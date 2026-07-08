@@ -126,7 +126,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         <div className="p-1.5 bg-surface rounded-md border border-outline-variant shadow-elevation-1 text-primary">
                             <MaterialIcon name="calendar_today" size={16} />
                         </div>
-                        <h3 className="text-sm font-black text-on-surface uppercase tracking-wide">
+                        <h3 className="text-body-medium font-black text-on-surface uppercase tracking-wide">
                             Amortissement par défaut
                         </h3>
                     </div>
@@ -218,7 +218,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
 
                 {/* Section Icône */}
                 <div>
-                    <label className="block text-sm font-bold text-on-surface ml-1 mb-3">Sélectionner une icône</label>
+                    <label className="block text-label-large font-bold text-on-surface ml-1 mb-3">Sélectionner une icône</label>
                     <div className="grid grid-cols-5 medium:grid-cols-8 gap-3">
                         {Object.entries(CATEGORY_ICONS).map(([name, component]) => (
                             <Button

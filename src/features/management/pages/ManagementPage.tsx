@@ -1,3 +1,4 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { CATEGORY_ICONS, renderCategoryIcon } from '../../../data/mockData';
@@ -49,7 +50,11 @@ interface ManagementPageProps {
     onViewChange?: (view: ViewType) => void;
 }
 
-const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onModelClick, onViewChange }) => {
+const ManagementPage: React.FC<ManagementPageProps> = ({
+    onCategoryClick,
+    onModelClick,
+    onViewChange,
+}) => {
     const { equipment, categories, models, addCategory, deleteCategory, deleteModel } = useData();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
@@ -64,7 +69,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
     const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
-    const isCompact = useMediaQuery('(max-width: 599px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
     const categoryImportInputRef = useRef<HTMLInputElement | null>(null);
 
     // Modals state
@@ -809,7 +814,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
 
                                 {filteredCategories.length > 0 ? (
                                     <>
-                                        <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 gap-3 medium:grid-cols-2 expanded:grid-cols-3 medium:gap-6">
                                             {paginatedCategories.map((cat) => (
                                                 <div
                                                     key={cat.id}
@@ -820,14 +825,14 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
                                                         }
                                                         onCategoryClick?.(cat.id);
                                                     }}
-                                                    className={`bg-surface rounded-card p-card border shadow-elevation-1 relative group transition-all duration-300 cursor-pointer overflow-hidden ${
+                                                    className={`bg-surface rounded-card p-4 medium:p-card border shadow-elevation-1 relative group transition-all duration-300 cursor-pointer overflow-hidden ${
                                                         selectionMode && selectedCategorySet.has(cat.id)
                                                             ? 'border-primary shadow-elevation-2'
                                                             : 'border-outline-variant hover:shadow-elevation-3 hover:-translate-y-1'
                                                     }`}
                                                 >
-                                                    <div className="flex justify-between items-start mb-4 relative z-10">
-                                                        <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors duration-300">
+                                                    <div className="flex justify-between items-start mb-2 medium:mb-4 relative z-10">
+                                                        <div className="w-10 h-10 medium:w-12 medium:h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors duration-300">
                                                             {renderCategoryIcon(cat, 24)}
                                                         </div>
                                                         {selectionMode ? (
@@ -861,8 +866,8 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
                                                         )}
                                                     </div>
                                                     <h3 className="text-title-medium font-bold text-on-surface mb-1">{getCategoryLabel(cat.name)}</h3>
-                                                    <p className="text-body-medium text-on-surface-variant mb-4 line-clamp-2 min-h-[2.5rem]">{cat.description || 'Aucune description'}</p>
-                                                    <div className="border-t border-outline-variant pt-4 flex gap-2">
+                                                    <p className="text-body-medium text-on-surface-variant mb-2 medium:mb-4 line-clamp-1 medium:line-clamp-2 medium:min-h-[2.5rem]">{cat.description || 'Aucune description'}</p>
+                                                    <div className="border-t border-outline-variant pt-2 medium:pt-4 flex gap-2">
                                                         <Badge variant="info" className="text-label-small">{cat.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire'}</Badge>
                                                         <span className="text-label-small font-bold text-on-surface-variant">{cat.defaultDepreciation?.years} ans</span>
                                                     </div>
@@ -888,7 +893,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
                                     </div>
                                 )}
                             </div>
-                                                ) : (
+                        ) : (
                             <div className="space-y-6">
 
                                 <div className="flex flex-col medium:flex-row medium:items-center gap-3">
@@ -1005,7 +1010,6 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
                                                     />
                                                 )}
 
-                                                {/* Image */}
                                                 <div className="shrink-0 relative w-16 h-12 bg-surface-container rounded-md overflow-hidden border border-outline-variant flex items-center justify-center">
                                                     <MaterialIcon name="image_not_supported" size={18} className="text-outline" />
                                                     <img
@@ -1020,21 +1024,17 @@ const ManagementPage: React.FC<ManagementPageProps> = ({ onCategoryClick, onMode
                                                     />
                                                 </div>
 
-                                                {/* Content */}
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-bold text-on-surface text-title-small truncate group-hover:text-primary transition-colors" title={model.name}>
                                                         {model.name}
                                                     </h4>
                                                     <div className="mt-1 flex items-center gap-2 text-body-small text-on-surface-variant min-w-0">
                                                         <span className="font-medium text-on-surface truncate">{getCategoryLabel(model.type)}</span>
-                                                        {model.brand && (
-                                                            <span className="truncate">• {model.brand}</span>
-                                                        )}
+                                                        {model.brand && <span className="truncate">• {model.brand}</span>}
                                                         <span className="ml-auto shrink-0 font-medium bg-surface-container px-1.5 py-0.5 rounded-sm text-on-surface-variant">{model.count} unités</span>
                                                     </div>
                                                 </div>
 
-                                                {/* Actions */}
                                                 <div className="flex items-center gap-2 shrink-0 ml-auto">
                                                     {!selectionMode && (
                                                         <>

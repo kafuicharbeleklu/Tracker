@@ -1,10 +1,10 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
-import { PageHeader } from '../../../components/layout/PageHeader';
+import { PageHeader, useHasMobileTopBar } from '../../../components/layout/PageHeader';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
-import { TextArea } from '../../../components/ui/TextArea';
 import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { GLOSSARY } from '../../../constants/glossary';
@@ -26,7 +26,9 @@ const LocationsPage = () => {
     const { navigate } = useAppNavigation();
     const { locationData, addLocation, renameLocation, deleteLocation, equipment, users, assignManagerToService, serviceManagers } = useData();
     const { requestConfirmation } = useConfirmation();
-    const isCompact = useMediaQuery('(max-width: 599px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
+    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
+    const hasMobileTopBar = useHasMobileTopBar();
 
     // Hierarchy Selection State
     const [selectedCountry, setSelectedCountry] = useState(locationData.countries[0] || 'France');
@@ -40,8 +42,6 @@ const LocationsPage = () => {
 
     // Form State
     const [newName, setNewName] = useState('');
-    const [newCode, setNewCode] = useState('');
-    const [newDescription, setNewDescription] = useState('');
     const [parentId, setParentId] = useState('');
     const [selectedManagerId, setSelectedManagerId] = useState(''); // NEW
 
@@ -94,12 +94,9 @@ const LocationsPage = () => {
             return country === targetCountry && (!site || site === targetSite);
         });
 
-        const locationEquipment = strictEquipment.length > 0 || strictUsers.length > 0
-            ? strictEquipment
-            : fallbackEquipment;
-        const locationUsers = strictEquipment.length > 0 || strictUsers.length > 0
-            ? strictUsers
-            : fallbackUsers;
+        const usesSiteFallback = strictEquipment.length === 0 && strictUsers.length === 0;
+        const locationEquipment = usesSiteFallback ? fallbackEquipment : strictEquipment;
+        const locationUsers = usesSiteFallback ? fallbackUsers : strictUsers;
         const functionalCount = locationEquipment.filter(
             (item) => item.status !== 'En réparation' && item.operationalStatus !== 'Inactif'
         ).length;
@@ -111,8 +108,8 @@ const LocationsPage = () => {
             equipmentCount: locationEquipment.length,
             userCount: locationUsers.length,
             isAllFunctional: functionalCount === locationEquipment.length && locationEquipment.length > 0,
-            lastAudit: '12 JAN 2026',
-            auditor: 'Alice Admin',
+            // Repli site : comptes au niveau du site quand rien n'est rattaché au service (à étiqueter à l'affichage)
+            usesSiteFallback: usesSiteFallback && (locationEquipment.length > 0 || locationUsers.length > 0),
             managerName: manager ? manager.name : 'Non assigné'
         };
     }, [selectedCountry, selectedSite, selectedService, equipment, users, serviceManagers]);
@@ -239,8 +236,6 @@ const LocationsPage = () => {
         setModalType(null);
         setTargetType(null);
         setNewName('');
-        setNewCode('');
-        setNewDescription('');
         setParentId('');
         setEditingName('');
         setSelectedManagerId('');
@@ -332,7 +327,7 @@ const LocationsPage = () => {
             onClick={onClick}
             onKeyDown={(e) => handleKeyDown(e, onClick)}
             className={cn(
-                "group relative flex min-h-11 items-center justify-between overflow-hidden rounded-xl px-4 py-2.5 pr-[5.75rem] text-sm font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "group relative flex min-h-11 items-center justify-between overflow-hidden rounded-xl px-4 py-2.5 pr-[5.75rem] text-label-large font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 isSelected
                     ? 'bg-primary-container text-on-primary-container shadow-elevation-1 border border-primary/30'
                     : 'hover:bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -345,7 +340,14 @@ const LocationsPage = () => {
                 <span className="truncate">{item}</span>
             </div>
 
-            <div className="pointer-events-none absolute right-2 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-surface/85 p-0.5 opacity-0 backdrop-blur-[1px] transition-all duration-short4 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+            <div
+                className={cn(
+                    'absolute right-2 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-surface/85 p-0.5 backdrop-blur-[1px] transition-all duration-short4',
+                    // Hover-reveal uniquement quand un vrai survol existe ; toujours visible au tactile.
+                    isHoverCapable &&
+                        'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+                )}
+            >
                 <Button
                     variant="text"
                     size="sm"
@@ -389,6 +391,8 @@ const LocationsPage = () => {
 
     return (
         <div className="flex flex-col h-full bg-surface-background">
+            {/* Enveloppe non rendue quand le PageHeader n'affiche rien (compact portrait, X11) */}
+            {!hasMobileTopBar && (
             <div className="bg-surface border-b border-outline-variant pt-page-sm medium:pt-page pb-0 px-0 sticky top-0 z-20">
                 <div className="px-page-sm medium:px-page mb-6">
                     <PageHeader
@@ -426,6 +430,7 @@ const LocationsPage = () => {
                     />
                 </div>
             </div>
+            )}
 
             <Modal
                 isOpen={Boolean(modalType)}
@@ -442,28 +447,15 @@ const LocationsPage = () => {
                             : `Renommez l'élément "${editingName}".`}
                     </p>
 
-                    <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
-                        <div className="expanded:col-span-2">
-                            <InputField
-                                label="Nom"
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
-                                icon={<MaterialIcon name="dashboard" size={18} />}
-                                variant="outlined"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <InputField
-                                label="Code (ID)"
-                                value={newCode}
-                                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                                icon={<MaterialIcon name="label" size={18} />}
-                                variant="outlined"
-                                className="uppercase font-mono"
-                            />
-                        </div>
-                    </div>
+                    {/* Champs Code/Description retirés : ils étaient collectés puis silencieusement ignorés (audit LOC-4) */}
+                    <InputField
+                        label="Nom"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        icon={<MaterialIcon name="dashboard" size={18} />}
+                        variant="outlined"
+                        required
+                    />
 
                     {targetType === 'service' && (
                         <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant">
@@ -485,13 +477,6 @@ const LocationsPage = () => {
                         </div>
                     )}
 
-                    <TextArea
-                        label="Description (Optionnel)"
-                        value={newDescription}
-                        onChange={(e) => setNewDescription(e.target.value)}
-                        rows={3}
-                        variant="outlined"
-                    />
                 </div>
             </Modal>
 
@@ -508,16 +493,16 @@ const LocationsPage = () => {
                         <Card className={cn("col-span-12 expanded:col-span-4 h-[320px] transition-all", !selectedCountry && "opacity-50 grayscale pointer-events-none")} title="Sites" actionIcon={!isCompact ? <MaterialIcon name="add" size={18} /> : undefined} onActionClick={!isCompact ? () => openCreateForm('site') : undefined}>
                             <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar max-h-[220px]">
                                 {selectedCountry ? (
-                                    currentSites.length > 0 ? currentSites.map(s => renderListItem(s, 'site', selectedSite === s, () => setSelectedSite(s))) : <div className="text-center py-10 text-on-surface-variant text-xs font-bold uppercase">Aucun site</div>
-                                ) : <div className="text-center py-10 text-on-surface-variant text-xs font-bold uppercase">Sélectionnez un pays</div>}
+                                    currentSites.length > 0 ? currentSites.map(s => renderListItem(s, 'site', selectedSite === s, () => setSelectedSite(s))) : <div className="text-center py-10 text-on-surface-variant text-label-medium font-bold uppercase">Aucun site</div>
+                                ) : <div className="text-center py-10 text-on-surface-variant text-label-medium font-bold uppercase">Sélectionnez un pays</div>}
                             </div>
                         </Card>
 
                         <Card className={cn("col-span-12 expanded:col-span-4 h-[320px] transition-all", !selectedSite && "opacity-50 grayscale pointer-events-none")} title="Services" actionIcon={!isCompact ? <MaterialIcon name="add" size={18} /> : undefined} onActionClick={!isCompact ? () => openCreateForm('service') : undefined}>
                             <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar max-h-[220px]">
                                 {selectedSite ? (
-                                    currentServices.length > 0 ? currentServices.map(s => renderListItem(s, 'service', selectedService === s, () => setSelectedService(s))) : <div className="text-center py-10 text-on-surface-variant text-xs font-bold uppercase">Aucun service</div>
-                                ) : <div className="text-center py-10 text-on-surface-variant text-xs font-bold uppercase">Sélectionnez un site</div>}
+                                    currentServices.length > 0 ? currentServices.map(s => renderListItem(s, 'service', selectedService === s, () => setSelectedService(s))) : <div className="text-center py-10 text-on-surface-variant text-label-medium font-bold uppercase">Aucun service</div>
+                                ) : <div className="text-center py-10 text-on-surface-variant text-label-medium font-bold uppercase">Sélectionnez un site</div>}
                             </div>
                         </Card>
 
@@ -527,20 +512,20 @@ const LocationsPage = () => {
                                     <div className="expanded:col-span-1 bg-surface-container-low p-card rounded-card border border-outline-variant">
                                         <span className="text-label-small font-black text-on-surface-variant uppercase tracking-[0.2em] block mb-4">Hiérarchie</span>
                                         <div className="space-y-4">
-                                            <div className="flex items-center gap-3"><MaterialIcon name="public" size={14} className="text-primary" /><span className="text-sm font-bold text-on-surface">{selectedCountry}</span></div>
+                                            <div className="flex items-center gap-3"><MaterialIcon name="public" size={14} className="text-primary" /><span className="text-label-large font-bold text-on-surface">{selectedCountry}</span></div>
                                             <div className="w-px h-4 bg-outline-variant ml-4"></div>
-                                            <div className="flex items-center gap-3"><MaterialIcon name="apartment" size={14} className="text-secondary" /><span className="text-sm font-bold text-on-surface">{selectedSite}</span></div>
+                                            <div className="flex items-center gap-3"><MaterialIcon name="apartment" size={14} className="text-secondary" /><span className="text-label-large font-bold text-on-surface">{selectedSite}</span></div>
                                             <div className="w-px h-4 bg-outline-variant ml-4"></div>
-                                            <div className="flex items-center gap-3"><MaterialIcon name="meeting_room" size={14} className="text-tertiary" /><span className="text-sm font-bold text-on-surface">{selectedService}</span></div>
+                                            <div className="flex items-center gap-3"><MaterialIcon name="meeting_room" size={14} className="text-tertiary" /><span className="text-label-large font-bold text-on-surface">{selectedService}</span></div>
                                         </div>
 
                                         <div className="mt-6 pt-4 border-t border-outline-variant">
                                             <span className="text-label-small font-black text-on-surface-variant uppercase tracking-[0.2em] block mb-2">Responsable</span>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-tertiary-container text-tertiary flex items-center justify-center font-bold text-xs">
+                                                <div className="w-6 h-6 rounded-full bg-tertiary-container text-tertiary flex items-center justify-center font-bold text-label-medium">
                                                     {stats.managerName[0]}
                                                 </div>
-                                                <span className="text-sm font-bold text-on-surface">{stats.managerName}</span>
+                                                <span className="text-label-large font-bold text-on-surface">{stats.managerName}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -548,25 +533,29 @@ const LocationsPage = () => {
                                         <div onClick={() => navigate('/inventory')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-secondary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="desktop_windows" size={16} className="text-secondary" /> {GLOSSARY.EQUIPMENT_PLURAL}</div>
                                             <div className="text-display-small font-black text-on-surface group-hover:text-secondary transition-colors">{stats.equipmentCount}</div>
-                                            <div className={cn("text-label-small font-bold mt-2 flex items-center gap-1 uppercase tracking-wider", stats.isAllFunctional ? "text-tertiary" : "text-secondary")}>
-                                                {stats.isAllFunctional ? <><MaterialIcon name="check" size={12} /> Tous fonctionnels</> : <span>Attention requise</span>}
+                                            <div className={cn("text-label-small font-bold mt-2 flex items-center gap-1 uppercase tracking-wider", stats.usesSiteFallback ? "text-on-surface-variant" : stats.isAllFunctional ? "text-tertiary" : "text-secondary")}>
+                                                {stats.usesSiteFallback
+                                                    ? <span>Au site — service non renseigné</span>
+                                                    : stats.isAllFunctional ? <><MaterialIcon name="check" size={12} /> Tous fonctionnels</> : <span>Attention requise</span>}
                                             </div>
                                         </div>
                                         <div onClick={() => navigate('/users')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-tertiary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="group" size={16} className="text-tertiary" /> {GLOSSARY.USER_PLURAL}</div>
                                             <div className="text-display-small font-black text-on-surface group-hover:text-tertiary transition-colors">{stats.userCount}</div>
-                                            <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold">Actifs rattachés</div>
+                                            <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold">
+                                                {stats.usesSiteFallback ? 'Au site — service non renseigné' : 'Actifs rattachés'}
+                                            </div>
                                         </div>
                                         <div onClick={() => navigate('/audit/details')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-primary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="info" size={16} className="text-secondary" /> Dernier Audit</div>
-                                            <div className="text-title-large font-black text-on-surface group-hover:text-primary transition-colors">{stats.lastAudit}</div>
-                                            <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold italic">Par {stats.auditor}</div>
+                                            <div className="text-title-large font-black text-on-surface group-hover:text-primary transition-colors">—</div>
+                                            <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold italic">Voir les campagnes d'audit</div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-outline text-center">
-                                    <p className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Veuillez sélectionner un service pour voir le résumé</p>
+                                    <p className="text-label-large font-bold uppercase tracking-widest text-on-surface-variant">Veuillez sélectionner un service pour voir le résumé</p>
                                 </div>
                             )}
                         </Card>

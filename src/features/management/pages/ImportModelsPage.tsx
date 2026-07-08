@@ -91,8 +91,8 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
         >
             {!previewMode ? (
                 <div className="bg-surface rounded-card p-page shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95">
-                    <h3 className="text-sm font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
-                    <p className="text-sm text-on-surface-variant mb-6">Colonnes : Name, Category, Brand.</p>
+                    <h3 className="text-label-large font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
+                    <p className="text-body-medium text-on-surface-variant mb-6">Colonnes : Name, Category, Brand.</p>
                     <FileDropzone
                         onFileSelect={processFile}
                         accept=".csv"
@@ -106,15 +106,15 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
                     <div className="bg-surface p-4 rounded-xl border border-outline-variant flex justify-between items-center">
                         <div>
                             <p className="font-bold text-on-surface">{file?.name}</p>
-                            <p className="text-xs text-on-surface-variant">{stats.valid} valides, {stats.invalid} erreurs</p>
+                            <p className="text-body-small text-on-surface-variant">{stats.valid} valides, {stats.invalid} erreurs</p>
                         </div>
                         <Button variant="outlined" size="sm" onClick={reset} className="text-error">Annuler</Button>
                     </div>
 
                     <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden">
                         <div className="overflow-x-auto max-h-[400px]">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-xs sticky top-0">
+                            <table className="w-full text-body-medium text-left">
+                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0">
                                     <tr>
                                         <th className="px-4 py-3">Statut</th>
                                         <th className="px-4 py-3">Modèle</th>
@@ -132,7 +132,7 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
                                             <td className="px-4 py-3 font-bold">{row.name || '-'}</td>
                                             <td className="px-4 py-3">{row.category || '-'}</td>
                                             <td className="px-4 py-3 text-on-surface-variant">{row.brand || '-'}</td>
-                                            <td className="px-4 py-3 text-xs text-error font-bold">{row._error}</td>
+                                            <td className="px-4 py-3 text-label-medium text-error font-bold">{row._error}</td>
                                         </tr>
                                     ))}
                                 </tbody>
