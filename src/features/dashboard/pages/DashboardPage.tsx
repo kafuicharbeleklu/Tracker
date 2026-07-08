@@ -548,7 +548,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             size="sm"
                                             key={event.id}
                                             onClick={() => setSelectedEvent(event)}
-                                            className="!w-full !text-left !flex !items-center !gap-4 !p-3 hover:!bg-surface-container-low !transition-colors !cursor-pointer group !-mx-2 !px-2 !rounded-sm !justify-start !text-on-surface"
+                                            className="!w-full !text-left !flex !items-center !gap-4 !p-3 !whitespace-normal hover:!bg-surface-container-low !transition-colors !cursor-pointer group !-mx-2 !px-2 !rounded-sm !justify-start !text-on-surface"
                                         >
                                             <div className="relative">
                                                 <UserAvatar name={event.actorName} src={actor?.avatar} size="sm" />
