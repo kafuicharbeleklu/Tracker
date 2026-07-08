@@ -67,6 +67,15 @@ Rampe **telle qu'implémentée** en Étape 1 (`--color-neutral-*`), 800 = CAT Bl
 
 > Aucune valeur ambre/jaune dans les sémantiques → zéro collision avec la marque.
 
+### 2.5 Règle X12 — le jaune n'est **jamais** une couleur de texte/glyphe sur fond clair
+
+> Source : `docs/AUDIT_UX_RESPONSIVE.md` §5 X12 (2026-07-07), ratios mesurés au rendu (`getComputedStyle`, luminance WCAG).
+
+- **Interdit** : `#FDC910` (et `text-primary` rendu jaune) comme couleur de **texte ou de glyphe porteur de sens** sur fond clair — mesuré **~1,55:1** sur blanc, échec du seuil texte (4,5:1) **et** du seuil non-texte (3:1).
+- **Permis** : le jaune comme **fond** avec texte/icône noirs — mesuré **11,2:1** (boutons remplis, onglets actifs, KPI héro).
+- **Icônes décoratives** : une icône jaune sur fond clair n'est tolérée que **doublée d'un second indice** au contraste suffisant (libellé sombre en gras, chip, fond teinté) — le jaune ne doit jamais être le seul vecteur de l'information.
+- Mise en évidence d'un élément courant dans une liste : **teinte de fond neutre + chip**, pas de titre jaune (~2:1 sur fond clair).
+
 ---
 
 ## 3. Tokens sémantiques (niveau 2) — assignations **light**

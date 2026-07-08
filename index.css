@@ -864,7 +864,11 @@ body {
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* ---- Références marque Caterpillar (Neemba — concessionnaire CAT) ---- */
+    /* ---- Références marque Caterpillar (Neemba — concessionnaire CAT) ----
+       Règle X12 (docs/DESIGN_TOKENS_SPEC.md §2.5) : le jaune n'est JAMAIS une
+       couleur de texte/glyphe sur fond clair (#FDC910 sur blanc ≈ 1,55:1).
+       Jaune = fond à texte noir (11,2:1) ; icône jaune sur clair uniquement
+       doublée d'un second indice sombre. */
     --cat-yellow: #FDC910;   /* logo Neemba / CAT machine yellow */
     --cat-black: #2E2725;    /* CAT warm black (officiel) */
     --color-anthracite: #2E2725;
