@@ -1,3 +1,4 @@
+import { MEDIA } from '../../constants/breakpoints';
 import React from 'react';
 import { cn } from '../../lib/utils';
 import IconButton from '../ui/IconButton';
@@ -24,7 +25,21 @@ interface PageHeaderProps {
 }
 
 /**
- * MD3 Page Header — sticky with surface tint background
+ * Compact portrait affiche le TopAppBar : le titre du PageHeader y est masqué.
+ * Les pages qui enveloppent le PageHeader dans leur propre bandeau sticky
+ * doivent utiliser ce hook pour ne pas rendre une enveloppe vide (X11).
+ */
+export const useHasMobileTopBar = (): boolean => {
+  const isCompact = useMediaQuery(MEDIA.compact);
+  const isLandscape = useMediaQuery(MEDIA.landscape);
+  return isCompact && !isLandscape;
+};
+
+/**
+ * SmartProcure-style page header: compact label/title block with optional actions.
+ * Contrat responsive : les actions passent sous le titre jusqu'à expanded
+ * (pas d'écrasement du titre en medium) ; en compact portrait le titre est
+ * porté par le TopAppBar et le header ne rend que les actions (ou rien).
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
@@ -35,9 +50,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   leadingIcon,
   showContentTitleOnCompact = false,
 }) => {
-  const isCompact = useMediaQuery('(max-width: 599px)');
-  const isLandscape = useMediaQuery('(orientation: landscape)');
-  const hasMobileTopBar = isCompact && !isLandscape;
+  const hasMobileTopBar = useHasMobileTopBar();
   const hideContentHeader = hasMobileTopBar && !showContentTitleOnCompact;
 
   if (hideContentHeader && !actions) {
@@ -48,14 +61,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     <div
       className={cn(
         !hideContentHeader && sticky && 'sticky top-0 z-30',
-        !hideContentHeader && 'bg-surface/95 backdrop-blur-sm',
+        !hideContentHeader && 'bg-[var(--color-app-bg)]',
         '-mx-page-sm px-page-sm medium:-mx-page medium:px-page',
-        hideContentHeader ? 'mb-4 pt-1' : '-mt-4 pt-4 medium:-mt-6 medium:pt-6 mb-6 pb-4',
+        hideContentHeader ? 'mb-4 pt-1' : '-mt-4 pt-4 medium:-mt-6 medium:pt-6 mb-5 pb-3',
         'transition-all duration-short4'
       )}
     >
       {!hideContentHeader && breadcrumb && (
-        <p className="text-label-small uppercase tracking-wider text-on-surface-variant mb-2">
+        <p className="section-label mb-2">
           {breadcrumb}
         </p>
       )}
@@ -64,7 +77,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         className={cn(
           hideContentHeader
             ? 'flex items-center justify-end flex-wrap'
-            : 'flex flex-col gap-3 medium:flex-row medium:items-start medium:justify-between'
+            : 'flex flex-col gap-3 expanded:flex-row expanded:items-start expanded:justify-between'
         )}
       >
         {!hideContentHeader && (
@@ -80,11 +93,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               />
             )}
             <div className="min-w-0">
-              <h1 className="text-headline-small medium:text-headline-medium text-on-surface mb-1 leading-tight">
+              <h1 className="page-title mb-1">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-body-medium text-on-surface-variant">
+                <p className="text-body-medium text-[var(--color-text-muted)]">
                   {subtitle}
                 </p>
               )}
@@ -98,7 +111,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               'flex items-center gap-2 medium:gap-3',
               hideContentHeader
                 ? 'w-full ml-auto justify-end max-w-full flex-wrap'
-                : 'justify-start medium:justify-end flex-wrap flex-shrink-0'
+                : 'justify-start expanded:justify-end flex-wrap flex-shrink-0'
             )}
           >
             {actions}

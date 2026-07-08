@@ -30,7 +30,7 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
   contentClassName,
 }) => {
   return (
-    <div className={cn("bg-surface px-page-sm py-6 medium:px-page border-b border-outline-variant", className)}>
+    <div className={cn("bg-surface px-page-sm py-5 medium:px-page border-b border-outline-variant", className)}>
       <Button
         variant="text"
         onClick={onBack}
@@ -42,7 +42,7 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
 
       <div
         className={cn(
-          "flex flex-col large:flex-row justify-between gap-6",
+          "flex flex-col large:flex-row justify-between gap-5",
           tabs ? "large:items-end" : "large:items-center",
           contentClassName
         )}
@@ -51,11 +51,11 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
           {leadingVisual && <div className="shrink-0">{leadingVisual}</div>}
           <div className="min-w-0">
             {pretitle && <div className="mb-2">{pretitle}</div>}
-            <h1 className="text-headline-medium medium:text-display-small font-bold text-on-surface tracking-tight break-words">
+            <h1 className="page-title break-words">
               {title}
             </h1>
             {subtitle && (
-              <div className="text-on-surface-variant text-sm mt-1">
+              <div className="text-on-surface-variant text-body-medium mt-1">
                 {subtitle}
               </div>
             )}
@@ -66,7 +66,7 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
       </div>
 
       {tabs && (
-        <div className="mt-10 -mb-6 large:-mb-6">
+        <div className="mt-5">
           {tabs}
         </div>
       )}

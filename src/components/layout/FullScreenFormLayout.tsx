@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import MaterialIcon from '../ui/MaterialIcon';
 import Button from '../ui/Button';
 import { FullScreenLayout } from './FullScreenLayout';
@@ -24,11 +24,20 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
   isSaving = false,
   submitButtonLocation = 'footer',
 }) => {
+  const formId = useId().replace(/:/g, '');
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isSaving) {
+      onSave();
+    }
+  };
 
   const SaveButton = ({ className, variant = 'filled' }: { className?: string, variant?: 'filled' | 'text' | 'tonal' }) => (
     <Button
+      type="submit"
+      form={formId}
       variant={variant}
-      onClick={onSave}
       icon={submitButtonLocation === 'footer' ? <MaterialIcon name="save" size={18} /> : <MaterialIcon name="check" size={18} />}
       disabled={isSaving}
       className={className}
@@ -57,9 +66,9 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
       headerActions={headerActions}
       footerActions={actions || defaultFooterActions}
     >
-      <div className="space-y-6">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
         {children}
-      </div>
+      </form>
     </FullScreenLayout>
   );
 };

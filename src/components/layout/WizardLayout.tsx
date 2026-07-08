@@ -1,3 +1,4 @@
+import { MEDIA } from '../../constants/breakpoints';
 import React from 'react';
 import MaterialIcon from '../ui/MaterialIcon';
 import { FullScreenLayout } from './FullScreenLayout';
@@ -28,7 +29,39 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   children,
   actions,
 }) => {
-  const isCompactLandscape = useMediaQuery('(max-width: 839px) and (orientation: landscape)');
+  const isCompactLandscape = useMediaQuery(MEDIA.belowExpandedLandscape);
+  const isCompact = useMediaQuery(MEDIA.compact);
+  const isLandscape = useMediaQuery(MEDIA.landscape);
+  const isCompactPortrait = isCompact && !isLandscape;
+
+  const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep));
+  const currentTitle = steps[currentIndex]?.title ?? '';
+
+  // Téléphone portrait : le stepper complet déborde du viewport — variante
+  // « Étape N sur M » + barre de progression (audit W-2).
+  const compactStepsIndicator = (
+    <div className="py-1">
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <span className="text-label-large text-on-surface truncate">{currentTitle}</span>
+        <span className="text-label-small text-on-surface-variant shrink-0">
+          Étape {currentIndex + 1} sur {steps.length}
+        </span>
+      </div>
+      <div
+        className="h-1.5 rounded-full bg-surface-container-highest overflow-hidden"
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={steps.length}
+        aria-valuenow={currentIndex + 1}
+        aria-label="Progression de l'assistant"
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-medium2 ease-emphasized"
+          style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
 
   const stepsIndicator = (
     <div className={cn(isCompactLandscape ? 'py-0.5' : 'py-1')}>
@@ -44,8 +77,8 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               <React.Fragment key={step.id}>
                 <li
                   className={cn(
-                    'flex shrink-0 flex-col items-center text-center',
-                    isCompactLandscape ? 'w-6' : 'w-20'
+                    'flex flex-col items-center text-center',
+                    isCompactLandscape ? 'w-6 shrink-0' : 'min-w-10 flex-1'
                   )}
                   aria-current={isCurrent ? 'step' : undefined}
                 >
@@ -105,7 +138,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       title={title}
       onClose={onClose}
       onBack={onBack}
-      headerContent={stepsIndicator}
+      headerContent={isCompactPortrait ? compactStepsIndicator : stepsIndicator}
       footerActions={actions}
     >
       {children}
