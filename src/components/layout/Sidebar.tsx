@@ -21,7 +21,6 @@ interface SidebarProps {
     isModalMode?: boolean;
     isMobileOpen?: boolean;
     closeMobileMenu?: () => void;
-    hidePrimaryShortcuts?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -33,8 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     className,
     isModalMode = true,
     isMobileOpen = false,
-    closeMobileMenu,
-    hidePrimaryShortcuts = false
+    closeMobileMenu
 }) => {
     const { currentUser } = useAuth();
     const { permissions } = useAccessControl();
@@ -47,7 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (closeMobileMenu) closeMobileMenu();
     };
     const showModalDrawer = isModalMode && isMobileOpen;
-    const showPrimaryDrawerItems = !hidePrimaryShortcuts;
 
     const role = currentUser?.role;
 
@@ -268,7 +265,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     >
 
-                        {showPrimaryDrawerItems && permissions.canViewInventory && (
+                        {permissions.canViewInventory && (
                             <>
                                 <SidebarItem
                                     isCollapsed={isCollapsed && !isMobileOpen}
@@ -287,7 +284,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </>
                         )}
 
-                        {showPrimaryDrawerItems && permissions.canViewUsers && (
+                        {permissions.canViewUsers && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.users.icon}
@@ -297,7 +294,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         )}
 
-                        {showPrimaryDrawerItems && permissions.canViewApprovals && (
+                        {permissions.canViewApprovals && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.approvals.icon}

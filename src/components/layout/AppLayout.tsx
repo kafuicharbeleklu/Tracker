@@ -363,7 +363,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 isModalMode={!isExpandedUp}
                 isMobileOpen={isMobileMenuOpen}
                 closeMobileMenu={() => setIsMobileMenuOpen(false)}
-                hidePrimaryShortcuts={usesBottomNavShortcuts}
             />
 
             {/* MD3 Navigation Rail: medium + compact landscape */}
