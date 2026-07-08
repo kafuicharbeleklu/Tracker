@@ -179,8 +179,8 @@ const ReportsPage = () => {
                             </Button>
                             <Button
                                 onClick={() => handleExportPDF(report.title, report.id)}
-                                variant="outlined"
-                                className="flex-1 text-primary hover:text-primary-dark hover:bg-primary-container rounded-lg border-transparent"
+                                variant="filled"
+                                className="flex-1 rounded-lg"
                             >
                                 Exporter en PDF
                             </Button>
