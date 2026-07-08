@@ -196,7 +196,7 @@ const NewRequestPage = () => {
                     />
 
                     <div className="p-4 bg-primary-container/40 border border-primary/10 rounded-lg">
-                        <p className="text-sm text-on-surface">
+                        <p className="text-body-medium text-on-surface">
                             📌 Demande pour <strong>{selectedBeneficiary?.name}</strong>.
                             {beneficiaryManager && beneficiaryManager.id !== currentUser?.id
                                 ? <span> Elle sera validée par <strong>{beneficiaryManager.name}</strong>.</span>

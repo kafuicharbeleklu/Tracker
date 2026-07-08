@@ -1,3 +1,4 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import Pagination from '../../../components/ui/Pagination';
@@ -46,7 +47,7 @@ const ApprovalsPage = () => {
     const { users, approvals, updateApproval } = useData();
     const { navigate } = useAppNavigation();
     const { showToast } = useToast();
-    const isCompact = useMediaQuery('(max-width: 599px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
 
     const userAvatarById = useMemo(() => {
         return new Map(users.map((user) => [user.id, user.avatar]));
@@ -134,17 +135,12 @@ const ApprovalsPage = () => {
         return hasLegacy && hasModern;
     }, [activeView, filteredList]);
 
+    // Bandeau affiché uniquement en cas de coexistence réelle des deux parcours,
+    // avec un message orienté utilisateur (pas de jargon de workflow).
     const workflowContextMessage = useMemo(() => {
-        if (activeView !== 'active') return '';
-        if (hasMixedWorkflowFamilies) {
-            return 'Deux workflows coexistent: Standard et Parcours précédent. Les demandes sont séparées par section.';
-        }
-        const hasLegacyOnly = filteredList.some((item) => isLegacyApprovalWorkflow(item.status));
-        if (hasLegacyOnly) {
-            return 'Cette vue utilise le parcours précédent.';
-        }
-        return 'Cette vue utilise le workflow standard.';
-    }, [activeView, filteredList, hasMixedWorkflowFamilies]);
+        if (activeView !== 'active' || !hasMixedWorkflowFamilies) return '';
+        return 'Certaines demandes suivent un ancien parcours de validation : elles sont regroupées dans une section distincte ci-dessous.';
+    }, [activeView, hasMixedWorkflowFamilies]);
 
     const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
     const paginatedList = filteredList.slice(
@@ -425,7 +421,7 @@ const ApprovalsPage = () => {
                                 {filteredList.length} demande{filteredList.length > 1 ? 's' : ''}
                             </p>
                         )}
-                        {activeView === 'active' && (
+                        {activeView === 'active' && workflowContextMessage && (
                             <div className="-mt-2 rounded-md border border-secondary/30 bg-secondary-container/30 px-3 py-2 text-body-small text-on-secondary-container flex items-start gap-2">
                                 <MaterialIcon name="info" size={16} className="shrink-0 mt-0.5" />
                                 <p>{workflowContextMessage}</p>

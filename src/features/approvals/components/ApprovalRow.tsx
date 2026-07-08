@@ -1,23 +1,13 @@
 import React from 'react';
 import { Approval } from '../../../types';
 import { cn } from '../../../lib/utils';
+import { formatDate } from '../../../lib/financial';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Button from '../../../components/ui/Button';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
 import SecurityGate from '../../../components/security/SecurityGate';
-
-const CATEGORY_ICON_MAP: Record<string, string> = {
-    Laptop: 'laptop_mac',
-    Monitor: 'monitor',
-    Keyboard: 'keyboard',
-    Mouse: 'mouse',
-    Headphones: 'headphones',
-    Smartphone: 'smartphone',
-    Tablet: 'tablet_mac',
-    Printer: 'print',
-    Server: 'dns',
-};
+import { getCategoryIcon } from '../../../constants/categoryIcons';
 
 interface ApprovalRowProps {
     approval: Approval;
@@ -51,7 +41,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
 }) => {
     const [imageError, setImageError] = React.useState(false);
     const isDelegated = approval.beneficiaryId !== approval.requesterId;
-    const fallbackIcon = CATEGORY_ICON_MAP[approval.equipmentCategory || ''] || 'inventory_2';
+    const fallbackIcon = getCategoryIcon(approval.equipmentCategory);
     const equipmentTitle = approval.equipmentName || approval.equipmentModel || approval.equipmentCategory;
     const rejectLabel = stepDetails.rejectText || 'Refuser';
     const rejectIcon = rejectLabel === 'Renvoyer' ? 'reply' : 'block';
@@ -96,7 +86,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     </div>
 
                     <span className="text-label-small text-on-surface-variant whitespace-nowrap shrink-0">
-                        {new Date(approval.createdAt).toLocaleDateString('fr-FR')}
+                        {formatDate(approval.createdAt)}
                     </span>
                 </div>
             </div>
@@ -161,7 +151,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                         </div>
 
                         <span className="text-label-small text-on-surface-variant shrink-0">
-                            {new Date(approval.createdAt).toLocaleDateString()}
+                            {formatDate(approval.createdAt)}
                         </span>
                     </div>
 
