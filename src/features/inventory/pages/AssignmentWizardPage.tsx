@@ -10,16 +10,17 @@ import Button from '../../../components/ui/Button';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Badge from '../../../components/ui/Badge';
-import { FacialRecognitionScan } from '../../../components/security/FacialRecognitionScan';
 import { cn } from '../../../lib/utils';
+import { formatDate } from '../../../lib/financial';
+import DemoBadge from '../../../components/ui/DemoBadge';
 import { EntityRow } from '../../../components/ui/EntityRow';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
 import InputField from '../../../components/ui/InputField';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import IconButton from '../../../components/ui/IconButton';
 import { EmptyState } from '../../../components/ui/EmptyState';
-
-const ITEMS_PER_PAGE = 5;
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 
 type ValidationMethod = 'fingerprint' | 'pin' | 'face' | 'signature';
 type WizardContextMode = 'generic' | 'fromEquipment' | 'fromUser';
@@ -122,6 +123,11 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
         };
     }, []);
 
+    const isCompactViewport = useMediaQuery(MEDIA.compact);
+    const isMediumViewport = useMediaQuery(MEDIA.medium);
+    // Taille de page selon le viewport (5 tél. / 8 tablette / 12 desktop) — audit W-4
+    const itemsPerPage = isCompactViewport ? 5 : isMediumViewport ? 8 : 12;
+
     const filteredEquipment = equipment
         .filter(e => e.status === 'Disponible')
         .filter(e =>
@@ -130,16 +136,18 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
             e.type.toLowerCase().includes(equipmentSearch.toLowerCase())
         );
 
-    const totalEquipmentPages = Math.ceil(filteredEquipment.length / ITEMS_PER_PAGE);
-    const paginatedEquipment = filteredEquipment.slice((equipmentPage - 1) * ITEMS_PER_PAGE, equipmentPage * ITEMS_PER_PAGE);
+    const totalEquipmentPages = Math.ceil(filteredEquipment.length / itemsPerPage);
+    const safeEquipmentPage = Math.min(equipmentPage, Math.max(1, totalEquipmentPages));
+    const paginatedEquipment = filteredEquipment.slice((safeEquipmentPage - 1) * itemsPerPage, safeEquipmentPage * itemsPerPage);
 
     const filteredUsers = users.filter(u =>
         u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
         u.department.toLowerCase().includes(userSearch.toLowerCase())
     );
 
-    const totalUserPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
-    const paginatedUsers = filteredUsers.slice((userPage - 1) * ITEMS_PER_PAGE, userPage * ITEMS_PER_PAGE);
+    const totalUserPages = Math.ceil(filteredUsers.length / itemsPerPage);
+    const safeUserPage = Math.min(userPage, Math.max(1, totalUserPages));
+    const paginatedUsers = filteredUsers.slice((safeUserPage - 1) * itemsPerPage, safeUserPage * itemsPerPage);
 
     const handleNext = () => {
         if (!isLastStep) {
@@ -236,7 +244,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                     equipmentName: selectedEquipment.name,
                     equipmentType: selectedEquipment.type,
                     requestType: 'Attribution',
-                    requestDate: new Date().toLocaleDateString(),
+                    requestDate: formatDate(),
                     image: selectedEquipment.image,
                     assignedEquipmentId: selectedEquipment.id,
                     assignedEquipmentName: selectedEquipment.name
@@ -372,11 +380,11 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                 image={item.image}
                                 title={item.name}
                                 subtitle={
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-xs border border-outline-variant text-label-small">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <span className="shrink-0 font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-xs border border-outline-variant text-label-small">
                                             {item.assetId}
                                         </span>
-                                        <span className="text-on-surface-variant">• {item.type}</span>
+                                        <span className="min-w-0 truncate text-on-surface-variant">• {item.type}</span>
                                     </div>
                                 }
                                 status={<StatusBadge status={item.status} size="sm" />}
@@ -394,7 +402,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         </div>
                     )}
                     </div>
-                    {filteredEquipment.length > 0 && <Pagination currentPage={equipmentPage} totalPages={totalEquipmentPages} onPageChange={setEquipmentPage} className="mt-6" />}
+                    {filteredEquipment.length > 0 && <Pagination currentPage={safeEquipmentPage} totalPages={totalEquipmentPages} onPageChange={setEquipmentPage} className="mt-6" />}
                 </WizardStep>
             )}
 
@@ -443,7 +451,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         </div>
                     )}
                     </div>
-                    {filteredUsers.length > 0 && <Pagination currentPage={userPage} totalPages={totalUserPages} onPageChange={setUserPage} className="mt-6" />}
+                    {filteredUsers.length > 0 && <Pagination currentPage={safeUserPage} totalPages={totalUserPages} onPageChange={setUserPage} className="mt-6" />}
                 </WizardStep>
             )}
 
@@ -451,23 +459,22 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                 <WizardStep>
                     <div className="min-h-[450px] flex flex-col items-center justify-center">
                         <div className="w-full max-w-2xl mb-6 rounded-md border border-outline-variant bg-surface-container-low p-4">
-                            <p className="text-title-medium text-on-surface">Validation d'identité administrateur</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-title-medium text-on-surface">Validation d'identité administrateur</p>
+                                <DemoBadge
+                                    label="Simulation"
+                                    className="ml-auto"
+                                    title="Étape de démonstration — aucune vérification biométrique ou PIN réelle n'est effectuée"
+                                />
+                            </div>
                             <p className="text-body-small text-on-surface-variant mt-1">
-                                Choisissez une méthode de verification pour confirmer cette action sensible.
+                                Choisissez une méthode de vérification pour confirmer cette action sensible.
                             </p>
                         </div>
 
                         {!validationMethod && !isValidated && (
                             <div className="grid grid-cols-1 medium:grid-cols-2 gap-4 w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {[
-                                    {
-                                        key: 'face',
-                                        icon: 'face',
-                                        title: 'Face ID',
-                                        description: 'Biométrie faciale',
-                                        iconClass: 'text-primary',
-                                        action: () => setValidationMethod('face')
-                                    },
                                     {
                                         key: 'signature',
                                         icon: 'edit',
@@ -512,13 +519,6 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                     </Button>
                                 ))}
                             </div>
-                        )}
-
-                        {validationMethod === 'face' && (
-                            <FacialRecognitionScan
-                                onSuccess={() => handleValidationSuccess('face')}
-                                onCancel={() => setValidationMethod(null)}
-                            />
                         )}
 
                         {validationMethod === 'signature' && (
@@ -647,7 +647,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                 <div className="grid grid-cols-1 medium:grid-cols-3 gap-3 mt-4">
                                     <div className="bg-surface-container-low rounded-lg border border-outline-variant p-3">
                                         <p className="text-label-small text-on-surface-variant">Date d'effet</p>
-                                        <p className="text-label-large text-on-surface mt-1">{new Date().toLocaleDateString()}</p>
+                                        <p className="text-label-large text-on-surface mt-1">{formatDate()}</p>
                                     </div>
                                     <div className="bg-surface-container-low rounded-lg border border-outline-variant p-3">
                                         <p className="text-label-small text-on-surface-variant">Site</p>
@@ -682,14 +682,16 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                             variant="outlined"
                                             onClick={() => setIsImmediateHandover(true)}
                                             className={cn(
-                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start",
+                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start !whitespace-normal",
                                                 isImmediateHandover
                                                     ? 'border-primary !bg-primary/5 shadow-elevation-1'
                                                     : 'border-outline-variant !bg-surface hover:!border-outline'
                                             )}
                                         >
-                                            <span className="block text-label-large text-on-surface">Remise immédiate</span>
-                                            <span className="block text-body-small text-on-surface-variant mt-1">Signature capturée maintenant. Statut final: Attribué.</span>
+                                            <span className="flex min-w-0 flex-col">
+                                                <span className="text-label-large text-on-surface">Remise immédiate</span>
+                                                <span className="text-body-small text-on-surface-variant mt-1">Signature capturée maintenant. Statut final: Attribué.</span>
+                                            </span>
                                         </Button>
 
                                         <Button
@@ -697,15 +699,17 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                             variant="outlined"
                                             onClick={() => setIsImmediateHandover(false)}
                                             className={cn(
-                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start",
+                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start !whitespace-normal",
                                                 !isImmediateHandover
                                                     ? 'border-secondary !bg-secondary-container/30 shadow-elevation-1'
                                                     : 'border-outline-variant !bg-surface hover:!border-outline'
                                             )}
                                         >
-                                            <span className="block text-label-large text-on-surface">Envoi différé</span>
-                                            <span className="block text-body-small text-on-surface-variant mt-1">
-                                                {selectedUser.managerId ? 'Validation Manager puis utilisateur.' : 'Confirmation utilisateur après envoi.'}
+                                            <span className="flex min-w-0 flex-col">
+                                                <span className="text-label-large text-on-surface">Envoi différé</span>
+                                                <span className="text-body-small text-on-surface-variant mt-1">
+                                                    {selectedUser.managerId ? 'Validation Manager puis utilisateur.' : 'Confirmation utilisateur après envoi.'}
+                                                </span>
                                             </span>
                                         </Button>
                                     </div>

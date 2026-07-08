@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react';
+import { MEDIA } from '../../../constants/breakpoints';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useData } from '../../../context/DataContext';
 import Badge from '../../../components/ui/Badge';
@@ -13,6 +14,7 @@ import { DetailHeader } from '../../../components/layout/DetailHeader';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
+import DemoBadge from '../../../components/ui/DemoBadge';
 import {
     getHistoryEventIcon,
     isEquipmentMovementEvent,
@@ -47,8 +49,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     }, [item]);
 
     const [isScrolled, setIsScrolled] = useState(false);
+    const [heroImageFailed, setHeroImageFailed] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const isCompactLayout = useMediaQuery('(max-width: 839px)');
+
+    useEffect(() => {
+        setHeroImageFailed(false);
+    }, [equipmentId]);
+    const isCompactLayout = useMediaQuery(MEDIA.belowExpanded);
 
     const equipmentMovementItems = useMemo<MovementTimelineItem[]>(() => {
         if (!item) return [];
@@ -422,13 +429,18 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             )}
                             leadingVisual={(
                                 <div className="w-28 h-28 medium:w-40 medium:h-40 bg-surface-container-low rounded-md flex items-center justify-center border border-outline-variant p-4">
-                                    <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        loading="lazy"
-                                        decoding="async"
-                                        className="w-full h-full object-contain mix-blend-multiply"
-                                    />
+                                    {item.image && !heroImageFailed ? (
+                                        <img
+                                            src={item.image}
+                                            alt={item.name}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="w-full h-full object-contain mix-blend-multiply"
+                                            onError={() => setHeroImageFailed(true)}
+                                        />
+                                    ) : (
+                                        <MaterialIcon name="inventory_2" size={48} className="text-outline" />
+                                    )}
                                 </div>
                             )}
                             actions={(
@@ -591,6 +603,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <div className="bg-surface p-card rounded-md shadow-elevation-1 border border-outline-variant">
                                     <div className="flex items-center gap-3 text-on-surface-variant mb-2 text-label-small uppercase tracking-wider">
                                         <MaterialIcon name="monitor_heart" size={16} /> Santé
+                                        {item.status !== 'En réparation' && <DemoBadge className="ml-auto" />}
                                     </div>
                                     <div className={`text-headline-small font-bold ${item.status === 'En réparation' ? 'text-primary' : 'text-tertiary'}`}>
                                         {item.status === 'En réparation' ? 'Maintenance' : '100%'}
@@ -609,6 +622,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <div className="bg-surface p-card rounded-md shadow-elevation-1 border border-outline-variant">
                                     <div className="flex items-center gap-3 text-on-surface-variant mb-2 text-label-small uppercase tracking-wider">
                                         <MaterialIcon name="settings" size={16} /> Maintenance
+                                        <DemoBadge className="ml-auto" />
                                     </div>
                                     <div className="text-headline-small font-bold text-on-surface">A jour</div>
                                     <div className="text-label-small text-on-surface-variant mt-1">Dernier patch: Hier</div>
@@ -818,11 +832,16 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
                             {/* Documents */}
                             <div className="bg-surface rounded-md shadow-elevation-1 border border-outline-variant p-card">
-                                <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest mb-4">DOCUMENTS</h3>
+                                <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    DOCUMENTS
+                                    <DemoBadge className="ml-auto" title="Documents fictifs de démonstration — aucune GED n'est connectée" />
+                                </h3>
                                 <div className="space-y-3">
-                                    <div
+                                    <button
+                                        type="button"
                                         onClick={() => handleDownload('Facture_Achat.pdf')}
-                                        className="flex items-center gap-3 p-3 rounded-md hover:bg-surface-container-low cursor-pointer transition-colors duration-short4 border border-transparent hover:border-outline-variant"
+                                        className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-surface-container-low cursor-pointer transition-colors duration-short4 border border-transparent hover:border-outline-variant text-left"
+                                        aria-label="Télécharger Facture_Achat.pdf"
                                     >
                                         <div className="w-10 h-10 bg-error-container text-on-error-container rounded-sm flex items-center justify-center">
                                             <MaterialIcon name="description" size={20} />
@@ -831,10 +850,12 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             <div className="text-body-small font-bold text-on-surface truncate">Facture_Achat.pdf</div>
                                             <div className="text-label-small text-on-surface-variant">1.2 MB</div>
                                         </div>
-                                    </div>
-                                    <div
+                                    </button>
+                                    <button
+                                        type="button"
                                         onClick={() => handleDownload('Contrat_Garantie.pdf')}
-                                        className="flex items-center gap-3 p-3 rounded-md hover:bg-surface-container-low cursor-pointer transition-colors duration-short4 border border-transparent hover:border-outline-variant"
+                                        className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-surface-container-low cursor-pointer transition-colors duration-short4 border border-transparent hover:border-outline-variant text-left"
+                                        aria-label="Télécharger Contrat_Garantie.pdf"
                                     >
                                         <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-sm flex items-center justify-center">
                                             <MaterialIcon name="description" size={20} />
@@ -843,7 +864,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             <div className="text-body-small font-bold text-on-surface truncate">Contrat_Garantie.pdf</div>
                                             <div className="text-label-small text-on-surface-variant">850 KB</div>
                                         </div>
-                                    </div>
+                                    </button>
                                 </div>
                                 <Button variant="outlined" className="w-full mt-4 text-primary font-bold hover:underline justify-center">Voir tout</Button>
                             </div>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { MEDIA } from '../../../constants/breakpoints';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useData } from '../../../context/DataContext';
 import { ViewType } from '../../../types';
@@ -25,6 +26,7 @@ import { buildCsvLine } from '../../../lib/csv';
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'inventory_search';
 const STORAGE_KEY_STATUS = 'inventory_status';
+const INVENTORY_FILTER_PANEL_ID = 'inventory-filter-panel';
 
 interface InventoryPageProps {
     onViewChange: (view: ViewType) => void;
@@ -38,7 +40,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
     const { filterEquipment, permissions } = useAccessControl();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
-    const isCompact = useMediaQuery('(max-width: 599px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
 
     const accessibleEquipment = useMemo(() => filterEquipment(equipment, users), [equipment, users, filterEquipment]);
 
@@ -47,6 +49,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
     const [showFilters, setShowFilters] = useState(() => Boolean(initialStatus || sessionStorage.getItem(STORAGE_KEY_STATUS)));
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
+    const filterPanelRef = useRef<HTMLDivElement>(null);
 
     const debouncedSearch = useDebounce(searchQuery, 300);
     const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +71,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
     useEffect(() => {
         setCurrentPage(1);
     }, [debouncedSearch, statusFilter]);
+
+    useEffect(() => {
+        if (!showFilters) return;
+        const focusFirstFilterControl = () => {
+            const firstFocusable = filterPanelRef.current?.querySelector<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+            );
+            firstFocusable?.focus();
+        };
+        const timeoutId = window.setTimeout(focusFirstFilterControl, 0);
+        return () => window.clearTimeout(timeoutId);
+    }, [showFilters]);
 
     const filteredEquipment = useMemo(() => {
         return accessibleEquipment.filter(item => {
@@ -297,6 +312,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         statusFilter ? 'Statut: ' + statusFilter : null,
         searchQuery ? 'Recherche: "' + searchQuery + '"' : null,
     ].filter(Boolean).join(' • ');
+    const resetFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('');
+    };
     return (
         <PageContainer>
             <PageHeader
@@ -315,6 +334,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 onSearchChange={setSearchQuery}
                                 onFilterClick={() => setShowFilters((prev) => !prev)}
                                 filterActive={showFilters}
+                                filterPanelId={INVENTORY_FILTER_PANEL_ID}
                                 placeholder="Rechercher..."
                             />
                         </div>
@@ -325,6 +345,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         onSearchChange={setSearchQuery}
                         onFilterClick={() => setShowFilters((prev) => !prev)}
                         filterActive={showFilters}
+                        filterPanelId={INVENTORY_FILTER_PANEL_ID}
                         resultCount={filteredEquipment.length}
                         placeholder="Rechercher..."
                     />
@@ -349,7 +370,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 )}
 
                 {showFilters && (
-                    <div className="flex flex-col medium:flex-row gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-short4">
+                    <div
+                        id={INVENTORY_FILTER_PANEL_ID}
+                        ref={filterPanelRef}
+                        className="flex flex-col medium:flex-row gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-short4"
+                        role="region"
+                        aria-label="Filtres inventaire"
+                    >
                         <SelectFilter
                             value={statusFilter}
                             onChange={setStatusFilter}
@@ -362,10 +389,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 variant="outlined"
                                 icon={<MaterialIcon name="restart_alt" size={16} />}
                                 className="w-full medium:w-auto"
-                                onClick={() => {
-                                    setSearchQuery('');
-                                    setStatusFilter('');
-                                }}
+                                onClick={resetFilters}
                             >
                                 Réinitialiser les filtres
                             </Button>
@@ -463,7 +487,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                     </div>
                                 }
                                 status={(
-                                    <div className="flex w-[164px] items-center justify-end pr-1">
+                                    <div className="flex medium:w-[164px] items-center justify-end pr-1">
                                         <StatusBadge
                                             status={getDisplayedEquipmentStatus({
                                                 status: item.status,
@@ -527,11 +551,21 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 icon="inventory_2"
                                 title={accessibleEquipment.length === 0 ? "Aucun équipement" : "Aucun résultat"}
                                 description={accessibleEquipment.length === 0 ? "Commencez par ajouter votre premier équipement." : "Ajustez vos filtres de recherche."}
-                                action={accessibleEquipment.length === 0 && permissions.canManageInventory && (
-                                    <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_equipment')}>
-                                        Ajouter un équipement
-                                    </Button>
-                                )}
+                                action={
+                                    accessibleEquipment.length === 0 && permissions.canManageInventory ? (
+                                        <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_equipment')}>
+                                            Ajouter un équipement
+                                        </Button>
+                                    ) : hasActiveFilters ? (
+                                        <Button
+                                            variant="outlined"
+                                            icon={<MaterialIcon name="restart_alt" size={18} />}
+                                            onClick={resetFilters}
+                                        >
+                                            Réinitialiser les filtres
+                                        </Button>
+                                    ) : undefined
+                                }
                             />
                         </div>
                     )}
@@ -551,6 +585,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                             onSelect: () => setSelectionMode((prev) => !prev),
                         },
                         ...(permissions.canManageInventory ? [
+                            {
+                                id: 'scan-equipment-qr',
+                                label: 'Scanner QR machine',
+                                icon: 'qr_code_scanner',
+                                variant: 'outlined' as const,
+                                onSelect: () => onViewChange('audit_details'),
+                            },
                             {
                                 id: 'add-equipment',
                                 label: 'Ajouter un équipement',

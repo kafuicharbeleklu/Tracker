@@ -7,7 +7,6 @@ import Pagination from '../../../components/ui/Pagination';
 import { WizardLayout, WizardStep } from '../../../components/layout/WizardLayout';
 import Button from '../../../components/ui/Button';
 import StatusBadge from '../../../components/ui/StatusBadge';
-import { FacialRecognitionScan } from '../../../components/security/FacialRecognitionScan';
 import { TextArea } from '../../../components/ui/TextArea';
 import InputField from '../../../components/ui/InputField';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
@@ -15,6 +14,7 @@ import IconButton from '../../../components/ui/IconButton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import Chip from '../../../components/ui/Chip';
 import { cn } from '../../../lib/utils';
+import DemoBadge from '../../../components/ui/DemoBadge';
 import { EntityRow } from '../../../components/ui/EntityRow';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { getEquipmentUpdatesForReturnWorkflow } from '../../../lib/businessRules';
@@ -158,10 +158,6 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
         }
     };
 
-    const handleFaceSuccess = () => {
-        completeValidation('face');
-    };
-
     const handleEquipmentSelect = (item: Equipment) => {
         setSelectedEquipment(item);
         setStep(2);
@@ -259,11 +255,11 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                 image={item.image}
                                 title={item.name}
                                 subtitle={
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-xs border border-outline-variant text-label-small">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <span className="shrink-0 font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-xs border border-outline-variant text-label-small">
                                             {item.assetId}
                                         </span>
-                                        <span className="text-on-surface-variant text-label-small">
+                                        <span className="min-w-0 truncate text-on-surface-variant text-label-small">
                                             {item.user ? `• ${item.user.name}` : ''}
                                         </span>
                                     </div>
@@ -480,23 +476,22 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                 <WizardStep>
                     <div className="min-h-[450px] flex flex-col items-center justify-center">
                         <div className="w-full max-w-2xl mb-6 rounded-md border border-outline-variant bg-surface-container-low p-4">
-                            <p className="text-title-medium text-on-surface">Validation d'identité administrateur</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-title-medium text-on-surface">Validation d'identité administrateur</p>
+                                <DemoBadge
+                                    label="Simulation"
+                                    className="ml-auto"
+                                    title="Étape de démonstration — aucune vérification biométrique ou PIN réelle n'est effectuée"
+                                />
+                            </div>
                             <p className="text-body-small text-on-surface-variant mt-1">
-                                Vérifiez l'identité avant de confirmer le retour du materiel.
+                                Vérifiez l'identité avant de confirmer le retour du matériel.
                             </p>
                         </div>
 
                         {!validationMethod && !isValidated && (
                             <div className="grid grid-cols-1 medium:grid-cols-2 gap-4 w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 {[
-                                    {
-                                        key: 'face',
-                                        icon: 'face',
-                                        title: 'Face ID',
-                                        description: 'Biométrie faciale',
-                                        iconClass: 'text-primary',
-                                        action: () => setValidationMethod('face')
-                                    },
                                     {
                                         key: 'signature',
                                         icon: 'edit',
@@ -541,13 +536,6 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                     </Button>
                                 ))}
                             </div>
-                        )}
-
-                        {validationMethod === 'face' && (
-                            <FacialRecognitionScan
-                                onSuccess={handleFaceSuccess}
-                                onCancel={() => setValidationMethod(null)}
-                            />
                         )}
 
                         {validationMethod === 'signature' && (

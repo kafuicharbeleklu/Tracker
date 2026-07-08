@@ -6,6 +6,7 @@ import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
 
 interface ImportEquipmentPageProps {
     onCancel: () => void;
@@ -54,10 +55,10 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const headers = parseCsvLine(lines[0], ',');
 
             const data = lines.slice(1).map((line, index) => {
-                const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const values = parseCsvLine(line, ',');
                 const row: ParsedEquipmentRow = {
                     _id: index,
                     _status: 'valid',
@@ -97,6 +98,25 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
         };
     }, [parsedData]);
 
+    const handleDownloadTemplate = () => {
+        // Delimiter ',' to stay re-importable by parseFile, which splits on commas.
+        const csvContent = [
+            buildCsvLine(['Name', 'AssetID', 'Type', 'Model'], ','),
+            buildCsvLine(['Ordinateur portable Dell', 'NEEMBA-0001', 'Laptop', 'Latitude 5540'], ','),
+        ].join('\n');
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.href = url;
+        link.download = 'modele-import-equipements.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const handleImport = () => {
         if (!file || stats.valid === 0) return;
         setTimeout(() => {
@@ -127,7 +147,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                     </p>
 
                     <div className="mb-8">
-                        <Button variant="outlined" onClick={() => { }} icon={<MaterialIcon name="download" size={18} />}>
+                        <Button variant="outlined" onClick={handleDownloadTemplate} icon={<MaterialIcon name="download" size={18} />}>
                             Télécharger le modèle
                         </Button>
                     </div>

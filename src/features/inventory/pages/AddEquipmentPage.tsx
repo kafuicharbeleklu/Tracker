@@ -1,5 +1,7 @@
+import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useMemo, useEffect } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
+import DemoBadge from '../../../components/ui/DemoBadge';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { mockModels } from '../../../data/mockData';
@@ -14,6 +16,7 @@ import { cn } from '../../../lib/utils';
 import { GLOSSARY } from '../../../constants/glossary';
 import { APP_CONFIG } from '../../../config';
 import { Equipment } from '../../../types';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 interface AddEquipmentPageProps {
     equipmentId?: string; // Optional for Edit Mode
@@ -48,6 +51,7 @@ const OPERATIONAL_STATUS_OPTIONS = [
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
     const { locationData, categories, equipment, addEquipment, updateEquipment, settings } = useData();
+    const isMobile = useMediaQuery(MEDIA.belowExpanded);
 
     const isEditMode = !!equipmentId;
 
@@ -180,13 +184,15 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
     };
 
     const handleScanSerial = () => {
+        if (!isMobile) return;
+
         setIsScanning(true);
-        showToast("Activation du scanner...", "info");
+        showToast("Simulation du scan (démo)...", "info");
         setTimeout(() => {
             setIsScanning(false);
             const mockSerial = "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase();
             setFormData(prev => ({ ...prev, serialNumber: mockSerial }));
-            showToast("Numéro de série détecté", "success");
+            showToast("Numéro de série d'exemple généré (démo) — vérifiez ou corrigez la valeur.", "info");
         }, 1500);
     };
 
@@ -303,25 +309,30 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             required
                         />
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <div className="flex items-center justify-between px-1">
                                 <label className="text-label-large text-on-surface">Numéro de série</label>
-                                <Button
-                                    type="button"
-                                    variant="text"
-                                    onClick={handleScanSerial}
-                                    disabled={isScanning}
-                                    className="!px-2 !py-0.5 !rounded-xs !bg-primary-container !text-primary hover:!text-primary/80 !uppercase !text-label-small"
-                                >
-                                    {isScanning ? <MaterialIcon name="sync" size={12} className="animate-spin" /> : <MaterialIcon name="qr_code_scanner" size={12} />}
-                                    {isScanning ? "Analyse..." : "Scan Caméra"}
-                                </Button>
+                                {isMobile && (
+                                    <div className="flex items-center gap-1.5">
+                                        <DemoBadge label="Simulation" title="Le scan caméra est simulé : il génère un numéro de série d'exemple" />
+                                        <Button
+                                            type="button"
+                                            variant="text"
+                                            onClick={handleScanSerial}
+                                            disabled={isScanning}
+                                            className="!px-2 !py-0.5 !rounded-xs !bg-primary-container !text-primary hover:!text-primary/80 !uppercase !text-label-small"
+                                        >
+                                            {isScanning ? <MaterialIcon name="sync" size={12} className="animate-spin" /> : <MaterialIcon name="qr_code_scanner" size={12} />}
+                                            {isScanning ? "Analyse..." : "Scan Caméra"}
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                             <InputField
                                 name="serialNumber"
                                 value={formData.serialNumber}
                                 onChange={handleChange}
-                                placeholder="Saisir ou scanner le SN..."
+                                placeholder={isMobile ? "Saisir ou scanner le SN..." : "Saisir le SN..."}
                                 icon={<MaterialIcon name="inventory_2" size={18} />}
                                 required
                             />
