@@ -115,7 +115,7 @@ X3 (actions tactiles Emplacements — **probablement corrigé** : icônes visibl
 | Page | Plateforme | Constat | Obs./Inf. | App/DS | Sévérité | Correctif | Effort |
 |---|---|---|---|---|---|---|---|
 | EquipmentDetails | Toutes | « VALEUR ACTUELLE **120 XOF** » en jaune sur blanc ≈1,6:1 (`inventory/compact_alice_details_longbadge.png`) | Observé | **X12** | Majeur | on-surface + accent jaune non textuel | XS |
-| Listes (inv./users) | Toutes | Mise en évidence de l'utilisateur courant par **titre de ligne jaune** sur fond clair (~2:1), sémantique non explicitée | Observé | **X12** | Mineur | Teinte de fond neutre + chip « Vous » | XS |
+| Listes (inv./users) | Toutes | Mise en évidence de l'utilisateur courant par **titre de ligne jaune** sur fond clair (~2:1), sémantique non explicitée. **Rectifié 08-07** : c'était l'état **hover** d'`EntityRow` (`group-hover:text-primary`) capté par le pointeur — aucune sémantique utilisateur-courant n'existe | Observé | **X12** | Mineur | ~~Teinte de fond neutre + chip « Vous »~~ → jaune retiré du hover (`34fae70`), feedback porté par le fond | XS |
 | UserDetails | Téléphone | « Éditer » (notes) flotte en bas à droite de la carte, détaché de son champ | Observé | Application | Polish | Affordance d'édition dans l'en-tête de carte | XS |
 
 ### 4.5 Finance
@@ -164,11 +164,11 @@ Domaine sans Majeur : carte de connexion propre (marque TR, champs étiquetés +
 ## 5. Registre transversal du design system (X…, continuité 07-02)
 
 - **X1 Résolu** · **X2 Résolu** · **X8 Résolu au niveau composant** (affordance livrée ; découvrabilité moyenne ; Paramètres hors pattern).
-- **X8-bis (nouveau, S)** : **généraliser les libellés courts adaptatifs** de la finance dans l'API `PageTabs` (8 pages consommatrices) — la meilleure réponse interne à l'overflow d'onglets.
+- **X8-bis (nouveau, S)** : **généraliser les libellés courts adaptatifs** de la finance dans l'API `PageTabs` (8 pages consommatrices) — la meilleure réponse interne à l'overflow d'onglets. **Livré 08-07** (`TabItem.shortLabel`, `c628b20` + applications finance/management/audit/users).
 - **X9 Partiel (S)** : densité compacte livrée pour les KPI dashboard ; toujours manquante pour les bandeaux stats (RBAC, Audit) — variante « rangée de stats » unique au DS.
 - **X11 Ouvert (S)** : bande vide du PageHeader toujours rendue (Paramètres compact).
 - **X3/X4/X5/X6/X7/X10 : non re-vérifiés** (§2.3) — X5 garde une instance phare à contrôler (Synthèse finance) ; X7 reste bloqué en attente de la palette.
-- **X12 (nouveau — Majeur, S)** : **règle « le jaune n'est jamais une couleur de texte/glyphe sur fond clair »**. Mesures rendues : noir-sur-jaune = **11,2:1** (excellent — onglets, boutons) ; jaune `#FDC910` sur blanc = **~1,55:1** (échec texte 4,5:1 ET non-texte 3:1). Instances observées : « Exporter en PDF » (Rapports), « VALEUR ACTUELLE » (fiche équipement), noms d'utilisateur courant (listes), label « AUDIT PHYSIQUE » (Audit). Les icônes jaunes sur blanc (KPI, item actif bottom bar) ne passent que grâce à un second indice (libellé sombre en gras) — à inscrire comme exigence.
+- **X12 (nouveau — Majeur, S)** : **règle « le jaune n'est jamais une couleur de texte/glyphe sur fond clair »**. Mesures rendues : noir-sur-jaune = **11,2:1** (excellent — onglets, boutons) ; jaune `#FDC910` sur blanc = **~1,55:1** (échec texte 4,5:1 ET non-texte 3:1). Instances observées : « Exporter en PDF » (Rapports), « VALEUR ACTUELLE » (fiche équipement), noms d'utilisateur courant (listes), label « AUDIT PHYSIQUE » (Audit). Les icônes jaunes sur blanc (KPI, item actif bottom bar) ne passent que grâce à un second indice (libellé sombre en gras) — à inscrire comme exigence. **Règle inscrite + 4 instances corrigées le 08-07** (`DESIGN_TOKENS_SPEC.md` §2.5 ; l'instance « listes » était le hover d'`EntityRow`, pas une sémantique utilisateur-courant). D'autres instances restent à balayer avec la règle (ex. « Mettre à jour » carte Sécurité, initiales d'avatar).
 - **X13 (nouveau — Majeur, M)** : classes de fenêtre **largeur seule** (`breakpoints.ts`) → téléphone paysage ≥840px traité en desktop (§4.1). Ajouter une dimension hauteur/orientation.
 - **X14 (nouveau — M–L)** : **pas de DataTable/liste dense partagée**, mais trois implémentations saines à factoriser (grille Audit, `<table>` Finance, colonnes EntityRow). Premier consommateur : Approbations desktop.
 - **X15 (nouveau — M, généralise INV-1)** : **convention d'actions destructives par ligne** — corbeille/« Supprimer » rouge sur chaque ligne (inventaire, utilisateurs, finance, RBAC), gardée par confirmation mais lourde et accidentogène au tactile. Menu ⋮ ou suppression en mode sélection.
@@ -180,18 +180,20 @@ Domaine sans Majeur : carte de connexion propre (marque TR, champs étiquetés +
 
 ## 6. Top 10 — impact maximal / effort minimal (état 07-07)
 
-| # | Correctif | Réf. | Effort | Pourquoi d'abord |
-|---|---|---|---|---|
-| 1 | Dé-clipper les événements du dashboard (`whitespace-normal`, puis EntityRow) | `DashboardPage.tsx:546-571` | XS | Perte de contenu sur la page la plus vue |
-| 2 | Badge avatar circulaire (`flex items-center justify-center leading-none`) | `DashboardPage.tsx:555` | XS | Signal « cassé » visible dès l'accueil |
-| 3 | Tiroir : afficher toutes les destinations permises (retirer `hidePrimaryShortcuts`) | `AppLayout.tsx:366`, `Sidebar.tsx:271-309` | S | Fin du « menu qui perd des sections » ; répare le tiroir du persona User |
-| 4 | X12 : corriger les 4 instances jaune-texte + écrire la règle | Rapports / fiche équipement / listes / Audit | XS×4 | Pires échecs de contraste mesurés (1,6:1) |
-| 5 | Nav Paramètres → PageTabs (libellés courts) | `SettingsPage.tsx:353-375` | S | 2 sections sur 5 redeviennent découvrables |
-| 6 | Mojibake « MatÃ©riel IT » + garde CI | `AddBudgetModal.tsx` | XS | Corruption de texte visible en finance |
-| 7 | Accents du panneau RBAC | `RbacManagementPanel.tsx` | XS–S | Qualité de contenu d'une surface d'admin |
-| 8 | X8-bis : libellés courts adaptatifs dans PageTabs | `PageTabs.tsx` + 8 pages | S | Traite l'overflow d'onglets partout d'un coup |
-| 9 | MetricCard compacte : titres sur 2 lignes | `src/components/ui/MetricCard.tsx` | XS–S | Stoppe « DEMANDES EN C... » |
-| 10 | Approbations desktop en rangées denses (réutiliser Historique/grille Audit) | `ApprovalsPage.tsx` | M | Pire page desktop « mobile étiré » restante |
+> **Implémenté le 2026-07-08** (`cea19b8..92c20a0`, 16 commits — chaque lot vérifié : build + lint + md3:check + check:encoding + smoke test Playwright du flux). Notes d'écart : #4 instance « listes » — le « nom d'utilisateur courant en jaune » était en réalité l'état **hover** d'`EntityRow` (`group-hover:text-primary`), aucune sémantique utilisateur-courant n'existe → jaune retiré du hover, chip « Vous » sans objet ; #6 — le mojibake s'étendait à `FinanceManagementPage.tsx` et `index.css` (même cause), corrigés ensemble, garde `npm run check:encoding` chaînée dans `lint:md3` ; #8 — Approbations et ManagementPage n'avaient rien à raccourcir (onglets déjà courts).
+
+| # | Correctif | Réf. | Effort | Pourquoi d'abord | État 08-07 |
+|---|---|---|---|---|---|
+| 1 | Dé-clipper les événements du dashboard (`whitespace-normal`, puis EntityRow) | `DashboardPage.tsx:546-571` | XS | Perte de contenu sur la page la plus vue | ✅ `cea19b8` (EntityRow reste la cible, X14) |
+| 2 | Badge avatar circulaire (`flex items-center justify-center leading-none`) | `DashboardPage.tsx:555` | XS | Signal « cassé » visible dès l'accueil | ✅ `eda9809` (mesuré 18×18) |
+| 3 | Tiroir : afficher toutes les destinations permises (retirer `hidePrimaryShortcuts`) | `AppLayout.tsx:366`, `Sidebar.tsx:271-309` | S | Fin du « menu qui perd des sections » ; répare le tiroir du persona User | ✅ `69ef4e5` |
+| 4 | X12 : corriger les 4 instances jaune-texte + écrire la règle | Rapports / fiche équipement / listes / Audit | XS×4 | Pires échecs de contraste mesurés (1,6:1) | ✅ règle `47706d1` (spec §2.5) + `ef8949c`/`e60209c`/`34fae70`/`6b6cf53` |
+| 5 | Nav Paramètres → PageTabs (libellés courts) | `SettingsPage.tsx:353-375` | S | 2 sections sur 5 redeviennent découvrables | ✅ `ea12ba8` |
+| 6 | Mojibake « MatÃ©riel IT » + garde CI | `AddBudgetModal.tsx` | XS | Corruption de texte visible en finance | ✅ `cb3d09d` (+ `check:encoding`) |
+| 7 | Accents du panneau RBAC | `RbacManagementPanel.tsx` | XS–S | Qualité de contenu d'une surface d'admin | ✅ `9ffd818` (~65 littéraux) |
+| 8 | X8-bis : libellés courts adaptatifs dans PageTabs | `PageTabs.tsx` + 8 pages | S | Traite l'overflow d'onglets partout d'un coup | ✅ API `c628b20` + 4 commits d'application |
+| 9 | MetricCard compacte : titres sur 2 lignes | `src/components/ui/MetricCard.tsx` | XS–S | Stoppe « DEMANDES EN C... » | ✅ `7c01621` |
+| 10 | Approbations desktop en rangées denses (réutiliser Historique/grille Audit) | `ApprovalsPage.tsx` | M | Pire page desktop « mobile étiré » restante | ✅ `92c20a0` (rangée dense d'Historique + actions inline, ~63px/rangée) |
 
 *(Exclus car logique — Chantier D : « Refuser » sur demande approuvée, PIN sur « Voir ». Exclus car L : capture caméra QR, X14 DataTable, X13 breakpoints — fort impact, additions système.)*
 
