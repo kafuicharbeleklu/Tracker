@@ -53,8 +53,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           className
         )}
       >
-        <div className="flex items-center justify-between gap-2">
-          <p className="section-label min-w-0 truncate">{title}</p>
+        {/* Titres FR longs : 2 lignes plutôt qu'une troncature (« DEMANDES EN C... ») */}
+        <div className="flex items-start justify-between gap-2">
+          <p className="section-label min-w-0 line-clamp-2 leading-snug">{title}</p>
           {icon && (
             <div className="shrink-0 text-on-surface-variant group-hover:text-primary transition-colors duration-short4">
               {icon}
