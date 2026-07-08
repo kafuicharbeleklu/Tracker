@@ -10,6 +10,7 @@ import StatusBadge from '../../../components/ui/StatusBadge';
 import { TextArea } from '../../../components/ui/TextArea';
 import InputField from '../../../components/ui/InputField';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
+import { formatDate } from '../../../lib/financial';
 import IconButton from '../../../components/ui/IconButton';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import Chip from '../../../components/ui/Chip';
@@ -80,7 +81,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
 
                 updateEquipment(selectedEquipment.id, {
                     ...initiationUpdates,
-                    notes: `${selectedEquipment.notes || ''}\n[DEMANDE RETOUR ${new Date().toLocaleDateString()}] ${comment.trim() || 'Aucun commentaire'}`,
+                    notes: `${selectedEquipment.notes || ''}\n[DEMANDE RETOUR ${formatDate()}] ${comment.trim() || 'Aucun commentaire'}`,
                 }, {
                     source: 'return_wizard',
                     stage: 'initiation',
@@ -103,7 +104,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
             updateEquipment(selectedEquipment.id, {
                 ...inspectionUpdates,
                 operationalStatus: 'Actif',
-                notes: `${selectedEquipment.notes || ''}\n[INSPECTION RETOUR ${new Date().toLocaleDateString()}] État: ${condition}${comment ? ` - ${comment}` : ''}`,
+                notes: `${selectedEquipment.notes || ''}\n[INSPECTION RETOUR ${formatDate()}] État: ${condition}${comment ? ` - ${comment}` : ''}`,
             }, {
                 condition,
                 accessories: accessories.join(', '),

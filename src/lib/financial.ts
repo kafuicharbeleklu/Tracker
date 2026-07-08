@@ -185,6 +185,16 @@ export const formatDate = (date: string | number | Date = new Date()) => {
 };
 
 /**
+ * Formatage date + heure localisé fr-FR (jj/mm/aaaa hh:mm:ss).
+ * Même rôle que `formatDate` pour les usages `toLocaleString()`.
+ */
+export const formatDateTime = (date: string | number | Date = new Date()) => {
+  const parsed = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleString('fr-FR');
+};
+
+/**
  * Formatage de nombres simples (compteurs, stats)
  */
 export const formatNumber = (amount: number, compact = false) => {

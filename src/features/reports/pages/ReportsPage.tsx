@@ -9,6 +9,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../../config';
 import { buildCsvLine } from '../../../lib/csv';
+import { formatDate } from '../../../lib/financial';
 
 type CsvExportRow = Record<string, string | number | null | undefined>;
 
@@ -77,7 +78,7 @@ const ReportsPage = () => {
 
         try {
             const doc = new jsPDF();
-            const date = new Date().toLocaleDateString();
+            const date = formatDate();
             const filename = `${reportTitle.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
 
             // En-tête

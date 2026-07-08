@@ -2,6 +2,7 @@ import React from 'react';
 import MaterialIcon from '../ui/MaterialIcon';
 import SideSheet from '../ui/SideSheet';
 import { cn } from '../../lib/utils';
+import { formatDate, formatDateTime } from '../../lib/financial';
 import { HistoryEvent } from '../../types';
 
 interface TransactionTicketModalProps {
@@ -105,7 +106,7 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                         <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Date d'effet</p>
                         <div className="flex items-center gap-2 text-title-small text-on-surface">
                             <MaterialIcon name="calendar_today" size={16} className="text-primary" />
-                            {new Date(event.timestamp).toLocaleDateString()}
+                            {formatDate(event.timestamp)}
                         </div>
                     </div>
                     <div>
@@ -144,7 +145,7 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                     </div>
                     <div className="text-right shrink-0">
                         <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Date</p>
-                        <p className="text-title-small text-on-surface">{new Date(event.timestamp).toLocaleDateString()}</p>
+                        <p className="text-title-small text-on-surface">{formatDate(event.timestamp)}</p>
                     </div>
                 </div>
 
@@ -233,7 +234,7 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                 </div>
                 <div className="flex justify-between text-body-small gap-4">
                     <span className="text-on-surface-variant">Date</span>
-                    <span className="text-label-large text-on-surface text-right">{new Date(event.timestamp).toLocaleString()}</span>
+                    <span className="text-label-large text-on-surface text-right">{formatDateTime(event.timestamp)}</span>
                 </div>
             </div>
         </div>
