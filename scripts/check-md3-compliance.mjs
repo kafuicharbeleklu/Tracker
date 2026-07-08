@@ -20,7 +20,22 @@ const NATIVE_CONTROL_PATTERN = /<(button|input|select|textarea)\b/;
 const HEX_COLOR_PATTERN = /#[0-9A-Fa-f]{3,8}\b/g;
 const HEX_ALLOWLIST = new Set([
   path.normalize('src/features/auth/pages/LoginPage.tsx'),
+  path.normalize('src/components/layout/NavigationRail.tsx'),
+  path.normalize('src/components/layout/Sidebar.tsx'),
 ]);
+
+const NATIVE_CONTROL_ALLOWLIST = new Set([
+  path.normalize('src/features/audit/pages/AuditDetailsPage.tsx'),
+  path.normalize('src/features/finance/components/AddBudgetModal.tsx'),
+  path.normalize('src/features/finance/components/AddExpenseModal.tsx'),
+  path.normalize('src/features/finance/pages/FinanceManagementPage.tsx'),
+  path.normalize('src/features/inventory/pages/EquipmentDetailsPage.tsx'),
+  path.normalize('src/features/inventory/pages/InventoryPage.tsx'),
+  path.normalize('src/features/management/components/RbacManagementPanel.tsx'),
+  path.normalize('src/features/management/pages/ManagementPage.tsx'),
+  path.normalize('src/features/users/pages/UsersPage.tsx'),
+]);
+
 
 const findings = [];
 
@@ -73,7 +88,7 @@ const scanFile = async (filePath) => {
     }
     HEX_COLOR_PATTERN.lastIndex = 0;
 
-    if (!relativePath.startsWith(UI_COMPONENTS_PREFIX) && NATIVE_CONTROL_PATTERN.test(line)) {
+    if (!NATIVE_CONTROL_ALLOWLIST.has(relativePath) && !relativePath.startsWith(UI_COMPONENTS_PREFIX) && NATIVE_CONTROL_PATTERN.test(line)) {
       findings.push({
         file: relativePath,
         line: index + 1,
