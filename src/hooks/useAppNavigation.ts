@@ -1,37 +1,40 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from './useRouter';
 import { ViewType } from '../types';
+import { DESTINATIONS } from '../constants/destinations';
 
 const VIEW_TITLES: Record<ViewType, string> = {
-  dashboard: 'Tableau de bord',
-  equipment: 'Inventaire',
+  // Sections : libellés issus du registre unique de destinations (X1)
+  dashboard: DESTINATIONS.dashboard.label,
+  equipment: DESTINATIONS.equipment.label,
   equipment_details: 'Détails équipement',
   add_equipment: 'Ajouter un équipement',
   edit_equipment: 'Modifier un équipement',
   import_equipment: 'Importer équipements',
-  users: 'Utilisateurs',
+  users: DESTINATIONS.users.label,
   user_details: 'Détails utilisateur',
   add_user: 'Ajouter un utilisateur',
   edit_user: 'Modifier utilisateur',
   import_users: 'Importer utilisateurs',
-  approvals: 'Approbations',
+  approvals: DESTINATIONS.approvals.label,
   new_request: 'Nouvelle demande',
-  management: 'Gestion',
+  management: DESTINATIONS.management.label,
+  rbac: DESTINATIONS.rbac.label,
   add_category: 'Ajouter une catégorie',
   add_model: 'Ajouter un modèle',
   import_models: 'Importer modèles',
   category_details: 'Détails catégorie',
   model_details: 'Détails modèle',
-  locations: 'Emplacements',
+  locations: DESTINATIONS.locations.label,
   import_locations: 'Importer localisations',
-  audit: 'Audit',
+  audit: DESTINATIONS.audit.label,
   audit_details: 'Détails audit',
-  reports: 'Rapports',
+  reports: DESTINATIONS.reports.label,
   assignment_wizard: "Assistant d'attribution",
   return_wizard: 'Assistant de retour',
-  finance: 'Gestion Financière',
-  settings: 'Paramètres',
-  admin_users: 'Administration',
+  finance: DESTINATIONS.finance.label,
+  settings: DESTINATIONS.settings.label,
+  not_found: 'Page introuvable',
 };
 
 export const useAppNavigation = () => {
@@ -80,11 +83,14 @@ export const useAppNavigation = () => {
       } else {
         computedView = 'management';
       }
+    } else if (section === 'rbac') {
+      computedView = 'rbac';
     } else if (section === 'locations') {
       if (action === 'import') computedView = 'import_locations';
       else computedView = 'locations';
     } else if (section === 'audit') {
       if (action === 'details') computedView = 'audit_details';
+      else if (action === 'overview') computedView = 'audit';
       else computedView = 'audit';
     } else if (section === 'reports') {
       computedView = 'reports';
@@ -95,6 +101,10 @@ export const useAppNavigation = () => {
     } else if (section === 'wizards') {
       if (action === 'assignment') computedView = 'assignment_wizard';
       else if (action === 'return') computedView = 'return_wizard';
+      else computedView = 'not_found';
+    } else {
+      // Section inconnue : vue 404 explicite plutôt qu'un dashboard silencieux
+      computedView = 'not_found';
     }
 
     return { currentView: computedView, selectedId: id, filterParam: filter };
@@ -119,12 +129,13 @@ export const useAppNavigation = () => {
       'approvals': '/approvals',
       'new_request': '/approvals/new',
       'management': '/management',
+      'rbac': '/rbac/roles',
       'add_category': '/management/categories/add',
       'add_model': '/management/models/add',
       'import_models': '/management/models/import',
       'locations': '/locations',
       'import_locations': '/locations/import',
-      'audit': '/audit',
+      'audit': '/audit/overview',
       'audit_details': '/audit/details',
       'reports': '/reports',
       'finance': '/finance',
@@ -159,7 +170,7 @@ export const useAppNavigation = () => {
     if (section === 'inventory') navigate('/inventory');
     else if (section === 'users') navigate('/users');
     else if (section === 'management') navigate('/management');
-    else if (section === 'audit') navigate('/audit');
+    else if (section === 'audit') navigate('/audit/overview');
     else if (section === 'approvals' && routeSegments[1] === 'new') navigate('/approvals');
     else navigate('/');
   }, [routeSegments, navigate]);

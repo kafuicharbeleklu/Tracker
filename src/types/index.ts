@@ -1,9 +1,15 @@
 
 import React from 'react';
+import type {
+  AuthenticationPolicy,
+  PermissionRule,
+  ScopeConstraint,
+  TemporaryRoleAssignment,
+} from './rbac';
 
 // Navigation
 // Added 'settings' to ViewType to resolve navigation and title mapping errors
-export type ViewType = 'dashboard' | 'equipment' | 'equipment_details' | 'add_equipment' | 'edit_equipment' | 'import_equipment' | 'users' | 'user_details' | 'add_user' | 'edit_user' | 'import_users' | 'approvals' | 'new_request' | 'management' | 'add_category' | 'add_model' | 'import_models' | 'category_details' | 'model_details' | 'locations' | 'import_locations' | 'audit' | 'audit_details' | 'reports' | 'assignment_wizard' | 'return_wizard' | 'finance' | 'settings' | 'admin_users';
+export type ViewType = 'dashboard' | 'equipment' | 'equipment_details' | 'add_equipment' | 'edit_equipment' | 'import_equipment' | 'users' | 'user_details' | 'add_user' | 'edit_user' | 'import_users' | 'approvals' | 'new_request' | 'management' | 'rbac' | 'add_category' | 'add_model' | 'import_models' | 'category_details' | 'model_details' | 'locations' | 'import_locations' | 'audit' | 'audit_details' | 'reports' | 'assignment_wizard' | 'return_wizard' | 'finance' | 'settings' | 'not_found';
 
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 
@@ -11,7 +17,6 @@ export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 export interface AppSettings {
   // Apparence
   theme: 'light' | 'dark' | 'system';
-  accentColor: 'yellow' | 'blue' | 'purple' | 'emerald' | 'orange';
 
   // Finances
   currency: string;
@@ -22,6 +27,20 @@ export interface AppSettings {
   renewalThreshold: number;
   roundingRule: 'standard' | 'integer' | 'ceil';
   compactNotation: boolean; // New setting for 1K, 1M formatting
+
+  // Collecte automatique
+  autoCollectionAgentEnabled: boolean;
+  autoCollectionAgentApiKey: string;
+  autoCollectionApiBaseUrl: string;
+  autoCollectionForwardToApi: boolean;
+  autoCollectionHeartbeatMinutes: number;
+  autoCollectionAdEnabled: boolean;
+  autoCollectionAdHost: string;
+  autoCollectionAdBaseDn: string;
+  autoCollectionAdServiceAccount: string;
+  autoCollectionNetworkEnabled: boolean;
+  autoCollectionNetworkRanges: string;
+  autoCollectionRequireManualValidation: boolean;
 }
 
 // --- FINANCE ---
@@ -92,6 +111,14 @@ export interface User {
   // SharePoint Fields (merged)
   status?: 'active' | 'inactive' | 'pending';
   mustChangePassword?: boolean;
+
+  // RBAC Overrides (optional, phase 1)
+  rbacRoleIds?: string[];
+  rbacGroupIds?: string[];
+  rbacDirectPermissions?: PermissionRule[];
+  rbacTemporaryRoles?: TemporaryRoleAssignment[];
+  rbacAuthPolicyOverride?: Partial<AuthenticationPolicy>;
+  rbacDataScopeOverrides?: ScopeConstraint[];
 }
 
 // SharePoint List Schema
@@ -103,6 +130,7 @@ export interface AppUser {
   LastName?: string;
   Role: UserRole;
   Status: 'active' | 'inactive' | 'pending';
+  PinStatus?: 'active' | 'pending' | 'not_set';
   TemporaryPassword?: string | null;
   MustChangePassword: boolean;
   LastLoginDate?: string;
@@ -198,6 +226,8 @@ export interface Equipment {
 
   // Specs
   serialNumber?: string;
+  biosUuid?: string;
+  macAddress?: string;
   hostname?: string; // Added hostname
   os?: string;
   ram?: string;
@@ -346,6 +376,8 @@ export interface AuditScanPayload {
   hostname?: string;
   assetId?: string;
   serialNumber?: string;
+  biosUuid?: string;
+  macAddress?: string;
   os?: string;
   ram?: string;
   storage?: string;
@@ -362,6 +394,63 @@ export interface AuditScanPayload {
     matrix42?: boolean;
     manageEngine?: boolean;
   };
+}
+
+export type AutoCollectionSource = 'agent' | 'active_directory' | 'network_scan';
+
+export interface AgentCheckInPayload extends AuditScanPayload {
+  source?: AutoCollectionSource;
+  checkinId?: string;
+  agentVersion?: string;
+  apiKey?: string;
+  biosUuid?: string;
+  macAddress?: string;
+  ipAddress?: string;
+  domain?: string;
+  cpu?: string;
+}
+
+export interface DetectedDevice {
+  id: string;
+  source: AutoCollectionSource;
+  fingerprint: string;
+  machineName: string;
+  hostname?: string;
+  assetId?: string;
+  serialNumber?: string;
+  biosUuid?: string;
+  os?: string;
+  ram?: string;
+  storage?: string;
+  cpu?: string;
+  currentUserName?: string;
+  currentUserEmail?: string;
+  macAddress?: string;
+  ipAddress?: string;
+  domain?: string;
+  country?: string;
+  site?: string;
+  service?: string;
+  apps: {
+    sentinelOne: boolean;
+    matrix42: boolean;
+    manageEngine: boolean;
+  };
+  status: 'pending_review' | 'linked_existing' | 'imported' | 'ignored' | 'ambiguous_match';
+  matchConfidence?: 'strong' | 'weak' | 'none' | 'ambiguous';
+  matchScore?: number;
+  candidateEquipmentIds?: string[];
+  linkedEquipmentId?: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+export interface AgentCheckInResult {
+  ok: boolean;
+  detectedId?: string;
+  status?: DetectedDevice['status'];
+  linkedEquipmentId?: string;
+  message: string;
 }
 
 export type AuditScanResolution = 'found_in_service' | 'found_out_of_service' | 'created';

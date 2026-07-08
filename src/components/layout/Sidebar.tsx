@@ -5,7 +5,7 @@ import SidebarItem from './SidebarItem';
 import { ViewType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useAccessControl } from '../../hooks/useAccessControl';
-import { GLOSSARY } from '../../constants/glossary';
+import { DESTINATIONS } from '../../constants/destinations';
 import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import CloseButton from '../ui/CloseButton';
@@ -82,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     ]);
 
     const pendingCount = relevantApprovals.filter((a) => ACTIVE_APPROVAL_STATUSES.has(a.status)).length;
-    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'approvals' | 'finance' | 'management' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
+    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'approvals' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
         switch (section) {
             case 'dashboard':
                 return currentView === 'dashboard';
@@ -96,6 +96,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 return currentView === 'finance';
             case 'management':
                 return ['management', 'category_details', 'model_details', 'import_models', 'add_category', 'add_model'].includes(currentView);
+            case 'rbac':
+                return currentView === 'rbac';
             case 'locations':
                 return ['locations', 'import_locations'].includes(currentView);
             case 'audit':
@@ -208,42 +210,49 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={cn(
                     "fixed inset-y-0 left-0 z-[100]",
                     "expanded:static expanded:z-auto",
-                    "h-full bg-surface-container-low border-r border-outline-variant flex flex-col justify-between transition-all duration-medium4 ease-emphasized",
+                    "h-full bg-[var(--color-sidebar-bg)] text-white border-r border-white/[0.03] flex flex-col justify-between transition-all duration-medium4 ease-emphasized",
                     showModalDrawer ? "translate-x-0 w-[85vw] max-w-[360px]" : "-translate-x-full expanded:translate-x-0",
-                    isCollapsed ? "expanded:w-20" : "expanded:w-72",
+                    isCollapsed ? "expanded:w-[76px]" : "expanded:w-64",
                     className
                 )}
+                style={{ background: 'linear-gradient(180deg, #131517 0%, #111315 100%)' }}
             >
                 <div className={cn(
                     "flex flex-col h-full overflow-y-auto custom-scrollbar transition-all duration-medium2 ease-emphasized",
-                    isCollapsed && !isMobileOpen ? "p-3" : "p-4 expanded:p-page"
+                    isCollapsed && !isMobileOpen ? "p-3" : "p-4"
                 )}>
 
                     {/* Header / Logo */}
                     <div className={cn(
-                        "flex items-center mb-8 transition-all duration-medium2 min-h-10",
+                        "relative flex items-center mb-6 transition-all duration-medium2 min-h-11",
                         isCollapsed ? 'justify-center' : 'justify-between'
                     )}>
-                        <div className={cn(
-                            "flex items-center gap-2 overflow-hidden transition-all duration-medium2",
-                            isCollapsed && !isMobileOpen ? "w-0 opacity-0" : "w-auto opacity-100"
-                        )}>
-                            <span className="text-title-large text-on-surface whitespace-nowrap tracking-tight font-brand">
-                                {APP_CONFIG.appName}
-                            </span>
-                        </div>
+                        {isCollapsed && !isMobileOpen ? (
+                            <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-body-small font-black text-primary select-none">
+                                TR
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 overflow-hidden transition-all duration-medium2">
+                                <span className="text-title-large font-extrabold text-white whitespace-nowrap font-brand">
+                                    {APP_CONFIG.appName}
+                                </span>
+                            </div>
+                        )}
 
                         {isModalMode ? (
                             <CloseButton
                                 onClick={closeMobileMenu}
-                                className="text-on-surface-variant hover:text-error hover:bg-error-container p-2 rounded-full transition-all duration-medium2"
+                                className="text-neutral-400 hover:text-white hover:bg-white/5 p-2 rounded-lg transition-all duration-medium2"
                             />
                         ) : (
                             <Button
                                 variant="text"
                                 size="sm"
                                 onClick={() => setIsCollapsed(!isCollapsed)}
-                                className="hidden expanded:flex text-on-surface-variant hover:text-primary hover:bg-primary-container/30 p-1.5 h-auto rounded-full transition-all duration-medium2 border-none shadow-none"
+                                className={cn(
+                                    "hidden expanded:flex !text-neutral-400 hover:!text-white hover:!bg-white/5 p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
+                                    isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-white !text-black hover:!bg-white hover:!text-black shadow-md"
+                                )}
                                 aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}
                                 icon={<MaterialIcon name={isCollapsed ? "chevron_right" : "chevron_left"} size={24} />}
                             />
@@ -263,15 +272,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <>
                                 <SidebarItem
                                     isCollapsed={isCollapsed && !isMobileOpen}
-                                    icon="dashboard"
-                                    label={GLOSSARY.DASHBOARD}
+                                    icon={DESTINATIONS.dashboard.icon}
+                                    label={DESTINATIONS.dashboard.label}
                                     active={isNavSectionActive('dashboard')}
                                     onClick={() => handleItemClick('dashboard')}
                                 />
                                 <SidebarItem
                                     isCollapsed={isCollapsed && !isMobileOpen}
-                                    icon="devices"
-                                    label={GLOSSARY.EQUIPMENT}
+                                    icon={DESTINATIONS.equipment.icon}
+                                    label={DESTINATIONS.equipment.label}
                                     active={isNavSectionActive('equipment')}
                                     onClick={() => handleItemClick('equipment')}
                                 />
@@ -281,8 +290,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {showPrimaryDrawerItems && permissions.canViewUsers && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="group"
-                                label={GLOSSARY.USER_PLURAL}
+                                icon={DESTINATIONS.users.icon}
+                                label={DESTINATIONS.users.label}
                                 active={isNavSectionActive('users')}
                                 onClick={() => handleItemClick('users')}
                             />
@@ -291,51 +300,59 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {showPrimaryDrawerItems && permissions.canViewApprovals && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="task_alt"
-                                label={GLOSSARY.APPROVALS}
+                                icon={DESTINATIONS.approvals.icon}
+                                label={DESTINATIONS.approvals.label}
                                 active={isNavSectionActive('approvals')}
                                 onClick={() => handleItemClick('approvals')}
                                 badge={pendingCount > 0 ? pendingCount : undefined}
                             />
                         )}
 
-                        {permissions.canManageInventory && (
+                        {(permissions.canViewFinance || permissions.canManageFinance) && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="payments"
-                                label="Finances"
+                                icon={DESTINATIONS.finance.icon}
+                                label={DESTINATIONS.finance.label}
                                 active={isNavSectionActive('finance')}
                                 onClick={() => handleItemClick('finance')}
                             />
                         )}
 
-                        {permissions.canManageSystem && (
-                            <>
-                                <SidebarItem
-                                    isCollapsed={isCollapsed && !isMobileOpen}
-                                    icon="tune"
-                                    label={GLOSSARY.MANAGEMENT}
-                                    active={isNavSectionActive('management')}
-                                    onClick={() => handleItemClick('management')}
-                                />
-                            </>
-                        )}
-
-                        {permissions.canManageLocations && (
+                        {(permissions.canViewManagement || permissions.canManageSystem) && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="location_on"
-                                label={GLOSSARY.LOCATIONS}
+                                icon={DESTINATIONS.management.icon}
+                                label={DESTINATIONS.management.label}
+                                active={isNavSectionActive('management')}
+                                onClick={() => handleItemClick('management')}
+                            />
+                        )}
+
+                        {(permissions.canViewManagement || permissions.canManageSystem) && (
+                            <SidebarItem
+                                isCollapsed={isCollapsed && !isMobileOpen}
+                                icon={DESTINATIONS.rbac.icon}
+                                label={DESTINATIONS.rbac.label}
+                                active={isNavSectionActive('rbac')}
+                                onClick={() => handleItemClick('rbac')}
+                            />
+                        )}
+
+                        {(permissions.canViewLocations || permissions.canManageLocations) && (
+                            <SidebarItem
+                                isCollapsed={isCollapsed && !isMobileOpen}
+                                icon={DESTINATIONS.locations.icon}
+                                label={DESTINATIONS.locations.label}
                                 active={isNavSectionActive('locations')}
                                 onClick={() => handleItemClick('locations')}
                             />
                         )}
 
-                        {permissions.canManageAudit && (
+                        {(permissions.canViewAudit || permissions.canScanAudit || permissions.canManageAudit) && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="fact_check"
-                                label={GLOSSARY.AUDIT}
+                                icon={DESTINATIONS.audit.icon}
+                                label={DESTINATIONS.audit.label}
                                 active={isNavSectionActive('audit')}
                                 onClick={() => handleItemClick('audit')}
                             />
@@ -344,8 +361,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {permissions.canViewReports && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="bar_chart"
-                                label={GLOSSARY.REPORTS}
+                                icon={DESTINATIONS.reports.icon}
+                                label={DESTINATIONS.reports.label}
                                 active={isNavSectionActive('reports')}
                                 onClick={() => handleItemClick('reports')}
                             />
@@ -362,8 +379,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     >
                         <SidebarItem
                             isCollapsed={isCollapsed && !isMobileOpen}
-                            icon="settings"
-                            label={GLOSSARY.SETTINGS}
+                            icon={DESTINATIONS.settings.icon}
+                            label={DESTINATIONS.settings.label}
                             active={isNavSectionActive('settings')}
                             onClick={() => {
                                 onSettingsClick();

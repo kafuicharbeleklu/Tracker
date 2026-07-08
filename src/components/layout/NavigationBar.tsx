@@ -4,7 +4,7 @@ import MaterialIcon from '../ui/MaterialIcon';
 import Button from '../ui/Button';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
-import { GLOSSARY } from '../../constants/glossary';
+import { DESTINATIONS, getDestinationShortLabel } from '../../constants/destinations';
 
 interface NavigationBarProps {
     currentView: ViewType;
@@ -15,6 +15,22 @@ interface NavigationBarProps {
 }
 
 type NavDestinationId = 'dashboard' | 'equipment' | 'approvals' | 'users' | 'more';
+const MORE_VIEWS: ViewType[] = [
+    'finance',
+    'management',
+    'rbac',
+    'add_category',
+    'add_model',
+    'import_models',
+    'category_details',
+    'model_details',
+    'locations',
+    'import_locations',
+    'audit',
+    'audit_details',
+    'reports',
+    'settings',
+];
 
 interface NavItemProps {
     icon: string;
@@ -40,10 +56,10 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
             aria-label={ariaLabel ?? label}
             title={label}
             className={cn(
-                'flex-1 !px-0 !py-0 !min-h-0 !min-w-[64px] h-full !flex-col !items-center !justify-center gap-1 outline-none relative !rounded-none !border-none !shadow-none transition-all duration-short4 ease-emphasized',
+                'flex-1 !px-0 !py-0 !min-h-0 !min-w-[64px] h-full !flex-col !items-center !justify-center gap-1 outline-none relative !rounded-lg !border-none !shadow-none transition-all duration-short4 ease-emphasized',
                 active
-                    ? '!bg-secondary-container !text-on-secondary-container'
-                    : '!bg-transparent !text-on-surface-variant hover:!bg-on-surface/[0.08]'
+                    ? '!bg-transparent !text-[var(--color-text-primary)]'
+                    : '!bg-transparent !text-[var(--color-text-secondary)] hover:!bg-[var(--color-neutral-100)]'
             )}
         >
             <div className="relative flex items-center justify-center w-16 h-8 transition-all duration-short4 ease-emphasized">
@@ -51,7 +67,7 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
                     name={icon}
                     size={24}
                     filled={active}
-                    className={cn('transition-all', active ? 'text-on-secondary-container' : 'text-on-surface-variant')}
+                    className={cn('transition-all', active ? 'text-primary' : 'text-[var(--color-neutral-500)]')}
                 />
                 {badge !== undefined && badge > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-error text-on-error text-[10px] font-bold rounded-full px-1 leading-none">
@@ -61,8 +77,8 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
             </div>
             <span
                 className={cn(
-                    'text-label-medium transition-colors duration-short4',
-                    active ? 'text-on-secondary-container font-medium' : 'text-on-surface-variant'
+                    'text-label-medium max-w-full truncate px-0.5 transition-colors duration-short4',
+                    active ? 'text-[var(--color-text-primary)] font-black' : 'text-[var(--color-text-secondary)]'
                 )}
             >
                 {label}
@@ -91,8 +107,7 @@ const resolveBottomNavDestination = (view: ViewType): NavDestinationId | null =>
         view === 'user_details' ||
         view === 'add_user' ||
         view === 'edit_user' ||
-        view === 'import_users' ||
-        view === 'admin_users'
+        view === 'import_users'
     ) {
         return 'users';
     }
@@ -105,7 +120,10 @@ const resolveBottomNavDestination = (view: ViewType): NavDestinationId | null =>
         return 'dashboard';
     }
 
-    // Finance, gestion, audit, rapports, paramètres, etc. n'activent pas "Plus"
+    if (MORE_VIEWS.includes(view)) {
+        return 'more';
+    }
+
     return null;
 };
 
@@ -133,15 +151,15 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         if (permissions.canViewInventory) {
             items.push({
                 id: 'dashboard',
-                icon: 'dashboard',
-                label: GLOSSARY.DASHBOARD,
+                icon: DESTINATIONS.dashboard.icon,
+                label: getDestinationShortLabel('dashboard'),
                 onSelect: () => onViewChange('dashboard'),
             });
 
             items.push({
                 id: 'equipment',
-                icon: 'devices',
-                label: 'Actifs',
+                icon: DESTINATIONS.equipment.icon,
+                label: getDestinationShortLabel('equipment'),
                 onSelect: () => onViewChange('equipment'),
             });
         }
@@ -149,8 +167,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         if (permissions.canViewApprovals) {
             items.push({
                 id: 'approvals',
-                icon: 'task_alt',
-                label: 'Tâches',
+                icon: DESTINATIONS.approvals.icon,
+                label: getDestinationShortLabel('approvals'),
                 onSelect: () => onViewChange('approvals'),
             });
         }
@@ -158,8 +176,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         if (permissions.canViewUsers) {
             items.push({
                 id: 'users',
-                icon: 'group',
-                label: 'Équipe',
+                icon: DESTINATIONS.users.icon,
+                label: getDestinationShortLabel('users'),
                 onSelect: () => onViewChange('users'),
             });
         }
@@ -222,8 +240,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             aria-label="Navigation principale"
             role="navigation"
             className={cn(
-                'h-20 w-full flex items-center justify-evenly pb-2 pt-3',
-                !embedded && 'bg-surface-container border-t border-outline-variant z-50',
+                'h-[68px] w-full flex items-center gap-2 px-2 py-1',
+                !embedded && 'bg-white border-t border-[var(--color-border-default)] z-50',
                 className
             )}
         >

@@ -39,18 +39,17 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
             title={isCollapsed ? label : undefined}
             className={cn(
                 "group relative !cursor-pointer !transition-all !duration-medium2 !ease-emphasized !flex !items-center !overflow-hidden",
-                // MD3 Active indicator shape: stadium (full rounded)
-                "!rounded-full",
+                "!rounded-lg",
                 // Accessibility
                 "!outline-none !focus-visible:ring-2 !focus-visible:ring-primary !focus-visible:ring-inset",
                 // Horizontal spacing
                 isCollapsed
-                    ? "!w-12 !h-12 !min-h-12 !min-w-12 !self-center !mx-auto !px-0 !py-0 !justify-center !gap-0"
-                    : "!w-full !min-h-12 !px-4 !py-3 !justify-start",
+                    ? "!w-11 !h-11 !min-h-11 !min-w-11 !self-center !mx-auto !px-0 !py-0 !justify-center !gap-0"
+                    : "!w-full !min-h-11 !px-3 !py-2.5 !justify-start",
                 // MD3 Active: secondaryContainer background, onSecondaryContainer text
                 active
-                    ? "!bg-secondary-container !text-on-secondary-container !ring-1 !ring-secondary/35 !shadow-elevation-1"
-                    : "!text-on-surface-variant",
+                    ? "!bg-primary !text-on-primary !ring-0 !shadow-sm"
+                    : "!text-neutral-400 hover:!bg-white/5 hover:!text-white",
                 className
             )}
         >

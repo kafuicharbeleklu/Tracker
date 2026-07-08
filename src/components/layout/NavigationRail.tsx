@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import IconButton from '../ui/IconButton';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { DESTINATIONS, getDestinationShortLabel } from '../../constants/destinations';
 
 interface NavigationRailProps {
     currentView: ViewType;
@@ -39,18 +40,18 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
             aria-describedby={compact ? undefined : `rail-label-${destinationId}`}
             className={cn(
                 compact
-                    ? "!w-12 !min-h-12 !px-1 !py-1 !flex-col !items-center !justify-center !gap-0.5 !rounded-full"
-                    : "!w-20 !min-h-16 !px-2 !py-1 !flex-col !items-center !justify-center !gap-1 !rounded-full",
-                "!outline-none !focus-visible:ring-2 !focus-visible:ring-primary !focus-visible:ring-inset",
+                    ? "!w-12 !min-h-12 !px-1 !py-1 !flex-col !items-center !justify-center !gap-0.5 !rounded-lg"
+                    : "!w-20 !min-h-16 !px-2 !py-1 !flex-col !items-center !justify-center !gap-1 !rounded-lg",
+                "!outline-none !focus-visible:ring-2 !focus-visible:ring-primary/40 !focus-visible:ring-inset",
                 "!transition-all !duration-short4 !ease-emphasized",
-                active ? "!text-on-secondary-container" : "!text-on-surface-variant"
+                active ? "!text-white" : "!text-neutral-400 hover:!text-white hover:!bg-white/5"
             )}
             title={label}
         >
             <span
                 className={cn(
-                    compact ? "w-full h-7 rounded-full inline-flex items-center justify-center" : "w-full h-8 rounded-full inline-flex items-center justify-center",
-                    active ? "bg-secondary-container" : ""
+                    compact ? "w-full h-7 rounded-lg inline-flex items-center justify-center" : "w-full h-8 rounded-lg inline-flex items-center justify-center",
+                    active ? "bg-primary text-on-primary" : ""
                 )}
             >
                 <MaterialIcon name={icon} size={24} filled={active} />
@@ -84,26 +85,26 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
     const allRailItems = [
         ...(permissions.canViewInventory ? [{
             id: 'dashboard' as ViewType,
-            icon: 'dashboard',
-            label: 'Accueil',
+            icon: DESTINATIONS.dashboard.icon,
+            label: getDestinationShortLabel('dashboard'),
         }] : []),
         ...(permissions.canViewInventory ? [{
             id: 'equipment' as ViewType,
-            icon: 'devices',
-            label: 'Actifs',
+            icon: DESTINATIONS.equipment.icon,
+            label: getDestinationShortLabel('equipment'),
         }] : []),
         ...(permissions.canViewApprovals ? [{
             id: 'approvals' as ViewType,
-            icon: 'task_alt',
-            label: 'Taches',
+            icon: DESTINATIONS.approvals.icon,
+            label: getDestinationShortLabel('approvals'),
         }] : []),
         ...(permissions.canViewUsers ? [{
             id: 'users' as ViewType,
-            icon: 'group',
-            label: 'Equipe',
+            icon: DESTINATIONS.users.icon,
+            label: getDestinationShortLabel('users'),
         }] : []),
     ];
-    const railItems = compact ? allRailItems.slice(0, 3) : allRailItems;
+    const railItems = allRailItems;
 
     const destinations = useMemo(() => railItems.map((item) => ({
         ...item,
@@ -148,23 +149,24 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
         <aside
             aria-label="Navigation secondaire"
             className={cn(
-                compact ? "w-16 h-full bg-surface-container border-r border-outline-variant" : "w-24 h-full bg-surface-container border-r border-outline-variant",
+                compact ? "w-16 h-full bg-[var(--color-sidebar-bg)] border-r border-white/[0.03]" : "w-[76px] h-full bg-[var(--color-sidebar-bg)] border-r border-white/[0.03]",
                 compact ? "flex flex-col items-center justify-between py-2" : "flex flex-col items-center justify-between py-3",
                 className
             )}
+            style={{ background: 'linear-gradient(180deg, #131517 0%, #111315 100%)' }}
         >
-            <div className={cn("flex flex-col items-center gap-2", compact && "gap-1.5")}>
+            <div className={cn("flex flex-col items-center gap-2", compact && "gap-2")}>
                 <IconButton
                     icon="menu"
                     variant="standard"
                     onClick={onMenuClick}
-                    className="text-on-surface-variant"
+                    className="!text-neutral-400 hover:!text-white hover:!bg-white/5"
                     aria-label="Ouvrir le menu lateral"
                     title="Menu"
                 />
 
-                <nav className={cn("flex flex-col items-center gap-1 mt-1", compact && "gap-0.5")} aria-label="Destinations principales">
-                    {destinations.slice(0, railItems.length).map((item, index) => (
+                <nav className={cn("flex flex-col items-center gap-2 mt-1", compact && "gap-2")} aria-label="Destinations principales">
+                    {destinations.map((item, index) => (
                         <RailItem
                             key={item.id}
                             ref={(el) => { destinationRefs.current[index] = el; }}

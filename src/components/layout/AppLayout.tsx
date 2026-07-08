@@ -1,3 +1,5 @@
+import { MEDIA } from '../../constants/breakpoints';
+import { DESTINATIONS } from '../../constants/destinations';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { NavigationBar } from './NavigationBar';
@@ -18,6 +20,7 @@ const ApprovalsPage = lazy(() => import('../../features/approvals/pages/Approval
 const NewRequestPage = lazy(() => import('../../features/approvals/pages/NewRequestPage'));
 const FinanceManagementPage = lazy(() => import('../../features/finance/pages/FinanceManagementPage'));
 const ManagementPage = lazy(() => import('../../features/management/pages/ManagementPage'));
+const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
 const AuditPage = lazy(() => import('../../features/audit/pages/AuditPage'));
 const ReportsPage = lazy(() => import('../../features/reports/pages/ReportsPage'));
@@ -51,10 +54,10 @@ const PageLoadingFallback: React.FC = () => (
 const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const isCompact = useMediaQuery('(max-width: 599px)');
-    const isLandscape = useMediaQuery('(orientation: landscape)');
-    const isMedium = useMediaQuery('(min-width: 600px) and (max-width: 839px)');
-    const isExpandedUp = useMediaQuery('(min-width: 840px)');
+    const isCompact = useMediaQuery(MEDIA.compact);
+    const isLandscape = useMediaQuery(MEDIA.landscape);
+    const isMedium = useMediaQuery(MEDIA.medium);
+    const isExpandedUp = useMediaQuery(MEDIA.expandedUp);
     const isCompactLandscape = isCompact && isLandscape;
     const useRailNavigation = isMedium || isCompactLandscape;
 
@@ -91,6 +94,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'users',
         'finance',
         'management',
+        'rbac',
         'locations',
         'audit',
         'reports',
@@ -102,33 +106,35 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
     const getTopAppBarTitle = (view: ViewType): string => {
         switch (view) {
-            case 'dashboard': return 'Tableau de bord';
-            case 'equipment': return 'Équipements';
+            // Sections : libellés issus du registre unique de destinations (X1)
+            case 'dashboard': return DESTINATIONS.dashboard.label;
+            case 'equipment': return DESTINATIONS.equipment.label;
             case 'equipment_details': return 'Détail équipement';
             case 'add_equipment':
             case 'edit_equipment': return 'Équipement';
             case 'import_equipment': return 'Import équipements';
-            case 'users': return 'Utilisateurs';
+            case 'users': return DESTINATIONS.users.label;
             case 'user_details': return 'Profil utilisateur';
             case 'add_user':
             case 'edit_user': return 'Utilisateur';
             case 'import_users': return 'Import utilisateurs';
-            case 'approvals': return 'Demandes';
+            case 'approvals': return DESTINATIONS.approvals.label;
             case 'new_request': return 'Nouvelle demande';
-            case 'finance': return 'Finance';
-            case 'management': return 'Catalogue';
+            case 'finance': return DESTINATIONS.finance.label;
+            case 'management': return DESTINATIONS.management.label;
+            case 'rbac': return DESTINATIONS.rbac.label;
             case 'category_details': return 'Détail catégorie';
             case 'model_details': return 'Détail modèle';
             case 'import_models': return 'Import modèles';
-            case 'locations': return 'Emplacements';
+            case 'locations': return DESTINATIONS.locations.label;
             case 'import_locations': return 'Import emplacements';
-            case 'audit': return 'Audit';
+            case 'audit': return DESTINATIONS.audit.label;
             case 'audit_details': return 'Détail audit';
-            case 'reports': return 'Rapports';
-            case 'settings': return 'Paramètres';
+            case 'reports': return DESTINATIONS.reports.label;
+            case 'settings': return DESTINATIONS.settings.label;
             case 'assignment_wizard': return 'Attribution';
             case 'return_wizard': return 'Retour';
-            case 'admin_users': return 'Admin utilisateurs';
+            case 'not_found': return 'Page introuvable';
             default: return APP_CONFIG.appName;
         }
     };
@@ -148,22 +154,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return permissions.canManageInventory;
             }
             if (view === 'users' || view === 'user_details') return permissions.canViewUsers;
-            if (view === 'add_user' || view === 'edit_user' || view === 'import_users' || view === 'admin_users') {
+            if (view === 'add_user' || view === 'edit_user' || view === 'import_users') {
                 return permissions.canManageUsers;
             }
-            if (view === 'finance') return permissions.canManageFinance;
+            if (view === 'finance') return permissions.canViewFinance || permissions.canManageFinance;
             if (
                 view === 'management'
+                || view === 'rbac'
                 || view === 'add_category'
                 || view === 'add_model'
                 || view === 'import_models'
                 || view === 'category_details'
                 || view === 'model_details'
             ) {
-                return permissions.canManageSystem;
+                return permissions.canViewManagement || permissions.canManageSystem;
             }
-            if (view === 'locations' || view === 'import_locations') return permissions.canManageLocations;
-            if (view === 'audit' || view === 'audit_details') return permissions.canManageAudit;
+            if (view === 'locations' || view === 'import_locations') {
+                return permissions.canViewLocations || permissions.canManageLocations;
+            }
+            if (view === 'audit' || view === 'audit_details') {
+                return permissions.canViewAudit || permissions.canScanAudit || permissions.canManageAudit;
+            }
             if (view === 'reports') return permissions.canViewReports;
             return true;
         };
@@ -258,6 +269,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onModelClick={(id) => handleItemClick('model_details', id)}
                     />
                 );
+            case 'rbac':
+                return <RbacPage />;
             case 'category_details':
                 return selectedItemId ? (
                     <CategoryDetailsPage
@@ -281,9 +294,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <ImportLocationsPage onCancel={() => goBack()} onSave={() => goBack()} />;
 
             case 'audit':
-                return <AuditPage />;
+                return <AuditPage onViewChange={handleViewChange} />;
             case 'audit_details':
-                return <AuditDetailsPage onBack={() => handleViewChange('audit')} />;
+                return (
+                    <AuditDetailsPage
+                        onBack={() => handleViewChange('audit')}
+                        onViewChange={handleViewChange}
+                    />
+                );
             case 'reports':
                 return <ReportsPage />;
             case 'settings':
@@ -305,6 +323,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
 
+            case 'not_found':
+                return (
+                    <div className="p-8 min-h-[60vh] flex flex-col items-center justify-center text-center">
+                        <p className="text-display-large font-bold text-outline mb-2" aria-hidden="true">404</p>
+                        <h2 className="text-display-small mb-4">Page introuvable</h2>
+                        <p className="text-body-large text-on-surface-variant mb-6 max-w-md">
+                            L'adresse demandée n'existe pas ou n'est plus disponible. Vérifiez le lien ou revenez à l'accueil.
+                        </p>
+                        <Button variant="filled" onClick={() => handleViewChange('dashboard')}>
+                            Retour au tableau de bord
+                        </Button>
+                    </div>
+                );
 
             default:
                 // Fallback for views not yet implemented or imported
@@ -321,7 +352,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     return (
-        <div className="flex h-screen bg-surface overflow-hidden">
+        <div className="flex h-screen bg-[var(--color-app-bg)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
@@ -363,7 +394,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 )}
 
                 {/* Page Content */}
-                <div className="flex-1 overflow-y-auto bg-surface relative">
+                <div className="flex-1 overflow-y-auto bg-[var(--color-app-bg)] relative">
                     <Suspense fallback={<PageLoadingFallback />}>
                         {renderContent()}
                     </Suspense>
