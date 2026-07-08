@@ -262,9 +262,9 @@ const FinanceManagementPage = () => {
     const maxProj = Math.max(...projectionSteps.map(s => s.val));
 
     const tabs: TabItem[] = [
-        { id: 'overview', label: isCompact ? 'Synthèse' : 'Synthèse Globale', icon: <MaterialIcon name="dashboard" size={20} /> },
-        { id: 'expenses', label: isCompact ? 'Journal' : 'Journal Dépenses', icon: <MaterialIcon name="receipt_long" size={20} /> },
-        { id: 'budget', label: isCompact ? 'Pilotage' : 'Pilotage Budget', icon: <MaterialIcon name="calculate" size={20} /> }
+        { id: 'overview', label: 'Synthèse Globale', shortLabel: 'Synthèse', icon: <MaterialIcon name="dashboard" size={20} /> },
+        { id: 'expenses', label: 'Journal Dépenses', shortLabel: 'Journal', icon: <MaterialIcon name="receipt_long" size={20} /> },
+        { id: 'budget', label: 'Pilotage Budget', shortLabel: 'Pilotage', icon: <MaterialIcon name="calculate" size={20} /> }
     ];
 
     const handleTabChange = (id: string) => {
