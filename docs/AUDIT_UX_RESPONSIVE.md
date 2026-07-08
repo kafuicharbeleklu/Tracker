@@ -2,6 +2,7 @@
 
 > **Diagnostic uniquement — aucune modification de code.**
 > Date : **2026-07-07** · Arbre de travail (non commité) · **Remplace la version du 2026-07-02**, dont les constats sont re-vérifiés en §2 (beaucoup ont été corrigés par la vague du 3 juillet) et dont les points encore valides sont conservés avec leurs identifiants (X1…X11).
+> **Complété le 2026-07-08** par la §7 (**Vague 2** : clôture de la dette de vérification laissée en §2.3, post-Top 10).
 >
 > **Référentiel** : MD3 n'est **plus la cible**. La cible est le design system propriétaire Neemba/CAT (jaune `#FDC910` / noir / blanc), **non finalisé** — le jaune en accent probable, le noir/charbon en rôle fonctionnel, non arbitré. Aucun écart à la spec Google MD3 n'est signalé comme problème en soi. Chaque constat est **Observé** (vu au rendu) ou **Inféré** (code seul), et typé **Application** (le DS a déjà la solution) ou **Design system** (le DS n'a pas encore de réponse). Sévérité : Bloquant / Majeur / Mineur / Polish · Effort : XS / S / M / **L (= étendre le DS)**.
 
@@ -59,6 +60,8 @@ La vague de correctifs du 3 juillet a traité une grande partie de l'audit préc
 ### 2.3 Non re-vérifiés (à reprendre dans la passe suivante)
 
 X3 (actions tactiles Emplacements — **probablement corrigé** : icônes visibles sur la ligne sélectionnée en compact, à confirmer sur vrai tactile) · X4 (carte-option) · X6 (formats de date) · X7 (palette badges — toujours bloqué en attente d'arbitrage de marque) · X10 (map icônes) · INV-4 (fallback image) · INV-8 (parsing CSV) · USR (stats codées en dur — les chiffres affichés sont désormais plausibles, à confirmer dans le code) · LOC (champs de modale jetés, interactifs imbriqués) · AUD (dégagement FAB, empilement de chrome) · FIN (chiffres inventés de la Synthèse — **instance phare X5 à re-vérifier en priorité**) · EntityRow (troncature des sous-titres) · RBAC (9 `<select>` natifs).
+
+**→ Verdicts rendus le 2026-07-08 en §7.1 (Vague 2).** Seul « AUD — empilement de chrome » reste à trancher au rendu.
 
 ---
 
@@ -167,8 +170,8 @@ Domaine sans Majeur : carte de connexion propre (marque TR, champs étiquetés +
 - **X8-bis (nouveau, S)** : **généraliser les libellés courts adaptatifs** de la finance dans l'API `PageTabs` (8 pages consommatrices) — la meilleure réponse interne à l'overflow d'onglets. **Livré 08-07** (`TabItem.shortLabel`, `c628b20` + applications finance/management/audit/users).
 - **X9 Partiel (S)** : densité compacte livrée pour les KPI dashboard ; toujours manquante pour les bandeaux stats (RBAC, Audit) — variante « rangée de stats » unique au DS.
 - **X11 Ouvert (S)** : bande vide du PageHeader toujours rendue (Paramètres compact).
-- **X3/X4/X5/X6/X7/X10 : non re-vérifiés** (§2.3) — X5 garde une instance phare à contrôler (Synthèse finance) ; X7 reste bloqué en attente de la palette.
-- **X12 (nouveau — Majeur, S)** : **règle « le jaune n'est jamais une couleur de texte/glyphe sur fond clair »**. Mesures rendues : noir-sur-jaune = **11,2:1** (excellent — onglets, boutons) ; jaune `#FDC910` sur blanc = **~1,55:1** (échec texte 4,5:1 ET non-texte 3:1). Instances observées : « Exporter en PDF » (Rapports), « VALEUR ACTUELLE » (fiche équipement), noms d'utilisateur courant (listes), label « AUDIT PHYSIQUE » (Audit). Les icônes jaunes sur blanc (KPI, item actif bottom bar) ne passent que grâce à un second indice (libellé sombre en gras) — à inscrire comme exigence. **Règle inscrite + 4 instances corrigées le 08-07** (`DESIGN_TOKENS_SPEC.md` §2.5 ; l'instance « listes » était le hover d'`EntityRow`, pas une sémantique utilisateur-courant). D'autres instances restent à balayer avec la règle (ex. « Mettre à jour » carte Sécurité, initiales d'avatar).
+- **X3/X4/X5/X6/X7/X10 — tranchés le 08-07 (§7.1)** : X3 et X10 **résolus** ; X4 ouvert (carte-option sans sémantique radio) ; X6 partiel (helper `formatDate` livré, 6 appels sans locale restants) ; X5 Synthèse **déclassée Majeur→Mineur** (KPI calculés, blocs simulés étiquetés DÉMO) ; X7 toujours bloqué en attente de la palette.
+- **X12 (nouveau — Majeur, S)** : **règle « le jaune n'est jamais une couleur de texte/glyphe sur fond clair »**. Mesures rendues : noir-sur-jaune = **11,2:1** (excellent — onglets, boutons) ; jaune `#FDC910` sur blanc = **~1,55:1** (échec texte 4,5:1 ET non-texte 3:1). Instances observées : « Exporter en PDF » (Rapports), « VALEUR ACTUELLE » (fiche équipement), noms d'utilisateur courant (listes), label « AUDIT PHYSIQUE » (Audit). Les icônes jaunes sur blanc (KPI, item actif bottom bar) ne passent que grâce à un second indice (libellé sombre en gras) — à inscrire comme exigence. **Règle inscrite + 4 instances corrigées le 08-07** (`DESIGN_TOKENS_SPEC.md` §2.5 ; l'instance « listes » était le hover d'`EntityRow`, pas une sémantique utilisateur-courant). **Balayage complet du solde en §7.3** : ≈15 instances texte restantes dans 7 fichiers (dont « Mettre à jour » carte Sécurité et initiales d'avatar — toutes deux dans Paramètres → Compte).
 - **X13 (nouveau — Majeur, M)** : classes de fenêtre **largeur seule** (`breakpoints.ts`) → téléphone paysage ≥840px traité en desktop (§4.1). Ajouter une dimension hauteur/orientation.
 - **X14 (nouveau — M–L)** : **pas de DataTable/liste dense partagée**, mais trois implémentations saines à factoriser (grille Audit, `<table>` Finance, colonnes EntityRow). Premier consommateur : Approbations desktop.
 - **X15 (nouveau — M, généralise INV-1)** : **convention d'actions destructives par ligne** — corbeille/« Supprimer » rouge sur chaque ligne (inventaire, utilisateurs, finance, RBAC), gardée par confirmation mais lourde et accidentogène au tactile. Menu ⋮ ou suppression en mode sélection.
@@ -196,6 +199,78 @@ Domaine sans Majeur : carte de connexion propre (marque TR, champs étiquetés +
 | 10 | Approbations desktop en rangées denses (réutiliser Historique/grille Audit) | `ApprovalsPage.tsx` | M | Pire page desktop « mobile étiré » restante | ✅ `92c20a0` (rangée dense d'Historique + actions inline, ~63px/rangée) |
 
 *(Exclus car logique — Chantier D : « Refuser » sur demande approuvée, PIN sur « Voir ». Exclus car L : capture caméra QR, X14 DataTable, X13 breakpoints — fort impact, additions système.)*
+
+---
+
+## 7. Vague 2 — clôture de la dette de vérification (2026-07-08)
+
+> Passe **code seul**, réalisée après l'implémentation du Top 10 — tous les verdicts sont **Inférés** sauf mention. Pour X12, les couleurs n'ayant pas changé depuis les mesures rendues du 07-07 (`--md-sys-color-primary` = `#FDC910`, `primary-container` = `#fff4b8`), les ratios mesurés (≈1,4–1,6:1) s'appliquent tels quels aux instances retrouvées. Aucune modification de code.
+
+### 7.1 Items §2.3 — verdicts
+
+| Item 07-02 | Verdict 08-07 | Preuve | App/DS | Sévérité | Effort |
+|---|---|---|---|---|---|
+| **X3** Actions tactiles Emplacements | **Corrigé** : hover-reveal gardé par `MEDIA.hoverCapable` — actions toujours visibles au tactile (le commentaire du correctif est en place) | `LocationsPage.tsx:346-348` | — | — | — |
+| **X4** Carte-option | **Toujours ouvert** : pattern artisanal — `Button` outlined + ~10 surcharges `!` par option, états sélectionnés recodés localement, **aucune sémantique de groupe radio** (ni `role="radiogroup"` ni `aria-checked` ; seul `Toggle` en a un dans tout `src/`) | `ReturnWizardPage.tsx:301-360` (état du retour) ; même famille : `AddCategoryPage.tsx:150/178` (méthode d'amortissement) | DS | Mineur | S (sémantique) → M (composant DS) |
+| **X6** Formats de date | **Partiellement corrigé** : helper central `formatDate` fr-FR (`financial.ts:181-185`, docstring explicite) adopté par 6 fichiers ; **6 appels sans locale restants** dans 3 fichiers — `TransactionTicketModal.tsx:108/147/236` (UI visible), `ReturnWizardPage.tsx:83/106` (⚠ écrit la date en locale navigateur dans des notes **persistées**), `ReportsPage.tsx:80` (en-tête d'export) | fichiers cités | Application | Mineur | XS |
+| **X7** Palette badges | **Inchangé — toujours bloqué** en attente d'arbitrage de la palette de marque | — | DS | — | — |
+| **X10** Map icônes | **Corrigé** : map centrale catégorie→icône + icône neutre `devices_other` pour l'inconnu (le docstring cite X10 et interdit les maps locales) | `src/constants/categoryIcons.ts` | — | — | — |
+| **INV-4** Fallback image | **Corrigé** : `onError` → icône neutre, dans les listes comme sur le héros de fiche | `EntityRow.tsx:119-129`, `EquipmentDetailsPage.tsx:432-443` | — | — | — |
+| **INV-8** Parsing CSV | **Corrigé** : parser à état (guillemets, échappement) + garde anti-injection (préfixes `=+-@` neutralisés), consommé par les deux pages d'import. Résiduel toléré : pas de champs multilignes (l'export les normalise) | `csv.ts`, `ImportEquipmentPage.tsx:58-61`, `ImportUsersPage.tsx:57-60` | — | — | — |
+| **USR** Stats codées en dur | **Corrigé** : « Équipements Assignés » et « Demandes en Attente » calculés depuis les données réelles | `UserDetailsPage.tsx:199-207` | — | — | — |
+| **LOC** Champs de modale jetés | **Toujours ouvert** : `onClose={resetForm}` vide les champs sans garde (clic hors modale = saisie perdue). Impact faible : formulaires à 1-2 champs | `LocationsPage.tsx:235-242, 437` | Application | Polish | XS |
+| **LOC** Interactifs imbriqués | **Toujours ouvert** : deux `Button` **dans** un div `role="button"` — boutons imbriqués exposés aux lecteurs d'écran | `LocationsPage.tsx:323-368` | Application | Mineur | S |
+| **AUD** Dégagement FAB | **Corrigé** : FAB décalé au-dessus de la bottom bar (`safe-area + 5.5rem`) et converti en feuille d'actions étiquetées | `ListActionFab.tsx:44-60` | — | — | — |
+| **AUD** Empilement de chrome | **Non re-vérifié — rendu requis** : à coupler à la prochaine passe Playwright | — | — | — | — |
+| **FIN/X5** Synthèse (chiffres inventés) | **Largement corrigé — déclassé Majeur→Mineur** : les KPI et la projection sont **calculés** (vrai moteur d'amortissement, `FinanceManagementPage.tsx:176-201, 254-261`) ; les deux blocs encore simulés portent des `DemoBadge` explicites (« IA Note » :818, « Valeur par Entité » :827) — la politique X5 est appliquée. Résiduels : « Voir le détail complet » **sans `onClick`** (:853, CTA mort), mois de projection figés « Jan–Juin » et « Mai » codé en dur dans la note (:254-261, :819) | `FinanceManagementPage.tsx` | Application | Mineur | XS |
+| **EntityRow** Troncature sous-titres | **Partiellement corrigé** : le titre passe en `line-clamp-2` en compact (plus de perte) ; le sous-titre reste `truncate` 1 ligne avec ellipse | `EntityRow.tsx:145, 150-157` | DS | Polish | XS |
+| **RBAC** 9 `<select>` natifs | **Corrigé** : **0** `<select>` natif dans `src/` — remplacés par `SelectField`/`SelectFilter` (listbox ARIA, navigation clavier complète) | `SelectField.tsx`, `SelectFilter.tsx` | — | — | — |
+
+À la marge : le constat §4.7-1 (FAB « + » ambigu, Emplacements) était déjà couvert par le code au moment de l'audit — le FAB compact ouvre une feuille à actions étiquetées « Ajouter un pays / un site / un service » contextuelles (+ import/export), livrée avec la vague du 3 juillet (`LocationsPage.tsx:180-215, 566-570`). Le résiduel se réduit à la découvrabilité avant tap, générique à tout FAB → **reclassé Polish**.
+
+### 7.2 INV-9 — le réamorçage mock, confirmé et aggravé (item à part)
+
+**Confirmé, et plus large que le constat du 07-02.** Deux mécanismes distincts dans `DataContext.tsx` :
+
+1. **Un `[]` persistant est re-semé** : l'hydratation n'accepte le localStorage que si `Array.isArray(parsed) && parsed.length > 0` (users :539, equipment :554) — tout vider ramène les mocks au rechargement. Les états vides des listes restent **intestables au rendu**.
+2. **La fusion ressuscite les suppressions unitaires** : `mergePersistedUsersWithSeed` / `mergePersistedEquipmentWithSeed` ré-ajoutent tout élément du seed absent de la liste persistée (`seededMissing`, :307-311 et :381-385). Supprimer un utilisateur ou un équipement du seed le fait **revenir au prochain chargement**. Aucun tombstone.
+
+Conséquences : (a) dette de vérification récurrente — `EmptyState` et les flux « liste vide » sont invérifiables, ce qui conditionne la fiabilité de plusieurs constats passés et futurs ; (b) comportement trompeur — une suppression confirmée par dialogue n'est pas durable. **Majeur / M** ; le correctif est une décision de conception (tombstones persistés, ou re-seed opt-in « Restaurer les données de démo » dans Paramètres) — **à trancher avec le Chantier D** (couche données).
+
+### 7.3 X12 — balayage complet du solde
+
+Balayage statique : **67** occurrences de `text-primary` hors états hover/focus, dont **≈15 instances texte** en violation de la règle (spec §2.5) dans 7 fichiers — y compris les 2 notées à la clôture du Top 10, toutes deux dans **Paramètres → Compte** (pas UserDetails) :
+
+| Fichier | Instances texte (jaune sur fond clair) |
+|---|---|
+| `SettingsPage.tsx` | :785 « Mettre à jour » (carte Sécurité) · :744 initiales d'avatar sur `bg-primary/10` · :466 titre « Aperçu » · :477 montant de simulation · :550 stat appareils liés |
+| `FinanceManagementPage.tsx` | :582 lien fournisseur · :1070 « Restant » du budget (branche positive) · :1086 chip `bg-primary/10 text-primary` |
+| `EquipmentDetailsPage.tsx` | :608 statut « En réparation » · :870 « Voir tout » |
+| `AddCategoryPage.tsx` | :150/:178 méthode d'amortissement active · :232 carte de durée sélectionnée |
+| `AddModelPage.tsx` | :130 « Télécharger l'image » |
+| `AddEquipmentPage.tsx` | :323 bouton `!text-primary` sur `!bg-primary-container` |
+| `UserDetailsPage.tsx` | :751 label « Appareil principal » |
+
+Le reste (~40) : icônes/spinners jaunes sur fond clair accompagnés d'un libellé sombre — couverts par l'exigence « second indice » de la règle ; à ne pas retoucher en masse. Revue au cas par cas uniquement quand l'icône est seule porteuse d'information (ex. spinners `FileDropzone.tsx:119`, `AddExpenseModal.tsx:420/434`).
+
+### 7.4 Le constat « trois implémentations de tabs » ne tient plus
+
+`PageTabs` est désormais **l'unique** implémentation `role="tablist"` de `src/` (9 consommateurs : approbations, audit ×2, finance, gestion ×3, paramètres, fiche utilisateur). La nav Paramètres est migrée en compact/medium (Top 10 #5) et sa nav latérale expanded est une composition voulue à base de variants `Button` standard. `SegmentedButton` subsiste dans 2 modales finance — primitive distincte (bascule de mode), pas une dérive. **Ce qui reste** du registre : le 3ᵉ pattern de **stepper** (RBAC Workflows, §4.8) — hors sujet tabs, inchangé.
+
+### 7.5 Short-list Vague 2 — à valider avant implémentation
+
+Pas de top 10 cette fois : le solde utile tient en 6 lots, classés par rapport impact/effort.
+
+| # | Lot | Réf. | Sévérité | Effort |
+|---|---|---|---|---|
+| 1 | **X12 : solder les ≈15 instances texte** (tableau §7.3) — la règle est actée, il ne reste que l'application | 7 fichiers, §7.3 | Majeur | XS×15 ≈ S–M |
+| 2 | **CTA morts ×2** : « Voir le détail complet » (Synthèse finance) et « Voir tout » (documents de la fiche équipement) — même famille qu'INV-7 ; câbler ou retirer | `FinanceManagementPage.tsx:853`, `EquipmentDetailsPage.tsx:870` | Mineur | XS |
+| 3 | **X6 : solder les 6 appels de date sans locale** — dont ReturnWizard qui écrit la locale du navigateur dans des notes persistées | 3 fichiers, §7.1 | Mineur | XS |
+| 4 | **X5 résiduel Synthèse** : ancrer les mois de projection sur la date courante et dé-coder « Mai » de l'IA Note (ou dériver la phrase des données) | `FinanceManagementPage.tsx:254-261, 819` | Mineur | XS–S |
+| 5 | **X4 : sémantique radiogroup sur les cartes-options** (état du retour + méthode d'amortissement) ; extraction d'un composant DS seulement si un 3ᵉ usage apparaît | `ReturnWizardPage.tsx:301-360`, `AddCategoryPage.tsx:150-240` | Mineur | S |
+| 6 | **LOC : dé-imbriquer les interactifs** des rangées Emplacements (rangée = bouton contenant 2 boutons) | `LocationsPage.tsx:323-368` | Mineur | S |
+
+**Hors short-list, à décision** : **INV-9** (Majeur / M — design de persistance, à trancher avec le Chantier D ; débloque le test des états vides pour toutes les passes suivantes) · **AUD empilement de chrome** + cohérence dashboard↔Approbations par persona (§2.2) : à coupler à la **prochaine passe de rendu** Playwright · **X7** (bloqué palette) · les **L** connus (X13 paysage, X14 DataTable, caméra QR) inchangés.
 
 ---
 
