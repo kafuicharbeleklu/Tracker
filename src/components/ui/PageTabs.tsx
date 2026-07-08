@@ -7,6 +7,9 @@ import MaterialIcon from './MaterialIcon';
 export interface TabItem {
   id: string;
   label: string;
+  /** Libellé court affiché en compact (<600px) à la place de `label` (X8-bis).
+      Pattern issu des onglets finance (« Synthèse Globale » → « Synthèse »). */
+  shortLabel?: string;
   icon?: React.ReactNode;
   badge?: number | string;
 }
@@ -156,8 +159,15 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                 </span>
               )}
 
-              {/* Label */}
-              <span>{item.label}</span>
+              {/* Label — libellé court adaptatif en compact (X8-bis) */}
+              {item.shortLabel ? (
+                <>
+                  <span className="medium:hidden">{item.shortLabel}</span>
+                  <span className="hidden medium:inline">{item.label}</span>
+                </>
+              ) : (
+                <span>{item.label}</span>
+              )}
 
               {/* Badge */}
               {item.badge !== undefined && (
