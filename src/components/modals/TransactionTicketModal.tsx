@@ -3,6 +3,7 @@ import MaterialIcon from '../ui/MaterialIcon';
 import SideSheet from '../ui/SideSheet';
 import { cn } from '../../lib/utils';
 import { formatDate, formatDateTime } from '../../lib/financial';
+import { getHistoryEventIcon, getHistoryEventTitle } from '../../lib/businessRules';
 import { HistoryEvent } from '../../types';
 
 interface TransactionTicketModalProps {
@@ -11,15 +12,19 @@ interface TransactionTicketModalProps {
     event: HistoryEvent | null;
 }
 
+// Types avec une iconographie dédiée ; les autres retombent sur le rendu générique.
+const SIMPLE_ACTION_PRESETS: Partial<Record<HistoryEvent['type'], { icon: string; colorClass: string }>> = {
+    CREATE: { icon: 'add_box', colorClass: 'bg-tertiary-container text-tertiary' },
+    DELETE: { icon: 'delete', colorClass: 'bg-error-container text-error' },
+    UPDATE: { icon: 'edit', colorClass: 'bg-secondary-container text-secondary' },
+};
+
 const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen, onClose, event }) => {
     if (!event) return null;
 
     const { equipmentSnapshot, userSnapshot, condition, previousUser } = event.metadata ?? {};
     const isAssignment = ['ASSIGN', 'ASSIGN_PENDING', 'ASSIGN_CONFIRMED'].includes(event.type);
     const isReturn = event.type === 'RETURN';
-    const isCreation = event.type === 'CREATE';
-    const isDeletion = event.type === 'DELETE';
-    const isModification = event.type === 'UPDATE';
 
     const sheetTitle = isAssignment
         ? 'Ticket d’attribution'
@@ -250,11 +255,19 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
             className="!rounded-none"
         >
             <div className="space-y-4">
-                {isAssignment && renderAssignmentTicket()}
-                {isReturn && renderReturnReceipt()}
-                {isCreation && renderSimpleAction(<MaterialIcon name="add_box" size={32} />, 'Création', 'bg-tertiary-container text-tertiary')}
-                {isDeletion && renderSimpleAction(<MaterialIcon name="delete" size={32} />, 'Suppression', 'bg-error-container text-error')}
-                {isModification && renderSimpleAction(<MaterialIcon name="edit" size={32} />, 'Modification', 'bg-secondary-container text-secondary')}
+                {isAssignment
+                    ? renderAssignmentTicket()
+                    : isReturn
+                        ? renderReturnReceipt()
+                        : renderSimpleAction(
+                            <MaterialIcon
+                                name={SIMPLE_ACTION_PRESETS[event.type]?.icon ?? getHistoryEventIcon(event.type)}
+                                size={32}
+                            />,
+                            getHistoryEventTitle(event.type),
+                            SIMPLE_ACTION_PRESETS[event.type]?.colorClass
+                                ?? 'bg-surface-container text-on-surface-variant',
+                        )}
             </div>
         </SideSheet>
     );

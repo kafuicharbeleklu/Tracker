@@ -259,6 +259,32 @@ const HISTORY_EVENT_ACTIONS: Partial<Record<EventType, string>> = {
     EXPORT: 'exporté des données sur',
     VIEW_SENSITIVE: 'consulté des données sensibles de',
 };
+const HISTORY_EVENT_TITLES: Partial<Record<EventType, string>> = {
+    CREATE: 'Création',
+    UPDATE: 'Modification',
+    DELETE: 'Suppression',
+    ASSIGN: 'Attribution',
+    ASSIGN_PENDING: 'Attribution initiée',
+    ASSIGN_MANAGER_WAIT: 'Validation manager demandée',
+    ASSIGN_MANAGER_OK: 'Validation manager',
+    ASSIGN_IT_PROCESSING: 'Traitement IT',
+    ASSIGN_IT_SELECTED: 'Actif sélectionné',
+    ASSIGN_DOTATION_WAIT: 'Validation de dotation demandée',
+    ASSIGN_DOTATION_OK: 'Dotation validée',
+    ASSIGN_CONFIRMED: 'Réception confirmée',
+    ASSIGN_DISPUTED: 'Litige déclaré',
+    RETURN: 'Retour',
+    REPAIR_START: 'Entrée en réparation',
+    REPAIR_END: 'Sortie de réparation',
+    APPROVAL_CREATE: 'Demande créée',
+    APPROVAL_MANAGER: 'Demande validée (manager)',
+    APPROVAL_ADMIN: 'Demande traitée',
+    APPROVAL_REJECT: 'Demande refusée',
+    LOGIN: 'Connexion',
+    LOGOUT: 'Déconnexion',
+    EXPORT: 'Export de données',
+    VIEW_SENSITIVE: 'Consultation de données sensibles',
+};
 const MOVEMENT_HISTORY_EVENT_TYPES: readonly EventType[] = [
     'CREATE',
     'ASSIGN',
@@ -363,6 +389,9 @@ export const isOperationalEquipmentStatus = (status: Equipment['status']): boole
 
 export const getHistoryEventIcon = (eventType: EventType): string =>
     HISTORY_EVENT_ICONS[eventType] || 'history';
+
+export const getHistoryEventTitle = (eventType: EventType): string =>
+    HISTORY_EVENT_TITLES[eventType] || 'Activité';
 
 const isMovementHistoryEventType = (eventType: EventType): boolean =>
     MOVEMENT_HISTORY_EVENT_TYPES.includes(eventType);
