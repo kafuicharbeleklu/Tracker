@@ -225,13 +225,6 @@ const LocationsPage = () => {
         return actions;
     })();
 
-    const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            action();
-        }
-    };
-
     function resetForm() {
         setModalType(null);
         setTargetType(null);
@@ -319,26 +312,30 @@ const LocationsPage = () => {
         }
     };
 
+    // LOC : la rangée n'est plus un role="button" englobant — la sélection est un Button DS
+    // frère des actions, plus d'interactifs imbriqués pour les lecteurs d'écran.
     const renderListItem = (item: string, type: EntityType, isSelected: boolean, onClick: () => void) => (
         <div
             key={item}
-            role="button"
-            tabIndex={0}
-            onClick={onClick}
-            onKeyDown={(e) => handleKeyDown(e, onClick)}
             className={cn(
-                "group relative flex min-h-11 items-center justify-between overflow-hidden rounded-xl px-4 py-2.5 pr-[5.75rem] text-label-large font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "group relative flex min-h-11 items-center overflow-hidden rounded-xl text-label-large font-bold transition-all",
                 isSelected
                     ? 'bg-primary-container text-on-primary-container shadow-elevation-1 border border-primary/30'
                     : 'hover:bg-surface-container text-on-surface-variant hover:text-on-surface'
             )}
         >
-            <div className="flex items-center gap-3 overflow-hidden">
+            <Button
+                variant="text"
+                type="button"
+                onClick={onClick}
+                aria-current={isSelected || undefined}
+                className="flex min-h-11 flex-1 !items-center !justify-start gap-3 overflow-hidden !rounded-xl !px-4 !py-2.5 !pr-[5.75rem] !text-left !text-current text-label-large font-bold hover:!bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
                 {type === 'country' && <MaterialIcon name="public" size={16} className={isSelected ? "text-on-primary-container" : "text-primary"} />}
                 {type === 'site' && <MaterialIcon name="apartment" size={16} className={isSelected ? "text-on-primary-container" : "text-secondary"} />}
                 {type === 'service' && <MaterialIcon name="meeting_room" size={16} className={isSelected ? "text-on-primary-container" : "text-tertiary"} />}
                 <span className="truncate">{item}</span>
-            </div>
+            </Button>
 
             <div
                 className={cn(
