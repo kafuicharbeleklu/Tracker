@@ -1,12 +1,12 @@
 {
   "date": "2026-07-09",
   "baseUrl": "http://127.0.0.1:4173",
-  "updateBaseline": true,
+  "updateBaseline": false,
   "totals": {
     "checkpoints": 39,
-    "match": 33,
+    "match": 39,
     "baselineCreated": 0,
-    "updated": 6,
+    "updated": 0,
     "changed": 0,
     "pass": 39,
     "fail": 0
@@ -46,11 +46,11 @@
       "device": "compact",
       "checkpoint": "locations",
       "route": "/locations",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "a9f77c3a78c443024d6d5f2dc1a6f071aefae0fa110b45b451ccb5020fe4110a",
       "baselinePath": "docs/md3-visual-baseline/compact/locations.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/compact/locations.png"
+      "currentPath": null
     },
     {
       "device": "compact",
@@ -106,11 +106,11 @@
       "device": "compact",
       "checkpoint": "add_equipment",
       "route": "/inventory/add",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "3e45e47ce75fb69741028b95983cbffc08046e7b9c2ccf44fe721fa1fe290e47",
       "baselinePath": "docs/md3-visual-baseline/compact/add_equipment.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/compact/add_equipment.png"
+      "currentPath": null
     },
     {
       "device": "compact",
@@ -158,7 +158,7 @@
       "route": "/dashboard",
       "status": "match",
       "pass": true,
-      "hash": "a6f5326f692c4250fc9ac8f5a5cd877ac59bc2e1f4dca7147d9fbfe79ec43d5e",
+      "hash": "08b5af2ebd12cb5e383179bf5add631f69b2a0c48898dc4bede4dc9022600a13",
       "baselinePath": "docs/md3-visual-baseline/medium/dashboard.png",
       "currentPath": null
     },
@@ -176,11 +176,11 @@
       "device": "medium",
       "checkpoint": "locations",
       "route": "/locations",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "b6e550d06d6648cb1f143101019e09ce9d866fc895015352ed1ab8de6f68665c",
       "baselinePath": "docs/md3-visual-baseline/medium/locations.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/medium/locations.png"
+      "currentPath": null
     },
     {
       "device": "medium",
@@ -266,11 +266,11 @@
       "device": "medium",
       "checkpoint": "finance",
       "route": "/finance",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "31e8ccd7e4b4ca5832e659124026c1938b130a9831ceae195c0e2003940a20cf",
       "baselinePath": "docs/md3-visual-baseline/medium/finance.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/medium/finance.png"
+      "currentPath": null
     },
     {
       "device": "expanded",
@@ -288,7 +288,7 @@
       "route": "/dashboard",
       "status": "match",
       "pass": true,
-      "hash": "60b7695caa21bb553efb9ee328a67cf76f8b330401a7b72b47b93230fbc64af8",
+      "hash": "8246c3cb7b42052b57b8010e8fcfb733ba3c86515ba92c026b61a4c53102478f",
       "baselinePath": "docs/md3-visual-baseline/expanded/dashboard.png",
       "currentPath": null
     },
@@ -306,11 +306,11 @@
       "device": "expanded",
       "checkpoint": "locations",
       "route": "/locations",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "1fea2b94c94e13d1bff152b1a1609cafc8571d919ccb034858b3e2e224e5f368",
       "baselinePath": "docs/md3-visual-baseline/expanded/locations.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/expanded/locations.png"
+      "currentPath": null
     },
     {
       "device": "expanded",
@@ -396,11 +396,11 @@
       "device": "expanded",
       "checkpoint": "finance",
       "route": "/finance",
-      "status": "updated",
+      "status": "match",
       "pass": true,
       "hash": "e62876670e39217e8b9589039eda88e8db9845a4d0f914d84dc0d424ac920e5f",
       "baselinePath": "docs/md3-visual-baseline/expanded/finance.png",
-      "currentPath": "docs/md3-visual-current/2026-07-09/expanded/finance.png"
+      "currentPath": null
     }
   ]
 }
