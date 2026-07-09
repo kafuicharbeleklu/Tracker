@@ -48,12 +48,15 @@ interface ManagementPageProps {
     onCategoryClick?: (id: string) => void;
     onModelClick?: (id: string) => void;
     onViewChange?: (view: ViewType) => void;
+    /** Lien profond /management/{categories|models}/add : modale ouverte au rendu. */
+    initialAddModal?: 'category' | 'model';
 }
 
 const ManagementPage: React.FC<ManagementPageProps> = ({
     onCategoryClick,
     onModelClick,
     onViewChange,
+    initialAddModal,
 }) => {
     const { equipment, categories, models, addCategory, deleteCategory, deleteModel } = useData();
     const { showToast } = useToast();
@@ -79,6 +82,18 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const [modelToEdit, setModelToEdit] = useState<Model | null>(null);
 
     const debouncedSearch = useDebounce(searchQuery, 300);
+
+    useEffect(() => {
+        if (initialAddModal === 'category') {
+            setActiveTab('categories');
+            setCategoryToEdit(null);
+            setIsCategoryModalOpen(true);
+        } else if (initialAddModal === 'model') {
+            setActiveTab('models');
+            setModelToEdit(null);
+            setIsModelModalOpen(true);
+        }
+    }, [initialAddModal]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -633,12 +648,19 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             {/* Shared Modals Components */}
             <AddCategoryPage
                 isOpen={isCategoryModalOpen}
-                onClose={() => setIsCategoryModalOpen(false)}
+                onClose={() => {
+                    setIsCategoryModalOpen(false);
+                    // Resynchronise l'URL du lien profond sur la liste parente.
+                    if (initialAddModal === 'category') onViewChange?.('management');
+                }}
                 categoryToEdit={categoryToEdit}
             />
             <AddModelPage
                 isOpen={isModelModalOpen}
-                onClose={() => setIsModelModalOpen(false)}
+                onClose={() => {
+                    setIsModelModalOpen(false);
+                    if (initialAddModal === 'model') onViewChange?.('management');
+                }}
                 modelToEdit={modelToEdit}
             />
             <input

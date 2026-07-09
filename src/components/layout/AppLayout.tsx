@@ -122,6 +122,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'new_request': return 'Nouvelle demande';
             case 'finance': return DESTINATIONS.finance.label;
             case 'management': return DESTINATIONS.management.label;
+            case 'add_category':
+            case 'add_model': return DESTINATIONS.management.label;
             case 'rbac': return DESTINATIONS.rbac.label;
             case 'category_details': return 'Détail catégorie';
             case 'model_details': return 'Détail modèle';
@@ -267,6 +269,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onViewChange={handleViewChange}
                         onCategoryClick={(id) => handleItemClick('category_details', id)}
                         onModelClick={(id) => handleItemClick('model_details', id)}
+                    />
+                );
+            case 'add_category':
+            case 'add_model':
+                // AddCategoryPage/AddModelPage sont des modales de ManagementPage, pas des
+                // pages routées : le lien profond rend la liste parente, modale déjà ouverte.
+                return (
+                    <ManagementPage
+                        onViewChange={handleViewChange}
+                        onCategoryClick={(id) => handleItemClick('category_details', id)}
+                        onModelClick={(id) => handleItemClick('model_details', id)}
+                        initialAddModal={currentView === 'add_category' ? 'category' : 'model'}
                     />
                 );
             case 'rbac':
