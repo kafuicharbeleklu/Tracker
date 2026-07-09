@@ -261,6 +261,8 @@ Le reste (~40) : icônes/spinners jaunes sur fond clair accompagnés d'un libell
 
 ### 7.5 Short-list Vague 2 — à valider avant implémentation
 
+> **Implémentée le 2026-07-08/09** (feu vert reçu) : 6 lots livrés en 6 commits (`b029f33`, `67e8e0a`, `9f364b0`, `7dd5e13`, `b7fab94`, `4c14e83`), chacun vérifié build + lint (rouge connu DataContext inchangé) + md3 + encoding + smoke Playwright au rendu. Clôture : baselines visuelles rafraîchies (6 mises à jour intentionnelles, 0 régression, 39/39 Pass) et repasse a11y **16/16 Pass**. Détail par lot dans la colonne « Lot ».
+
 Pas de top 10 cette fois : le solde utile tient en 6 lots, classés par rapport impact/effort.
 
 | # | Lot | Réf. | Sévérité | Effort |
