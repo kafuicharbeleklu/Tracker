@@ -51,6 +51,15 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
         }
     }, [categoryToEdit, isOpen]);
 
+    // X4 : navigation aux flèches du radiogroup « méthode d'amortissement »
+    const handleMethodKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
+        e.preventDefault();
+        const next = formData.method === 'linear' ? 'degressive' : 'linear';
+        setFormData({ ...formData, method: next });
+        e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next === 'linear' ? 0 : 1]?.focus();
+    };
+
     const handleSave = () => {
         if (!formData.name.trim()) {
             showToast('Veuillez entrer un nom de catégorie', 'error');
@@ -131,11 +140,19 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         </h3>
                     </div>
 
-                    {/* Sélecteur de méthode visuel */}
-                    <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4">
+                    {/* Sélecteur de méthode visuel — X4 : sémantique radiogroup */}
+                    <div
+                        role="radiogroup"
+                        aria-label="Méthode d'amortissement"
+                        onKeyDown={handleMethodKeyDown}
+                        className="grid grid-cols-1 expanded:grid-cols-2 gap-4"
+                    >
                         <Button
                             type="button"
                             variant="outlined"
+                            role="radio"
+                            aria-checked={formData.method === 'linear'}
+                            tabIndex={formData.method === 'linear' ? 0 : -1}
                             onClick={() => setFormData({ ...formData, method: 'linear' })}
                             className={cn(
                                 "h-auto !rounded-xl !border-2 !p-4 !text-left !justify-start !items-start transition-all group overflow-hidden hover:shadow-elevation-2",
@@ -165,6 +182,9 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         <Button
                             type="button"
                             variant="outlined"
+                            role="radio"
+                            aria-checked={formData.method === 'degressive'}
+                            tabIndex={formData.method === 'degressive' ? 0 : -1}
                             onClick={() => setFormData({ ...formData, method: 'degressive' })}
                             className={cn(
                                 "h-auto !rounded-xl !border-2 !p-4 !text-left !justify-start !items-start transition-all group overflow-hidden hover:shadow-elevation-2",

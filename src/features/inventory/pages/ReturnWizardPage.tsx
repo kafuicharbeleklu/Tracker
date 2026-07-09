@@ -40,6 +40,17 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
     const [validatedBy, setValidatedBy] = useState<ValidationMethod | null>(null);
     const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
 
+    // X4 : navigation aux flèches du radiogroup « état du retour » (même ordre que les cartes rendues)
+    const conditionOrder: ReturnCondition[] = ['Excellent', 'Bon', 'Moyen', 'Mauvais'];
+    const handleConditionKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
+        e.preventDefault();
+        const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex = (conditionOrder.indexOf(condition) + delta + conditionOrder.length) % conditionOrder.length;
+        setCondition(conditionOrder[nextIndex]);
+        e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]?.focus();
+    };
+
     const [equipmentSearch, setEquipmentSearch] = useState('');
     const [equipmentPage, setEquipmentPage] = useState(1);
     const [pin, setPin] = useState(['', '', '', '', '', '']);
@@ -298,7 +309,12 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
 
                         <div className="grid grid-cols-1 expanded:grid-cols-12 gap-6 items-start">
                             <div className="expanded:col-span-8 space-y-4">
-                                <div className="grid grid-cols-1 medium:grid-cols-2 gap-3">
+                                <div
+                                    role="radiogroup"
+                                    aria-label="État du retour"
+                                    onKeyDown={handleConditionKeyDown}
+                                    className="grid grid-cols-1 medium:grid-cols-2 gap-3"
+                                >
                                     {[
                                         {
                                             value: 'Excellent' as ReturnCondition,
@@ -343,6 +359,9 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                                 key={option.value}
                                                 type="button"
                                                 variant="outlined"
+                                                role="radio"
+                                                aria-checked={isSelected}
+                                                tabIndex={isSelected ? 0 : -1}
                                                 onClick={() => setCondition(option.value)}
                                                 className={cn(
                                                     'h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-on-surface !transition-all !duration-short4 !ease-emphasized !justify-start !items-center text-left group',
