@@ -1191,7 +1191,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // OPTIONNEL : Mettre à jour rétroactivement les utilisateurs existants de ce service ?
         // Pour l'instant, on laisse l'existant tel quel, la règle s'applique aux nouveaux/modifiés.
-    }, [currentUser?.role]);
+    }, []);
 
     const addUser = useCallback((user: User): BusinessRuleDecision => {
         const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
@@ -1977,7 +1977,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         return result;
-    }, [currentUser?.role, detectedDevices, upsertEquipmentFromAuditScan]);
+    }, [detectedDevices, upsertEquipmentFromAuditScan]);
 
     const markDetectedDeviceAsIgnored = useCallback((detectedDeviceId: string): boolean => {
         const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
@@ -2048,7 +2048,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
 
         return true;
-    }, [currentUser?.role, equipment, updateEquipment]);
+    }, [equipment, updateEquipment]);
 
     const updateApproval = useCallback((id: string, status: ApprovalStatus): BusinessRuleDecision => {
         const oldApproval = approvals.find(a => a.id === id);
@@ -2178,7 +2178,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return newData;
         });
         return success;
-    }, [currentUser?.role]);
+    }, []);
 
     const renameLocation = useCallback((type: 'country' | 'site' | 'service', oldName: string, newName: string, parentId?: string) => {
         const permissionDecision = canManageLocationsByRole(currentUserAccessRef.current);
@@ -2225,7 +2225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return newData;
         });
         return success;
-    }, [currentUser?.role, serviceManagers]);
+    }, [serviceManagers]);
 
     const deleteLocation = useCallback((type: 'country' | 'site' | 'service', name: string, parentId?: string) => {
         const permissionDecision = canManageLocationsByRole(currentUserAccessRef.current);
@@ -2251,7 +2251,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return newData;
         });
-    }, [currentUser?.role]);
+    }, []);
 
     const addCategory = useCallback((catData: Omit<Category, 'id'>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
@@ -2261,7 +2261,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const newId = Date.now().toString();
         setCategories(prev => [...prev, { ...catData, id: newId }]);
-    }, [currentUser?.role]);
+    }, []);
     const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -2269,7 +2269,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    }, [currentUser?.role]);
+    }, []);
     const deleteCategory = useCallback((id: string) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -2278,7 +2278,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setCategories(prev => prev.filter(c => c.id !== id));
         return true;
-    }, [currentUser?.role]);
+    }, []);
     const addModel = useCallback((modelData: Omit<Model, 'id'>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -2287,7 +2287,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const newId = Date.now().toString();
         setModels(prev => [...prev, { ...modelData, id: newId }]);
-    }, [currentUser?.role]);
+    }, []);
     const updateModel = useCallback((id: string, updates: Partial<Model>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -2295,7 +2295,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setModels(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    }, [currentUser?.role]);
+    }, []);
     const deleteModel = useCallback((id: string) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -2304,7 +2304,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setModels(prev => prev.filter(m => m.id !== id));
         return true;
-    }, [currentUser?.role]);
+    }, []);
 
     const contextValue = useMemo(() => ({
         users,

@@ -199,6 +199,8 @@ Contre-exemple qui confirme le motif : les callbacks qui lisent **réellement** 
 - **Test unitaire léger ?** **Non** — l'identité d'un `useCallback` et la fraîcheur d'une ref ne se testent pas utilement sans environnement React ; ici, **le lint est le test**.
 - **Sévérité : Mineur** (dette de qualité, pas de bug) · **Effort : XS**.
 
+> ✅ **Implémenté le 2026-07-10** — les 12 deps retirées exactement comme au tableau (9× `[]`, 3 avec deps restantes conservées dont `[serviceManagers]` pour `renameLocation`). Vérifié : `npm run lint` vert (politique zéro-warning rétablie), `npm run build` OK, smoke Playwright en dev : alice.admin ajoute emplacement + catégorie + modèle avec succès, puis bascule alice→jane.manager **sans reload** — formulaire catégorie non rendu et bouton « Ajouter un pays » absent pour jane : la garde par ref suit bien le rôle en cours de session.
+
 ### 7.5 Reports — 4 exports débranchés du store vivant (confirme la requalification §8.2 du rapport UX)
 
 **Constaté** (`ReportsPage.tsx`) : la page importe `mockReports, mockAllEquipment, mockAllUsersExtended` **directement depuis `data/mockData`** (:2) et n'appelle jamais `useData()` — seule page métier dans ce cas ; tout le reste de l'app consomme le DataContext. Détail des 4 cartes (`mockData.tsx:551-556`) :
