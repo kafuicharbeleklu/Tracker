@@ -277,8 +277,8 @@ Feu vert reçu avec arbitrages : D8 = Option B + bypass dev-only ; D9 = PIN uniq
 
 **Les 5 items sont implémentés et vérifiés** (annotations ✅ par section ; séquence exécutée 7.4 → repro → 7.1+7.2 → 7.5 → 7.3 ; chaque lot : build + lint verts + smoke Playwright du scénario spécifique + commit dédié). Restent ouverts :
 
-- **D12** (§7.1/§7.6) — `assignedEquipmentId` jamais posé sur le chemin wizard-depuis-demande (workflow de dotation cassé côté équipement) — **Majeur**, à arbitrer. → **Caractérisé en §8.1–8.2.**
-- Garde-fou `typingKeyword` mort dans `ConfirmationDialog` (§7.5, découverte annexe) — Mineur, XS. → **Caractérisé en §8.3.**
+- **D12** (§7.1/§7.6) — `assignedEquipmentId` jamais posé sur le chemin wizard-depuis-demande (workflow de dotation cassé côté équipement) — **Majeur**, à arbitrer. → **Caractérisé en §8.1–8.2, ✅ corrigé et vérifié en §8.5 (commit `948ad49`).**
+- Garde-fou `typingKeyword` mort dans `ConfirmationDialog` (§7.5, découverte annexe) — Mineur, XS. → **Caractérisé en §8.3, ✅ corrigé et vérifié en §8.5 (commit `1cdaad1`).**
 - Faux facteurs du wizard (étiquetés DEMO) — non arbitrés (reliquat D9).
 
 ---
@@ -350,3 +350,23 @@ Ces deux-là sont **semés ainsi** (décor « flux en cours » du seed initial),
 
 **Aucune implémentation. En attente d'arbitrage** : D12 (correctif + stratégie de nettoyage des données), renommage du prop `typingKeyword`, et sort du méta-constat `@types/react`.
 - Baselines visuelles Approbations à rafraîchir (badge/rangées SuperAdmin volontairement modifiés par 7.1) — de préférence après arbitrage D12 pour éviter un double refresh.
+
+### 8.5 Implémentation (2026-07-10, arbitrage reçu) — D12 ✅ · `typingKeyword` ✅
+
+Arbitrage : D12 approuvé (portage du lien + branche fallback + 2 orphelins du seed) ; renommage `typingKeyword` approuvé (les 6 sites) ; **persistance des approbations explicitement hors lot** ; §8.3 méta-constat `@types/react` hors lot (chantier séparé à chiffrer). Deux commits distincts, chaque lot : build + lint verts + vérification Playwright au rendu (session unique, storage réinitialisé, alice.admin).
+
+**D12 — commit `948ad49`** :
+
+- `updateApproval(id, status, options?)` porte désormais `assignedEquipmentId`/`assignedEquipmentName` dans le **même `setApprovals` immutable** ; la mutation directe du wizard (`:186-190`) est supprimée et la branche fallback passe le lien aussi. La synchro équipement interne **s'efface quand `options` est fourni** : le wizard reste l'écrivain équipement complet (bénéficiaire, `assignedBy`) — vérifié au journal : exactement 1 événement équipement par passage wizard, pas de doublon.
+- **Boucle refus-dotation : exercée réellement — le seul portage du lien ne la couvrait PAS.** Sans traitement dédié, le retour `WAITING_DOTATION_APPROVAL → WAITING_IT_PROCESSING` aurait maintenu l'équipement réservé (`getEquipmentUpdatesForApprovalStatus` ne connaissait que le statut cible) et le second passage du wizard aurait écrasé le lien en laissant le 1er choix orphelin — l'aggravation déduite en §8.1. Ajout : sur cette transition (détectée via nouveau paramètre `previousStatus`), l'équipement proposé est **libéré** (`Disponible/NONE/user:null`) et le lien de l'approbation est **rompu**. Vérifié au rendu : 1er choix libéré au refus et resté libre, 2e choix mené jusqu'à `Completed`.
+- **Seed : orphelins réinitialisés à `Disponible/NONE`** (ids '1' LPT-HQ-01, '10' LPT-DK-03, métadonnées `assignedBy/At` retirées) plutôt que « réparés » par des approbations liées. Pourquoi : la demande démo id '1' à `Pending` est le point d'entrée démo du wizard (l'avancer pour coller à l'équipement l'aurait détruite) ; aucun état d'approbation atteignable ne produit un équipement réservé à `WAITING_MANAGER_APPROVAL` sans bénéficiaire ; et surtout, les approbations n'étant pas persistées, **tout état « en cours » semé re-orphelinerait au premier reload** — `Disponible`/`Attribué(CONFIRMED)` sont les deux seuls états seed stables tant que la persistance n'est pas tranchée.
+- Vérifié au rendu (3 demandes neuves, chaîne complète) : `Completed` ⇒ `Attribué/CONFIRMED` + bénéficiaire ; `Rejected` ⇒ `Disponible/NONE/user:null` ; boucle refus-dotation close proprement ; les 2 ex-orphelins du seed sont `Disponible` sur storage vierge.
+
+**`typingKeyword` — commit `1cdaad1`** : renommage franc — `ConfirmationOptions.confirmKeyword` remplace `requireTyping`/`typingKeyword`, les 6 sites alignés, conditionnel d'`UserDetailsPage` préservé (`confirmKeyword: role !== 'User' ? 'SUPPRIMER' : undefined`). Vérifié au rendu sur les 2 sites sensibles, **deux issues chacun** : suppression d'un compte Admin (SUPPRIMEUR ⇒ bouton désactivé ; SUPPRIMER ⇒ suppression effective) ; clôture d'audit 4 machines (CLOTURE ⇒ bloqué ; CLOTURER ⇒ machines `Manquant`). Contre-épreuve du conditionnel : compte `User` ⇒ confirmation simple sans mot-clé. Les 4 autres sites : même mécanique partagée, build + lint + grep (zéro occurrence morte restante).
+
+**Restent ouverts après cette passe** :
+
+- **Persistance des approbations — point ouvert distinct, non touché (décision d'architecture)** : les équipements sont persistés, les approbations non (`useState` pur) ⇒ toute demande en cours meurt au reload et l'équipement persisté `En attente` devient orphelin de fait. Le correctif D12 est complet **en session** ; il ne survit pas aux reloads sans une couche de persistance des approbations (et la question sœur : réparation au chargement des états persistés hérités — les copies localStorage antérieures au correctif gardent leurs orphelins, consigne actuelle : vider le storage démo). À arbitrer comme chantier propre.
+- Méta-constat `@types/react` absent ⇒ vérification de props JSX morte projet-wide (§8.3) — chantier séparé à chiffrer, non touché.
+- Faux facteurs du wizard (reliquat D9) — non arbitrés.
+- Baselines visuelles Approbations — à rafraîchir maintenant que D12 est passé (badge/rangées SuperAdmin + indicateur de lien désormais réellement rendu).
