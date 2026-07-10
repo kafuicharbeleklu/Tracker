@@ -221,8 +221,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             message: `Êtes-vous sûr de vouloir supprimer l'équipement "${item.name}" ? Cette action est irréversible.`,
             confirmText: "Supprimer définitivement",
             variant: "danger",
-            requireTyping: true,
-            typingKeyword: "SUPPRIMER",
+            confirmKeyword: "SUPPRIMER",
             onConfirm: () => {
                 if (deleteEquipment(item.id)) {
                     showToast(GLOSSARY.SUCCESS_DELETE(GLOSSARY.EQUIPMENT), 'success');

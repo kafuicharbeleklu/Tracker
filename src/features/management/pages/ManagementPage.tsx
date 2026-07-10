@@ -215,8 +215,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             title: "Supprimer la catégorie",
             message: `Êtes-vous certain de vouloir supprimer la catégorie "${cat.name}" ? Cette action est irréversible.`,
             variant: 'danger',
-            requireTyping: true,
-            typingKeyword: "SUPPRIMER",
+            confirmKeyword: "SUPPRIMER",
             confirmText: "Supprimer définitivement",
             onConfirm: () => {
                 if (deleteCategory(cat.id)) {
@@ -250,8 +249,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             title: "Supprimer le modèle",
             message: `Êtes-vous certain de vouloir supprimer le modèle "${model.name}" ? Cette action est irréversible.`,
             variant: 'danger',
-            requireTyping: true,
-            typingKeyword: "SUPPRIMER",
+            confirmKeyword: "SUPPRIMER",
             confirmText: "Supprimer définitivement",
             onConfirm: () => {
                 if (deleteModel(model.id)) {

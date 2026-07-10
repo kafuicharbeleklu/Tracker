@@ -399,8 +399,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             variant: 'danger',
             confirmText: 'Clôturer et retirer',
             cancelText: 'Annuler',
-            requireTyping: true,
-            typingKeyword: 'CLOTURER',
+            confirmKeyword: 'CLOTURER',
             onConfirm: () => finalizeAuditSession(missingSnapshot),
         });
     };

@@ -7,8 +7,8 @@ interface ConfirmationOptions {
   variant?: 'danger' | 'warning' | 'info';
   confirmText?: string;
   cancelText?: string;
-  requireTyping?: boolean;
-  typingKeyword?: string;
+  /** Mot-clé que l'utilisateur doit taper pour armer le bouton de confirmation */
+  confirmKeyword?: string;
   onConfirm: () => Promise<void> | void;
 }
 
@@ -61,8 +61,7 @@ export const ConfirmationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         variant={options.variant || 'warning'}
         confirmText={options.confirmText}
         cancelText={options.cancelText}
-        requireTyping={options.requireTyping}
-        typingKeyword={options.typingKeyword}
+        confirmKeyword={options.confirmKeyword}
         isLoading={isLoading}
       />
     </ConfirmationContext.Provider>

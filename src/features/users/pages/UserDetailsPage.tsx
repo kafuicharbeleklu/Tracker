@@ -252,8 +252,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
             message: `Êtes-vous certain de vouloir supprimer le compte de ${user.name} ? Cette action supprimera tout son historique et est irréversible.`,
             confirmText: "Supprimer le compte",
             variant: "danger",
-            requireTyping: user.role !== 'User',
-            typingKeyword: "SUPPRIMER",
+            confirmKeyword: user.role !== 'User' ? "SUPPRIMER" : undefined,
             onConfirm: () => {
                 const decision = deleteUser(user.id);
                 if (decision.allowed) {

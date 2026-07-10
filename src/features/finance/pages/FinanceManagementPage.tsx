@@ -368,8 +368,7 @@ const FinanceManagementPage = () => {
             variant: 'danger',
             confirmText: 'Supprimer',
             cancelText: 'Annuler',
-            requireTyping: true,
-            typingKeyword: 'SUPPRIMER',
+            confirmKeyword: 'SUPPRIMER',
             onConfirm: () => {
                 const isDeleted = deleteFinanceExpense(expense.id);
                 if (!isDeleted) {
