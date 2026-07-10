@@ -23,7 +23,8 @@ interface ApprovalRowProps {
         color: string;
         bg: string;
         icon: React.ReactNode;
-        btnText: string;
+        // Absents pour les statuts terminaux : aucune action dans la machine à états
+        btnText?: string;
         rejectText?: string;
     };
 }
@@ -94,13 +95,14 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
 
                     {/* Actions inline en rangée dense (Approbations desktop, X14/§4.3) —
                         mêmes SecurityGate que la carte, logique de transition inchangée */}
-                    {showActions && onApprove && onReject && (
+                    {showActions && onApprove && onReject && stepDetails.btnText && (
                         <div className="flex items-center gap-2 shrink-0">
                             <SecurityGate
                                 onVerified={() => onReject(approval)}
                                 title={rejectLabel}
                                 description={`${rejectLabel} cette demande ?`}
                                 entityId={approval.id}
+                                entityName={equipmentTitle}
                                 trigger={
                                     <Button
                                         variant="outlined"
@@ -117,6 +119,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                 title={stepDetails.btnText}
                                 description="Confirmer cette action."
                                 entityId={approval.id}
+                                entityName={equipmentTitle}
                                 trigger={
                                     <Button
                                         variant="tonal"
@@ -204,13 +207,14 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                         </span>
                     </div>
 
-                    {showActions && onApprove && onReject && (
+                    {showActions && onApprove && onReject && stepDetails.btnText && (
                         <div className="grid grid-cols-2 gap-2 pt-1">
                             <SecurityGate
                                 onVerified={() => onReject(approval)}
                                 title={rejectLabel}
                                 description={`${rejectLabel} cette demande ?`}
                                 entityId={approval.id}
+                                entityName={equipmentTitle}
                                 trigger={
                                     <Button
                                         variant="outlined"
@@ -227,6 +231,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                 title={stepDetails.btnText}
                                 description="Confirmer cette action."
                                 entityId={approval.id}
+                                entityName={equipmentTitle}
                                 trigger={
                                     <Button
                                         variant="tonal"

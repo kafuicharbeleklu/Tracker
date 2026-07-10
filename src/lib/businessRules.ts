@@ -232,6 +232,7 @@ const HISTORY_EVENT_ICONS: Partial<Record<EventType, string>> = {
     LOGOUT: 'logout',
     EXPORT: 'download',
     VIEW_SENSITIVE: 'visibility',
+    SECURITY_STEP_UP: 'lock_person',
 };
 const HISTORY_EVENT_ACTIONS: Partial<Record<EventType, string>> = {
     CREATE: 'ajouté',
@@ -258,6 +259,7 @@ const HISTORY_EVENT_ACTIONS: Partial<Record<EventType, string>> = {
     LOGOUT: 'fermé une session',
     EXPORT: 'exporté des données sur',
     VIEW_SENSITIVE: 'consulté des données sensibles de',
+    SECURITY_STEP_UP: 'validé une action sensible sur',
 };
 const HISTORY_EVENT_TITLES: Partial<Record<EventType, string>> = {
     CREATE: 'Création',
@@ -284,6 +286,7 @@ const HISTORY_EVENT_TITLES: Partial<Record<EventType, string>> = {
     LOGOUT: 'Déconnexion',
     EXPORT: 'Export de données',
     VIEW_SENSITIVE: 'Consultation de données sensibles',
+    SECURITY_STEP_UP: 'Validation de sécurité (step-up)',
 };
 const MOVEMENT_HISTORY_EVENT_TYPES: readonly EventType[] = [
     'CREATE',
@@ -339,7 +342,9 @@ export const canUserActOnApproval = ({
     users,
 }: ApprovalActionContext): boolean => {
     if (!actorRole || !actorId) return false;
-    if (actorRole === 'SuperAdmin') return true;
+    // Le bypass SuperAdmin ne vaut que pour les demandes encore actives : les statuts
+    // terminaux n'ont aucune transition sortante (cf. APPROVAL_TRANSITIONS).
+    if (actorRole === 'SuperAdmin') return isApprovalActiveStatus(approval.status);
 
     if (MANAGER_GATES.includes(approval.status)) {
         return actorRole === 'Manager' && isManagerOfRequest(approval, actorId, users);
@@ -354,6 +359,59 @@ export const canUserActOnApproval = ({
     }
 
     return false;
+};
+
+export interface ApprovalPrimaryAction {
+    kind: 'transition' | 'assign';
+    nextStatus?: ApprovalStatus;
+}
+
+export interface AvailableApprovalActions {
+    primary: ApprovalPrimaryAction | null;
+    reject: { nextStatus: ApprovalStatus } | null;
+}
+
+// Action principale par statut ; le wizard d'affectation ('assign') aboutit à
+// WAITING_DOTATION_APPROVAL, ce que la table doit autoriser pour que l'action apparaisse.
+const PRIMARY_APPROVAL_ACTIONS: Partial<Record<ApprovalStatus, ApprovalPrimaryAction>> = {
+    WAITING_MANAGER_APPROVAL: { kind: 'transition', nextStatus: 'WAITING_IT_PROCESSING' },
+    WaitingManager: { kind: 'transition', nextStatus: 'WAITING_IT_PROCESSING' },
+    WAITING_IT_PROCESSING: { kind: 'assign' },
+    Pending: { kind: 'assign' },
+    Processing: { kind: 'assign' },
+    WAITING_DOTATION_APPROVAL: { kind: 'transition', nextStatus: 'PENDING_DELIVERY' },
+    PENDING_DELIVERY: { kind: 'transition', nextStatus: 'Completed' },
+    WaitingUser: { kind: 'transition', nextStatus: 'Completed' },
+};
+
+export const getApprovalRejectTarget = (status: ApprovalStatus): ApprovalStatus =>
+    status === 'WAITING_DOTATION_APPROVAL' ? 'WAITING_IT_PROCESSING' : 'Rejected';
+
+/**
+ * Dérive la disponibilité des actions par rangée depuis la machine à états
+ * (APPROVAL_TRANSITIONS) et les gates de rôle — la présentation (libellés,
+ * couleurs) reste à la charge des pages.
+ */
+export const getAvailableApprovalActions = (context: ApprovalActionContext): AvailableApprovalActions => {
+    const { approval } = context;
+    if (!canUserActOnApproval(context)) {
+        return { primary: null, reject: null };
+    }
+
+    const allowedTargets = APPROVAL_TRANSITIONS[approval.status] || [];
+
+    const primaryCandidate = PRIMARY_APPROVAL_ACTIONS[approval.status] || null;
+    const primaryTarget = primaryCandidate?.kind === 'assign'
+        ? 'WAITING_DOTATION_APPROVAL'
+        : primaryCandidate?.nextStatus;
+    const primary = primaryCandidate && primaryTarget && allowedTargets.includes(primaryTarget)
+        ? primaryCandidate
+        : null;
+
+    const rejectTarget = getApprovalRejectTarget(approval.status);
+    const reject = allowedTargets.includes(rejectTarget) ? { nextStatus: rejectTarget } : null;
+
+    return { primary, reject };
 };
 
 export const getStatusLabel = (

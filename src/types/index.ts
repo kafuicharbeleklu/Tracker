@@ -491,7 +491,8 @@ export type EventType =
   | 'LOGIN'            // Connexion
   | 'LOGOUT'           // Déconnexion
   | 'EXPORT'           // Export données
-  | 'VIEW_SENSITIVE';  // Consultation données sensibles
+  | 'VIEW_SENSITIVE'   // Consultation données sensibles
+  | 'SECURITY_STEP_UP'; // Step-up de sécurité (PIN) sur action sensible
 
 export type TargetType = 'EQUIPMENT' | 'USER' | 'APPROVAL' | 'LOCATION' | 'SYSTEM';
 

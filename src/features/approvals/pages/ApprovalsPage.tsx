@@ -21,6 +21,7 @@ import ListActionFab from '../../../components/ui/ListActionFab';
 import { cn } from '../../../lib/utils';
 import {
     canUserActOnApproval,
+    getAvailableApprovalActions,
     isApprovalActiveStatus,
     isApprovalHistoryStatus,
     isLegacyApprovalWorkflow,
@@ -210,50 +211,64 @@ const ApprovalsPage = () => {
         return true;
     };
 
-    const handleAction = (approval: Approval) => {
-        if (approval.status === 'WAITING_MANAGER_APPROVAL' || approval.status === 'WaitingManager') {
-            applyApprovalTransition(approval, 'WAITING_IT_PROCESSING', 'Demande approuvée. Transmise à l\'IT.');
-            return;
+    const getRowActions = useCallback(
+        (approval: Approval) =>
+            getAvailableApprovalActions({
+                approval,
+                actorRole: role,
+                actorId: currentUser?.id,
+                users,
+            }),
+        [currentUser?.id, role, users],
+    );
+
+    const TRANSITION_SUCCESS_MESSAGES: Partial<Record<Approval['status'], string>> = {
+        WAITING_IT_PROCESSING: 'Demande approuvée. Transmise à l\'IT.',
+        PENDING_DELIVERY: 'Dotation approuvée. En attente de confirmation utilisateur.',
+        Completed: 'Réception confirmée.',
+    };
+
+    const handleAction = (approval: Approval): boolean => {
+        const { primary } = getRowActions(approval);
+        if (!primary) {
+            showToast('Aucune action disponible pour cette demande.', 'error');
+            return false;
         }
 
-        if (approval.status === 'WAITING_IT_PROCESSING' || approval.status === 'Pending') {
+        if (primary.kind === 'assign') {
             const params = new URLSearchParams();
             params.append('approvalId', approval.id);
             params.append('userId', approval.beneficiaryId);
             params.append('category', approval.equipmentCategory || '');
             navigate(`/wizards/assignment?${params.toString()}`);
-            return;
+            return true;
         }
 
-        if (approval.status === 'WAITING_DOTATION_APPROVAL') {
-            applyApprovalTransition(
-                approval,
-                'PENDING_DELIVERY',
-                'Dotation approuvée. En attente de confirmation utilisateur.',
-            );
-            return;
-        }
-
-        if (approval.status === 'PENDING_DELIVERY' || approval.status === 'WaitingUser') {
-            applyApprovalTransition(approval, 'Completed', 'Réception confirmée.');
-            return;
-        }
+        return applyApprovalTransition(
+            approval,
+            primary.nextStatus!,
+            TRANSITION_SUCCESS_MESSAGES[primary.nextStatus!] || 'Demande mise à jour.',
+        );
     };
 
-    const handleReject = (approval: Approval) => {
-        const nextStatus: Approval['status'] = approval.status === 'WAITING_DOTATION_APPROVAL'
-            ? 'WAITING_IT_PROCESSING'
-            : 'Rejected';
-        const decision = updateApproval(approval.id, nextStatus);
+    const handleReject = (approval: Approval): boolean => {
+        const { reject } = getRowActions(approval);
+        if (!reject) {
+            showToast('Aucune action disponible pour cette demande.', 'error');
+            return false;
+        }
+
+        const decision = updateApproval(approval.id, reject.nextStatus);
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
-            return;
+            return false;
         }
-        if (nextStatus === 'WAITING_IT_PROCESSING') {
+        if (reject.nextStatus === 'WAITING_IT_PROCESSING') {
             showToast('Dotation refusée. Retour en traitement IT.', 'info');
-            return;
+        } else {
+            showToast('Demande rejetée', 'info');
         }
-        showToast('Demande rejetée', 'info');
+        return true;
     };
 
     const activeCount = activeApprovals.length;
@@ -313,14 +328,14 @@ const ApprovalsPage = () => {
                 rejectText: 'Refuser',
             };
         }
+        // Statuts terminaux : présentation seule — aucune action n'existe dans la
+        // machine à états (APPROVAL_TRANSITIONS), donc aucun libellé de bouton.
         if (approval.status === 'Approved') {
             return {
                 label: 'Approuvée',
                 color: 'text-on-tertiary-container',
                 bg: 'bg-tertiary-container',
                 icon: <MaterialIcon name="check_circle" size={14} />,
-                btnText: 'Voir',
-                rejectText: 'Refuser',
             };
         }
         if (approval.status === 'Rejected') {
@@ -329,8 +344,6 @@ const ApprovalsPage = () => {
                 color: 'text-on-error-container',
                 bg: 'bg-error-container',
                 icon: <MaterialIcon name="cancel" size={14} />,
-                btnText: 'Voir',
-                rejectText: 'Refuser',
             };
         }
         if (approval.status === 'Cancelled') {
@@ -339,8 +352,6 @@ const ApprovalsPage = () => {
                 color: 'text-on-surface-variant',
                 bg: 'bg-surface-container-high',
                 icon: <MaterialIcon name="do_not_disturb_on" size={14} />,
-                btnText: 'Voir',
-                rejectText: 'Refuser',
             };
         }
         if (approval.status === 'Completed') {
@@ -349,8 +360,6 @@ const ApprovalsPage = () => {
                 color: 'text-on-surface-variant',
                 bg: 'bg-surface-container',
                 icon: <MaterialIcon name="task_alt" size={14} />,
-                btnText: 'Voir',
-                rejectText: 'Refuser',
             };
         }
 
@@ -359,8 +368,6 @@ const ApprovalsPage = () => {
             color: 'text-on-surface-variant',
             bg: 'bg-surface-container',
             icon: <MaterialIcon name="help" size={14} />,
-            btnText: 'Voir',
-            rejectText: 'Refuser',
         };
     };
 
@@ -444,7 +451,9 @@ const ApprovalsPage = () => {
                                             <div className="divide-y divide-outline-variant/30">
                                                 {section.items.map((approval) => {
                                                     const stepDetails = getStepDetails(approval);
-                                                    const isActionable = activeView === 'active' && isUserAllowedToValidate(approval);
+                                                    const rowActions = getRowActions(approval);
+                                                    const isActionable = activeView === 'active'
+                                                        && (rowActions.primary !== null || rowActions.reject !== null);
 
                                                     return (
                                                         <ApprovalRow

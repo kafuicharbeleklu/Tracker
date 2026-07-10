@@ -2056,6 +2056,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { allowed: false, reason: 'Demande introuvable.' };
         }
 
+        // Tolérance same-status (re-soumissions du wizard) : succès sans AUCUN effet de bord —
+        // ni mise à jour d'équipement ni événement (décision D10, audit §7.1).
+        if (oldApproval.status === status) {
+            return { allowed: true };
+        }
+
         const transitionDecision = canTransitionApprovalStatus({
             approval: oldApproval,
             nextStatus: status,

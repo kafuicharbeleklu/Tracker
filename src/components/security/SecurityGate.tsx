@@ -10,12 +10,18 @@ import InputField from '../ui/InputField';
 import DemoBadge from '../ui/DemoBadge';
 
 interface SecurityGateProps {
-  onVerified: () => void;
+  /**
+   * Action protégée. Retourner `false` signale un refus métier (journalisé
+   * `actionOutcome: 'DENIED'`) ; `true`/`void` vaut exécution.
+   */
+  onVerified: () => boolean | void;
   trigger: React.ReactNode;
   title?: string;
   description?: string;
   level?: 'standard' | 'critical';
   entityId?: string;
+  /** Nom lisible de l'entité visée (journal d'audit) — pas le libellé du bouton. */
+  entityName?: string;
 }
 
 /**
@@ -30,6 +36,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
   title = 'Validation de sécurité',
   description = 'Saisissez votre code PIN administrateur pour confirmer cette action.',
   entityId = 'system',
+  entityName,
 }) => {
   const { showToast } = useToast();
   const { currentUser } = useAuth();
@@ -62,22 +69,26 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
 
       if (validateAdminPIN(fullPin)) {
         setIsValidated(true);
-        logSecurityAction(title, actorId, entityId, 'PIN', 'SUCCESS');
-        // Piste d'audit persistée (journal HistoryEvent)
-        logEvent({
-          type: 'VIEW_SENSITIVE',
-          actorId,
-          actorName: currentUser?.name || 'Inconnu',
-          actorRole: currentUser?.role || 'User',
-          targetType: 'SYSTEM',
-          targetId: entityId,
-          targetName: title,
-          description: `Action sensible validée (PIN) : ${title}`,
-          isSystem: false,
-          isSensitive: true,
-        });
         setTimeout(() => {
-          onVerified();
+          // Journalisation APRÈS le dénouement : le facteur (PIN) et l'issue de
+          // l'action protégée sont deux faits distincts (audit §7.2 / X16).
+          const result = onVerified();
+          const actionOutcome = result === false ? 'DENIED' : 'EXECUTED';
+          logSecurityAction(title, actorId, entityId, 'PIN', 'SUCCESS', actionOutcome);
+          // Piste d'audit persistée (journal HistoryEvent)
+          logEvent({
+            type: 'SECURITY_STEP_UP',
+            actorId,
+            actorName: currentUser?.name || 'Inconnu',
+            actorRole: currentUser?.role || 'User',
+            targetType: 'SYSTEM',
+            targetId: entityId,
+            targetName: entityName || entityId,
+            description: `Step-up PIN validé — action « ${title} » ${actionOutcome === 'EXECUTED' ? 'exécutée' : 'refusée par les règles métier'}`,
+            metadata: { action: title, factorOutcome: 'SUCCESS', actionOutcome },
+            isSystem: false,
+            isSensitive: true,
+          });
           handleClose();
         }, 1200);
         return;
@@ -88,7 +99,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
       setPin(['', '', '', '', '', '']);
       pinRefs.current[0]?.focus();
       showToast(`Code incorrect. Tentative ${newAttempts}/3`, 'error');
-      logSecurityAction(title, actorId, entityId, 'PIN', newAttempts >= 3 ? 'BLOCKED' : 'FAILED');
+      logSecurityAction(title, actorId, entityId, 'PIN', newAttempts >= 3 ? 'BLOCKED' : 'FAILED', 'NOT_RUN');
       if (newAttempts >= 3) handleClose();
     }, 600);
   };

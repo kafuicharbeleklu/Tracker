@@ -10,7 +10,7 @@ import { GLOSSARY } from '../../../constants/glossary';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import Button from '../../../components/ui/Button';
 import { useToast } from '../../../context/ToastContext';
-import { useConfirmation } from '../../../context/ConfirmationContext';
+import SecurityGate from '../../../components/security/SecurityGate';
 import { calculateLinearDepreciation, formatCurrency, formatDate, formatNumber } from '../../../lib/financial';
 import { MetricCard } from '../../../components/ui/MetricCard';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
@@ -36,7 +36,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
     const { showToast } = useToast();
-    const { requestConfirmation } = useConfirmation();
     const isCompact = useMediaQuery(MEDIA.compact);
     const isMedium = useMediaQuery(MEDIA.medium);
     const [animateChart, setAnimateChart] = useState(false);
@@ -253,27 +252,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             insight
         };
     }, [equipment]);
-    const handleConfirmReceipt = (approvalId: string) => {
-        requestConfirmation({
-            title: 'Confirmer la réception',
-            message: 'Confirmez-vous avoir bien reçu cet équipement ?',
-            variant: 'info',
-            onConfirm: () => {
-                const decision = updateApproval(approvalId, 'Completed');
-                if (!decision.allowed) {
-                    showToast(decision.reason || 'Action non autorisée.', 'error');
-                    return;
-                }
-                showToast('Réception confirmée.', 'success');
-            },
-        });
+    // Step-up uniforme (D9, audit §7.1) : mêmes transitions que les rangées Approbations,
+    // donc même PIN via SecurityGate — le dialog de confirmation simple ne suffit plus.
+    const handleConfirmReceipt = (approvalId: string): boolean => {
+        const decision = updateApproval(approvalId, 'Completed');
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Action non autorisée.', 'error');
+            return false;
+        }
+        showToast('Réception confirmée.', 'success');
+        return true;
     };
 
     const handleManagerValidation = (
         approvalId: string,
         status: Approval['status'],
         approve: boolean,
-    ) => {
+    ): boolean => {
         const isDotation = status === 'WAITING_DOTATION_APPROVAL';
         const nextStatus: Approval['status'] = isDotation
             ? (approve ? 'PENDING_DELIVERY' : 'WAITING_IT_PROCESSING')
@@ -282,7 +277,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const decision = updateApproval(approvalId, nextStatus);
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
-            return;
+            return false;
         }
 
         if (isDotation) {
@@ -292,7 +287,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     : 'Dotation renvoyée au traitement IT.',
                 approve ? 'success' : 'info',
             );
-            return;
+            return true;
         }
 
         showToast(
@@ -301,6 +296,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 : 'Demande rejetée.',
             approve ? 'success' : 'info',
         );
+        return true;
     };
 
     const formatRelativeTime = (timestamp: string) => {
@@ -469,22 +465,38 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="text"
-                                                        className="text-error px-2"
-                                                        onClick={() => handleManagerValidation(e.approvalId, e.approvalStatus, false)}
-                                                    >
-                                                        {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="tonal"
-                                                        className="px-3"
-                                                        onClick={() => handleManagerValidation(e.approvalId, e.approvalStatus, true)}
-                                                    >
-                                                        {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Valider dotation' : 'Valider'}
-                                                    </Button>
+                                                    <SecurityGate
+                                                        onVerified={() => handleManagerValidation(e.approvalId, e.approvalStatus, false)}
+                                                        title={e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
+                                                        description={`${e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'} cette demande ?`}
+                                                        entityId={e.approvalId}
+                                                        entityName={e.equipmentName}
+                                                        trigger={
+                                                            <Button
+                                                                size="sm"
+                                                                variant="text"
+                                                                className="text-error px-2"
+                                                            >
+                                                                {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
+                                                            </Button>
+                                                        }
+                                                    />
+                                                    <SecurityGate
+                                                        onVerified={() => handleManagerValidation(e.approvalId, e.approvalStatus, true)}
+                                                        title={e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Valider dotation' : 'Valider'}
+                                                        description="Confirmer cette action."
+                                                        entityId={e.approvalId}
+                                                        entityName={e.equipmentName}
+                                                        trigger={
+                                                            <Button
+                                                                size="sm"
+                                                                variant="tonal"
+                                                                className="px-3"
+                                                            >
+                                                                {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Valider dotation' : 'Valider'}
+                                                            </Button>
+                                                        }
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
@@ -500,9 +512,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {equipmentToConfirm.map(e => (
-                                            <Button key={e.approvalId} size="sm" variant="filled" onClick={() => handleConfirmReceipt(e.approvalId)} icon={<MaterialIcon name="check" size={14} />}>
-                                                Valider {e.equipmentName}
-                                            </Button>
+                                            <SecurityGate
+                                                key={e.approvalId}
+                                                onVerified={() => handleConfirmReceipt(e.approvalId)}
+                                                title="Confirmer la réception"
+                                                description="Confirmez-vous avoir bien reçu cet équipement ?"
+                                                entityId={e.approvalId}
+                                                entityName={e.equipmentName}
+                                                trigger={
+                                                    <Button size="sm" variant="filled" icon={<MaterialIcon name="check" size={14} />}>
+                                                        Valider {e.equipmentName}
+                                                    </Button>
+                                                }
+                                            />
                                         ))}
                                     </div>
                                 </div>
