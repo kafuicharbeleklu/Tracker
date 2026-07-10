@@ -277,7 +277,76 @@ Feu vert reçu avec arbitrages : D8 = Option B + bypass dev-only ; D9 = PIN uniq
 
 **Les 5 items sont implémentés et vérifiés** (annotations ✅ par section ; séquence exécutée 7.4 → repro → 7.1+7.2 → 7.5 → 7.3 ; chaque lot : build + lint verts + smoke Playwright du scénario spécifique + commit dédié). Restent ouverts :
 
-- **D12** (§7.1/§7.6) — `assignedEquipmentId` jamais posé sur le chemin wizard-depuis-demande (workflow de dotation cassé côté équipement) — **Majeur**, à arbitrer.
-- Garde-fou `typingKeyword` mort dans `ConfirmationDialog` (§7.5, découverte annexe) — Mineur, XS.
+- **D12** (§7.1/§7.6) — `assignedEquipmentId` jamais posé sur le chemin wizard-depuis-demande (workflow de dotation cassé côté équipement) — **Majeur**, à arbitrer. → **Caractérisé en §8.1–8.2.**
+- Garde-fou `typingKeyword` mort dans `ConfirmationDialog` (§7.5, découverte annexe) — Mineur, XS. → **Caractérisé en §8.3.**
 - Faux facteurs du wizard (étiquetés DEMO) — non arbitrés (reliquat D9).
+
+---
+
+## 8. Passe du 2026-07-10 (bis) — caractérisation avant arbitrage : portée de D12 + inventaire du garde-fou `typingKeyword`
+
+> **Diagnostic uniquement — zéro retouche de code, zéro retouche de données.** Deux questions posées avant arbitrage : (1) D12 touche-t-il toutes les demandes du workflow ou un sous-ensemble, et des données mock sont-elles déjà orphelines ; (2) inventaire des appels qui croient avoir la protection « taper le mot-clé ». Même convention Constaté/Déduit qu'en §7.
+
+### 8.1 D12 — portée : **systémique, 100 % du chemin workflow** (aucun sous-ensemble)
+
+**Constaté (code lu, chaîne fermée de bout en bout)** — il n'existe que **deux écritures** de `assignedEquipmentId` dans tout le code (grep exhaustif) : `AssignmentWizardPage.tsx:188` (mutation directe — avalée) et `:249` (`addApproval` — attribution directe, saine). Aucune autre. Et il n'existe qu'**un seul point d'entrée** du wizard avec `approvalId` : le bouton « Affecter » d'`ApprovalsPage.tsx:238-244` (le Dashboard ne fait que des transitions, jamais d'affectation). La question « quel sous-ensemble ? » se réduit donc aux branches internes du wizard — et **les deux branches perdent le champ** :
+
+1. **Branche principale** (`status ∈ {WAITING_IT_PROCESSING, Pending}`, `AssignmentWizardPage.tsx:161-193`) : `updateApproval(id, 'WAITING_DOTATION_APPROVAL')` est appelé **avant** la mutation. `setApprovals(prev => prev.map(item => item.id === id ? { ...item, status } : item))` (`DataContext.tsx:2102`) est le **premier dispatch du batch** → React évalue l'updater *eagerly* au moment de l'appel : le clone `{...item}` est fabriqué **avant** que `approvals[appIndex].assignedEquipmentId = …` (:186-190) ne s'exécute. La mutation atterrit sur l'objet périmé de l'ancien tableau ; l'état committé ne porte jamais le champ. (Mécanisme déjà **observé au rendu** le 10-07, §7.1 — pas seulement déduit.)
+2. **Branche « legacy/fallback »** (tout autre statut, dont `Processing` réaligné en §7.1 ; :195-216) : elle ne **tente même pas** de poser le champ — `updateApproval(id, 'PENDING_DELIVERY')` + `updateEquipment` direct, et c'est tout.
+
+En aval, **tous** les consommateurs de transitions reposent exclusivement sur la synchro interne d'`updateApproval` (`DataContext.tsx:2104-2118`), gardée par `if (oldApproval?.assignedEquipmentId)` : `ApprovalsPage.tsx:205,261`, `DashboardPage.tsx:258,277`. Aucun ne compense par un `updateEquipment` direct. Donc pour **chaque** demande passée par le workflow : `Completed` ne produit jamais `{status:'Attribué', assignmentStatus:'CONFIRMED'}` (`businessRules.ts:576-583`), `Rejected`/`Cancelled` ne libère jamais (`:584-590`) — l'équipement reste `En attente / WAITING_DOTATION_APPROVAL` avec le bénéficiaire posé par le wizard (:171-183), **pour toujours**.
+
+**Réponse à la question de priorité** : oui, c'est le chemin principal d'attribution (le workflow 4 étapes, D1) qui est cassé **côté équipement** sur **toutes** les demandes sans exception — aucune condition, aucun ordre de champs, aucun type de demande n'y échappe. La seule voie saine est l'**attribution directe** admin (wizard sans `approvalId`, `addApproval` portant le champ à la création :249) — qui contourne précisément le workflow. Le paradoxe de la vague 1 : le chemin de corruption §7.1 n'était reproductible **que** via l'attribution directe *parce que* le workflow, lui, ne pose jamais le lien.
+
+**Déduit (chemin tracé, non exercé)** — effet cumulatif via la boucle de refus de dotation : `WAITING_DOTATION_APPROVAL → WAITING_IT_PROCESSING` (`getApprovalRejectTarget`, `businessRules.ts:387-388`) fait revenir la demande au wizard ; l'équipement précédemment réservé n'étant plus `Disponible`, il est absent de la liste du wizard (filtre `:132`) → l'IT en choisit un **second** → une même demande peut orphaniser **plusieurs** équipements. Et chaque orphelin sort définitivement du pool assignable (même filtre).
+
+**Issue de secours partielle seulement** : le formulaire d'édition (`AddEquipmentPage` en mode edit) permet de forcer `status` à la main (« Statut inventaire », `:532-538`, options `:33-43`) mais son payload (`:205-232`) ne touche **ni `assignmentStatus` ni `user`** → une « réparation » manuelle rend l'affichage sain (`getDisplayedEquipmentStatus` ne lit `assignmentStatus` que si `status === 'En attente'`, `businessRules.ts:434-443`) mais laisse les données sales. La suppression est bloquée (`canDeleteEquipmentByBusinessRule` refuse `En attente`, `:594-600`).
+
+- **Correctif évident (pour l'arbitrage, non implémenté)** : faire porter `assignedEquipmentId`/`assignedEquipmentName` par `updateApproval` (paramètre optionnel intégré au même `setApprovals` immutable) et supprimer la mutation directe :186-190 ; la branche fallback doit le porter aussi (ou disparaître — les statuts qu'elle visait ont été réalignés en §7.1). Noter que la synchro équipement d'`updateApproval` lit `oldApproval.assignedEquipmentId` (:2104) — sur la transition qui *pose* le champ, la garde devra considérer la nouvelle valeur, pas l'ancienne.
+- **Sévérité confirmée : Majeur** (Bloquant si backend — c'est le flux nominal de dotation) · **Effort : XS–S** (un point d'écriture, deux branches, plus le nettoyage de données §8.2).
+
+### 8.2 D12 — données mock : **2 équipements déjà semés dans l'état orphelin** (non touchés)
+
+**Constaté (`mockData.tsx` lu ; merge de persistance vérifié)** — le seed ne contient que 2 approbations (`mockPendingApprovals` id '1' `Pending`, `mockApprovalHistory` id '2' `Approved`, `:488-549`) et **aucune ne porte `assignedEquipmentId`**. Or 2 équipements sont semés réservés :
+
+| Équipement | État semé | Pourquoi c'est un orphelin |
+|---|---|---|
+| id '1' **LPT-HQ-01** (ASSET-10001), `mockData.tsx:295-302` | `status: 'En attente'`, `assignmentStatus: 'PENDING_DELIVERY'`, **`user: null`** | Aucune approbation ne pointe vers lui → aucune transition ne le libérera jamais. Incohérence interne en prime : la demande démo assortie (approbation id '1', même modèle Dell Latitude 7420) est à `Pending` — deux étapes **en amont** de l'état de l'équipement — et `user: null` alors que `PENDING_DELIVERY` signifie « en attente de confirmation par le bénéficiaire » : personne ne peut confirmer. |
+| id '10' **LPT-DK-03** (ASSET-90001), `:363-372` | `status: 'En attente'`, `assignmentStatus: 'WAITING_MANAGER_APPROVAL'`, **`user: null`** | Aucune approbation du seed n'existe à un statut d'attente manager → même impasse. |
+
+Ces deux-là sont **semés ainsi** (décor « flux en cours » du seed initial), pas produits par le bug au runtime — mais ils ont exactement la forme d'orphelin que D12 produit, et ils sont **indélébiles par le workflow**. Nuance de persistance qui aggrave le tableau : les équipements sont persistés et la copie persistée **prime** sur le seed (`DataContext.tsx:378-390` ; le re-seed §7.3 ne réinjecte que les éléments *supprimés*), mais les **approbations ne sont jamais persistées** (`useState` pur sur les mocks, `DataContext.tsx:618`, aucune clé storage). Conséquence : au premier rechargement, **tout** équipement persisté en `En attente` avec un `assignmentStatus` de workflow est orphelin de fait — l'approbation qui le « portait » a disparu et le seed n'en recrée que 2, sans lien. Le bug D12 et la non-persistance des approbations produisent donc le même état final ; corriger D12 seul laisse le workflow cassé **à travers les reloads** (déjà noté §7.1 : toute repro tient en une session).
+
+**Conséquence pour l'arbitrage — le correctif de code ne suffit pas seul** : il faudra aussi (a) corriger le seed pour les ids '1' et '10' (soit les rendre cohérents — approbation liée portant le champ — soit les ramener à `Disponible`), (b) décider du sort des états persistés (une réparation au chargement peut être simple : libérer tout équipement `En attente` à `assignmentStatus` de workflow, puisqu'aucune approbation ne survit au reload de toute façon — ou consigne « vider le storage » assumée pour la démo), et (c) trancher si la **persistance des approbations** entre au périmètre D12 ou reste en vague 2 — sans elle, le workflow corrigé ne survit toujours pas à un reload. **Rien n'a été touché.**
+
+### 8.3 Garde-fou « taper le mot-clé » : **mort depuis le commit initial** — inventaire des 6 sites qui croient l'avoir
+
+**Constaté (code lu + `git log -S` + `tsc` exécutés)** — le mécanisme existe et est **fonctionnel côté dialogue** : `ConfirmationDialog` rend le champ de saisie et désactive le bouton tant que le mot ne correspond pas (`ConfirmationDialog.tsx:55-66, 100-113`) — mais sous le prop **`confirmKeyword`** (`:19`). Le contexte, lui, transmet **`requireTyping`/`typingKeyword`** (`ConfirmationContext.tsx:64-65`), props inconnues du dialogue → silencieusement ignorées. `git log -S` : `confirmKeyword` date du commit initial `125a79e` et `typingKeyword` n'a **jamais** existé dans le dialogue — le garde-fou n'a donc **jamais fonctionné de toute la vie du repo**. Aucune trahison visible à l'écran : la phrase « Tapez X pour confirmer » vit dans le bloc `confirmKeyword` du dialogue et les `message` des appelants n'annoncent pas la saisie — les dialogues dégradent en simple confirmation danger à deux boutons, d'où l'invisibilité.
+
+**Pourquoi rien ne l'a attrapé (méta-constat, dépasse ce bug)** : `npm run build` = `vite build` pur (esbuild, **aucun typecheck**) ; ESLint sans règles type-aware ; et surtout **`@types/react` n'est pas installé** (`node_modules/@types/` : babel, node… pas de react) avec un `tsconfig` non-strict → `import React` est un module implicitement `any`, donc **la vérification des props JSX est morte dans tout le projet** (vérifié : `npx tsc --noEmit` → 29 erreurs préexistantes, zéro sur `ConfirmationContext` ; check isolé du fichier → 0 erreur). Tout renommage de prop, n'importe où, passe silencieusement — ce bug est le premier exemplaire *trouvé*, pas forcément le seul.
+
+**Les 6 appels qui déclarent `typingKeyword` (= croient avoir la protection) et ce qu'ils protègent réellement aujourd'hui en un clic :**
+
+| # | Site | Mot-clé | Action protégée (en théorie) | Gardes restantes réelles |
+|---|---|---|---|---|
+| 1 | `UserDetailsPage.tsx:250-269` | SUPPRIMER | **Suppression définitive d'un utilisateur + tout son historique** ; `requireTyping: user.role !== 'User'` (:255) — la saisie était **spécifiquement réservée aux comptes privilégiés** (Manager/Admin/SuperAdmin) | `roleDeleteDecision` + refus si équipements rattachés (:240-248) ; puis un clic |
+| 2 | `AuditDetailsPage.tsx:396-405` | **CLOTURER** | **Clôture d'audit** : marque N machines `Manquant` **en masse** et les retire du service (`removeEquipmentFromServiceAfterAudit`, `DataContext.tsx:2026-2058`) | Session démarrée + non déjà clôturée ; puis un clic |
+| 3 | `EquipmentDetailsPage.tsx:219-238` | SUPPRIMER | Suppression définitive d'un équipement | Statut ∈ {Disponible, En réparation} (:214) + `canDeleteEquipmentByBusinessRule` ; puis un clic |
+| 4 | `FinanceManagementPage.tsx:364-389` | SUPPRIMER | Suppression définitive d'une dépense (pièce financière) | Aucune autre ; un clic |
+| 5 | `ManagementPage.tsx:214-227` | SUPPRIMER | Suppression d'une catégorie | Refus si actifs liés (:208-212) ; puis un clic |
+| 6 | `ManagementPage.tsx:249-262` | SUPPRIMER | Suppression d'un modèle | Refus si actifs liés (:243-247) ; puis un clic |
+
+**Les deux sensibles du lot, à dire clairement** : le **site 1** — la suppression d'un compte **privilégié** avec son historique est exactement le cas pour lequel la friction supplémentaire avait été conçue (le `requireTyping` conditionnel le prouve), et c'est aujourd'hui un clic ; et le **site 2** — seule action **de masse** du lot (N machines `Manquant` d'un coup), dont l'annulation est manuelle machine par machine. Les sites 5-6 sont les moins exposés (pré-garde « 0 actifs liés » déjà bloquante).
+
+- **Correctif évident (pour l'arbitrage, non implémenté)** : aligner le nom du prop (le contexte passe `confirmKeyword={options.requireTyping ? options.typingKeyword : undefined}`, ou renommage franc des options) — XS. Le méta-constat `@types/react` est un chantier séparé (installer les types + résorber ce que ça révélera ; ou a minima l'inscrire au registre comme dette de vérification).
+- **Sévérité : Mineur en démo** (l'affordance annoncée dans le code n'a jamais existé à l'écran, personne n'a rien perdu) **mais Majeur le jour où les suppressions deviennent durables** (backend, Chantier A) · **Effort : XS** (le renommage) — le méta-constat, lui, est **M+ et à chiffrer à part**.
+
+### 8.4 Récapitulatif de la passe
+
+| Question posée | Verdict |
+|---|---|
+| D12 : toutes les demandes workflow ou un sous-ensemble ? | **Toutes** — les 2 branches du wizard perdent le champ, aucun appelant aval ne compense, aucune condition n'y échappe (Constaté). La boucle refus-dotation peut orphaniser plusieurs équipements par demande (Déduit). |
+| D12 : orphelins déjà présents dans les mocks ? | **Oui, 2** (LPT-HQ-01 id '1', LPT-DK-03 id '10') — semés ainsi, indélébiles par le workflow, survivent au re-seed via la persistance. Correctif code seul insuffisant : seed + états persistés à traiter. **Non touchés.** |
+| `typingKeyword` : qui croit être protégé ? | **6 sites** (tableau §8.3) ; garde-fou mort depuis le commit initial (`confirmKeyword` vs `typingKeyword`). Sensibles : suppression de comptes privilégiés (UserDetails) et clôture d'audit en masse (CLOTURER). Méta-constat : `@types/react` absent → vérification de props JSX morte projet-wide. |
+
+**Aucune implémentation. En attente d'arbitrage** : D12 (correctif + stratégie de nettoyage des données), renommage du prop `typingKeyword`, et sort du méta-constat `@types/react`.
 - Baselines visuelles Approbations à rafraîchir (badge/rangées SuperAdmin volontairement modifiés par 7.1) — de préférence après arbitrage D12 pour éviter un double refresh.
