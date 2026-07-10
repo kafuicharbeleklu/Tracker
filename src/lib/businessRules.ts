@@ -57,6 +57,7 @@ interface ApprovalTransitionContext {
 
 interface EquipmentFromApprovalContext {
     status: ApprovalStatus;
+    previousStatus?: ApprovalStatus;
     actorId?: string;
     nowISO: string;
 }
@@ -553,9 +554,19 @@ export const canTransitionApprovalStatus = ({
 
 export const getEquipmentUpdatesForApprovalStatus = ({
     status,
+    previousStatus,
     actorId,
     nowISO,
 }: EquipmentFromApprovalContext): Partial<Equipment> | null => {
+    // Refus de dotation (retour WAITING_DOTATION_APPROVAL -> WAITING_IT_PROCESSING) :
+    // l'équipement proposé est libéré, le retraitement IT repart d'un choix neuf.
+    if (status === 'WAITING_IT_PROCESSING' && previousStatus === 'WAITING_DOTATION_APPROVAL') {
+        return {
+            status: 'Disponible',
+            assignmentStatus: 'NONE',
+            user: null,
+        };
+    }
     if (status === 'WAITING_MANAGER_APPROVAL') {
         return { status: 'En attente', assignmentStatus: 'WAITING_MANAGER_APPROVAL' };
     }

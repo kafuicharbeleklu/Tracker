@@ -91,7 +91,11 @@ interface DataContextType {
         equipmentId: string,
         scope: { country: string; site: string; service: string },
     ) => boolean;
-    updateApproval: (id: string, status: ApprovalStatus) => BusinessRuleDecision;
+    updateApproval: (
+        id: string,
+        status: ApprovalStatus,
+        options?: { assignedEquipmentId: string; assignedEquipmentName: string },
+    ) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
     logEvent: (event: Omit<HistoryEvent, 'id' | 'timestamp'>) => void;
 
@@ -2057,7 +2061,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
     }, [equipment, updateEquipment]);
 
-    const updateApproval = useCallback((id: string, status: ApprovalStatus): BusinessRuleDecision => {
+    const updateApproval = useCallback((
+        id: string,
+        status: ApprovalStatus,
+        options?: { assignedEquipmentId: string; assignedEquipmentName: string },
+    ): BusinessRuleDecision => {
         const oldApproval = approvals.find(a => a.id === id);
         if (!oldApproval) {
             return { allowed: false, reason: 'Demande introuvable.' };
@@ -2099,11 +2107,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const now = new Date().toISOString();
-        setApprovals(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+        // Refus de dotation : le lien équipement est rompu, l'IT repartira d'un choix neuf.
+        const isDotationRefusal =
+            oldApproval.status === 'WAITING_DOTATION_APPROVAL' && status === 'WAITING_IT_PROCESSING';
+        setApprovals(prev => prev.map(item => item.id === id
+            ? {
+                  ...item,
+                  status,
+                  assignedEquipmentId: isDotationRefusal
+                      ? undefined
+                      : (options?.assignedEquipmentId ?? item.assignedEquipmentId),
+                  assignedEquipmentName: isDotationRefusal
+                      ? undefined
+                      : (options?.assignedEquipmentName ?? item.assignedEquipmentName),
+              }
+            : item));
 
-        if (oldApproval?.assignedEquipmentId) {
+        // Synchro équipement des transitions de rangée. Quand `options` est fourni (wizard
+        // d'affectation), l'appelant réalise lui-même l'écriture équipement complète
+        // (bénéficiaire, assignedBy…) — la synchro s'efface pour ne pas doubler l'écriture
+        // ni l'événement d'historique.
+        if (!options && oldApproval.assignedEquipmentId) {
             const equipmentUpdates = getEquipmentUpdatesForApprovalStatus({
                 status,
+                previousStatus: oldApproval.status,
                 actorId: currentUser?.id,
                 nowISO: now,
             });

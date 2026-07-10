@@ -159,7 +159,10 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
 
                 // Si l'approbation est en attente de traitement IT
                 if (approval && (approval.status === 'WAITING_IT_PROCESSING' || approval.status === 'Pending')) {
-                    const transitionDecision = updateApproval(approvalId, 'WAITING_DOTATION_APPROVAL');
+                    const transitionDecision = updateApproval(approvalId, 'WAITING_DOTATION_APPROVAL', {
+                        assignedEquipmentId: selectedEquipment.id,
+                        assignedEquipmentName: selectedEquipment.name,
+                    });
                     if (!transitionDecision.allowed) {
                         showToast(
                             transitionDecision.reason || "Action non autorisée pour cette demande.",
@@ -182,18 +185,14 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         }
                     });
 
-                    // Update local reference logic if needed (usually handled by Context Refresh)
-                    const appIndex = approvals.findIndex(a => a.id === approvalId);
-                    if (appIndex >= 0) {
-                        approvals[appIndex].assignedEquipmentId = selectedEquipment.id;
-                        approvals[appIndex].assignedEquipmentName = selectedEquipment.name;
-                    }
-
                     showToast("Matériel sélectionné. En attente de validation de la dotation par le Manager.", 'success');
                 }
                 // Fallback ou autres cas (Legacy)
                 else {
-                    const transitionDecision = updateApproval(approvalId, 'PENDING_DELIVERY');
+                    const transitionDecision = updateApproval(approvalId, 'PENDING_DELIVERY', {
+                        assignedEquipmentId: selectedEquipment.id,
+                        assignedEquipmentName: selectedEquipment.name,
+                    });
                     if (!transitionDecision.allowed) {
                         showToast(
                             transitionDecision.reason || "Action non autorisée pour cette demande.",

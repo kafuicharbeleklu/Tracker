@@ -292,13 +292,10 @@ const normalizeEquipmentForDemo = (item: Equipment): Equipment => {
 
 export const mockAllEquipment: Equipment[] = [
     {
-        id: '1', name: 'LPT-HQ-01', assetId: 'ASSET-10001', type: 'Laptop', model: 'Dell Latitude 7420', status: 'En attente', country: 'France',
+        id: '1', name: 'LPT-HQ-01', assetId: 'ASSET-10001', type: 'Laptop', model: 'Dell Latitude 7420', status: 'Disponible', country: 'France',
         image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop', user: null,
         financial: { purchasePrice: 1250, purchaseDate: '2025-01-05', depreciationYears: 3, depreciationMethod: 'linear' },
-        assignmentStatus: 'PENDING_DELIVERY',
-        assignedBy: '1', // Alice
-        assignedByName: 'Alice SuperAdmin',
-        assignedAt: '2025-01-14T10:00:00Z'
+        assignmentStatus: 'NONE'
     },
     {
         id: '2', name: 'SCR-DK-01', assetId: 'ASSET-20001', type: 'Monitor', model: 'Dell U2721DE', status: 'Disponible', country: 'Sénégal',
@@ -360,13 +357,10 @@ export const mockAllEquipment: Equipment[] = [
         assignmentStatus: 'NONE'
     },
     {
-        id: '10', name: 'LPT-DK-03', assetId: 'ASSET-90001', type: 'Laptop', model: 'Lenovo ThinkPad T14 Gen 4', status: 'En attente', country: 'Sénégal',
+        id: '10', name: 'LPT-DK-03', assetId: 'ASSET-90001', type: 'Laptop', model: 'Lenovo ThinkPad T14 Gen 4', status: 'Disponible', country: 'Sénégal',
         image: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=100&h=100&fit=crop', user: null,
         financial: { purchasePrice: 1650, purchaseDate: '2025-01-22', depreciationYears: 3, depreciationMethod: 'linear' },
-        assignmentStatus: 'WAITING_MANAGER_APPROVAL',
-        assignedBy: '2',
-        assignedByName: 'Bob Admin Sénégal',
-        assignedAt: '2026-01-14T09:12:00Z',
+        assignmentStatus: 'NONE',
         department: 'Support Afrique',
         site: 'Campus Dakar'
     },
