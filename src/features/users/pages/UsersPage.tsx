@@ -23,6 +23,7 @@ import { APP_CONFIG } from '../../../config';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
+import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
 
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'users_search';
@@ -221,6 +222,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
         const decision = deleteUser(id);
         if (decision.allowed) {
           showToast(`${name} supprimé.`, 'success');
+          if (isDemoSeedUser(id)) {
+            showToast(DEMO_RESEED_NOTICE, 'info');
+          }
           return;
         }
         showToast(decision.reason || 'Suppression impossible pour cet utilisateur.', 'info');
@@ -239,6 +243,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
       onConfirm: () => {
         let deleted = 0;
         let blocked = 0;
+        let seeded = 0;
 
         selectedUserIds.forEach((id) => {
           if (id === currentUser?.id) {
@@ -246,14 +251,21 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
             return;
           }
           const decision = deleteUser(id);
-          if (decision.allowed) deleted += 1;
-          else blocked += 1;
+          if (decision.allowed) {
+            deleted += 1;
+            if (isDemoSeedUser(id)) seeded += 1;
+          } else {
+            blocked += 1;
+          }
         });
 
         setSelectedUserIds([]);
 
         if (deleted > 0) {
           showToast(`${deleted} utilisateur(s) supprimé(s).`, 'success');
+        }
+        if (seeded > 0) {
+          showToast(DEMO_RESEED_NOTICE, 'info');
         }
         if (blocked > 0) {
           showToast(`${blocked} utilisateur(s) n’ont pas pu être supprimés.`, 'warning');

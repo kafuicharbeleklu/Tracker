@@ -22,6 +22,7 @@ import ListActionFab from '../../../components/ui/ListActionFab';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
+import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
 
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_SEARCH = 'inventory_search';
@@ -251,16 +252,24 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             onConfirm: () => {
                 let deleted = 0;
                 let blocked = 0;
+                let seeded = 0;
 
                 selectedEquipmentIds.forEach((id) => {
-                    if (deleteEquipment(id)) deleted += 1;
-                    else blocked += 1;
+                    if (deleteEquipment(id)) {
+                        deleted += 1;
+                        if (isDemoSeedEquipment(id)) seeded += 1;
+                    } else {
+                        blocked += 1;
+                    }
                 });
 
                 setSelectedEquipmentIds([]);
 
                 if (deleted > 0) {
                     showToast(`${deleted} équipement(s) supprimé(s).`, 'success');
+                }
+                if (seeded > 0) {
+                    showToast(DEMO_RESEED_NOTICE, 'info');
                 }
                 if (blocked > 0) {
                     showToast(`${blocked} équipement(s) n’ont pas pu être supprimés (statut non compatible).`, 'warning');
@@ -278,6 +287,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             onConfirm: () => {
                 if (deleteEquipment(id)) {
                     showToast(`${name} supprimé.`, 'success');
+                    if (isDemoSeedEquipment(id)) {
+                        showToast(DEMO_RESEED_NOTICE, 'info');
+                    }
                     return;
                 }
                 showToast("Suppression impossible: équipement attribué ou en attente.", 'warning');

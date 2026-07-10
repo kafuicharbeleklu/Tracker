@@ -15,6 +15,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
 import DemoBadge from '../../../components/ui/DemoBadge';
+import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
 import {
     getHistoryEventIcon,
     isEquipmentMovementEvent,
@@ -225,6 +226,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             onConfirm: () => {
                 if (deleteEquipment(item.id)) {
                     showToast(GLOSSARY.SUCCESS_DELETE(GLOSSARY.EQUIPMENT), 'success');
+                    if (isDemoSeedEquipment(item.id)) {
+                        showToast(DEMO_RESEED_NOTICE, 'info');
+                    }
                     onBack(); // Retour à la liste
                 } else {
                     showToast("Erreur lors de la suppression.", "error");

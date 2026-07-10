@@ -18,6 +18,7 @@ import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import { getCategoryIcon } from '../../../constants/categoryIcons';
+import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
 import {
     ACTIVE_APPROVAL_STATUSES,
     canDeleteUserByRoleRule,
@@ -257,6 +258,9 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                 const decision = deleteUser(user.id);
                 if (decision.allowed) {
                     showToast(`L'utilisateur ${user.name} a été supprimé définitivement.`, 'success');
+                    if (isDemoSeedUser(user.id)) {
+                        showToast(DEMO_RESEED_NOTICE, 'info');
+                    }
                     onBack();
                     return;
                 }

@@ -187,6 +187,11 @@ La logique métier est **riche et globalement structurée** (vraie machine à é
 - **Test unitaire léger ?** **Oui (si A)** : `mergePersistedUsersWithSeed`/`mergePersistedEquipmentWithSeed` sont pures ; la matrice ci-dessus s'encode en une dizaine de cas et verrouillerait la décision de conception. C'est le deuxième meilleur candidat après §7.1. (Si B : rien à tester, c'est de l'étiquetage.)
 - **Sévérité : Majeur** (au registre depuis la vague 2 du C) · **Effort : A = M · B = XS**.
 
+> ✅ **Implémenté le 2026-07-10** (D8 tranchée : **Option B** — réamorçage assumé et étiqueté — **plus un bypass dev-only**, pas de tombstones ni d'UI « Réinitialiser la démo » : couche mock temporaire que le Chantier A remplacera).
+> - **Étiquetage** : nouveau module `src/lib/demoSeed.ts` (`isDemoSeedUser`/`isDemoSeedEquipment` sur les ids du seed, libellé `DEMO_RESEED_NOTICE`). Les 6 call sites de suppression (Users ×3, Inventory/Equipment ×3) toastent « Élément de démonstration : il sera restauré au prochain chargement. » après le succès quand l'élément vient du seed (une seule notice en suppression groupée). Mention permanente ajoutée dans **Paramètres → Aide** (« Données de démonstration : … restaurés à chaque chargement ; vos créations et modifications sont conservées »). La mécanique de merge est inchangée : les deux voies de résurrection restent assumées.
+> - **Bypass dev-only** (variable d'env, aucune UI) : `VITE_DISABLE_DEMO_RESEED=true` (pris en compte seulement en DEV) court-circuite `seededMissing` dans les deux merges **et** accepte `[]` persisté comme état valide — les suppressions survivent au rechargement et les listes vides deviennent testables (lève la limite QA « liste vide impossible » du Chantier C).
+> - **Vérifié au rendu (les deux modes)** : sans flag — suppression d'un équipement seedé → toast succès + notice démo, reload → élément ressuscité (assumé), mention visible dans Paramètres/Aide ; avec flag (serveur dev relancé) — même suppression → **durable après reload**, `tracker_equipment` forcé à `[]` + reload → reste vide et l'inventaire rend son EmptyState. INV-9 passe au registre en **« by design documenté »**.
+
 ### 7.4 DataContext — 12× `react-hooks/exhaustive-deps` sur `currentUser.role` : verdict ligne par ligne
 
 **Constaté (ESLint exécuté ce jour** : `npx eslint src/context/DataContext.tsx` → 12 erreurs, toutes « **unnecessary** dependency: 'currentUser.role' » — la règle dit que la dep est **en trop**, pas manquante**)**. Les 12 callbacks suivent le même motif : la garde de permission lit `currentUserAccessRef.current` **au moment de l'appel**, et le corps ne référence `currentUser` nulle part.
@@ -265,3 +270,14 @@ Contre-exemple qui confirme le motif : les callbacks qui lisent **réellement** 
 | 7.5 Reports sur mocks statiques | Majeur | M | D11 | Oui — bornes de dates (cartes 3-4) |
 
 > Séquencement suggéré après arbitrage : **7.4** (débloque le lint, zéro risque) → **7.1** (+ 7.2 dans la foulée, même zone) → **7.5** → **7.3** (selon D8). Aucune implémentation avant feu vert explicite.
+
+### 7.7 Clôture de la vague 1 (2026-07-10)
+
+Feu vert reçu avec arbitrages : D8 = Option B + bypass dev-only ; D9 = PIN uniquement sur les écritures, uniformément ; D10 = same-status no-op sans effets de bord ; D11 = sélecteur d'utilisateur (+ branchement `canExportReports`). Gate spécifique 7.1 : reproduction live exigée avant correctif — **honorée, corruption confirmée** (voir §7.1).
+
+**Les 5 items sont implémentés et vérifiés** (annotations ✅ par section ; séquence exécutée 7.4 → repro → 7.1+7.2 → 7.5 → 7.3 ; chaque lot : build + lint verts + smoke Playwright du scénario spécifique + commit dédié). Restent ouverts :
+
+- **D12** (§7.1/§7.6) — `assignedEquipmentId` jamais posé sur le chemin wizard-depuis-demande (workflow de dotation cassé côté équipement) — **Majeur**, à arbitrer.
+- Garde-fou `typingKeyword` mort dans `ConfirmationDialog` (§7.5, découverte annexe) — Mineur, XS.
+- Faux facteurs du wizard (étiquetés DEMO) — non arbitrés (reliquat D9).
+- Baselines visuelles Approbations à rafraîchir (badge/rangées SuperAdmin volontairement modifiés par 7.1) — de préférence après arbitrage D12 pour éviter un double refresh.

@@ -17,6 +17,7 @@ import {
 import { mockAllUsersExtended, mockAllEquipment, mockLocationCountries, mockPendingApprovals, mockApprovalHistory, mockHistoryEvents, mockCategories, mockModels, CATEGORY_ICONS } from '../data/mockData';
 import { useAuth } from './AuthContext';
 import { getPersistedValue } from '../lib/persistence';
+import { DEMO_RESEED_DISABLED } from '../lib/demoSeed';
 import {
     buildRbacAssignmentFromUser,
     DEFAULT_RBAC_GROUPS,
@@ -304,9 +305,11 @@ const mergePersistedUsersWithSeed = (parsed: unknown[]): User[] => {
     });
 
     const mergedIds = new Set(mergedPersisted.map((item) => item.id));
-    const seededMissing = mockAllUsersExtended
-        .filter((seed) => !mergedIds.has(seed.id))
-        .map((seed) => normalizeUserRecord(seed, seed));
+    const seededMissing = DEMO_RESEED_DISABLED
+        ? []
+        : mockAllUsersExtended
+              .filter((seed) => !mergedIds.has(seed.id))
+              .map((seed) => normalizeUserRecord(seed, seed));
 
     return [...mergedPersisted, ...seededMissing];
 };
@@ -378,9 +381,11 @@ const mergePersistedEquipmentWithSeed = (parsed: unknown[]): Equipment[] => {
     });
 
     const mergedIds = new Set(mergedPersisted.map((item) => item.id));
-    const seededMissing = mockAllEquipment
-        .filter((seed) => !mergedIds.has(seed.id))
-        .map((seed) => normalizeEquipmentRecord(seed, seed));
+    const seededMissing = DEMO_RESEED_DISABLED
+        ? []
+        : mockAllEquipment
+              .filter((seed) => !mergedIds.has(seed.id))
+              .map((seed) => normalizeEquipmentRecord(seed, seed));
 
     return [...mergedPersisted, ...seededMissing];
 };
@@ -536,7 +541,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const saved = getPersistedValue(STORAGE_KEYS.users.current, STORAGE_KEYS.users.legacy);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
+                // Sous bypass dev (INV-9), `[]` persisté = liste volontairement vidée, pas « jamais persisté »
+                if (Array.isArray(parsed) && (parsed.length > 0 || DEMO_RESEED_DISABLED)) {
                     return mergePersistedUsersWithSeed(parsed);
                 }
             }
@@ -551,7 +557,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const saved = getPersistedValue(STORAGE_KEYS.equipment.current, STORAGE_KEYS.equipment.legacy);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
+                // Sous bypass dev (INV-9), `[]` persisté = liste volontairement vidée, pas « jamais persisté »
+                if (Array.isArray(parsed) && (parsed.length > 0 || DEMO_RESEED_DISABLED)) {
                     return mergePersistedEquipmentWithSeed(parsed);
                 }
             }

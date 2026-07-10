@@ -841,6 +841,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         <p className="text-body-medium text-on-surface-variant mb-2">Version du système</p>
                                         <p className="font-mono font-bold">{APP_CONFIG.appName} v{APP_CONFIG.version}</p>
                                     </div>
+
+                                    {/* INV-9 / D8 (Option B) : le réamorçage des données de démo est assumé — le dire ici */}
+                                    <div className="p-4 bg-secondary-container/30 rounded-lg border border-secondary/30 flex items-start gap-3">
+                                        <MaterialIcon name="info" size={20} className="text-secondary shrink-0 mt-0.5" />
+                                        <p className="text-body-medium text-on-surface-variant">
+                                            <strong className="text-on-surface">Données de démonstration :</strong>{' '}
+                                            les éléments fournis avec la démo (équipements, utilisateurs) sont
+                                            restaurés à chaque chargement de l'application, y compris après
+                                            suppression. Vos créations et modifications sont, elles, conservées.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
 
