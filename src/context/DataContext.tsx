@@ -12,6 +12,7 @@ import {
     AuditScanResult,
     AgentCheckInPayload,
     AgentCheckInResult,
+    AssignmentStatus,
     DetectedDevice,
 } from '../types';
 import { mockAllUsersExtended, mockAllEquipment, mockLocationCountries, mockPendingApprovals, mockApprovalHistory, mockHistoryEvents, mockCategories, mockModels, CATEGORY_ICONS } from '../data/mockData';
@@ -45,6 +46,7 @@ import {
     canTransitionApprovalStatus,
     canUpdateUserByBusinessRule,
     getEquipmentUpdatesForApprovalStatus,
+    isApprovalActiveStatus,
     MANAGER_VALIDATION_PENDING_STATUSES,
 } from '../lib/businessRules';
 
@@ -171,6 +173,7 @@ const STORAGE_KEYS = {
     rbacAssignments: { current: 'tracker_rbac_assignments', legacy: 'neemba_rbac_assignments' },
     rbacWorkflows: { current: 'tracker_rbac_workflows', legacy: 'neemba_rbac_workflows' },
     detectedDevices: { current: 'tracker_detected_devices', legacy: 'neemba_detected_devices' },
+    approvals: { current: 'tracker_approvals', legacy: 'neemba_approvals' },
 } as const;
 
 const normalizeMatch = (value?: string) => (value || '').trim().toLowerCase();
@@ -392,6 +395,71 @@ const mergePersistedEquipmentWithSeed = (parsed: unknown[]): Equipment[] => {
               .map((seed) => normalizeEquipmentRecord(seed, seed));
 
     return [...mergedPersisted, ...seededMissing];
+};
+
+const APPROVAL_SEED: readonly Approval[] = [...mockPendingApprovals, ...mockApprovalHistory];
+
+const DEFAULT_APPROVAL_IMAGE = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop';
+
+const normalizeApprovalRecord = (entry: Approval, seed?: Approval): Approval => ({
+    ...(seed || {}),
+    ...entry,
+    image: entry.image || seed?.image || DEFAULT_APPROVAL_IMAGE,
+    createdAt: entry.createdAt || seed?.createdAt || new Date().toISOString(),
+    updatedAt: entry.updatedAt || entry.createdAt || seed?.updatedAt || new Date().toISOString(),
+});
+
+const mergePersistedApprovalsWithSeed = (parsed: unknown[]): Approval[] => {
+    const persistedApprovals = parsed.filter((entry): entry is Approval => {
+        if (typeof entry !== 'object' || entry === null) return false;
+        return 'id' in entry && 'status' in entry;
+    });
+
+    const seedById = new Map(APPROVAL_SEED.map((item) => [item.id, item]));
+    const mergedPersisted = persistedApprovals.map((entry) =>
+        normalizeApprovalRecord(entry, seedById.get(entry.id)));
+
+    // Option B (D8) : la copie persistée prime par id, le re-seed ne réinjecte que les absents.
+    const mergedIds = new Set(mergedPersisted.map((item) => item.id));
+    const seededMissing = DEMO_RESEED_DISABLED
+        ? []
+        : APPROVAL_SEED.filter((seed) => !mergedIds.has(seed.id));
+
+    return [...mergedPersisted, ...seededMissing];
+};
+
+// Réparation au chargement (§9.1) : libère tout équipement réservé par un workflow
+// d'approbation qu'aucune approbation active ne référence via assignedEquipmentId —
+// assainit les orphelins hérités d'avant D12/D15 et les flux morts au reload avant D13.
+// PENDING_RETURN est exclu : la restitution ne passe pas par une approbation.
+const APPROVAL_WORKFLOW_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = [
+    'WAITING_MANAGER_APPROVAL',
+    'WAITING_IT_PROCESSING',
+    'WAITING_DOTATION_APPROVAL',
+    'PENDING_DELIVERY',
+];
+
+const releaseOrphanedWorkflowEquipment = (
+    equipmentList: Equipment[],
+    approvalList: readonly Approval[],
+): { repaired: Equipment[]; changedIds: string[] } => {
+    const referencedIds = new Set(
+        approvalList
+            .filter((approval) => isApprovalActiveStatus(approval.status) && approval.assignedEquipmentId)
+            .map((approval) => approval.assignedEquipmentId as string),
+    );
+
+    const changedIds: string[] = [];
+    const repaired = equipmentList.map((item) => {
+        const isWorkflowReserved = item.status === 'En attente'
+            && !!item.assignmentStatus
+            && APPROVAL_WORKFLOW_ASSIGNMENT_STATUSES.includes(item.assignmentStatus);
+        if (!isWorkflowReserved || referencedIds.has(item.id)) return item;
+        changedIds.push(item.id);
+        return { ...item, status: 'Disponible' as const, assignmentStatus: 'NONE' as const, user: null };
+    });
+
+    return { repaired, changedIds };
 };
 
 const uniqueStrings = (items?: string[]): string[] =>
@@ -619,7 +687,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // --- APPROVALS ---
-    const [approvals, setApprovals] = useState<Approval[]>([...mockPendingApprovals, ...mockApprovalHistory]);
+    const [approvals, setApprovals] = useState<Approval[]>(() => {
+        try {
+            const saved = getPersistedValue(STORAGE_KEYS.approvals.current, STORAGE_KEYS.approvals.legacy);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Sous bypass dev (INV-9), `[]` persisté = liste volontairement vidée, pas « jamais persisté »
+                if (Array.isArray(parsed) && (parsed.length > 0 || DEMO_RESEED_DISABLED)) {
+                    return mergePersistedApprovalsWithSeed(parsed);
+                }
+            }
+            return [...APPROVAL_SEED];
+        } catch {
+            return [...APPROVAL_SEED];
+        }
+    });
 
     // --- HISTORY EVENTS ---
     const [events, setEvents] = useState<HistoryEvent[]>(() => {
@@ -733,6 +815,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.detectedDevices.current, JSON.stringify(detectedDevices));
     }, [detectedDevices]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.approvals.current, JSON.stringify(approvals));
+    }, [approvals]);
+
+    // Réparation au chargement (§9.1) : une seule passe au montage, sur l'état hydraté.
+    // setEquipment fonctionnel = idempotent (le 2e passage StrictMode ne change rien).
+    useEffect(() => {
+        setEquipment((prev) => {
+            const { repaired, changedIds } = releaseOrphanedWorkflowEquipment(prev, approvals);
+            return changedIds.length > 0 ? repaired : prev;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.categories.current, JSON.stringify(categories));
