@@ -46,6 +46,7 @@ import {
     canTransitionApprovalStatus,
     canUpdateUserByBusinessRule,
     getEquipmentUpdatesForApprovalStatus,
+    getRefusalDecisionKind,
     isApprovalActiveStatus,
     MANAGER_VALIDATION_PENDING_STATUSES,
 } from '../lib/businessRules';
@@ -96,7 +97,7 @@ interface DataContextType {
     updateApproval: (
         id: string,
         status: ApprovalStatus,
-        options?: { assignedEquipmentId: string; assignedEquipmentName: string },
+        options?: { assignedEquipmentId?: string; assignedEquipmentName?: string; reason?: string },
     ) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
     logEvent: (event: Omit<HistoryEvent, 'id' | 'timestamp'>) => void;
@@ -2169,7 +2170,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updateApproval = useCallback((
         id: string,
         status: ApprovalStatus,
-        options?: { assignedEquipmentId: string; assignedEquipmentName: string },
+        options?: { assignedEquipmentId?: string; assignedEquipmentName?: string; reason?: string },
     ): BusinessRuleDecision => {
         const oldApproval = approvals.find(a => a.id === id);
         if (!oldApproval) {
@@ -2211,15 +2212,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return transitionDecision;
         }
 
+        // Motif obligatoire aux 4 points de refus (§9.7.2/D18) — garde métier,
+        // l'obligation ne peut pas vivre que dans l'UI.
+        const reason = options?.reason?.trim() || undefined;
+        const refusalKind = getRefusalDecisionKind(oldApproval.status, status);
+        if (refusalKind && !reason) {
+            return { allowed: false, reason: 'Un motif est requis pour refuser ou renvoyer une demande.' };
+        }
+
         const now = new Date().toISOString();
         // Refus de dotation : le lien équipement est rompu, l'IT repartira d'un choix neuf.
         const isDotationRefusal =
             oldApproval.status === 'WAITING_DOTATION_APPROVAL' && status === 'WAITING_IT_PROCESSING';
+        // Dernier verdict négatif seulement : toute transition sans motif de refus
+        // (validation, affectation, confirmation) purge la note — sinon un renvoi de
+        // dotation resterait affiché après la ré-affectation IT. Le journal garde tout.
+        const decisionNote = refusalKind && reason
+            ? {
+                  kind: refusalKind,
+                  reason,
+                  actorId: currentUser?.id || 'system',
+                  actorName: currentUser?.name || 'Système',
+                  at: now,
+              }
+            : undefined;
         setApprovals(prev => prev.map(item => item.id === id
             ? {
                   ...item,
                   status,
                   updatedAt: now,
+                  decisionNote,
                   assignedEquipmentId: isDotationRefusal
                       ? undefined
                       : (options?.assignedEquipmentId ?? item.assignedEquipmentId),
@@ -2229,15 +2251,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             : item));
 
-        // Synchro équipement des transitions de rangée. Quand `options` est fourni (wizard
-        // d'affectation), l'appelant réalise lui-même l'écriture équipement complète
+        // Synchro équipement des transitions de rangée. Quand l'appelant lie un équipement
+        // (wizard d'affectation), il réalise lui-même l'écriture équipement complète
         // (bénéficiaire, assignedBy…) — la synchro s'efface pour ne pas doubler l'écriture
-        // ni l'événement d'historique.
+        // ni l'événement d'historique. Discriminer sur assignedEquipmentId, PAS sur la
+        // présence d'options : un refus passe désormais { reason } seul (§9.7.2, piège n°1).
         // Écriture système via applyEquipmentWrite : la transition vient d'être autorisée
         // par canTransitionApprovalStatus, or les acteurs nominaux de ces étapes (manager,
         // bénéficiaire) n'ont pas inventory.manage — repasser par la garde acteur
         // d'updateEquipment sautait silencieusement la synchro (§9.0/D15).
-        if (!options && oldApproval.assignedEquipmentId) {
+        if (!options?.assignedEquipmentId && oldApproval.assignedEquipmentId) {
             const equipmentUpdates = getEquipmentUpdatesForApprovalStatus({
                 status,
                 previousStatus: oldApproval.status,
@@ -2274,7 +2297,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetId: id,
                 targetName: `Demande de ${oldApproval.requesterName}`,
                 description: `Statut mis à jour: ${status}`,
-                metadata: { from: oldApproval.status, to: status },
+                // L'historique exhaustif des motifs vit ici (renvois successifs inclus) ;
+                // Approval.decisionNote ne garde que le dernier état.
+                metadata: { from: oldApproval.status, to: status, ...(reason ? { reason } : {}) },
                 isSystem: false,
                 isSensitive: false
             });

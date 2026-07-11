@@ -185,14 +185,14 @@ const ApprovalsPage = () => {
         );
     };
 
-    const handleReject = (approval: Approval): boolean => {
+    const handleReject = (approval: Approval, reason?: string): boolean => {
         const { reject } = getRowActions(approval);
         if (!reject) {
             showToast('Aucune action disponible pour cette demande.', 'error');
             return false;
         }
 
-        const decision = updateApproval(approval.id, reject.nextStatus);
+        const decision = updateApproval(approval.id, reject.nextStatus, { reason });
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;

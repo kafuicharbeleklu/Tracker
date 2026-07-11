@@ -7,14 +7,16 @@ import { useHistory } from '../../hooks/useHistory';
 import SideSheet from '../ui/SideSheet';
 import Button from '../ui/Button';
 import InputField from '../ui/InputField';
+import { TextArea } from '../ui/TextArea';
 import DemoBadge from '../ui/DemoBadge';
 
 interface SecurityGateProps {
   /**
    * Action protégée. Retourner `false` signale un refus métier (journalisé
-   * `actionOutcome: 'DENIED'`) ; `true`/`void` vaut exécution.
+   * `actionOutcome: 'DENIED'`) ; `true`/`void` vaut exécution. Reçoit le motif
+   * saisi quand `reasonField` est configuré.
    */
-  onVerified: () => boolean | void;
+  onVerified: (reason?: string) => boolean | void;
   trigger: React.ReactNode;
   title?: string;
   description?: string;
@@ -22,6 +24,12 @@ interface SecurityGateProps {
   entityId?: string;
   /** Nom lisible de l'entité visée (journal d'audit) — pas le libellé du bouton. */
   entityName?: string;
+  /**
+   * Saisie de motif au-dessus du pavé PIN (refus/renvoi/annulation, §9.7.2/D18).
+   * `required` verrouille la saisie du PIN tant que le motif est vide — la garde
+   * métier d'updateApproval reste le filet de sécurité.
+   */
+  reasonField?: { label: string; required?: boolean; placeholder?: string };
 }
 
 /**
@@ -37,6 +45,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
   description = 'Saisissez votre code PIN administrateur pour confirmer cette action.',
   entityId = 'system',
   entityName,
+  reasonField,
 }) => {
   const { showToast } = useToast();
   const { currentUser } = useAuth();
@@ -49,8 +58,10 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [attempts, setAttempts] = useState(0);
+  const [reason, setReason] = useState('');
 
   const actorId = currentUser?.id || 'unknown';
+  const reasonMissing = Boolean(reasonField?.required) && reason.trim() === '';
 
   const handleClose = () => {
     setIsOpen(false);
@@ -59,6 +70,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
       setIsVerifying(false);
       setPin(['', '', '', '', '', '']);
       setAttempts(0);
+      setReason('');
     }, 300);
   };
 
@@ -72,7 +84,8 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
         setTimeout(() => {
           // Journalisation APRÈS le dénouement : le facteur (PIN) et l'issue de
           // l'action protégée sont deux faits distincts (audit §7.2 / X16).
-          const result = onVerified();
+          const trimmedReason = reasonField ? reason.trim() || undefined : undefined;
+          const result = onVerified(trimmedReason);
           const actionOutcome = result === false ? 'DENIED' : 'EXECUTED';
           logSecurityAction(title, actorId, entityId, 'PIN', 'SUCCESS', actionOutcome);
           // Piste d'audit persistée (journal HistoryEvent)
@@ -85,7 +98,12 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
             targetId: entityId,
             targetName: entityName || entityId,
             description: `Step-up PIN validé — action « ${title} » ${actionOutcome === 'EXECUTED' ? 'exécutée' : 'refusée par les règles métier'}`,
-            metadata: { action: title, factorOutcome: 'SUCCESS', actionOutcome },
+            metadata: {
+              action: title,
+              factorOutcome: 'SUCCESS',
+              actionOutcome,
+              ...(trimmedReason ? { reason: trimmedReason } : {}),
+            },
             isSystem: false,
             isSensitive: true,
           });
@@ -139,6 +157,25 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
               <div className="flex justify-center">
                 <DemoBadge title="Contrôle de démonstration — PIN vérifié côté client uniquement" />
               </div>
+              {reasonField && (
+                <div className="text-left">
+                  <TextArea
+                    label={reasonField.label}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required={reasonField.required}
+                    disabled={isVerifying}
+                    rows={3}
+                    maxLength={500}
+                    placeholder={reasonField.placeholder || 'Expliquez votre décision…'}
+                    supportingText={
+                      reasonField.required
+                        ? 'Obligatoire — la saisie du PIN se déverrouille avec le motif.'
+                        : 'Optionnel'
+                    }
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-6 gap-1.5 w-full max-w-[300px] mx-auto">
                 {pin.map((digit, idx) => (
                   <InputField
@@ -148,7 +185,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
-                    disabled={isVerifying}
+                    disabled={isVerifying || reasonMissing}
                     onChange={(e) => handlePinChange(idx, e.target.value)}
                     aria-label={`Chiffre PIN ${idx + 1}`}
                     className="h-12 !px-0 border-2 border-outline-variant rounded-md text-center text-title-medium focus:border-primary focus:ring-2 focus:ring-primary/10 input-pin transition-all duration-short4 ease-emphasized"

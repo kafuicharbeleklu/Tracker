@@ -267,13 +267,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         approvalId: string,
         status: Approval['status'],
         approve: boolean,
+        reason?: string,
     ): boolean => {
         const isDotation = status === 'WAITING_DOTATION_APPROVAL';
         const nextStatus: Approval['status'] = isDotation
             ? (approve ? 'PENDING_DELIVERY' : 'WAITING_IT_PROCESSING')
             : (approve ? 'WAITING_IT_PROCESSING' : 'Rejected');
 
-        const decision = updateApproval(approvalId, nextStatus);
+        const decision = updateApproval(approvalId, nextStatus, approve ? undefined : { reason });
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;
@@ -465,9 +466,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <SecurityGate
-                                                        onVerified={() => handleManagerValidation(e.approvalId, e.approvalStatus, false)}
+                                                        onVerified={(reason) => handleManagerValidation(e.approvalId, e.approvalStatus, false, reason)}
                                                         title={e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
                                                         description={`${e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'} cette demande ?`}
+                                                        reasonField={{
+                                                            label: e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Motif du renvoi' : 'Motif du refus',
+                                                            required: true,
+                                                        }}
                                                         entityId={e.approvalId}
                                                         entityName={e.equipmentName}
                                                         trigger={

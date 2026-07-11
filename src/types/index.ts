@@ -288,6 +288,14 @@ export type ApprovalStatus =
   | 'Completed'
   | 'Cancelled';
 
+// Verdicts négatifs du workflow : les 4 points de refus (§9.7.2) + l'annulation.
+export type DecisionNoteKind =
+  | 'MANAGER_REJECT'   // WAITING_MANAGER_APPROVAL -> Rejected
+  | 'IT_REJECT'        // WAITING_IT_PROCESSING -> Rejected
+  | 'DOTATION_REJECT'  // WAITING_DOTATION_APPROVAL -> WAITING_IT_PROCESSING (renvoi)
+  | 'DELIVERY_REJECT'  // PENDING_DELIVERY -> Rejected (refus de réception)
+  | 'CANCEL';          // -> Cancelled (annulation par le demandeur)
+
 // 3.2 - Mise à jour Approval
 export interface Approval {
   id: string;
@@ -315,6 +323,17 @@ export interface Approval {
   // Équipement attribué (une fois le workflow terminé ou en cours)
   assignedEquipmentId?: string;
   assignedEquipmentName?: string; // Snapshot pour affichage rapide
+
+  // Dernier verdict négatif (refus, renvoi, annulation) — dernier état seulement,
+  // purgé sur toute transition « en avant » ; l'historique exhaustif des motifs
+  // vit dans le journal (HistoryEvent.metadata.reason).
+  decisionNote?: {
+    kind: DecisionNoteKind;
+    reason: string;
+    actorId: string;
+    actorName: string;  // Snapshot pour historique
+    at: string;         // ISO 8601
+  };
 
   // Dates
   createdAt: string;

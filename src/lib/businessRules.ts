@@ -2,6 +2,7 @@ import {
     Approval,
     ApprovalStatus,
     AssignmentStatus,
+    DecisionNoteKind,
     Equipment,
     EventType,
     HistoryEvent,
@@ -367,6 +368,37 @@ const PRIMARY_APPROVAL_ACTIONS: Partial<Record<ApprovalStatus, ApprovalPrimaryAc
 
 export const getApprovalRejectTarget = (status: ApprovalStatus): ApprovalStatus =>
     status === 'WAITING_DOTATION_APPROVAL' ? 'WAITING_IT_PROCESSING' : 'Rejected';
+
+// Les 4 points de refus du workflow (§9.7.2), discriminés sur (from, to) comme
+// APPROVAL_DOTATION_REJECT (§9.4-1) : le renvoi de dotation partage sa cible
+// WAITING_IT_PROCESSING avec la validation manager.
+const REFUSAL_DECISION_KINDS: Partial<
+    Record<ApprovalStatus, Partial<Record<ApprovalStatus, DecisionNoteKind>>>
+> = {
+    WAITING_MANAGER_APPROVAL: { Rejected: 'MANAGER_REJECT' },
+    WAITING_IT_PROCESSING: { Rejected: 'IT_REJECT' },
+    WAITING_DOTATION_APPROVAL: { WAITING_IT_PROCESSING: 'DOTATION_REJECT' },
+    PENDING_DELIVERY: { Rejected: 'DELIVERY_REJECT' },
+};
+
+const DECISION_NOTE_LABELS: Record<DecisionNoteKind, string> = {
+    MANAGER_REJECT: 'Refusée par le manager',
+    IT_REJECT: 'Refusée par l’IT',
+    DOTATION_REJECT: 'Dotation renvoyée au traitement IT',
+    DELIVERY_REJECT: 'Réception refusée',
+    CANCEL: 'Annulée par le demandeur',
+};
+
+export const getRefusalDecisionKind = (
+    from: ApprovalStatus,
+    to: ApprovalStatus,
+): DecisionNoteKind | null => REFUSAL_DECISION_KINDS[from]?.[to] ?? null;
+
+export const isRefusalTransition = (from: ApprovalStatus, to: ApprovalStatus): boolean =>
+    getRefusalDecisionKind(from, to) !== null;
+
+export const getDecisionNoteLabel = (kind: DecisionNoteKind): string =>
+    DECISION_NOTE_LABELS[kind];
 
 /**
  * Dérive la disponibilité des actions par rangée depuis la machine à états

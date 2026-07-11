@@ -8,11 +8,12 @@ import Button from '../../../components/ui/Button';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
 import SecurityGate from '../../../components/security/SecurityGate';
 import { getCategoryIcon } from '../../../constants/categoryIcons';
+import { getDecisionNoteLabel } from '../../../lib/businessRules';
 
 interface ApprovalRowProps {
     approval: Approval;
-    onApprove?: (approval: Approval) => void;
-    onReject?: (approval: Approval) => void;
+    onApprove?: (approval: Approval) => boolean | void;
+    onReject?: (approval: Approval, reason?: string) => boolean | void;
     showActions?: boolean;
     compact?: boolean;
     requesterAvatar?: string;
@@ -44,6 +45,13 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
     const equipmentTitle = approval.equipmentName || approval.equipmentModel || approval.equipmentCategory;
     const rejectLabel = stepDetails.rejectText || 'Refuser';
     const rejectIcon = rejectLabel === 'Renvoyer' ? 'reply' : 'block';
+    // Motif obligatoire aux 4 points de refus (§9.7.2/D18) — la garde métier
+    // d'updateApproval refuse de toute façon un refus sans motif.
+    const rejectReasonField = {
+        label: rejectLabel === 'Renvoyer' ? 'Motif du renvoi' : 'Motif du refus',
+        required: true,
+    };
+    const decisionNote = approval.decisionNote;
 
     if (compact) {
         return (
@@ -85,6 +93,15 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                 {stepDetails.label}
                             </span>
                         </div>
+                        {decisionNote && (
+                            <p
+                                className="text-label-small text-on-surface-variant truncate mt-0.5"
+                                title={`${getDecisionNoteLabel(decisionNote.kind)} — ${decisionNote.reason}`}
+                            >
+                                <span className="font-medium">{getDecisionNoteLabel(decisionNote.kind)}</span>
+                                {' — « '}{decisionNote.reason}{' »'}
+                            </p>
+                        )}
                     </div>
 
                     <span className="text-label-small text-on-surface-variant whitespace-nowrap shrink-0">
@@ -96,9 +113,10 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     {showActions && onApprove && onReject && stepDetails.btnText && (
                         <div className="flex items-center gap-2 shrink-0">
                             <SecurityGate
-                                onVerified={() => onReject(approval)}
+                                onVerified={(reason) => onReject(approval, reason)}
                                 title={rejectLabel}
                                 description={`${rejectLabel} cette demande ?`}
+                                reasonField={rejectReasonField}
                                 entityId={approval.id}
                                 entityName={equipmentTitle}
                                 trigger={
@@ -202,12 +220,23 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                         </span>
                     </div>
 
+                    {decisionNote && (
+                        <div className="flex items-start gap-1.5 rounded-md bg-surface-container-high/60 px-2.5 py-1.5">
+                            <MaterialIcon name="comment" size={14} className="text-on-surface-variant mt-0.5 shrink-0" />
+                            <p className="text-body-small text-on-surface-variant min-w-0 break-words">
+                                <span className="font-medium text-on-surface">{getDecisionNoteLabel(decisionNote.kind)}</span>
+                                {' — « '}{decisionNote.reason}{' »'}
+                            </p>
+                        </div>
+                    )}
+
                     {showActions && onApprove && onReject && stepDetails.btnText && (
                         <div className="grid grid-cols-2 gap-2 pt-1">
                             <SecurityGate
-                                onVerified={() => onReject(approval)}
+                                onVerified={(reason) => onReject(approval, reason)}
                                 title={rejectLabel}
                                 description={`${rejectLabel} cette demande ?`}
+                                reasonField={rejectReasonField}
                                 entityId={approval.id}
                                 entityName={equipmentTitle}
                                 trigger={
