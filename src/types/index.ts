@@ -462,6 +462,7 @@ export type EventType =
   | 'APPROVAL_MANAGER' // Validation manager
   | 'APPROVAL_ADMIN'   // Validation admin
   | 'APPROVAL_REJECT'  // Rejet demande
+  | 'APPROVAL_DOTATION_REJECT' // Refus de dotation (retour au traitement IT)
   | 'LOGIN'            // Connexion
   | 'LOGOUT'           // Déconnexion
   | 'EXPORT'           // Export données

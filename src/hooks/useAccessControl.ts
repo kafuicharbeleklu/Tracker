@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Equipment, User, Approval } from '../types';
+import { Equipment, User } from '../types';
 import {
   buildRbacAssignmentFromUser,
   RBAC_PERMISSIONS,
@@ -125,53 +125,6 @@ export const useAccessControl = () => {
     return users.filter(u => u.id === currentUser.id);
   };
 
-  // Granular Permissions
-  const canValidateRequest = (request: Approval, allUsers: User[]) => {
-    if (!permissions.canManageApprovals) return false;
-    if (role === 'SuperAdmin') return true;
-    if (role === 'Manager') {
-      const resolveUser = (userId?: string, userName?: string) => {
-        return allUsers.find((user) =>
-          (userId && user.id === userId)
-          || (userName && (user.name === userName || user.email === userName))
-        );
-      };
-
-      const requester = resolveUser(request.requesterId, request.requesterName);
-      const beneficiary = resolveUser(request.beneficiaryId, request.beneficiaryName);
-
-      const isOwnRequest = request.requesterId === currentUser?.id || request.beneficiaryId === currentUser?.id;
-      const managesRequester = requester?.managerId === currentUser?.id;
-      const managesBeneficiary = beneficiary?.managerId === currentUser?.id;
-
-      return Boolean(isOwnRequest || managesRequester || managesBeneficiary);
-    }
-    return false;
-  };
-
-  const canProcessRequest = (request: Approval, requesterUser?: User) => {
-    if (!permissions.canManageApprovals) return false;
-    if (role === 'SuperAdmin') return true;
-    if (role === 'Admin') {
-      // Check perimeter (Country)
-      // We need to know the requester's country.
-      // Passed as arg or we need to find it?
-      // Ideally request has 'location' field, or we look up requester.
-      if (!requesterUser) return true; // Fail safe or strict?
-      return currentUser?.managedCountries?.includes(requesterUser.country || '');
-    }
-    return false;
-  };
-
-  const canAssignAsset = (asset: Equipment) => {
-    if (!permissions.canManageInventory) return false;
-    if (role === 'SuperAdmin') return true;
-    if (role === 'Admin') {
-      return currentUser?.managedCountries?.includes(asset.country || '');
-    }
-    return false;
-  };
-
   const simulateAccess = (roleIds: string[], groupIds?: string[]) =>
     resolveEffectiveAccess({
       userId: 'simulation-user',
@@ -187,9 +140,6 @@ export const useAccessControl = () => {
   return {
     filterEquipment,
     filterUsers,
-    canValidateRequest,
-    canProcessRequest,
-    canAssignAsset,
     role: currentUser?.role,
     user: currentUser,
     permissions,

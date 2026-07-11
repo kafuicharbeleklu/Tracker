@@ -1443,6 +1443,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [users, approvals, currentUser, logEvent, serviceManagers]);
 
     const deleteUser = useCallback((id: string): BusinessRuleDecision => {
+        const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
+        if (!permissionDecision.allowed) {
+            return permissionDecision;
+        }
+
         const userToDelete = users.find(u => u.id === id);
         if (!userToDelete) {
             return { allowed: false, reason: 'Utilisateur introuvable.' };
@@ -2214,6 +2219,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? {
                   ...item,
                   status,
+                  updatedAt: now,
                   assignedEquipmentId: isDotationRefusal
                       ? undefined
                       : (options?.assignedEquipmentId ?? item.assignedEquipmentId),
@@ -2250,8 +2256,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (oldApproval) {
             let eventType: HistoryEvent['type'] = 'UPDATE';
+            // Le refus de dotation partage la cible WAITING_IT_PROCESSING avec la validation
+            // manager : discriminer sur (from, to) pour que le journal dise un refus (§9.4-1).
             if (status === 'WAITING_MANAGER_APPROVAL') eventType = 'ASSIGN_MANAGER_WAIT';
-            else if (status === 'WAITING_IT_PROCESSING') eventType = 'APPROVAL_MANAGER';
+            else if (status === 'WAITING_IT_PROCESSING') eventType = isDotationRefusal ? 'APPROVAL_DOTATION_REJECT' : 'APPROVAL_MANAGER';
             else if (status === 'WAITING_DOTATION_APPROVAL') eventType = 'ASSIGN_DOTATION_WAIT';
             else if (status === 'PENDING_DELIVERY') eventType = 'ASSIGN_PENDING';
             else if (status === 'Completed') eventType = 'ASSIGN_CONFIRMED';

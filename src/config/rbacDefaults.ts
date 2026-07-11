@@ -9,7 +9,7 @@ import {
     UserAccessAssignment,
     WorkflowDefinition,
 } from '../types/rbac';
-import { resolveEffectiveAccess, isPermissionGranted } from '../lib/rbac';
+import { resolveEffectiveAccess } from '../lib/rbac';
 
 type RbacAssignmentOverride = Omit<Partial<UserAccessAssignment>, 'userId'>;
 
@@ -469,13 +469,3 @@ export const simulateAccessForRoleIds = (
     });
 };
 
-export const roleCan = (
-    role: UserRole | undefined,
-    permissionKey: PermissionRule['key'],
-    access: PermissionAccessLevel = 'read',
-): boolean => {
-    if (!role) return false;
-    const roleId = SYSTEM_ROLE_ID_BY_USER_ROLE[role];
-    const profile = simulateAccessForRoleIds(roleId ? [roleId] : []);
-    return isPermissionGranted(profile, permissionKey, access);
-};

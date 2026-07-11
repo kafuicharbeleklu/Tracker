@@ -140,6 +140,23 @@ const RETURN_STATUS_BY_CONDITION: Record<ReturnInspectionCondition, Equipment['s
     'Hors service': 'Retiré',
 };
 
+// Libération alignée sur la purge du retour (§9.4-6) : un équipement redevenu
+// Disponible ne garde aucune métadonnée de l’attribution avortée.
+const RELEASED_EQUIPMENT_FIELDS: Partial<Equipment> = {
+    status: 'Disponible',
+    assignmentStatus: 'NONE',
+    user: null,
+    assignedBy: undefined,
+    assignedAt: undefined,
+    assignedByName: undefined,
+    managerValidationBy: undefined,
+    managerValidationAt: undefined,
+    confirmedBy: undefined,
+    confirmedAt: undefined,
+    reservedFor: undefined,
+    reservedAt: undefined,
+};
+
 const MANAGER_GATES: readonly ApprovalStatus[] = ['WAITING_MANAGER_APPROVAL', 'WAITING_DOTATION_APPROVAL'];
 const IT_GATES: readonly ApprovalStatus[] = ['WAITING_IT_PROCESSING'];
 const USER_CONFIRMATION_GATES: readonly ApprovalStatus[] = ['PENDING_DELIVERY'];
@@ -202,6 +219,7 @@ const HISTORY_EVENT_ICONS: Partial<Record<EventType, string>> = {
     APPROVAL_MANAGER: 'how_to_reg',
     APPROVAL_ADMIN: 'verified',
     APPROVAL_REJECT: 'cancel',
+    APPROVAL_DOTATION_REJECT: 'reply',
     LOGIN: 'login',
     LOGOUT: 'logout',
     EXPORT: 'download',
@@ -228,6 +246,7 @@ const HISTORY_EVENT_ACTIONS: Partial<Record<EventType, string>> = {
     APPROVAL_MANAGER: 'validé une demande liée à',
     APPROVAL_ADMIN: 'traité une demande liée à',
     APPROVAL_REJECT: 'refusé une demande liée à',
+    APPROVAL_DOTATION_REJECT: 'refusé la dotation d’une demande liée à',
     LOGIN: 'ouvert une session',
     LOGOUT: 'fermé une session',
     EXPORT: 'exporté des données sur',
@@ -254,6 +273,7 @@ const HISTORY_EVENT_TITLES: Partial<Record<EventType, string>> = {
     APPROVAL_MANAGER: 'Demande validée (manager)',
     APPROVAL_ADMIN: 'Demande traitée',
     APPROVAL_REJECT: 'Demande refusée',
+    APPROVAL_DOTATION_REJECT: 'Dotation refusée',
     LOGIN: 'Connexion',
     LOGOUT: 'Déconnexion',
     EXPORT: 'Export de données',
@@ -521,11 +541,7 @@ export const getEquipmentUpdatesForApprovalStatus = ({
     // Refus de dotation (retour WAITING_DOTATION_APPROVAL -> WAITING_IT_PROCESSING) :
     // l'équipement proposé est libéré, le retraitement IT repart d'un choix neuf.
     if (status === 'WAITING_IT_PROCESSING' && previousStatus === 'WAITING_DOTATION_APPROVAL') {
-        return {
-            status: 'Disponible',
-            assignmentStatus: 'NONE',
-            user: null,
-        };
+        return { ...RELEASED_EQUIPMENT_FIELDS };
     }
     if (status === 'WAITING_MANAGER_APPROVAL') {
         return { status: 'En attente', assignmentStatus: 'WAITING_MANAGER_APPROVAL' };
@@ -553,11 +569,7 @@ export const getEquipmentUpdatesForApprovalStatus = ({
         };
     }
     if (status === 'Rejected' || status === 'Cancelled') {
-        return {
-            status: 'Disponible',
-            assignmentStatus: 'NONE',
-            user: null,
-        };
+        return { ...RELEASED_EQUIPMENT_FIELDS };
     }
     return null;
 };
