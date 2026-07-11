@@ -28,7 +28,7 @@
       "route": "/approvals",
       "status": "updated",
       "pass": true,
-      "hash": "1078aeacf2b41ab3fb7036ee27d54c8c11d0948c83e4a4ffa64aec5b70bff09a",
+      "hash": "8c96dc4623601e6f27567762250b9098a07710637a0dd0ac026cfa7e752f3c5d",
       "baselinePath": "docs/md3-visual-baseline/compact/approvals.png",
       "currentPath": "docs/md3-visual-current/2026-07-11/compact/approvals.png"
     },
@@ -48,7 +48,7 @@
       "route": "/approvals",
       "status": "updated",
       "pass": true,
-      "hash": "1f5287fe1a9fa8171a3f155c3253d46dd1da549d6b0e60604180ac924ad2b4bc",
+      "hash": "cf62aff7e7e2106da242b2cf283c361cbbd9e258bb2f3d10531464a419059ae3",
       "baselinePath": "docs/md3-visual-baseline/medium/approvals.png",
       "currentPath": "docs/md3-visual-current/2026-07-11/medium/approvals.png"
     },
@@ -68,7 +68,7 @@
       "route": "/approvals",
       "status": "updated",
       "pass": true,
-      "hash": "986e558ad3c0a7cb783cbf2d554e111fba358ce260a294a14746daac69159ddb",
+      "hash": "07858f93bfd706a5f14003ae14d5c787093cafca0103db8b68cc283cb1bcbd3f",
       "baselinePath": "docs/md3-visual-baseline/expanded/approvals.png",
       "currentPath": "docs/md3-visual-current/2026-07-11/expanded/approvals.png"
     }

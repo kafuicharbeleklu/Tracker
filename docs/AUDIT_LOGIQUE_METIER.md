@@ -2,7 +2,7 @@
 
 > Diagnostic + plan d'action priorisé. **Aucune implémentation.** Chaque point indique le **risque** et l'**impact** d'un correctif.
 > Date : 2026-06-30 · Périmètre : `context/DataContext.tsx` (2363 l.), `lib/businessRules.ts`, `lib/rbac.ts`, `config/rbacDefaults.ts`, `hooks/useHistory.ts`, `lib/persistence.ts`.
-> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet), le **2026-07-10** par la **§8** (caractérisation D12/typingKeyword, implémentée en §8.5) et la **§9** (vague 2 : persistance des approbations, statuts legacy, double couche RBAC, transitions non couvertes — diagnostic en attente d'arbitrage D13-D16), le **2026-07-11** par la **§9.7** (diagnostic D17/D18 : annulation par le demandeur, motif de refus — en attente d'arbitrage).
+> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet), le **2026-07-10** par la **§8** (caractérisation D12/typingKeyword, implémentée en §8.5) et la **§9** (vague 2 : persistance des approbations, statuts legacy, double couche RBAC, transitions non couvertes — diagnostic en attente d'arbitrage D13-D16), le **2026-07-11** par la **§9.7** (diagnostic D17/D18 : annulation par le demandeur, motif de refus) et la **§9.8** (bilan d'implémentation D18 puis D17 après feu vert).
 
 ---
 
@@ -642,3 +642,36 @@ decisionNote?: {
 **Découverte connexe (hors périmètre, au registre)** : `isManagerOfRequest` (`businessRules.ts:311`) retourne vrai si l'acteur **est** le demandeur ou le bénéficiaire — un Manager demandeur peut donc franchir la gate manager de sa **propre** demande (auto-approbation). Aucun rapport avec D17/D18, mais découvert en instruisant la garde ; à arbitrer séparément (D19 ?).
 
 **Aucune implémentation. En attente du feu vert D17/D18 (et de l'arbitrage D16 toujours pendant).**
+
+> Feu vert reçu le 2026-07-11, diagnostic approuvé tel quel. Bilan d'implémentation en **§9.8**.
+
+---
+
+## 9.8 Bilan d'implémentation D18/D17 (passe du 2026-07-11, après feu vert)
+
+> Deux commits liés comme prévu, **D18 d'abord** (mécanique partagée), puis D17. Vérification par lot au rendu, protocole D15 (jane/ethan/alice + demandeur — règle par défaut depuis §9.0), un seul refresh des baselines Approbations en fin de lot.
+
+### D18 (§9.7.2) — FAIT (`ff507ca`)
+
+- **Piège n°1 neutralisé dans le même commit, comme exigé** : la synchro équipement d'`updateApproval` discrimine désormais sur `!options?.assignedEquipmentId` (l'appelant-wizard réalise l'écriture lui-même) et non plus sur `!options` — un refus passant `{ reason }` seul n'aurait sinon plus libéré l'équipement (régression D15 silencieuse). **Vérifié en rendu réel, pas seulement sans motif** : rejeu de la chaîne D15 avec motif renseigné — renvoi de dotation par jane → LPT-HQ-01 `Disponible/NONE/user=null`, purge `RELEASED_EQUIPMENT_FIELDS` complète ; refus de réception par ethan → même libération.
+- **Modèle** : `Approval.decisionNote { kind×5, reason, actorId, actorName, at }` — dernier verdict négatif seulement, purgé par toute transition sans motif (vérifié : la ré-affectation IT efface la note du renvoi) ; persisté par `tracker_approvals` sans migration (vérifié après reload). L'historique exhaustif vit dans `HistoryEvent.metadata.reason`, embarqué par `APPROVAL_REJECT`/`APPROVAL_DOTATION_REJECT` (vérifié au journal les deux).
+- **Règles** : `REFUSAL_DECISION_KINDS` discriminé sur `(from, to)` — les **4** points de refus du tableau §9.7.2 — + `getRefusalDecisionKind`/`isRefusalTransition`/`getDecisionNoteLabel`. Garde métier dans `updateApproval` : refus sans motif non vide → deny (l'obligation ne vit pas que dans l'UI).
+- **Saisie** : `SecurityGate.reasonField` (textarea au-dessus du pavé PIN ; `required` **verrouille les inputs PIN** tant que le motif est vide — vérifié ; la gate d'approbation n'affiche pas de textarea — vérifié). Le motif rejoint aussi les métadonnées de l'événement `SECURITY_STEP_UP`. Les 6 surfaces (ApprovalRow ×2 variantes × points concernés + widget Dashboard ×2 points) passent par cette unique mécanique — surface Dashboard vérifiée séparément au rendu.
+- **Rendu** : ligne motif dans les deux variantes d'ApprovalRow (libellé `getDecisionNoteLabel` + « motif ») — vérifié côté demandeur (Historique d'ethan) et côté IT (rangée active revenue à `WAITING_IT_PROCESSING`, alice lit le motif du renvoi avant de ré-affecter).
+- Bilan de vérification : **12/12 verts** (libération ×2, note ×3, journal ×2, purge, persistance, PIN verrouillé, gate avant sans motif, Dashboard).
+
+### D17 (§9.7.1) — FAIT (`4be8840`)
+
+- **Garde** : carve-out `Cancelled` dans `canTransitionApprovalStatus`, après le contrôle de table et le bypass SuperAdmin, avant les gates de rôle — seul `requesterId` annule. Conséquence assumée de §9.7.1 (le manager perd la capacité théorique jamais exposée d'atteindre `Cancelled` par ses gates) actée.
+- **Actions** : `cancel` ajouté à `AvailableApprovalActions`, calculé **indépendamment** de `canUserActOnApproval` (un User demandeur ne valide rien mais annule sa demande active) ; la table borne à `PENDING_DELIVERY` inclus sans code supplémentaire.
+- **Événement** : `APPROVAL_CANCEL` (union + 3 maps, icône `do_not_disturb_on`) — `Cancelled` sortait en `UPDATE` générique. `decisionNote` de kind `CANCEL` seulement quand un motif est donné (saisie optionnelle, `required: false`).
+- **Libération** : chemin existant (`getEquipmentUpdatesForApprovalStatus` → `applyEquipmentWrite`), **zéro code nouveau** — vérifié : annulation à `PENDING_DELIVERY` avec équipement lié → `Disponible/NONE/null`.
+- **UI** : bouton « Annuler la demande » (outlined discret, deux variantes d'ApprovalRow), onglet « En cours » d'ApprovalsPage ; libellé volontairement long pour lever l'ambiguïté aux 3 boutons de `PENDING_DELIVERY` (« Annuler la demande » = la demande entière ≠ « Refuser » = cette livraison) — les trois vérifiés côte à côte. Pas de bouton Dashboard (widgets = to-do d'acteurs de gate).
+- **Vérifié au rendu (10/10), jane/ethan + demandeur, pas seulement alice** : ethan annule sans motif (note absente, événement `reason: null`, chip « Annulée » en Historique) ; annulation tardive avec motif (libération + note + journal) ; demande déléguée jane→ethan — jane (demandeuse **et** manager) cumule Approuver/Refuser/Annuler, ethan bénéficiaire n'a **aucun** bouton, alice SuperAdmin non demandeuse n'a **pas** Annuler (bypass règles conservé, aucun bouton UI).
+- Baselines Approbations rafraîchies une fois en fin de lot (3 devices, login = match, zéro régression).
+
+### Reste ouvert après ce lot
+
+- **D16** : arbitrage final « retirer `action.approvals.manage` » toujours pendant (§9.6).
+- **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot.
+- Champs legacy d'affichage d'`Approval` (`equipmentName`, `requestDate` « Aujourd'hui » en dur) : chantier UI distinct, jamais arbitré.
