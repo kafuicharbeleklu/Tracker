@@ -234,8 +234,6 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                     equipmentCategory: selectedEquipment.type,
                     reason: "Attribution directe par administrateur",
                     urgency: 'normal',
-                    validationSteps: [],
-                    currentStep: 99,
                     status: finalApprovalStatus,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),

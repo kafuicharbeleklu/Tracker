@@ -492,10 +492,6 @@ export const mockPendingApprovals: Approval[] = [
         equipmentModel: 'Dell Latitude 7420',
         reason: 'Remplacement ancien PC',
         urgency: 'normal',
-        validationSteps: [
-            { role: 'Manager', status: 'Pending' }
-        ],
-        currentStep: 0,
         status: 'WAITING_IT_PROCESSING',
         createdAt: '2026-01-14T10:00:00Z',
         updatedAt: '2026-01-14T10:00:00Z',
@@ -523,11 +519,6 @@ export const mockApprovalHistory: Approval[] = [
         equipmentModel: 'Logitech MX Keys',
         reason: 'Demande standard',
         urgency: 'low',
-        validationSteps: [
-            { role: 'Manager', status: 'Approved', validatedBy: '3', validatedAt: '2023-11-01T10:00:00Z' },
-            { role: 'Admin', status: 'Approved', validatedBy: '1', validatedAt: '2023-11-02T10:00:00Z' }
-        ],
-        currentStep: 2,
         status: 'Completed',
         createdAt: '2023-10-30T10:00:00Z',
         updatedAt: '2023-11-02T10:00:00Z',

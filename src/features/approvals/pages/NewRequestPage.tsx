@@ -103,11 +103,6 @@ const NewRequestPage = () => {
                 reason: formData.reason,
                 urgency: formData.urgency,
 
-                validationSteps: [
-                    { role: 'Manager', status: 'Pending' }
-                ],
-                currentStep: 0,
-
                 status: 'WAITING_MANAGER_APPROVAL',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),

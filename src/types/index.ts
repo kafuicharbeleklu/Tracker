@@ -168,8 +168,7 @@ export type AssignmentStatus =
   | 'WAITING_DOTATION_APPROVAL' // 🆕 Sélectionné par IT -> En attente validation dotation Manager
   | 'PENDING_DELIVERY'          // Manager a validé (ou direct) -> En attente confirmation User
   | 'PENDING_RETURN'            // 🆕 Restitution initiée, en attente de traitement IT
-  | 'CONFIRMED'                 // User a confirmé réception
-  | 'DISPUTED';                 // User a signalé un problème
+  | 'CONFIRMED';                // User a confirmé réception
 
 export interface Equipment {
   id: string;
@@ -209,10 +208,6 @@ export interface Equipment {
   // Réservation
   reservedFor?: string;     // ID Approval liée
   reservedAt?: string;
-
-  // Litige
-  disputeReason?: string;
-  disputedAt?: string;
 
   // Restitution
   returnRequestedBy?: string;
@@ -284,15 +279,6 @@ export interface Model {
   specs?: string;
 }
 
-// 3.2 - Workflow multi-étapes pour Approval
-export interface ValidationStep {
-  role: 'Manager' | 'Admin' | 'CFO' | 'User'; // Qui valide
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Skipped';
-  validatedBy?: string;   // ID validateur
-  validatedAt?: string;   // Date validation
-  reason?: string;        // Raison (si rejet)
-}
-
 export type ApprovalStatus =
   | 'WAITING_MANAGER_APPROVAL' // Phase 1
   | 'WAITING_IT_PROCESSING'    // Phase 2
@@ -322,10 +308,6 @@ export interface Approval {
   reason: string;
   urgency: 'low' | 'normal' | 'high';
   estimatedCost?: number;   // 👈 NOUVEAU pour contrôle budgétaire
-
-  // Workflow de validation
-  validationSteps: ValidationStep[];
-  currentStep: number;      // Index de l'étape en cours
 
   // Statut global
   status: ApprovalStatus;
@@ -473,7 +455,6 @@ export type EventType =
   | 'ASSIGN_DOTATION_WAIT' // 🆕 En attente validation dotation
   | 'ASSIGN_DOTATION_OK'   // 🆕 Dotation validée
   | 'ASSIGN_CONFIRMED' // Confirmation réception
-  | 'ASSIGN_DISPUTED'  // Litige réception
   | 'RETURN'           // Retour
   | 'REPAIR_START'     // Début réparation
   | 'REPAIR_END'       // Fin réparation

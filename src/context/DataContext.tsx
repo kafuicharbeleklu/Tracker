@@ -1497,9 +1497,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         metadata.beneficiaryId = nextUserId;
                         metadata.beneficiaryName = nextUserName;
                     }
-                } else if (nextItem.assignmentStatus === 'DISPUTED') {
-                    eventType = 'ASSIGN_DISPUTED';
-                    description = `Litige utilisateur déclaré`;
                 }
             } else if (oldItem.status !== nextItem.status) {
                 description = `Statut modifié: ${oldItem.status} → ${nextItem.status}`;
