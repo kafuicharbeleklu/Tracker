@@ -1,0 +1,76 @@
+{
+  "date": "2026-07-11",
+  "baseUrl": "http://127.0.0.1:4173",
+  "updateBaseline": true,
+  "totals": {
+    "checkpoints": 6,
+    "match": 3,
+    "baselineCreated": 0,
+    "updated": 3,
+    "changed": 0,
+    "pass": 6,
+    "fail": 0
+  },
+  "results": [
+    {
+      "device": "compact",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "cd41d799cb6c1d2475708f65e7203d9f7b83842adf7cfdcecec1ca2a377e4593",
+      "baselinePath": "docs/md3-visual-baseline/compact/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "updated",
+      "pass": true,
+      "hash": "1078aeacf2b41ab3fb7036ee27d54c8c11d0948c83e4a4ffa64aec5b70bff09a",
+      "baselinePath": "docs/md3-visual-baseline/compact/approvals.png",
+      "currentPath": "docs/md3-visual-current/2026-07-11/compact/approvals.png"
+    },
+    {
+      "device": "medium",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "5103fc4eef43f7204acb253f91018a36d773671decf3bcd10aafe145289a9f78",
+      "baselinePath": "docs/md3-visual-baseline/medium/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "updated",
+      "pass": true,
+      "hash": "1f5287fe1a9fa8171a3f155c3253d46dd1da549d6b0e60604180ac924ad2b4bc",
+      "baselinePath": "docs/md3-visual-baseline/medium/approvals.png",
+      "currentPath": "docs/md3-visual-current/2026-07-11/medium/approvals.png"
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "52ac72e3dd72a5a1e69855eea2ff4b369a2797081ab9ac2ebf92450eda4dd704",
+      "baselinePath": "docs/md3-visual-baseline/expanded/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "updated",
+      "pass": true,
+      "hash": "986e558ad3c0a7cb783cbf2d554e111fba358ce260a294a14746daac69159ddb",
+      "baselinePath": "docs/md3-visual-baseline/expanded/approvals.png",
+      "currentPath": "docs/md3-visual-current/2026-07-11/expanded/approvals.png"
+    }
+  ]
+}
