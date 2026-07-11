@@ -2,7 +2,7 @@
 
 > Diagnostic + plan d'action priorisé. **Aucune implémentation.** Chaque point indique le **risque** et l'**impact** d'un correctif.
 > Date : 2026-06-30 · Périmètre : `context/DataContext.tsx` (2363 l.), `lib/businessRules.ts`, `lib/rbac.ts`, `config/rbacDefaults.ts`, `hooks/useHistory.ts`, `lib/persistence.ts`.
-> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet ; la vague 2 reste à ouvrir séparément).
+> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet), le **2026-07-10** par la **§8** (caractérisation D12/typingKeyword, implémentée en §8.5) et la **§9** (vague 2 : persistance des approbations, statuts legacy, double couche RBAC, transitions non couvertes — diagnostic en attente d'arbitrage D13-D16).
 
 ---
 
@@ -370,3 +370,146 @@ Arbitrage : D12 approuvé (portage du lien + branche fallback + 2 orphelins du s
 - Méta-constat `@types/react` absent ⇒ vérification de props JSX morte projet-wide (§8.3) — chantier séparé à chiffrer, non touché.
 - Faux facteurs du wizard (reliquat D9) — non arbitrés.
 - Baselines visuelles Approbations — à rafraîchir maintenant que D12 est passé (badge/rangées SuperAdmin + indicateur de lien désormais réellement rendu).
+
+---
+
+## 9. Passe du 2026-07-10 (ter) — Chantier D vague 2 : diagnostic (4 points)
+
+> **Diagnostic uniquement — zéro retouche de code, zéro retouche de données.** Vague 2 annoncée au lancement du chantier : (1) persistance des approbations, (2) statuts legacy vs modernes, (3) double couche RBAC + businessRules passée au même niveau de rigueur que 7.1/D12, (4) transitions non couvertes de la machine à états d'approbation. Hors périmètre explicite : monolithe `DataContext` et méta-constat `@types/react` (§8.3) — vague 3 séparée si besoin. Même convention Constaté/Déduit qu'en §7-8. Ligne de code = état du repo à `c0c2d5d`.
+
+### 9.0 Constat transversal (découvert en instruisant les points 3 et 4) — la synchro équipement du workflow ne s'exécute **jamais** pour ses acteurs légitimes
+
+C'est le constat dominant de la passe ; les points 3 et 4 y renvoient. Il est présenté d'abord parce qu'il requalifie une partie du verdict « D12 corrigé » de la §8.5.
+
+**Constaté — la chaîne complète, trois maillons :**
+
+1. **La synchro équipement d'`updateApproval` passe par `updateEquipment`** (`DataContext.tsx:2130-2145`), qui ouvre sur une garde `canManageInventoryByRole(currentUserAccessRef.current)` à **retour silencieux** (`DataContext.tsx:1416-1419` : `if (!permissionDecision.allowed) return;` — pas de `BusinessRuleDecision` remonté, pas de toast, pas de log).
+2. **`action.inventory.manage` n'est accordé qu'à Admin (delete) et SuperAdmin (delete)** — le rôle système **Manager ne l'a pas** (`rbacDefaults.ts:148-159` : approvalsManage, reportsView, auditScan seulement) et le rôle **Employé ne l'a pas** (`rbacDefaults.ts:168-178`).
+3. Or **les seuls acteurs non-SuperAdmin autorisés par la machine à états sur les étapes qui portent un équipement lié sont précisément Manager et bénéficiaire** : `MANAGER_GATES` pour `WAITING_DOTATION_APPROVAL` (`businessRules.ts:163`), `USER_CONFIRMATION_GATES` pour `PENDING_DELIVERY` (`businessRules.ts:165`). L'Admin, seul rôle doté d'inventory.manage, agit à l'étape IT — via le wizard, qui fournit `options` et écrit l'équipement lui-même (chemin sain).
+
+**Conséquence : pour chaque transition jouée par le persona nominal, la demande avance et l'équipement reste figé.** Chemins concrets (tous tracés au code, aucun exercé au rendu dans cette passe) :
+
+| # | Acteur | Transition (rangée `ApprovalsPage.tsx:231-272` ou ticket `DashboardPage.tsx:257-300`) | Ce que dit l'approbation | Ce que fait réellement l'équipement |
+|---|---|---|---|---|
+| 1 | Manager | Valide la dotation → `PENDING_DELIVERY` | « Dotation validée » | Reste `En attente / WAITING_DOTATION_APPROVAL` — jamais `PENDING_DELIVERY` |
+| 2 | Manager | **Refuse la dotation** → `WAITING_IT_PROCESSING` | Lien rompu (D12, `DataContext.tsx:2111-2123`) | **Libération sautée** → équipement réservé que plus aucune approbation ne référence = **orphelin définitif**, exactement l'état que D12 devait éradiquer, et il sort du pool du wizard (filtre `Disponible`, `AssignmentWizardPage.tsx:132`) — la boucle multi-orphelins déduite en §8.1 revient par le chemin nominal |
+| 3 | Bénéficiaire (User) | Confirme la réception → `Completed` | « Réception confirmée » | Jamais `Attribué/CONFIRMED`, jamais `confirmedBy/At` — `En attente` pour toujours |
+| 4 | Bénéficiaire (User) | Refuse à `PENDING_DELIVERY` → `Rejected` | « Demande rejetée » | Libération sautée → orphelin |
+
+Le chemin 3 vaut aussi pour l'**attribution directe en envoi différé** (approbation implicite à `PENDING_DELIVERY` portant le lien, `AssignmentWizardPage.tsx:227-250`) : la confirmation du bénéficiaire n'attribue jamais l'équipement.
+
+**Pourquoi la vague 1 a conclu « vérifié 17/17 »** : toutes les vérifications au rendu de §7.1/§8.5 ont été conduites en **alice.admin (SuperAdmin)** — `inventory.manage: delete`, bypass total. Le correctif D12 est réel et complet **pour ce persona** ; il n'a jamais été exercé avec jane (Manager) ou ethan (User), qui sont pourtant les écrivains prévus de ces étapes. Le balayage jane/ethan de la vague 1 vérifiait l'*absence de boutons indus*, pas l'issue des transitions légitimes.
+
+- **Requalification** : D12 (§8.5) passe de « corrigé et vérifié » à « corrigé et vérifié **sous SuperAdmin uniquement** ; cassé pour Manager et bénéficiaire ». Le flux 4 étapes multi-personas — la raison d'être du workflow — ne synchronise l'équipement sur **aucune** de ses deux dernières étapes quand il est joué par les bons rôles.
+- **Risque si on ne touche à rien** : le workflow nominal produit silencieusement des équipements désynchronisés et des orphelins ; piste d'audit incohérente (l'événement de transition d'approbation est journalisé `DataContext.tsx:2147-2170`, l'événement équipement jamais) ; Bloquant au branchement backend.
+- **Correctif candidat (pour arbitrage, non implémenté)** : la synchro équipement d'`updateApproval` est une écriture *système*, conséquence d'une transition déjà autorisée par `canTransitionApprovalStatus` — elle ne devrait pas repasser par la garde *acteur* d'`updateEquipment`. Deux formes possibles : un écrivain interne non exporté (le `setEquipment` + journalisation factorisés, appelés par `updateEquipment`-gardé et par la synchro-non-gardée), ou un paramètre interne « source: workflow » qui saute la garde. **À ne pas faire** : accorder `inventory.manage` aux rôles Manager/Employé (élargirait tout le CRUD inventaire pour corriger un effet de bord).
+- **Risque du correctif** : ouvrir un chemin d'écriture équipement non gardé — à confiner strictement à la synchro d'`updateApproval` (qui n'écrit que des champs de statut/attribution dérivés de la machine à états). Gate de reproduction : rejouer les chemins 1-4 au rendu (jane + ethan) **avant** correctif, comme pour 7.1.
+- **Sévérité : Majeur (Bloquant si backend)** · **Effort : S** · **Test unitaire léger : moyen** — la faille est dans le câblage des gardes, pas dans une fonction pure ; un test de non-régression utile serait plutôt le smoke Playwright multi-personas.
+
+### 9.1 Point 1 — Persistance des approbations (le point ouvert de D12)
+
+**Constaté — l'anomalie et son pourtour :**
+
+- `approvals` est le **seul domaine métier du store en `useState` pur** : `useState<Approval[]>([...mockPendingApprovals, ...mockApprovalHistory])` (`DataContext.tsx:622`), aucune clé dans `STORAGE_KEYS` (`:161-174`), aucun effet de sauvegarde (les 11 autres domaines en ont un, `:725-771`).
+- Le type `Approval` est **entièrement sérialisable** (`types/index.ts:312-356` — que des primitives ; `image` est une string). Pas de ré-inflation à la `Category.icon` (`DataContext.tsx:596-605`) à prévoir.
+- Le mécanisme à étendre est stéréotypé et éprouvé 11 fois : initialisation paresseuse `getPersistedValue(current, legacy)` + parse défensif + merge avec le seed + effet `localStorage.setItem`.
+
+**Proposition (pour arbitrage — format, migration, mécanique) :**
+
+1. **Clé** : `tracker_approvals` (legacy `neemba_approvals` pour la symétrie — `getPersistedValue` tolère son inexistence). **Format** : `JSON.stringify(Approval[])`, comme users/equipment.
+2. **Merge** : `mergePersistedApprovalsWithSeed(parsed)` sur le modèle exact de `mergePersistedEquipmentWithSeed` (`DataContext.tsx:373-395`) — garde de type (`id` + `status`), copie persistée **prime** par id, normalisation qui backfille les requis (`image`, `validationSteps`, `currentStep`, `createdAt`), `seededMissing` réinjecte les ids '1'/'2' absents (cohérent avec D8/Option B), et respect du bypass `DEMO_RESEED_DISABLED` (`[]` accepté, pas de réinjection), y compris dans l'hydratation (`parsed.length > 0 || DEMO_RESEED_DISABLED`, motif de `:549`/`:565`).
+3. **Migration des données déjà en session : aucune à faire.** Il n'a jamais existé de clé approbations dans aucun storage (vérifié : aucun historique de clé, l'état vit en mémoire) — l'état en session au moment du déploiement meurt au reload *aujourd'hui déjà* ; le premier chargement post-changement part du seed puis persiste à la première mutation. C'est le cas de migration le plus simple possible.
+4. **La question sœur devient enfin solvable — réparation au chargement des orphelins hérités (§8.2)** : une fois les approbations persistées, l'invariant « toute approbation active référence son équipement via `assignedEquipmentId` » tient à travers les reloads. La réparation possible au chargement : libérer (`Disponible/NONE/user:null`) tout équipement persisté `En attente` avec `assignmentStatus` de workflow **qu'aucune approbation active persistée ne référence**. Elle assainit d'un coup les storages antérieurs au fix D12 (consigne « vider le storage » levée). À noter : elle ne peut s'appuyer que sur `approval.assignedEquipmentId` — le lien inverse `equipment.reservedFor` n'est **jamais écrit** nulle part (seul le workflow de retour l'efface, `businessRules.ts:790-791` ; zéro producteur, grep exhaustif). Inclusion à trancher (recommandée : c'est la moitié « données » du correctif, comme le seed l'était en §8.5).
+
+**Impact sur les 2 orphelins réparés en vague 1 : aucun.** Ids '1'/'10' sont semés `Disponible/NONE` depuis `948ad49` ; la copie persistée prime et le re-seed ne réinjecte que les supprimés. En revanche, la contrainte consignée en §8.5 — « `Disponible`/`Attribué(CONFIRMED)` sont les deux seuls états seed stables tant que la persistance n'est pas tranchée » — **tombe** après ce changement : un décor « flux en cours » cohérent (approbation liée + équipement réservé) redeviendrait semable. Recommandation : ne pas rouvrir ce décor, le seed minimal actuel est plus sain.
+
+- **Risque si on ne touche à rien** : toute demande en cours meurt au reload ; tout équipement persisté `En attente` de workflow est orphelin de fait au chargement suivant (§8.2) ; le correctif D12 — et celui du §9.0 s'il est fait — ne survivent à aucun F5 ; les scénarios QA multi-sessions restent impossibles.
+- **Risque du changement** : (a) la logique de merge, déjà signalée « source de bugs silencieux » (§4), gagne un domaine — mitigé par le fait que les approbations n'ont **aucune mutation de suppression** (seul le vidage manuel du storage crée le cas `seededMissing`) ; (b) **confort démo** : la demande seed id '1' (entrée du wizard) consommée *reste* consommée après reload — comportement honnête mais nouveau ; issues : bypass dev existant ou vidage storage ; (c) protocole de capture : une clé de plus à réinitialiser ; (d) cohérence inter-clés `tracker_equipment`/`tracker_approvals` : deux effets distincts mais flushés au même commit React — risque résiduel faible (quota storage) ; (e) **séquencement — voir 9.2** : persister *après* l'unification des statuts, sinon on grave le vocabulaire legacy dans les storages et la « suppression sèche » devient une vraie migration.
+- **Sévérité : Majeur** (condition de survie de D12/§9.0) · **Effort : S** (mécanique stéréotypée) ; **+S** si la réparation au chargement est incluse · **Test unitaire léger : oui** — `mergePersistedApprovalsWithSeed` et la fonction de réparation seraient pures ; même matrice que §7.3 ({null, `[]`, partiel, orphelins} × bypass).
+
+### 9.2 Point 2 — Statuts legacy vs modernes : la fenêtre de suppression est ouverte, et elle se referme au moment où 9.1 est implémenté
+
+**Constaté — qui produit quoi, aujourd'hui, exhaustivement :**
+
+| Source de statut | Statuts produits | Famille |
+|---|---|---|
+| Seed `mockData.tsx:482-544` | `Pending` (id '1', l'entrée démo du wizard), `Approved` (id '2', décor historique) | **Legacy — les 2 seules occurrences vivantes** |
+| `NewRequestPage.tsx:111` | `WAITING_MANAGER_APPROVAL` | Moderne |
+| Wizard, attribution directe (`AssignmentWizardPage.tsx:217-239`) | `PENDING_DELIVERY` / `Completed` | Moderne |
+| `updateApproval` (cibles de `APPROVAL_TRANSITIONS`) | Modernes + `Rejected`/`Completed`/`Cancelled` | Moderne |
+
+Et surtout : **les approbations ne sont pas persistées** (§9.1) — il ne peut donc exister **aucune donnée legacy en circulation** hors seed. `Processing`, `WaitingManager`, `WaitingUser` sont **inatteignables** (aucun producteur, aucun storage) ; `Approved` n'est **cible d'aucune transition** (`APPROVAL_TRANSITIONS`, `businessRules.ts:109-120` — vérifié valeur par valeur) et ne vit que dans le seed. La question D2 (« des données legacy circulent-elles ? ») a désormais une réponse factuelle : **non, et il est structurellement impossible qu'il y en ait** — jusqu'à ce que 9.1 crée un storage.
+
+**Constaté — ce que la coexistence coûte** (surface morte mais entretenue) : les 4 lignes legacy de `APPROVAL_TRANSITIONS` (`businessRules.ts:116-119`), `LEGACY_APPROVAL_ACTIVE_STATUSES` (`:122-127`), `WaitingManager` dans `MANAGER_VALIDATION_PENDING_STATUSES` (`:148-152`) et `MANAGER_GATES` (`:163`), `Pending`/`Processing` dans `IT_GATES` (`:164`), `WaitingUser` dans `USER_CONFIRMATION_GATES` (`:165`), 3 lignes de `PRIMARY_APPROVAL_ACTIONS` (`:379-385`), 4 libellés (`:187-200`), les helpers `isLegacyApprovalWorkflow`/`isModernApprovalWorkflow` (`:333-337`) ; côté UI : **toute la mécanique de sections mixtes d'ApprovalsPage** (`hasMixedWorkflowFamilies`, bandeau, sections « Parcours précédent », `ApprovalsPage.tsx:130-192, 291-330, 376`), deux tests legacy du Dashboard (`DashboardPage.tsx:69, 100`), trois branches du mapping d'événements (`DataContext.tsx:2149-2155`, dont la branche `Approved` doublement morte). Ironie fonctionnelle : la seule demande que la démo présente en premier (seed `Pending`) s'affiche sous « Parcours précédent » dès que la liste est mixte — le workflow vitrine de la démo est étiqueté comme l'ancien.
+
+**Verdict : oui, c'est simplifiable maintenant, et 7.1/D12 ont fait le gros du travail** (les actions dérivent déjà de la table ; retirer une ligne de table retire le comportement partout). Il n'y a **pas** de vraie raison de compatibilité : pas de données à migrer, pas de backend, et le seul « client » des statuts legacy est le seed lui-même. Migration proposée (2 valeurs à changer dans `mockData.tsx`) :
+
+| Seed | Actuel | Cible | Équivalence |
+|---|---|---|---|
+| id '1' | `Pending` | `WAITING_IT_PROCESSING` | Même gate (IT), même action primaire (`assign`), même cible de refus ; l'entrée démo du wizard est préservée à l'identique |
+| id '2' | `Approved` | `Completed` | Décor d'historique ; libellé « Terminé » au lieu d'« Approuvé » (cosmétique) |
+
+Puis suppression sèche : les 4 valeurs de l'union `ApprovalStatus` (`types/index.ts:297-300`), toutes les entrées de table/gates/labels/helpers listées ci-dessus, les sections mixtes d'ApprovalsPage, les deux tests Dashboard, les branches du mapping d'événements. `Approved` sort aussi d'`APPROVAL_HISTORY_STATUSES` (`:141-146`). À traiter dans la même passe car même famille : **`Expired`** (défini `types/index.ts:309`, libellé, mais **ni actif ni historique** → une demande `Expired` n'apparaîtrait dans *aucun* onglet, `ApprovalsPage.tsx:75-111` ; jamais produit ; `expiresAt` jamais écrit ni lu — grep exhaustif) — à supprimer avec, ou à brancher un jour avec les timeouts des `WorkflowDefinition` (qui les décrivent sans qu'aucun code ne les exécute). Les **champs legacy** de `Approval` (`types/index.ts:348-355`), eux, sont **encore load-bearing pour l'affichage** (`equipmentName` dans la recherche et les fallbacks, `requestDate` affiché par les rangées — et toujours écrit `'Aujourd'hui'` en dur à la création, `NewRequestPage.tsx:120`) : leur retrait est un chantier UI distinct, **hors de ce lot** — ne pas mélanger.
+
+- **Risque si on ne touche à rien** : chaque règle continue de gérer 2 vocabulaires (la §7.1 a montré ce que ça coûte : `Processing` avait un bouton et pas de branche) ; et si 9.1 passe avant, le vocabulaire legacy devient **persistant** — la suppression sèche se transforme en migration de storage avec réparation (précisément ce que D2 craignait).
+- **Risque du changement** : faible et bien borné — 2 valeurs de seed + retraits mécaniques ; à vérifier au rendu : l'entrée démo du wizard (id '1') se comporte à l'identique, l'Historique affiche id '2' « Terminé », le bandeau « Parcours précédent » ne se déclenche plus jamais, balayage 3 personas. Baselines Approbations à rafraîchir (déjà dû).
+- **Ordre impératif : 9.2 avant 9.1** (sinon migration de storage à écrire en plus).
+- **Sévérité : Majeur** (au registre depuis §2/P1, aggravé par la dépendance de 9.1) · **Effort : S** · **Test unitaire léger : oui** — la table statut × rôle × cible de §7.1 devient *plus petite* après suppression ; bon moment pour l'écrire si D7 aboutit.
+
+### 9.3 Point 3 — Double couche RBAC + businessRules : les vrais conflits, cas par cas
+
+> Rappel du périmètre demandé : pas « il y a deux systèmes », mais des cas concrets où les couches se contredisent. Le P0 historique (§2) est bien corrigé pour les gardes `canManage*ByRole` (elles consomment le moteur effectif, `businessRules.ts:20-48`). Les conflits restants sont ailleurs.
+
+**A — Le conflit majeur : businessRules autorise la transition, RBAC bloque silencieusement son effet de bord.** C'est le §9.0 (Manager/bénéficiaire vs `inventory.manage`). Cas d'école de la question posée : « RBAC bloque, businessRules autorise » — dans le **même appel**, les deux couches répondent différemment, et c'est la plus silencieuse des deux qui gagne.
+
+**B — La machine à états d'approbation n'a aucun contact volontaire avec le moteur RBAC** (Constaté) : `canUserActOnApproval` et `canTransitionApprovalStatus` ne raisonnent qu'en `UserRole` grossier + relation (manager de, bénéficiaire de) — `businessRules.ts:339-363, 501-553`. La permission dédiée **`action.approvals.manage` n'est consultée par aucun chemin vivant** : ses seuls lecteurs sont `useAccessControl.canValidateRequest`/`canProcessRequest` (`useAccessControl.ts:129-164`)… qui ont **zéro consommateur** (grep exhaustif). Conséquences concrètes :
+  - Un **deny** RBAC sur `approvals.manage` posé à un Manager (via le panel RBAC, où la permission est bien exposée et éditable — « Gérer approbations », `RbacManagementPanel.tsx:96`) **n'a aucun effet** : le Manager continue de valider besoins et dotations. C'est le motif exact du P0 de §2, réapparu sur le domaine approbations.
+  - Symétriquement, un **allow** n'ouvre rien : un rôle custom doté d'`approvals.manage: write` ne peut agir sur aucune demande (les gates exigent le `UserRole` littéral).
+  - Nuance de surface : un deny sur `view.approvals` masque la page (AppLayout) mais **pas les tickets du Dashboard** (`DashboardPage.tsx:62-121`, aucun test de vue) — les transitions restent jouables depuis le Dashboard.
+
+**C — Une troisième couche, morte et divergente, prête à mordre** (Constaté) : `canValidateRequest`/`canProcessRequest`/`canAssignAsset` (`useAccessControl.ts:129-173`) dupliquent les gates de businessRules **avec une sémantique différente** — `canProcessRequest`/`canAssignAsset` imposent un **périmètre pays** à l'Admin (`managedCountries`), que `canTransitionApprovalStatus` ne connaît pas ; `canValidateRequest` exige `approvals.manage` RBAC, que businessRules ignore. Zéro consommateur aujourd'hui, donc zéro bug runtime — mais c'est un piège : le prochain dev qui branche l'une de ces fonctions introduit une divergence UI/mutation instantanée (bouton masqué pour l'Admin hors pays, mutation pourtant permise ; ou l'inverse). Même famille : `roleCan` (`rbacDefaults.ts:472-481`), mort depuis la consolidation P0, toujours pas retiré (cosmétique §5 non fait). **Proposition** : supprimer les 4, ou les déclarer source unique et les brancher — mais pas l'entre-deux actuel.
+  - À noter pour l'arbitrage : le périmètre pays qu'elles encodent est la seule trace « code » du géo-scoping des mutations d'approbation — la décision de le retenir ou non rejoint le géo-scoping des exports laissé ouvert en §7.5.
+
+**D — Garde asymétrique sur les utilisateurs** (Constaté) : `addUser`/`updateUser` ouvrent sur la garde RBAC `users.manage` (`DataContext.tsx:1207-1211, 1263-1267`) ; **`deleteUser` ne la consulte pas** (`:1349-1390`) — il repose uniquement sur la règle grossière `actorRole ∈ {Admin, SuperAdmin}` (`canDeleteUserByRoleRule`, `businessRules.ts:692-697`). Deux lectures divergentes de la même intention :
+  - Un Admin frappé d'un **deny `users.manage`** ne peut ni créer ni modifier (refus RBAC) mais **peut supprimer** (la garde manquante) — l'UI masque le bouton (`UserDetailsPage.tsx:223` combine les deux couches), donc défense en profondeur seulement, pas de bouton menteur.
+  - Le rôle custom **RH** (livré dans les défauts : `users.manage: write` sur base Manager, `rbacDefaults.ts:187-204`) peut créer et modifier des utilisateurs mais jamais en supprimer — cohérent à l'écran (bouton masqué par `roleDeleteDecision`), incohérent en couches.
+  - Correctif évident : ajouter la garde `canManageUsersByRole` en tête de `deleteUser`, comme ses deux sœurs. XS.
+
+**E — Gestion RBAC elle-même : rôle grossier des deux côtés, cohérent mais hors moteur** (Constaté, pour mémoire) : `canManageRbacConfig`/`canManageRbacAssignments` (`DataContext.tsx:799-827`) testent `currentUser.role` littéral, et le panel fait exactement pareil (`RbacManagementPanel.tsx:222-223`) — UI et garde alignées, donc pas de bouton menteur ; mais un deny `management.manage` sur un Admin ne l'empêche pas de gérer les assignations. Auto-référence assumée (qui garde le gardien) ; à consigner, pas à corriger en urgence.
+
+- **Risque si on ne touche à rien** : A est couvert en §9.0 ; B fait du panel RBAC un placebo sur le domaine approbations (l'administrateur croit retirer un droit qui reste actif) ; C/D sont des bombes à retardement de maintenance.
+- **Sévérité : A = Majeur (§9.0) · B = Majeur (deny inopérant = faille d'autorisation, même famille que le P0) · C = Mineur (mort) · D = Mineur (défense en profondeur) · E = Polish** · **Effort : B = M (décision de conception : soit brancher `approvals.manage` dans les gates, soit l'assumer « rôle-seul » et retirer la permission du panel — les deux sont défendables, trancher explicitement) ; C = XS (suppression) ; D = XS.**
+
+### 9.4 Point 4 — Machine à états d'approbation : les autres D12 potentiels (champs et effets de bord qui ne suivent pas)
+
+Périmètre : la machine d'approbation seule, pas tout `DataContext`. Le n°1 est le §9.0 (l'effet de bord équipement ne suit pour aucun acteur nominal). Le reste, par gravité décroissante :
+
+1. **Le refus de dotation est journalisé comme une validation** (Constaté, `DataContext.tsx:2147-2170`) : le mapping d'événements ne regarde que le statut **cible** — `WAITING_DOTATION_APPROVAL → WAITING_IT_PROCESSING` (refus, D12) tombe sur `status === 'WAITING_IT_PROCESSING'` → `APPROVAL_MANAGER`, dont la phrase d'historique est « **a validé** une demande liée à » (`businessRules.ts:229, 257, 283`). Un refus de dotation se lit donc comme une validation manager dans l'historique (seul `metadata.from/to` dit la vérité). `previousStatus` est déjà disponible dans la fonction (D12 l'a introduit pour l'équipement) — le mapping peut discriminer sur le couple (from, to). Même famille que X16 : le journal ment sur le sens de l'action. **Sévérité : Mineur en démo, Majeur au backend · Effort : XS.**
+2. **`updatedAt` ne suit aucune transition** (Constaté) : posé à la création (`NewRequestPage.tsx:113`, wizard `:241`), jamais rafraîchi par `updateApproval` (le `setApprovals` de `:2113-2124` n'écrit que `status` + lien). Aucun consommateur aujourd'hui (les tris utilisent `createdAt`, `ApprovalsPage.tsx:126`) — champ dormant qui deviendra un mensonge exploité dès qu'un tri « dernière activité » ou un backend s'en servira. **Effort : XS** (une ligne dans le même updater).
+3. **`validationSteps`/`currentStep` : le workflow multi-étapes du type est un décor** (Constaté) : écrits une fois à la création (`NewRequestPage.tsx:106-109` : une seule étape Manager, `currentStep: 0` ; wizard : `[]`/`99`), **jamais avancés** par aucune transition, **jamais lus** par aucune UI (grep : seuls les mocks et les créations les touchent ; le `currentStep` de `WizardLayout` est sans rapport). Le champ `ValidationStep.reason` (« raison si rejet ») n'est jamais rempli — **aucune transition de refus ne capture de motif**, nulle part. Deux options cohérentes : supprimer ces champs (aligné avec l'esprit 9.2 — le statut global EST la machine à états réelle) ou les brancher (gros chantier, recouvre les `WorkflowDefinition` RBAC — elles aussi purement déclaratives, timeouts/SLA compris). Recommandation : suppression, et consigner « motif de refus » comme manque fonctionnel distinct. **Effort : suppression = XS-S.**
+4. **`Cancelled` est une cible autorisée depuis tous les statuts actifs… que rien ne produit** (Constaté) : présent dans chaque ligne d'`APPROVAL_TRANSITIONS`, libellé, badge — mais la dérivation d'actions ne produit que primaire + refus (`getAvailableApprovalActions`, `businessRules.ts:396-416`) et aucun autre appelant ne l'envoie. En creux : **le demandeur ne peut pas annuler sa propre demande** (`canUserActOnApproval` ne donne aucun droit au requester en dehors des gates de rôle) — un User qui s'est trompé attend le refus du manager. Décision produit plutôt que bug : brancher « Annuler » pour le demandeur sur statuts amont (`WAITING_MANAGER_APPROVAL`/`WAITING_IT_PROCESSING`), ou retirer `Cancelled` des cibles. **Sévérité : Mineur (gap fonctionnel) · Effort : S si branché.**
+5. **`DISPUTED` / `disputeReason` : le litige de réception n'existe pas** (Constaté) : `AssignmentStatus.DISPUTED`, `ASSIGN_DISPUTED` (icône/action/titre complets), `disputeReason`/`disputedAt` — zéro producteur (grep). Le « refus » du bénéficiaire à `PENDING_DELIVERY` passe par `Rejected` → libération sèche (§9.0-4), sans capturer ni litige ni motif. Mort-né ou manquant, à trancher avec le motif de refus (point 3). **Effort : retrait = XS.**
+6. **La libération d'équipement est incomplète — contrairement au retour** (Constaté) : `getEquipmentUpdatesForApprovalStatus` pour `Rejected`/`Cancelled` et pour le refus de dotation remet `{status, assignmentStatus, user}` (`businessRules.ts:563-569, 595-601`) mais **laisse** `assignedBy/assignedAt/assignedByName/managerValidationBy/managerValidationAt` posés par le wizard (`AssignmentWizardPage.tsx:174-186`) sur l'équipement libéré. Le workflow de retour, lui, purge tout explicitement (`getEquipmentUpdatesForReturnWorkflow`, `:779-795`). Un équipement « Disponible » garde donc les métadonnées de son attribution avortée — données sales du même genre que celles que §8.1 reprochait à l'issue de secours manuelle. **Effort : XS** (aligner sur la purge du retour).
+7. Pour mémoire (déjà connu, cohérence) : la tolérance same-status (D10) court-circuite **avant** tout contrôle d'acteur (`DataContext.tsx:2076-2078`) — un acteur sans aucun droit « réussit » un no-op. Sans effet observable ; à re-regarder seulement si le retour d'appel sert un jour à autre chose qu'un toast.
+
+### 9.5 Récapitulatif et séquencement proposé
+
+| Item | Constat clé | Sévérité | Effort | Décision bloquante |
+|---|---|---|---|---|
+| **9.0** Synchro équipement jamais exécutée pour Manager/bénéficiaire | D12 « vérifié » sous SuperAdmin seulement ; orphelins par le chemin nominal | **Majeur (Bloquant si backend)** | S | **D15** |
+| **9.1** Persistance des approbations | Seul domaine non persisté ; migration triviale (aucune donnée existante) ; rend la réparation au chargement possible | Majeur | S (+S réparation) | **D13** |
+| **9.2** Statuts legacy | 2 occurrences vivantes, toutes deux dans le seed ; fenêtre de suppression sèche ouverte tant que 9.1 n'est pas fait | Majeur | S | **D14** |
+| **9.3-B** `approvals.manage` inopérant | deny/allow RBAC sans effet sur le domaine approbations ; panel placebo | Majeur | M | **D16** |
+| **9.3-C/D** Couches mortes + `deleteUser` sans garde RBAC | Divergences latentes | Mineur | XS | — |
+| **9.4** Champs/effets qui ne suivent pas (journal du refus, `updatedAt`, `validationSteps`, `Cancelled`, `DISPUTED`, libération incomplète) | Autres D12 en germe | Mineur→Majeur-si-backend | XS–S | D14 (recouvrement) |
+
+**Décisions requises (suite de D1-D12) :**
+
+- **D13** (9.1) — Persistance des approbations : format/mécanique proposés OK ? La **réparation au chargement** des orphelins hérités est-elle incluse au lot ?
+- **D14** (9.2) — Suppression sèche des statuts legacy (+ `Expired`, et recouvrement 9.4 : `validationSteps`/`currentStep`, `DISPUTED`) avec migration du seed (2 valeurs) — **avant** D13 ?
+- **D15** (9.0) — La synchro équipement d'`updateApproval` devient une écriture système hors garde acteur (écrivain interne confiné) — gate de reproduction multi-personas avant correctif, comme 7.1 ?
+- **D16** (9.3-B) — `action.approvals.manage` : brancher dans les gates de la machine à états (le moteur RBAC devient co-décideur des transitions), ou assumer « rôle + relation » et retirer la permission du panel ? (Les deux sont défendables ; l'entre-deux actuel — permission éditable sans effet — ne l'est pas.)
+
+**Séquencement proposé après arbitrage** : **9.0/D15 d'abord** (reproduction jane/ethan puis correctif — c'est le flux nominal qui est cassé, et tout le reste se vérifie *à travers* lui) → **9.2/D14** (suppression legacy, fenêtre ouverte) → **9.1/D13** (persistance, sur vocabulaire assaini) → 9.3-C/D et 9.4 en lots XS groupés → D16 en dernier (décision de conception indépendante). Baselines visuelles Approbations : à rafraîchir une seule fois, après le lot 9.2.
+
+**Aucune implémentation. En attente du feu vert et des arbitrages D13-D16.**
