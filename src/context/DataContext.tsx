@@ -1412,12 +1412,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     }, [currentUser, logEvent]);
 
-    const updateEquipment = useCallback((id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => {
-        const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
-        if (!permissionDecision.allowed) {
-            return;
-        }
-
+    // Écrivain équipement interne, SANS garde acteur : réservé aux écritures système déjà
+    // autorisées par une règle amont (synchro d'une transition d'approbation validée par
+    // canTransitionApprovalStatus — audit §9.0/D15). Ne jamais l'exposer dans le contexte :
+    // toute écriture initiée par un acteur passe par updateEquipment, qui porte la garde.
+    const applyEquipmentWrite = useCallback((id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => {
         const oldItem = equipment.find(e => e.id === id);
         if (oldItem) {
             const nextItem = { ...oldItem, ...updates };
@@ -1526,6 +1525,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setEquipment(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
     }, [equipment, currentUser, logEvent]);
+
+    const updateEquipment = useCallback((id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => {
+        const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
+        if (!permissionDecision.allowed) {
+            return;
+        }
+        applyEquipmentWrite(id, updates, logMetadata);
+    }, [applyEquipmentWrite]);
 
     const deleteEquipment = useCallback((id: string) => {
         const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
@@ -2127,6 +2134,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // d'affectation), l'appelant réalise lui-même l'écriture équipement complète
         // (bénéficiaire, assignedBy…) — la synchro s'efface pour ne pas doubler l'écriture
         // ni l'événement d'historique.
+        // Écriture système via applyEquipmentWrite : la transition vient d'être autorisée
+        // par canTransitionApprovalStatus, or les acteurs nominaux de ces étapes (manager,
+        // bénéficiaire) n'ont pas inventory.manage — repasser par la garde acteur
+        // d'updateEquipment sautait silencieusement la synchro (§9.0/D15).
         if (!options && oldApproval.assignedEquipmentId) {
             const equipmentUpdates = getEquipmentUpdatesForApprovalStatus({
                 status,
@@ -2136,7 +2147,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
 
             if (equipmentUpdates) {
-                updateEquipment(oldApproval.assignedEquipmentId, equipmentUpdates, {
+                applyEquipmentWrite(oldApproval.assignedEquipmentId, equipmentUpdates, {
                     source: 'approval_workflow',
                     approvalId: id,
                     approvalStatus: status,
@@ -2169,7 +2180,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
         }
         return { allowed: true };
-    }, [approvals, currentUser, logEvent, updateEquipment, users]);
+    }, [approvals, currentUser, logEvent, applyEquipmentWrite, users]);
 
     const addApproval = useCallback((approval: Omit<Approval, 'id'>) => {
         const newId = Date.now().toString();
