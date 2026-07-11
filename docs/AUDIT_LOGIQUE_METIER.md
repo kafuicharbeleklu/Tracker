@@ -513,3 +513,24 @@ Périmètre : la machine d'approbation seule, pas tout `DataContext`. Le n°1 es
 **Séquencement proposé après arbitrage** : **9.0/D15 d'abord** (reproduction jane/ethan puis correctif — c'est le flux nominal qui est cassé, et tout le reste se vérifie *à travers* lui) → **9.2/D14** (suppression legacy, fenêtre ouverte) → **9.1/D13** (persistance, sur vocabulaire assaini) → 9.3-C/D et 9.4 en lots XS groupés → D16 en dernier (décision de conception indépendante). Baselines visuelles Approbations : à rafraîchir une seule fois, après le lot 9.2.
 
 **Aucune implémentation. En attente du feu vert et des arbitrages D13-D16.**
+
+---
+
+## 9.6 Bilan d'implémentation vague 2 (passe du 2026-07-11, annoté au fil des lots)
+
+> Arbitrages reçus : D15 approuvé (gate de reproduction puis écrivain système) ; **D14 avant D13** (ordre impératif) ; D13 approuvé (réparation-au-chargement seulement si l'effort reste S) ; les 6 « autres D12 » de §9.4 approuvés en lots XS (vigilance demandée sur annulation-demandeur et motif de refus : gap fonctionnel, pas simple correctif) ; D16 en délibéré (penchant utilisateur : retirer). Baselines Approbations : un seul refresh, après D14.
+
+### D15 (§9.0) — FAIT (`f9d6766`)
+
+- **Gate de reproduction passé avant correctif, 3/3 conformes au diagnostic** (chaînes complètes au rendu, ethan crée → jane approuve → alice affecte au wizard → étape testée, jamais alice sur les étapes dotation/réception) :
+  1. jane valide la dotation → approbation à `PENDING_DELIVERY` (ethan voit « Confirmation utilisateur ») mais LPT-HQ-01 reste `En attente/WAITING_DOTATION_APPROVAL` — figé.
+  2. jane refuse la dotation → demande revenue au Traitement IT, lien rompu (D12), mais LPT-DK-03 reste `En attente/WAITING_DOTATION_APPROVAL user=Ethan` — libération sautée, orphelin définitif.
+  3. ethan confirme la réception → demande `Completed` (Historique) mais équipement jamais `Attribué/CONFIRMED`, `confirmedBy=null`.
+- **Correctif** : le corps d'`updateEquipment` (dérivation d'événement + journalisation + `setEquipment`) est factorisé en `applyEquipmentWrite`, interne au `DataContext` et absent de la valeur du contexte. `updateEquipment` public = garde `canManageInventoryByRole` → `applyEquipmentWrite`. La synchro d'`updateApproval` appelle `applyEquipmentWrite` directement : écriture système d'une transition déjà autorisée par `canTransitionApprovalStatus`, champs confinés aux sorties de `getEquipmentUpdatesForApprovalStatus`. Les deux autres appelants internes (`upsertEquipmentFromAuditScan`, `removeEquipmentFromServiceAfterAudit`) restent sur le chemin gardé — acteurs IT légitimes.
+- **Garde non affaiblie, vérifié trois fois** : (a) `applyEquipmentWrite` n'a aucun consommateur hors `DataContext.tsx` (grep) et n'est pas dans la valeur du provider ; (b) `updateEquipment` exposé ouvre toujours sur la garde ; (c) au rendu, jane et ethan n'ont aucune voie d'édition directe d'équipement (0 « Menu d'actions », 0 « Modifier » sur les pages détails, témoin alice = 2 « Modifier »).
+- **Après correctif, re-vérification vague 1 rejouée en jane/ethan (ce que la vague 1 n'avait fait qu'en alice.admin), 4 chaînes toutes vertes** :
+  - nouvelle demande → … → `Completed` → équipement `Attribué/CONFIRMED`, `confirmedBy='4'` (ethan) ;
+  - refus de dotation par jane → équipement libéré `Disponible/NONE/user:null` + demande revenue à l'IT ;
+  - rejet par le bénéficiaire à `PENDING_DELIVERY` → `Rejected` (Historique) + libération ;
+  - boucle complète : refus dotation → l'équipement libéré **réapparaît au pool du wizard** → ré-affectation du même équipement → validation → confirmation → `Attribué/CONFIRMED`.
+- La requalification de §9.0 est levée : D12+D15 tiennent désormais pour les trois personas du flux nominal.
