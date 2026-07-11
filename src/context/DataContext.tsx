@@ -2227,9 +2227,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Dernier verdict négatif seulement : toute transition sans motif de refus
         // (validation, affectation, confirmation) purge la note — sinon un renvoi de
         // dotation resterait affiché après la ré-affectation IT. Le journal garde tout.
-        const decisionNote = refusalKind && reason
+        // L'annulation (D17) porte une note si un motif est donné (saisie optionnelle).
+        const negativeKind = refusalKind ?? (status === 'Cancelled' ? ('CANCEL' as const) : null);
+        const decisionNote = negativeKind && reason
             ? {
-                  kind: refusalKind,
+                  kind: negativeKind,
                   reason,
                   actorId: currentUser?.id || 'system',
                   actorName: currentUser?.name || 'Système',
@@ -2287,6 +2289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             else if (status === 'PENDING_DELIVERY') eventType = 'ASSIGN_PENDING';
             else if (status === 'Completed') eventType = 'ASSIGN_CONFIRMED';
             else if (status === 'Rejected') eventType = 'APPROVAL_REJECT';
+            else if (status === 'Cancelled') eventType = 'APPROVAL_CANCEL';
 
             logEvent({
                 type: eventType,

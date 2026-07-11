@@ -221,6 +221,7 @@ const HISTORY_EVENT_ICONS: Partial<Record<EventType, string>> = {
     APPROVAL_ADMIN: 'verified',
     APPROVAL_REJECT: 'cancel',
     APPROVAL_DOTATION_REJECT: 'reply',
+    APPROVAL_CANCEL: 'do_not_disturb_on',
     LOGIN: 'login',
     LOGOUT: 'logout',
     EXPORT: 'download',
@@ -248,6 +249,7 @@ const HISTORY_EVENT_ACTIONS: Partial<Record<EventType, string>> = {
     APPROVAL_ADMIN: 'traité une demande liée à',
     APPROVAL_REJECT: 'refusé une demande liée à',
     APPROVAL_DOTATION_REJECT: 'refusé la dotation d’une demande liée à',
+    APPROVAL_CANCEL: 'annulé une demande liée à',
     LOGIN: 'ouvert une session',
     LOGOUT: 'fermé une session',
     EXPORT: 'exporté des données sur',
@@ -275,6 +277,7 @@ const HISTORY_EVENT_TITLES: Partial<Record<EventType, string>> = {
     APPROVAL_ADMIN: 'Demande traitée',
     APPROVAL_REJECT: 'Demande refusée',
     APPROVAL_DOTATION_REJECT: 'Dotation refusée',
+    APPROVAL_CANCEL: 'Demande annulée',
     LOGIN: 'Connexion',
     LOGOUT: 'Déconnexion',
     EXPORT: 'Export de données',
@@ -355,6 +358,7 @@ export interface ApprovalPrimaryAction {
 export interface AvailableApprovalActions {
     primary: ApprovalPrimaryAction | null;
     reject: { nextStatus: ApprovalStatus } | null;
+    cancel: { nextStatus: ApprovalStatus } | null;
 }
 
 // Action principale par statut ; le wizard d'affectation ('assign') aboutit à
@@ -406,12 +410,20 @@ export const getDecisionNoteLabel = (kind: DecisionNoteKind): string =>
  * couleurs) reste à la charge des pages.
  */
 export const getAvailableApprovalActions = (context: ApprovalActionContext): AvailableApprovalActions => {
-    const { approval } = context;
-    if (!canUserActOnApproval(context)) {
-        return { primary: null, reject: null };
-    }
-
+    const { approval, actorId } = context;
     const allowedTargets = APPROVAL_TRANSITIONS[approval.status] || [];
+
+    // Annulation par le demandeur (D17) — indépendante de canUserActOnApproval :
+    // un User demandeur ne *valide* rien (gates de rôle) mais peut annuler sa propre
+    // demande tant qu'elle est active (la table n'offre Cancelled qu'aux statuts
+    // actifs). Le bénéficiaire d'une demande déléguée n'a pas ce droit.
+    const cancel = actorId && approval.requesterId === actorId && allowedTargets.includes('Cancelled')
+        ? { nextStatus: 'Cancelled' as ApprovalStatus }
+        : null;
+
+    if (!canUserActOnApproval(context)) {
+        return { primary: null, reject: null, cancel };
+    }
 
     const primaryCandidate = PRIMARY_APPROVAL_ACTIONS[approval.status] || null;
     const primaryTarget = primaryCandidate?.kind === 'assign'
@@ -424,7 +436,7 @@ export const getAvailableApprovalActions = (context: ApprovalActionContext): Ava
     const rejectTarget = getApprovalRejectTarget(approval.status);
     const reject = allowedTargets.includes(rejectTarget) ? { nextStatus: rejectTarget } : null;
 
-    return { primary, reject };
+    return { primary, reject, cancel };
 };
 
 export const getStatusLabel = (
@@ -534,6 +546,16 @@ export const canTransitionApprovalStatus = ({
     }
 
     if (actorRole === 'SuperAdmin') {
+        return { allowed: true };
+    }
+
+    // Annulation (D17) : carve-out demandeur, avant les gates de rôle — le manager
+    // refuse (Rejected), le demandeur annule (Cancelled) ; même libération
+    // équipement, sémantique de journal distincte. SuperAdmin garde son bypass.
+    if (nextStatus === 'Cancelled') {
+        if (!actorId || approval.requesterId !== actorId) {
+            return { allowed: false, reason: 'Seul le demandeur peut annuler sa demande.' };
+        }
         return { allowed: true };
     }
 

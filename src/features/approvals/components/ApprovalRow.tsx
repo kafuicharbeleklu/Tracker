@@ -14,7 +14,10 @@ interface ApprovalRowProps {
     approval: Approval;
     onApprove?: (approval: Approval) => boolean | void;
     onReject?: (approval: Approval, reason?: string) => boolean | void;
+    /** Annulation par le demandeur (D17) — distincte du refus : close la demande entière. */
+    onCancel?: (approval: Approval, reason?: string) => boolean | void;
     showActions?: boolean;
+    showCancel?: boolean;
     compact?: boolean;
     requesterAvatar?: string;
     beneficiaryAvatar?: string;
@@ -33,7 +36,9 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
     approval,
     onApprove,
     onReject,
+    onCancel,
     showActions = false,
+    showCancel = false,
     compact = false,
     requesterAvatar,
     beneficiaryAvatar,
@@ -107,6 +112,31 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     <span className="text-label-small text-on-surface-variant whitespace-nowrap shrink-0">
                         {formatDate(approval.createdAt)}
                     </span>
+
+                    {/* Annulation par le demandeur (D17) : action indépendante des gates de
+                        validation — la demande entière est close, pas cette étape refusée */}
+                    {showCancel && onCancel && (
+                        <div className="shrink-0">
+                            <SecurityGate
+                                onVerified={(reason) => onCancel(approval, reason)}
+                                title="Annuler la demande"
+                                description="La demande sera close définitivement ; l'équipement éventuellement réservé sera libéré."
+                                reasonField={{ label: 'Motif (optionnel)', required: false }}
+                                entityId={approval.id}
+                                entityName={equipmentTitle}
+                                trigger={
+                                    <Button
+                                        variant="outlined"
+                                        size="sm"
+                                        className="min-w-0 px-3 text-on-surface-variant"
+                                        icon={<MaterialIcon name="do_not_disturb_on" size={16} />}
+                                    >
+                                        Annuler la demande
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    )}
 
                     {/* Actions inline en rangée dense (Approbations desktop, X14/§4.3) —
                         mêmes SecurityGate que la carte, logique de transition inchangée */}
@@ -264,6 +294,29 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                         icon={stepDetails.icon}
                                     >
                                         {stepDetails.btnText}
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    )}
+
+                    {showCancel && onCancel && (
+                        <div className="pt-1">
+                            <SecurityGate
+                                onVerified={(reason) => onCancel(approval, reason)}
+                                title="Annuler la demande"
+                                description="La demande sera close définitivement ; l'équipement éventuellement réservé sera libéré."
+                                reasonField={{ label: 'Motif (optionnel)', required: false }}
+                                entityId={approval.id}
+                                entityName={equipmentTitle}
+                                trigger={
+                                    <Button
+                                        variant="outlined"
+                                        size="sm"
+                                        className="w-full min-w-0 px-3 text-on-surface-variant"
+                                        icon={<MaterialIcon name="do_not_disturb_on" size={16} />}
+                                    >
+                                        Annuler la demande
                                     </Button>
                                 }
                             />

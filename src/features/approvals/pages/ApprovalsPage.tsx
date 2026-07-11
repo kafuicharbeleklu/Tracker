@@ -205,6 +205,22 @@ const ApprovalsPage = () => {
         return true;
     };
 
+    const handleCancel = (approval: Approval, reason?: string): boolean => {
+        const { cancel } = getRowActions(approval);
+        if (!cancel) {
+            showToast('Aucune action disponible pour cette demande.', 'error');
+            return false;
+        }
+
+        const decision = updateApproval(approval.id, cancel.nextStatus, reason ? { reason } : undefined);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Action non autorisée.', 'error');
+            return false;
+        }
+        showToast('Demande annulée.', 'info');
+        return true;
+    };
+
     const activeCount = activeApprovals.length;
 
     const tabs: TabItem[] = [
@@ -356,6 +372,10 @@ const ApprovalsPage = () => {
                                         const rowActions = getRowActions(approval);
                                         const isActionable = activeView === 'active'
                                             && (rowActions.primary !== null || rowActions.reject !== null);
+                                        // Annuler (D17) est porté par le demandeur, indépendamment
+                                        // des actions de validation — une rangée peut n'avoir que lui.
+                                        const isCancellable = activeView === 'active'
+                                            && rowActions.cancel !== null;
 
                                         return (
                                             <ApprovalRow
@@ -366,8 +386,10 @@ const ApprovalsPage = () => {
                                                 // téléphone, qui garde les cartes (§4.3, X14)
                                                 compact={activeView === 'history' || !isCompact}
                                                 showActions={isActionable}
+                                                showCancel={isCancellable}
                                                 onApprove={handleAction}
                                                 onReject={handleReject}
+                                                onCancel={handleCancel}
                                                 requesterAvatar={userAvatarById.get(approval.requesterId)}
                                                 beneficiaryAvatar={userAvatarById.get(approval.beneficiaryId)}
                                             />
