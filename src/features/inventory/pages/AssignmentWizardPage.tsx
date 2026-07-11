@@ -158,7 +158,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                 const approval = approvals.find(a => a.id === approvalId);
 
                 // Si l'approbation est en attente de traitement IT
-                if (approval && (approval.status === 'WAITING_IT_PROCESSING' || approval.status === 'Pending')) {
+                if (approval && approval.status === 'WAITING_IT_PROCESSING') {
                     const transitionDecision = updateApproval(approvalId, 'WAITING_DOTATION_APPROVAL', {
                         assignedEquipmentId: selectedEquipment.id,
                         assignedEquipmentName: selectedEquipment.name,

@@ -13,7 +13,7 @@ type EquipmentStatus =
   | 'Perdu'
   | 'Réformé'
   | 'Manquant';
-type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected' | 'Completed' | 'Cancelled';
+type ApprovalStatus = 'Rejected' | 'Completed' | 'Cancelled';
 type UrgencyStatus = 'low' | 'normal' | 'high';
 
 interface StatusBadgeProps {
@@ -51,13 +51,9 @@ const STATUS_CONFIG: Record<string, { tone: StatusTone; label?: string }> = {
   'Manquant': { tone: 'danger' },
 
   // Approvals
-  'Pending': { tone: 'warning', label: 'En attente' },
-  'Processing': { tone: 'info', label: 'En traitement' },
-  'Approved': { tone: 'success', label: 'Approuvé' },
   'Rejected': { tone: 'danger', label: 'Rejeté' },
   'Completed': { tone: 'success', label: 'Terminé' },
   'Cancelled': { tone: 'neutral', label: 'Annulé' },
-  'Expired': { tone: 'danger', label: 'Expiré' },
 
   // Approval workflow states
   'WAITING_MANAGER_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
@@ -65,10 +61,6 @@ const STATUS_CONFIG: Record<string, { tone: StatusTone; label?: string }> = {
   'WAITING_DOTATION_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
   'PENDING_DELIVERY': { tone: 'warning', label: 'En attente' },
   'PENDING_RETURN': { tone: 'info', label: 'Retour en cours' },
-
-  // Legacy workflow
-  'WaitingManager': { tone: 'warning', label: 'Validation en cours' },
-  'WaitingUser': { tone: 'warning', label: 'En attente' },
 
   // Urgency
   'high': { tone: 'danger', label: 'Urgent' },

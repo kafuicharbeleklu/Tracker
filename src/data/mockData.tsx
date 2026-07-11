@@ -496,7 +496,7 @@ export const mockPendingApprovals: Approval[] = [
             { role: 'Manager', status: 'Pending' }
         ],
         currentStep: 0,
-        status: 'Pending',
+        status: 'WAITING_IT_PROCESSING',
         createdAt: '2026-01-14T10:00:00Z',
         updatedAt: '2026-01-14T10:00:00Z',
         image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop',
@@ -528,7 +528,7 @@ export const mockApprovalHistory: Approval[] = [
             { role: 'Admin', status: 'Approved', validatedBy: '1', validatedAt: '2023-11-02T10:00:00Z' }
         ],
         currentStep: 2,
-        status: 'Approved',
+        status: 'Completed',
         createdAt: '2023-10-30T10:00:00Z',
         updatedAt: '2023-11-02T10:00:00Z',
         image: 'https://images.unsplash.com/photo-1587829741301-dc798b91a603?w=100&h=100&fit=crop',

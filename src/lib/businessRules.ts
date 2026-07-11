@@ -111,42 +111,22 @@ const APPROVAL_TRANSITIONS: Partial<Record<ApprovalStatus, readonly ApprovalStat
     WAITING_IT_PROCESSING: ['WAITING_DOTATION_APPROVAL', 'Rejected', 'Cancelled'],
     WAITING_DOTATION_APPROVAL: ['PENDING_DELIVERY', 'WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
     PENDING_DELIVERY: ['Completed', 'Rejected', 'Cancelled'],
-
-    // Legacy compatibility
-    WaitingManager: ['WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
-    Pending: ['WAITING_DOTATION_APPROVAL', 'PENDING_DELIVERY', 'Rejected', 'Cancelled'],
-    Processing: ['WAITING_DOTATION_APPROVAL', 'PENDING_DELIVERY', 'Rejected', 'Cancelled'],
-    WaitingUser: ['Completed', 'Rejected', 'Cancelled'],
 };
 
-const LEGACY_APPROVAL_ACTIVE_STATUSES: readonly ApprovalStatus[] = [
-    'Pending',
-    'Processing',
-    'WaitingManager',
-    'WaitingUser',
-];
-
-const MODERN_APPROVAL_ACTIVE_STATUSES: readonly ApprovalStatus[] = [
+export const ACTIVE_APPROVAL_STATUSES: readonly ApprovalStatus[] = [
     'WAITING_MANAGER_APPROVAL',
     'WAITING_IT_PROCESSING',
     'WAITING_DOTATION_APPROVAL',
     'PENDING_DELIVERY',
 ];
 
-export const ACTIVE_APPROVAL_STATUSES: readonly ApprovalStatus[] = [
-    ...LEGACY_APPROVAL_ACTIVE_STATUSES,
-    ...MODERN_APPROVAL_ACTIVE_STATUSES,
-];
-
 const APPROVAL_HISTORY_STATUSES: readonly ApprovalStatus[] = [
-    'Approved',
     'Rejected',
     'Completed',
     'Cancelled',
 ];
 
 export const MANAGER_VALIDATION_PENDING_STATUSES: readonly ApprovalStatus[] = [
-    'WaitingManager',
     'WAITING_MANAGER_APPROVAL',
     'WAITING_DOTATION_APPROVAL',
 ];
@@ -160,9 +140,9 @@ const RETURN_STATUS_BY_CONDITION: Record<ReturnInspectionCondition, Equipment['s
     'Hors service': 'Retiré',
 };
 
-const MANAGER_GATES: readonly ApprovalStatus[] = ['WAITING_MANAGER_APPROVAL', 'WaitingManager', 'WAITING_DOTATION_APPROVAL'];
-const IT_GATES: readonly ApprovalStatus[] = ['WAITING_IT_PROCESSING', 'Pending', 'Processing'];
-const USER_CONFIRMATION_GATES: readonly ApprovalStatus[] = ['PENDING_DELIVERY', 'WaitingUser'];
+const MANAGER_GATES: readonly ApprovalStatus[] = ['WAITING_MANAGER_APPROVAL', 'WAITING_DOTATION_APPROVAL'];
+const IT_GATES: readonly ApprovalStatus[] = ['WAITING_IT_PROCESSING'];
+const USER_CONFIRMATION_GATES: readonly ApprovalStatus[] = ['PENDING_DELIVERY'];
 const DISPLAYABLE_PENDING_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = [
     'WAITING_MANAGER_APPROVAL',
     'WAITING_IT_PROCESSING',
@@ -184,20 +164,14 @@ const STATUS_DISPLAY_LABELS: Record<string, { default: string; short?: string }>
     Manquant: { default: 'Manquant' },
 
     // Approval
-    Pending: { default: 'En attente' },
-    Processing: { default: 'En traitement' },
-    Approved: { default: 'Approuvé' },
     Rejected: { default: 'Rejeté' },
     Completed: { default: 'Terminé' },
     Cancelled: { default: 'Annulé' },
-    Expired: { default: 'Expiré' },
     WAITING_MANAGER_APPROVAL: { default: 'Validation en cours' },
     WAITING_IT_PROCESSING: { default: 'Traitement en cours' },
     WAITING_DOTATION_APPROVAL: { default: 'Validation en cours' },
     PENDING_DELIVERY: { default: 'En attente' },
     PENDING_RETURN: { default: 'Retour en cours' },
-    WaitingManager: { default: 'Validation en cours' },
-    WaitingUser: { default: 'En attente' },
 
     // Roles / misc badges
     SuperAdmin: { default: 'Super Admin' },
@@ -330,12 +304,6 @@ export const isApprovalActiveStatus = (status: ApprovalStatus): boolean =>
 export const isApprovalHistoryStatus = (status: ApprovalStatus): boolean =>
     APPROVAL_HISTORY_STATUSES.includes(status);
 
-export const isLegacyApprovalWorkflow = (status: ApprovalStatus): boolean =>
-    LEGACY_APPROVAL_ACTIVE_STATUSES.includes(status);
-
-export const isModernApprovalWorkflow = (status: ApprovalStatus): boolean =>
-    MODERN_APPROVAL_ACTIVE_STATUSES.includes(status);
-
 export const canUserActOnApproval = ({
     approval,
     actorRole,
@@ -376,13 +344,9 @@ export interface AvailableApprovalActions {
 // WAITING_DOTATION_APPROVAL, ce que la table doit autoriser pour que l'action apparaisse.
 const PRIMARY_APPROVAL_ACTIONS: Partial<Record<ApprovalStatus, ApprovalPrimaryAction>> = {
     WAITING_MANAGER_APPROVAL: { kind: 'transition', nextStatus: 'WAITING_IT_PROCESSING' },
-    WaitingManager: { kind: 'transition', nextStatus: 'WAITING_IT_PROCESSING' },
     WAITING_IT_PROCESSING: { kind: 'assign' },
-    Pending: { kind: 'assign' },
-    Processing: { kind: 'assign' },
     WAITING_DOTATION_APPROVAL: { kind: 'transition', nextStatus: 'PENDING_DELIVERY' },
     PENDING_DELIVERY: { kind: 'transition', nextStatus: 'Completed' },
-    WaitingUser: { kind: 'transition', nextStatus: 'Completed' },
 };
 
 export const getApprovalRejectTarget = (status: ApprovalStatus): ApprovalStatus =>

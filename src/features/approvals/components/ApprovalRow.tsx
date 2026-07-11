@@ -17,7 +17,6 @@ interface ApprovalRowProps {
     compact?: boolean;
     requesterAvatar?: string;
     beneficiaryAvatar?: string;
-    workflowHint?: string;
     stepDetails: {
         label: string;
         color: string;
@@ -37,7 +36,6 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
     compact = false,
     requesterAvatar,
     beneficiaryAvatar,
-    workflowHint,
     stepDetails,
 }) => {
     const [imageError, setImageError] = React.useState(false);
@@ -172,9 +170,6 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                         <p className="text-body-small text-on-surface-variant line-clamp-2 mt-0.5">
                             {approval.reason || 'Aucune raison'}
                         </p>
-                        {workflowHint && (
-                            <p className="text-label-small text-on-surface-variant mt-1">{workflowHint}</p>
-                        )}
                     </div>
 
                     <div className="flex items-center justify-between gap-2">

@@ -65,8 +65,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         return approvals
             .filter((approval) =>
                 (approval.status === 'WAITING_MANAGER_APPROVAL'
-                    || approval.status === 'WAITING_DOTATION_APPROVAL'
-                    || approval.status === 'WaitingManager')
+                    || approval.status === 'WAITING_DOTATION_APPROVAL')
                 && canUserActOnApproval({
                     approval,
                     actorRole: currentUser.role,
@@ -97,7 +96,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
         return approvals
             .filter((approval) =>
-                (approval.status === 'PENDING_DELIVERY' || approval.status === 'WaitingUser')
+                approval.status === 'PENDING_DELIVERY'
                 && canUserActOnApproval({
                     approval,
                     actorRole: currentUser.role,

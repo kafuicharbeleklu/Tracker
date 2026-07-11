@@ -2157,12 +2157,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (oldApproval) {
             let eventType: HistoryEvent['type'] = 'UPDATE';
-            if (status === 'WAITING_MANAGER_APPROVAL' || status === 'WaitingManager') eventType = 'ASSIGN_MANAGER_WAIT';
+            if (status === 'WAITING_MANAGER_APPROVAL') eventType = 'ASSIGN_MANAGER_WAIT';
             else if (status === 'WAITING_IT_PROCESSING') eventType = 'APPROVAL_MANAGER';
             else if (status === 'WAITING_DOTATION_APPROVAL') eventType = 'ASSIGN_DOTATION_WAIT';
-            else if (status === 'PENDING_DELIVERY' || status === 'WaitingUser') eventType = 'ASSIGN_PENDING';
+            else if (status === 'PENDING_DELIVERY') eventType = 'ASSIGN_PENDING';
             else if (status === 'Completed') eventType = 'ASSIGN_CONFIRMED';
-            else if (status === 'Approved') eventType = 'APPROVAL_ADMIN';
             else if (status === 'Rejected') eventType = 'APPROVAL_REJECT';
 
             logEvent({

@@ -24,19 +24,11 @@ import {
     getAvailableApprovalActions,
     isApprovalActiveStatus,
     isApprovalHistoryStatus,
-    isLegacyApprovalWorkflow,
-    isModernApprovalWorkflow,
 } from '../../../lib/businessRules';
 
 const ITEMS_PER_PAGE = 10;
 
 type ApprovalView = 'active' | 'history';
-type WorkflowSection = {
-    id: 'standard' | 'legacy' | 'other' | 'all';
-    title?: string;
-    description?: string;
-    items: Approval[];
-};
 
 const ApprovalsPage = () => {
     const [activeView, setActiveView] = useState<ApprovalView>('active');
@@ -127,69 +119,11 @@ const ApprovalsPage = () => {
         return list;
     }, [activeView, activeApprovals, historyApprovals, debouncedSearch]);
 
-    const hasMixedWorkflowFamilies = useMemo(() => {
-        if (activeView !== 'active') return false;
-
-        const hasLegacy = filteredList.some((item) => isLegacyApprovalWorkflow(item.status));
-        const hasModern = filteredList.some((item) => isModernApprovalWorkflow(item.status));
-
-        return hasLegacy && hasModern;
-    }, [activeView, filteredList]);
-
-    // Bandeau affiché uniquement en cas de coexistence réelle des deux parcours,
-    // avec un message orienté utilisateur (pas de jargon de workflow).
-    const workflowContextMessage = useMemo(() => {
-        if (activeView !== 'active' || !hasMixedWorkflowFamilies) return '';
-        return 'Certaines demandes suivent un ancien parcours de validation : elles sont regroupées dans une section distincte ci-dessous.';
-    }, [activeView, hasMixedWorkflowFamilies]);
-
     const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
     const paginatedList = filteredList.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE,
     );
-    const paginatedSections = useMemo<WorkflowSection[]>(() => {
-        if (activeView !== 'active' || !hasMixedWorkflowFamilies) {
-            return [{ id: 'all', items: paginatedList }];
-        }
-
-        const standard: Approval[] = [];
-        const legacy: Approval[] = [];
-        const other: Approval[] = [];
-
-        paginatedList.forEach((item) => {
-            if (isModernApprovalWorkflow(item.status)) {
-                standard.push(item);
-                return;
-            }
-            if (isLegacyApprovalWorkflow(item.status)) {
-                legacy.push(item);
-                return;
-            }
-            other.push(item);
-        });
-
-        return [
-            {
-                id: 'standard',
-                title: 'Workflow standard',
-                description: 'Validation manager, traitement IT, validation de dotation, confirmation utilisateur.',
-                items: standard,
-            },
-            {
-                id: 'legacy',
-                title: 'Parcours précédent',
-                description: 'Demandes historisées sur le flux précédent.',
-                items: legacy,
-            },
-            {
-                id: 'other',
-                title: 'Autres statuts',
-                description: 'Demandes hors des workflows principaux.',
-                items: other,
-            },
-        ].filter((section) => section.items.length > 0);
-    }, [activeView, hasMixedWorkflowFamilies, paginatedList]);
 
     useEffect(() => {
         if (totalPages > 0 && currentPage > totalPages) {
@@ -288,7 +222,7 @@ const ApprovalsPage = () => {
     ];
 
     const getStepDetails = (approval: Approval) => {
-        if (approval.status === 'WAITING_MANAGER_APPROVAL' || approval.status === 'WaitingManager') {
+        if (approval.status === 'WAITING_MANAGER_APPROVAL') {
             return {
                 label: 'Validation Manager',
                 color: 'text-on-tertiary-container',
@@ -298,7 +232,7 @@ const ApprovalsPage = () => {
                 rejectText: 'Refuser',
             };
         }
-        if (approval.status === 'WAITING_IT_PROCESSING' || approval.status === 'Pending' || approval.status === 'Processing') {
+        if (approval.status === 'WAITING_IT_PROCESSING') {
             return {
                 label: 'Traitement IT',
                 color: 'text-on-secondary-container',
@@ -318,7 +252,7 @@ const ApprovalsPage = () => {
                 rejectText: 'Renvoyer',
             };
         }
-        if (approval.status === 'PENDING_DELIVERY' || approval.status === 'WaitingUser') {
+        if (approval.status === 'PENDING_DELIVERY') {
             return {
                 label: 'Confirmation utilisateur',
                 color: 'text-on-secondary-container',
@@ -330,14 +264,6 @@ const ApprovalsPage = () => {
         }
         // Statuts terminaux : présentation seule — aucune action n'existe dans la
         // machine à états (APPROVAL_TRANSITIONS), donc aucun libellé de bouton.
-        if (approval.status === 'Approved') {
-            return {
-                label: 'Approuvée',
-                color: 'text-on-tertiary-container',
-                bg: 'bg-tertiary-container',
-                icon: <MaterialIcon name="check_circle" size={14} />,
-            };
-        }
         if (approval.status === 'Rejected') {
             return {
                 label: 'Refusée',
@@ -369,12 +295,6 @@ const ApprovalsPage = () => {
             bg: 'bg-surface-container',
             icon: <MaterialIcon name="help" size={14} />,
         };
-    };
-
-    const getWorkflowHint = (approval: Approval) => {
-        if (activeView !== 'active' || !hasMixedWorkflowFamilies) return undefined;
-        if (isLegacyApprovalWorkflow(approval.status)) return 'Parcours de validation précédent';
-        return undefined;
     };
 
     return (
@@ -428,53 +348,31 @@ const ApprovalsPage = () => {
                                 {filteredList.length} demande{filteredList.length > 1 ? 's' : ''}
                             </p>
                         )}
-                        {activeView === 'active' && workflowContextMessage && (
-                            <div className="-mt-2 rounded-md border border-secondary/30 bg-secondary-container/30 px-3 py-2 text-body-small text-on-secondary-container flex items-start gap-2">
-                                <MaterialIcon name="info" size={16} className="shrink-0 mt-0.5" />
-                                <p>{workflowContextMessage}</p>
-                            </div>
-                        )}
-
                         <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 overflow-hidden min-h-[400px]">
                             {paginatedList.length > 0 ? (
-                                <div>
-                                    {paginatedSections.map((section, sectionIndex) => (
-                                        <div key={section.id} className={cn(sectionIndex > 0 && 'border-t border-outline-variant/40')}>
-                                            {section.title && (
-                                                <div className="px-4 py-2 bg-surface-container-low border-b border-outline-variant/30">
-                                                    <p className="text-label-medium text-on-surface">{section.title}</p>
-                                                    {section.description && (
-                                                        <p className="text-label-small text-on-surface-variant mt-0.5">{section.description}</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                            <div className="divide-y divide-outline-variant/30">
-                                                {section.items.map((approval) => {
-                                                    const stepDetails = getStepDetails(approval);
-                                                    const rowActions = getRowActions(approval);
-                                                    const isActionable = activeView === 'active'
-                                                        && (rowActions.primary !== null || rowActions.reject !== null);
+                                <div className="divide-y divide-outline-variant/30">
+                                    {paginatedList.map((approval) => {
+                                        const stepDetails = getStepDetails(approval);
+                                        const rowActions = getRowActions(approval);
+                                        const isActionable = activeView === 'active'
+                                            && (rowActions.primary !== null || rowActions.reject !== null);
 
-                                                    return (
-                                                        <ApprovalRow
-                                                            key={approval.id}
-                                                            approval={approval}
-                                                            stepDetails={stepDetails}
-                                                            // Rangées denses partout sauf « En cours » sur
-                                                            // téléphone, qui garde les cartes (§4.3, X14)
-                                                            compact={activeView === 'history' || !isCompact}
-                                                            showActions={isActionable}
-                                                            onApprove={handleAction}
-                                                            onReject={handleReject}
-                                                            requesterAvatar={userAvatarById.get(approval.requesterId)}
-                                                            beneficiaryAvatar={userAvatarById.get(approval.beneficiaryId)}
-                                                            workflowHint={getWorkflowHint(approval)}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        return (
+                                            <ApprovalRow
+                                                key={approval.id}
+                                                approval={approval}
+                                                stepDetails={stepDetails}
+                                                // Rangées denses partout sauf « En cours » sur
+                                                // téléphone, qui garde les cartes (§4.3, X14)
+                                                compact={activeView === 'history' || !isCompact}
+                                                showActions={isActionable}
+                                                onApprove={handleAction}
+                                                onReject={handleReject}
+                                                requesterAvatar={userAvatarById.get(approval.requesterId)}
+                                                beneficiaryAvatar={userAvatarById.get(approval.beneficiaryId)}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="h-full flex items-center justify-center p-12">

@@ -68,10 +68,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [approvals, currentUser, users, role]);
 
     const ACTIVE_APPROVAL_STATUSES = new Set([
-        'Pending',
-        'Processing',
-        'WaitingManager',
-        'WaitingUser',
         'WAITING_MANAGER_APPROVAL',
         'WAITING_IT_PROCESSING',
         'WAITING_DOTATION_APPROVAL',

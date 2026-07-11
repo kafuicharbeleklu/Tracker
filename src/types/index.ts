@@ -294,19 +294,13 @@ export interface ValidationStep {
 }
 
 export type ApprovalStatus =
-  | 'Pending'           // Legacy
-  | 'Processing'        // Legacy
-  | 'WaitingManager'    // Legacy
-  | 'WaitingUser'       // Legacy
-  | 'WAITING_MANAGER_APPROVAL' // 🆕 Spec Phase 1
-  | 'WAITING_IT_PROCESSING'    // 🆕 Spec Phase 2
-  | 'WAITING_DOTATION_APPROVAL'// 🆕 Spec Phase 3
-  | 'PENDING_DELIVERY'         // 🆕 Spec Phase 4
-  | 'Approved'          // Legacy
+  | 'WAITING_MANAGER_APPROVAL' // Phase 1
+  | 'WAITING_IT_PROCESSING'    // Phase 2
+  | 'WAITING_DOTATION_APPROVAL'// Phase 3
+  | 'PENDING_DELIVERY'         // Phase 4
   | 'Rejected'
   | 'Completed'
-  | 'Cancelled'
-  | 'Expired';
+  | 'Cancelled';
 
 // 3.2 - Mise à jour Approval
 export interface Approval {
@@ -343,7 +337,6 @@ export interface Approval {
   // Dates
   createdAt: string;
   updatedAt: string;
-  expiresAt?: string;       // Date limite pour attribution
 
   // --- CHAMPS LEGACY (Maintenance UI existante) ---
   // Ces champs sont conservés temporairement pour compatibilité avec l'interface actuelle
