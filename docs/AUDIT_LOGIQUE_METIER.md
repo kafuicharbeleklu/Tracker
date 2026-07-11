@@ -566,6 +566,8 @@ Les deux sont bien des **fonctionnalités manquantes exigeant leur propre réfle
 
 ### D16 — avis rendu, en attente d'arbitrage final (voir rapport de session)
 
+> **Arbitrage « retirer » confirmé et exécuté le 2026-07-11** — périmètre XS ci-dessous appliqué tel quel (catalogue, allow() Admin/Manager — SuperAdmin dérivait du catalogue —, libellé du panel, `canManageApprovals`, clé d'union). Règles persistées dans `tracker_rbac_roles` : inertes sans migration, le panel itère sur le catalogue et plus rien ne consulte la clé. Vérifié au rendu : case disparue de l'éditeur Permissions (témoins « Gérer audit »/« Gérer utilisateurs » présents), gates d'approbation intactes.
+
 Position : **retirer** (alignée sur le penchant utilisateur). L'autorité d'approbation est *relationnelle* (manager de, bénéficiaire de) — inexprimable par le moteur RBAC actuel ; brancher `approvals.manage` ne remplacerait pas les gates mais s'y ajouterait en ET logique, moitié configurable à chaud, moitié pas — la recette exacte des divergences documentées 3 fois. Le seul scénario produit qui justifierait le branchement (rôles custom « approbateur délégué », backend multi-tenant) exigerait de toute façon de repenser les gates relationnelles à ce moment-là. Périmètre du retrait quand confirmé (XS) : entrée `approvalsManage` du catalogue + allow() des rôles par défaut + libellé du panel + `permissions.canManageApprovals` (déjà mort) + clé d'union `types/rbac.ts`.
 
 ---
@@ -672,6 +674,6 @@ decisionNote?: {
 
 ### Reste ouvert après ce lot
 
-- **D16** : arbitrage final « retirer `action.approvals.manage` » toujours pendant (§9.6).
+- **D16** : ~~arbitrage final toujours pendant~~ — **tranché « retirer » et exécuté le 2026-07-11** (bilan dans l'encart D16 de §9.6).
 - **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot.
 - Champs legacy d'affichage d'`Approval` (`equipmentName`, `requestDate` « Aujourd'hui » en dur) : chantier UI distinct, jamais arbitré.

@@ -47,9 +47,9 @@ export const useAccessControl = () => {
     canViewUsers: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.users, 'read'),
     canManageUsers: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.usersManage, 'write'),
 
-    // Approvals
+    // Approvals — pas de canManageApprovals : les mutations passent par les gates
+    // relationnelles de canTransitionApprovalStatus (businessRules), pas par RBAC (D16).
     canViewApprovals: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.approvals, 'read'),
-    canManageApprovals: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.actions.approvalsManage, 'write'),
 
     // Finance
     canViewFinance: isPermissionGranted(effectiveAccess, RBAC_PERMISSIONS.views.finance, 'read'),

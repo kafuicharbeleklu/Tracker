@@ -25,7 +25,6 @@ export type BusinessActionKey =
     | 'finance.import'
     | 'finance.export'
     | 'users.manage'
-    | 'approvals.manage'
     | 'audit.manage'
     | 'audit.scan'
     | 'reports.view'

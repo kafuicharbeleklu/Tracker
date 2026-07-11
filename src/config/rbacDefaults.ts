@@ -59,7 +59,9 @@ export const RBAC_PERMISSIONS = {
         financeImport: 'action.finance.import',
         financeExport: 'action.finance.export',
         usersManage: 'action.users.manage',
-        approvalsManage: 'action.approvals.manage',
+        // Pas de clé approvals.manage : l'autorité d'approbation est relationnelle
+        // (manager-de, bénéficiaire-de) et vit dans les gates de businessRules —
+        // inexprimable par ce moteur sans recréer les divergences de §9.0 (D16).
         auditManage: 'action.audit.manage',
         auditScan: 'action.audit.scan',
         reportsView: 'action.reports.view',
@@ -124,7 +126,6 @@ export const DEFAULT_RBAC_ROLES: RbacRole[] = [
             allow(RBAC_PERMISSIONS.actions.financeImport, 'write'),
             allow(RBAC_PERMISSIONS.actions.financeExport, 'write'),
             allow(RBAC_PERMISSIONS.actions.usersManage, 'delete'),
-            allow(RBAC_PERMISSIONS.actions.approvalsManage, 'write'),
             allow(RBAC_PERMISSIONS.actions.auditManage, 'write'),
             allow(RBAC_PERMISSIONS.actions.auditScan, 'write'),
             allow(RBAC_PERMISSIONS.actions.reportsView, 'read'),
@@ -153,7 +154,6 @@ export const DEFAULT_RBAC_ROLES: RbacRole[] = [
             allow(RBAC_PERMISSIONS.views.reports, 'read'),
             allow(RBAC_PERMISSIONS.views.settings, 'read'),
             allow(RBAC_PERMISSIONS.views.users, 'read'),
-            allow(RBAC_PERMISSIONS.actions.approvalsManage, 'write'),
             allow(RBAC_PERMISSIONS.actions.reportsView, 'read'),
             allow(RBAC_PERMISSIONS.actions.auditScan, 'write'),
         ],

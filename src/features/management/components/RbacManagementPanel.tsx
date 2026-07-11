@@ -93,7 +93,6 @@ const PERMISSION_LABELS: Record<PermissionKey, string> = {
     'action.finance.import': 'Importer finances',
     'action.finance.export': 'Exporter finances',
     'action.users.manage': 'Gérer utilisateurs',
-    'action.approvals.manage': 'Gérer approbations',
     'action.audit.manage': 'Gérer audit',
     'action.audit.scan': 'Scanner audit',
     'action.reports.view': 'Consulter rapports',
