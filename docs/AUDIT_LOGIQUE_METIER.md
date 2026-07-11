@@ -2,7 +2,7 @@
 
 > Diagnostic + plan d'action priorisé. **Aucune implémentation.** Chaque point indique le **risque** et l'**impact** d'un correctif.
 > Date : 2026-06-30 · Périmètre : `context/DataContext.tsx` (2363 l.), `lib/businessRules.ts`, `lib/rbac.ts`, `config/rbacDefaults.ts`, `hooks/useHistory.ts`, `lib/persistence.ts`.
-> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet), le **2026-07-10** par la **§8** (caractérisation D12/typingKeyword, implémentée en §8.5) et la **§9** (vague 2 : persistance des approbations, statuts legacy, double couche RBAC, transitions non couvertes — diagnostic en attente d'arbitrage D13-D16).
+> **Complété le 2026-07-09** par la **§7** (Chantier D vague 1 : diagnostic des 5 items hérités du Chantier C — pas un ré-audit complet), le **2026-07-10** par la **§8** (caractérisation D12/typingKeyword, implémentée en §8.5) et la **§9** (vague 2 : persistance des approbations, statuts legacy, double couche RBAC, transitions non couvertes — diagnostic en attente d'arbitrage D13-D16), le **2026-07-11** par la **§9.7** (diagnostic D17/D18 : annulation par le demandeur, motif de refus — en attente d'arbitrage).
 
 ---
 
@@ -567,3 +567,78 @@ Les deux sont bien des **fonctionnalités manquantes exigeant leur propre réfle
 ### D16 — avis rendu, en attente d'arbitrage final (voir rapport de session)
 
 Position : **retirer** (alignée sur le penchant utilisateur). L'autorité d'approbation est *relationnelle* (manager de, bénéficiaire de) — inexprimable par le moteur RBAC actuel ; brancher `approvals.manage` ne remplacerait pas les gates mais s'y ajouterait en ET logique, moitié configurable à chaud, moitié pas — la recette exacte des divergences documentées 3 fois. Le seul scénario produit qui justifierait le branchement (rôles custom « approbateur délégué », backend multi-tenant) exigerait de toute façon de repenser les gates relationnelles à ce moment-là. Périmètre du retrait quand confirmé (XS) : entrée `approvalsManage` du catalogue + allow() des rôles par défaut + libellé du panel + `permissions.canManageApprovals` (déjà mort) + clé d'union `types/rbac.ts`.
+
+---
+
+## 9.7 Passe du 2026-07-11 (bis) — D17/D18 : diagnostic avant arbitrage
+
+> Confrontation des préférences de conception (message utilisateur du 2026-07-11) au code réel. **Aucune implémentation.** Verdict par point : ✅ confirmé / ⚠️ à corriger ou nuancer.
+
+### 9.7.1 D17 — Annulation par le demandeur
+
+**« Qui : le demandeur, pas le bénéficiaire » — ✅ confirmé, faisable proprement.** Le modèle distingue déjà nativement les deux : `Approval.requesterId` / `beneficiaryId` + `isDelegated` (`types/index.ts:296-303`), remplis fidèlement à la création (`NewRequestPage.tsx:89-100` : `requesterId = currentUser.id`, bénéficiaire sélectionnable, `isDelegated` dérivé). Aucune ambiguïté d'identité à résoudre. Ce qui manque est la **garde** : le demandeur n'existe dans aucune gate de `canTransitionApprovalStatus` (`businessRules.ts:481-533` — gates = rôle d'étape + relation manager/bénéficiaire), donc aujourd'hui personne ne peut atteindre `Cancelled` depuis l'UI (seul le bypass SuperAdmin le pourrait, et aucun bouton n'existe).
+
+**« Jusqu'à PENDING_DELIVERY inclus » — ✅ confirmé, et c'est déjà exactement ce que la machine encode.** `APPROVAL_TRANSITIONS` (`businessRules.ts:109-114`) autorise `Cancelled` depuis les 4 statuts actifs et n'offre aucune sortie aux statuts terminaux — `Completed` est donc mécaniquement hors d'atteinte, sans rien à changer à la table. La distinction annulation/retour est déjà celle du système (la restitution passe par `PENDING_RETURN` côté équipement, pas par une approbation).
+
+**« Libération via l'écrivain système D15 » — ✅ confirmé, et c'est déjà câblé : zéro code nouveau pour cet effet de bord.** `getEquipmentUpdatesForApprovalStatus` traite déjà `'Rejected' || 'Cancelled'` → `RELEASED_EQUIPMENT_FIELDS` (`businessRules.ts:571-573`, purge complète §9.4-6), et la synchro d'`updateApproval` applique via `applyEquipmentWrite` (`DataContext.tsx:2240-2255`). Une annulation à `PENDING_DELIVERY` avec équipement lié libérera proprement par le chemin existant. Aucun chemin parallèle à construire — le risque était réel si on avait câblé un `updateEquipment` gardé (le demandeur User n'a pas `inventory.manage`, motif exact de §9.0/D15).
+
+**Événement — nouveau type `APPROVAL_CANCEL`.** Aujourd'hui `Cancelled` tombe dans le `eventType = 'UPDATE'` générique (la chaîne `DataContext.tsx:2261-2266` n'a pas de branche `Cancelled`) — même motif que §9.4-1 avant correctif. Proposé, calqué sur `APPROVAL_REJECT`/`APPROVAL_DOTATION_REJECT` : union `EventType` (`types/index.ts:445-470`) + les 3 maps de `businessRules` — icône `do_not_disturb_on` (celle du chip « Annulée », `ApprovalsPage.tsx:280`), action « annulé une demande liée à », titre « Demande annulée » — + branche `else if (status === 'Cancelled')` dans `updateApproval`.
+
+**Garde proposée (le seul vrai code nouveau côté règles)** : dans `canTransitionApprovalStatus`, après le contrôle de table et le bypass SuperAdmin, avant les gates de rôle :
+`if (nextStatus === 'Cancelled') return actorId === approval.requesterId ? allow : deny('Seul le demandeur peut annuler sa demande.')`.
+Conséquence assumée à valider : le Manager perd la capacité *théorique* (jamais exposée en UI) d'atteindre `Cancelled` depuis ses gates — cohérent : le manager **refuse** (`Rejected`), le demandeur **annule** (`Cancelled`) ; les deux libèrent pareil, la sémantique du journal diffère. SuperAdmin garde son bypass (avant le carve-out).
+
+**« UI : là où le demandeur voit déjà ses demandes » — ✅ confirmé, l'emplacement naturel existe : ApprovalsPage, onglet « En cours ».** `activeApprovals` (`ApprovalsPage.tsx:64-77`) fusionne déjà les demandes *actionnables* et les demandes *du demandeur/bénéficiaire* (`relatedActive`) — le sous-titre User dit littéralement « Suivez l'état de vos demandes d'équipement ». Pas de vue « mes demandes » séparée à créer. Concrètement :
+- `AvailableApprovalActions` gagne `cancel: { nextStatus: 'Cancelled' } | null`, calculé **indépendamment** de `canUserActOnApproval` (qui renvoie false pour un User demandeur — c'est voulu, il ne *valide* rien) : `requesterId === actorId && isApprovalActiveStatus(status)`.
+- `ApprovalRow` : bouton « Annuler » (outlined, discret) quand `cancel` existe, enveloppé dans `SecurityGate` comme Approuver/Refuser (step-up uniforme D9 ; pas de lockout : le PIN est le même gate que le bénéficiaire User franchit déjà pour confirmer réception). Les rangées du demandeur passent de « aucune action » à « Annuler seul » — le rendu actuel exige `btnText` + les deux handlers (`ApprovalRow.tsx:96,205`), à assouplir.
+- Cas délégué : le bénéficiaire voit la rangée (relatedActive) mais **n'a pas** le bouton — conforme à la préférence.
+- Dashboard : pas de bouton Annuler — ses widgets sont des to-do d'acteurs de gate (manager, bénéficiaire), pas une vue demandeur.
+- Micro-décision à trancher : à `PENDING_DELIVERY` quand demandeur = bénéficiaire, la rangée porterait « Confirmer réception » + « Refuser » + « Annuler ». Recommandation : **garder les trois** — refus de réception (problème de livraison) et annulation (plus besoin) sont deux faits d'audit distincts ; c'est le seul statut où ça se cumule.
+
+### 9.7.2 D18 — Motif de refus
+
+**« Obligatoire, pas optionnel » — ✅ confirmé, aucun point ne mérite l'optionnel. ⚠️ Mais il y a 4 points de refus, pas 3** (le « trois » de §9.4-4 omettait le refus IT) :
+
+| # | Transition | Acteur | Surfaces UI actuelles |
+|---|---|---|---|
+| 1 | `WAITING_MANAGER_APPROVAL → Rejected` | Manager | ApprovalsPage (rangée) **+ Dashboard** (widget validations, `DashboardPage.tsx:467`) |
+| 2 | `WAITING_IT_PROCESSING → Rejected` | Admin/IT | ApprovalsPage seulement (« Refuser » à côté d'« Affecter ») |
+| 3 | `WAITING_DOTATION_APPROVAL → WAITING_IT_PROCESSING` (renvoi) | Manager | ApprovalsPage **+ Dashboard** (même widget, branche `approve=false`) |
+| 4 | `PENDING_DELIVERY → Rejected` (refus de réception) | Bénéficiaire | ApprovalsPage seulement (le widget Dashboard n'a que « Confirmer ») |
+
+Le seul candidat discutable pour l'optionnel serait le n°4 (« c'est sa demande ») — contre-argument double : en demande déléguée le bénéficiaire n'est pas le demandeur (qui a besoin de comprendre), et l'IT a besoin du motif pour requalifier l'équipement libéré (mauvais modèle ? matériel endommagé ?). Le n°3 est même le point où le motif a le plus de valeur opérationnelle : sans lui, l'IT ré-affecte à l'aveugle. **Obligatoire aux 4 points** ; l'annulation D17, elle, motif **optionnel** (le demandeur sait pourquoi il annule ; la saisie existera déjà, autant l'offrir sans l'imposer).
+
+**« Visible par le demandeur » — ✅ confirmé, structure proposée.** Champ sur `Approval` (persisté par `tracker_approvals`/D13 sans migration — optionnel) :
+
+```ts
+decisionNote?: {
+    kind: 'MANAGER_REJECT' | 'IT_REJECT' | 'DOTATION_REJECT' | 'DELIVERY_REJECT' | 'CANCEL';
+    reason: string;
+    actorId: string;
+    actorName: string;   // snapshot, comme partout dans le modèle
+    at: string;          // ISO
+};
+```
+
+- **Un seul emplacement, dernier état seulement**, écrit par `updateApproval` à chaque transition négative et **purgé sur toute transition « en avant »** — sinon un renvoi de dotation resterait affiché après la ré-affectation IT. L'historique exhaustif (renvois successifs inclus) vit dans le journal : `HistoryEvent.metadata.reason` **existe déjà et est documenté pour cet usage exact** (« Raison (pour rejets, etc.) », `types/index.ts:493`) — chaque événement `APPROVAL_REJECT`/`APPROVAL_DOTATION_REJECT`/`APPROVAL_CANCEL` l'embarque.
+- `kind` explicite (plutôt que re-dérivé de `(from, to)` à l'affichage) : libellés dans `businessRules` (« Refusée par le manager », « Réception refusée », …).
+- **Rendu** : dans `ApprovalRow`, ligne motif quand `decisionNote` présent (les deux variantes, compacte et carte). Le demandeur voit ses demandes rejetées dans l'onglet **Historique** (`historyApprovals` inclut `requesterId`/`beneficiaryId`, `ApprovalsPage.tsx:99-102`) ; bénéfice collatéral : sur une rangée **active** revenue à `WAITING_IT_PROCESSING`, l'IT lit le motif du renvoi avant de ré-affecter.
+
+**Saisie — étendre `SecurityGate` plutôt qu'un second dialogue.** Les 6 surfaces de refus passent toutes déjà par `SecurityGate` (PIN step-up). Proposé : prop optionnelle `reasonField?: { label: string; required: boolean }` — textarea au-dessus du pavé PIN, `required` bloque la vérification, valeur passée à `onVerified(reason?)`. Une seule feuille au lieu d'un enchaînement dialogue→gate ; le composant journalise déjà l'issue de l'action sensible, le motif en est une métadonnée naturelle. D17 réutilise tel quel (required: false).
+
+**Garde métier (l'obligation ne peut pas vivre que dans l'UI)** : `updateApproval` gagne `options.reason?: string` et refuse (`BusinessRuleDecision`) toute transition de refus sans motif non vide — helper `isRefusalTransition(from, to)` dans `businessRules` (les 4 couples du tableau).
+
+⚠️ **Piège d'implémentation n°1, identifié à l'avance** : `updateApproval` décide la synchro équipement sur `if (!options && ...)` (`DataContext.tsx:2240`) — passer `{ reason }` seul **supprimerait silencieusement la libération** (régression D15 immédiate). La garde doit devenir `if (!options?.assignedEquipmentId && ...)` dans le même commit qui introduit `options.reason`.
+
+### 9.7.3 Lot, effort, risques
+
+**« Même lot UI » — ✅ confirmé ; deux commits liés, D18 puis D17.** Les deux touchent les mêmes fichiers (`types/index.ts`, `businessRules.ts`, `DataContext.updateApproval`, `SecurityGate`, `ApprovalRow`, `ApprovalsPage`, + `DashboardPage` pour D18). D18 d'abord : il construit la mécanique partagée (saisie dans le gate, `options.reason`, `decisionNote`, rendu) ; D17 ajoute ensuite l'action Annuler (carve-out, `APPROVAL_CANCEL`, bouton) et branche la saisie en optionnel. L'ordre inverse obligerait à re-toucher le bouton Annuler. Chaque commit smoke-testable indépendamment (3 personas jane/ethan/alice, protocole D15).
+
+| Item | Effort | Risques principaux |
+|---|---|---|
+| D18 | **M** (6 surfaces, mais mécanique unique) | Piège `!options` ci-dessus ; oubli d'une surface Dashboard ; baselines visuelles Approbations (ligne motif) — un seul refresh en fin de lot |
+| D17 | **S** (libération et transitions déjà en place) | Position du carve-out vs bypass SuperAdmin ; assouplir le rendu actions d'`ApprovalRow` sans casser les rangées existantes |
+
+**Découverte connexe (hors périmètre, au registre)** : `isManagerOfRequest` (`businessRules.ts:311`) retourne vrai si l'acteur **est** le demandeur ou le bénéficiaire — un Manager demandeur peut donc franchir la gate manager de sa **propre** demande (auto-approbation). Aucun rapport avec D17/D18, mais découvert en instruisant la garde ; à arbitrer séparément (D19 ?).
+
+**Aucune implémentation. En attente du feu vert D17/D18 (et de l'arbitrage D16 toujours pendant).**
