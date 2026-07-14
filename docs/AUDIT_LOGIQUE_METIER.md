@@ -675,5 +675,54 @@ decisionNote?: {
 ### Reste ouvert après ce lot
 
 - **D16** : ~~arbitrage final toujours pendant~~ — **tranché « retirer » et exécuté le 2026-07-11** (bilan dans l'encart D16 de §9.6).
-- **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot.
+- **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot. **Caractérisé en §9.9** (passe du 2026-07-14), en attente d'arbitrage.
 - Champs legacy d'affichage d'`Approval` (`equipmentName`, `requestDate` « Aujourd'hui » en dur) : chantier UI distinct, jamais arbitré.
+
+---
+
+## 9.9 Passe du 2026-07-14 — D19 : caractérisation avant arbitrage (auto-approbation aux gates manager)
+
+> Caractérisation en rendu réel, **12/12 verts** (sonde Playwright `d19_probe.cjs`, 11 captures `d19-*.png` dans le scratchpad de session). **Aucune implémentation** — correctif après arbitrage seulement. Cause unique : `isManagerOfRequest` (`businessRules.ts:311-319`) retourne vrai si l'acteur **est** le demandeur ou le bénéficiaire (ligne 315), avant les checks hiérarchiques légitimes (lignes 316-317).
+
+### 9.9.1 Portée : systémique — trois catégories (pas deux), deux gates, deux couches, trois surfaces
+
+Le défaut déclenche pour tout acteur de rôle **Manager** qui est demandeur OU bénéficiaire de la demande :
+
+| Cat. | Scénario | Auto-approbation constatée | Preuve rendue |
+|---|---|---|---|
+| **A** | Auto-soumission d'un manager (jane pour elle-même) | jane approuve sa propre demande à sa propre gate | `d19-A1` (boutons), `d19-A1b` (widget Dashboard), `d19-A2` (approuvée) ✅ |
+| **B** | Déléguée soumise **par** un manager (jane→ethan) | jane, demandeuse, approuve sa propre soumission | `d19-B1`, `d19-B2` ✅ |
+| **C** | Demande créée par un **tiers** pour un bénéficiaire de rôle Manager (bob→oumar) | oumar approuve son propre bénéfice | `d19-C1`, `d19-C2` ✅ — catégorie **supplémentaire** par rapport aux deux pressenties en §9.7.3 |
+
+- `MANAGER_GATES = ['WAITING_MANAGER_APPROVAL', 'WAITING_DOTATION_APPROVAL']` → le défaut frappe **les deux gates manager**, dotation incluse (`d19-E1`/`d19-E2` : jane valide sa propre dotation).
+- Consommé par les **2 couches** : `canUserActOnApproval` (`businessRules.ts:339`, affichage) **et** `canTransitionApprovalStatus` (`:566`, garde de mutation dans `DataContext.updateApproval`) — ce n'est pas un simple leak UI, la mutation passe.
+- **3 surfaces rendues** : rangées ApprovalsPage, widget « Validations Managériales » du Dashboard (la demande de jane apparaît dans son **propre** to-do), gates de confirmation via SecurityGate.
+- **Contrôles négatifs** : ethan (User) n'a aucun bouton sur sa propre demande (`d19-D1` ✅) ; oumar ne voit pas les demandes de jane (C0 ✅) — le trou est **identitaire**, pas une ouverture générale des gates.
+
+### 9.9.2 Démonstration maximale — chaîne E
+
+jane a bouclé sa **propre** demande jusqu'à `Completed` : auto-approbation à la gate manager, validation de sa propre dotation (`d19-E1`/`d19-E2`), confirmation de sa propre réception (celle-ci **par conception**) — **la seule action non-jane du cycle est l'affectation IT d'alice** (`d19-E3`). Journal : `APPROVAL_MANAGER actor=3` sur demande `req=3/benef=3` — la signature forensique existe.
+
+### 9.9.3 Déjà arrivé ? Forensique seed / persisté
+
+- **Seed** : `mockPendingApprovals#1` (Alice, `req=benef='1'`) est semée **déjà au-delà** de la gate manager (`WAITING_IT_PROCESSING`) sans trace de décision — mais Alice est SuperAdmin (bypass by design, hors D19). `mockApprovalHistory#2` (Ethan, `Completed`) : aucune trace d'approbateur. Aucune approbation semée ne porte de trace d'auto-approbation par un Manager — les seeds ne portent aucune trace d'approbateur du tout.
+- **Persisté** : les approbations ne vivent que dans le localStorage de chaque navigateur (backend : rien) — non auditables depuis ici, mais la **requête forensique existe** : dans `tracker_events`, tout `APPROVAL_MANAGER`/`ASSIGN_PENDING` dont `actorId == requesterId|beneficiaryId` de la demande cible (la sonde l'implémente). Limite : `decisionNote` (D18) ne trace que les verdicts **négatifs** — une approbation positive n'est traçable que par le journal.
+
+### 9.9.4 Le bon check existe déjà — mais le correctif n'est pas une ligne : trois arbitrages requis
+
+La hiérarchie **existe** (`managerId` sur `User`, consommé par 6+ sites : NewRequestPage:61, ApprovalsPage:87, Sidebar:60, useAccessControl:101, notifications DataContext) et les lignes 316-317 font déjà le bon check — la ligne 315 est un court-circuit. Mais sa suppression sèche ne suffit pas :
+
+- **(a) Les managers n'ont pas de manager** (aucun `managerId` sur jane/oumar/nora) → sans la ligne 315, la demande propre d'un manager reste **bloquée** à la gate manager (seul SuperAdmin passe). Le formulaire promet déjà « Elle sera traitée par l'équipe IT » dans ce cas (NewRequestPage:196-199) → router ces demandes directement à `WAITING_IT_PROCESSING` ?
+- **(b) Déléguée manager→subordonné : l'auto-approbation survivrait à la suppression de la ligne 315** — jane reste manager d'ethan (ligne 317) ET demandeuse. Si l'invariant est « l'approbateur ≠ le demandeur », il faut une exclusion explicite `actor !== requesterId` ; alternative : déléguée par le manager = approbation manager implicite → routage direct IT (le commentaire NewRequestPage:87-88 l'envisageait).
+- **(c) Ligne 316** (le manager du **demandeur** qualifie aussi) : à trancher — probablement ne garder que manager-du-bénéficiaire.
+
+### 9.9.5 Lien D16 — orthogonal, décision non remise en cause
+
+D16 a établi que l'autorité d'approbation est **relationnelle** et vit dans les gates de `businessRules` (RBAC ne peut pas l'exprimer). D19 montre que cette autorité relationnelle est **mal implémentée**, pas mal placée : `action.approvals.manage` n'aurait rien empêché (un flag de rôle ne peut pas dire « pas sur sa propre demande »). Le correctif D19 se fera à l'endroit même que D16 a désigné.
+
+### 9.9.6 Périmètre exact et découvertes adjacentes (au registre, hors D19)
+
+- Grep exhaustif : `isManagerOfRequest` n'a que **2 consommateurs** (les 2 couches citées) ; les autres gates n'ont pas de logique similaire — IT = rôle pur, réception = bénéficiaire **par conception**, annulation D17 = demandeur **par conception**. Les autres comparaisons d'identité du code sont de la visibilité de listes.
+- **Adjacent, au registre** : la gate IT n'a *aucun* check relationnel (un Admin bénéficiaire peut s'auto-traiter/s'auto-affecter) ; `findUserByApprovalRef` (`businessRules.ts:303-309`) matche aussi par nom/e-mail (legacy fragile).
+
+**Aucune implémentation. En attente des arbitrages (a)/(b)/(c).**
