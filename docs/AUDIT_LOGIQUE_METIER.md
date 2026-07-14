@@ -675,7 +675,7 @@ decisionNote?: {
 ### Reste ouvert après ce lot
 
 - **D16** : ~~arbitrage final toujours pendant~~ — **tranché « retirer » et exécuté le 2026-07-11** (bilan dans l'encart D16 de §9.6).
-- **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot. **Caractérisé en §9.9** (passe du 2026-07-14), en attente d'arbitrage.
+- **D19** : `isManagerOfRequest` retourne vrai si l'acteur est demandeur/bénéficiaire → auto-approbation d'un Manager à sa propre gate (§9.7.3). ~~Vrai trou de séparation des pouvoirs, à reprendre en priorité au prochain lot.~~ **Caractérisé en §9.9, arbitré et corrigé le 2026-07-14** (`8731f5a`, bilan §9.10).
 - Champs legacy d'affichage d'`Approval` (`equipmentName`, `requestDate` « Aujourd'hui » en dur) : chantier UI distinct, jamais arbitré.
 
 ---
@@ -726,3 +726,44 @@ D16 a établi que l'autorité d'approbation est **relationnelle** et vit dans le
 - **Adjacent, au registre** : la gate IT n'a *aucun* check relationnel (un Admin bénéficiaire peut s'auto-traiter/s'auto-affecter) ; `findUserByApprovalRef` (`businessRules.ts:303-309`) matche aussi par nom/e-mail (legacy fragile).
 
 **Aucune implémentation. En attente des arbitrages (a)/(b)/(c).**
+
+> Arbitrages reçus le 2026-07-14, section commitée telle quelle (`d6ec337`) avant implémentation. Bilan en **§9.10**.
+
+---
+
+## 9.10 Bilan d'implémentation D19 (passe du 2026-07-14, après arbitrage)
+
+> Un commit de code (`8731f5a`), vérification au rendu 19/19 verts (sonde `d19_fix_probe.cjs`, captures `d19fix-*.png`, scratchpad de session), suite visuelle complète rejouée deux fois (avant/après) pour isoler les diffs hérités.
+
+### Arbitrages consignés
+
+- **(a) + catégorie C unifiées** : toute demande dont le **bénéficiaire** est manager-sans-manager (aucun `managerId` sur les managers actuels) route directement vers `WAITING_IT_PROCESSING` — auto-soumission (jane) comme soumission par un tiers (bob→oumar). Le déclencheur est le bénéficiaire, pas le soumetteur. C'est la promesse de l'encart NewRequestPage:196-199, désormais tenue.
+- **(b)** : déléguée soumise **par** le manager du bénéficiaire (jane→ethan) — la soumission vaut approbation manager implicite, routage direct IT aussi (le commentaire NewRequestPage:87-88 l'envisageait).
+- **(c)** : ligne 316 (manager du **demandeur**) retirée — seul manager-du-bénéficiaire compte.
+- **Extension arbitrée en séance (AskUserQuestion) — même règle aux deux points** : `WAITING_DOTATION_APPROVAL` étant la 2e gate manager, les demandes routées direct-IT s'y seraient bloquées à jamais après correctif (aucun valideur qualifiant). Le wizard d'affectation applique donc la même règle : sans manager qualifiant → `PENDING_DELIVERY` direct (dotation sautée).
+
+### Implémentation
+
+- **`approvalRequiresManagerGate(approval, users)`** (`businessRules.ts`) : la seule source de vérité — vrai ssi un manager-du-bénéficiaire existe **et** diffère du demandeur (exactement la condition UI de l'encart). Consommée aux 4 sites : NewRequestPage (statut initial + toast aligné), `DataContext.addApproval` (normalisation défensive `WAITING_MANAGER_APPROVAL` → `WAITING_IT_PROCESSING`, principe D18 : la garde ne vit pas que dans l'UI), AssignmentWizardPage (cible dotation vs livraison directe), `canTransitionApprovalStatus` (garde du raccourci).
+- **`isManagerOfRequest`** réduit à `beneficiary?.managerId === actorId` — lignes 315 (court-circuit identité, le cœur de D19) et 316 (arbitrage (c)) supprimées, lookup `requester` mort retiré.
+- **No-op de la ligne 315 démontré avant suppression** (exigence explicite) : post-routage, une demande n'atteint une gate manager que si `approvalRequiresManagerGate` est vrai, c.-à-d. manager-du-bénéficiaire ∃ et ≠ demandeur ; à ces gates, seul qualifie ce manager (ligne 317), qui n'est ni le demandeur (garanti par la règle) ni le bénéficiaire (personne n'est son propre manager ; `managerId=self` donnerait manager = demandeur pour une auto-demande → direct IT). Aucun contre-exemple à la sonde.
+- **Table de transitions** : `WAITING_IT_PROCESSING → PENDING_DELIVERY` ajouté, gardé dans le bloc IT par `!approvalRequiresManagerGate` — un Admin ne saute pas la dotation d'une demande qui a un valideur légitime (vérifié en négatif : la chaîne d'ethan passe bien par la dotation).
+
+### Vérification (19/19 verts)
+
+- **A/B/C rejouées** : création directe en `WAITING_IT_PROCESSING` (relevé `tracker_approvals` autoritatif), **aucun** bouton Approuver/Refuser pour jane (propre et déléguée) ni oumar (bénéficiaire), widget « Validations Managériales » de jane vide de sa propre demande.
+- **Chaîne E rejouée bout en bout** : alice affecte → `PENDING_DELIVERY` **direct** (dotation sautée) → jane confirme SA réception (par conception) → `Completed`. jane n'exerce plus aucune gate de validation sur sa propre demande.
+- **D1 (contrôle positif)** : chaîne normale d'ethan complète — `WAITING_MANAGER_APPROVAL` à la création, ethan 0 bouton, jane approuve (ligne 317), affectation IT → **dotation conservée**, jane valide, ethan confirme → `Completed`. **C0** : oumar ne voit toujours pas les demandes de l'équipe de jane.
+- **Forensique F1** : aucun `APPROVAL_MANAGER`/`ASSIGN_PENDING` du journal dont l'acteur est demandeur ou bénéficiaire de la demande cible.
+- Piège de sonde rencontré : post-condition Manager = **disparition de rangée** (protocole) — après approbation de jane, la demande d'ethan quitte sa vue (ni demandeuse ni bénéficiaire, ne qualifie plus à l'IT) ; attendre un chip sur la rangée était faux.
+
+### Baselines visuelles — 8 diffs **hérités**, aucun refresh dans ce lot
+
+Suite complète (39 checkpoints × 3 devices) rejouée **avant et après** correctif : mêmes 8 échecs dans les deux cas (Reports ×3, Assignment wizard ×3, Add equipment medium, Dashboard) + Dashboard medium **flaky** (bascule d'un run à l'autre, horodatage vivant du fil d'événements). Cause : le dernier run complet vert date du 2026-07-09 ; la migration de seed D14 (11-07) a changé l'état de données de référence (ex. wizard : 3 → 5 équipements Disponible) et seules les baselines **Approbations** ont été rafraîchies en fin de lot D17/D18. **Approbations : match sur les 3 devices, avant comme après D19.** Re-baseline complet à faire dans un lot dédié, pas ici — ces diffs ne viennent pas de D19.
+
+### Reste ouvert après ce lot
+
+- **D20** : la gate IT n'a **aucun** check relationnel — un Admin bénéficiaire peut s'auto-traiter/s'auto-affecter (découverte §9.9.6). Noté, non traité.
+- **D21** : `findUserByApprovalRef` matche aussi par nom/e-mail (legacy fragile, §9.9.6). Noté, non traité.
+- Re-baseline visuel complet (les 8 diffs hérités D14 + flakiness Dashboard ci-dessus).
+- Champs legacy d'affichage d'`Approval` (`equipmentName`, `requestDate` « Aujourd'hui » en dur) : chantier UI distinct, jamais arbitré.
