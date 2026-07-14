@@ -11,6 +11,7 @@ import { useAccessControl } from '../../../hooks/useAccessControl';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
+import { approvalRequiresManagerGate } from '../../../lib/businessRules';
 import { formatDate } from '../../../lib/financial';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import { EntityRow } from '../../../components/ui/EntityRow';
@@ -159,7 +160,13 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
 
                 // Si l'approbation est en attente de traitement IT
                 if (approval && approval.status === 'WAITING_IT_PROCESSING') {
-                    const transitionDecision = updateApproval(approvalId, 'WAITING_DOTATION_APPROVAL', {
+                    // Routage §9.9 : sans gate manager (aucun manager-du-bénéficiaire
+                    // distinct du demandeur), la dotation n'a pas de valideur —
+                    // l'affectation part directement en livraison.
+                    const nextStatus = approvalRequiresManagerGate(approval, users)
+                        ? 'WAITING_DOTATION_APPROVAL'
+                        : 'PENDING_DELIVERY';
+                    const transitionDecision = updateApproval(approvalId, nextStatus, {
                         assignedEquipmentId: selectedEquipment.id,
                         assignedEquipmentName: selectedEquipment.name,
                     });
@@ -173,7 +180,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
 
                     updateEquipment(selectedEquipment.id, {
                         status: 'En attente', // Reserved
-                        assignmentStatus: 'WAITING_DOTATION_APPROVAL',
+                        assignmentStatus: nextStatus,
                         assignedAt: new Date().toISOString(),
                         assignedBy: adminUser?.id || '1',
                         assignedByName: adminUser?.name || 'Admin',
@@ -185,7 +192,12 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         }
                     });
 
-                    showToast("Matériel sélectionné. En attente de validation de la dotation par le Manager.", 'success');
+                    showToast(
+                        nextStatus === 'WAITING_DOTATION_APPROVAL'
+                            ? "Matériel sélectionné. En attente de validation de la dotation par le Manager."
+                            : "Matériel affecté. En attente de confirmation utilisateur.",
+                        'success',
+                    );
                 }
                 // Fallback ou autres cas (Legacy)
                 else {

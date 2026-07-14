@@ -36,6 +36,7 @@ import {
 } from '../types/rbac';
 import {
     ACTIVE_APPROVAL_STATUSES,
+    approvalRequiresManagerGate,
     BusinessRuleDecision,
     canDeleteEquipmentByBusinessRule,
     canDeleteUserByBusinessRule,
@@ -2312,7 +2313,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const addApproval = useCallback((approval: Omit<Approval, 'id'>) => {
         const newId = Date.now().toString();
-        setApprovals(prev => [{ ...approval, id: newId }, ...prev]);
+        // Routage §9.9 : le statut initial ne vit pas que dans l'UI — une demande
+        // sans gate manager (aucun manager-du-bénéficiaire distinct du demandeur)
+        // entre directement au traitement IT, quel que soit l'appelant.
+        const status =
+            approval.status === 'WAITING_MANAGER_APPROVAL'
+                && !approvalRequiresManagerGate(approval, users)
+                ? 'WAITING_IT_PROCESSING'
+                : approval.status;
+        setApprovals(prev => [{ ...approval, status, id: newId }, ...prev]);
 
         logEvent({
             type: 'APPROVAL_CREATE',
@@ -2327,7 +2336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isSystem: false,
             isSensitive: false
         });
-    }, [currentUser, logEvent]);
+    }, [currentUser, logEvent, users]);
 
     // --- Location Management ---
     const addLocation = useCallback((type: 'country' | 'site' | 'service', name: string, parentId?: string) => {

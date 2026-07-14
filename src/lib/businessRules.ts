@@ -109,7 +109,10 @@ type ReturnInspectionCondition =
 
 const APPROVAL_TRANSITIONS: Partial<Record<ApprovalStatus, readonly ApprovalStatus[]>> = {
     WAITING_MANAGER_APPROVAL: ['WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
-    WAITING_IT_PROCESSING: ['WAITING_DOTATION_APPROVAL', 'Rejected', 'Cancelled'],
+    // PENDING_DELIVERY depuis l'IT : uniquement pour les demandes sans gate manager
+    // (§9.9) — le raccourci est gardé par approvalRequiresManagerGate dans
+    // canTransitionApprovalStatus, un Admin ne saute pas la dotation des autres.
+    WAITING_IT_PROCESSING: ['WAITING_DOTATION_APPROVAL', 'PENDING_DELIVERY', 'Rejected', 'Cancelled'],
     WAITING_DOTATION_APPROVAL: ['PENDING_DELIVERY', 'WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
     PENDING_DELIVERY: ['Completed', 'Rejected', 'Cancelled'],
 };
@@ -308,14 +311,29 @@ const findUserByApprovalRef = (users: User[], id?: string, name?: string) => {
     });
 };
 
+// Gate manager strictement relationnelle (§9.9/D19) : seul le manager du
+// bénéficiaire qualifie — ni le demandeur/bénéficiaire lui-même (ex-court-circuit
+// ligne 315), ni le manager du demandeur (arbitrage (c)).
 const isManagerOfRequest = (approval: Approval, actorId: string, users: User[]) => {
-    const requester = findUserByApprovalRef(users, approval.requesterId, approval.requesterName);
     const beneficiary = findUserByApprovalRef(users, approval.beneficiaryId, approval.beneficiaryName);
+    return beneficiary?.managerId === actorId;
+};
 
-    if (approval.requesterId === actorId || approval.beneficiaryId === actorId) return true;
-    if (requester?.managerId === actorId) return true;
-    if (beneficiary?.managerId === actorId) return true;
-    return false;
+// Règle de routage unique (§9.9, arbitrages (a)/(b)) : une gate manager n'existe
+// que s'il y a un manager-du-bénéficiaire distinct du demandeur. Sinon la demande
+// va directement à l'IT (bénéficiaire sans manager — auto-soumission d'un manager
+// ou demande d'un tiers pour lui) ou la soumission par le manager du bénéficiaire
+// vaut approbation implicite. Même règle aux deux points : statut initial à la
+// création ET cible du wizard d'affectation (dotation vs livraison directe).
+export const approvalRequiresManagerGate = (
+    approval: Pick<Approval, 'requesterId' | 'beneficiaryId' | 'beneficiaryName'>,
+    users: User[],
+): boolean => {
+    const beneficiary = findUserByApprovalRef(users, approval.beneficiaryId, approval.beneficiaryName);
+    const manager = beneficiary?.managerId
+        ? users.find((user) => user.id === beneficiary.managerId)
+        : undefined;
+    return !!manager && manager.id !== approval.requesterId;
 };
 
 export const isApprovalActiveStatus = (status: ApprovalStatus): boolean =>
@@ -572,6 +590,12 @@ export const canTransitionApprovalStatus = ({
     if (IT_GATES.includes(approval.status)) {
         if (actorRole !== 'Admin') {
             return { allowed: false, reason: 'Cette étape est réservée à l’IT.' };
+        }
+        if (nextStatus === 'PENDING_DELIVERY' && approvalRequiresManagerGate(approval, users)) {
+            return {
+                allowed: false,
+                reason: 'Cette demande requiert la validation de la dotation par le manager.',
+            };
         }
         return { allowed: true };
     }

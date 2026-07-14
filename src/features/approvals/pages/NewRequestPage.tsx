@@ -6,6 +6,7 @@ import { useToast } from '../../../context/ToastContext';
 import SelectField from '../../../components/ui/SelectField';
 import { TextArea } from '../../../components/ui/TextArea';
 import { GLOSSARY } from '../../../constants/glossary';
+import { approvalRequiresManagerGate } from '../../../lib/businessRules';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 
@@ -84,9 +85,19 @@ const NewRequestPage = () => {
 
         // Simulate delay
         setTimeout(() => {
-            // Auto-approve logic: If Manager requests for report, or Admin requests
-            // For now, simpler logic: If requester !== beneficiary, mark specially or auto-approve step 1
             const isDelegated = currentUser.id !== selectedBeneficiary.id;
+            // Routage §9.9 : sans manager-du-bénéficiaire distinct du demandeur
+            // (bénéficiaire sans manager, ou déléguée soumise par son manager),
+            // la demande part directement au traitement IT — c'est ce que
+            // l'encart sous le formulaire promet.
+            const requiresManagerGate = approvalRequiresManagerGate(
+                {
+                    requesterId: currentUser.id,
+                    beneficiaryId: selectedBeneficiary.id,
+                    beneficiaryName: selectedBeneficiary.name,
+                },
+                users,
+            );
 
             addApproval({
                 // Mandatory New Fields
@@ -103,7 +114,7 @@ const NewRequestPage = () => {
                 reason: formData.reason,
                 urgency: formData.urgency,
 
-                status: 'WAITING_MANAGER_APPROVAL',
+                status: requiresManagerGate ? 'WAITING_MANAGER_APPROVAL' : 'WAITING_IT_PROCESSING',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
 
@@ -118,7 +129,9 @@ const NewRequestPage = () => {
 
             const successMsg = isDelegated
                 ? `Demande créée pour ${selectedBeneficiary.name} avec succès`
-                : "Votre demande a été transmise à votre manager";
+                : requiresManagerGate
+                    ? 'Votre demande a été transmise à votre manager'
+                    : "Votre demande a été transmise à l'équipe IT";
 
             showToast(successMsg, 'success');
             navigate('/approvals');
