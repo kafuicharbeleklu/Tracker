@@ -247,7 +247,7 @@ Même grille que Chantier C : on compare la **rigueur**, pas l'identité visuell
 | E5 | Q-V3 — sidebar | Dégradé tokenisé, gris de texte → rampe chaude, retrait allowlist. **Révisé** : valeurs du dégradé revenues à `#131517→#111315` (préférence pour l'ancien rendu, option A) | ✅ `0ed75a0` révisé `944a431` |
 | E6 | Hygiène tokens | `bg-white`/`text-black` opaques → `bg-surface`/`on-surface` dans `src/components/**` (préalable au ban CI ; overlays alpha conservés) | ✅ `ecb460d` |
 | E7 | Lot F — CI | Allowlist hex réduite à LoginPage ; ban palette nommée + `bg-white`/`text-black` opaques sur `src/components/**` (détection vérifiée par injection) ; `check:encoding` dans le workflow | ✅ `13b1331` |
-| E8 | Vérification | build + lint + md3:check ✅ ; sonde en rendu réel ✅ (détail ci-dessous) ; re-baseline visuel | ✅ / visuel : voir note |
+| E8 | Vérification | build + lint + md3:check ✅ ; sonde en rendu réel ✅ (détail ci-dessous) ; re-baseline visuel complet ✅ `cc8222a` (14 rafraîchies / 25 match ; approvals/locations/management/settings identiques sur 3 devices → sidebar et badges intacts ; solde aussi les 8 diffs hérités du seed D14) | ✅ |
 
 ### 10.1 Re-mesures en rendu réel (sonde §4.1, cascade résolue dans l'app, 2026-07-16)
 
