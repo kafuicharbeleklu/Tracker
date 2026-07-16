@@ -1,6 +1,6 @@
 # Audit — Design System propriétaire Tracker (Chantier B · v2)
 
-> **v2 — remise à jour sur l'état réel du dépôt.** Palette consolidée + mesures en rendu réel, constats composants, verdict garde-fou CI. **Aucune refonte avant validation.**
+> **v2 — remise à jour sur l'état réel du dépôt.** Palette consolidée + mesures en rendu réel, constats composants, verdict garde-fou CI. ~~Aucune refonte avant validation.~~ **Validé et exécuté le 2026-07-16** — verdicts en §9, registre d'exécution et re-mesures en §10.
 > Date : 2026-07-16 · Branche : `main` (HEAD `27eaf54`) · Remplace la v1 du 2026-06-30.
 > La v1 a été **largement exécutée** depuis (commit `6efe3be`, 2026-07-08 — cf. §2.2) : ce document ne repart pas du diagnostic v1 mais de **l'état implémenté**, et propose ce qui reste à trancher/corriger.
 > Contexte aval : la validation de la palette débloque **X7** (Chantier C, en attente).
@@ -240,11 +240,29 @@ Même grille que Chantier C : on compare la **rigueur**, pas l'identité visuell
 
 | # | Lot | Contenu | État |
 |---|---|---|---|
-| E1 | Lot A — palette v2 | Bases sémantiques `#047857/#DC2626/#2563EB` ; label InputField → neutral-600, placeholders → neutral-500/on-surface-variant plein ; échelle brand courte 50/100/200 (Q-V1/Q-V5) | — |
-| E2 | Lot B — focus | Token `--color-focus-ring` (anthracite opaque) + migration de tous les idiomes alpha (`ring-primary/10..40`, `ring-black/10`) et des rings jaunes opaques sur clair ; jaune opaque conservé sur surfaces sombres (Q-V2/C3) | — |
-| E3 | Lot C — P0 | C1 ConfirmationDialog (warning → `warning-light/strong`, info → `info-light/strong`) ; C2 SelectFilter (libellé `on-surface`, jaune en bordure/ring) | — |
-| E4 | Famille C8 | Chevron EntityRow, icônes hover MetricCard/SearchFilterBar, IconButton standard selected + filled base, FAB `surface`, FileDropzone (hover jaune — même famille, découverte au balayage) | — |
-| E5 | Q-V3 — sidebar | Dégradé tokenisé `#2E2725→#1C1917` (chaud), gris froids → neutres chauds, retrait allowlist | — |
-| E6 | Hygiène tokens | `bg-white`/`text-black` opaques → `bg-surface`/`on-surface` dans `src/components/**` (préalable au ban CI) | — |
-| E7 | Lot F — CI | Allowlist hex réduite à LoginPage ; ban palette nommée + `bg-white`/`text-black` opaques sur `src/components/**` ; `check:encoding` dans le workflow | — |
-| E8 | Vérification | build + lint + md3:check ; sonde contraste en rendu réel (§4.1) : nouvelles bases, focus, sidebar, re-confirmation 11,2:1 / 13,6:1 | — |
+| E1 | Lot A — palette v2 | Bases sémantiques `#047857/#DC2626/#2563EB` ; label InputField → neutral-600, placeholders → neutral-500/on-surface-variant plein ; échelle brand courte 50/100/200 (Q-V1/Q-V5) | ✅ `0f6dcec` |
+| E2 | Lot B — focus | Token `--color-focus-ring` (anthracite opaque) + migration de tous les idiomes alpha (`ring-primary/10..40`, `ring-black/10`) et des rings jaunes opaques sur clair ; jaune opaque conservé sur surfaces sombres (Q-V2/C3) | ✅ `c9fcd95` + résiduels features `0615447` |
+| E3 | Lot C — P0 | C1 ConfirmationDialog (warning → `warning-light/strong`, info → `info-light/strong`) ; C2 SelectFilter (libellé `on-surface`, jaune en bordure/ring) | ✅ `2c19758` |
+| E4 | Famille C8 | Chevron EntityRow, icônes hover MetricCard/SearchFilterBar, IconButton standard selected + filled base, FAB `surface`, FileDropzone (hover jaune — même famille, découverte au balayage) | ✅ `2c19758` |
+| E5 | Q-V3 — sidebar | Dégradé tokenisé, gris de texte → rampe chaude, retrait allowlist. **Révisé** : valeurs du dégradé revenues à `#131517→#111315` (préférence pour l'ancien rendu, option A) | ✅ `0ed75a0` révisé `944a431` |
+| E6 | Hygiène tokens | `bg-white`/`text-black` opaques → `bg-surface`/`on-surface` dans `src/components/**` (préalable au ban CI ; overlays alpha conservés) | ✅ `ecb460d` |
+| E7 | Lot F — CI | Allowlist hex réduite à LoginPage ; ban palette nommée + `bg-white`/`text-black` opaques sur `src/components/**` (détection vérifiée par injection) ; `check:encoding` dans le workflow | ✅ `13b1331` |
+| E8 | Vérification | build + lint + md3:check ✅ ; sonde en rendu réel ✅ (détail ci-dessous) ; re-baseline visuel | ✅ / visuel : voir note |
+
+### 10.1 Re-mesures en rendu réel (sonde §4.1, cascade résolue dans l'app, 2026-07-16)
+
+Tous les tokens résolvent aux valeurs attendues (swatches `var()` injectés, `getComputedStyle` — tout est opaque, pas de compositing en jeu) :
+
+| Paire | Mesure | Attendu |
+|---|---|---|
+| noir sur jaune (`on-primary`/`primary`) | **11,22:1** | 11,22 — **inchangé** ✅ |
+| `on-primary-container`/`primary-container` | **13,63:1** | 13,63 — **inchangé** ✅ |
+| succès `#047857` texte/blanc · blanc/rempli | **5,48 · 5,48** | 5,48 ✅ (tertiary suit : 5,48) |
+| danger `#DC2626` | **4,83 · 4,83** | 4,83 ✅ |
+| info `#2563EB` | **5,17 · 5,17** | 5,17 ✅ |
+| focus-ring `#2E2725` sur blanc | **14,65:1** | ≥ 13 ✅ — rendu réel vérifié : InputField focus = bordure + ring 2px `rgb(46,39,37)` opaques |
+| label neutral-600 / placeholder neutral-500 | **7,83 / 4,69** | ✅ |
+| texte sidebar `#A8A199` sur dégradé `#131517` | **7,17:1** | ✅ (jaune item actif : 11,80) |
+| C2 SelectFilter ouvert (rendu réel) | libellé `#1C1917`, bordure+ring `#FDC910` opaques | ✅ plus de texte jaune |
+
+CSS émis vérifié : `.ring-focus-ring`/`border-focus-ring` + variantes focus générées ; `focus-visible:!ring-primary` généré avec `!important` (l'ancienne forme `!focus-visible:*` de SidebarItem/RailItem **ne générait aucun CSS** — les items de sidebar n'avaient en réalité aucun indicateur de focus ; corrigé au passage). `ring-primary/20` restants = états de *sélection* d'AddCategoryPage (doublés bordure+fond+texte), hors périmètre focus.
