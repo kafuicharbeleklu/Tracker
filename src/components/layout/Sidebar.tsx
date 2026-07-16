@@ -208,7 +208,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed ? "expanded:w-[76px]" : "expanded:w-64",
                     className
                 )}
-                style={{ background: 'linear-gradient(180deg, #131517 0%, #111315 100%)' }}
+                style={{ background: 'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)' }}
             >
                 <div className={cn(
                     "flex flex-col h-full overflow-y-auto custom-scrollbar transition-all duration-medium2 ease-emphasized",
@@ -235,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {isModalMode ? (
                             <CloseButton
                                 onClick={closeMobileMenu}
-                                className="text-neutral-400 hover:text-white hover:bg-white/5 focus-visible:!ring-primary p-2 rounded-lg transition-all duration-medium2"
+                                className="text-[var(--color-neutral-400)] hover:text-white hover:bg-white/5 focus-visible:!ring-primary p-2 rounded-lg transition-all duration-medium2"
                             />
                         ) : (
                             <Button
@@ -243,7 +243,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 size="sm"
                                 onClick={() => setIsCollapsed(!isCollapsed)}
                                 className={cn(
-                                    "hidden expanded:flex !text-neutral-400 hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
+                                    "hidden expanded:flex !text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
                                     isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-white !text-black hover:!bg-white hover:!text-black shadow-md"
                                 )}
                                 aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}

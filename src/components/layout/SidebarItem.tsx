@@ -49,7 +49,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
                 // MD3 Active: secondaryContainer background, onSecondaryContainer text
                 active
                     ? "!bg-primary !text-on-primary !ring-0 !shadow-sm"
-                    : "!text-neutral-400 hover:!bg-white/5 hover:!text-white",
+                    : "!text-[var(--color-neutral-400)] hover:!bg-white/5 hover:!text-white",
                 className
             )}
         >

@@ -44,7 +44,7 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
                     : "!w-20 !min-h-16 !px-2 !py-1 !flex-col !items-center !justify-center !gap-1 !rounded-lg",
                 "!outline-none focus-visible:!ring-2 focus-visible:!ring-primary focus-visible:!ring-inset",
                 "!transition-all !duration-short4 !ease-emphasized",
-                active ? "!text-white" : "!text-neutral-400 hover:!text-white hover:!bg-white/5"
+                active ? "!text-white" : "!text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5"
             )}
             title={label}
         >
@@ -153,14 +153,14 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                 compact ? "flex flex-col items-center justify-between py-2" : "flex flex-col items-center justify-between py-3",
                 className
             )}
-            style={{ background: 'linear-gradient(180deg, #131517 0%, #111315 100%)' }}
+            style={{ background: 'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)' }}
         >
             <div className={cn("flex flex-col items-center gap-2", compact && "gap-2")}>
                 <IconButton
                     icon="menu"
                     variant="standard"
                     onClick={onMenuClick}
-                    className="!text-neutral-400 hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary"
+                    className="!text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary"
                     aria-label="Ouvrir le menu lateral"
                     title="Menu"
                 />
