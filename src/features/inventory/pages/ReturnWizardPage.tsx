@@ -598,7 +598,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value={digit}
                                             onChange={(e) => handlePinChange(idx, e.target.value)}
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="h-14 !px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-primary focus:ring-4 focus:ring-primary/10 input-pin transition-all duration-short4"
+                                            className="h-14 !px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
                                         />
                                     ))}
                                 </div>

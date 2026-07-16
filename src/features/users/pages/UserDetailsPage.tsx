@@ -719,7 +719,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                     tabIndex={0}
                                     onClick={handlePrimaryDeviceClick}
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePrimaryDeviceClick(); }}
-                                    className="bg-surface rounded-md border border-outline-variant shadow-elevation-1 p-4 flex items-center gap-4 w-full cursor-pointer hover:bg-surface-container-low transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                    className="bg-surface rounded-md border border-outline-variant shadow-elevation-1 p-4 flex items-center gap-4 w-full cursor-pointer hover:bg-surface-container-low transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                 >
                                     <div className="shrink-0 w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center border border-outline-variant">
                                         <MaterialIcon name={getDeviceIcon(primaryDevice.type)} size={24} className="text-primary" />
@@ -739,7 +739,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                     tabIndex={0}
                                     onClick={handlePrimaryDeviceClick}
                                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePrimaryDeviceClick(); }}
-                                    className="bg-gradient-to-br from-inverse-surface to-inverse-surface/90 rounded-md p-card text-inverse-on-surface shadow-elevation-3 relative overflow-hidden group w-full cursor-pointer hover:scale-[1.01] hover:shadow-elevation-4 transition-all duration-medium2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+                                    className="bg-gradient-to-br from-inverse-surface to-inverse-surface/90 rounded-md p-card text-inverse-on-surface shadow-elevation-3 relative overflow-hidden group w-full cursor-pointer hover:scale-[1.01] hover:shadow-elevation-4 transition-all duration-medium2 outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                 >
                                     <div className="absolute top-0 right-0 w-96 h-96 bg-primary blur-[120px] opacity-10 rounded-full pointer-events-none"></div>
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-inverse-on-surface/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
