@@ -27,9 +27,9 @@ const LEGACY_VARIANT_MAP: Record<LegacyButtonVariant, CanonicalButtonVariant> = 
 const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
   filled: "bg-primary text-on-primary shadow-sm hover:bg-primary-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
   tonal: "bg-[var(--color-anthracite)] text-white shadow-sm hover:bg-[var(--color-anthracite-strong)] disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
-  outlined: "bg-white text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)] disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  outlined: "bg-surface text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)] disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]",
   text: "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] disabled:text-on-surface/[0.38]",
-  elevated: "bg-white text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
+  elevated: "bg-surface text-[var(--color-text-primary)] border border-[var(--color-border-default)] shadow-sm hover:bg-[var(--color-neutral-50)] disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
   danger: "bg-error text-on-error shadow-sm hover:bg-error/90 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
 };
 

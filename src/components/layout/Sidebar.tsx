@@ -244,7 +244,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 onClick={() => setIsCollapsed(!isCollapsed)}
                                 className={cn(
                                     "hidden expanded:flex !text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
-                                    isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-white !text-black hover:!bg-white hover:!text-black shadow-md"
+                                    isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-surface !text-on-surface hover:!bg-surface hover:!text-on-surface shadow-md"
                                 )}
                                 aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}
                                 icon={<MaterialIcon name={isCollapsed ? "chevron_right" : "chevron_left"} size={24} />}

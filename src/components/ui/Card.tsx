@@ -51,13 +51,13 @@ const Card: React.FC<CardProps> = ({
 }) => {
   const isInteractive = Boolean(onClick) && !disabled;
   const variantStyles = {
-    elevated: 'bg-white border border-[var(--color-border-default)] shadow-sm',
+    elevated: 'bg-surface border border-[var(--color-border-default)] shadow-sm',
     filled: 'bg-[var(--color-surface-muted)] border border-[var(--color-border-default)] shadow-none',
-    outlined: 'bg-white border border-[var(--color-border-default)] shadow-none',
+    outlined: 'bg-surface border border-[var(--color-border-default)] shadow-none',
   };
   const interactiveVariantStyles = {
     elevated: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
-    filled: 'hover:bg-white hover:border-[var(--color-border-strong)]',
+    filled: 'hover:bg-surface hover:border-[var(--color-border-strong)]',
     outlined: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
   };
 

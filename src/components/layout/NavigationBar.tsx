@@ -241,7 +241,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             role="navigation"
             className={cn(
                 'h-[68px] w-full flex items-center gap-2 px-2 py-1',
-                !embedded && 'bg-white border-t border-[var(--color-border-default)] z-50',
+                !embedded && 'bg-surface border-t border-[var(--color-border-default)] z-50',
                 className
             )}
         >

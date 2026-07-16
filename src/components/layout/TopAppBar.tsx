@@ -31,7 +31,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
     <header
       role="banner"
       className={cn(
-        "h-16 bg-white border-b border-[var(--color-border-default)]",
+        "h-16 bg-surface border-b border-[var(--color-border-default)]",
         "flex items-center justify-between px-4",
         className
       )}
