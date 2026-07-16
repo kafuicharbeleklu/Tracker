@@ -27,6 +27,9 @@ jobs:
       - name: Run MD3 Guardrails
         run: npm run md3:check
 
+      - name: Run Encoding Guard
+        run: npm run check:encoding
+
       - name: Build
         run: npm run build
 

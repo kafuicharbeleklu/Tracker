@@ -17,11 +17,19 @@ const FORBIDDEN_PATTERNS = [
 ];
 const NATIVE_CONTROL_PATTERN = /<(button|input|select|textarea)\b/;
 
+// Dans les primitives du DS (src/components/**), toute couleur passe par les
+// tokens : palette Tailwind nommée et blanc/noir OPAQUES interdits — les
+// overlays alpha sur fond sombre (bg-white/5, bg-white/95) restent permis.
+// Voir docs/AUDIT_DESIGN_SYSTEM.md §6.
+const COMPONENTS_PREFIX = `${path.normalize('src/components')}${path.sep}`;
+const COMPONENT_FORBIDDEN_PATTERNS = [
+  /\b(?:bg|text|border|ring|from|via|to|fill|stroke|divide)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(?:50|100|200|300|400|500|600|700|800|900|950)\b/g,
+  /\b(?:bg-white|text-black)\b(?!\/)/g,
+];
+
 const HEX_COLOR_PATTERN = /#[0-9A-Fa-f]{3,8}\b/g;
 const HEX_ALLOWLIST = new Set([
   path.normalize('src/features/auth/pages/LoginPage.tsx'),
-  path.normalize('src/components/layout/NavigationRail.tsx'),
-  path.normalize('src/components/layout/Sidebar.tsx'),
 ]);
 
 const NATIVE_CONTROL_ALLOWLIST = new Set([
@@ -78,6 +86,19 @@ const scanFile = async (filePath) => {
       }
       pattern.lastIndex = 0;
     });
+
+    if (relativePath.startsWith(COMPONENTS_PREFIX)) {
+      COMPONENT_FORBIDDEN_PATTERNS.forEach((pattern) => {
+        if (pattern.test(line)) {
+          findings.push({
+            file: relativePath,
+            line: index + 1,
+            reason: `Raw Tailwind color in DS primitives (tokens only): ${pattern}`,
+          });
+        }
+        pattern.lastIndex = 0;
+      });
+    }
 
     if (!HEX_ALLOWLIST.has(relativePath) && HEX_COLOR_PATTERN.test(line)) {
       findings.push({
