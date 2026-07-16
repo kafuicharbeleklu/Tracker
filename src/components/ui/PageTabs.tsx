@@ -141,7 +141,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
                 "group relative flex items-center gap-2 min-h-10 px-3 py-2 rounded-lg text-label-large transition-all duration-short4 ease-emphasized outline-none select-none whitespace-nowrap",
-                "focus-visible:ring-2 focus-visible:ring-primary/30",
+                "focus-visible:ring-2 focus-visible:ring-focus-ring",
                 isActive
                   ? "bg-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"

@@ -55,7 +55,7 @@ const Chip: React.FC<ChipProps> = ({
                 // Base — MD3 chip shape & layout
                 "inline-flex items-center gap-2 rounded-md px-3 h-8 text-label-large border transition-all duration-short4 ease-emphasized outline-none select-none",
                 // Focus ring
-                "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1",
+                "focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1",
                 // State layer for interactive chips
                 isInteractive && !disabled && "cursor-pointer hover:bg-surface-container",
                 // Disabled state

@@ -109,6 +109,8 @@ module.exports = {
                     DEFAULT: 'var(--md-sys-color-outline)',
                     variant: 'var(--md-sys-color-outline-variant)',
                 },
+                // Q-V2 — indicateur de focus unifié (opaque)
+                'focus-ring': 'var(--color-focus-ring)',
                 // MD3 Inverse
                 'inverse-surface': 'var(--md-sys-color-inverse-surface)',
                 'inverse-on-surface': 'var(--md-sys-color-inverse-on-surface)',

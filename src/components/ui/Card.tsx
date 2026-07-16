@@ -84,7 +84,7 @@ const Card: React.FC<CardProps> = ({
         'rounded-xl flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized overflow-hidden',
         variantStyles[variant],
         isInteractive && interactiveVariantStyles[variant],
-        isInteractive && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none',
+        isInteractive && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none',
         disabled && 'opacity-60 pointer-events-none',
         className
       )}
@@ -112,7 +112,7 @@ const Card: React.FC<CardProps> = ({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onActionClick?.(); }}
-                className="text-[var(--color-neutral-500)] cursor-pointer hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
+                className="text-[var(--color-neutral-500)] cursor-pointer hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
                 aria-label={actionLabel || "Action"}
                 disabled={!onActionClick}
               >

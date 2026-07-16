@@ -926,6 +926,11 @@ body {
     --color-border-subtle: var(--color-neutral-100);
     --color-border-strong: #8E877E; /* AA 3:1 — bordures de contrôles (inputs, outline) */
 
+    /* Q-V2 : indicateur de focus clavier unifié — opaque (≥13:1 sur surface claire).
+       Sur surface sombre (sidebar/rail), l'indicateur est le jaune opaque.
+       Le jaune reste le code de la SÉLECTION, jamais du focus sur fond clair. */
+    --color-focus-ring: var(--color-anthracite);
+
     /* Rayons — 4 crans carrés/industriels (CAT) : 2 / 4 / 6 / 8 px + full */
     --radius-sm: 2px;
     --radius-md: 4px;

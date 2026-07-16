@@ -166,7 +166,7 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
           isOpen
             ? "border-primary text-primary ring-2 ring-primary/20"
             : "border-outline-variant text-on-surface hover:bg-surface-container",
-          "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-1"
+          "focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1"
         )}
       >
         <span className="truncate">{selectedOption ? selectedOption.label : defaultLabel}</span>

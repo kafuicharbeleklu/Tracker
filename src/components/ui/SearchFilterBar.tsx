@@ -74,7 +74,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               aria-label="Effacer la recherche"
             >
               <MaterialIcon name="close" size={18} />
@@ -99,7 +99,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
               }
             }}
             className={cn(
-              "h-10 w-10 rounded-lg transition-all duration-short4 ease-emphasized flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95 state-layer",
+              "h-10 w-10 rounded-lg transition-all duration-short4 ease-emphasized flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus-ring active:scale-95 state-layer",
               isFilterActive
                 ? "bg-primary text-on-primary shadow-elevation-1"
                 : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"

@@ -75,7 +75,7 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
                         aria-pressed={isSelected}
                         className={cn(
                             "relative flex items-center justify-center gap-2 transition-all duration-short4 ease-emphasized outline-none",
-                            "focus-visible:ring-2 focus-visible:ring-primary/30",
+                            "focus-visible:ring-2 focus-visible:ring-focus-ring",
                             density === 'compact' ? "px-3 h-8 text-label-medium" : "px-4 h-10 text-label-large",
                             "rounded-lg",
                             isSelected

@@ -69,8 +69,8 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
       aria-disabled={disabled || undefined}
       className={cn(
         isCardVariant
-          ? 'group flex items-center gap-4 p-4 min-h-[80px] rounded-xl border border-outline-variant/50 bg-surface relative outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset transition-all duration-short4 shadow-elevation-0'
-          : 'group flex items-center gap-4 p-4 min-h-[80px] border-b border-outline-variant/50 last:border-0 relative outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset transition-all duration-short4',
+          ? 'group flex items-center gap-4 p-4 min-h-[80px] rounded-xl border border-outline-variant/50 bg-surface relative outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset transition-all duration-short4 shadow-elevation-0'
+          : 'group flex items-center gap-4 p-4 min-h-[80px] border-b border-outline-variant/50 last:border-0 relative outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset transition-all duration-short4',
         selected
           ? (isCardVariant ? 'bg-primary-container/45 border-primary/30' : 'bg-primary-container/45')
           : 'bg-surface',

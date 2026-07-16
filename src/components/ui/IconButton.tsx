@@ -73,7 +73,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                     // Base: 48×48dp touch target, centered icon
                     "inline-flex items-center justify-center w-10 h-10 rounded-lg",
                     "transition-all duration-short4 ease-emphasized",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                    "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
                     "disabled:opacity-[0.38] disabled:cursor-not-allowed disabled:shadow-none",
                     "active:scale-[0.92] state-layer",
                     // Variant-specific

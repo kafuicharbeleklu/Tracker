@@ -248,7 +248,7 @@ const Menu: React.FC<MenuProps> = ({
                 }}
                 className={cn(
                   'group w-full h-12 px-3 flex items-center gap-3 text-left text-body-medium outline-none transition-[color,background-color,opacity] duration-short3 ease-emphasized state-layer',
-                  'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+                  'focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset',
                   item.disabled
                     ? 'opacity-[0.38] cursor-not-allowed text-on-surface-variant'
                     : 'cursor-pointer',

@@ -163,15 +163,15 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
               ? cn(
                 'bg-surface rounded-lg border',
                 error
-                  ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-black focus:ring-4 focus:ring-black/10',
+                  ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
+                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
                 'disabled:border-on-surface/[0.12] disabled:bg-surface'
               )
               : cn(
                 'bg-surface rounded-lg border',
                 error
-                  ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-black focus:ring-4 focus:ring-black/10',
+                  ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
+                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
                 'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
               ),
             hasLeadingElement ? 'pl-12' : 'pl-4',
@@ -194,7 +194,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
                 <button
                   type="button"
                   onClick={onTrailingIconClick}
-                  className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-black/10 transition-colors duration-short4"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
                   aria-label={trailingIconLabel}
                 >
                   {trailingIcon}
@@ -210,7 +210,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-black/10 transition-colors duration-short4"
+                className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPassword}
               >

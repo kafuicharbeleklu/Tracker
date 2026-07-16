@@ -52,7 +52,7 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
             "transition-all duration-short4 ease-emphasized",
             "cursor-pointer overflow-hidden",
             "shadow-elevation-3 hover:shadow-elevation-4 active:shadow-elevation-3", // Standard FAB elevation
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
             // State Layer
             "relative after:absolute after:inset-0 after:bg-current after:opacity-0 hover:after:opacity-[0.08] active:after:opacity-[0.12] after:transition-opacity after:pointer-events-none"
         );

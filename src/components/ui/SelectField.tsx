@@ -189,7 +189,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
           id={labelId}
           className={cn(
             "block text-body-small ml-1 mb-1 transition-colors duration-short4",
-            error ? "text-error" : isFocused ? "text-primary" : "text-on-surface-variant",
+            error ? "text-error" : isFocused ? "text-on-surface" : "text-on-surface-variant",
             disabled && "text-on-surface/[0.38]"
           )}
         >
@@ -226,7 +226,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
               error
                 ? 'border-error hover:border-error'
                 : 'border-outline-variant hover:border-outline',
-              isFocused && (error ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20'),
+              isFocused && (error ? 'border-error ring-2 ring-error' : 'border-focus-ring ring-2 ring-focus-ring'),
               'disabled:border-on-surface/[0.12] disabled:bg-surface'
             )
             : cn(
@@ -234,7 +234,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
               error
                 ? 'border-error hover:border-error'
                 : 'border-outline-variant hover:border-outline',
-              isFocused && (error ? 'border-error ring-2 ring-error/20' : 'border-primary ring-2 ring-primary/20'),
+              isFocused && (error ? 'border-error ring-2 ring-error' : 'border-focus-ring ring-2 ring-focus-ring'),
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             ),
           disabled ? 'pointer-events-none' : 'cursor-pointer',

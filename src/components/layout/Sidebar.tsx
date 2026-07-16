@@ -235,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {isModalMode ? (
                             <CloseButton
                                 onClick={closeMobileMenu}
-                                className="text-neutral-400 hover:text-white hover:bg-white/5 p-2 rounded-lg transition-all duration-medium2"
+                                className="text-neutral-400 hover:text-white hover:bg-white/5 focus-visible:!ring-primary p-2 rounded-lg transition-all duration-medium2"
                             />
                         ) : (
                             <Button
@@ -243,7 +243,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 size="sm"
                                 onClick={() => setIsCollapsed(!isCollapsed)}
                                 className={cn(
-                                    "hidden expanded:flex !text-neutral-400 hover:!text-white hover:!bg-white/5 p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
+                                    "hidden expanded:flex !text-neutral-400 hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
                                     isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-white !text-black hover:!bg-white hover:!text-black shadow-md"
                                 )}
                                 aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}

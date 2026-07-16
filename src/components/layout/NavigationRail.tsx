@@ -42,7 +42,7 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
                 compact
                     ? "!w-12 !min-h-12 !px-1 !py-1 !flex-col !items-center !justify-center !gap-0.5 !rounded-lg"
                     : "!w-20 !min-h-16 !px-2 !py-1 !flex-col !items-center !justify-center !gap-1 !rounded-lg",
-                "!outline-none !focus-visible:ring-2 !focus-visible:ring-primary/40 !focus-visible:ring-inset",
+                "!outline-none focus-visible:!ring-2 focus-visible:!ring-primary focus-visible:!ring-inset",
                 "!transition-all !duration-short4 !ease-emphasized",
                 active ? "!text-white" : "!text-neutral-400 hover:!text-white hover:!bg-white/5"
             )}
@@ -160,7 +160,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                     icon="menu"
                     variant="standard"
                     onClick={onMenuClick}
-                    className="!text-neutral-400 hover:!text-white hover:!bg-white/5"
+                    className="!text-neutral-400 hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary"
                     aria-label="Ouvrir le menu lateral"
                     title="Menu"
                 />

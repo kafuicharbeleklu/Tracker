@@ -98,7 +98,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = cn(
       "inline-flex items-center justify-center rounded-lg min-w-10 leading-none",
       "transition-[color,background-color,box-shadow,opacity,transform,filter] duration-short4 ease-emphasized",
-      "outline-none focus-visible:ring-2 focus-visible:ring-black/10 focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+      "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
       "disabled:cursor-not-allowed disabled:pointer-events-none",
       "active:scale-[0.98] select-none whitespace-nowrap",
       "font-bold"

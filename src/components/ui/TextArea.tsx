@@ -92,15 +92,15 @@ export const TextArea: React.FC<TextAreaProps> = ({
             ? cn(
               'bg-surface border rounded-lg',
               error
-                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                : 'border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20',
+                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
+                : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             )
             : cn(
               'bg-surface border rounded-lg',
               error
-                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error/20'
-                : 'border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20',
+                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
+                : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
               'disabled:border-on-surface/[0.12] disabled:bg-surface'
             ),
           className

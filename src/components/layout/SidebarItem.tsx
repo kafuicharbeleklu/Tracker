@@ -41,7 +41,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
                 "group relative !cursor-pointer !transition-all !duration-medium2 !ease-emphasized !flex !items-center !overflow-hidden",
                 "!rounded-lg",
                 // Accessibility
-                "!outline-none !focus-visible:ring-2 !focus-visible:ring-primary !focus-visible:ring-inset",
+                "!outline-none focus-visible:!ring-2 focus-visible:!ring-primary focus-visible:!ring-inset",
                 // Horizontal spacing
                 isCollapsed
                     ? "!w-11 !h-11 !min-h-11 !min-w-11 !self-center !mx-auto !px-0 !py-0 !justify-center !gap-0"
