@@ -876,11 +876,11 @@ body {
 
     --color-sidebar-bg: #1C1917;
     --color-sidebar-border: #2E2725;
-    /* Q-V3 : dégradé réaligné sur le noir chaud CAT — l'ancien dégradé froid
-       #131517→#111315 (en dur dans Sidebar/NavigationRail) était un vestige
-       de la direction anthracite-primaire abandonnée. */
-    --color-sidebar-gradient-from: var(--color-anthracite); /* #2E2725 */
-    --color-sidebar-gradient-to: var(--color-anthracite-strong); /* #1C1917 */
+    /* Q-V3 (révisé) : dégradé du menu latéral tokenisé, valeurs d'origine
+       conservées — le rendu sombre froid est une préférence retenue,
+       identité volontairement distincte des neutres chauds du contenu. */
+    --color-sidebar-gradient-from: #131517;
+    --color-sidebar-gradient-to: #111315;
     --color-sidebar-active-text: #1A1A1A;
     --color-sidebar-logo-bg: #262320;
 
