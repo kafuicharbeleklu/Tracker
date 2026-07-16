@@ -479,7 +479,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                             <Button
                                                                 size="sm"
                                                                 variant="text"
-                                                                className="text-error px-2"
+                                                                className="!text-error px-2"
                                                             >
                                                                 {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
                                                             </Button>

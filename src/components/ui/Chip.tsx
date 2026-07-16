@@ -25,12 +25,10 @@ interface ChipProps {
 
 /**
  * MD3 Chip — Assist, Filter, Input, and Suggestion chip variants.
- * Follows Material Design 3 specification:
- * - Compact SmartProcure radius
- * - Surface container-low fill, on-surface text
- * - State layer on hover/focus/press
- * - Selected state uses secondary-container
- * - 8dp height with label-large typography
+ * - Repos : surface-container-low, texte on-surface, bordure outline
+ * - Sélectionné : rempli marque bg-primary + text-on-primary (noir sur jaune, X12)
+ * - Focus clavier : ring opaque focus-ring (Q-V2) ; hover : surface-container
+ * - Hauteur 32px (h-8), typo label-large, rayon rounded-md
  */
 const Chip: React.FC<ChipProps> = ({
     label,

@@ -722,7 +722,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                             <Button
                                                                 variant="text"
                                                                 size="sm"
-                                                                className="text-error"
+                                                                className="!text-error"
                                                                 disabled={device.status === 'ignored'}
                                                                 onClick={() => handleIgnoreDetected(device.id)}
                                                             >
@@ -766,7 +766,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         <Button
                                             variant="outlined"
                                             onClick={onLogout}
-                                            className="text-error hover:text-error hover:bg-error-container whitespace-nowrap shrink-0"
+                                            className="!text-error hover:text-error hover:bg-error-container whitespace-nowrap shrink-0"
                                             icon={<MaterialIcon name="logout" size={18} />}
                                         >
                                             Déconnexion

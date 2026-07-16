@@ -43,7 +43,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                     variant="text"
                     size="sm"
                     onClick={onBack}
-                    className="w-10 h-10 min-h-10 min-w-10 p-0 text-on-surface-variant hover:text-on-surface border-none shadow-none rounded-lg"
+                    className="w-10 h-10 min-h-10 min-w-10 p-0 !text-on-surface-variant hover:text-on-surface border-none shadow-none rounded-lg"
                     aria-label="Retour"
                   >
                     <MaterialIcon name="arrow_back" size={20} />
@@ -69,7 +69,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                     variant="text"
                     size="sm"
                     onClick={onBack}
-                    className="w-10 h-10 min-h-10 min-w-10 p-0 text-on-surface-variant hover:text-on-surface border-none shadow-none rounded-lg"
+                    className="w-10 h-10 min-h-10 min-w-10 p-0 !text-on-surface-variant hover:text-on-surface border-none shadow-none rounded-lg"
                     aria-label="Retour"
                   >
                     <MaterialIcon name="arrow_back" size={24} />

@@ -175,7 +175,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Changer</Button>
+                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error">Changer</Button>
                     </div>
 
                     <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">

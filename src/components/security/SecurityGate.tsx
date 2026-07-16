@@ -193,7 +193,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                 ))}
               </div>
               {attempts > 0 && <p className="text-error text-body-small">PIN incorrect ({attempts}/3)</p>}
-              <Button variant="outlined" onClick={handleClose} className="w-full text-on-surface-variant">Annuler</Button>
+              <Button variant="outlined" onClick={handleClose} className="w-full !text-on-surface-variant">Annuler</Button>
             </div>
           )}
 

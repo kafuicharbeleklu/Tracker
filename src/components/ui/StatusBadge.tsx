@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { getStatusLabel } from '../../lib/businessRules';
+import { TONE_CLASSES, type SemanticTone } from './Badge';
 
 type EquipmentStatus =
   | 'Disponible'
@@ -23,55 +24,45 @@ interface StatusBadgeProps {
 }
 
 /**
- * StatusBadge — palette sémantique adossée aux tokens du DS :
- * success → vert, info → bleu, warning → orange (≠ jaune marque),
- * danger → rouge, neutral → neutre chaud.
+ * StatusBadge — tons sémantiques partagés avec Badge (TONE_CLASSES, une seule
+ * source — C7). Les libellés affichés viennent exclusivement de
+ * getStatusLabel() (businessRules) : ce fichier ne mappe que statut → ton.
  */
-type StatusTone = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
-
-const TONE_CLASSES: Record<StatusTone, string> = {
-  success: 'bg-success-light text-success-strong',
-  info: 'bg-info-light text-info-strong',
-  warning: 'bg-warning-light text-warning-strong',
-  danger: 'bg-danger-light text-danger-strong',
-  neutral: 'bg-surface-container text-on-surface',
-};
-
-const STATUS_CONFIG: Record<string, { tone: StatusTone; label?: string }> = {
+const STATUS_TONES: Record<string, SemanticTone> = {
   // Equipment
-  'Disponible': { tone: 'success' },
-  'Attribué': { tone: 'info' },
-  'Assigné': { tone: 'info' },
-  'En attente': { tone: 'warning' },
-  'En réparation': { tone: 'danger', label: 'En réparation' },
-  'En maintenance préventive': { tone: 'warning' },
-  'Retiré': { tone: 'neutral' },
-  'Perdu': { tone: 'danger' },
-  'Réformé': { tone: 'neutral' },
-  'Manquant': { tone: 'danger' },
+  'Disponible': 'success',
+  'Attribué': 'info',
+  'Assigné': 'info',
+  'En attente': 'warning',
+  'En réparation': 'danger',
+  'En maintenance préventive': 'warning',
+  'Retiré': 'neutral',
+  'Perdu': 'danger',
+  'Réformé': 'neutral',
+  'Manquant': 'danger',
 
   // Approvals
-  'Rejected': { tone: 'danger', label: 'Rejeté' },
-  'Completed': { tone: 'success', label: 'Terminé' },
-  'Cancelled': { tone: 'neutral', label: 'Annulé' },
+  'Rejected': 'danger',
+  'Completed': 'success',
+  'Cancelled': 'neutral',
 
   // Approval workflow states
-  'WAITING_MANAGER_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
-  'WAITING_IT_PROCESSING': { tone: 'info', label: 'Traitement en cours' },
-  'WAITING_DOTATION_APPROVAL': { tone: 'warning', label: 'Validation en cours' },
-  'PENDING_DELIVERY': { tone: 'warning', label: 'En attente' },
-  'PENDING_RETURN': { tone: 'info', label: 'Retour en cours' },
+  'WAITING_MANAGER_APPROVAL': 'warning',
+  'WAITING_IT_PROCESSING': 'info',
+  'WAITING_DOTATION_APPROVAL': 'warning',
+  'PENDING_DELIVERY': 'warning',
+  'PENDING_RETURN': 'info',
 
   // Urgency
-  'high': { tone: 'danger', label: 'Urgent' },
-  'normal': { tone: 'neutral', label: 'Normal' },
-  'low': { tone: 'neutral', label: 'Basse' },
+  'high': 'danger',
+  'normal': 'neutral',
+  'low': 'neutral',
 
   // Roles
-  'SuperAdmin': { tone: 'success', label: 'Super Admin' },
-  'Admin': { tone: 'info', label: 'Admin' },
-  'Manager': { tone: 'warning', label: 'Manager' },
-  'User': { tone: 'neutral', label: 'Utilisateur' },
+  'SuperAdmin': 'success',
+  'Admin': 'info',
+  'Manager': 'warning',
+  'User': 'neutral',
 };
 
 const SIZE_CLASSES = {
@@ -85,13 +76,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   size = 'md',
   className
 }) => {
-  const config = STATUS_CONFIG[status] ?? { tone: 'neutral' as StatusTone };
+  const tone = STATUS_TONES[status] ?? 'neutral';
 
   return (
     <span
       className={cn(
         "inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-md whitespace-nowrap transition-all duration-short4",
-        TONE_CLASSES[config.tone],
+        TONE_CLASSES[tone],
         SIZE_CLASSES[size],
         className
       )}

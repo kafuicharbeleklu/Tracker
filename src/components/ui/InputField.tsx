@@ -30,9 +30,10 @@ interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 /**
- * MD3 Text Field component.
- * - Filled (default): surface-container-highest bg, bottom border active indicator
- * - Outlined: transparent bg, outline border
+ * MD3 Text Field component (vocabulaire tokens du DS).
+ * - Les deux variantes rendent surface + bordure outline-variant ; elles ne
+ *   diffèrent que par le traitement disabled (filled : fond on-surface/4 %).
+ * - Focus = bordure + ring opaques focus-ring (Q-V2) ; label text-secondary.
  * - Includes ARIA linking for errors/supporting text.
  */
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
@@ -115,7 +116,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           htmlFor={inputId}
           className={cn(
             "block text-label-medium font-bold uppercase mb-2 transition-colors duration-short4",
-            error ? "text-error" : isFocused ? "text-[var(--color-text-primary)]" : "text-[var(--color-neutral-600)]",
+            error ? "text-error" : isFocused ? "text-on-surface" : "text-text-secondary",
             isDisabled && "text-on-surface/[0.38]"
           )}
         >
@@ -128,14 +129,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           <div
             className={cn(
               'absolute inset-y-0 left-4 flex items-center gap-2 pointer-events-none transition-colors duration-short4',
-              error ? 'text-error' : isFocused ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-neutral-500)]',
+              error ? 'text-error' : isFocused ? 'text-on-surface' : 'text-on-surface-variant',
               isDisabled && 'text-on-surface/[0.38]'
             )}
             aria-hidden="true"
           >
             {icon}
             {prefix && (
-              <span className="text-body-medium text-[var(--color-neutral-500)]">
+              <span className="text-body-medium text-on-surface-variant">
                 {prefix}
               </span>
             )}
@@ -154,24 +155,24 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           onFocus={(e) => { setIsFocused(true); props.onFocus?.(e); }}
           onBlur={(e) => { setIsFocused(false); props.onBlur?.(e); }}
           className={cn(
-            'w-full min-h-11 px-4 py-3 text-title-small font-medium text-[var(--color-text-primary)]',
+            'w-full min-h-11 px-4 py-3 text-title-small font-medium text-on-surface',
             'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized',
             'focus:outline-none',
-            'placeholder:text-[var(--color-neutral-500)]',
+            'placeholder:text-on-surface-variant',
             'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
             isOutlined
               ? cn(
                 'bg-surface rounded-lg border',
                 error
                   ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
+                  : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
                 'disabled:border-on-surface/[0.12] disabled:bg-surface'
               )
               : cn(
                 'bg-surface rounded-lg border',
                 error
                   ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                  : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
+                  : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
                 'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
               ),
             hasLeadingElement ? 'pl-12' : 'pl-4',
@@ -184,7 +185,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
         {hasTrailingElement && (
           <div className="absolute inset-y-0 right-3 flex items-center gap-1">
             {suffix && (
-              <span className="text-body-small text-[var(--color-neutral-500)] pointer-events-none">
+              <span className="text-body-small text-on-surface-variant pointer-events-none">
                 {suffix}
               </span>
             )}
@@ -194,13 +195,13 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
                 <button
                   type="button"
                   onClick={onTrailingIconClick}
-                  className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
                   aria-label={trailingIconLabel}
                 >
                   {trailingIcon}
                 </button>
               ) : (
-                <span className="h-10 w-10 inline-flex items-center justify-center text-[var(--color-neutral-500)] pointer-events-none" aria-hidden="true">
+                <span className="h-10 w-10 inline-flex items-center justify-center text-on-surface-variant pointer-events-none" aria-hidden="true">
                   {trailingIcon}
                 </span>
               )
@@ -210,7 +211,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
               <button
                 type="button"
                 onClick={togglePasswordVisibility}
-                className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-[var(--color-neutral-500)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
+                className="h-10 w-10 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors duration-short4"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPassword}
               >
@@ -231,14 +232,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
             )}
 
             {!error && supportingText && (
-              <p id={supportingId} className="text-body-small text-[var(--color-text-muted)]">
+              <p id={supportingId} className="text-body-small text-on-surface-variant">
                 {supportingText}
               </p>
             )}
           </div>
 
           {showCounter && (
-            <p id={counterId} className="text-body-small text-[var(--color-text-muted)] tabular-nums whitespace-nowrap" aria-live="polite">
+            <p id={counterId} className="text-body-small text-on-surface-variant tabular-nums whitespace-nowrap" aria-live="polite">
               {currentValue.length}/{props.maxLength}
             </p>
           )}

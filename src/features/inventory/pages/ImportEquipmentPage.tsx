@@ -174,7 +174,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error hover:bg-error-container hover:text-on-error-container">
+                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error hover:bg-error-container hover:text-on-error-container">
                             Changer de fichier
                         </Button>
                     </div>

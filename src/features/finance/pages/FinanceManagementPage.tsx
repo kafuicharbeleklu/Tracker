@@ -954,7 +954,7 @@ const FinanceManagementPage = () => {
                                                                 <Button
                                                                     variant="text"
                                                                     size="sm"
-                                                                    className="h-8 w-8 min-w-0 p-0 rounded-full text-error hover:bg-error-container/40"
+                                                                    className="h-8 w-8 min-w-0 p-0 rounded-full !text-error hover:bg-error-container/40"
                                                                     aria-label={`Supprimer la dépense ${exp.id}`}
                                                                     onClick={(event) => {
                                                                         event.stopPropagation();
@@ -1021,7 +1021,7 @@ const FinanceManagementPage = () => {
                                                         <Button
                                                             variant="text"
                                                             size="sm"
-                                                            className="h-9 min-w-0 px-2 rounded-full text-error hover:bg-error-container/40"
+                                                            className="h-9 min-w-0 px-2 rounded-full !text-error hover:bg-error-container/40"
                                                             aria-label={`Supprimer la dépense ${exp.id}`}
                                                             onClick={(event) => {
                                                                 event.stopPropagation();

@@ -29,10 +29,10 @@ interface CardProps {
 }
 
 /**
- * MD3 Card component.
- * - Elevated: surface-container-low + elevation-1, hover elevation-2
- * - Filled: surface-container-high + elevation-0
- * - Outlined: surface + outline-variant border
+ * Carte du DS (vocabulaire tokens, bordure systématique outline-variant).
+ * - Elevated (défaut) : surface + shadow-sm
+ * - Filled : surface-container, sans ombre
+ * - Outlined : surface, sans ombre
  * Supports clickable cards with focus, hover, and pressed states.
  */
 const Card: React.FC<CardProps> = ({
@@ -51,14 +51,14 @@ const Card: React.FC<CardProps> = ({
 }) => {
   const isInteractive = Boolean(onClick) && !disabled;
   const variantStyles = {
-    elevated: 'bg-surface border border-[var(--color-border-default)] shadow-sm',
-    filled: 'bg-[var(--color-surface-muted)] border border-[var(--color-border-default)] shadow-none',
-    outlined: 'bg-surface border border-[var(--color-border-default)] shadow-none',
+    elevated: 'bg-surface border border-outline-variant shadow-sm',
+    filled: 'bg-surface-container border border-outline-variant shadow-none',
+    outlined: 'bg-surface border border-outline-variant shadow-none',
   };
   const interactiveVariantStyles = {
-    elevated: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
-    filled: 'hover:bg-surface hover:border-[var(--color-border-strong)]',
-    outlined: 'hover:bg-[var(--color-neutral-50)] hover:border-[var(--color-border-strong)]',
+    elevated: 'hover:bg-background hover:border-outline',
+    filled: 'hover:bg-surface hover:border-outline',
+    outlined: 'hover:bg-background hover:border-outline',
   };
 
   const resolvedAriaLabel = isInteractive
@@ -101,18 +101,18 @@ const Card: React.FC<CardProps> = ({
           <div className="flex justify-between items-center mb-4 min-h-8">
             <div className="flex items-center gap-3">
               {icon && (
-                <div className="text-[var(--color-neutral-500)]">
+                <div className="text-on-surface-variant">
                   {icon}
                 </div>
               )}
-              {title && <h3 className="text-title-medium text-[var(--color-text-primary)]">{title}</h3>}
+              {title && <h3 className="text-title-medium text-on-surface">{title}</h3>}
             </div>
 
             {actionIcon && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onActionClick?.(); }}
-                className="text-[var(--color-neutral-500)] cursor-pointer hover:text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
+                className="text-on-surface-variant cursor-pointer hover:text-on-surface hover:bg-surface-container h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
                 aria-label={actionLabel || "Action"}
                 disabled={!onActionClick}
               >

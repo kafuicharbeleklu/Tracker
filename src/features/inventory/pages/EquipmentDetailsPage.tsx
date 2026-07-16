@@ -260,7 +260,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             <Button
                                 variant="text"
                                 onClick={onBack}
-                                className="h-11 w-11 min-w-0 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
+                                className="h-11 w-11 min-w-0 rounded-full !text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
                                 icon={<MaterialIcon name="arrow_back" size={24} />}
                                 aria-label="Retour"
                             />

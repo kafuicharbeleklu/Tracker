@@ -60,6 +60,15 @@ module.exports = {
                     100: 'var(--ref-brand-100)',
                     200: 'var(--ref-brand-200)',
                 },
+                // Neutres de marque (boutons sombres) et fond d'app
+                anthracite: {
+                    DEFAULT: 'var(--color-anthracite)',
+                    strong: 'var(--color-anthracite-strong)',
+                },
+                background: 'var(--md-sys-color-background)',
+                // Rôle de texte CAT sans équivalent md-sys (Chantier B §4.3, 7,83:1) —
+                // text-primary ≡ on-surface, text-muted ≡ on-surface-variant, eux, en ont un
+                'text-secondary': 'var(--color-text-secondary)',
                 // Couleurs sémantiques (adossées aux tokens --color-*)
                 success: {
                     DEFAULT: 'var(--color-success)',

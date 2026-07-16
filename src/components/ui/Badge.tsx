@@ -1,7 +1,9 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+export type SemanticTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+
+type BadgeVariant = SemanticTone | 'default';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -10,17 +12,22 @@ interface BadgeProps {
 }
 
 /**
- * Status / category indicator badge.
- * Palette sémantique adossée aux tokens du DS (var(--color-*)) :
- * success → vert, warning → orange (≠ jaune marque), danger → rouge, info → bleu, neutral → neutre chaud.
+ * Carte unique des tons sémantiques des badges (paires light/strong validées Q-V1) :
+ * success → vert, warning → orange (≠ jaune marque), danger → rouge, info → bleu,
+ * neutral → neutre chaud. Également consommée par StatusBadge — une seule source (C7).
  */
-const variants: Record<BadgeVariant, string> = {
-  default: 'bg-surface-container text-on-surface',
+export const TONE_CLASSES: Record<SemanticTone, string> = {
   success: 'bg-success-light text-success-strong',
   warning: 'bg-warning-light text-warning-strong',
   danger: 'bg-danger-light text-danger-strong',
   info: 'bg-info-light text-info-strong',
   neutral: 'bg-surface-container text-on-surface',
+};
+
+/** Status / category indicator badge. */
+const variants: Record<BadgeVariant, string> = {
+  ...TONE_CLASSES,
+  default: TONE_CLASSES.neutral,
 };
 
 const Badge: React.FC<BadgeProps> = ({

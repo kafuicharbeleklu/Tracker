@@ -111,7 +111,7 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                             <p className="font-bold text-on-surface">{file?.name}</p>
                             <p className="text-body-small text-on-surface-variant">{stats.valid} valides, {stats.invalid} erreurs</p>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Annuler</Button>
+                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error">Annuler</Button>
                     </div>
 
                     <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden">
