@@ -139,7 +139,6 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const DEFAULT_SETTINGS: AppSettings = {
-    theme: 'system',
     currency: 'XOF',
     fiscalYearStart: '01',
     defaultDepreciationMethod: 'linear',

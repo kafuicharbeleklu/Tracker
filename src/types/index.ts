@@ -15,9 +15,6 @@ export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 
 // --- SYSTEM SETTINGS ---
 export interface AppSettings {
-  // Apparence
-  theme: 'light' | 'dark' | 'system';
-
   // Finances
   currency: string;
   fiscalYearStart: string;

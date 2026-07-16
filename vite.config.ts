@@ -23,7 +23,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('react-router')) return 'vendor-router';
               if (id.includes('@azure/msal')) return 'vendor-msal';
-              if (id.includes('@material/material-color-utilities')) return 'vendor-md3';
               if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
               if (id.includes('html2canvas')) return 'vendor-html2canvas';
               if (id.includes('jspdf')) return 'vendor-jspdf';
