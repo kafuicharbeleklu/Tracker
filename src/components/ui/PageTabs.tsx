@@ -172,8 +172,13 @@ export const PageTabs: React.FC<PageTabsProps> = ({
               {/* Badge */}
               {item.badge !== undefined && (
                 <Badge
-                  variant={isActive ? 'warning' : 'neutral'}
-                  className={cn("ml-1 px-1.5 py-0 h-4 min-w-[16px]", isActive ? "bg-on-primary text-primary" : "")}
+                  variant="neutral"
+                  className={cn(
+                    "ml-1 px-1.5 py-0 h-4 min-w-[16px]",
+                    // Onglet actif (rempli jaune) : pastille inverse noir/jaune — le ! est requis,
+                    // cn ne fait pas de tailwind-merge et l'override perdait la cascade.
+                    isActive ? "!bg-on-primary !text-primary" : ""
+                  )}
                 >
                   {item.badge}
                 </Badge>
