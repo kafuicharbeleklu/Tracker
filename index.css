@@ -879,6 +879,13 @@ body {
     --color-sidebar-active-text: #1A1A1A;
     --color-sidebar-logo-bg: #262320;
 
+    /* Échelle de référence marque (spec §2.1) — courte à dessein (Q-V5) :
+       50/100/200 pour fonds/bordures d'accent ; 500/600/700 ci-dessous
+       (= brand / brand-hover / brand-dark). Tout palier de plus doit être justifié. */
+    --ref-brand-50: #FFF9E6;
+    --ref-brand-100: #FFF1C2;
+    --ref-brand-200: #FEE491;
+
     --color-brand: var(--cat-yellow);
     --color-brand-hover: #E3B40C;
     --color-brand-dark: #B88E09;
@@ -891,16 +898,16 @@ body {
     --color-text-secondary: #57514A;
     --color-text-muted: #6E675F;
 
-    --color-success: #10b981;
+    --color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
     --color-success-light: #d1fae5;
     --color-success-strong: #166534;
     --color-warning: #E8710A;
     --color-warning-light: #FDEBD9;
     --color-warning-strong: #9A3412;
-    --color-danger: #ef4444;
+    --color-danger: #DC2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
     --color-danger-light: #fee2e2;
     --color-danger-strong: #991B1B;
-    --color-info: #3b82f6;
+    --color-info: #2563EB; /* AA texte et rempli : 5,17:1 (Q-V1) */
     --color-info-light: #dbeafe;
     --color-info-strong: #1E40AF;
 

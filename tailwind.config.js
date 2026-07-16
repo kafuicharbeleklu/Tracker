@@ -54,6 +54,12 @@ module.exports = {
                     DEFAULT: 'var(--md-sys-color-on-error)',
                     container: 'var(--md-sys-color-on-error-container)',
                 },
+                // Échelle de référence marque — courte à dessein (Q-V5)
+                brand: {
+                    50: 'var(--ref-brand-50)',
+                    100: 'var(--ref-brand-100)',
+                    200: 'var(--ref-brand-200)',
+                },
                 // Couleurs sémantiques (adossées aux tokens --color-*)
                 success: {
                     DEFAULT: 'var(--color-success)',

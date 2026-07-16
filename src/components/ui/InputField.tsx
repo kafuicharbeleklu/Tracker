@@ -115,7 +115,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
           htmlFor={inputId}
           className={cn(
             "block text-label-medium font-bold uppercase mb-2 transition-colors duration-short4",
-            error ? "text-error" : isFocused ? "text-[var(--color-text-primary)]" : "text-[var(--color-neutral-500)]",
+            error ? "text-error" : isFocused ? "text-[var(--color-text-primary)]" : "text-[var(--color-neutral-600)]",
             isDisabled && "text-on-surface/[0.38]"
           )}
         >
@@ -157,7 +157,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(({
             'w-full min-h-11 px-4 py-3 text-title-small font-medium text-[var(--color-text-primary)]',
             'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized',
             'focus:outline-none',
-            'placeholder:text-[var(--color-neutral-400)]',
+            'placeholder:text-[var(--color-neutral-500)]',
             'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
             isOutlined
               ? cn(
