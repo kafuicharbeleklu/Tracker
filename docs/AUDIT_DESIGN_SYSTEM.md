@@ -221,10 +221,30 @@ Même grille que Chantier C : on compare la **rigueur**, pas l'identité visuell
 **Lot E — convergence librairie** : C5–C8, C10, C11 (mécanique, guidée par grep).
 **Lot F — CI** : élargissements §6.
 
-## 9. Questions à trancher (bloquantes pour les lots)
+## 9. Questions à trancher — **tranchées le 2026-07-16**
 
 - **Q-V1** — Bases sémantiques : valides-tu **`#047857` / `#DC2626` / `#2563EB`** (mesures §4.4) ? (Alternative spec §2.4 : `#D32F2F` passe aussi ; `#1E8E3E` et `#1A73E8` sont éliminés/limites par la mesure.)
+  **✅ Verdict : approuvé, les 3 valeurs mesurées.** Les paires light/strong des badges ne bougent pas.
 - **Q-V2** — Focus anthracite opaque (§4.5) : OK, ou tu tiens à un focus jaune (il faudrait alors un jaune assombri dédié type `#B88E09`, à mesurer en ring) ?
+  **✅ Verdict : approuvé** — focus anthracite opaque unifié, remplace les deux idiomes invisibles (ring jaune 20 %, ring noir 10 %). Sur surface sombre (sidebar/rail), l'indicateur reste le jaune **opaque** (11,3:1 sur `#1C1917`).
 - **Q-V3** — Sidebar : on **tokenise le dégradé actuel** (rendu inchangé, froid) ou on **réaligne sur le noir chaud CAT** `#1C1917/#2E2725` (rendu légèrement plus chaud, cohérent marque) ?
+  **✅ Verdict : réalignement sur les neutres chauds.** L'identité froide est un vestige de la direction anthracite-primaire abandonnée (§2.2, spec Q-T2), pas un choix à préserver. Dégradé **tokenisé** (`--color-sidebar-gradient-*`) au lieu de l'allowlist CI ; le réalignement couvre aussi les gris froids Tailwind bruts (`text-neutral-400`) de la famille sidebar → neutres chauds (`--color-neutral-400`).
 - **Q-V4** — `success` vs `tertiary` (C10) : un seul nom ? Lequel ?
+  **✅ Verdict : les deux rôles restent distincts**, même s'ils se ressemblent dans certains cas — un statut doit rester non ambigu, pas juste un accent parmi d'autres. `success` = rôle de **statut** (badges, toasts, états validés) ; `tertiary` = rôle d'**accent** MD3, aujourd'hui adossé à la même valeur verte (`var(--color-success)`), libre de diverger plus tard. **Pas de renommage de masse** ; l'alias fait que la correction Q-V1 se propage aux deux.
 - **Q-V5** — L'échelle `--ref-brand-50..400` (fonds jaunes très légers) : à matérialiser maintenant ou à la demande ?
+  **✅ Verdict : échelle courte, à dessein** — 2-3 paliers utiles à l'accent/bordure/fond (`--ref-brand-50/100/200` de la spec §2.1), **pas** une échelle complète 50-900 : une échelle longue inviterait à utiliser le jaune plus largement que le rôle d'accent établi. Tout palier supplémentaire devra être justifié par un besoin concret avant implémentation.
+
+**Décisions complémentaires (même date)** : les 2 P0 (C1, C2) sont des violations de règles déjà actées → corriger sans re-arbitrage ; la famille C8 « glyphe jaune seul » reçoit le traitement du Top 10 de Chantier C (libellés/glyphes en `on-surface`(-variant), jaune conservé en bordure/ring/fond) ; `check:encoding` doit tourner **en CI**, pas seulement dans `lint:md3` local ; garde-fou CI : allowlist hex rétrécie + ban Tailwind brut élargi comme proposé en §6.
+
+## 10. Registre d'exécution (au fil de l'eau)
+
+| # | Lot | Contenu | État |
+|---|---|---|---|
+| E1 | Lot A — palette v2 | Bases sémantiques `#047857/#DC2626/#2563EB` ; label InputField → neutral-600, placeholders → neutral-500/on-surface-variant plein ; échelle brand courte 50/100/200 (Q-V1/Q-V5) | — |
+| E2 | Lot B — focus | Token `--color-focus-ring` (anthracite opaque) + migration de tous les idiomes alpha (`ring-primary/10..40`, `ring-black/10`) et des rings jaunes opaques sur clair ; jaune opaque conservé sur surfaces sombres (Q-V2/C3) | — |
+| E3 | Lot C — P0 | C1 ConfirmationDialog (warning → `warning-light/strong`, info → `info-light/strong`) ; C2 SelectFilter (libellé `on-surface`, jaune en bordure/ring) | — |
+| E4 | Famille C8 | Chevron EntityRow, icônes hover MetricCard/SearchFilterBar, IconButton standard selected + filled base, FAB `surface`, FileDropzone (hover jaune — même famille, découverte au balayage) | — |
+| E5 | Q-V3 — sidebar | Dégradé tokenisé `#2E2725→#1C1917` (chaud), gris froids → neutres chauds, retrait allowlist | — |
+| E6 | Hygiène tokens | `bg-white`/`text-black` opaques → `bg-surface`/`on-surface` dans `src/components/**` (préalable au ban CI) | — |
+| E7 | Lot F — CI | Allowlist hex réduite à LoginPage ; ban palette nommée + `bg-white`/`text-black` opaques sur `src/components/**` ; `check:encoding` dans le workflow | — |
+| E8 | Vérification | build + lint + md3:check ; sonde contraste en rendu réel (§4.1) : nouvelles bases, focus, sidebar, re-confirmation 11,2:1 / 13,6:1 | — |
