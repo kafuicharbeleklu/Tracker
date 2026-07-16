@@ -164,7 +164,7 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
         className={cn(
           "inline-flex items-center gap-2 px-3 min-h-10 rounded-lg border text-label-large transition-all duration-short4 outline-none max-w-full bg-surface",
           isOpen
-            ? "border-primary text-primary ring-2 ring-primary/20"
+            ? "border-primary text-on-surface ring-2 ring-primary"
             : "border-outline-variant text-on-surface hover:bg-surface-container",
           "focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1"
         )}

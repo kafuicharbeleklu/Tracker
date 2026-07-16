@@ -53,7 +53,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
       <div className="relative group flex items-center min-h-12">
         {/* Leading icon */}
         <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none">
-          <MaterialIcon name="search" size={20} className="text-on-surface-variant group-focus-within:text-primary transition-colors duration-short4" />
+          <MaterialIcon name="search" size={20} className="text-on-surface-variant group-focus-within:text-on-surface transition-colors duration-short4" />
         </div>
 
         <input

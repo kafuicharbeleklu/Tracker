@@ -61,7 +61,7 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
             primary: "bg-primary-container text-on-primary-container",
             secondary: "bg-secondary-container text-on-secondary-container",
             tertiary: "bg-tertiary-container text-on-tertiary-container",
-            surface: "bg-surface-container-high text-primary",
+            surface: "bg-surface-container-high text-on-surface",
         };
 
         const sizes = {

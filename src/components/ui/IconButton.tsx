@@ -21,11 +21,11 @@ const VARIANT_STYLES = {
     standard: {
         base: 'text-on-surface-variant',
         hover: 'hover:bg-on-surface-variant/[0.08]',
-        selected: 'text-primary',
-        selectedHover: 'hover:bg-primary/[0.08]',
+        selected: 'bg-primary text-on-primary',
+        selectedHover: 'hover:shadow-elevation-1',
     },
     filled: {
-        base: 'bg-surface-container-highest text-primary',
+        base: 'bg-surface-container-highest text-on-surface-variant',
         hover: 'hover:shadow-elevation-1',
         selected: 'bg-primary text-on-primary',
         selectedHover: 'hover:shadow-elevation-1',

@@ -57,7 +57,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div className="flex items-start justify-between gap-2">
           <p className="section-label min-w-0 line-clamp-2 leading-snug">{title}</p>
           {icon && (
-            <div className="shrink-0 text-on-surface-variant group-hover:text-primary transition-colors duration-short4">
+            <div className="shrink-0 text-on-surface-variant group-hover:text-on-surface transition-colors duration-short4">
               {icon}
             </div>
           )}
@@ -83,7 +83,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       <div className="flex items-center justify-between mb-4">
         <p className="section-label">{title}</p>
         {icon && (
-          <div className="text-on-surface-variant group-hover:text-primary transition-colors duration-short4">
+          <div className="text-on-surface-variant group-hover:text-on-surface transition-colors duration-short4">
             {icon}
           </div>
         )}

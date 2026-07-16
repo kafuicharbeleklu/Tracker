@@ -184,7 +184,7 @@ export const EntityRow: React.FC<EntityRowProps> = React.memo(({
         <div className="hidden medium:flex items-center">{status}</div>
         {actions}
         {onClick && !actions && (
-          <MaterialIcon name="chevron_right" size={18} className="text-outline group-hover:text-primary transition-colors duration-short4" />
+          <MaterialIcon name="chevron_right" size={18} className="text-outline group-hover:text-on-surface transition-colors duration-short4" />
         )}
       </div>
     </div>

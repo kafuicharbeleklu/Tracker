@@ -124,11 +124,11 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         <>
           <div className={cn(
             "w-14 h-14 rounded-lg flex items-center justify-center mb-4 transition-all duration-medium2 ease-emphasized border border-outline-variant",
-            isDragging ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant group-hover:text-primary group-hover:bg-surface-container-low shadow-elevation-1"
+            isDragging ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant group-hover:text-on-surface group-hover:bg-surface-container-low shadow-elevation-1"
           )}>
             <MaterialIcon name="cloud_upload" size={32} />
           </div>
-          <p className="text-title-small text-on-surface mb-1 transition-colors group-hover:text-primary">
+          <p className="text-title-small text-on-surface mb-1">
             {label}
           </p>
           <p className="text-body-small text-on-surface-variant">

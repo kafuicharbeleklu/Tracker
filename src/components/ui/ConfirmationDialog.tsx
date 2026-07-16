@@ -22,8 +22,8 @@ interface ConfirmationDialogProps {
 const VARIANT_CONFIG = {
   warning: {
     icon: 'warning',
-    iconBg: 'bg-primary-container',
-    iconColor: 'text-on-primary-container',
+    iconBg: 'bg-warning-light',
+    iconColor: 'text-warning-strong',
     confirmVariant: 'filled' as const,
   },
   danger: {
@@ -34,8 +34,8 @@ const VARIANT_CONFIG = {
   },
   info: {
     icon: 'info',
-    iconBg: 'bg-secondary-container',
-    iconColor: 'text-on-secondary-container',
+    iconBg: 'bg-info-light',
+    iconColor: 'text-info-strong',
     confirmVariant: 'filled' as const,
   },
 };
