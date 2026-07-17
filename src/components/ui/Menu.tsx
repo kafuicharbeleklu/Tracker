@@ -249,13 +249,13 @@ const Menu: React.FC<MenuProps> = ({
                 className={cn(
                   'group w-full h-12 px-3 flex items-center gap-3 text-left text-body-medium outline-none transition-[color,background-color,opacity] duration-short3 ease-emphasized state-layer',
                   'focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset',
-                  item.disabled
-                    ? 'opacity-[0.38] cursor-not-allowed text-on-surface-variant'
-                    : 'cursor-pointer',
+                  item.destructive && !item.disabled ? 'text-error' : 'text-on-surface',
                   highlightedIndex === index && !item.disabled
                     ? 'bg-on-surface/[0.12]'
                     : 'hover:bg-on-surface/[0.08]',
-                  item.destructive && !item.disabled ? 'text-error' : 'text-on-surface'
+                  item.disabled
+                    ? 'opacity-[0.38] cursor-not-allowed text-on-surface-variant'
+                    : 'cursor-pointer'
                 )}
               >
                 {item.icon && <MaterialIcon name={item.icon} size={20} />}

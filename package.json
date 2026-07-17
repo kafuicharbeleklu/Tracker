@@ -13,7 +13,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "md3:check": "node scripts/check-md3-compliance.mjs",
     "check:encoding": "node scripts/check-encoding.mjs",
-    "lint:md3": "npm run lint && npm run md3:check && npm run check:encoding",
+    "check:cn-merge": "node scripts/check-cn-merge.mjs",
+    "lint:md3": "npm run lint && npm run md3:check && npm run check:encoding && npm run check:cn-merge",
     "qa:a11y:auto": "node scripts/run-md3-a11y-automation.mjs",
     "qa:devices:auto": "node scripts/run-md3-multidevice-audit.mjs",
     "qa:visual:auto": "node scripts/run-md3-visual-regression.mjs",
@@ -27,6 +28,7 @@
     "pdfjs-dist": "^5.4.624",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "tailwind-merge": "^3.6.0",
     "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5"
   },
