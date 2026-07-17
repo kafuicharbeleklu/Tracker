@@ -273,5 +273,102 @@ CSS émis vérifié : `.ring-focus-ring`/`border-focus-ring` + variantes focus g
 ### 10.2 Reliquats consignés à la clôture du Lot E (2026-07-16)
 
 - **`layout/` parle encore le vocabulaire arbitraire** : 19 occurrences `[var(--color-*)]` dans 8 fichiers (NavigationBar ×5, Sidebar ×3, NavigationRail ×3, TopAppBar ×2, PageHeader ×2, AppLayout ×2, SidebarItem, BottomAppBar) — hors périmètre C5-C7/C10-C11, laissées sciemment (consigne : ne pas élargir sans arbitrage). Migration mécanique possible avec la même grille d'équivalences que C6, **mais** relire E11 d'abord : changer le vocabulaire déplace l'ordre d'émission CSS et peut faire basculer des surcharges non-`!`.
-- **Roulette de cascade structurelle** : `cn()` est un simple join (pas de tailwind-merge) — deux utilitaires de même propriété sur un même élément se départagent à l'ordre d'émission de la feuille, pas à l'ordre d'écriture. Les 26 surcharges couleur des call-sites de Button sont désormais toutes en `!` (E11) et la pastille PageTabs aussi (E10), mais tout futur call-site non-`!` rejouera à la roulette. Piste durable : vrai `tailwind-merge` dans `cn()` (décision d'architecture non prise — dépendance nouvelle, comportement de tous les composants affecté, npm install fragile sur hgfs).
+- **Roulette de cascade structurelle** : `cn()` est un simple join (pas de tailwind-merge) — deux utilitaires de même propriété sur un même élément se départagent à l'ordre d'émission de la feuille, pas à l'ordre d'écriture. Les 26 surcharges couleur des call-sites de Button sont désormais toutes en `!` (E11) et la pastille PageTabs aussi (E10), mais tout futur call-site non-`!` rejouera à la roulette. Piste durable : vrai `tailwind-merge` dans `cn()` (décision d'architecture non prise — dépendance nouvelle, comportement de tous les composants affecté, npm install fragile sur hgfs). **→ Étude complète §11 (2026-07-17), en attente de feu vert.**
 - **Dérive de fonte Google** : Material Symbols est chargée depuis fonts.googleapis.com au runtime ; le glyphe `task_alt` a changé de dessin entre deux runs du même jour (prouvé par run témoin sur code identique) et l'anti-aliasing du texte flappe avec. Baselines re-figées le 16-07 ; si le bruit revient, envisager l'auto-hébergement des fontes (pin de version).
+
+## 11. Étude d'architecture — `tailwind-merge` dans `cn()` (2026-07-17, **aucune implémentation**)
+
+Étude demandée suite au reliquat §10.2 « roulette de cascade » (deux morsures documentées : pastille PageTabs E10, 19/26 boutons E11). Toutes les affirmations ci-dessous sont **mesurées** : analyse statique des 196 appels croisée avec l'ordre d'émission du CSS compilé (`dist/` du 16-07, post-Lot E, seuls des commits docs depuis), et sonde empirique de `tailwind-merge@3.6.0` exécutée sur les combinaisons réelles du codebase.
+
+### 11.1 Mécanisme actuel
+
+`src/lib/utils.ts:5` : `cn = classes.filter(Boolean).join(' ')`. Le docstring prétend « lightweight replacement for clsx + tailwind-merge » — c'est faux, il n'y a **aucune** fusion. Aucune dépendance existante ne peut faire le travail : ni `clsx`, ni `classnames`, ni `tailwind-merge` nulle part (package.json, lock, node_modules vérifiés). La signature n'accepte que `string | undefined | null | false` — aucun call-site n'utilise la syntaxe objet de clsx, donc **clsx est inutile** : adopter tailwind-merge = envelopper la sortie du join dans `twMerge()`, signature inchangée.
+
+**Rappel des trois étages de cascade de l'app** (indispensable pour cadrer ce que merge peut et ne peut pas faire) :
+1. `!important` (les surcharges E10/E11) — gagne sur tout ;
+2. **CSS non-layerisé d'`index.css`** (typescale `.text-title-medium`…, `.section-title`, `.state-layer`, `.duration-300`…) : Tailwind v4 émet ses utilities dans `@layer`, or le CSS hors layer prime sur tout CSS layerisé — ces classes maison battent donc *toute* utility non-`!`, quel que soit l'ordre ;
+3. entre utilities : ordre d'émission de la feuille (= la roulette).
+
+`tailwind-merge` n'agit **que sur l'étage 3**, et uniquement sur les chaînes qu'il sait classifier. Il ne remplace pas les `!` qui combattent l'étage 2.
+
+### 11.2 Ampleur
+
+- **196 appels `cn()` dans 65 fichiers** de `src/`.
+- **49 sites font transiter un prop `className` par `cn`** (48 en dernière position — la position de merge par excellence) : Button, CloseButton, ListActionFab, MaterialIcon, SelectField, PageTabs, Toggle, SearchFilterBar, SelectFilter, MovementTimeline, Pagination, UserAvatar (ui/) + PageContainer et consorts (layout/).
+- Button est la plus grosse surface : `cn(base, VARIANT_STYLES, SIZE_STYLES, className)` (`src/components/ui/Button.tsx:113`) — chaque call-site qui passe une couleur joue à la roulette (d'où E11).
+- ≈ 49 call-sites en `features/` passent aujourd'hui des classes `!` via `className` (sur-ensemble des 26 Button consignés en E11).
+
+### 11.3 Qui dépend de l'ordre actuel ? (analyse statique × CSS compilé)
+
+Filtrage des 196 appels : paires de classes de **même groupe de propriété fin** (couleur-de-fond vs couleur-de-fond, etc.), **mêmes variantes**, pouvant **coexister sur le même élément** (gardes non exclusives) → **30 paires vraies**, triées par le gagnant réel dans la feuille compilée :
+
+| Catégorie | Paires | Verdict sous merge |
+|---|---|---|
+| Déjà déterministes (`!`, Sidebar:245) | 5 | inchangé |
+| Faux positifs (gardes mutuellement exclusives : SegmentedButton, Menu `text-error`, branches de ternaires) | 6 | inchangé |
+| « Dernier écrit gagne déjà » (états disabled/error d'InputField/SelectField/TextArea, bordure EntityRow…) | 12 | inchangé — merge entérine ce qui marche par chance |
+| **No-ops latents que merge réparerait** (le dernier écrit *devrait* gagner mais perd à l'émission) | **6** | **rendu change, vers l'intention écrite** |
+| **Dépendance au bug dans le mauvais sens** (le premier écrit gagne et c'est l'intention) | **1** | **régression à corriger à l'adoption** |
+
+**Les 6 no-ops latents actuellement en production** (même famille que la pastille PageTabs pré-X7) :
+- `src/components/ui/EntityRow.tsx:70` — **la teinte de sélection des cartes ne s'applique pas** : `bg-surface` (base) est émis après `bg-primary-container/45` → une carte sélectionnée n'a que sa bordure primaire, pas de fond teinté. La variante *liste* teinte correctement (sa base n'a pas de `bg`).
+- `src/components/ui/InputField.tsx:117` — le label d'un champ **désactivé** ne s'estompe pas : `text-text-secondary` bat `text-on-surface/[0.38]`. (Le même pattern en état *error* fonctionne, par chance d'émission — d'où l'asymétrie jamais remarquée.)
+- `src/components/ui/SelectField.tsx:224` et `:232` (2 variantes) — la bordure **focus** reste `border-outline-variant` : `border-focus-ring` perd à l'émission, seul le `ring-2` marque le focus.
+- `src/components/ui/Chip.tsx:52` — le hover d'un chip *filter* **sélectionné** rend `hover:bg-surface-container` (gris) au lieu de `hover:bg-primary/90`.
+- `src/components/layout/Sidebar.tsx:245` — le chevron flottant (sidebar repliée) n'a pas son `shadow-md` : `shadow-none` (base) gagne. *(Réparé seulement avec la config étendue §11.4 — `shadow-elevation-*` doit être déclaré dans le groupe `shadow`.)*
+
+**La régression (1 cas)** : `src/components/ui/Menu.tsx:249` — libellé d'item **désactivé** : `text-on-surface-variant` (arg 3, l'intention) gagne aujourd'hui parce qu'émis après `text-on-surface` (arg 5, branche else du ternaire destructive). Merge garde le **dernier écrit** → le gris serait perdu (l'`opacity-[0.38]` atténue encore, mais la couleur devient fausse). Correction d'une ligne (réordonner les args) à inclure dans le lot d'adoption.
+
+Conclusion Q3 : oui, une chose dépend du comportement actuel (Menu, 1 ligne), et 6 rendus visibles changeraient — tous vers l'intention écrite dans le code, mais **diffs qa:visual attendus** → re-baseline obligatoire (synergie avec le re-baseline complet déjà dû côté Chantier D).
+
+### 11.4 LE risque n° 1 — classification du vocabulaire maison (préalable non négociable)
+
+Le typescale MD3 (15 classes `.text-display-large` … `.text-label-small`) est du **CSS maison hors layer** (`index.css`), pas des utilities — mais tailwind-merge ne voit que des chaînes, et par défaut classe tout `text-<inconnu>` comme **couleur**. Sonde mesurée sur `tailwind-merge@3.6.0` :
+
+```
+twMerge('min-h-8 px-3 py-1.5 text-label-medium gap-1.5 text-on-primary')
+→ 'min-h-8 px-3 py-1.5 gap-1.5 text-on-primary'        // typescale AVALÉ
+```
+
+Dans Button, l'ordre réel est `VARIANT` (couleur) **puis** `SIZE` (typescale) : c'est donc la **couleur** qui serait supprimée — `twMerge('… text-on-primary …', '… text-label-large …')` garde le dernier → **tous les boutons filled perdraient `text-on-primary`**. Adoption naïve = casse silencieuse généralisée (812 usages typescale dans `src/`), avec ou sans `!` aux call-sites.
+
+**Config corrective, validée par la même sonde (tous les cas passent)** :
+
+```ts
+extendTailwindMerge({
+    extend: {
+        classGroups: {
+            'font-size': [{ text: [/* les 15 noms du typescale */] }],
+            shadow: [{ shadow: ['elevation-0', …, 'elevation-5'] }],
+        },
+    },
+});
+```
+
+Vérifié sous config étendue : typescale + couleurs coexistent ; `shadow-none` vs `shadow-elevation-1` fusionne correctement (répare Sidebar:245) ; `text-[var(--color-*)]` (les 19 arbitraires de `layout/`, §10.2) est classé couleur et coexiste avec le typescale ; `text-[9px]` est bien classé taille. **Contrepartie** : cette config devient une surface de maintenance couplée à `index.css`/`tailwind.config.js` — toute future classe maison à préfixe utilitaire (`text-*`, `shadow-*`…) devra y être déclarée. Candidat garde-fou : étendre `md3:check` pour vérifier la synchro (même esprit que le ban hex).
+
+### 11.5 Les `!` d'E10/E11 — recommandation (décision utilisateur)
+
+Mesuré : merge **préserve** les classes non-importantes face à une `!` (pas d'interaction) → **garder tous les `!` à l'adoption garantit zéro diff de rendu imputable à leur retrait**. Ensuite, deux familles distinctes :
+
+- **(a) `!` utility-vs-utility** (les 26 Button E11, pastille PageTabs E10) : redondants *en principe* une fois merge + config en place — le call-site écrit en dernier gagnerait structurellement. Leur dépose rendrait la garantie **structurelle** (ordre d'écriture) au lieu de **ponctuelle** (important), ce qui est plus sain à long terme — mais chaque retrait est un risque visuel à re-vérifier site par site.
+- **(b) `!` qui combattent du CSS hors-utilities** (classes non-layerisées d'`index.css`, styles internes déjà `!` comme Sidebar:245) : merge **ne les remplace pas** (étage 2, §11.1) — à garder définitivement.
+
+**Recommandation** : garder tous les `!` dans le lot d'adoption ; dépose de la famille (a) en lot différé, facultatif, avec vérification visuelle dédiée — jamais en même temps que l'adoption. Trancher famille par famille, pas en bloc.
+
+### 11.6 Poids réel
+
+- `tailwind-merge@3.6.0` : **zéro dépendance transitive, pur JS** (pas de binaire natif — l'install sur hgfs reste à faire avec le protocole habituel, risque faible).
+- Mesuré avec l'esbuild du projet (bundle + minify, `twMerge` + `extendTailwindMerge`) : **27,98 kB min / 8,63 kB gzip**. Atterrit dans le chunk `vendor` (174,6 kB min aujourd'hui, soit ~+16 % de ce chunk ; comparaison : vendor-react 194,5 kB). Chunk critique, mais coût modeste à l'échelle de l'app.
+- CPU : cache LRU intégré (500 entrées) ; 196 call-sites — négligeable.
+
+### 11.7 Recommandation globale et plan (rien n'est exécuté)
+
+**Adopter, mais uniquement avec la config étendue §11.4** — sans elle le risque est critique (prouvé), avec elle il est faible et borné aux 7 sites de §11.3. Alternatives écartées : statu quo + discipline `!` (chaque futur call-site rejoue la roulette — c'est le mode d'échec déjà documenté deux fois) ; mini-merge maison (c'est littéralement l'origine du problème, cf. docstring de `utils.ts`).
+
+Plan proposé en 3 lots, chacun avec son gate :
+1. **L1 — adoption** : dépendance + `cn()` = `twMerge(join)` avec config étendue + fix d'ordre Menu.tsx:249 + reproduction de la sonde §11.4 en script de fumée ; build + lint + md3:check.
+2. **L2 — vérification** : contrôle en rendu réel des 6 no-ops réparés (§11.3) + re-baseline qa:visual complet (à mutualiser avec le re-baseline dû côté Chantier D ; discipline run témoin pour la dérive de fonte).
+3. **L3 — différé, facultatif** : dépose progressive des `!` famille (a) (§11.5), site par site, vérif visuelle à chaque lot.
+
+**En attente de feu vert — aucune implémentation.**
