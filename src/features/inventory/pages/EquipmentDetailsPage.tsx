@@ -1,5 +1,5 @@
 import { MEDIA } from '../../../constants/breakpoints';
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useData } from '../../../context/DataContext';
 import Badge from '../../../components/ui/Badge';
@@ -11,6 +11,7 @@ import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { DetailHeader } from '../../../components/layout/DetailHeader';
+import DetailPageShell from '../../../components/layout/DetailPageShell';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
@@ -49,9 +50,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         );
     }, [item]);
 
-    const [isScrolled, setIsScrolled] = useState(false);
     const [heroImageFailed, setHeroImageFailed] = useState(false);
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setHeroImageFailed(false);
@@ -236,26 +235,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         });
     };
 
-    const handleScroll = () => {
-        if (scrollContainerRef.current) {
-            const scrollTop = scrollContainerRef.current.scrollTop;
-            const COLLAPSE_ENTER = 72;
-            const COLLAPSE_EXIT = 24;
-
-            if (!isScrolled && scrollTop > COLLAPSE_ENTER) {
-                setIsScrolled(true);
-            } else if (isScrolled && scrollTop < COLLAPSE_EXIT) {
-                setIsScrolled(false);
-            }
-        }
-    };
-
-    return (
-        <div className="flex flex-col h-full bg-surface-container-low overflow-hidden">
-            {/* Header / Hero */}
-            {isCompactLayout ? (
-                <div className="sticky top-0 z-20 bg-surface border-b border-outline-variant shadow-elevation-1">
-                    <div className="px-page-sm py-2.5 medium:px-page flex items-center justify-between gap-2">
+    const compactBar = (
+        <div className="flex h-full items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                             <Button
                                 variant="text"
@@ -290,14 +271,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 title="Signaler"
                             />
                         </div>
-                    </div>
+        </div>
+    );
 
-                    <div
-                        className={cn(
-                            'px-page-sm medium:px-page overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-72 opacity-100 pb-3'
-                        )}
-                    >
+    const compactHero = (
+        <div className="px-page-sm medium:px-page pb-3">
                         <div className="space-y-2 pt-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant={getStatusVariant(item.status)}>
@@ -392,19 +370,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="sticky top-0 z-20 bg-surface border-b border-outline-variant shadow-elevation-1">
-                    <div
-                        className={cn(
-                            'overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-0 opacity-0' : 'max-h-[520px] opacity-100'
-                        )}
-                    >
+        </div>
+    );
+
+    const desktopHero = (
                         <DetailHeader
-                            onBack={onBack}
-                            className="border-b-0"
                             pretitle={(
                                 <div className="flex flex-wrap items-center gap-3">
                                     <Badge variant={getStatusVariant(item.status)}>
@@ -514,63 +484,65 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             )}
                             contentClassName="large:items-center"
                         />
-                    </div>
+    );
 
-                    <div
-                        className={cn(
-                            'overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'
-                        )}
-                    >
-                        <div className="px-page py-3 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <Button
-                                    variant="text"
-                                    onClick={onBack}
-                                    className="h-10 w-10 min-w-0 p-0 rounded-full"
-                                    icon={<MaterialIcon name="arrow_back" size={20} />}
-                                    aria-label="Retour"
-                                />
-                                <div className="min-w-0">
-                                    <p className="text-body-medium font-semibold text-on-surface truncate">{item.name}</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-label-small text-on-surface-variant font-mono truncate">{item.assetId}</span>
-                                        <Badge variant={getStatusVariant(item.status)}>
-                                            {formatStatus(item.status)}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                {permissions.canManageInventory && (
-                                    <Button
-                                        variant="text"
-                                        icon={<MaterialIcon name="edit" size={20} />}
-                                        onClick={() => navigate(`/inventory/edit/${item.id}`)}
-                                        className="h-10 w-10 min-w-0 p-0 rounded-full"
-                                        aria-label="Modifier"
-                                    />
-                                )}
-                                <Button
-                                    variant="text"
-                                    icon={<MaterialIcon name="warning" size={20} />}
-                                    onClick={handleReport}
-                                    className="h-10 w-10 min-w-0 p-0 rounded-full"
-                                    aria-label="Signaler"
-                                />
-                            </div>
-                        </div>
+    const desktopBar = (scrolled: boolean) => (
+        <div className="flex h-full items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Button
+                    variant="text"
+                    onClick={onBack}
+                    className="h-10 w-10 min-w-0 p-0 rounded-full"
+                    icon={<MaterialIcon name="arrow_back" size={20} />}
+                    aria-label="Retour"
+                />
+                <div
+                    className={cn(
+                        'min-w-0 transition-opacity duration-medium2 ease-emphasized',
+                        scrolled ? 'opacity-100 visible' : 'opacity-0 invisible'
+                    )}
+                >
+                    <p className="text-body-medium font-semibold text-on-surface truncate">{item.name}</p>
+                    <div className="flex items-center gap-2">
+                        <span className="text-label-small text-on-surface-variant font-mono truncate">{item.assetId}</span>
+                        <Badge variant={getStatusVariant(item.status)}>
+                            {formatStatus(item.status)}
+                        </Badge>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {/* Grid Content */}
             <div
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-                className="p-page-sm medium:p-page overflow-y-auto flex-1 scroll-smooth"
+                className={cn(
+                    'flex items-center gap-1.5 shrink-0 transition-opacity duration-medium2 ease-emphasized',
+                    scrolled ? 'opacity-100 visible' : 'opacity-0 invisible'
+                )}
             >
+                {permissions.canManageInventory && (
+                    <Button
+                        variant="text"
+                        icon={<MaterialIcon name="edit" size={20} />}
+                        onClick={() => navigate(`/inventory/edit/${item.id}`)}
+                        className="h-10 w-10 min-w-0 p-0 rounded-full"
+                        aria-label="Modifier"
+                    />
+                )}
+                <Button
+                    variant="text"
+                    icon={<MaterialIcon name="warning" size={20} />}
+                    onClick={handleReport}
+                    className="h-10 w-10 min-w-0 p-0 rounded-full"
+                    aria-label="Signaler"
+                />
+            </div>
+        </div>
+    );
+
+    return (
+        <DetailPageShell
+            bar={isCompactLayout ? () => compactBar : desktopBar}
+            hero={isCompactLayout ? compactHero : desktopHero}
+        >
                 <div className="max-w-7xl mx-auto">
 
                     {/* Repair Workflow Banner */}
@@ -876,8 +848,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
                     </div>
                 </div>
-            </div>
-        </div>
+        </DetailPageShell>
     );
 };
 

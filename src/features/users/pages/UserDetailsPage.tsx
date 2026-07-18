@@ -1,5 +1,5 @@
 import { MEDIA } from '../../../constants/breakpoints';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { ViewType, AppUser } from '../../../types';
 import { useData } from '../../../context/DataContext';
@@ -13,6 +13,7 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { PageTabs, getTabElementId, getTabPanelId } from '../../../components/ui/PageTabs';
 import Menu, { MenuItem } from '../../../components/ui/Menu';
 import { DetailHeader } from '../../../components/layout/DetailHeader';
+import DetailPageShell from '../../../components/layout/DetailPageShell';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import MovementTimeline, { MovementTimelineItem } from '../../../components/ui/MovementTimeline';
@@ -51,8 +52,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
     const [authUser, setAuthUser] = useState<AppUser | null>(null);
     const [latestTempPassword, setLatestTempPassword] = useState<string | null>(null);
     const [latestTempPin, setLatestTempPin] = useState<string | null>(null);
-    const [isScrolled, setIsScrolled] = useState(false);
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isCompactLayout = useMediaQuery(MEDIA.belowExpanded);
     const isPhone = useMediaQuery(MEDIA.compact);
     const canManageAccountSecurity = permissions.canManageUsers
@@ -436,20 +435,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
 
     const getDeviceIcon = (type: string) => getCategoryIcon(type);
 
-    const handleScroll = () => {
-        if (scrollContainerRef.current) {
-            const scrollTop = scrollContainerRef.current.scrollTop;
-            const COLLAPSE_ENTER = 72;
-            const COLLAPSE_EXIT = 24;
-
-            if (!isScrolled && scrollTop > COLLAPSE_ENTER) {
-                setIsScrolled(true);
-            } else if (isScrolled && scrollTop < COLLAPSE_EXIT) {
-                setIsScrolled(false);
-            }
-        }
-    };
-
     const menuItems: MenuItem[] = [
         ...(canDelete ? [{
             id: 'delete-profile',
@@ -535,12 +520,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
         { id: 'equipment', label: 'Équipements' },
     ];
 
-    return (
-        <div className="flex flex-col h-full bg-surface-container-low overflow-hidden">
-            {/* Header / Cover */}
-            {isCompactLayout ? (
-                <div className="sticky top-0 z-20 bg-surface border-b border-outline-variant shadow-elevation-1">
-                    <div className="px-page-sm py-2.5 medium:px-page flex items-center gap-2">
+    const compactBar = (
+        <div className="flex h-full items-center gap-2">
                         <Button
                             variant="text"
                             onClick={onBack}
@@ -566,14 +547,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                         </div>
 
                         {compactAction}
-                    </div>
+        </div>
+    );
 
-                    <div
-                        className={cn(
-                            'px-page-sm medium:px-page overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-0 opacity-0 pb-0' : 'max-h-64 opacity-100 pb-2'
-                        )}
-                    >
+    const compactHero = (
+        <div className="px-page-sm medium:px-page pb-2">
                         <div className="space-y-2 pt-1">
                             <div className="flex flex-wrap items-center gap-2 text-body-small text-on-surface-variant">
                                 <div className="inline-flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-sm border border-outline-variant min-w-0 max-w-full">
@@ -590,28 +568,21 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                 <p className="text-label-small text-on-surface-variant">Dernier login : {formatDateTime(user.lastLogin)}</p>
                             )}
                         </div>
-                    </div>
+        </div>
+    );
 
-                    <PageTabs
-                        activeId={activeTab}
-                        onChange={(tabId) => setActiveTab(tabId as UserDetailsTab)}
-                        className="border-b border-outline-variant"
-                        idBase={USER_DETAILS_TABS_ID_BASE}
-                        ariaLabel="Navigation détails utilisateur"
-                        items={userDetailsTabs}
-                    />
-                </div>
-            ) : (
-                <div className="sticky top-0 z-20 bg-surface border-b border-outline-variant shadow-elevation-1">
-                    <div
-                        className={cn(
-                            'overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-0 opacity-0' : 'max-h-[560px] opacity-100'
-                        )}
-                    >
+    const detailsTabs = (
+        <PageTabs
+            activeId={activeTab}
+            onChange={(tabId) => setActiveTab(tabId as UserDetailsTab)}
+            idBase={USER_DETAILS_TABS_ID_BASE}
+            ariaLabel="Navigation détails utilisateur"
+            items={userDetailsTabs}
+        />
+    );
+
+    const desktopHero = (
                         <DetailHeader
-                            onBack={onBack}
-                            className="border-b-0"
                             leadingVisual={(
                                 <div className="relative">
                                     <img
@@ -651,58 +622,54 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                             actions={desktopAction}
                             contentClassName="large:items-start"
                         />
-                    </div>
+    );
 
-                    <div
-                        className={cn(
-                            'overflow-hidden transition-all duration-medium4 ease-emphasized',
-                            isScrolled ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'
-                        )}
-                    >
-                        <div className="px-page py-3 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <Button
-                                    variant="text"
-                                    onClick={onBack}
-                                    className="h-10 w-10 min-w-0 p-0 rounded-full"
-                                    icon={<MaterialIcon name="arrow_back" size={20} />}
-                                    aria-label="Retour"
-                                />
-                                <img
-                                    src={user.avatar}
-                                    alt={user.name}
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="w-10 h-10 rounded-full border border-outline-variant bg-surface-container object-cover"
-                                />
-                                <div className="min-w-0">
-                                    <p className="text-body-medium font-semibold text-on-surface truncate">{user.name}</p>
-                                    <p className="text-label-small text-on-surface-variant truncate">{user.role} • {user.department}</p>
-                                </div>
-                            </div>
-                            <div className="shrink-0">
-                                {desktopAction}
-                            </div>
-                        </div>
-                    </div>
-
-                    <PageTabs
-                        activeId={activeTab}
-                        onChange={(tabId) => setActiveTab(tabId as UserDetailsTab)}
-                        className="border-t border-outline-variant"
-                        idBase={USER_DETAILS_TABS_ID_BASE}
-                        ariaLabel="Navigation détails utilisateur"
-                        items={userDetailsTabs}
+    const desktopBar = (scrolled: boolean) => (
+        <div className="flex h-full items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Button
+                    variant="text"
+                    onClick={onBack}
+                    className="h-10 w-10 min-w-0 p-0 rounded-full"
+                    icon={<MaterialIcon name="arrow_back" size={20} />}
+                    aria-label="Retour"
+                />
+                <div
+                    className={cn(
+                        'flex items-center gap-2 min-w-0 transition-opacity duration-medium2 ease-emphasized',
+                        scrolled ? 'opacity-100 visible' : 'opacity-0 invisible'
+                    )}
+                >
+                    <img
+                        src={user.avatar}
+                        alt={user.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded-full border border-outline-variant bg-surface-container object-cover"
                     />
+                    <div className="min-w-0">
+                        <p className="text-body-medium font-semibold text-on-surface truncate">{user.name}</p>
+                        <p className="text-label-small text-on-surface-variant truncate">{user.role} • {user.department}</p>
+                    </div>
                 </div>
-            )}
-
-            {/* Content Area */}
+            </div>
             <div
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-                className="p-page-sm medium:p-page overflow-y-auto flex-1 scroll-smooth"
+                className={cn(
+                    'shrink-0 transition-opacity duration-medium2 ease-emphasized',
+                    scrolled ? 'opacity-100 visible' : 'opacity-0 invisible'
+                )}
             >
+                {desktopAction}
+            </div>
+        </div>
+    );
+
+    return (
+        <DetailPageShell
+            bar={isCompactLayout ? () => compactBar : desktopBar}
+            hero={isCompactLayout ? compactHero : desktopHero}
+            tabs={detailsTabs}
+        >
                 <div className="max-w-7xl mx-auto">
                     {activeTab === 'overview' && (
                         <section
@@ -1044,15 +1011,13 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                         </section>
                     )}
                 </div>
-
-            </div>
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @keyframes shimmer {
                     100% { transform: translateX(100%); }
                 }
             `}} />
-        </div >
+        </DetailPageShell>
     );
 };
 

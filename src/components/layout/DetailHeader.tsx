@@ -4,7 +4,7 @@ import Button from '../ui/Button';
 import MaterialIcon from '../ui/MaterialIcon';
 
 interface DetailHeaderProps {
-  onBack: () => void;
+  onBack?: () => void;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   pretitle?: React.ReactNode;
@@ -31,14 +31,16 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
 }) => {
   return (
     <div className={cn("bg-surface px-page-sm py-5 medium:px-page border-b border-outline-variant", className)}>
-      <Button
-        variant="text"
-        onClick={onBack}
-        className="mb-4 !text-on-surface-variant hover:text-on-surface px-0 hover:bg-transparent border-none shadow-none active:scale-90 transition-transform duration-short4"
-        icon={<MaterialIcon name="arrow_back" size={18} />}
-      >
-        Retour
-      </Button>
+      {onBack && (
+        <Button
+          variant="text"
+          onClick={onBack}
+          className="mb-4 !text-on-surface-variant hover:text-on-surface px-0 hover:bg-transparent border-none shadow-none active:scale-90 transition-transform duration-short4"
+          icon={<MaterialIcon name="arrow_back" size={18} />}
+        >
+          Retour
+        </Button>
+      )}
 
       <div
         className={cn(
