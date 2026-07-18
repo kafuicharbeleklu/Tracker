@@ -4,6 +4,7 @@
 > Date : **2026-07-07** · Arbre de travail (non commité) · **Remplace la version du 2026-07-02**, dont les constats sont re-vérifiés en §2 (beaucoup ont été corrigés par la vague du 3 juillet) et dont les points encore valides sont conservés avec leurs identifiants (X1…X11).
 > **Complété le 2026-07-08** par la §7 (**Vague 2** : clôture de la dette de vérification laissée en §2.3, post-Top 10).
 > **Complété le 2026-07-09** par la §8 (**clôture du chantier** : 2 correctifs des découvertes latentes §7.3/§7.5 + spot-check borné de 5 pages — aucune nouvelle vague ouverte).
+> **Complété le 2026-07-18** par la §9 (**retours directs F1–F8** : nouvelle passe de rendu ciblée — plusieurs points révisent des décisions déjà actées ; diagnostic seul, aucune implémentation avant validation).
 >
 > **Référentiel** : MD3 n'est **plus la cible**. La cible est le design system propriétaire Neemba/CAT (jaune `#FDC910` / noir / blanc), **non finalisé** — le jaune en accent probable, le noir/charbon en rôle fonctionnel, non arbitré. Aucun écart à la spec Google MD3 n'est signalé comme problème en soi. Chaque constat est **Observé** (vu au rendu) ou **Inféré** (code seul), et typé **Application** (le DS a déjà la solution) ou **Design system** (le DS n'a pas encore de réponse). Sévérité : Bloquant / Majeur / Mineur / Polish · Effort : XS / S / M / **L (= étendre le DS)**.
 
@@ -313,6 +314,126 @@ Pas de top 10 cette fois : le solde utile tient en 6 lots, classés par rapport 
 - **Visuel : 39/39 Pass, 0 régression, baselines intactes** (`md3-visual-regression-results-2026-07-09`) — run de comparaison seul : aucun état baseliné n'est touché (le ticket ouvert et la route `categories/add` ne sont pas baselinés).
 - **A11y : non relancé**, aucune nouvelle surface interactive (la modale du deep-link est la même modale déjà auditée en §7.5 lot 5 ; le ticket générique n'ajoute que du texte dans le SideSheet existant).
 - Restent ouverts pour la suite (inchangés) : INV-9, tiroir/X13/X14 (Chantier D/DS), ~~X7 (palette)~~ (**X7 résolu le 16-07**, cf. §5), AUD chrome à re-vérifier au rendu, et les constats §8.2 ci-dessus.
+
+---
+
+## 9. Retours directs F1–F8 (2026-07-18)
+
+> **Diagnostic seul — aucune modification de code.** Huit retours d'usage sur l'app en l'état, au-delà des passes précédentes. Trois d'entre eux **révisent des décisions déjà prises** (F3 ↔ correctif « Déconnexion » du 07-02, F6 ↔ verdict X8 « le scroll d'onglets est voulu », F8 ↔ Top 10 #3 « toujours tout afficher ») : validation explicite requise avant implémentation.
+>
+> **Méthode** : `npm run dev` + Playwright Chromium (chromium-1228), persona `alice.admin` (+ fiche `ethan.user` pour F7), viewports 393×852 (DPR 3, tactile), 768×1024, 1440×900. Sondes DOM (`getBoundingClientRect`, styles calculés, balayage de débordement horizontal, MutationObserver + journal d'événements scroll pour F7). Chaque constat est étiqueté **Constaté** (≡ « Observé » des sections précédentes : vu/mesuré au rendu) ou **Déduit** (≡ « Inféré » : code seul). Captures et scripts de sonde dans le scratchpad de session (`shots/f1_*`–`f8_*`, éphémère — protocole en annexe).
+
+### 9.1 F1 — Tailles trop petites en mobile (KPI Dashboard, stats Audit, boutons)
+
+**Constat (Constaté — mesures rendues à 393×852) :**
+
+| Élément | Boîte | Typo mesurée | Verdict |
+|---|---|---|---|
+| KPI Dashboard (`MetricCard compact`) ×5 | 177×81 (dernière 361×81) | titre `section-label` **11 px**/13,2 w700 MAJUSCULES ls 0,825 px · valeur `title-large` **18 px**/24 w700 | Tuile entière cliquable (cible tactile OK) — le problème est typographique |
+| Cartes finance de la même page (`MetricCard` non compact) | pleine largeur | valeur **30 px** (`text-[1.875rem]`, hors échelle de tokens) | Incohérence interne : 18 px et 30 px pour le même rôle « valeur de stat », à un scroll d'écart |
+| Stats Audit (`PhysicalAuditView`) ×6 | 158×62–78 | libellé **11 px** w500 MAJUSCULES · valeur **18 px** w700 | Non cliquables ; libellé « CAMPAGNES ACTIVES » passe sur 2 lignes et domine la valeur |
+| Boutons Retour / Attribuer (compact) | 175×**40** | 14 px w600 | **40 px < plancher de facto 44 px** (`min-h-11` utilisé partout ailleurs en compact : SidebarItem, actions UserDetails) et < cible MD3 48 dp |
+
+Le référentiel demandé n'existe pas formellement : **aucun seuil tactile n'est inscrit dans `DESIGN_TOKENS_SPEC.md`** ; le plancher opérant du chantier est 44 px (44×44 mesurés sur toutes les surfaces récentes). À inscrire. Sur la lisibilité : la valeur 18 px vient de l'écrasement brand de `title-large` (22→18 px, `index.css:716`) — le libellé gras majuscules à crénage large rivalise visuellement avec la valeur, et les KPI paraissent minuscules à côté des cartes finance à 30 px.
+
+**Proposition** : créer un cran typographique dédié `stat-value` (≈ 24 px compact / 30 px expanded — remplace aussi le `text-[1.875rem]` arbitraire), libellé en `label-small` non gras ; le véhiculer par la variante DS « rangée de stats » déjà ouverte (**X9**, couvre aussi RBAC/Audit — jonction §9.4) ; boutons Retour/Attribuer → `size="lg"` (`min-h-11`) en compact ; inscrire le plancher 44 px dans la spec. **Sévérité** : Mineur (lisibilité, pas de perte fonctionnelle). **Effort** : XS (boutons + spec) + S (variante stats, 3 domaines consommateurs).
+
+### 9.2 F2 — Bordures non harmonisées
+
+**Constat (Déduit — inventaire code, juxtapositions Constatées au rendu §9.1) :** occurrences dans `src/` : `rounded-md` 129 · `full` 120 · `lg` 94 · `card` 81 · `xl` 46 · `sm` 35 · **`rounded` nu 22** · `xs` 15 · `none` 5 · directionnels 5. Après remapping tokens (`tailwind.config.js` → `--md-sys-shape-*` → `--radius-*`), **7 noms rendent 3 valeurs** : `xs`=2 px · `sm`=`md`=4 px · `lg`=`xl`=`card`=8 px · `full`. L'échelle effective **2/4/8/full est donc déjà serrée** — le contraste perçu vient d'ailleurs :
+
+1. **Deux familles de chips** : les primitives DS (`Badge`, `StatusBadge`, `Chip`, `Menu`, `Tooltip`) sont à 4 px, mais ≥ 12 chips ad hoc sont en `rounded-full` (stade complet) : `ApprovalRow.tsx:96/247`, `ReturnWizardPage.tsx:398/455/695`, `AddEquipmentPage.tsx:404`, `AssignmentWizardPage.tsx:743`, `ModelDetailsPage.tsx:42`, `SettingsPage.tsx:341/347/797`… Même rôle, deux formes, parfois dans la même vue.
+2. **Même rôle, rayon différent selon la page** : tuiles stats Audit 4 px (`rounded-md`) vs cartes KPI Dashboard 8 px (`rounded-xl`) — mesuré au rendu. De facto l'app suit plutôt une règle d'**imbrication** (surface externe 8 px / élément interne 4 px), mais elle n'est écrite nulle part, d'où les dérives.
+3. **Hors-tokens silencieux** : 22 `rounded` nus = 0,25 rem *défaut Tailwind* (coïncide avec 4 px aujourd'hui, décorrélé des tokens demain) ; `rounded-2xl/3xl` (16/24 px, non remappés) restent disponibles sans garde ; les noms de variables CSS sont **décalés d'un cran** vs les utilitaires (`--radius-lg` = 4 px alimente `rounded-md` — piège pour le CSS artisanal) ; `.control-field` (`index.css:799`) est **mort** (0 consommateur).
+
+**Proposition** : inscrire l'échelle **2/4/8/full + la règle d'imbrication** dans `DESIGN_TOKENS_SPEC.md` (nouveau point de registre) ; canoniser un nom par valeur (`xs`/`md`/`card`/`full`, les autres dépréciés en doc) ; convertir les 22 `rounded` nus ; **unifier les chips** sur la primitive (ou créer une variante `pill` unique si l'arrondi complet est souhaité pour les états — un seul choix, à trancher) ; supprimer `.control-field` ; étendre `md3:check` (interdire `rounded` nu et `rounded-2xl/3xl`). **Sévérité** : Mineur. **Effort** : XS (spec + garde + nettoyage) + S (chips, ~12 sites).
+
+### 9.3 F3 — Paramètres : adaptation réelle + déconnexion accessible
+
+**Constat (Constaté aux 3 tailles) :**
+- **Compact 393** : PageTabs opérationnel (fondu + chevron), mais « Compte » (x=366) et « Aide » naissent hors écran ; surtout, le bouton **« Modifier » de la carte profil déborde du viewport** (right = 429 > 393 — seul débordement horizontal détecté sur les 3 pages sondées ; carte `flex` sans repli, `SettingsPage.tsx:745-758`).
+- **Medium 768** : **mêmes onglets hors écran** (« Compte » right = 831, « Aide » 916 > 768) — la tablette a le défaut du téléphone ; contenu en colonne unique correcte.
+- **Expanded** : nav verticale 256 px + contenu `max-w-3xl` — vraie composition, RAS.
+- **Déconnexion** : uniquement dans l'onglet le **moins découvrable** (hors écran sur 2 des 3 classes). Chemin mobile complet : Plus → Paramètres → faire défiler les onglets → Compte → Déconnexion (40 px). Le correctif du 07-02 (« Déconnexion orphelin » → section Compte) a réglé l'orphelin mais créé l'enterrement — c'est la décision à réviser.
+- **Découvertes annexes (Constaté + Déduit)** : la carte « Mon Compte » est **codée en dur** — « Alice Admin », `alice.admin@tracker.app`, badges SuperAdmin/IT Department, aucun `useAuth` dans le fichier : tout utilisateur connecté voit Alice ; « Modifier » est un **CTA mort** (aucun `onClick`, famille INV-7) ; les sections sont en état local non routé (`activeSection`) — pas de deep-link ni retour, contrairement à RBAC qui route les siennes.
+
+**Proposition** : (1) **Déconnexion à 2 taps de partout** : l'ajouter à la nav secondaire du tiroir (sous Paramètres), en la conservant dans Compte ; (2) onglets : étendre X8-bis à medium pour cette page (shortLabels aussi entre 600–839 px) et **remonter « Compte » en 2ᵉ position** (« Affichage » 115 px + « Compte » court ≈ 104 px : visible sans scroll même à 393) ; (3) `flex-wrap` sur la carte profil ; (4) brancher la carte sur `useAuth` et câbler ou retirer « Modifier » ; (5) router les sections (parité RBAC). **Sévérité** : Majeur (débordement + logout + carte mensongère). **Effort** : XS×4 + S (routage) ≈ S.
+
+### 9.4 F4 — Rôles & accès et Audit : adaptation réelle sur 3 tailles
+
+**Constat (Constaté)** — verdict d'ensemble : les deux pages « tiennent » (0 débordement horizontal mesuré aux 3 tailles) mais la **recomposition n'existe qu'en expanded** ; compact/medium restent des colonnes mobiles étirées avec des stats surdimensionnées.
+
+| Page | Compact | Medium | Expanded |
+|---|---|---|---|
+| RBAC | 5 bandeaux stats pleine largeur ≈ 1ᵉʳ écran entier (X9 re-confirmé) ; formulaire de création AVANT la liste (on atterrit sur un formulaire) ; ids techniques tronqués (« role.syste… ») | Cartes stats ~150 px de haut pour un chiffre ; 4 onglets visibles ; panneau = colonne mobile élargie | Vraie composition 2 colonnes (§4.8, à préserver) |
+| Audit | Vue globale : OK structurellement (typo §9.1). **Détail : « empilement de chrome » enfin re-vérifié** (solde §2.3) : TopAppBar + onglets Vue globale/Détails + Retour + héro + Démarrer/Clôturer + onglets session → le contenu utile commence à ~55 % de l'écran ; onglets session en overflow (« Manqua… ») | Stats 2 colonnes surdimensionnées (même famille que RBAC) ; le **FAB « + » recouvre la colonne Statut/Action** du tableau | Page solide : filtres 3 colonnes, 6 tuiles, table (§4.6, à préserver) |
+
+**Proposition** : la variante « rangée de stats » **X9** (jonction §9.1) traite d'un coup RBAC + Audit en compact/medium ; Audit détail compact : retirer la barre « Vue globale/Détails » sur la vue détail (le Retour l'assume) et coller les onglets session sous le TopAppBar (≈ 1 écran de chrome économisé) ; dégager le FAB medium du tableau (padding-bottom de table, pattern déjà appliqué en compact) ; RBAC : liste avant formulaire de création (ou création derrière un bouton). **Sévérité** : Mineur (RBAC), Majeur (chrome Audit détail). **Effort** : S (stats, FAB, ordre RBAC) + M (chrome Audit détail).
+
+### 9.5 F5 — Menu latéral rétracté : caractérisation du bug
+
+**Constat (Constaté — mesures DOM + captures à 1440×900) :** l'état rétracté (76 px) est **fonctionnel au clic** (items 44×44 centrés, badge Approbations correct, aucun débordement ni scrollbar horizontale). Deux défauts précis :
+
+1. **Collision chevron/logo** : le bouton « Déployer le menu » (32 px, positionné `!absolute -right-3`) **chevauche le badge « TR » de 15 px** (TR right = 58, chevron x = 43) — le cercle blanc mord le logo en tête de sidebar, très visible sur fond sombre.
+2. **Tooltips morts** : `SidebarItem` embarque un tooltip maison (`absolute left-full ml-3`) **à l'intérieur** d'un Button `!overflow-hidden` (`SidebarItem.tsx:41/90`) : au survol il est rendu (opacity 1) mais **clippé — jamais visible** (sonde `elementFromPoint` : c'est la carte de contenu qui reçoit le point). La nav rétractée est donc icônes-seules sans étiquette au survol ; ne reste que le `title` natif (délai ~1 s, non stylé). La classe `hidden large:block` le réservait de toute façon à ≥ 1200 px. Cause **Déduite** : tooltip posé en absolu dans un conteneur clippé, alors que la primitive `Tooltip` du DS existe.
+
+**Proposition** : sortir l'étiquette du bouton — réutiliser `Tooltip` (DS) sur les items rétractés ; header rétracté : empiler TR puis chevron sur 2 rangées (ou remplacer le chevron flottant par un item « Déployer » en bas de nav, à côté de Paramètres). **Sévérité** : Mineur (fonctionnel) mais très visible. **Effort** : S.
+
+### 9.6 F6 — Alternative aux onglets à scroll horizontal (Audit détail, RBAC)
+
+**Constat (Constaté)** : Audit détail : 4 onglets session, le 3ᵉ coupé à 393 (« Manqua… ») ; RBAC : 4 onglets ≈ 590 px pour 393 (§3). `PageTabs` a déjà fondu + chevron (X8), navigation clavier, et l'API `shortLabel` (X8-bis) — **non exploitée sur ces deux pages** (RBAC : 1 seul shortLabel ; Audit détail : aucun).
+
+**Évaluation des pistes** (demande explicite : comparer avant de recommander) :
+
+| Piste | Pour | Contre | Verdict |
+|---|---|---|---|
+| **(a) Second FAB sous le FAB principal → overlay des vues** (piste utilisateur) | Persistant, zone du pouce, très découvrable ; le cœur de l'idée (liste verticale des vues dans un overlay tactile) est bon | Audit détail a **déjà** un FAB « + » (qui recouvre déjà la table en medium, §9.4) → pile de 2 FAB + bottom bar ; partout ailleurs le FAB = action primaire de *création* — un FAB de navigation casse cette grammaire ; RBAC n'a pas de FAB → pattern inédit pour 2 pages ; occlusion de contenu | **Non retenu tel quel** — l'overlay est repris en (b) |
+| **(b) Feuille de bas déclenchée depuis la barre d'onglets** | Même overlay tactile que (a), ancré là où l'utilisateur regarde ; bouton « toutes les vues » (`unfold_more` + compteur) en bout de PageTabs → `BottomSheet` (primitive DS existante, pattern cousin de `ListActionFab`) listant les vues + badges ; généralisable aux 8 pages consommatrices de PageTabs | Une affordance de plus dans la barre ; S–M d'effort | **Recommandé** (option d'API PageTabs, pas un fork) |
+| **(c) Segmenté sur 2 lignes** | Tout visible sans scroll | Hauteur doublée (aggrave le chrome §9.4) ; grille 2×2 fragile avec badges + libellés FR longs ; hors sémantique tablist | Écarté |
+| **(d) Épuiser X8-bis d'abord** : shortLabels + icônes masquées en compact | Gratuit, déjà l'idiome du DS (« la vraie solution existe en interne », §3) | Mesures : RBAC ≈ 590 px − icônes (~104 px) − libellés courts ≈ 430–450 px : **ne suffit pas seul à 393** | **À faire en hygiène** (XS), mais pas suffisant |
+
+**Proposition** : (d) immédiatement (XS) + (b) comme réponse système si validée (S–M) ; consigner la décision au registre X8. Tablette/desktop non concernés (onglets tiennent). **Sévérité** : Mineur (découvrabilité). **Effort** : XS + S–M.
+
+### 9.7 F7 — Animation de rétraction UserDetails : reproduite et caractérisée
+
+**Constat (Constaté — reproduction instrumentée)** : l'en-tête rétractable est un **frère** du conteneur de scroll ; `handleScroll` bascule à scrollTop > 72 / < 24 (`UserDetailsPage.tsx:439-451`), blocs animés en `max-h` (duration-medium4), conteneur `scroll-smooth`. **La rétraction change la hauteur du scrollport** : le maximum de scroll bouge sous le doigt.
+
+Reproduction sur **contenu réel** (fiche Alice, 1440×900 stock, débordement 131 px) : boucle complète mesurée — collapse à top > 72 → le conteneur gagne Δ ≈ 142 px → le max de scroll retombe *sous* la position courante → clamp navigateur → événements scroll descendants → top < 24 → ré-expansion → re-collapse… **bascules toutes les ~100 ms, hauteur d'en-tête oscillant 133↔318 px, la boucle continue ~1,2 s après l'arrêt de la molette et se stabilise à top = 0 : le bas de la fiche est inatteignable** (journal complet : scripts de session).
+
+**Fenêtre critique** : débordement ∈ (72, Δ+24) où Δ = hauteur perdue par l'en-tête — mesuré **Δ ≈ 142 px desktop** (fenêtre ≈ 72–166) et **Δ ≈ 62 px compact** (fenêtre ≈ 72–86, étroite — d'où le « par moments » sur téléphone). En deçà de 72 px de débordement, la rétraction ne s'arme jamais (Ethan : 31 px desktop, 0 px onglet Équipements — fonctionnalité morte sur fiches courtes) ; juste au-delà de la fenêtre, saccade résiduelle au clamp sans boucle. Le **même pattern copié-collé vit dans `EquipmentDetailsPage`** (mêmes constantes 72/24, `:239-247`) — même bug latent.
+
+**Proposition** : court terme (**S**) : n'armer la rétraction que si `scrollHeight − clientHeight > Δ + 72 + marge` (Δ mesurable via refs) — supprime la boucle sans toucher au comportement des fiches longues ; moyen terme (**M**) : rétraction **sans variation de géométrie du scrollport** (en-tête à hauteur fixe condensé par transform/opacity, ou en-tête dans la surface de scroll consommant son propre offset), à extraire en composant DS partagé avec EquipmentDetails (2 usages). **Sévérité** : **Majeur** (contenu inatteignable + pompage visuel). 
+
+### 9.8 F8 — Menu « Plus » : complément de la barre du bas (décision renversée)
+
+**Contexte** : le Top 10 #3 (`69ef4e5`) avait acté « toujours afficher toutes les destinations » pour corriger le tiroir à contenu variable. Le retour d'usage renverse la décision : le tiroir « Plus » ne doit montrer que ce qui n'est **pas** sur la barre du bas.
+
+**Constat (Constaté)** : compact — barre = Accueil/Actifs/Tâches/Équipe (+ Plus) ; tiroir = 11 destinations + Paramètres → **4 doublons en tête de tiroir**. Medium — le rail porte les 4 mêmes ; le tiroir modal (bouton menu du rail) affiche aussi tout (capture `f8_drawer_medium`).
+
+**Analyse du piège signalé (Déduit, vérifié dans le code)** : la composition de la barre est une fonction **pure des permissions** (`NavigationBar.tsx:151-197` — jamais de la page). Le bug originel venait de `hidePrimaryShortcuts={usesBottomNavShortcuts}`, qui dépendait de la *vue courante* (barre rendue ou non). La fonction sûre est : **tiroir = destinations permises − barre théorique(permissions, classe d'appareil)** — calculée même quand la barre n'est pas rendue à l'écran. Résultat identique quelle que soit la page d'ouverture ✔.
+
+**Cas limites à trancher avant implémentation :**
+1. **Fiches compactes (barre absente)** : sur `equipment_details` & co. la barre disparaît (`AppLayout.tsx:103`) et le tiroir (burger) est l'unique nav ; avec la soustraction, les 4 sections primaires n'y figurent plus — on n'en sort que par Retour. Options : (i) assumer (cohérence du tiroir prime, Retour suffit) ; (ii) **rendre la barre du bas persistante sur les fiches** (MD3 le recommande ; règle au passage le double-affordance burger+retour de §4.1) — la soustraction devient alors toujours « vraie » à l'écran. Recommandation : (ii), sinon (i) consigné comme compromis.
+2. **Tablette** : même soustraction avec le set du rail (identique aux 4 de la barre) → tiroir tablette = Finances/Gestion/Rôles & accès/Emplacements/Audit/Rapports/Paramètres ; le rail reste complet ✔.
+3. **Desktop et paysage compact** : sidebar permanente = nav complète, **aucun filtrage** ; paysage compact (rail) = règle tablette.
+4. **Personas à permissions réduites** : le « tiroir quasi vide » de §3 revient par construction (persona User : complément ≈ Audit + Paramètres) — mais cette fois la barre porte réellement ses sections : le tiroir court est un complément, pas un menu amputé. L'étiqueter (« Autres sections ») pour qu'il se lise comme tel, et y garantir un minimum (Paramètres + Déconnexion, jonction §9.3).
+
+**Proposition** : filtre pur `f(permissions, classe d'appareil)` + intitulé de section dans le tiroir (**S**) ; décision séparée : barre persistante sur les fiches (**S**, change la nav des fiches). **Sévérité** : Mineur (confort) mais **renverse une décision consignée** — à valider explicitement.
+
+### 9.9 Synthèse
+
+| Point | Verdict | Sévérité | Effort | Décision à valider |
+|---|---|---|---|---|
+| F1 tailles compactes | Constaté (mesures 11/18 px vs 30 px, boutons 40 px) | Mineur | XS + S | Cran `stat-value` + plancher 44 px en spec |
+| F2 rayons | Échelle effective 2/4/8/full déjà serrée ; dérives = chips full vs 4 px, `rounded` nus, règle non écrite | Mineur | XS + S | Variante chip unique (4 px ou pill) |
+| F3 Paramètres | Majeur : « Modifier » déborde, Compte/Aide hors écran compact **et** medium, logout enterré + carte Compte codée en dur | Majeur | S | Placement Déconnexion (révise le fix 07-02) |
+| F4 RBAC/Audit | Adaptation réelle seulement en expanded ; chrome Audit détail re-vérifié (solde §2.3) | Mineur/Majeur | S + M | — |
+| F5 sidebar rétractée | 2 bugs précis : chevron/TR (15 px), tooltips clippés (`overflow-hidden`) | Mineur | S | — |
+| F6 onglets | 4 pistes comparées ; FAB secondaire non retenu, feuille de bas recommandée + X8-bis en hygiène | Mineur | XS + S–M | Pattern (b) au registre X8 |
+| F7 animation UserDetails | **Reproduit** : boucle collapse↔expand (fenêtre 72–Δ+24), bas de fiche inatteignable ; dupliqué dans EquipmentDetails | **Majeur** | S puis M | — |
+| F8 menu « Plus » | Fonction pure `permises − barre(permissions)` : déterministe ✔ ; cas fiches/tablette analysés | Mineur | S (+S) | **Renverse Top 10 #3** + barre persistante sur fiches |
+
+Registre : X9 devient le véhicule de F1+F4 ; X8 à compléter par la décision F6 ; nouveaux candidats — règle des rayons (F2) et plancher tactile 44 px (F1) ; F7 appelle un composant « en-tête rétractable » partagé. Découvertes annexes consignées : carte Compte hard-codée + « Modifier » mort (§9.3), `.control-field` mort (§9.2), FAB medium sur la table (§9.4).
 
 ---
 
