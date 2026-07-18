@@ -66,6 +66,15 @@
     --md-sys-typescale-label-small-size: 11px;
     --md-sys-typescale-label-small-line-height: 16px;
     --md-sys-typescale-label-small-weight: 500;
+    /* Cran hors-MD3 « valeur de stat » (audit UX §9.1) : un seul rôle typographique pour
+       toutes les valeurs de KPI/stats — 30px, ramené à 24px en compact via la section
+       Responsive Typography. Déclaré dans cn() (src/lib/utils.ts) comme taille de texte. */
+    --md-sys-typescale-stat-value-size: 30px;
+    --md-sys-typescale-stat-value-line-height: 36px;
+    --md-sys-typescale-stat-value-weight: 700;
+    --md-sys-typescale-stat-value-tracking: 0;
+    --md-sys-typescale-stat-value-compact-size: 24px;
+    --md-sys-typescale-stat-value-compact-line-height: 28px;
 }
 
 /* ---- MD3 DEFAULT EASING ---- */
@@ -230,6 +239,14 @@
     line-height: var(--md-sys-typescale-label-small-line-height);
     font-weight: var(--md-sys-typescale-label-small-weight);
     letter-spacing: var(--md-sys-typescale-label-small-tracking);
+}
+
+.text-stat-value {
+    font-family: var(--md-sys-typescale-font-brand);
+    font-size: var(--md-sys-typescale-stat-value-size);
+    line-height: var(--md-sys-typescale-stat-value-line-height);
+    font-weight: var(--md-sys-typescale-stat-value-weight);
+    letter-spacing: var(--md-sys-typescale-stat-value-tracking);
 }
 
 
@@ -521,6 +538,11 @@ body {
     .text-headline-small {
         font-size: var(--md-sys-typescale-title-large-size);
         line-height: var(--md-sys-typescale-title-large-line-height);
+    }
+
+    .text-stat-value {
+        font-size: var(--md-sys-typescale-stat-value-compact-size);
+        line-height: var(--md-sys-typescale-stat-value-compact-line-height);
     }
 }
 

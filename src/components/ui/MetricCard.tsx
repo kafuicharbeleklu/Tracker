@@ -55,14 +55,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       >
         {/* Titres FR longs : 2 lignes plutôt qu'une troncature (« DEMANDES EN C... ») */}
         <div className="flex items-start justify-between gap-2">
-          <p className="section-label min-w-0 line-clamp-2 leading-snug">{title}</p>
+          <p className="text-label-small text-on-surface-variant min-w-0 line-clamp-2">{title}</p>
           {icon && (
             <div className="shrink-0 text-on-surface-variant group-hover:text-on-surface transition-colors duration-short4">
               {icon}
             </div>
           )}
         </div>
-        <p className="text-title-large font-semibold text-on-surface leading-none">{value}</p>
+        <p className="text-stat-value text-on-surface">{value}</p>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Value */}
       <div className="flex-1">
-        <p className="text-[1.875rem] font-semibold text-on-surface mb-1 leading-none tracking-normal">{value}</p>
+        <p className="text-stat-value text-on-surface mb-1">{value}</p>
         {subtitle && (
           <p className="text-body-small text-on-surface-variant mt-2">{subtitle}</p>
         )}

@@ -44,13 +44,13 @@ const check = (label, output, { keeps = [], drops = [] }) => {
 const indexCss = await fs.readFile(path.resolve('index.css'), 'utf8');
 const typescale = [
   ...new Set(
-    [...indexCss.matchAll(/\.text-((?:display|headline|title|body|label)-(?:large|medium|small))\b/g)].map(
+    [...indexCss.matchAll(/\.text-((?:display|headline|title|body|label)-(?:large|medium|small)|stat-value)\b/g)].map(
       (m) => m[1]
     )
   ),
 ];
-if (typescale.length < 15) {
-  failures.push(`typescale : ${typescale.length}/15 classes trouvées dans index.css (regex à revoir ?)`);
+if (typescale.length < 16) {
+  failures.push(`typescale : ${typescale.length}/16 classes trouvées dans index.css (regex à revoir ?)`);
 }
 for (const name of typescale) {
   const sized = `text-${name}`;

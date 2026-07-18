@@ -342,7 +342,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="filled"
                                             icon={<MaterialIcon name="person_add" size={18} />}
                                             onClick={handleOpenAssignmentWizard}
-                                            className="!h-10 !rounded-md"
+                                            className="!min-h-11 !rounded-md"
                                         >
                                             {GLOSSARY.ASSIGN}
                                         </Button>
@@ -352,7 +352,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="tonal"
                                             icon={<MaterialIcon name="undo" size={18} />}
                                             onClick={() => navigate('/wizards/return')}
-                                            className="!h-10 !rounded-md"
+                                            className="!min-h-11 !rounded-md"
                                         >
                                             {GLOSSARY.RETURN}
                                         </Button>
@@ -362,7 +362,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="outlined"
                                             icon={<MaterialIcon name="delete" size={18} />}
                                             onClick={handleDelete}
-                                            className="!h-10 !rounded-md"
+                                            className="!min-h-11 !rounded-md"
                                         >
                                             Supprimer
                                         </Button>

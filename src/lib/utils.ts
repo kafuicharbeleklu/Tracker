@@ -29,6 +29,7 @@ const twMerge = extendTailwindMerge({
                         'label-large',
                         'label-medium',
                         'label-small',
+                        'stat-value',
                     ],
                 },
             ],

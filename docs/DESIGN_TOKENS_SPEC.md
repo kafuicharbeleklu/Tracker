@@ -117,8 +117,13 @@ Le code est déjà à **82 %** sur l'échelle (`text-body/label/title-*`, 675 us
 
 **✅ Réalisé** (via la boucle de build Windows du commanditaire) : migration par script **conscient du poids** (détection ligne-à-ligne `font-bold`/`font-medium` → choix `label-*`/`body-*`/`title-*`), **~143 remplacements / 24 fichiers**, build validé (aucun écart constaté). Choix assumé : boutons/badges passent du gras 700 au poids `label` (500-600). Restent **4 micro-labels sous-échelle (9-10px, nav)** en exception. Piste ouverte si on veut re-gras les boutons/badges : passer les `.text-*` en `@layer components` (font-bold redevient composable) — à faire avec build.
 
+**Cran hors-MD3 `stat-value` (2026-07-18, audit UX §9.1)** : rôle « valeur de stat/KPI » unique — `text-stat-value` = **30px/36 w700** (24px/28 en compact <600px, section Responsive Typography d'index.css). Remplace le `text-[1.875rem]` arbitraire de MetricCard et l'écrasement `title-large` (18px) des tuiles compactes : même rôle → même cran, quel que soit l'écran. Toute nouvelle classe maison `text-*` doit être déclarée dans `cn()` (`src/lib/utils.ts`) et couverte par `scripts/check-cn-merge.mjs` — fait pour `stat-value`.
+
 ### 4.3 Spacing
 Grille **4dp** stricte ; supprimer les valeurs arbitraires `[xxpx]` (`MD3-HIGH-012`).
+
+### 4.4 Cibles tactiles — plancher 44px (formalisé le 2026-07-18, audit UX §9.1)
+Toute surface interactive rend **au minimum 44×44 px** (`min-h-11`/`min-w-11` ou boîte équivalente), sur toutes les classes d'appareil — c'était le plancher *de facto* du chantier (SidebarItem, actions UserDetails…) sans être écrit nulle part. La cible confort MD3 reste 48dp ; 44px est le plancher en dessous duquel on ne descend pas (première violation corrigée : boutons Attribuer/Retour/Supprimer du héro compact EquipmentDetails, 40px → 44px). Un conteneur cliquable entier (tuile de stat, rangée) satisfait le plancher pour ses enfants décoratifs.
 
 ---
 
