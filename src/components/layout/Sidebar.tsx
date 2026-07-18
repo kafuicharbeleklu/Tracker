@@ -17,6 +17,8 @@ interface SidebarProps {
     currentView: ViewType;
     onViewChange: (view: ViewType) => void;
     onSettingsClick: () => void;
+    /** Déconnexion à 2 taps depuis le tiroir modal (§9.3) — non rendue en sidebar permanente. */
+    onLogout?: () => void;
     className?: string;
     isModalMode?: boolean;
     isMobileOpen?: boolean;
@@ -29,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     currentView,
     onViewChange,
     onSettingsClick,
+    onLogout,
     className,
     isModalMode = true,
     isMobileOpen = false,
@@ -380,6 +383,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 if (closeMobileMenu) closeMobileMenu();
                             }}
                         />
+                        {isModalMode && onLogout && (
+                            <SidebarItem
+                                isCollapsed={isCollapsed && !isMobileOpen}
+                                icon="logout"
+                                label="Déconnexion"
+                                onClick={() => {
+                                    if (closeMobileMenu) closeMobileMenu();
+                                    onLogout();
+                                }}
+                            />
+                        )}
                     </nav>
                 </div>
             </aside>

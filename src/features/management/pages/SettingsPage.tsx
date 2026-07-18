@@ -9,6 +9,7 @@ import SelectField from '../../../components/ui/SelectField';
 import Badge from '../../../components/ui/Badge';
 import Toggle from '../../../components/ui/Toggle';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
@@ -29,6 +30,7 @@ type SettingsSection = 'general' | 'finance' | 'collection' | 'account' | 'help'
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
     const { showToast } = useToast();
+    const { currentUser } = useAuth();
     const {
         settings,
         updateSettings,
@@ -288,11 +290,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
 
     // --- SECTIONS ---
     // Libellés courts en compact via TabItem.shortLabel (X8-bis)
+    // « Compte » en 2e position : visible sans scroll même à 393px (§9.3 — la Déconnexion y vit)
     const sections: Array<{ id: SettingsSection; label: string; shortLabel?: string; icon: string }> = [
         { id: 'general', label: 'Affichage', icon: 'palette' },
+        { id: 'account', label: 'Compte & Sécurité', shortLabel: 'Compte', icon: 'manage_accounts' },
         { id: 'finance', label: 'Finances & Paramètres', shortLabel: 'Finances', icon: 'account_balance' },
         { id: 'collection', label: 'Collecte automatique', shortLabel: 'Collecte', icon: 'developer_board' },
-        { id: 'account', label: 'Compte & Sécurité', shortLabel: 'Compte', icon: 'manage_accounts' },
         { id: 'help', label: 'Aide', icon: 'help' },
     ];
 
@@ -368,6 +371,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                 onChange={(id) => setActiveSection(id as SettingsSection)}
                                 idBase="settings-sections"
                                 ariaLabel="Sections des paramètres"
+                                shortLabelBreakpoint="expanded"
                             />
                         ) : (
                             <nav className="flex flex-col gap-2">
@@ -742,20 +746,26 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                 <div className="space-y-6">
                                     <h2 className="text-title-large font-bold">Mon Compte</h2>
 
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex items-start gap-6">
+                                    {/* Carte branchée sur la session (§9.3 : elle affichait Alice en dur pour
+                                        tout le monde) ; le CTA « Modifier » sans handler a été retiré (INV-7). */}
+                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex flex-wrap items-start gap-6">
                                         {/* Règle X12 : initiales sombres sur fond teinté primaire (jaune jamais en texte sur fond clair) */}
                                         <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-on-primary-container text-display-small font-bold border-2 border-surface shadow-elevation-1 shrink-0">
-                                            AA
+                                            {(currentUser?.name ?? '')
+                                                .split(/\s+/)
+                                                .filter(Boolean)
+                                                .slice(0, 2)
+                                                .map((part) => part[0]?.toUpperCase())
+                                                .join('') || '—'}
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="text-title-large font-bold">Alice Admin</h3>
-                                            <p className="text-on-surface-variant">alice.admin@tracker.app</p>
-                                            <div className="flex gap-2 mt-3">
-                                                <Badge variant="info">SuperAdmin</Badge>
-                                                <Badge variant="neutral">IT Department</Badge>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-title-large font-bold break-words">{currentUser?.name ?? 'Utilisateur'}</h3>
+                                            <p className="text-on-surface-variant break-words">{currentUser?.email ?? ''}</p>
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                {currentUser?.role && <Badge variant="info">{currentUser.role}</Badge>}
+                                                {currentUser?.department && <Badge variant="neutral">{currentUser.department}</Badge>}
                                             </div>
                                         </div>
-                                        <Button variant="outlined" size="sm">Modifier</Button>
                                     </div>
 
                                     <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex items-center justify-between gap-4">

@@ -374,6 +374,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 currentView={currentView}
                 onViewChange={handleViewChange}
                 onSettingsClick={() => handleViewChange('settings')}
+                onLogout={onLogout}
                 isModalMode={!isExpandedUp}
                 isMobileOpen={isMobileMenuOpen}
                 closeMobileMenu={() => setIsMobileMenuOpen(false)}

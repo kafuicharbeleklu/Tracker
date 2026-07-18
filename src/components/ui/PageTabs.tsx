@@ -25,6 +25,10 @@ interface PageTabsProps {
   className?: string;
   idBase?: string;
   ariaLabel?: string;
+  /** Breakpoint à partir duquel `label` remplace `shortLabel` (X8-bis).
+      'medium' (défaut) : libellés courts <600px ; 'expanded' : aussi entre 600 et 839px —
+      pour les barres où les onglets naissent hors écran même en medium (§9.3 Paramètres). */
+  shortLabelBreakpoint?: 'medium' | 'expanded';
 }
 
 /**
@@ -39,6 +43,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   className,
   idBase,
   ariaLabel = 'Navigation par onglets',
+  shortLabelBreakpoint = 'medium',
 }) => {
   const generatedBaseId = useId().replace(/:/g, '');
   const baseId = idBase ? sanitizeIdPart(idBase) : generatedBaseId;
@@ -161,10 +166,17 @@ export const PageTabs: React.FC<PageTabsProps> = ({
 
               {/* Label — libellé court adaptatif en compact (X8-bis) */}
               {item.shortLabel ? (
-                <>
-                  <span className="medium:hidden">{item.shortLabel}</span>
-                  <span className="hidden medium:inline">{item.label}</span>
-                </>
+                shortLabelBreakpoint === 'expanded' ? (
+                  <>
+                    <span className="expanded:hidden">{item.shortLabel}</span>
+                    <span className="hidden expanded:inline">{item.label}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="medium:hidden">{item.shortLabel}</span>
+                    <span className="hidden medium:inline">{item.label}</span>
+                  </>
+                )
               ) : (
                 <span>{item.label}</span>
               )}
