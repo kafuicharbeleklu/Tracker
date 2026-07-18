@@ -1,0 +1,406 @@
+{
+  "date": "2026-07-17",
+  "baseUrl": "http://127.0.0.1:4173",
+  "updateBaseline": false,
+  "totals": {
+    "checkpoints": 39,
+    "match": 39,
+    "baselineCreated": 0,
+    "updated": 0,
+    "changed": 0,
+    "pass": 39,
+    "fail": 0
+  },
+  "results": [
+    {
+      "device": "compact",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "d1ef560496d55d2f8da80b02f6eb032a02fdb1c6e1f3f9d46c822942b8c163d8",
+      "baselinePath": "docs/md3-visual-baseline/compact/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "dashboard",
+      "route": "/dashboard",
+      "status": "match",
+      "pass": true,
+      "hash": "3f63aec58fb74737a4a734b367286cfacc53d5090818e05632aac5d51e75ed02",
+      "baselinePath": "docs/md3-visual-baseline/compact/dashboard.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "match",
+      "pass": true,
+      "hash": "d6aca98ded4f91c65c38bc66e06e55a2c0602c9a970b0d74756714788cf0e570",
+      "baselinePath": "docs/md3-visual-baseline/compact/approvals.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "locations",
+      "route": "/locations",
+      "status": "match",
+      "pass": true,
+      "hash": "0ca3ac61b08cab5f9f70d74a4ae9f03b65daae771bf6f3918199cdcea98e70c0",
+      "baselinePath": "docs/md3-visual-baseline/compact/locations.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "management",
+      "route": "/management",
+      "status": "match",
+      "pass": true,
+      "hash": "ceacd62570ad638528568a73eba1c297d44dc519a9ccbeaf70c2a2d069ab205c",
+      "baselinePath": "docs/md3-visual-baseline/compact/management.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "reports",
+      "route": "/reports",
+      "status": "match",
+      "pass": true,
+      "hash": "f4c5495827c308aef2e3b1276c162c26628846fc91d8f5363f39c66be1628698",
+      "baselinePath": "docs/md3-visual-baseline/compact/reports.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "settings",
+      "route": "/settings",
+      "status": "match",
+      "pass": true,
+      "hash": "3faeea14f926923a232c7ad9aad9b60379fe98c983ff90bac4bf91371fcdd450",
+      "baselinePath": "docs/md3-visual-baseline/compact/settings.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "assignment_wizard",
+      "route": "/wizards/assignment",
+      "status": "match",
+      "pass": true,
+      "hash": "8a49ffb725ec575e220c64d8da81879c0c16ab912baa3f2ddf03597daa865037",
+      "baselinePath": "docs/md3-visual-baseline/compact/assignment_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "return_wizard",
+      "route": "/wizards/return",
+      "status": "match",
+      "pass": true,
+      "hash": "c9e5031a9c0a7826d61e93aa4c4ba6ea3f693ce550d5071bbc288f630838faa2",
+      "baselinePath": "docs/md3-visual-baseline/compact/return_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "add_equipment",
+      "route": "/inventory/add",
+      "status": "match",
+      "pass": true,
+      "hash": "b60296f0bf7abd6e1f2e49621a927dd3562dcf36970bb26a4886ef4e83bd001d",
+      "baselinePath": "docs/md3-visual-baseline/compact/add_equipment.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "user_details",
+      "route": "/users/1",
+      "status": "match",
+      "pass": true,
+      "hash": "29061ad60920f001b3efd510b1b1f27c08d55ec7dda24784924fffec6db3318e",
+      "baselinePath": "docs/md3-visual-baseline/compact/user_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "audit_details",
+      "route": "/audit/details",
+      "status": "match",
+      "pass": true,
+      "hash": "ef93727321572b966fa37ec5dd57f62acc266b3e6b9da8e605077cf092400d77",
+      "baselinePath": "docs/md3-visual-baseline/compact/audit_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "compact",
+      "checkpoint": "finance",
+      "route": "/finance",
+      "status": "match",
+      "pass": true,
+      "hash": "4eab6d800c24d137f94ba7472834c1b78c1e29a9ffeebf98aabb9ace92877c2b",
+      "baselinePath": "docs/md3-visual-baseline/compact/finance.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "6d84d2d4637ab2c8fcffd9c9a00bc1713e949ecef3ac0ffe1cc9ef79571d59cb",
+      "baselinePath": "docs/md3-visual-baseline/medium/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "dashboard",
+      "route": "/dashboard",
+      "status": "match",
+      "pass": true,
+      "hash": "e0077348e9ebf3585b93b18f1b10921e6807b10b1464066a90c8210f962920be",
+      "baselinePath": "docs/md3-visual-baseline/medium/dashboard.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "match",
+      "pass": true,
+      "hash": "a986b0d069288f0287227a29a41730548d1245c65487a3cff90db74ae47edebd",
+      "baselinePath": "docs/md3-visual-baseline/medium/approvals.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "locations",
+      "route": "/locations",
+      "status": "match",
+      "pass": true,
+      "hash": "ec5f7116236ef33c610c25b0036fc63afe54b2c4edc0de5835f0670615203af1",
+      "baselinePath": "docs/md3-visual-baseline/medium/locations.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "management",
+      "route": "/management",
+      "status": "match",
+      "pass": true,
+      "hash": "41123d75bf4ee80d3f1369af9bba03237473cf6b37ac50774680a9a767f33bda",
+      "baselinePath": "docs/md3-visual-baseline/medium/management.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "reports",
+      "route": "/reports",
+      "status": "match",
+      "pass": true,
+      "hash": "7b705993c5cd1b5845a56458ed2724a23117802d770369d02012bc36c992abaa",
+      "baselinePath": "docs/md3-visual-baseline/medium/reports.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "settings",
+      "route": "/settings",
+      "status": "match",
+      "pass": true,
+      "hash": "1db7e421d0a568fba20f08b799cf827d8907b5925eaa469be0e9b1a224a4136a",
+      "baselinePath": "docs/md3-visual-baseline/medium/settings.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "assignment_wizard",
+      "route": "/wizards/assignment",
+      "status": "match",
+      "pass": true,
+      "hash": "4ad6a0cc9b55a3578aa69135ae1c2ae78efedc75cb7def85f417fb10df0ec49f",
+      "baselinePath": "docs/md3-visual-baseline/medium/assignment_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "return_wizard",
+      "route": "/wizards/return",
+      "status": "match",
+      "pass": true,
+      "hash": "9f1b59e8d65d0f3ff777b6901e6e747449b975a899cdcfc1e4df33e87ba0da08",
+      "baselinePath": "docs/md3-visual-baseline/medium/return_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "add_equipment",
+      "route": "/inventory/add",
+      "status": "match",
+      "pass": true,
+      "hash": "583aeb0ecc3427a7a366e908df4fde17b000500f7931f84a563c631a593be463",
+      "baselinePath": "docs/md3-visual-baseline/medium/add_equipment.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "user_details",
+      "route": "/users/1",
+      "status": "match",
+      "pass": true,
+      "hash": "e5fe1720b107d58732fabf97b7881afdb006e5f8481ea6bc4f151edcf16629cc",
+      "baselinePath": "docs/md3-visual-baseline/medium/user_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "audit_details",
+      "route": "/audit/details",
+      "status": "match",
+      "pass": true,
+      "hash": "09b6b35f4c3148ae8fe607c13e4e8de5d4b4543db375b8f09a4c3fd185bdd60f",
+      "baselinePath": "docs/md3-visual-baseline/medium/audit_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "medium",
+      "checkpoint": "finance",
+      "route": "/finance",
+      "status": "match",
+      "pass": true,
+      "hash": "6a539fd2400a0cea88e29c5032a2c1b933df73a4f2bda114b5456ace9e8c7bee",
+      "baselinePath": "docs/md3-visual-baseline/medium/finance.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "login",
+      "route": "/",
+      "status": "match",
+      "pass": true,
+      "hash": "e2c9de2558dbed212533e430741f11033f17353d3b889aeb9477f5c8129257ac",
+      "baselinePath": "docs/md3-visual-baseline/expanded/login.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "dashboard",
+      "route": "/dashboard",
+      "status": "match",
+      "pass": true,
+      "hash": "9742d52ca8c05ee2de7666762d5708a92a7fcaf9ab97b8590f9e70285001d164",
+      "baselinePath": "docs/md3-visual-baseline/expanded/dashboard.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "approvals",
+      "route": "/approvals",
+      "status": "match",
+      "pass": true,
+      "hash": "781dc0df28bd30cde959020d6b7ea409f9b9b1a251b4951b47d748c668a08e61",
+      "baselinePath": "docs/md3-visual-baseline/expanded/approvals.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "locations",
+      "route": "/locations",
+      "status": "match",
+      "pass": true,
+      "hash": "55118b03293a6914b303b1f38d3929fba16c02d93f6f2c58f4343f21bd4aab1a",
+      "baselinePath": "docs/md3-visual-baseline/expanded/locations.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "management",
+      "route": "/management",
+      "status": "match",
+      "pass": true,
+      "hash": "b96d8e9a9e9a98af9bc722cc97e04ea2ceef108406facb111c3fb81429f2567a",
+      "baselinePath": "docs/md3-visual-baseline/expanded/management.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "reports",
+      "route": "/reports",
+      "status": "match",
+      "pass": true,
+      "hash": "aae12393ff4127018764a4ac60581b160b60b2c9e6e50660d65196b867437186",
+      "baselinePath": "docs/md3-visual-baseline/expanded/reports.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "settings",
+      "route": "/settings",
+      "status": "match",
+      "pass": true,
+      "hash": "c368ec32528493b07231b0e5c82b8ef3c3f22a55d42649cad87e93cb30730d2f",
+      "baselinePath": "docs/md3-visual-baseline/expanded/settings.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "assignment_wizard",
+      "route": "/wizards/assignment",
+      "status": "match",
+      "pass": true,
+      "hash": "11ffdaae3e84dedf7fa04c9245b2f9f2b5bf17ea09551b56bb5502cd4d7eff81",
+      "baselinePath": "docs/md3-visual-baseline/expanded/assignment_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "return_wizard",
+      "route": "/wizards/return",
+      "status": "match",
+      "pass": true,
+      "hash": "891eced0fe19a571c279ed477185ae06830d551710803f7098b4f3388d59ac2e",
+      "baselinePath": "docs/md3-visual-baseline/expanded/return_wizard.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "add_equipment",
+      "route": "/inventory/add",
+      "status": "match",
+      "pass": true,
+      "hash": "7128ec5ede64a0651c1831efb820eed5eaaf0fee9b85dd0c8bc5ca93ab1128fd",
+      "baselinePath": "docs/md3-visual-baseline/expanded/add_equipment.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "user_details",
+      "route": "/users/1",
+      "status": "match",
+      "pass": true,
+      "hash": "3cd7d204ec89ee6c102cd433385589341108c9fffe2b4673214e21433dfe1a8d",
+      "baselinePath": "docs/md3-visual-baseline/expanded/user_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "audit_details",
+      "route": "/audit/details",
+      "status": "match",
+      "pass": true,
+      "hash": "b7772df55be09df3cb185eaf1a2895011cb7de773d9129c67055ee4f1c068dd1",
+      "baselinePath": "docs/md3-visual-baseline/expanded/audit_details.png",
+      "currentPath": null
+    },
+    {
+      "device": "expanded",
+      "checkpoint": "finance",
+      "route": "/finance",
+      "status": "match",
+      "pass": true,
+      "hash": "7f476aa2aae73dcf6e671e0d845002688ed15dee8938da4352f5e8a3c1d68039",
+      "baselinePath": "docs/md3-visual-baseline/expanded/finance.png",
+      "currentPath": null
+    }
+  ]
+}
