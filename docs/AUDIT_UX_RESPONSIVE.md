@@ -451,6 +451,14 @@ Reproduction sur **contenu réel** (fiche Alice, 1440×900 stock, débordement 1
 
 Registre : X9 devient le véhicule de F1+F4 ; X8 à compléter par la décision F6 ; nouveaux candidats — règle des rayons (F2) et plancher tactile 44 px (F1) ; F7 appelle un composant « en-tête rétractable » partagé. Découvertes annexes consignées : carte Compte hard-codée + « Modifier » mort (§9.3), `.control-field` mort (§9.2), FAB medium sur la table (§9.4).
 
+### 9.10 Exécution F1–F8 (2026-07-18 → 22) — clôture
+
+**8 lots livrés, 7 commits de code** (encadrés « Exécution » sous chaque constat) : F7 `7054eca` (découplage réel via `DetailPageShell`, pas le seuil), F3 `f253606`, F1 `32bd673`, F4 `88083ec`, F5 `1653bad`, F2 `3f55f1a`, F6 `764b34d`, F8 `8cd16c5`. Décisions actées à l'implémentation : F8 fiches compactes = « tout afficher » (PAS de barre persistante), F6 = feuille de bas (pas de second FAB), F2 = chips sur l'idiome Badge 4 px, F7 = découplage structurel dans les 2 pages. Conventions formalisées dans `DESIGN_TOKENS_SPEC.md` : plancher tactile 44 px (§4.4), cran `stat-value` (§4.2), échelle de rayons 2/4/8/full + imbrication (§4.1, avec gardes `md3:check`).
+
+**QA de clôture (22-07)** : `build` + `lint` + `lint:md3` verts (sonde cn 45 ✓, typescale 16) ; **a11y 16/16 Pass** ; **visuel : 15 checkpoints « changed », tous imputés aux lots** (Dashboard ×3 = F1 stat-value ; Settings ×3 = F3 ; Audit détail ×3 = F4 ; Finance ×3 + Management + Approvals compact = F2 chips/F6 icônes d'onglets ; User details expanded = F7), nature confirmée au pixel sur échantillon (chip « Traitement IT » 4 px, onglets Finance sans icônes) → **re-baseline accepté, run de contrôle 39/39 Match**.
+
+**Reliquats hors feu vert** (non traités, consignés) : routage des sections Paramètres (§9.3-5, parité RBAC) ; item « Déployer » alternatif en bas de sidebar (variante F5 non retenue) ; généralisation éventuelle de `DetailPageShell` à AuditDetails (3ᵉ usage potentiel du pattern en-tête).
+
 ---
 
 ## Annexe — reproduction
