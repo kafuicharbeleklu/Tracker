@@ -6,6 +6,7 @@ import Badge from '../../../components/ui/Badge';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { MetricCard } from '../../../components/ui/MetricCard';
 import { PageTabs, TabItem } from '../../../components/ui/PageTabs';
 import { useData } from '../../../context/DataContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -711,8 +712,8 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* Rangées denses sur compact, cartes dès medium (X9) */}
-            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-5 gap-2 medium:gap-3">
+            {/* Rangée de stats X9 : tuiles MetricCard compactes à toutes les tailles (§9.4) */}
+            <div className="grid grid-cols-2 medium:grid-cols-3 expanded:grid-cols-5 gap-2 medium:gap-3">
                 {[
                     { label: 'Rôles', value: sortedRoles.length },
                     { label: 'Groupes', value: sortedGroups.length },
@@ -720,13 +721,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                     { label: 'Workflows', value: rbacWorkflows.length },
                     { label: 'Conflits (utilisateur)', value: effectiveProfile?.conflicts.length || 0 },
                 ].map((stat) => (
-                    <div
-                        key={stat.label}
-                        className="rounded-card border border-outline-variant bg-surface p-3 medium:p-4 flex items-center justify-between gap-3 medium:block"
-                    >
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">{stat.label}</p>
-                        <p className="text-headline-small text-on-surface medium:mt-1">{stat.value}</p>
-                    </div>
+                    <MetricCard key={stat.label} compact title={stat.label} value={stat.value} />
                 ))}
             </div>
 
@@ -742,36 +737,6 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                     <div className="flex items-center justify-between gap-3">
                         <h3 className="text-title-medium text-on-surface">Rôles</h3>
                         {!canManageConfig && <Badge variant="neutral">Lecture seule</Badge>}
-                    </div>
-
-                    <div className="grid grid-cols-1 medium:grid-cols-3 gap-3">
-                        <InputField
-                            label="Nom du rôle"
-                            value={roleName}
-                            onChange={(event) => setRoleName(event.target.value)}
-                            placeholder="Ex: Responsable conformité"
-                            className="medium:col-span-2"
-                            disabled={!canManageConfig}
-                        />
-                        <SelectField
-                            label="Rôle modèle"
-                            name="roleTemplateId"
-                            value={roleTemplateId}
-                            onChange={(event) => setRoleTemplateId(event.target.value)}
-                            disabled={!canManageConfig}
-                            options={sortedRoles.map((role) => ({ value: role.id, label: role.name }))}
-                        />
-                    </div>
-
-                    <div className="flex justify-end">
-                        <Button
-                            variant="filled"
-                            icon={<MaterialIcon name="add" size={18} />}
-                            onClick={onCreateRole}
-                            disabled={!canManageConfig}
-                        >
-                            Nouveau rôle
-                        </Button>
                     </div>
 
                     <div className="rounded-card border border-outline-variant overflow-hidden">
@@ -810,12 +775,77 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                             </div>
                         )}
                     </div>
+
+                    <div className="grid grid-cols-1 medium:grid-cols-3 gap-3">
+                        <InputField
+                            label="Nom du rôle"
+                            value={roleName}
+                            onChange={(event) => setRoleName(event.target.value)}
+                            placeholder="Ex: Responsable conformité"
+                            className="medium:col-span-2"
+                            disabled={!canManageConfig}
+                        />
+                        <SelectField
+                            label="Rôle modèle"
+                            name="roleTemplateId"
+                            value={roleTemplateId}
+                            onChange={(event) => setRoleTemplateId(event.target.value)}
+                            disabled={!canManageConfig}
+                            options={sortedRoles.map((role) => ({ value: role.id, label: role.name }))}
+                        />
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button
+                            variant="filled"
+                            icon={<MaterialIcon name="add" size={18} />}
+                            onClick={onCreateRole}
+                            disabled={!canManageConfig}
+                        >
+                            Nouveau rôle
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="rounded-card border border-outline-variant bg-surface p-4 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                         <h3 className="text-title-medium text-on-surface">Groupes</h3>
                         {!canManageConfig && <Badge variant="neutral">Lecture seule</Badge>}
+                    </div>
+
+                    <div className="rounded-card border border-outline-variant overflow-hidden">
+                        {sortedGroups.length > 0 ? (
+                            sortedGroups.map((group, index) => (
+                                <div
+                                    key={group.id}
+                                    className={`flex items-center gap-3 px-4 py-3 ${index < sortedGroups.length - 1 ? 'border-b border-outline-variant' : ''}`}
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-body-large text-on-surface truncate">{group.name}</p>
+                                        <p className="text-label-small text-on-surface-variant truncate">
+                                            {group.roleIds.length} rôle(s)
+                                        </p>
+                                    </div>
+                                    {canManageConfig && (
+                                        <IconButton
+                                            icon="delete"
+                                            aria-label={`Supprimer ${group.name}`}
+                                            variant="standard"
+                                            className="text-error"
+                                            onClick={() => onDeleteGroup(group.id, group.name)}
+                                        />
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-6">
+                                <EmptyState
+                                    icon="groups"
+                                    title="Aucun groupe"
+                                    description="Créez des groupes pour simplifier les affectations."
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <InputField
@@ -853,41 +883,6 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                         >
                             Nouveau groupe
                         </Button>
-                    </div>
-
-                    <div className="rounded-card border border-outline-variant overflow-hidden">
-                        {sortedGroups.length > 0 ? (
-                            sortedGroups.map((group, index) => (
-                                <div
-                                    key={group.id}
-                                    className={`flex items-center gap-3 px-4 py-3 ${index < sortedGroups.length - 1 ? 'border-b border-outline-variant' : ''}`}
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-body-large text-on-surface truncate">{group.name}</p>
-                                        <p className="text-label-small text-on-surface-variant truncate">
-                                            {group.roleIds.length} rôle(s)
-                                        </p>
-                                    </div>
-                                    {canManageConfig && (
-                                        <IconButton
-                                            icon="delete"
-                                            aria-label={`Supprimer ${group.name}`}
-                                            variant="standard"
-                                            className="text-error"
-                                            onClick={() => onDeleteGroup(group.id, group.name)}
-                                        />
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <div className="p-6">
-                                <EmptyState
-                                    icon="groups"
-                                    title="Aucun groupe"
-                                    description="Créez des groupes pour simplifier les affectations."
-                                />
-                            </div>
-                        )}
                     </div>
                 </div>
                 </div>

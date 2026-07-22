@@ -12,6 +12,7 @@ import SelectField from '../../../components/ui/SelectField';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import { cn } from '../../../lib/utils';
+import { MetricCard } from '../../../components/ui/MetricCard';
 
 interface PhysicalAuditViewProps {
     onViewChange?: (view: ViewType) => void;
@@ -304,7 +305,9 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
     };
 
     return (
-        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        // pb-28 mobile/medium : dégagement bas pour que le FAB ne recouvre pas les dernières
+        // rangées du tableau (colonne Statut/Action, §9.4) — pattern du détail d'audit.
+        <div className={cn('space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500', isMobile && 'pb-28')}>
             <section className="rounded-card border border-outline-variant bg-surface p-4 medium:p-5 shadow-elevation-1">
                 <div className="flex flex-col gap-4 medium:flex-row medium:items-start medium:justify-between">
                     <div>
@@ -343,31 +346,14 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                         : 'Sélectionnez un service dans la liste pour activer les actions.'}
                 </p>
 
+                {/* Rangée de stats X9 : tuiles MetricCard compactes (§9.1/§9.4) */}
                 <div className="mt-4 grid grid-cols-2 large:grid-cols-6 gap-3">
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Attendus</p>
-                        <p className="text-title-large font-semibold text-on-surface">{totals.expected}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Scannés</p>
-                        <p className="text-title-large font-semibold text-on-surface">{totals.found}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Manquants</p>
-                        <p className="text-title-large font-semibold text-error">{totals.missing}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Écarts</p>
-                        <p className="text-title-large font-semibold text-on-surface">{totals.exceptions}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Campagnes actives</p>
-                        <p className="text-title-large font-semibold text-on-surface">{totals.activeCampaigns}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Couverture</p>
-                        <p className="text-title-large font-semibold text-on-surface">{totals.coverage}%</p>
-                    </div>
+                    <MetricCard compact title="Attendus" value={totals.expected} />
+                    <MetricCard compact title="Scannés" value={totals.found} />
+                    <MetricCard compact title="Manquants" value={totals.missing} valueClassName="text-error" />
+                    <MetricCard compact title="Écarts" value={totals.exceptions} />
+                    <MetricCard compact title="Campagnes actives" value={totals.activeCampaigns} />
+                    <MetricCard compact title="Couverture" value={`${totals.coverage}%`} />
                 </div>
 
                 <div className="mt-4 rounded-md border border-outline-variant bg-surface-container-low p-3">

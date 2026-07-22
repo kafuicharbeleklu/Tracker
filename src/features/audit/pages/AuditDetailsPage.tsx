@@ -14,6 +14,7 @@ import SelectField from '../../../components/ui/SelectField';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
 import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../../types';
 import ListActionFab from '../../../components/ui/ListActionFab';
+import { MetricCard } from '../../../components/ui/MetricCard';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { useConfirmation } from '../../../context/ConfirmationContext';
@@ -481,29 +482,23 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         });
     };
 
-    return (
-        <div className="flex flex-col h-full bg-surface-container-low">
-            <div className="bg-surface border-b border-outline-variant px-page-sm medium:px-page">
-                <PageTabs
-                    activeId="details"
-                    onChange={(tabId) => {
-                        if (tabId === 'overview') {
-                            if (typeof onViewChange === 'function') {
-                                onViewChange('audit');
-                                return;
-                            }
-                            onBack();
-                        }
-                    }}
-                    items={[
-                        { id: 'overview', label: 'Vue globale' },
-                        { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
-                    ]}
-                />
-            </div>
+    const sessionTabs = (
+        <PageTabs
+            activeId={activeTab}
+            onChange={(tabId) => setActiveTab(tabId as AuditTab)}
+            items={[
+                { id: 'todo', label: 'À scanner', badge: todoItems.length },
+                { id: 'scanned', label: 'Retrouvés', badge: scannedItems.length },
+                { id: 'missing', label: 'Manquants', badge: missingItems.length },
+                { id: 'exceptions', label: 'Écarts', badge: exceptionEntries.length },
+            ]}
+        />
+    );
 
+    const heroHeader = (
             <DetailHeader
-                onBack={onBack}
+                onBack={isMobile ? undefined : onBack}
+                className={isMobile ? 'rounded-card border border-outline-variant shadow-elevation-1' : undefined}
                 pretitle={(
                     <div className="flex items-center gap-3">
                         <span className="bg-primary text-on-primary text-label-medium font-bold px-2 py-1 rounded">
@@ -536,22 +531,52 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         </Button>
                     </div>
                 )}
-                tabs={(
+                tabs={isMobile ? undefined : sessionTabs}
+            />
+    );
+
+    return (
+        <div className="flex flex-col h-full bg-surface-container-low">
+            {isMobile ? (
+                /* Chrome compact/medium réduit (§9.4) : Retour + onglets session collés sous le
+                   TopAppBar — la barre « Vue globale/Détails » disparaît (le Retour l'assume)
+                   et le héro défile avec le contenu. */
+                <div className="bg-surface border-b border-outline-variant px-page-sm medium:px-page py-1.5 flex items-center gap-1">
+                    <Button
+                        variant="text"
+                        onClick={onBack}
+                        className="h-11 w-11 min-w-0 p-0 rounded-full shrink-0 !text-on-surface-variant hover:text-on-surface"
+                        icon={<MaterialIcon name="arrow_back" size={24} />}
+                        aria-label="Retour"
+                    />
+                    <div className="flex-1 min-w-0">{sessionTabs}</div>
+                </div>
+            ) : (
+                <div className="bg-surface border-b border-outline-variant px-page-sm medium:px-page">
                     <PageTabs
-                        activeId={activeTab}
-                        onChange={(tabId) => setActiveTab(tabId as AuditTab)}
+                        activeId="details"
+                        onChange={(tabId) => {
+                            if (tabId === 'overview') {
+                                if (typeof onViewChange === 'function') {
+                                    onViewChange('audit');
+                                    return;
+                                }
+                                onBack();
+                            }
+                        }}
                         items={[
-                            { id: 'todo', label: 'À scanner', badge: todoItems.length },
-                            { id: 'scanned', label: 'Retrouvés', badge: scannedItems.length },
-                            { id: 'missing', label: 'Manquants', badge: missingItems.length },
-                            { id: 'exceptions', label: 'Écarts', badge: exceptionEntries.length },
+                            { id: 'overview', label: 'Vue globale' },
+                            { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
                         ]}
                     />
-                )}
-            />
+                </div>
+            )}
+
+            {!isMobile && heroHeader}
 
             {/* pb-28 : dégagement bas pour que le FAB ne recouvre pas le contenu */}
             <div className={cn('p-page-sm medium:p-page overflow-y-auto space-y-4', isMobile && 'pb-28')}>
+                {isMobile && heroHeader}
                 <div className="grid grid-cols-1 medium:grid-cols-3 gap-3">
                     <SelectField
                         label="Pays"
@@ -594,27 +619,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     )}
                 </div>
 
+                {/* Rangée de stats X9 : tuiles MetricCard compactes (§9.4) */}
                 <div className="grid grid-cols-2 large:grid-cols-5 gap-3">
-                    <div className="rounded-md border border-outline-variant bg-surface px-3 py-2">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Attendus</p>
-                        <p className="text-title-large font-semibold text-on-surface">{sessionTotal}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface px-3 py-2">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Retrouvés</p>
-                        <p className="text-title-large font-semibold text-on-surface">{sessionFound}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface px-3 py-2">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Manquants</p>
-                        <p className="text-title-large font-semibold text-error">{sessionMissing}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface px-3 py-2">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Écarts</p>
-                        <p className="text-title-large font-semibold text-on-surface">{sessionExceptions}</p>
-                    </div>
-                    <div className="rounded-md border border-outline-variant bg-surface px-3 py-2">
-                        <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Couverture</p>
-                        <p className="text-title-large font-semibold text-on-surface">{progressPercentage}%</p>
-                    </div>
+                    <MetricCard compact title="Attendus" value={sessionTotal} />
+                    <MetricCard compact title="Retrouvés" value={sessionFound} />
+                    <MetricCard compact title="Manquants" value={sessionMissing} valueClassName="text-error" />
+                    <MetricCard compact title="Écarts" value={sessionExceptions} />
+                    <MetricCard compact title="Couverture" value={`${progressPercentage}%`} />
                 </div>
 
                 <div className="rounded-card border border-outline-variant bg-surface px-4 py-3">

@@ -17,6 +17,8 @@ interface MetricCardProps {
   compact?: boolean;
   onClick?: () => void;
   className?: string;
+  /** Couleur sémantique de la valeur (ex. text-error pour « Manquants »). */
+  valueClassName?: string;
 }
 
 /**
@@ -30,7 +32,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   trend,
   compact = false,
   onClick,
-  className
+  className,
+  valueClassName
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!onClick) return;
@@ -62,7 +65,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             </div>
           )}
         </div>
-        <p className="text-stat-value text-on-surface">{value}</p>
+        <p className={cn("text-stat-value text-on-surface", valueClassName)}>{value}</p>
       </div>
     );
   }
@@ -91,7 +94,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Value */}
       <div className="flex-1">
-        <p className="text-stat-value text-on-surface mb-1">{value}</p>
+        <p className={cn("text-stat-value text-on-surface mb-1", valueClassName)}>{value}</p>
         {subtitle && (
           <p className="text-body-small text-on-surface-variant mt-2">{subtitle}</p>
         )}
