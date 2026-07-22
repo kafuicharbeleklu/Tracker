@@ -218,10 +218,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     isCollapsed && !isMobileOpen ? "p-3" : "p-4"
                 )}>
 
-                    {/* Header / Logo */}
+                    {/* Header / Logo — rétracté : TR puis chevron empilés sur 2 rangées, le
+                        chevron flottant (-right-3) chevauchait le badge TR de 15px (§9.5) */}
                     <div className={cn(
                         "relative flex items-center mb-6 transition-all duration-medium2 min-h-11",
-                        isCollapsed ? 'justify-center' : 'justify-between'
+                        isCollapsed && !isMobileOpen ? 'flex-col justify-center gap-1' : isCollapsed ? 'justify-center' : 'justify-between'
                     )}>
                         {isCollapsed && !isMobileOpen ? (
                             <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-body-small font-black text-primary select-none">
@@ -247,7 +248,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 onClick={() => setIsCollapsed(!isCollapsed)}
                                 className={cn(
                                     "hidden expanded:flex !text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
-                                    isCollapsed && !isMobileOpen && "!absolute -right-3 top-1/2 -translate-y-1/2 !w-8 !h-8 !min-w-8 !min-h-8 !bg-surface !text-on-surface hover:!bg-surface hover:!text-on-surface shadow-md"
+                                    isCollapsed && !isMobileOpen && "!w-11 !h-11 !min-w-11 !min-h-11 !p-0 !mx-auto"
                                 )}
                                 aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}
                                 icon={<MaterialIcon name={isCollapsed ? "chevron_right" : "chevron_left"} size={24} />}

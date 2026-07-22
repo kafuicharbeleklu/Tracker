@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from '../ui/MaterialIcon';
 import Button from '../ui/Button';
+import Tooltip from '../ui/Tooltip';
 
 interface SidebarItemProps {
     /** Material Symbols icon name */
@@ -29,14 +30,13 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 }) => {
     const badgeCount = typeof badge === 'number' ? badge : (badge ? parseInt(badge as string) : 0);
 
-    return (
+    const item = (
         <Button
             variant="text"
             size="sm"
             onClick={onClick}
             aria-label={label}
             aria-current={active ? 'page' : undefined}
-            title={isCollapsed ? label : undefined}
             className={cn(
                 "group relative !cursor-pointer !transition-all !duration-medium2 !ease-emphasized !flex !items-center !overflow-hidden",
                 "!rounded-lg",
@@ -84,15 +84,21 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
                     {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
             )}
-
-            {/* Tooltip (collapsed desktop) */}
-            {isCollapsed && (
-                <div className="hidden large:block absolute left-full ml-3 px-3 py-2 bg-inverse-surface text-inverse-on-surface text-label-medium rounded-xs opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none transition-all duration-short4 ease-emphasized whitespace-nowrap z-50 shadow-elevation-2 translate-x-[-10px] group-hover:translate-x-0 group-focus-visible:translate-x-0">
-                    {label}
-                </div>
-            )}
         </Button>
     );
+
+    // Rétracté : étiquette via la primitive Tooltip en stratégie fixed — un tooltip maison
+    // posé DANS le bouton (overflow-hidden) ou dans le scroller de la sidebar serait clippé
+    // et invisible (§9.5).
+    if (isCollapsed) {
+        return (
+            <Tooltip content={label} placement="right" strategy="fixed" delay={300}>
+                {item}
+            </Tooltip>
+        );
+    }
+
+    return item;
 };
 
 export default SidebarItem;

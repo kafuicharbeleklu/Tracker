@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect, useId } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 
 interface TooltipProps {
@@ -16,6 +17,11 @@ interface TooltipProps {
     interactive?: boolean;
     /** Custom class */
     className?: string;
+    /** 'fixed' rend la bulle dans un portail document.body (coordonnées viewport) : requis
+        quand le déclencheur vit dans un conteneur qui clippe (overflow) — un simple
+        position:fixed ne suffit pas si un ancêtre porte un transform, qui le re-capture
+        comme containing block et le re-clippe (vécu : sidebar rétractée, §9.5). */
+    strategy?: 'absolute' | 'fixed';
 }
 
 /**
@@ -33,8 +39,10 @@ const Tooltip: React.FC<TooltipProps> = ({
     delay,
     interactive,
     className,
+    strategy = 'absolute',
 }) => {
     const [visible, setVisible] = useState(false);
+    const [fixedPos, setFixedPos] = useState<{ top: number; left: number } | null>(null);
     const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +123,33 @@ const Tooltip: React.FC<TooltipProps> = ({
         right: 'left-full top-1/2 -translate-y-1/2 ml-2',
     };
 
+    const fixedTransformClasses = {
+        top: '-translate-x-1/2 -translate-y-full',
+        bottom: '-translate-x-1/2',
+        left: '-translate-x-full -translate-y-1/2',
+        right: '-translate-y-1/2',
+    };
+
+    useLayoutEffect(() => {
+        if (!visible || strategy !== 'fixed') return;
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const GAP = 8;
+        switch (placement) {
+            case 'top':
+                setFixedPos({ top: rect.top - GAP, left: rect.left + rect.width / 2 });
+                break;
+            case 'bottom':
+                setFixedPos({ top: rect.bottom + GAP, left: rect.left + rect.width / 2 });
+                break;
+            case 'left':
+                setFixedPos({ top: rect.top + rect.height / 2, left: rect.left - GAP });
+                break;
+            default:
+                setFixedPos({ top: rect.top + rect.height / 2, left: rect.right + GAP });
+        }
+    }, [visible, strategy, placement]);
+
     const isPlain = variant === 'plain';
     const childElement = React.Children.only(children);
     const existingDescribedBy = (childElement.props as Record<string, unknown>)['aria-describedby'];
@@ -124,6 +159,30 @@ const Tooltip: React.FC<TooltipProps> = ({
     const mergedChild = React.cloneElement(childElement, {
         'aria-describedby': mergedDescribedBy as string | undefined,
     });
+
+    const bubble = visible ? (
+        <div
+            id={tooltipId}
+            role="tooltip"
+            style={strategy === 'fixed' && fixedPos ? { top: fixedPos.top, left: fixedPos.left } : undefined}
+            className={cn(
+                strategy === 'fixed'
+                    ? cn('fixed z-[110]', fixedTransformClasses[placement])
+                    : cn('absolute z-[100]', placementClasses[placement]),
+                "animate-in fade-in zoom-in-95 duration-150",
+                isPlain
+                    ? "bg-inverse-surface text-inverse-on-surface text-body-small rounded-md px-2 py-1 max-w-[200px] shadow-elevation-1 pointer-events-none"
+                    : "bg-surface-container text-on-surface text-body-medium rounded-md p-4 max-w-[320px] shadow-elevation-2 pointer-events-auto",
+                className
+            )}
+            onMouseEnter={isInteractive ? showNow : undefined}
+            onMouseLeave={isInteractive ? hideWithDelay : undefined}
+            onFocusCapture={isInteractive ? showNow : undefined}
+            onBlurCapture={isInteractive ? handleBlurWithin : undefined}
+        >
+            {content}
+        </div>
+    ) : null;
 
     return (
         <div
@@ -139,27 +198,7 @@ const Tooltip: React.FC<TooltipProps> = ({
         >
             {mergedChild}
 
-            {visible && (
-                <div
-                    id={tooltipId}
-                    role="tooltip"
-                    className={cn(
-                        "absolute z-[100]",
-                        "animate-in fade-in zoom-in-95 duration-150",
-                        placementClasses[placement],
-                        isPlain
-                            ? "bg-inverse-surface text-inverse-on-surface text-body-small rounded-md px-2 py-1 max-w-[200px] shadow-elevation-1 pointer-events-none"
-                            : "bg-surface-container text-on-surface text-body-medium rounded-md p-4 max-w-[320px] shadow-elevation-2 pointer-events-auto",
-                        className
-                    )}
-                    onMouseEnter={isInteractive ? showNow : undefined}
-                    onMouseLeave={isInteractive ? hideWithDelay : undefined}
-                    onFocusCapture={isInteractive ? showNow : undefined}
-                    onBlurCapture={isInteractive ? handleBlurWithin : undefined}
-                >
-                    {content}
-                </div>
-            )}
+            {strategy === 'fixed' ? (bubble && createPortal(bubble, document.body)) : bubble}
         </div>
     );
 };
