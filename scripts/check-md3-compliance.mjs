@@ -14,6 +14,10 @@ const FORBIDDEN_PATTERNS = [
   // Design System Caterpillar : interdiction du jaune/ambre Tailwind brut
   // (la marque passe par les tokens ; warning = orange). Voir docs/DESIGN_TOKENS_SPEC.md.
   /\b(?:bg|text|border|ring)-(?:amber|yellow)-(?:50|100|200|300|400|500|600|700|800|900)\b/g,
+  // Rayons : `rounded` nu (défaut Tailwind, hors tokens) et 2xl/3xl (non remappés)
+  // sont interdits — échelle effective 2/4/8/full, voir DESIGN_TOKENS_SPEC.md §4.1.
+  /\brounded\b(?![-\w])/g,
+  /\brounded-(?:2xl|3xl)\b/g,
 ];
 const NATIVE_CONTROL_PATTERN = /<(button|input|select|textarea)\b/;
 

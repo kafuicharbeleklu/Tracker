@@ -401,7 +401,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 <MaterialIcon name="euro" size={14} className="text-tertiary" /> Acquisition Financière
                             </h3>
                             {financialEstimates && (
-                                <div className="flex items-center gap-2 bg-tertiary-container px-3 py-1 rounded-full border border-outline-variant animate-in fade-in zoom-in-95">
+                                <div className="flex items-center gap-2 bg-tertiary-container px-3 py-1 rounded-md border border-outline-variant animate-in fade-in zoom-in-95">
                                     <span className="text-label-small text-on-tertiary-container uppercase">Valeur Résiduelle :</span>
                                     <span className="text-label-large text-on-tertiary-container">{formatCurrency(financialEstimates.salvageValue, settings.currency)}</span>
                                 </div>

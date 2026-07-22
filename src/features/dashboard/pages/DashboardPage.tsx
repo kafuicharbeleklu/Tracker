@@ -454,7 +454,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     </div>
                                     <div className="space-y-2">
                                         {pendingManagerValidations.map(e => (
-                                            <div key={e.approvalId} className="bg-surface/80 p-3 rounded flex items-center justify-between backdrop-blur-sm">
+                                            <div key={e.approvalId} className="bg-surface/80 p-3 rounded-md flex items-center justify-between backdrop-blur-sm">
                                                 <div className="flex items-center gap-3">
                                                     <UserAvatar name={e.beneficiaryName || ''} src={e.beneficiaryAvatar} size="xs" />
                                                     <div className="flex flex-col">

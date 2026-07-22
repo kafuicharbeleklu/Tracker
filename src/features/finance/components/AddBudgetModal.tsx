@@ -287,10 +287,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 className="w-full h-72 border-outline-variant hover:border-tertiary hover:bg-tertiary-container/10"
                             />
                             <div className="flex gap-2 justify-center">
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded">.XLSX</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded">.CSV</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded">.PDF</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded">.JPG/.PNG</span>
+                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.XLSX</span>
+                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.CSV</span>
+                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.PDF</span>
+                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.JPG/.PNG</span>
                             </div>
                         </div>
                     ) : (

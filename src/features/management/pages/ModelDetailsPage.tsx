@@ -39,7 +39,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                 title={(
                     <span className="flex flex-wrap items-center gap-3">
                         <span>{model.name}</span>
-                        <span className="inline-flex px-2.5 py-0.5 bg-surface-container rounded-full text-label-medium font-bold text-on-surface-variant uppercase tracking-wide border border-outline-variant">
+                        <span className="inline-flex px-2.5 py-0.5 bg-surface-container rounded-md text-label-medium font-bold text-on-surface-variant uppercase tracking-wide border border-outline-variant">
                             {model.type}
                         </span>
                     </span>

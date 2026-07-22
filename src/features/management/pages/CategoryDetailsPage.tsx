@@ -102,7 +102,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                                                     loading="lazy"
                                                     decoding="async"
                                                     alt={item.name}
-                                                    className="w-8 h-8 rounded bg-surface-container object-cover"
+                                                    className="w-8 h-8 rounded-md bg-surface-container object-cover"
                                                 />
                                                 {item.name}
                                             </div>

@@ -93,7 +93,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                     ? `${approval.requesterName} → ${approval.beneficiaryName}`
                                     : approval.requesterName}
                             </span>
-                            <span className={cn('hidden medium:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-small font-medium', stepDetails.bg, stepDetails.color)}>
+                            <span className={cn('hidden medium:inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-label-small font-medium', stepDetails.bg, stepDetails.color)}>
                                 {stepDetails.icon}
                                 {stepDetails.label}
                             </span>
@@ -244,7 +244,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                     </div>
 
                     <div>
-                        <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-label-small font-medium', stepDetails.bg, stepDetails.color)}>
+                        <span className={cn('inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-label-small font-medium', stepDetails.bg, stepDetails.color)}>
                             {stepDetails.icon}
                             {stepDetails.label}
                         </span>

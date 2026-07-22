@@ -15,7 +15,7 @@ interface SearchFilterBarProps {
 
 /**
  * MD3 Search Bar.
- * Uses surface-container-high background, full rounded shape, and MD3 tokens.
+ * Uses surface-container-high background, pill shape, and MD3 tokens.
  */
 export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   searchValue,

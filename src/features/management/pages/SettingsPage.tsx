@@ -341,13 +341,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         {saveButtonLabel}
                                     </Button>
                                 ) : (
-                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant whitespace-nowrap">
+                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant whitespace-nowrap">
                                         <MaterialIcon name="check_circle" size={14} />
                                         {passiveSectionHint}
                                     </span>
                                 )}
                                 {saveFeedback && (
-                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-full bg-tertiary-container px-3 py-2 text-label-small text-on-tertiary-container whitespace-nowrap">
+                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-md bg-tertiary-container px-3 py-2 text-label-small text-on-tertiary-container whitespace-nowrap">
                                         <MaterialIcon name="done" size={14} />
                                         {saveFeedback}
                                     </span>
@@ -485,7 +485,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                         <span className="text-on-surface-variant">Valeur Résiduelle</span>
                                                         <span className="font-mono font-bold text-tertiary">{formatCurrency(simulation.salvageValue, financeForm.currency, financeForm.compactNotation)}</span>
                                                     </div>
-                                                    <div className="bg-surface/50 p-3 rounded text-body-small text-on-surface-variant italic mt-4 border border-outline-variant/50">
+                                                    <div className="bg-surface/50 p-3 rounded-md text-body-small text-on-surface-variant italic mt-4 border border-outline-variant/50">
                                                         {financeForm.defaultDepreciationMethod === 'linear'
                                                             ? '* Estimation calculée avec la formule linéaire du moteur de valorisation.'
                                                             : "* Méthode dégressive sélectionnée : le moteur de valorisation applique aujourd'hui la formule linéaire — l'aperçu reflète ce calcul réel."}
@@ -804,7 +804,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                         <p className="font-medium">Authentification 2FA</p>
                                                         <p className="text-body-medium text-on-surface-variant">Recommandé pour les administrateurs</p>
                                                         {!isTwoFactorEnabled && (
-                                                            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-error-container px-2 py-1 text-label-small text-on-error-container">
+                                                            <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-error-container px-2 py-1 text-label-small text-on-error-container">
                                                                 <MaterialIcon name="warning" size={14} />
                                                                 Protection inactive
                                                             </span>

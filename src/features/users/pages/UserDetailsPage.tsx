@@ -718,8 +718,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
 
                                         <div className="flex-1 text-center expanded:text-left">
                                             <div className="flex items-center justify-center expanded:justify-start gap-3 mb-2">
-                                                <span className="text-primary text-label-medium font-bold uppercase tracking-widest border border-primary/30 px-2 py-0.5 rounded text-[10px]">Appareil principal</span>
-                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-tertiary/20 text-tertiary text-label-small">
+                                                <span className="text-primary text-label-medium font-bold uppercase tracking-widest border border-primary/30 px-2 py-0.5 rounded-md text-[10px]">Appareil principal</span>
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tertiary/20 text-tertiary text-label-small">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
                                                     {primaryDevice.status}
                                                 </div>
@@ -785,7 +785,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                 <p className="text-body-medium text-on-surface-variant mt-1">Gérez les accès et le statut de connexion.</p>
 
                                                 <div className="flex items-center gap-3 mt-3">
-                                                    <div className={`px-2 py-0.5 rounded text-label-small font-medium border ${
+                                                    <div className={`px-2 py-0.5 rounded-md text-label-small font-medium border ${
                                                         authUser?.Status === 'active'
                                                             ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
                                                             : authUser?.Status === 'pending'
@@ -800,7 +800,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-2">
-                                                    <div className={`px-2 py-0.5 rounded text-label-small font-medium border ${
+                                                    <div className={`px-2 py-0.5 rounded-md text-label-small font-medium border ${
                                                         authUser?.PinStatus === 'active'
                                                             ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
                                                             : authUser?.PinStatus === 'pending'

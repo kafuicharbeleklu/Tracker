@@ -225,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         isCollapsed && !isMobileOpen ? 'flex-col justify-center gap-1' : isCollapsed ? 'justify-center' : 'justify-between'
                     )}>
                         {isCollapsed && !isMobileOpen ? (
-                            <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-body-small font-black text-primary select-none">
+                            <div className="w-10 h-10 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-body-small font-black text-primary select-none">
                                 TR
                             </div>
                         ) : (

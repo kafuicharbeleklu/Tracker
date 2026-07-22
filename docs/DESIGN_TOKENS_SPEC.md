@@ -102,13 +102,19 @@ Rampe **telle qu'implémentée** en Étape 1 (`--color-neutral-*`), 800 = CAT Bl
 
 ## 4. Échelles structurelles
 
-### 4.1 Rayons (7 valeurs incohérentes → 4 crans)
-| Token | Valeur | Remplace |
-|---|---|---|
-| `--radius-sm` | `6px` | `rounded-sm` |
-| `--radius-md` | `10px` (défaut) | `rounded-md` |
-| `--radius-lg` | `16px` | `rounded-lg`, `rounded-xl` |
-| `--radius-full` | `9999px` | `rounded-full` |
+### 4.1 Rayons — échelle effective **2 / 4 / 8 / full** (mise à jour 2026-07-22, audit UX §9.2)
+L'échelle réellement rendue (`index.css` `--radius-*` → `--md-sys-shape-*` → `tailwind.config.js`) :
+
+| Cran | Valeur | Nom canonique | Alias rendant la même valeur (dépréciés à l'écriture) |
+|---|---|---|---|
+| extra-small | `2px` | `rounded-xs` | — |
+| small/medium | `4px` | `rounded-md` | `rounded-sm` |
+| large | `8px` | `rounded-card` | `rounded-lg`, `rounded-xl` |
+| stade | `9999px` | `rounded-full` | `rounded-pill` (déjà déprécié en config) |
+
+**Règle d'imbrication (formalisée — c'était la pratique de facto)** : surface externe (carte, panneau, modale) = **8px** (`rounded-card`) ; élément interne (chip, vignette, champ, tuile dense) = **4px** (`rounded-md`). `rounded-full` est réservé aux éléments **circulaires** (avatars, pastilles, FAB, boutons icône) — pas aux chips texte, alignés sur la primitive `Badge` (4px).
+
+**Gardes** (`md3:check`, CI-bloquant) : `rounded` nu (0,25rem défaut Tailwind, décorrélé des tokens) et `rounded-2xl`/`rounded-3xl` (non remappés) sont interdits dans `src/`. Piège connu : les noms de variables CSS sont décalés d'un cran vs les utilitaires (`--radius-lg` = 4px alimente `rounded-md`) — en CSS artisanal, repartir des `--md-sys-shape-*`.
 
 ### 4.2 Typographie — **normalisation différée** (blocage technique)
 Le code est déjà à **82 %** sur l'échelle (`text-body/label/title-*`, 675 usages) ; ~151 usages ad-hoc subsistent (`text-xs/sm`, `text-[Npx]`, surtout dans `features/`).

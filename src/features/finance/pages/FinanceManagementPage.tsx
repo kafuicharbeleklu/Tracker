@@ -1057,7 +1057,7 @@ const FinanceManagementPage = () => {
                                         <p className="text-label-small text-on-surface-variant uppercase font-black tracking-widest mb-2">Budget Total {selectedYear}</p>
                                         <div className="text-headline-medium font-black text-on-surface">{formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)}</div>
                                         <div className="flex items-center gap-2 mt-4 text-label-medium font-bold text-on-surface-variant">
-                                            <span className={cn("px-2 py-0.5 rounded text-label-small uppercase", currentBudget.status === 'En cours' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container')}>
+                                            <span className={cn("px-2 py-0.5 rounded-md text-label-small uppercase", currentBudget.status === 'En cours' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-surface-container')}>
                                                 {currentBudget.status}
                                             </span>
                                         </div>
@@ -1094,7 +1094,7 @@ const FinanceManagementPage = () => {
                                                 <h2 className="font-bold text-on-surface text-title-medium">Détails du budget</h2>
                                                 <div className="flex items-center gap-2 text-label-small text-on-surface-variant">
                                                     {/* Règle X12 : texte sombre sur fond teinté primaire */}
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 text-on-primary-container font-semibold">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-on-primary-container font-semibold">
                                                         <MaterialIcon name="psychology" size={12} /> Analyse IA CAPEX/OPEX
                                                     </span>
                                                     <Tooltip

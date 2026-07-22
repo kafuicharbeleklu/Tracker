@@ -395,7 +395,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             <span>Commentaires / Observations</span>
                                         </div>
                                         {requiresDetailedComment && (
-                                            <span className="px-2 py-0.5 rounded-full text-label-small bg-error-container text-on-error-container border border-error/30">
+                                            <span className="px-2 py-0.5 rounded-md text-label-small bg-error-container text-on-error-container border border-error/30">
                                                 Requis
                                             </span>
                                         )}
@@ -452,7 +452,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                 <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 p-4 space-y-4 expanded:sticky expanded:top-4">
                                     <h4 className="text-title-medium text-on-surface">Impact du retour</h4>
 
-                                    <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-label-small uppercase', conditionBadgeClass)}>
+                                    <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-label-small uppercase', conditionBadgeClass)}>
                                         <MaterialIcon name="verified" size={14} />
                                         État: {condition}
                                     </div>
@@ -692,7 +692,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                     <p className="text-label-medium text-on-surface-variant uppercase tracking-wide">Accessoires restitués</p>
                                     <div className="flex flex-wrap gap-2 mt-3">
                                         {accessories.map(acc => (
-                                            <span key={acc} className="px-2.5 py-1 rounded-full text-label-small bg-surface border border-outline-variant text-on-surface">
+                                            <span key={acc} className="px-2.5 py-1 rounded-md text-label-small bg-surface border border-outline-variant text-on-surface">
                                                 {acc}
                                             </span>
                                         ))}

@@ -501,7 +501,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 className={isMobile ? 'rounded-card border border-outline-variant shadow-elevation-1' : undefined}
                 pretitle={(
                     <div className="flex items-center gap-3">
-                        <span className="bg-primary text-on-primary text-label-medium font-bold px-2 py-1 rounded">
+                        <span className="bg-primary text-on-primary text-label-medium font-bold px-2 py-1 rounded-md">
                             {auditFinalized ? 'TERMINÉ' : sessionStarted ? 'EN COURS' : 'PRÊT'}
                         </span>
                         <span className="text-on-surface-variant text-title-small font-medium">

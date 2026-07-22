@@ -740,7 +740,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                         {!signatureCaptured ? (
                                             <span className="text-label-small text-on-surface-variant uppercase tracking-widest">Signer ici</span>
                                         ) : (
-                                            <div className="flex items-center gap-2 text-on-tertiary-container bg-tertiary-container px-4 py-1.5 rounded-full shadow-elevation-1">
+                                            <div className="flex items-center gap-2 text-on-tertiary-container bg-tertiary-container px-4 py-1.5 rounded-md shadow-elevation-1">
                                                 <MaterialIcon name="check_circle" size={16} />
                                                 <span className="text-label-small uppercase tracking-wide">Signé</span>
                                             </div>

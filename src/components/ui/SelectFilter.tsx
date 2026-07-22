@@ -17,7 +17,7 @@ interface SelectFilterProps {
 }
 
 /**
- * MD3 Filter Dropdown — rounded trigger, used in toolbars.
+ * MD3 Filter Dropdown — pill-shaped trigger, used in toolbars.
  * Full keyboard navigation: ↑/↓ to navigate, Enter/Space to select, Escape to close.
  */
 export const SelectFilter: React.FC<SelectFilterProps> = ({

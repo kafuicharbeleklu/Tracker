@@ -350,6 +350,8 @@ Le référentiel demandé n'existe pas formellement : **aucun seuil tactile n'es
 
 **Proposition** : inscrire l'échelle **2/4/8/full + la règle d'imbrication** dans `DESIGN_TOKENS_SPEC.md` (nouveau point de registre) ; canoniser un nom par valeur (`xs`/`md`/`card`/`full`, les autres dépréciés en doc) ; convertir les 22 `rounded` nus ; **unifier les chips** sur la primitive (ou créer une variante `pill` unique si l'arrondi complet est souhaité pour les états — un seul choix, à trancher) ; supprimer `.control-field` ; étendre `md3:check` (interdire `rounded` nu et `rounded-2xl/3xl`). **Sévérité** : Mineur. **Effort** : XS (spec + garde + nettoyage) + S (chips, ~12 sites).
 
+> **Exécution (2026-07-22).** (1) **Spec §4.1 réécrite** : la table 6/10/16 (jamais implémentée) remplacée par l'échelle rendue 2/4/8/full, noms canoniques `xs`/`md`/`card`/`full` avec alias dépréciés, règle d'imbrication 8 externe / 4 interne formalisée, piège du décalage `--radius-*` documenté. (2) **20 `rounded` nus convertis** en `rounded-md` (10 fichiers ; le décompte 22 incluait 2 occurrences en commentaire, reformulées). (3) **Chips unifiés sur la primitive** : choix tranché = idiome `Badge` (4 px), les 11 chips texte `rounded-full` listés convertis (`ApprovalRow`, `ReturnWizard` ×3, `AddEquipment`, `AssignmentWizard`, `ModelDetails`, `SettingsPage` ×3, badge 2FA) ; `rounded-full` reste réservé au circulaire (avatars, pastilles, FAB). (4) `.control-field` supprimé d'index.css (0 consommateur). (5) **Garde `md3:check` étendue** : `rounded` nu et `rounded-2xl/3xl` interdits dans `src/` — passe au vert sur l'arbre.
+
 ### 9.3 F3 — Paramètres : adaptation réelle + déconnexion accessible
 
 **Constat (Constaté aux 3 tailles) :**

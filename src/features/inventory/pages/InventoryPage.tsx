@@ -492,7 +492,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 ) : undefined}
                                 subtitle={
                                     <div className="flex items-center gap-3">
-                                        <span className="text-label-small font-mono text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded border border-outline-variant">
+                                        <span className="text-label-small font-mono text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded-md border border-outline-variant">
                                             {item.assetId}
                                         </span>
                                         <span className="text-body-small text-on-surface-variant truncate">• {item.type}</span>

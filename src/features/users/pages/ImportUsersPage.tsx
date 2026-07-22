@@ -144,7 +144,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 <div className="bg-surface rounded-card p-page shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95 duration-300">
                     <h3 className="text-label-large font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
                     <p className="text-body-medium text-on-surface-variant mb-6">
-                        Colonnes attendues : <span className="font-mono bg-surface-container px-1 rounded">Name</span>, <span className="font-mono bg-surface-container px-1 rounded">Email</span>, <span className="font-mono bg-surface-container px-1 rounded">Role</span>, <span className="font-mono bg-surface-container px-1 rounded">Department</span>.
+                        Colonnes attendues : <span className="font-mono bg-surface-container px-1 rounded-md">Name</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Email</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Role</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Department</span>.
                     </p>
 
                     <div className="mb-8">
