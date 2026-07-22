@@ -3,6 +3,7 @@ import React, { useRef, useCallback, useEffect, useId, useState } from 'react';
 import { cn } from '../../lib/utils';
 import Badge from './Badge';
 import MaterialIcon from './MaterialIcon';
+import BottomSheet from './BottomSheet';
 
 export interface TabItem {
   id: string;
@@ -29,6 +30,10 @@ interface PageTabsProps {
       'medium' (défaut) : libellés courts <600px ; 'expanded' : aussi entre 600 et 839px —
       pour les barres où les onglets naissent hors écran même en medium (§9.3 Paramètres). */
   shortLabelBreakpoint?: 'medium' | 'expanded';
+  /** Bouton « toutes les vues » en bout de barre → feuille de bas listant les onglets
+      (décision F6 au registre X8). Rendu uniquement quand des onglets débordent ;
+      false pour le désactiver. */
+  allViewsButton?: boolean;
 }
 
 /**
@@ -44,13 +49,16 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   idBase,
   ariaLabel = 'Navigation par onglets',
   shortLabelBreakpoint = 'medium',
+  allViewsButton = true,
 }) => {
   const generatedBaseId = useId().replace(/:/g, '');
   const baseId = idBase ? sanitizeIdPart(idBase) : generatedBaseId;
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [overflow, setOverflow] = useState({ left: false, right: false });
+  const [allViewsOpen, setAllViewsOpen] = useState(false);
   const activeIndex = Math.max(0, items.findIndex((item) => item.id === activeId));
+  const showAllViewsButton = allViewsButton && (overflow.left || overflow.right);
 
   const updateOverflow = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -118,8 +126,8 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   }, [items, onChange]);
 
   return (
-    <div className={cn("w-full bg-surface border border-outline-variant rounded-xl p-1 shadow-elevation-1", className)}>
-      <div className="relative">
+    <div className={cn("w-full bg-surface border border-outline-variant rounded-xl p-1 shadow-elevation-1 flex items-center gap-1", className)}>
+      <div className="relative min-w-0 flex-1">
       <div
         ref={scrollerRef}
         onScroll={updateOverflow}
@@ -152,10 +160,10 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                   : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
               )}
             >
-              {/* Icon */}
+              {/* Icon — masquée en compact quand la place manque (X8-bis, §9.6) */}
               {item.icon && (
                 <span className={cn(
-                  "transition-colors",
+                  "hidden medium:inline-flex transition-colors",
                   isActive ? "text-on-primary" : "text-on-surface-variant group-hover:text-on-surface"
                 )}>
                   {React.isValidElement(item.icon)
@@ -234,6 +242,68 @@ export const PageTabs: React.FC<PageTabsProps> = ({
         </div>
       )}
       </div>
+
+      {/* Bouton « toutes les vues » (F6/X8) : rendu seulement quand des onglets débordent */}
+      {showAllViewsButton && (
+        <button
+          type="button"
+          onClick={() => setAllViewsOpen(true)}
+          aria-label={`Toutes les vues (${items.length})`}
+          aria-haspopup="dialog"
+          className="shrink-0 flex min-h-10 min-w-10 items-center justify-center gap-0.5 rounded-md px-1.5 text-on-surface-variant transition-colors duration-short4 hover:bg-surface-container hover:text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        >
+          <MaterialIcon name="unfold_more" size={18} />
+          <span className="text-label-small font-semibold">{items.length}</span>
+        </button>
+      )}
+      {allViewsButton && (
+        <BottomSheet
+          open={allViewsOpen}
+          onClose={() => setAllViewsOpen(false)}
+          title="Toutes les vues"
+        >
+          <nav aria-label={ariaLabel} className="flex flex-col gap-1 pb-2">
+            {items.map((item) => {
+              const isActive = activeId === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-current={isActive ? 'true' : undefined}
+                  onClick={() => {
+                    setAllViewsOpen(false);
+                    if (!isActive) onChange(item.id);
+                  }}
+                  className={cn(
+                    "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-left text-label-large transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                    isActive
+                      ? "bg-primary text-on-primary"
+                      : "text-on-surface hover:bg-surface-container"
+                  )}
+                >
+                  {item.icon && (
+                    <span className={isActive ? "text-on-primary" : "text-on-surface-variant"}>
+                      {React.isValidElement(item.icon)
+                        ? React.cloneElement(item.icon as React.ReactElement<Record<string, unknown>>, { size: 20 })
+                        : item.icon}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {item.badge !== undefined && (
+                    <Badge
+                      variant="neutral"
+                      className={cn("px-1.5 py-0 h-4 min-w-[16px]", isActive && "!bg-on-primary !text-primary")}
+                    >
+                      {item.badge}
+                    </Badge>
+                  )}
+                  {isActive && <MaterialIcon name="check" size={18} />}
+                </button>
+              );
+            })}
+          </nav>
+        </BottomSheet>
+      )}
     </div>
   );
 };

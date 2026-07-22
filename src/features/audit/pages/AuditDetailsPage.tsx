@@ -488,7 +488,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             onChange={(tabId) => setActiveTab(tabId as AuditTab)}
             items={[
                 { id: 'todo', label: 'À scanner', badge: todoItems.length },
-                { id: 'scanned', label: 'Retrouvés', badge: scannedItems.length },
+                { id: 'scanned', label: 'Retrouvés', shortLabel: 'Trouvés', badge: scannedItems.length },
                 { id: 'missing', label: 'Manquants', badge: missingItems.length },
                 { id: 'exceptions', label: 'Écarts', badge: exceptionEntries.length },
             ]}
