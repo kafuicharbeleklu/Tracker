@@ -8,7 +8,7 @@ const AccessDeniedPage: React.FC = () => {
     const { logout } = useAuth();
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-surface text-on-surface p-4">
+        <div className="min-h-dvh flex flex-col items-center justify-center bg-surface text-on-surface p-4">
             <div className="w-full max-w-md text-center space-y-6">
                 <div className="w-20 h-20 rounded-full bg-error/10 text-error flex items-center justify-center mx-auto">
                     <MaterialIcon name="gpp_bad" size={40} />

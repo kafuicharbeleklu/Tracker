@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react-router')) return 'vendor-router';
               if (id.includes('@azure/msal')) return 'vendor-msal';
               if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
               if (id.includes('html2canvas')) return 'vendor-html2canvas';

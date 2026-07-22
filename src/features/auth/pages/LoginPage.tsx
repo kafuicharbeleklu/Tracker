@@ -182,11 +182,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     ];
 
     return (
-        <div className="flex min-h-screen w-full font-sans bg-[#F8FAFC] text-[var(--color-text-primary)] overflow-x-hidden">
+        <div className="flex min-h-dvh w-full font-sans bg-[var(--color-login-page-bg)] text-[var(--color-text-primary)] overflow-x-hidden">
 
             {/* LEFT PANEL - SMARTPROCURE-ALIGNED BRAND HERO */}
             <section
-                className="hidden expanded:flex expanded:w-5/12 large:w-[40%] fixed inset-y-0 left-0 z-10 flex-col bg-[#090A0B] text-white overflow-hidden border-r border-white/5"
+                className="hidden expanded:flex expanded:w-5/12 large:w-[40%] fixed inset-y-0 left-0 z-10 flex-col bg-[var(--color-login-hero-bg)] text-white overflow-hidden border-r border-white/5"
             >
                 <div className="relative z-10 flex h-full w-full flex-col justify-between px-10 py-10 large:px-14 large:py-12">
                     <div className="flex items-center gap-3 mb-14">
@@ -228,7 +228,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </section>
 
             {/* RIGHT PANEL */}
-            <main className="w-full expanded:w-7/12 large:w-[60%] expanded:ml-auto min-h-screen flex flex-col items-center justify-center px-6 py-12 medium:px-8 large:px-16 bg-[#FBFBFA] animate-in fade-in zoom-in-95 duration-500">
+            <main className="w-full expanded:w-7/12 large:w-[60%] expanded:ml-auto min-h-dvh flex flex-col items-center justify-center px-6 py-12 medium:px-8 large:px-16 bg-[var(--color-login-surface)] animate-in fade-in zoom-in-95 duration-500">
                 <div className="w-full max-w-[480px] space-y-7 ui-panel p-6 medium:p-8">
 
                     {/* MEDIUM HERO (600-839) */}

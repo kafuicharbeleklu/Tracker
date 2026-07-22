@@ -614,6 +614,14 @@ body {
     --color-text-secondary: #57514A;
     --color-text-muted: #6E675F;
 
+    /* Connexion — univers chromatique local des panneaux (hors neutres chauds
+       du contenu, identité volontairement distincte comme le menu latéral).
+       Valeurs conservées à l'identique : tokenisées pour retirer les hex bruts
+       du composant sans dérive de rendu (constat #18). */
+    --color-login-page-bg: #F8FAFC;   /* backdrop racine (couvert par les panneaux) */
+    --color-login-surface: #FBFBFA;   /* panneau du formulaire */
+    --color-login-hero-bg: #090A0B;   /* panneau héro de marque (≥ expanded) */
+
     --color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
     --color-success-light: #d1fae5;
     --color-success-strong: #166534;

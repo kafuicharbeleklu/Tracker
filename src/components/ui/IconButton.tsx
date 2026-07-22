@@ -46,7 +46,7 @@ const VARIANT_STYLES = {
 
 /**
  * MD3 Icon Button — Standard, Filled, Tonal, and Outlined variants.
- * 48×48dp touch target, 24dp icon, with optional toggle (selected/unselected) state.
+ * 40×40dp touch target, 24dp icon, with optional toggle (selected/unselected) state.
  *
  * @see https://m3.material.io/components/icon-buttons/overview
  */
@@ -70,7 +70,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                 ref={ref}
                 disabled={disabled}
                 className={cn(
-                    // Base: 48×48dp touch target, centered icon
+                    // Base: 40×40dp touch target, centered icon
                     "inline-flex items-center justify-center w-10 h-10 rounded-lg",
                     "transition-all duration-short4 ease-emphasized",
                     "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",

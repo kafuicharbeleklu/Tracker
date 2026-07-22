@@ -366,7 +366,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     return (
-        <div className="flex h-screen bg-[var(--color-app-bg)] overflow-hidden">
+        <div className="flex h-dvh bg-[var(--color-app-bg)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
