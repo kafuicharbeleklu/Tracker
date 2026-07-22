@@ -434,6 +434,8 @@ Reproduction sur **contenu réel** (fiche Alice, 1440×900 stock, débordement 1
 
 **Proposition** : filtre pur `f(permissions, classe d'appareil)` + intitulé de section dans le tiroir (**S**) ; décision séparée : barre persistante sur les fiches (**S**, change la nav des fiches). **Sévérité** : Mineur (confort) mais **renverse une décision consignée** — à valider explicitement.
 
+> **Exécution (2026-07-22) — formule approuvée ; barre persistante sur les fiches REJETÉE (décision utilisateur : F4 montre un chrome déjà envahissant, la soustraction vide se résout en « tout afficher »).** `Sidebar.subtractPrimaryDestinations` : quand la barre du bas **ou** le rail est la nav primaire (`useRailNavigation || usesBottomNavShortcuts` — fonction des permissions et de la classe d'appareil, jamais de la page), le tiroir modal masque les 4 destinations primaires et s'étiquette **« Autres sections »**. Le Top 10 #3 est ainsi renversé proprement : l'ancien bug venait d'un filtre dépendant de la *vue courante* ; ici le prédicat est stable par classe d'appareil. Vérifié au rendu (alice.admin ET ethan.user) : compact pages à barre → tiroir = Finances/Gestion/Rôles & accès/Emplacements/Audit/Rapports + Paramètres/Déconnexion, **identique depuis Dashboard et Paramètres** ; fiche compacte sans barre (`usesBottomNavShortcuts` faux) → tiroir complet (12 destinations) ; medium rail → même complément que compact ; desktop → sidebar permanente **complète**, sans Déconnexion. Persona réduit (ethan) : barre Accueil/Actifs/Tâches, tiroir court = Audit + Paramètres + Déconnexion — se lit comme un complément, minimum garanti (jonction §9.3) tenu.
+
 ### 9.9 Synthèse
 
 | Point | Verdict | Sévérité | Effort | Décision à valider |

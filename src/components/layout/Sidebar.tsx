@@ -19,6 +19,12 @@ interface SidebarProps {
     onSettingsClick: () => void;
     /** Déconnexion à 2 taps depuis le tiroir modal (§9.3) — non rendue en sidebar permanente. */
     onLogout?: () => void;
+    /** Tiroir = complément de la barre/rail (§9.8, renverse Top 10 #3) : masque les 4
+        destinations primaires que la barre du bas ou le rail porte déjà — même fonction
+        pure des permissions que NavigationBar/NavigationRail, donc résultat identique
+        quelle que soit la page d'ouverture. Laisser false quand aucune barre n'est rendue
+        (fiches compactes : le tiroir est l'unique nav → tout afficher). */
+    subtractPrimaryDestinations?: boolean;
     className?: string;
     isModalMode?: boolean;
     isMobileOpen?: boolean;
@@ -32,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onViewChange,
     onSettingsClick,
     onLogout,
+    subtractPrimaryDestinations = false,
     className,
     isModalMode = true,
     isMobileOpen = false,
@@ -48,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (closeMobileMenu) closeMobileMenu();
     };
     const showModalDrawer = isModalMode && isMobileOpen;
+    const hidePrimary = isModalMode && subtractPrimaryDestinations;
 
     const role = currentUser?.role;
 
@@ -256,16 +264,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     </div>
 
-                    {/* Navigation Items */}
+                    {/* Navigation Items — tiroir-complément : les 4 destinations primaires ne
+                        sont rendues que si la barre/rail ne les porte pas déjà (§9.8) */}
                     <nav
-                        aria-label="Sections principales"
+                        aria-label={hidePrimary ? "Autres sections" : "Sections principales"}
                         className={cn(
                             "space-y-1 transition-all duration-medium2",
                             isCollapsed && !isMobileOpen && "flex flex-col items-center"
                         )}
                     >
+                        {hidePrimary && (
+                            <p className="px-3 pb-1 text-label-small font-semibold uppercase tracking-wider text-[var(--color-neutral-400)]">
+                                Autres sections
+                            </p>
+                        )}
 
-                        {permissions.canViewInventory && (
+                        {!hidePrimary && permissions.canViewInventory && (
                             <>
                                 <SidebarItem
                                     isCollapsed={isCollapsed && !isMobileOpen}
@@ -284,7 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </>
                         )}
 
-                        {permissions.canViewUsers && (
+                        {!hidePrimary && permissions.canViewUsers && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.users.icon}
@@ -294,7 +308,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         )}
 
-                        {permissions.canViewApprovals && (
+                        {!hidePrimary && permissions.canViewApprovals && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.approvals.icon}
