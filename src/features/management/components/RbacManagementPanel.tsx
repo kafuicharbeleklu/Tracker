@@ -744,22 +744,28 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                             sortedRoles.map((role, index) => (
                                 <div
                                     key={role.id}
-                                    className={`flex items-center gap-3 px-4 py-3 ${index < sortedRoles.length - 1 ? 'border-b border-outline-variant' : ''}`}
+                                    className={`flex flex-wrap items-center gap-x-3 gap-y-2 medium:flex-nowrap medium:gap-3 px-4 py-3 ${index < sortedRoles.length - 1 ? 'border-b border-outline-variant' : ''}`}
                                 >
-                                    <div className="min-w-0 flex-1">
+                                    {/* #5 : en compact le nom garde toute la ligne 1 (avec l'action à
+                                        droite) et les badges basculent en ligne 2 (basis-full). En medium+
+                                        order + basis-auto ramènent nom · badges · action sur une seule
+                                        ligne — disposition expanded inchangée (gaps 12px identiques). */}
+                                    <div className="min-w-0 flex-1 order-1">
                                         <p className="text-body-large text-on-surface truncate">{role.name}</p>
                                         <p className="text-label-small text-on-surface-variant truncate">{role.id}</p>
                                     </div>
-                                    <Badge variant={role.kind === 'system' ? 'info' : 'warning'}>
-                                        {role.kind === 'system' ? 'Système' : 'Personnalisé'}
-                                    </Badge>
-                                    <Badge variant="neutral">{role.permissions.length} permissions</Badge>
+                                    <div className="order-3 basis-full shrink-0 flex flex-wrap items-center gap-2 medium:order-2 medium:basis-auto medium:gap-3">
+                                        <Badge variant={role.kind === 'system' ? 'info' : 'warning'}>
+                                            {role.kind === 'system' ? 'Système' : 'Personnalisé'}
+                                        </Badge>
+                                        <Badge variant="neutral">{role.permissions.length} permissions</Badge>
+                                    </div>
                                     {canManageConfig && role.kind === 'custom' && (
                                         <IconButton
                                             icon="delete"
                                             aria-label={`Supprimer ${role.name}`}
                                             variant="standard"
-                                            className="text-error"
+                                            className="text-error order-2 shrink-0 medium:order-3"
                                             onClick={() => onDeleteRole(role)}
                                         />
                                     )}
