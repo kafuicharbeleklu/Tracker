@@ -152,10 +152,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         .slice(0, 4);
 
     const chartColors = useMemo(() => ([
-        { hex: 'var(--md-sys-color-primary)', bg: 'bg-primary' },
-        { hex: 'var(--md-sys-color-secondary)', bg: 'bg-secondary' },
-        { hex: 'var(--md-sys-color-tertiary)', bg: 'bg-tertiary' },
-        { hex: 'var(--md-sys-color-error)', bg: 'bg-error' }
+        { hex: 'var(--tk-color-primary)', bg: 'bg-primary' },
+        { hex: 'var(--tk-color-secondary)', bg: 'bg-secondary' },
+        { hex: 'var(--tk-color-tertiary)', bg: 'bg-tertiary' },
+        { hex: 'var(--tk-color-error)', bg: 'bg-error' }
     ]), []);
 
     const chartData = useMemo(() => {
@@ -186,7 +186,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 shortLabel: 'Garantie',
                 count: underWarranty.length,
                 availability: toPercent(countOperational(underWarranty), underWarranty.length),
-                stroke: 'var(--md-sys-color-primary)',
+                stroke: 'var(--tk-color-primary)',
                 dotClass: 'bg-primary'
             },
             {
@@ -194,7 +194,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 shortLabel: 'Hors garantie',
                 count: expiredWarranty.length,
                 availability: toPercent(countOperational(expiredWarranty), expiredWarranty.length),
-                stroke: 'var(--md-sys-color-tertiary)',
+                stroke: 'var(--tk-color-tertiary)',
                 dotClass: 'bg-tertiary'
             },
             {
@@ -202,7 +202,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 shortLabel: 'Sans date',
                 count: unknownWarranty.length,
                 availability: toPercent(countOperational(unknownWarranty), unknownWarranty.length),
-                stroke: 'var(--md-sys-color-outline-variant)',
+                stroke: 'var(--tk-color-outline-variant)',
                 dotClass: 'bg-outline-variant'
             }
         ];
@@ -618,7 +618,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             {/* Simple Donut Chart Representation */}
                             <div className="w-40 h-40 relative flex items-center justify-center mb-6">
                                 <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                    <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--md-sys-color-surface-container-high)" strokeWidth="3" />
+                                    <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--tk-color-surface-container-high)" strokeWidth="3" />
                                     {chartData.map((item, idx) => (
                                         <circle
                                             key={item.catName}
@@ -660,7 +660,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <div className="flex flex-col items-center justify-center py-2 relative">
                                 <div className="w-40 h-40 relative flex items-center justify-center mb-4">
                                     <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                        <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--md-sys-color-surface-container-high)" strokeWidth="3" />
+                                        <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--tk-color-surface-container-high)" strokeWidth="3" />
                                         {warrantyMetrics.segments.map(segment => (
                                             <circle
                                                 key={segment.key}

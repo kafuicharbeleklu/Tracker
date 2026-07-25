@@ -677,7 +677,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                             id={getTabPanelId(USER_DETAILS_TABS_ID_BASE, 'overview')}
                             aria-labelledby={getTabElementId(USER_DETAILS_TABS_ID_BASE, 'overview')}
                         >
-                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
+                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-medium2">
                             <div className="expanded:col-span-3 space-y-6">
                             {primaryDevice && isPhone ? (
                                 /* Variante compacte téléphone (X9) : rangée fonctionnelle au lieu du héro décoratif */
@@ -967,7 +967,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                             id={getTabPanelId(USER_DETAILS_TABS_ID_BASE, 'equipment')}
                             aria-labelledby={getTabElementId(USER_DETAILS_TABS_ID_BASE, 'equipment')}
                         >
-                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-macro">
+                            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-medium2">
                             {userEquipment.length > 0 ? (
                                 userEquipment.map(item => (
                                     <div

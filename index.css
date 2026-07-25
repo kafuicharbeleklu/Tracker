@@ -3,78 +3,95 @@
 @import "tailwindcss";
 
 /* ============================================================
-   NEEMBA TRACKER — fondations MD3 (motion, state-layer, typescale)
-   Les COULEURS vivent dans la couche de marque CAT en fin de fichier.
+   NEEMBA TRACKER — TRACKER DS, couche de tokens
+   ------------------------------------------------------------
+   Trois tiers, dans cet ordre de dépendance (DESIGN_SYSTEM.md) :
+
+     1. PRIMITIF   `--cat-*`, `--ref-*`, `--color-neutral-*`  — valeurs
+        brutes, sans signification d'usage. Interdits aux composants.
+     2. SÉMANTIQUE `--tk-*`  — les RÔLES (couleur, forme, élévation,
+        mouvement, état, typographie, espacement). SEULE couche que les
+        composants et le pont Tailwind ont le droit de consommer.
+     3. COMPOSANT  `--color-sidebar-*`, `--color-login-*`  — tokens
+        propres à un composant, dérivés du tier 2 ou de valeurs locales.
+
+   Le vocabulaire MD3 (`--md-sys-*`) n'est plus une source : il survit en
+   ALIAS @deprecated en fin de fichier, le temps de la migration.
+
+   Ce bloc-ci porte le tier 2 pour mouvement / état / typographie ;
+   couleur, forme, élévation et espacement sont dans le bloc sémantique
+   en fin de fichier (après les primitifs dont ils dépendent).
+
    L'ancienne palette tonale Amber (seed #FFC107) et son bloc dark,
    morts car intégralement recouverts par la couche de marque, ont été
    excisés le 2026-07-16 (AUDIT_DESIGN_SYSTEM.md §3 / §10, lot D).
    ============================================================ */
 
 :root {
-    /* ---- MD3 MOTION ---- */
-    --md-sys-motion-duration-short1: 50ms;
-    --md-sys-motion-duration-short2: 100ms;
-    --md-sys-motion-duration-short3: 150ms;
-    --md-sys-motion-duration-short4: 200ms;
-    --md-sys-motion-duration-medium1: 250ms;
-    --md-sys-motion-duration-medium2: 300ms;
-    --md-sys-motion-duration-medium3: 350ms;
-    --md-sys-motion-duration-medium4: 400ms;
-    --md-sys-motion-duration-long1: 450ms;
-    --md-sys-motion-duration-long2: 500ms;
-    --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
-    --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15);
-    --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0);
-    --md-sys-motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
-    --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
-    --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+    /* ---- MOUVEMENT (durées + courbes) ---- */
+    --tk-motion-duration-short1: 50ms;
+    --tk-motion-duration-short2: 100ms;
+    --tk-motion-duration-short3: 150ms;
+    --tk-motion-duration-short4: 200ms;
+    --tk-motion-duration-medium1: 250ms;
+    --tk-motion-duration-medium2: 300ms;
+    --tk-motion-duration-medium3: 350ms;
+    --tk-motion-duration-medium4: 400ms;
+    --tk-motion-duration-long1: 450ms;
+    --tk-motion-duration-long2: 500ms;
+    --tk-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+    --tk-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15);
+    --tk-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0);
+    --tk-motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+    --tk-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+    --tk-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
 
-    /* ---- MD3 STATE LAYER OPACITIES ---- */
-    --md-sys-state-hover-opacity: 0.08;
-    --md-sys-state-focus-opacity: 0.12;
-    --md-sys-state-pressed-opacity: 0.12;
+    /* ---- COUCHES D’ÉTAT (opacités) ---- */
+    --tk-state-hover-opacity: 0.08;
+    --tk-state-focus-opacity: 0.12;
+    --tk-state-pressed-opacity: 0.12;
 
-    /* ---- MD3 SHAPE / ELEVATION / SCRIM ---- */
-    --md-sys-shape-none: 0px;
-    --md-sys-elevation-0: 0px 0px 0px 0px rgba(0, 0, 0, 0);
-    --md-sys-color-scrim: #000000;
+    /* ---- Crans neutres de forme / élévation / voile ---- */
+    --tk-radius-none: 0px;
+    --tk-elevation-0: 0px 0px 0px 0px rgba(0, 0, 0, 0);
+    --tk-color-scrim: #000000;
 
-    /* ---- MD3 TYPESCALE (compléments — la couche de marque définit le reste) ---- */
-    --md-sys-typescale-display-large-size: 57px;
-    --md-sys-typescale-display-large-line-height: 64px;
-    --md-sys-typescale-display-large-weight: 400;
-    --md-sys-typescale-display-large-tracking: -0.25px;
-    --md-sys-typescale-display-medium-size: 45px;
-    --md-sys-typescale-display-medium-line-height: 52px;
-    --md-sys-typescale-display-medium-weight: 400;
-    --md-sys-typescale-display-medium-tracking: 0px;
-    --md-sys-typescale-headline-large-size: 32px;
-    --md-sys-typescale-headline-large-line-height: 40px;
-    --md-sys-typescale-headline-large-weight: 400;
-    --md-sys-typescale-headline-large-tracking: 0px;
-    --md-sys-typescale-title-small-size: 14px;
-    --md-sys-typescale-title-small-line-height: 20px;
-    --md-sys-typescale-title-small-weight: 500;
-    --md-sys-typescale-body-large-weight: 400;
-    --md-sys-typescale-body-medium-weight: 400;
-    --md-sys-typescale-body-small-size: 12px;
-    --md-sys-typescale-body-small-line-height: 16px;
-    --md-sys-typescale-body-small-weight: 400;
-    --md-sys-typescale-label-medium-size: 12px;
-    --md-sys-typescale-label-medium-line-height: 16px;
-    --md-sys-typescale-label-medium-weight: 500;
-    --md-sys-typescale-label-small-size: 11px;
-    --md-sys-typescale-label-small-line-height: 16px;
-    --md-sys-typescale-label-small-weight: 500;
+    /* ---- TYPOGRAPHIE (compléments — le bloc sémantique de fin définit le reste) ---- */
+    --tk-type-display-large-size: 57px;
+    --tk-type-display-large-line-height: 64px;
+    --tk-type-display-large-weight: 400;
+    --tk-type-display-large-tracking: -0.25px;
+    --tk-type-display-medium-size: 45px;
+    --tk-type-display-medium-line-height: 52px;
+    --tk-type-display-medium-weight: 400;
+    --tk-type-display-medium-tracking: 0px;
+    --tk-type-headline-large-size: 32px;
+    --tk-type-headline-large-line-height: 40px;
+    --tk-type-headline-large-weight: 400;
+    --tk-type-headline-large-tracking: 0px;
+    --tk-type-title-small-size: 14px;
+    --tk-type-title-small-line-height: 20px;
+    --tk-type-title-small-weight: 500;
+    --tk-type-body-large-weight: 400;
+    --tk-type-body-medium-weight: 400;
+    --tk-type-body-small-size: 12px;
+    --tk-type-body-small-line-height: 16px;
+    --tk-type-body-small-weight: 400;
+    --tk-type-label-medium-size: 12px;
+    --tk-type-label-medium-line-height: 16px;
+    --tk-type-label-medium-weight: 500;
+    --tk-type-label-small-size: 11px;
+    --tk-type-label-small-line-height: 16px;
+    --tk-type-label-small-weight: 500;
     /* Cran hors-MD3 « valeur de stat » (audit UX §9.1) : un seul rôle typographique pour
        toutes les valeurs de KPI/stats — 30px, ramené à 24px en compact via la section
        Responsive Typography. Déclaré dans cn() (src/lib/utils.ts) comme taille de texte. */
-    --md-sys-typescale-stat-value-size: 30px;
-    --md-sys-typescale-stat-value-line-height: 36px;
-    --md-sys-typescale-stat-value-weight: 700;
-    --md-sys-typescale-stat-value-tracking: 0;
-    --md-sys-typescale-stat-value-compact-size: 24px;
-    --md-sys-typescale-stat-value-compact-line-height: 28px;
+    --tk-type-stat-value-size: 30px;
+    --tk-type-stat-value-line-height: 36px;
+    --tk-type-stat-value-weight: 700;
+    --tk-type-stat-value-tracking: 0;
+    --tk-type-stat-value-compact-size: 24px;
+    --tk-type-stat-value-compact-line-height: 28px;
 }
 
 /* ---- MD3 DEFAULT EASING ---- */
@@ -83,7 +100,7 @@
 *,
 *::before,
 *::after {
-    transition-timing-function: var(--md-sys-motion-easing-standard);
+    transition-timing-function: var(--tk-motion-easing-standard);
 }
 
 
@@ -103,19 +120,19 @@
     background: currentColor;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard);
+    transition: opacity var(--tk-motion-duration-short2) var(--tk-motion-easing-standard);
 }
 
 .state-layer:hover::after {
-    opacity: var(--md-sys-state-hover-opacity);
+    opacity: var(--tk-state-hover-opacity);
 }
 
 .state-layer:focus-visible::after {
-    opacity: var(--md-sys-state-focus-opacity);
+    opacity: var(--tk-state-focus-opacity);
 }
 
 .state-layer:active::after {
-    opacity: var(--md-sys-state-pressed-opacity);
+    opacity: var(--tk-state-pressed-opacity);
 }
 
 
@@ -159,131 +176,131 @@
 /* ---- MD3 TYPOGRAPHY UTILITY CLASSES ---- */
 
 .text-display-large {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-display-large-size);
-    line-height: var(--md-sys-typescale-display-large-line-height);
-    font-weight: var(--md-sys-typescale-display-large-weight);
-    letter-spacing: var(--md-sys-typescale-display-large-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-display-large-size);
+    line-height: var(--tk-type-display-large-line-height);
+    font-weight: var(--tk-type-display-large-weight);
+    letter-spacing: var(--tk-type-display-large-tracking);
 }
 
 .text-display-medium {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-display-medium-size);
-    line-height: var(--md-sys-typescale-display-medium-line-height);
-    font-weight: var(--md-sys-typescale-display-medium-weight);
-    letter-spacing: var(--md-sys-typescale-display-medium-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-display-medium-size);
+    line-height: var(--tk-type-display-medium-line-height);
+    font-weight: var(--tk-type-display-medium-weight);
+    letter-spacing: var(--tk-type-display-medium-tracking);
 }
 
 .text-display-small {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-display-small-size);
-    line-height: var(--md-sys-typescale-display-small-line-height);
-    font-weight: var(--md-sys-typescale-display-small-weight);
-    letter-spacing: var(--md-sys-typescale-display-small-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-display-small-size);
+    line-height: var(--tk-type-display-small-line-height);
+    font-weight: var(--tk-type-display-small-weight);
+    letter-spacing: var(--tk-type-display-small-tracking);
 }
 
 .text-headline-large {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-headline-large-size);
-    line-height: var(--md-sys-typescale-headline-large-line-height);
-    font-weight: var(--md-sys-typescale-headline-large-weight);
-    letter-spacing: var(--md-sys-typescale-headline-large-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-headline-large-size);
+    line-height: var(--tk-type-headline-large-line-height);
+    font-weight: var(--tk-type-headline-large-weight);
+    letter-spacing: var(--tk-type-headline-large-tracking);
 }
 
 .text-headline-medium {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-headline-medium-size);
-    line-height: var(--md-sys-typescale-headline-medium-line-height);
-    font-weight: var(--md-sys-typescale-headline-medium-weight);
-    letter-spacing: var(--md-sys-typescale-headline-medium-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-headline-medium-size);
+    line-height: var(--tk-type-headline-medium-line-height);
+    font-weight: var(--tk-type-headline-medium-weight);
+    letter-spacing: var(--tk-type-headline-medium-tracking);
 }
 
 .text-headline-small {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-headline-small-size);
-    line-height: var(--md-sys-typescale-headline-small-line-height);
-    font-weight: var(--md-sys-typescale-headline-small-weight);
-    letter-spacing: var(--md-sys-typescale-headline-small-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-headline-small-size);
+    line-height: var(--tk-type-headline-small-line-height);
+    font-weight: var(--tk-type-headline-small-weight);
+    letter-spacing: var(--tk-type-headline-small-tracking);
 }
 
 .text-title-large {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-title-large-size);
-    line-height: var(--md-sys-typescale-title-large-line-height);
-    font-weight: var(--md-sys-typescale-title-large-weight);
-    letter-spacing: var(--md-sys-typescale-title-large-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-title-large-size);
+    line-height: var(--tk-type-title-large-line-height);
+    font-weight: var(--tk-type-title-large-weight);
+    letter-spacing: var(--tk-type-title-large-tracking);
 }
 
 .text-title-medium {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-title-medium-size);
-    line-height: var(--md-sys-typescale-title-medium-line-height);
-    font-weight: var(--md-sys-typescale-title-medium-weight);
-    letter-spacing: var(--md-sys-typescale-title-medium-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-title-medium-size);
+    line-height: var(--tk-type-title-medium-line-height);
+    font-weight: var(--tk-type-title-medium-weight);
+    letter-spacing: var(--tk-type-title-medium-tracking);
 }
 
 .text-title-small {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-title-small-size);
-    line-height: var(--md-sys-typescale-title-small-line-height);
-    font-weight: var(--md-sys-typescale-title-small-weight);
-    letter-spacing: var(--md-sys-typescale-title-small-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-title-small-size);
+    line-height: var(--tk-type-title-small-line-height);
+    font-weight: var(--tk-type-title-small-weight);
+    letter-spacing: var(--tk-type-title-small-tracking);
 }
 
 .text-body-large {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-body-large-size);
-    line-height: var(--md-sys-typescale-body-large-line-height);
-    font-weight: var(--md-sys-typescale-body-large-weight);
-    letter-spacing: var(--md-sys-typescale-body-large-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-body-large-size);
+    line-height: var(--tk-type-body-large-line-height);
+    font-weight: var(--tk-type-body-large-weight);
+    letter-spacing: var(--tk-type-body-large-tracking);
 }
 
 .text-body-medium {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-body-medium-size);
-    line-height: var(--md-sys-typescale-body-medium-line-height);
-    font-weight: var(--md-sys-typescale-body-medium-weight);
-    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-body-medium-size);
+    line-height: var(--tk-type-body-medium-line-height);
+    font-weight: var(--tk-type-body-medium-weight);
+    letter-spacing: var(--tk-type-body-medium-tracking);
 }
 
 .text-body-small {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-body-small-size);
-    line-height: var(--md-sys-typescale-body-small-line-height);
-    font-weight: var(--md-sys-typescale-body-small-weight);
-    letter-spacing: var(--md-sys-typescale-body-small-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-body-small-size);
+    line-height: var(--tk-type-body-small-line-height);
+    font-weight: var(--tk-type-body-small-weight);
+    letter-spacing: var(--tk-type-body-small-tracking);
 }
 
 .text-label-large {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-label-large-size);
-    line-height: var(--md-sys-typescale-label-large-line-height);
-    font-weight: var(--md-sys-typescale-label-large-weight);
-    letter-spacing: var(--md-sys-typescale-label-large-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-label-large-size);
+    line-height: var(--tk-type-label-large-line-height);
+    font-weight: var(--tk-type-label-large-weight);
+    letter-spacing: var(--tk-type-label-large-tracking);
 }
 
 .text-label-medium {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-label-medium-size);
-    line-height: var(--md-sys-typescale-label-medium-line-height);
-    font-weight: var(--md-sys-typescale-label-medium-weight);
-    letter-spacing: var(--md-sys-typescale-label-medium-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-label-medium-size);
+    line-height: var(--tk-type-label-medium-line-height);
+    font-weight: var(--tk-type-label-medium-weight);
+    letter-spacing: var(--tk-type-label-medium-tracking);
 }
 
 .text-label-small {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-label-small-size);
-    line-height: var(--md-sys-typescale-label-small-line-height);
-    font-weight: var(--md-sys-typescale-label-small-weight);
-    letter-spacing: var(--md-sys-typescale-label-small-tracking);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-label-small-size);
+    line-height: var(--tk-type-label-small-line-height);
+    font-weight: var(--tk-type-label-small-weight);
+    letter-spacing: var(--tk-type-label-small-tracking);
 }
 
 .text-stat-value {
-    font-family: var(--md-sys-typescale-font-brand);
-    font-size: var(--md-sys-typescale-stat-value-size);
-    line-height: var(--md-sys-typescale-stat-value-line-height);
-    font-weight: var(--md-sys-typescale-stat-value-weight);
-    letter-spacing: var(--md-sys-typescale-stat-value-tracking);
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-stat-value-size);
+    line-height: var(--tk-type-stat-value-line-height);
+    font-weight: var(--tk-type-stat-value-weight);
+    letter-spacing: var(--tk-type-stat-value-tracking);
 }
 
 
@@ -297,23 +314,23 @@ html {
 }
 
 body {
-    font-family: var(--md-sys-typescale-font-plain);
-    font-size: var(--md-sys-typescale-body-medium-size);
-    line-height: var(--md-sys-typescale-body-medium-line-height);
-    letter-spacing: var(--md-sys-typescale-body-medium-tracking);
-    color: var(--md-sys-color-on-surface);
-    background-color: var(--md-sys-color-surface);
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-body-medium-size);
+    line-height: var(--tk-type-body-medium-line-height);
+    letter-spacing: var(--tk-type-body-medium-tracking);
+    color: var(--tk-color-on-surface);
+    background-color: var(--tk-color-surface);
     transition:
-        color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
-        background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+        color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard),
+        background-color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard);
 }
 
 #root {
     color: inherit;
     background-color: inherit;
     transition:
-        color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
-        background-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+        color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard),
+        background-color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard);
 }
 
 /* Material Symbols configuration */
@@ -346,12 +363,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--md-sys-color-outline-variant);
-    border-radius: var(--md-sys-shape-full);
+    background: var(--tk-color-outline-variant);
+    border-radius: var(--tk-radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--md-sys-color-outline);
+    background: var(--tk-color-outline);
 }
 
 
@@ -382,7 +399,7 @@ body {
 }
 
 .animate-in {
-    animation: enter var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized-decelerate) backwards;
+    animation: enter var(--tk-motion-duration-medium2) var(--tk-motion-easing-emphasized-decelerate) backwards;
     --tw-enter-opacity: 1;
     --tw-enter-scale: 1;
     --tw-enter-rotate: 0;
@@ -398,7 +415,7 @@ body {
 }
 
 .animate-out {
-    animation: exit var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-emphasized-accelerate) forwards;
+    animation: exit var(--tk-motion-duration-short4) var(--tk-motion-easing-emphasized-accelerate) forwards;
     --tw-exit-opacity: 1;
     --tw-exit-scale: 1;
     --tw-exit-rotate: 0;
@@ -483,15 +500,15 @@ body {
 }
 
 .duration-200 {
-    animation-duration: var(--md-sys-motion-duration-short4);
+    animation-duration: var(--tk-motion-duration-short4);
 }
 
 .duration-300 {
-    animation-duration: var(--md-sys-motion-duration-medium2);
+    animation-duration: var(--tk-motion-duration-medium2);
 }
 
 .duration-500 {
-    animation-duration: var(--md-sys-motion-duration-long2);
+    animation-duration: var(--tk-motion-duration-long2);
 }
 
 .duration-700 {
@@ -541,45 +558,45 @@ body {
 }
 
 .animate-linear-indeterminate {
-    animation: linear-indeterminate 1.8s var(--md-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) infinite;
+    animation: linear-indeterminate 1.8s var(--tk-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) infinite;
 }
 
 /* Responsive Typography — Compact viewport (<600dp) */
 /* Display/Headline sizes step down one level for readability */
 @media (max-width: 599px) {
     .text-display-large {
-        font-size: var(--md-sys-typescale-display-medium-size);
-        line-height: var(--md-sys-typescale-display-medium-line-height);
+        font-size: var(--tk-type-display-medium-size);
+        line-height: var(--tk-type-display-medium-line-height);
     }
 
     .text-display-medium {
-        font-size: var(--md-sys-typescale-display-small-size);
-        line-height: var(--md-sys-typescale-display-small-line-height);
+        font-size: var(--tk-type-display-small-size);
+        line-height: var(--tk-type-display-small-line-height);
     }
 
     .text-display-small {
-        font-size: var(--md-sys-typescale-headline-large-size);
-        line-height: var(--md-sys-typescale-headline-large-line-height);
+        font-size: var(--tk-type-headline-large-size);
+        line-height: var(--tk-type-headline-large-line-height);
     }
 
     .text-headline-large {
-        font-size: var(--md-sys-typescale-headline-medium-size);
-        line-height: var(--md-sys-typescale-headline-medium-line-height);
+        font-size: var(--tk-type-headline-medium-size);
+        line-height: var(--tk-type-headline-medium-line-height);
     }
 
     .text-headline-medium {
-        font-size: var(--md-sys-typescale-headline-small-size);
-        line-height: var(--md-sys-typescale-headline-small-line-height);
+        font-size: var(--tk-type-headline-small-size);
+        line-height: var(--tk-type-headline-small-line-height);
     }
 
     .text-headline-small {
-        font-size: var(--md-sys-typescale-title-large-size);
-        line-height: var(--md-sys-typescale-title-large-line-height);
+        font-size: var(--tk-type-title-large-size);
+        line-height: var(--tk-type-title-large-line-height);
     }
 
     .text-stat-value {
-        font-size: var(--md-sys-typescale-stat-value-compact-size);
-        line-height: var(--md-sys-typescale-stat-value-compact-line-height);
+        font-size: var(--tk-type-stat-value-compact-size);
+        line-height: var(--tk-type-stat-value-compact-line-height);
     }
 }
 
@@ -604,11 +621,15 @@ body {
 }
 
 /* ============================================================
-   SmartProcure UI compatibility layer
-   Keeps the app architecture intact while aligning shared tokens
-   with the SmartProcure visual system.
+   TRACKER DS — TIER 1 : PRIMITIFS (référence)
+   ------------------------------------------------------------
+   Valeurs brutes de la marque. Aucune signification d'usage : un
+   composant qui consomme un primitif court-circuite le design system
+   (et bloquerait un futur thème sombre, qui ne rebranche que le tier 2).
+   Interdits hors de ce fichier — garde : scripts/check-design-tokens.mjs.
    ============================================================ */
 :root {
+    /* ---- Fontes ---- */
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
@@ -622,16 +643,6 @@ body {
     --color-anthracite: #2E2725;
     --color-anthracite-strong: #1C1917;
 
-    --color-sidebar-bg: #1C1917;
-    --color-sidebar-border: #2E2725;
-    /* Q-V3 (révisé) : dégradé du menu latéral tokenisé, valeurs d'origine
-       conservées — le rendu sombre froid est une préférence retenue,
-       identité volontairement distincte des neutres chauds du contenu. */
-    --color-sidebar-gradient-from: #131517;
-    --color-sidebar-gradient-to: #111315;
-    --color-sidebar-active-text: #1A1A1A;
-    --color-sidebar-logo-bg: #262320;
-
     /* Échelle de référence marque (spec §2.1) — courte à dessein (Q-V5) :
        50/100/200 pour fonds/bordures d'accent ; 500/600/700 ci-dessous
        (= brand / brand-hover / brand-dark). Tout palier de plus doit être justifié. */
@@ -639,47 +650,7 @@ body {
     --ref-brand-100: #FFF1C2;
     --ref-brand-200: #FEE491;
 
-    --color-brand: var(--cat-yellow);
-    --color-brand-hover: #E3B40C;
-    --color-brand-dark: #B88E09;
-    --color-brand-text: #1A1A1A;
-
-    --color-app-bg: #FAF9F7;
-    --color-surface: #ffffff;
-    --color-surface-muted: #F4F2EF;
-    --color-text-primary: #1C1917;
-    --color-text-secondary: #57514A;
-    --color-text-muted: #6E675F;
-
-    /* Connexion — univers chromatique local des panneaux (hors neutres chauds
-       du contenu, identité volontairement distincte comme le menu latéral).
-       Valeurs conservées à l'identique : tokenisées pour retirer les hex bruts
-       du composant sans dérive de rendu (constat #18). */
-    --color-login-page-bg: #F8FAFC;   /* backdrop racine (couvert par les panneaux) */
-    --color-login-surface: #FBFBFA;   /* panneau du formulaire */
-    --color-login-hero-bg: #090A0B;   /* panneau héro de marque (≥ expanded) */
-
-    --color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
-    --color-success-light: #d1fae5;
-    --color-success-strong: #166534;
-    /* ⚠️ Répartition des rôles imposée par le contraste (AUDIT_MOBILE #14, §7) :
-       #E8710A ne fait que 3,09:1 sur blanc → INTERDIT en texte normal sur fond clair.
-       Réservé aux FONDS (`bg-warning`, `bg-warning/10`), aux BORDURES, aux ICÔNES et
-       au grand texte (≥ 3:1 suffit, WCAG 1.4.3/1.4.11).
-       Tout TEXTE de couleur avertissement sur fond clair passe par `warning-strong`
-       (#9A3412 : 6,60:1 sur le fond `bg-warning/10`, 7,31:1 sur blanc). C'est déjà la
-       règle appliquée par Badge (`bg-warning-light text-warning-strong`) et
-       ConfirmationDialog — ne pas réintroduire `text-warning`. */
-    --color-warning: #E8710A;
-    --color-warning-light: #FDEBD9;
-    --color-warning-strong: #9A3412;
-    --color-danger: #DC2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
-    --color-danger-light: #fee2e2;
-    --color-danger-strong: #991B1B;
-    --color-info: #2563EB; /* AA texte et rempli : 5,17:1 (Q-V1) */
-    --color-info-light: #dbeafe;
-    --color-info-strong: #1E40AF;
-
+    /* ---- Rampe de neutres chauds ---- */
     --color-neutral-50: #FAF9F7;
     --color-neutral-100: #F4F2EF;
     --color-neutral-200: #E8E4DF;
@@ -688,7 +659,8 @@ body {
        --color-sidebar-bg (#1C1917) et 7,17:1 sur le dégradé du tiroir,
        mais seulement 2,55:1 sur blanc (AUDIT_MOBILE #14).
        Sur fond clair il ne peut porter que du décoratif/désactivé — pour du texte
-       informatif, descendre à neutral-500 (4,69:1) ou plus foncé. */
+       informatif, descendre à neutral-500 (4,69:1) ou plus foncé.
+       Rôle sémantique correspondant : --tk-color-on-nav-surface-variant. */
     --color-neutral-400: #A8A199;
     --color-neutral-500: #79736B;
     --color-neutral-600: #57514A;
@@ -696,137 +668,233 @@ body {
     --color-neutral-800: #2E2725;
     --color-neutral-900: #1C1917;
 
-    --color-border-default: var(--color-neutral-200);
-    --color-border-subtle: var(--color-neutral-100);
-    --color-border-strong: #8E877E; /* AA 3:1 — bordures de contrôles (inputs, outline) */
+    /* Blanc de surface : valeur brute, sans rôle propre — le rôle est
+       --tk-color-surface (et ses déclinaisons container-*). */
+    --color-surface: #ffffff;
+}
+
+
+/* ============================================================
+   TRACKER DS — TIER 2 : COUCHE SÉMANTIQUE (`--tk-*`)
+   ------------------------------------------------------------
+   Les RÔLES. C'est la seule couche que consomment les composants et le
+   pont Tailwind (tailwind.config.js). Un rôle pointe vers un primitif ou
+   vers un autre rôle — JAMAIS vers un alias @deprecated (cycle).
+   Suite du tier 2 (mouvement / état / typographie) : bloc de tête.
+   ============================================================ */
+:root {
+    /* ---- Couleur — marque ---- */
+    --tk-color-brand: var(--cat-yellow);
+    --tk-color-brand-hover: #E3B40C;
+    --tk-color-brand-dark: #B88E09;
+    --tk-color-brand-text: #1A1A1A;
+
+    /* ---- Couleur — fonds et textes du contenu ---- */
+    --tk-color-app-bg: #FAF9F7;
+    --tk-color-surface-muted: #F4F2EF;
+    --tk-color-text-primary: #1C1917;
+    --tk-color-text-secondary: #57514A;
+    --tk-color-text-muted: #6E675F;
+
+    /* ---- Couleur — statuts ---- */
+    --tk-color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
+    --tk-color-success-light: #d1fae5;
+    --tk-color-success-strong: #166534;
+    /* ⚠️ Répartition des rôles imposée par le contraste (AUDIT_MOBILE #14, §7) :
+       #E8710A ne fait que 3,09:1 sur blanc → INTERDIT en texte normal sur fond clair.
+       Réservé aux FONDS (`bg-warning`, `bg-warning/10`), aux BORDURES, aux ICÔNES et
+       au grand texte (≥ 3:1 suffit, WCAG 1.4.3/1.4.11).
+       Tout TEXTE de couleur avertissement sur fond clair passe par `warning-strong`
+       (#9A3412 : 6,60:1 sur le fond `bg-warning/10`, 7,31:1 sur blanc). C'est déjà la
+       règle appliquée par Badge (`bg-warning-light text-warning-strong`) et
+       ConfirmationDialog — ne pas réintroduire `text-warning`. */
+    --tk-color-warning: #E8710A;
+    --tk-color-warning-light: #FDEBD9;
+    --tk-color-warning-strong: #9A3412;
+    --tk-color-danger: #DC2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
+    --tk-color-danger-light: #fee2e2;
+    --tk-color-danger-strong: #991B1B;
+    --tk-color-info: #2563EB; /* AA texte et rempli : 5,17:1 (Q-V1) */
+    --tk-color-info-light: #dbeafe;
+    --tk-color-info-strong: #1E40AF;
+
+    /* ---- Couleur — bordures ---- */
+    --tk-color-border-default: var(--color-neutral-200);
+    --tk-color-border-strong: #8E877E; /* AA 3:1 — bordures de contrôles (inputs, outline) */
 
     /* Q-V2 : indicateur de focus clavier unifié — opaque (≥13:1 sur surface claire).
        Sur surface sombre (sidebar/rail), l'indicateur est le jaune opaque.
        Le jaune reste le code de la SÉLECTION, jamais du focus sur fond clair. */
-    --color-focus-ring: var(--color-anthracite);
+    --tk-color-focus-ring: var(--color-anthracite);
 
-    /* Rayons — 4 crans carrés/industriels (CAT) : 2 / 4 / 6 / 8 px + full */
-    --radius-sm: 2px;
-    --radius-md: 4px;
-    --radius-lg: 4px;
-    --radius-xl: 8px;
-    --radius-2xl: 8px;
-    --radius-full: 9999px;
+    /* ---- Couleur — accents ---- */
+    --tk-color-primary: var(--tk-color-brand);
+    --tk-color-on-primary: var(--tk-color-brand-text);
+    --tk-color-primary-container: #fff4b8;
+    --tk-color-on-primary-container: #2f2500;
+    --tk-color-inverse-primary: var(--tk-color-brand);
+    --tk-color-primary-hover: var(--tk-color-brand-hover);
 
-    --text-title-1: 1.875rem;
-    --text-title-2: 1.375rem;
-    --text-title-3: 1.125rem;
-    --text-body: 0.875rem;
-    --text-caption: 0.75rem;
+    --tk-color-secondary: var(--color-neutral-700);
+    --tk-color-on-secondary: #ffffff;
+    --tk-color-secondary-container: var(--color-neutral-100);
+    --tk-color-on-secondary-container: var(--color-neutral-900);
 
-    --md-sys-color-primary: var(--color-brand);
-    --md-sys-color-on-primary: var(--color-brand-text);
-    --md-sys-color-primary-container: #fff4b8;
-    --md-sys-color-on-primary-container: #2f2500;
-    --md-sys-color-inverse-primary: var(--color-brand);
+    /* `tertiary` porte la sémantique « positif / succès » dans toute l'app
+       (stock disponible, tendances à la hausse, toasts de succès, états validés).
+       Reste vert, jamais bleu. */
+    --tk-color-tertiary: var(--tk-color-success);
+    --tk-color-on-tertiary: #ffffff;
+    --tk-color-tertiary-container: var(--tk-color-success-light);
+    --tk-color-on-tertiary-container: #065f46;
 
-    --md-sys-color-secondary: var(--color-neutral-700);
-    --md-sys-color-on-secondary: #ffffff;
-    --md-sys-color-secondary-container: var(--color-neutral-100);
-    --md-sys-color-on-secondary-container: var(--color-neutral-900);
+    --tk-color-error: var(--tk-color-danger);
+    --tk-color-on-error: #ffffff;
+    --tk-color-error-container: var(--tk-color-danger-light);
+    --tk-color-on-error-container: #7f1d1d;
 
-    /* Tertiary carries the "positive / success" semantic across the app
-       (available stock, up-trends, success toasts, validated states).
-       SmartProcure uses green for these — keep it green, not blue. */
-    --md-sys-color-tertiary: var(--color-success);
-    --md-sys-color-on-tertiary: #ffffff;
-    --md-sys-color-tertiary-container: var(--color-success-light);
-    --md-sys-color-on-tertiary-container: #065f46;
+    /* ---- Couleur — surfaces et contours ---- */
+    --tk-color-surface: var(--color-surface);
+    --tk-color-surface-variant: var(--color-neutral-100);
+    --tk-color-surface-dim: var(--color-neutral-100);
+    --tk-color-surface-bright: var(--color-surface);
+    --tk-color-surface-container-lowest: var(--color-surface);
+    --tk-color-surface-container-low: var(--color-surface);
+    --tk-color-surface-container: var(--tk-color-surface-muted);
+    --tk-color-surface-container-high: var(--color-neutral-100);
+    --tk-color-surface-container-highest: var(--color-neutral-100);
+    --tk-color-on-surface: var(--tk-color-text-primary);
+    --tk-color-on-surface-variant: var(--tk-color-text-muted);
+    --tk-color-inverse-surface: var(--color-neutral-900);
+    --tk-color-inverse-on-surface: #ffffff;
+    --tk-color-outline: var(--tk-color-border-strong);
+    --tk-color-outline-variant: var(--tk-color-border-default);
+    --tk-color-background: var(--tk-color-app-bg);
+    --tk-color-on-background: var(--tk-color-text-primary);
 
-    --md-sys-color-error: var(--color-danger);
-    --md-sys-color-on-error: #ffffff;
-    --md-sys-color-error-container: var(--color-danger-light);
-    --md-sys-color-on-error-container: #7f1d1d;
+    /* ---- Couleur — remplissage neutre sombre ----
+       Rôle du bouton `tonal` (action secondaire pleine, texte inversé). Évite
+       à Button de consommer directement les primitifs --color-anthracite*. */
+    --tk-color-neutral-fill: var(--color-anthracite);
+    --tk-color-neutral-fill-hover: var(--color-anthracite-strong);
 
-    --md-sys-color-surface: var(--color-surface);
-    --md-sys-color-surface-variant: var(--color-neutral-100);
-    --md-sys-color-surface-dim: var(--color-neutral-100);
-    --md-sys-color-surface-bright: var(--color-surface);
-    --md-sys-color-surface-container-lowest: var(--color-surface);
-    --md-sys-color-surface-container-low: var(--color-surface);
-    --md-sys-color-surface-container: var(--color-surface-muted);
-    --md-sys-color-surface-container-high: var(--color-neutral-100);
-    --md-sys-color-surface-container-highest: var(--color-neutral-100);
-    --md-sys-color-on-surface: var(--color-text-primary);
-    --md-sys-color-on-surface-variant: var(--color-text-muted);
-    --md-sys-color-inverse-surface: var(--color-neutral-900);
-    --md-sys-color-inverse-on-surface: #ffffff;
-    --md-sys-color-outline: var(--color-border-strong);
-    --md-sys-color-outline-variant: var(--color-border-default);
-    --md-sys-color-background: var(--color-app-bg);
-    --md-sys-color-on-background: var(--color-text-primary);
+    /* ---- Couleur — texte sur surface de navigation SOMBRE ----
+       Le menu latéral / rail / tiroir sont une famille de surfaces sombres :
+       le couple on-surface/on-surface-variant du contenu clair y est illisible.
+       Ces deux rôles évitent aux primitives (`Button variant=nav`, `IconButton`,
+       `NavButton`) de consommer directement le primitif --color-neutral-400. */
+    --tk-color-on-nav-surface: #ffffff;
+    --tk-color-on-nav-surface-variant: var(--color-neutral-400);
 
-    --color-primary-default: var(--color-brand);
-    --color-primary-hover: var(--color-brand-hover);
-    --color-primary-light: #fff4b8;
-    --color-primary-dark: var(--color-brand-dark);
+    /* ---- Forme — 4 crans carrés/industriels (CAT) : 2 / 4 / 8 px + full ----
+       `--tk-radius-none` est déclaré dans le bloc de tête. */
+    --tk-radius-xs: 2px;
+    --tk-radius-sm: 4px;
+    --tk-radius-md: 4px;
+    --tk-radius-lg: 8px;
+    --tk-radius-xl: 8px;
+    --tk-radius-full: 9999px;
 
-    --md-sys-shape-extra-small: var(--radius-sm);
-    --md-sys-shape-small: var(--radius-md);
-    --md-sys-shape-medium: var(--radius-lg);
-    --md-sys-shape-large: var(--radius-xl);
-    --md-sys-shape-extra-large: var(--radius-2xl);
-    --md-sys-shape-full: var(--radius-full);
+    /* ---- Élévation — `--tk-elevation-0` est déclaré dans le bloc de tête. ---- */
+    --tk-elevation-1: 0 1px 2px rgb(15 23 42 / 0.04);
+    --tk-elevation-2: 0 4px 12px rgb(15 23 42 / 0.08);
+    --tk-elevation-3: 0 10px 24px rgb(15 23 42 / 0.10);
+    --tk-elevation-4: 0 18px 42px rgb(15 23 42 / 0.14);
+    --tk-elevation-5: 0 24px 60px rgb(15 23 42 / 0.16);
 
-    --md-sys-elevation-1: 0 1px 2px rgb(15 23 42 / 0.04);
-    --md-sys-elevation-2: 0 4px 12px rgb(15 23 42 / 0.08);
-    --md-sys-elevation-3: 0 10px 24px rgb(15 23 42 / 0.10);
-    --md-sys-elevation-4: 0 18px 42px rgb(15 23 42 / 0.14);
-    --md-sys-elevation-5: 0 24px 60px rgb(15 23 42 / 0.16);
+    /* ---- Espacement — crans nommés du DS (pont Tailwind : p-page, p-card…) ----
+       Étaient des littéraux dans tailwind.config.js : tokenisés ici pour que
+       l'espacement soit lisible et surchargeable comme le reste du tier 2. */
+    --tk-space-page: 1.5rem;
+    --tk-space-page-sm: 1rem;
+    --tk-space-card: 1.5rem;
+    --tk-space-card-compact: 1rem;
 
-    --md-sys-typescale-font-brand: var(--font-sans);
-    --md-sys-typescale-font-plain: var(--font-sans);
-    --md-sys-typescale-display-small-size: 30px;
-    --md-sys-typescale-display-small-line-height: 36px;
-    --md-sys-typescale-display-small-weight: 600;
-    --md-sys-typescale-display-small-tracking: 0;
-    --md-sys-typescale-headline-medium-size: 22px;
-    --md-sys-typescale-headline-medium-line-height: 30px;
-    --md-sys-typescale-headline-medium-weight: 600;
-    --md-sys-typescale-headline-medium-tracking: 0;
-    --md-sys-typescale-headline-small-size: 18px;
-    --md-sys-typescale-headline-small-line-height: 24px;
-    --md-sys-typescale-headline-small-weight: 700;
-    --md-sys-typescale-headline-small-tracking: 0;
-    --md-sys-typescale-title-large-size: 18px;
-    --md-sys-typescale-title-large-line-height: 24px;
-    --md-sys-typescale-title-large-weight: 700;
-    --md-sys-typescale-title-large-tracking: 0;
-    --md-sys-typescale-title-medium-size: 16px;
-    --md-sys-typescale-title-medium-line-height: 22px;
-    --md-sys-typescale-title-medium-weight: 700;
-    --md-sys-typescale-title-medium-tracking: 0;
-    --md-sys-typescale-title-small-tracking: 0;
-    --md-sys-typescale-body-large-size: 14px;
-    --md-sys-typescale-body-large-line-height: 20px;
-    --md-sys-typescale-body-large-tracking: 0;
-    --md-sys-typescale-body-medium-size: 14px;
-    --md-sys-typescale-body-medium-line-height: 20px;
-    --md-sys-typescale-body-medium-tracking: 0;
-    --md-sys-typescale-body-small-tracking: 0;
-    --md-sys-typescale-label-large-size: 14px;
-    --md-sys-typescale-label-large-line-height: 20px;
-    --md-sys-typescale-label-large-weight: 600;
-    --md-sys-typescale-label-large-tracking: 0;
-    --md-sys-typescale-label-medium-tracking: 0;
-    --md-sys-typescale-label-small-tracking: 0.075em;
+    /* ---- Typographie — fontes de rôle ---- */
+    --tk-type-font-brand: var(--font-sans);
+    --tk-type-font-plain: var(--font-sans);
+
+    /* ---- Typographie — crans hérités encore consommés par les classes
+       .page-title / .section-title / body (doublons de l'échelle ci-dessous,
+       à consolider : voir DESIGN_SYSTEM.md §5). ---- */
+    --tk-type-page-title-size: 1.875rem;
+    --tk-type-section-title-size: 1.125rem;
+    --tk-type-base-size: 0.875rem;
+
+    /* ---- Typographie — échelle de rôles ---- */
+    --tk-type-display-small-size: 30px;
+    --tk-type-display-small-line-height: 36px;
+    --tk-type-display-small-weight: 600;
+    --tk-type-display-small-tracking: 0;
+    --tk-type-headline-medium-size: 22px;
+    --tk-type-headline-medium-line-height: 30px;
+    --tk-type-headline-medium-weight: 600;
+    --tk-type-headline-medium-tracking: 0;
+    --tk-type-headline-small-size: 18px;
+    --tk-type-headline-small-line-height: 24px;
+    --tk-type-headline-small-weight: 700;
+    --tk-type-headline-small-tracking: 0;
+    --tk-type-title-large-size: 18px;
+    --tk-type-title-large-line-height: 24px;
+    --tk-type-title-large-weight: 700;
+    --tk-type-title-large-tracking: 0;
+    --tk-type-title-medium-size: 16px;
+    --tk-type-title-medium-line-height: 22px;
+    --tk-type-title-medium-weight: 700;
+    --tk-type-title-medium-tracking: 0;
+    --tk-type-title-small-tracking: 0;
+    --tk-type-body-large-size: 14px;
+    --tk-type-body-large-line-height: 20px;
+    --tk-type-body-large-tracking: 0;
+    --tk-type-body-medium-size: 14px;
+    --tk-type-body-medium-line-height: 20px;
+    --tk-type-body-medium-tracking: 0;
+    --tk-type-body-small-tracking: 0;
+    --tk-type-label-large-size: 14px;
+    --tk-type-label-large-line-height: 20px;
+    --tk-type-label-large-weight: 600;
+    --tk-type-label-large-tracking: 0;
+    --tk-type-label-medium-tracking: 0;
+    --tk-type-label-small-tracking: 0.075em;
+}
+
+
+/* ============================================================
+   TRACKER DS — TIER 3 : TOKENS DE COMPOSANT
+   ------------------------------------------------------------
+   Portée d'un seul composant. Consommables par CE composant uniquement.
+   Renommage en `--tk-cmp-*` : reporté (DESIGN_SYSTEM.md §7).
+   ============================================================ */
+:root {
+    /* Menu latéral / rail — Q-V3 (révisé) : dégradé tokenisé, valeurs d'origine
+       conservées — le rendu sombre froid est une préférence retenue, identité
+       volontairement distincte des neutres chauds du contenu. */
+    --color-sidebar-bg: #1C1917;
+    --color-sidebar-border: #2E2725;
+    --color-sidebar-gradient-from: #131517;
+    --color-sidebar-gradient-to: #111315;
+    --color-sidebar-active-text: #1A1A1A;
+    --color-sidebar-logo-bg: #262320;
+
+    /* Connexion — univers chromatique local des panneaux (hors neutres chauds
+       du contenu, identité volontairement distincte comme le menu latéral).
+       Valeurs conservées à l'identique : tokenisées pour retirer les hex bruts
+       du composant sans dérive de rendu (constat #18). */
+    --color-login-page-bg: #F8FAFC;   /* backdrop racine (couvert par les panneaux) */
+    --color-login-surface: #FBFBFA;   /* panneau du formulaire */
+    --color-login-hero-bg: #090A0B;   /* panneau héro de marque (≥ expanded) */
 }
 
 html,
 body,
 #root {
-    background: var(--color-app-bg);
-    color: var(--color-text-primary);
+    background: var(--tk-color-app-bg);
+    color: var(--tk-color-text-primary);
 }
 
 body {
     font-family: var(--font-sans);
-    font-size: var(--text-body);
+    font-size: var(--tk-type-base-size);
     line-height: 1.5;
     letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
@@ -850,20 +918,20 @@ h6,
     line-height: 1.2;
     letter-spacing: 0.075em;
     text-transform: uppercase;
-    color: var(--color-text-muted);
+    color: var(--tk-color-text-muted);
 }
 
 .page-title {
-    color: var(--color-text-primary);
-    font-size: var(--text-title-1);
+    color: var(--tk-color-text-primary);
+    font-size: var(--tk-type-page-title-size);
     font-weight: 600;
     line-height: 1.2;
     letter-spacing: 0;
 }
 
 .section-title {
-    color: var(--color-text-primary);
-    font-size: var(--text-title-3);
+    color: var(--tk-color-text-primary);
+    font-size: var(--tk-type-section-title-size);
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: 0;
@@ -871,12 +939,219 @@ h6,
 
 .ui-panel {
     background: var(--color-surface);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-xl);
+    border: 1px solid var(--tk-color-border-default);
+    border-radius: var(--tk-radius-lg);
     box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
 }
 
 ::selection {
     background: rgba(253, 201, 16, 0.3);
-    color: var(--color-brand-text);
+    color: var(--tk-color-brand-text);
+}
+
+
+/* ============================================================
+   ALIAS @deprecated 2026-07-25 — NE PAS UTILISER DANS DU CODE NEUF
+   ------------------------------------------------------------
+   Ancien vocabulaire (MD3 `--md-sys-*`, marque `--color-*`, thème
+   Tailwind `--radius-*`/`--text-*`) conservé en alias vers la couche
+   sémantique Tracker DS (`--tk-*`) : la migration se fait fichier par
+   fichier, sans big-bang. Table de correspondance : DESIGN_SYSTEM.md §2.
+
+   Ces alias sont des FEUILLES : aucun token `--tk-*` ne doit pointer
+   vers l'un d'eux (cela créerait un cycle de propriétés personnalisées,
+   qui invalide silencieusement les deux).
+   ============================================================ */
+:root {
+    /* Couleurs — rôles MD3 */
+    --md-sys-color-background: var(--tk-color-background);
+    --md-sys-color-error: var(--tk-color-error);
+    --md-sys-color-error-container: var(--tk-color-error-container);
+    --md-sys-color-inverse-on-surface: var(--tk-color-inverse-on-surface);
+    --md-sys-color-inverse-primary: var(--tk-color-inverse-primary);
+    --md-sys-color-inverse-surface: var(--tk-color-inverse-surface);
+    --md-sys-color-on-background: var(--tk-color-on-background);
+    --md-sys-color-on-error: var(--tk-color-on-error);
+    --md-sys-color-on-error-container: var(--tk-color-on-error-container);
+    --md-sys-color-on-primary: var(--tk-color-on-primary);
+    --md-sys-color-on-primary-container: var(--tk-color-on-primary-container);
+    --md-sys-color-on-secondary: var(--tk-color-on-secondary);
+    --md-sys-color-on-secondary-container: var(--tk-color-on-secondary-container);
+    --md-sys-color-on-surface: var(--tk-color-on-surface);
+    --md-sys-color-on-surface-variant: var(--tk-color-on-surface-variant);
+    --md-sys-color-on-tertiary: var(--tk-color-on-tertiary);
+    --md-sys-color-on-tertiary-container: var(--tk-color-on-tertiary-container);
+    --md-sys-color-outline: var(--tk-color-outline);
+    --md-sys-color-outline-variant: var(--tk-color-outline-variant);
+    --md-sys-color-primary: var(--tk-color-primary);
+    --md-sys-color-primary-container: var(--tk-color-primary-container);
+    --md-sys-color-scrim: var(--tk-color-scrim);
+    --md-sys-color-secondary: var(--tk-color-secondary);
+    --md-sys-color-secondary-container: var(--tk-color-secondary-container);
+    --md-sys-color-surface: var(--tk-color-surface);
+    --md-sys-color-surface-bright: var(--tk-color-surface-bright);
+    --md-sys-color-surface-container: var(--tk-color-surface-container);
+    --md-sys-color-surface-container-high: var(--tk-color-surface-container-high);
+    --md-sys-color-surface-container-highest: var(--tk-color-surface-container-highest);
+    --md-sys-color-surface-container-low: var(--tk-color-surface-container-low);
+    --md-sys-color-surface-container-lowest: var(--tk-color-surface-container-lowest);
+    --md-sys-color-surface-dim: var(--tk-color-surface-dim);
+    --md-sys-color-surface-variant: var(--tk-color-surface-variant);
+    --md-sys-color-tertiary: var(--tk-color-tertiary);
+    --md-sys-color-tertiary-container: var(--tk-color-tertiary-container);
+
+    /* Couleurs — rôles de marque CAT */
+    --color-app-bg: var(--tk-color-app-bg);
+    --color-border-default: var(--tk-color-border-default);
+    --color-border-strong: var(--tk-color-border-strong);
+    --color-brand: var(--tk-color-brand);
+    --color-brand-dark: var(--tk-color-brand-dark);
+    --color-brand-hover: var(--tk-color-brand-hover);
+    --color-brand-text: var(--tk-color-brand-text);
+    --color-danger: var(--tk-color-danger);
+    --color-danger-light: var(--tk-color-danger-light);
+    --color-danger-strong: var(--tk-color-danger-strong);
+    --color-focus-ring: var(--tk-color-focus-ring);
+    --color-info: var(--tk-color-info);
+    --color-info-light: var(--tk-color-info-light);
+    --color-info-strong: var(--tk-color-info-strong);
+    --color-primary-hover: var(--tk-color-primary-hover);
+    --color-success: var(--tk-color-success);
+    --color-success-light: var(--tk-color-success-light);
+    --color-success-strong: var(--tk-color-success-strong);
+    --color-surface-muted: var(--tk-color-surface-muted);
+    --color-text-muted: var(--tk-color-text-muted);
+    --color-text-primary: var(--tk-color-text-primary);
+    --color-text-secondary: var(--tk-color-text-secondary);
+    --color-warning: var(--tk-color-warning);
+    --color-warning-light: var(--tk-color-warning-light);
+    --color-warning-strong: var(--tk-color-warning-strong);
+
+    /* Forme */
+    --md-sys-shape-extra-large: var(--tk-radius-xl);
+    --md-sys-shape-extra-small: var(--tk-radius-xs);
+    --md-sys-shape-full: var(--tk-radius-full);
+    --md-sys-shape-large: var(--tk-radius-lg);
+    --md-sys-shape-medium: var(--tk-radius-md);
+    --md-sys-shape-none: var(--tk-radius-none);
+    --md-sys-shape-small: var(--tk-radius-sm);
+    --radius-2xl: var(--tk-radius-xl);
+    --radius-full: var(--tk-radius-full);
+    --radius-lg: var(--tk-radius-md);
+    --radius-md: var(--tk-radius-sm);
+    --radius-sm: var(--tk-radius-xs);
+    --radius-xl: var(--tk-radius-lg);
+
+    /* Élévation */
+    --md-sys-elevation-0: var(--tk-elevation-0);
+    --md-sys-elevation-1: var(--tk-elevation-1);
+    --md-sys-elevation-2: var(--tk-elevation-2);
+    --md-sys-elevation-3: var(--tk-elevation-3);
+    --md-sys-elevation-4: var(--tk-elevation-4);
+    --md-sys-elevation-5: var(--tk-elevation-5);
+
+    /* Mouvement */
+    --md-sys-motion-duration-long1: var(--tk-motion-duration-long1);
+    --md-sys-motion-duration-long2: var(--tk-motion-duration-long2);
+    --md-sys-motion-duration-medium1: var(--tk-motion-duration-medium1);
+    --md-sys-motion-duration-medium2: var(--tk-motion-duration-medium2);
+    --md-sys-motion-duration-medium3: var(--tk-motion-duration-medium3);
+    --md-sys-motion-duration-medium4: var(--tk-motion-duration-medium4);
+    --md-sys-motion-duration-short1: var(--tk-motion-duration-short1);
+    --md-sys-motion-duration-short2: var(--tk-motion-duration-short2);
+    --md-sys-motion-duration-short3: var(--tk-motion-duration-short3);
+    --md-sys-motion-duration-short4: var(--tk-motion-duration-short4);
+    --md-sys-motion-easing-emphasized: var(--tk-motion-easing-emphasized);
+    --md-sys-motion-easing-emphasized-accelerate: var(--tk-motion-easing-emphasized-accelerate);
+    --md-sys-motion-easing-emphasized-decelerate: var(--tk-motion-easing-emphasized-decelerate);
+    --md-sys-motion-easing-standard: var(--tk-motion-easing-standard);
+    --md-sys-motion-easing-standard-accelerate: var(--tk-motion-easing-standard-accelerate);
+    --md-sys-motion-easing-standard-decelerate: var(--tk-motion-easing-standard-decelerate);
+
+    /* Couches d’état */
+    --md-sys-state-focus-opacity: var(--tk-state-focus-opacity);
+    --md-sys-state-hover-opacity: var(--tk-state-hover-opacity);
+    --md-sys-state-pressed-opacity: var(--tk-state-pressed-opacity);
+
+    /* Typographie */
+    --md-sys-typescale-body-large-line-height: var(--tk-type-body-large-line-height);
+    --md-sys-typescale-body-large-size: var(--tk-type-body-large-size);
+    --md-sys-typescale-body-large-tracking: var(--tk-type-body-large-tracking);
+    --md-sys-typescale-body-large-weight: var(--tk-type-body-large-weight);
+    --md-sys-typescale-body-medium-line-height: var(--tk-type-body-medium-line-height);
+    --md-sys-typescale-body-medium-size: var(--tk-type-body-medium-size);
+    --md-sys-typescale-body-medium-tracking: var(--tk-type-body-medium-tracking);
+    --md-sys-typescale-body-medium-weight: var(--tk-type-body-medium-weight);
+    --md-sys-typescale-body-small-line-height: var(--tk-type-body-small-line-height);
+    --md-sys-typescale-body-small-size: var(--tk-type-body-small-size);
+    --md-sys-typescale-body-small-tracking: var(--tk-type-body-small-tracking);
+    --md-sys-typescale-body-small-weight: var(--tk-type-body-small-weight);
+    --md-sys-typescale-display-large-line-height: var(--tk-type-display-large-line-height);
+    --md-sys-typescale-display-large-size: var(--tk-type-display-large-size);
+    --md-sys-typescale-display-large-tracking: var(--tk-type-display-large-tracking);
+    --md-sys-typescale-display-large-weight: var(--tk-type-display-large-weight);
+    --md-sys-typescale-display-medium-line-height: var(--tk-type-display-medium-line-height);
+    --md-sys-typescale-display-medium-size: var(--tk-type-display-medium-size);
+    --md-sys-typescale-display-medium-tracking: var(--tk-type-display-medium-tracking);
+    --md-sys-typescale-display-medium-weight: var(--tk-type-display-medium-weight);
+    --md-sys-typescale-display-small-line-height: var(--tk-type-display-small-line-height);
+    --md-sys-typescale-display-small-size: var(--tk-type-display-small-size);
+    --md-sys-typescale-display-small-tracking: var(--tk-type-display-small-tracking);
+    --md-sys-typescale-display-small-weight: var(--tk-type-display-small-weight);
+    --md-sys-typescale-font-brand: var(--tk-type-font-brand);
+    --md-sys-typescale-font-plain: var(--tk-type-font-plain);
+    --md-sys-typescale-headline-large-line-height: var(--tk-type-headline-large-line-height);
+    --md-sys-typescale-headline-large-size: var(--tk-type-headline-large-size);
+    --md-sys-typescale-headline-large-tracking: var(--tk-type-headline-large-tracking);
+    --md-sys-typescale-headline-large-weight: var(--tk-type-headline-large-weight);
+    --md-sys-typescale-headline-medium-line-height: var(--tk-type-headline-medium-line-height);
+    --md-sys-typescale-headline-medium-size: var(--tk-type-headline-medium-size);
+    --md-sys-typescale-headline-medium-tracking: var(--tk-type-headline-medium-tracking);
+    --md-sys-typescale-headline-medium-weight: var(--tk-type-headline-medium-weight);
+    --md-sys-typescale-headline-small-line-height: var(--tk-type-headline-small-line-height);
+    --md-sys-typescale-headline-small-size: var(--tk-type-headline-small-size);
+    --md-sys-typescale-headline-small-tracking: var(--tk-type-headline-small-tracking);
+    --md-sys-typescale-headline-small-weight: var(--tk-type-headline-small-weight);
+    --md-sys-typescale-label-large-line-height: var(--tk-type-label-large-line-height);
+    --md-sys-typescale-label-large-size: var(--tk-type-label-large-size);
+    --md-sys-typescale-label-large-tracking: var(--tk-type-label-large-tracking);
+    --md-sys-typescale-label-large-weight: var(--tk-type-label-large-weight);
+    --md-sys-typescale-label-medium-line-height: var(--tk-type-label-medium-line-height);
+    --md-sys-typescale-label-medium-size: var(--tk-type-label-medium-size);
+    --md-sys-typescale-label-medium-tracking: var(--tk-type-label-medium-tracking);
+    --md-sys-typescale-label-medium-weight: var(--tk-type-label-medium-weight);
+    --md-sys-typescale-label-small-line-height: var(--tk-type-label-small-line-height);
+    --md-sys-typescale-label-small-size: var(--tk-type-label-small-size);
+    --md-sys-typescale-label-small-tracking: var(--tk-type-label-small-tracking);
+    --md-sys-typescale-label-small-weight: var(--tk-type-label-small-weight);
+    --md-sys-typescale-stat-value-compact-line-height: var(--tk-type-stat-value-compact-line-height);
+    --md-sys-typescale-stat-value-compact-size: var(--tk-type-stat-value-compact-size);
+    --md-sys-typescale-stat-value-line-height: var(--tk-type-stat-value-line-height);
+    --md-sys-typescale-stat-value-size: var(--tk-type-stat-value-size);
+    --md-sys-typescale-stat-value-tracking: var(--tk-type-stat-value-tracking);
+    --md-sys-typescale-stat-value-weight: var(--tk-type-stat-value-weight);
+    --md-sys-typescale-title-large-line-height: var(--tk-type-title-large-line-height);
+    --md-sys-typescale-title-large-size: var(--tk-type-title-large-size);
+    --md-sys-typescale-title-large-tracking: var(--tk-type-title-large-tracking);
+    --md-sys-typescale-title-large-weight: var(--tk-type-title-large-weight);
+    --md-sys-typescale-title-medium-line-height: var(--tk-type-title-medium-line-height);
+    --md-sys-typescale-title-medium-size: var(--tk-type-title-medium-size);
+    --md-sys-typescale-title-medium-tracking: var(--tk-type-title-medium-tracking);
+    --md-sys-typescale-title-medium-weight: var(--tk-type-title-medium-weight);
+    --md-sys-typescale-title-small-line-height: var(--tk-type-title-small-line-height);
+    --md-sys-typescale-title-small-size: var(--tk-type-title-small-size);
+    --md-sys-typescale-title-small-tracking: var(--tk-type-title-small-tracking);
+    --md-sys-typescale-title-small-weight: var(--tk-type-title-small-weight);
+    --text-body: var(--tk-type-base-size);
+    --text-title-1: var(--tk-type-page-title-size);
+    --text-title-3: var(--tk-type-section-title-size);
+
+    /* Sans consommateur au 2026-07-25 — supprimables au prochain passage,
+       non promus dans l'espace `--tk-*` pour ne pas y importer du code mort. */
+    --color-border-subtle: var(--color-neutral-100);
+    --color-primary-default: var(--tk-color-brand);
+    --color-primary-light: #fff4b8;
+    --color-primary-dark: var(--tk-color-brand-dark);
+    --text-title-2: 1.375rem;
+    --text-caption: 0.75rem;
 }

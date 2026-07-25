@@ -310,7 +310,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 </div>
                                 <div className="flex-1 space-y-2">
                                     <div className="h-2 bg-surface-container rounded-full overflow-hidden">
-                                        <div className="h-full bg-tertiary animate-[width_2s_var(--md-sys-motion-easing-emphasized)_infinite]" style={{ width: '60%' }} />
+                                        <div className="h-full bg-tertiary animate-[width_2s_var(--tk-motion-easing-emphasized)_infinite]" style={{ width: '60%' }} />
                                     </div>
                                     <div className="flex justify-between text-label-medium text-on-surface-variant font-bold">
                                         <span>Analyse structurelle...</span>

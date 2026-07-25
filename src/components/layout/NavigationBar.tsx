@@ -72,7 +72,7 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
             <span
                 className={cn(
                     'text-label-medium max-w-full truncate px-0.5 transition-colors duration-short4',
-                    active ? 'text-[var(--color-text-primary)] font-black' : 'text-[var(--color-text-secondary)]'
+                    active ? 'text-[var(--tk-color-text-primary)] font-black' : 'text-[var(--tk-color-text-secondary)]'
                 )}
             >
                 {label}
@@ -238,7 +238,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 // Autonome (hors BottomAppBar) : ce nav est le conteneur du bas → il porte lui-même
                 // la safe-area. Embarqué, c'est BottomAppBar qui la réserve (pas de double inset).
                 !embedded &&
-                    'bg-surface border-t border-[var(--color-border-default)] z-50 pb-[max(0px,env(safe-area-inset-bottom))]',
+                    'bg-surface border-t border-[var(--tk-color-border-default)] z-50 pb-[max(0px,env(safe-area-inset-bottom))]',
                 className
             )}
         >

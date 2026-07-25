@@ -441,7 +441,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
             <label className="inline-flex items-center gap-2 text-label-small text-on-surface-variant">
               <input
                 type="checkbox"
-                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                 checked={allVisibleSelected}
                 ref={(node) => {
                   if (node) {
@@ -483,7 +483,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     type="checkbox"
                     checked={selectedUserSet.has(user.id)}
                     onChange={(event) => toggleSelection(user.id, event.target.checked)}
-                    className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                    className="h-4 w-4 accent-[var(--tk-color-primary)]"
                     aria-label={`Sélectionner ${user.name}`}
                   />
                 ) : undefined}

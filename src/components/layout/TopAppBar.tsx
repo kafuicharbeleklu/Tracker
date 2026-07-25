@@ -52,7 +52,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
             />
           </Tooltip>
         )}
-        <div className={cn("section-title truncate ml-1 flex-1 text-[var(--color-text-primary)]", titleClassName)} role="heading" aria-level={2}>
+        <div className={cn("section-title truncate ml-1 flex-1 text-[var(--tk-color-text-primary)]", titleClassName)} role="heading" aria-level={2}>
           {title}
         </div>
       </div>

@@ -61,7 +61,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     <div
       className={cn(
         !hideContentHeader && sticky && 'sticky top-0 z-30',
-        !hideContentHeader && 'bg-[var(--color-app-bg)]',
+        !hideContentHeader && 'bg-[var(--tk-color-app-bg)]',
         '-mx-page-sm px-page-sm medium:-mx-page medium:px-page',
         hideContentHeader ? 'mb-4 pt-1' : '-mt-4 pt-4 medium:-mt-6 medium:pt-6 mb-5 pb-3',
         'transition-all duration-short4'
@@ -97,7 +97,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-body-medium text-[var(--color-text-muted)]">
+                <p className="text-body-medium text-[var(--tk-color-text-muted)]">
                   {subtitle}
                 </p>
               )}

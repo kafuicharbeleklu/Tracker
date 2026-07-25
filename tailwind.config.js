@@ -1,11 +1,24 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * Pont Tailwind du TRACKER DS.
+ *
+ * Chaque entrée pointe vers la COUCHE SÉMANTIQUE `--tk-*` (index.css, tier 2) —
+ * jamais vers un primitif ni vers un alias @deprecated `--md-sys-*`.
+ * Les NOMS de classes utilitaires (`bg-primary`, `text-on-surface`, `rounded-xl`…)
+ * sont volontairement inchangés : ils sont déjà le vocabulaire de l'app, seule
+ * leur définition a basculé sur `--tk-*`. Renommer les classes aurait touché des
+ * milliers de call sites pour zéro gain (DESIGN_SYSTEM.md §3).
+ *
+ * @type {import('tailwindcss').Config}
+ */
 module.exports = {
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
-        // MD3 Breakpoints (Overriding defaults)
+        // Classes de taille de fenêtre — valeurs figées (600/840/1200/1600).
+        // Le vocabulaire compact/medium/expanded est CONSERVÉ : décision reportée,
+        // 388 usages sur 45 fichiers (DESIGN_SYSTEM.md §8).
         screens: {
             'compact': { 'max': '599px' },
             'medium': '600px',
@@ -15,185 +28,177 @@ module.exports = {
         },
         extend: {
 
-            /* ---- MD3 COLOR SYSTEM ---- */
+            /* ---- COULEUR ---- */
             colors: {
-                // MD3 Primary
+                // Accent primaire
                 primary: {
-                    DEFAULT: 'var(--md-sys-color-primary)',
-                    container: 'var(--md-sys-color-primary-container)',
-                    hover: 'var(--color-primary-hover)',
+                    DEFAULT: 'var(--tk-color-primary)',
+                    container: 'var(--tk-color-primary-container)',
+                    hover: 'var(--tk-color-primary-hover)',
                 },
                 'on-primary': {
-                    DEFAULT: 'var(--md-sys-color-on-primary)',
-                    container: 'var(--md-sys-color-on-primary-container)',
+                    DEFAULT: 'var(--tk-color-on-primary)',
+                    container: 'var(--tk-color-on-primary-container)',
                 },
-                // MD3 Secondary
+                // Accent secondaire
                 secondary: {
-                    DEFAULT: 'var(--md-sys-color-secondary)',
-                    container: 'var(--md-sys-color-secondary-container)',
+                    DEFAULT: 'var(--tk-color-secondary)',
+                    container: 'var(--tk-color-secondary-container)',
                 },
                 'on-secondary': {
-                    DEFAULT: 'var(--md-sys-color-on-secondary)',
-                    container: 'var(--md-sys-color-on-secondary-container)',
+                    DEFAULT: 'var(--tk-color-on-secondary)',
+                    container: 'var(--tk-color-on-secondary-container)',
                 },
-                // MD3 Tertiary
+                // Accent tertiaire (= sémantique « positif / succès »)
                 tertiary: {
-                    DEFAULT: 'var(--md-sys-color-tertiary)',
-                    container: 'var(--md-sys-color-tertiary-container)',
+                    DEFAULT: 'var(--tk-color-tertiary)',
+                    container: 'var(--tk-color-tertiary-container)',
                 },
                 'on-tertiary': {
-                    DEFAULT: 'var(--md-sys-color-on-tertiary)',
-                    container: 'var(--md-sys-color-on-tertiary-container)',
+                    DEFAULT: 'var(--tk-color-on-tertiary)',
+                    container: 'var(--tk-color-on-tertiary-container)',
                 },
-                // MD3 Error
+                // Erreur
                 error: {
-                    DEFAULT: 'var(--md-sys-color-error)',
-                    container: 'var(--md-sys-color-error-container)',
+                    DEFAULT: 'var(--tk-color-error)',
+                    container: 'var(--tk-color-error-container)',
                 },
                 'on-error': {
-                    DEFAULT: 'var(--md-sys-color-on-error)',
-                    container: 'var(--md-sys-color-on-error-container)',
+                    DEFAULT: 'var(--tk-color-on-error)',
+                    container: 'var(--tk-color-on-error-container)',
                 },
-                // Échelle de référence marque — courte à dessein (Q-V5)
+                // Échelle de référence marque — courte à dessein (Q-V5).
+                // SEULE entrée du pont qui expose un PRIMITIF (--ref-brand-*) : aucun
+                // call site aujourd'hui, à basculer sur un rôle si un usage apparaît.
                 brand: {
                     50: 'var(--ref-brand-50)',
                     100: 'var(--ref-brand-100)',
                     200: 'var(--ref-brand-200)',
                 },
-                // Neutres de marque (boutons sombres) et fond d'app
-                anthracite: {
-                    DEFAULT: 'var(--color-anthracite)',
-                    strong: 'var(--color-anthracite-strong)',
+                // Remplissage neutre sombre (bouton `tonal`) — rôle sémantique :
+                // les classes ne nomment plus le primitif `anthracite`.
+                'neutral-fill': {
+                    DEFAULT: 'var(--tk-color-neutral-fill)',
+                    hover: 'var(--tk-color-neutral-fill-hover)',
                 },
-                background: 'var(--md-sys-color-background)',
-                // Rôle de texte CAT sans équivalent md-sys (Chantier B §4.3, 7,83:1) —
-                // text-primary ≡ on-surface, text-muted ≡ on-surface-variant, eux, en ont un
-                'text-secondary': 'var(--color-text-secondary)',
-                // Couleurs sémantiques (adossées aux tokens --color-*)
+                // Texte sur surface de navigation SOMBRE (menu latéral / rail / tiroir)
+                'on-nav-surface': {
+                    DEFAULT: 'var(--tk-color-on-nav-surface)',
+                    variant: 'var(--tk-color-on-nav-surface-variant)',
+                },
+                background: 'var(--tk-color-background)',
+                // Rôle de texte CAT sans équivalent dans l'échelle de surface (Chantier B §4.3,
+                // 7,83:1) — text-primary ≡ on-surface, text-muted ≡ on-surface-variant, eux, en ont un
+                'text-secondary': 'var(--tk-color-text-secondary)',
+                // Statuts (adossés aux tokens --tk-color-*)
                 success: {
-                    DEFAULT: 'var(--color-success)',
-                    light: 'var(--color-success-light)',
-                    strong: 'var(--color-success-strong)',
+                    DEFAULT: 'var(--tk-color-success)',
+                    light: 'var(--tk-color-success-light)',
+                    strong: 'var(--tk-color-success-strong)',
                 },
                 warning: {
-                    DEFAULT: 'var(--color-warning)',
-                    light: 'var(--color-warning-light)',
-                    strong: 'var(--color-warning-strong)',
+                    DEFAULT: 'var(--tk-color-warning)',
+                    light: 'var(--tk-color-warning-light)',
+                    strong: 'var(--tk-color-warning-strong)',
                 },
                 info: {
-                    DEFAULT: 'var(--color-info)',
-                    light: 'var(--color-info-light)',
-                    strong: 'var(--color-info-strong)',
+                    DEFAULT: 'var(--tk-color-info)',
+                    light: 'var(--tk-color-info-light)',
+                    strong: 'var(--tk-color-info-strong)',
                 },
                 danger: {
-                    DEFAULT: 'var(--color-danger)',
-                    light: 'var(--color-danger-light)',
-                    strong: 'var(--color-danger-strong)',
+                    DEFAULT: 'var(--tk-color-danger)',
+                    light: 'var(--tk-color-danger-light)',
+                    strong: 'var(--tk-color-danger-strong)',
                 },
-                // MD3 Surface & Background
+                // Surfaces
                 surface: {
-                    DEFAULT: 'var(--md-sys-color-surface)',
-                    dim: 'var(--md-sys-color-surface-dim)',
-                    bright: 'var(--md-sys-color-surface-bright)',
-                    variant: 'var(--md-sys-color-surface-variant)',
-                    // @deprecated — Use surface-container-low instead
-                    subtle: 'var(--md-sys-color-surface-container-low)',
-                    // @deprecated — Use surface (DEFAULT) instead
-                    background: 'var(--md-sys-color-surface)',
+                    DEFAULT: 'var(--tk-color-surface)',
+                    dim: 'var(--tk-color-surface-dim)',
+                    bright: 'var(--tk-color-surface-bright)',
+                    variant: 'var(--tk-color-surface-variant)',
                 },
                 'on-surface': {
-                    DEFAULT: 'var(--md-sys-color-on-surface)',
-                    variant: 'var(--md-sys-color-on-surface-variant)',
+                    DEFAULT: 'var(--tk-color-on-surface)',
+                    variant: 'var(--tk-color-on-surface-variant)',
                 },
-                // MD3 Surface Containers
+                // Conteneurs de surface
                 'surface-container': {
-                    lowest: 'var(--md-sys-color-surface-container-lowest)',
-                    low: 'var(--md-sys-color-surface-container-low)',
-                    DEFAULT: 'var(--md-sys-color-surface-container)',
-                    high: 'var(--md-sys-color-surface-container-high)',
-                    highest: 'var(--md-sys-color-surface-container-highest)',
+                    lowest: 'var(--tk-color-surface-container-lowest)',
+                    low: 'var(--tk-color-surface-container-low)',
+                    DEFAULT: 'var(--tk-color-surface-container)',
+                    high: 'var(--tk-color-surface-container-high)',
+                    highest: 'var(--tk-color-surface-container-highest)',
                 },
-                // MD3 Outline
+                // Contours
                 outline: {
-                    DEFAULT: 'var(--md-sys-color-outline)',
-                    variant: 'var(--md-sys-color-outline-variant)',
+                    DEFAULT: 'var(--tk-color-outline)',
+                    variant: 'var(--tk-color-outline-variant)',
                 },
                 // Q-V2 — indicateur de focus unifié (opaque)
-                'focus-ring': 'var(--color-focus-ring)',
-                // MD3 Inverse
-                'inverse-surface': 'var(--md-sys-color-inverse-surface)',
-                'inverse-on-surface': 'var(--md-sys-color-inverse-on-surface)',
-                'inverse-primary': 'var(--md-sys-color-inverse-primary)',
-                // MD3 Scrim
-                scrim: 'var(--md-sys-color-scrim)',
-
-                // @deprecated — Use on-surface / on-surface-variant instead
-                dark: {
-                    DEFAULT: 'var(--md-sys-color-on-surface)',
-                    light: 'var(--md-sys-color-on-surface-variant)',
-                },
+                'focus-ring': 'var(--tk-color-focus-ring)',
+                // Inversés
+                'inverse-surface': 'var(--tk-color-inverse-surface)',
+                'inverse-on-surface': 'var(--tk-color-inverse-on-surface)',
+                'inverse-primary': 'var(--tk-color-inverse-primary)',
+                // Voile
+                scrim: 'var(--tk-color-scrim)',
             },
 
-            /* ---- MD3 ELEVATION (Box Shadow) ---- */
+            /* ---- ÉLÉVATION (box-shadow) ---- */
             boxShadow: {
-                'elevation-0': 'var(--md-sys-elevation-0)',
-                'elevation-1': 'var(--md-sys-elevation-1)',
-                'elevation-2': 'var(--md-sys-elevation-2)',
-                'elevation-3': 'var(--md-sys-elevation-3)',
-                'elevation-4': 'var(--md-sys-elevation-4)',
-                'elevation-5': 'var(--md-sys-elevation-5)',
+                'elevation-0': 'var(--tk-elevation-0)',
+                'elevation-1': 'var(--tk-elevation-1)',
+                'elevation-2': 'var(--tk-elevation-2)',
+                'elevation-3': 'var(--tk-elevation-3)',
+                'elevation-4': 'var(--tk-elevation-4)',
+                'elevation-5': 'var(--tk-elevation-5)',
             },
 
-            /* ---- MD3 SHAPE SCALE ---- */
+            /* ---- FORME (rayons) ---- */
             borderRadius: {
-                'none': 'var(--md-sys-shape-none)',
-                'xs': 'var(--md-sys-shape-extra-small)',
-                'sm': 'var(--md-sys-shape-small)',
-                'md': 'var(--md-sys-shape-medium)',
-                'lg': 'var(--md-sys-shape-large)',
-                'xl': 'var(--md-sys-shape-extra-large)',
-                'full': 'var(--md-sys-shape-full)',
-                // Rayon de carte unifié (= rounded-xl / shape-extra-large) pour cohérence des surfaces
-                'card': 'var(--md-sys-shape-extra-large)',
-                // @deprecated — Use rounded-full (shape-full) instead
-                'pill': 'var(--md-sys-shape-full)',
+                'none': 'var(--tk-radius-none)',
+                'xs': 'var(--tk-radius-xs)',
+                'sm': 'var(--tk-radius-sm)',
+                'md': 'var(--tk-radius-md)',
+                'lg': 'var(--tk-radius-lg)',
+                'xl': 'var(--tk-radius-xl)',
+                'full': 'var(--tk-radius-full)',
+                // Rayon de carte unifié (= rounded-xl / --tk-radius-xl) pour cohérence des surfaces
+                'card': 'var(--tk-radius-xl)',
             },
 
-            /* ---- MD3 SPACING ---- */
+            /* ---- ESPACEMENT (crans nommés du DS) ---- */
             spacing: {
-                'page': '1.5rem',
-                'page-sm': '1rem',
-                'card': '1.5rem',
-                'card-compact': '1rem',
+                'page': 'var(--tk-space-page)',
+                'page-sm': 'var(--tk-space-page-sm)',
+                'card': 'var(--tk-space-card)',
+                'card-compact': 'var(--tk-space-card-compact)',
             },
 
-            /* ---- MD3 MOTION ---- */
+            /* ---- MOUVEMENT ---- */
             transitionTimingFunction: {
-                'emphasized': 'var(--md-sys-motion-easing-emphasized)',
-                'emphasized-decelerate': 'var(--md-sys-motion-easing-emphasized-decelerate)',
-                'emphasized-accelerate': 'var(--md-sys-motion-easing-emphasized-accelerate)',
-                'md-standard': 'var(--md-sys-motion-easing-standard)',
-                'standard-decelerate': 'var(--md-sys-motion-easing-standard-decelerate)',
-                'standard-accelerate': 'var(--md-sys-motion-easing-standard-accelerate)',
+                'emphasized': 'var(--tk-motion-easing-emphasized)',
+                'emphasized-decelerate': 'var(--tk-motion-easing-emphasized-decelerate)',
+                'emphasized-accelerate': 'var(--tk-motion-easing-emphasized-accelerate)',
+                'md-standard': 'var(--tk-motion-easing-standard)',
+                'standard-decelerate': 'var(--tk-motion-easing-standard-decelerate)',
+                'standard-accelerate': 'var(--tk-motion-easing-standard-accelerate)',
             },
             transitionDuration: {
-                'short1': 'var(--md-sys-motion-duration-short1)',
-                'short2': 'var(--md-sys-motion-duration-short2)',
-                'short3': 'var(--md-sys-motion-duration-short3)',
-                'short4': 'var(--md-sys-motion-duration-short4)',
-                'medium1': 'var(--md-sys-motion-duration-medium1)',
-                'medium2': 'var(--md-sys-motion-duration-medium2)',
-                'medium3': 'var(--md-sys-motion-duration-medium3)',
-                'medium4': 'var(--md-sys-motion-duration-medium4)',
-                'long1': 'var(--md-sys-motion-duration-long1)',
-                'long2': 'var(--md-sys-motion-duration-long2)',
-                // @deprecated — Use duration-short2 (200ms) instead
-                'micro': '200ms',
-                // @deprecated — Use duration-medium1 (300ms) instead
-                'macro': '300ms',
+                'short1': 'var(--tk-motion-duration-short1)',
+                'short2': 'var(--tk-motion-duration-short2)',
+                'short3': 'var(--tk-motion-duration-short3)',
+                'short4': 'var(--tk-motion-duration-short4)',
+                'medium1': 'var(--tk-motion-duration-medium1)',
+                'medium2': 'var(--tk-motion-duration-medium2)',
+                'medium3': 'var(--tk-motion-duration-medium3)',
+                'medium4': 'var(--tk-motion-duration-medium4)',
+                'long1': 'var(--tk-motion-duration-long1)',
+                'long2': 'var(--tk-motion-duration-long2)',
             },
 
-            /* ---- MD3 TYPOGRAPHY ---- */
+            /* ---- TYPOGRAPHIE ---- */
             fontFamily: {
                 sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                 brand: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

@@ -6,10 +6,18 @@ const INDEX_HTML_PATH = path.resolve('index.html');
 const TARGET_EXTENSIONS = new Set(['.ts', '.tsx', '.css']);
 const UI_COMPONENTS_PREFIX = `${path.normalize('src/components/ui')}${path.sep}`;
 
+// Clés purgées de tailwind.config.js le 2026-07-25 (§8 → Tracker DS). Une clé de
+// couleur engendre TOUS les utilitaires de couleur, pas seulement bg-/text- : la
+// purge de `dark` avait laissé passer un `fill-dark` vivant. On couvre donc tous
+// les préfixes, sinon la classe morte ne rend simplement plus rien, en silence.
+const COLOR_UTILITY_PREFIXES =
+  'bg|text|border|ring|outline|divide|fill|stroke|accent|caret|decoration|shadow|from|via|to|placeholder';
+
 const FORBIDDEN_PATTERNS = [
-  /\btext-dark\b/g,
-  /\bbg-dark\b/g,
-  /\bsurface-subtle\b/g,
+  new RegExp(`\\b(?:${COLOR_UTILITY_PREFIXES})-dark(?:-light)?\\b`, 'g'),
+  new RegExp(`\\b(?:${COLOR_UTILITY_PREFIXES})-surface-(?:subtle|background)\\b`, 'g'),
+  /\brounded(?:-[trblxyse])?-pill\b/g,
+  /\bduration-(?:micro|macro)\b/g,
   /variant\s*=\s*["']outline["']/g,
   // Design System Caterpillar : interdiction du jaune/ambre Tailwind brut
   // (la marque passe par les tokens ; warning = orange). Voir docs/DESIGN_TOKENS_SPEC.md.

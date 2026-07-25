@@ -26,7 +26,7 @@ const RbacPage: React.FC = () => {
     }, [routeSegments, routeSection, navigate]);
 
     return (
-        <div className="flex flex-col h-full bg-surface-background">
+        <div className="flex flex-col h-full bg-surface">
             {/* Enveloppe non rendue quand le PageHeader n'affiche rien (compact portrait, X11) */}
             {!hasMobileTopBar && (
                 <div className="bg-surface border-b border-outline-variant pt-page-sm medium:pt-page pb-0 px-0 sticky top-0 z-20">
@@ -43,7 +43,7 @@ const RbacPage: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto">
                 <PageContainer>
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-macro pb-12">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-medium2 pb-12">
                         <RbacManagementPanel
                             section={activeSection}
                             onSectionChange={(section) => navigate(`/rbac/${section}`)}

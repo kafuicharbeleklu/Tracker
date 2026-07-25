@@ -367,7 +367,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     return (
-        <div className="flex h-dvh bg-[var(--color-app-bg)] overflow-hidden">
+        <div className="flex h-dvh bg-[var(--tk-color-app-bg)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
@@ -410,7 +410,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 )}
 
                 {/* Page Content */}
-                <div className="flex-1 overflow-y-auto bg-[var(--color-app-bg)] relative">
+                <div className="flex-1 overflow-y-auto bg-[var(--tk-color-app-bg)] relative">
                     {/* Filet par vue (#17) : la `key` remonte le boundary à chaque navigation,
                         donc la coque de nav suffit à sortir d'une page cassée — sans recharger. */}
                     <ErrorBoundary key={currentView} context={`vue: ${currentView}`}>

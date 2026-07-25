@@ -247,7 +247,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {isModalMode ? (
                             <CloseButton
                                 onClick={closeMobileMenu}
-                                className="text-[var(--color-neutral-400)] hover:text-white hover:bg-white/5 focus-visible:ring-primary p-2 rounded-lg transition-all duration-medium2"
+                                className="text-on-nav-surface-variant hover:text-on-nav-surface hover:bg-white/5 focus-visible:ring-primary p-2 rounded-lg transition-all duration-medium2"
                             />
                         ) : (
                             <Button
@@ -274,7 +274,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     >
                         {hidePrimary && (
-                            <p className="px-3 pb-1 text-label-small font-semibold uppercase tracking-wider text-[var(--color-neutral-400)]">
+                            <p className="px-3 pb-1 text-label-small font-semibold uppercase tracking-wider text-on-nav-surface-variant">
                                 Autres sections
                             </p>
                         )}

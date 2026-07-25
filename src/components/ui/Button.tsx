@@ -47,7 +47,7 @@ const LEGACY_VARIANT_MAP: Record<LegacyButtonVariant, CanonicalButtonVariant> = 
 
 const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
   filled: "bg-primary text-on-primary shadow-sm hover:bg-primary-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
-  tonal: "bg-anthracite text-inverse-on-surface shadow-sm hover:bg-anthracite-strong disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  tonal: "bg-neutral-fill text-inverse-on-surface shadow-sm hover:bg-neutral-fill-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
   outlined: "bg-surface text-on-surface border border-outline-variant shadow-sm hover:bg-background hover:border-outline disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]",
   text: "bg-transparent text-text-secondary hover:text-on-surface hover:bg-surface-container disabled:text-on-surface/[0.38]",
   elevated: "bg-surface text-on-surface border border-outline-variant shadow-sm hover:bg-background disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
@@ -56,7 +56,7 @@ const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
   // contraste y est inversé, d'où un anneau de focus `primary` au lieu du
   // `focus-ring` anthracite (invisible sur fond sombre). Remplace les surcharges
   // de couleur, de survol et d'anneau posées site par site (AUDIT_MOBILE #15).
-  nav: "bg-transparent text-[var(--color-neutral-400)] hover:bg-white/5 hover:text-white focus-visible:ring-primary disabled:text-on-surface/[0.38]",
+  nav: "bg-transparent text-on-nav-surface-variant hover:bg-white/5 hover:text-on-nav-surface focus-visible:ring-primary disabled:text-on-surface/[0.38]",
 };
 
 const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {

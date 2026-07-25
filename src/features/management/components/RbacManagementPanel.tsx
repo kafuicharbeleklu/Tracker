@@ -869,7 +869,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 <label key={role.id} className="flex items-center gap-2 text-body-small text-on-surface">
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                        className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                         checked={groupRoleIds.includes(role.id)}
                                         onChange={(event) => setGroupRoleIds((prev) => toggleInArray(prev, role.id, event.target.checked))}
                                         disabled={!canManageConfig}
@@ -937,7 +937,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <label key={permissionKey} className="flex items-center gap-2 text-body-small text-on-surface">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={isPermissionAllowed(draftPermissions, permissionKey)}
                                                 onChange={(event) => setDraftPermissions((prev) => updatePermissionAllow(prev, permissionKey, event.target.checked))}
                                                 disabled={!canEditSelectedRole}
@@ -955,7 +955,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <label key={permissionKey} className="flex items-center gap-2 text-body-small text-on-surface">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={isPermissionAllowed(draftPermissions, permissionKey)}
                                                 onChange={(event) => setDraftPermissions((prev) => updatePermissionAllow(prev, permissionKey, event.target.checked))}
                                                 disabled={!canEditSelectedRole}
@@ -975,7 +975,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <label key={option.id} className="flex items-center gap-2 text-body-small text-on-surface">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={draftRequiredMethods.includes(option.id)}
                                                 onChange={(event) => {
                                                     setDraftRequiredMethods((prev) => {
@@ -1004,7 +1004,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 <label className="flex items-center gap-2 text-body-small text-on-surface">
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                        className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                         checked={draftStepUpValidation}
                                         onChange={(event) => setDraftStepUpValidation(event.target.checked)}
                                         disabled={!canEditSelectedRole}
@@ -1216,7 +1216,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                             <label className="flex items-center gap-2 rounded-sm border border-outline-variant bg-surface-container px-3 py-2 text-body-small text-on-surface">
                                 <input
                                     type="checkbox"
-                                    className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                    className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                     checked={draftWorkflowEnabled}
                                     onChange={(event) => setDraftWorkflowEnabled(event.target.checked)}
                                     disabled={!canManageConfig}
@@ -1332,7 +1332,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                         <label className="flex items-center gap-2 rounded-sm border border-outline-variant bg-surface px-3 py-2 text-body-small text-on-surface">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={step.required}
                                                 onChange={(event) => updateWorkflowStep(step.id, (current) => ({ ...current, required: event.target.checked }))}
                                                 disabled={!canManageConfig}
@@ -1452,7 +1452,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 <label key={role.id} className="flex items-center gap-2 text-body-small text-on-surface">
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                        className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                         checked={assignmentRoleIds.includes(role.id)}
                                         onChange={(event) => setAssignmentRoleIds((prev) => toggleInArray(prev, role.id, event.target.checked))}
                                         disabled={!canManageAssignments}
@@ -1469,7 +1469,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                 <label key={group.id} className="flex items-center gap-2 text-body-small text-on-surface">
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                        className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                         checked={assignmentGroupIds.includes(group.id)}
                                         onChange={(event) => setAssignmentGroupIds((prev) => toggleInArray(prev, group.id, event.target.checked))}
                                         disabled={!canManageAssignments}

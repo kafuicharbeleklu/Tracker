@@ -314,7 +314,7 @@ const ApprovalsPage = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-surface-background">
+        <div className="flex flex-col h-full bg-surface">
             <div className="bg-surface border-b border-outline-variant pt-page-sm medium:pt-page pb-0 px-0 sticky top-0 z-20">
                 <div className="px-page-sm medium:px-page mb-6">
                     <PageHeader
@@ -343,7 +343,7 @@ const ApprovalsPage = () => {
 
             <div className="flex-1 overflow-y-auto">
                 <PageContainer>
-                    <div className={cn('animate-in fade-in slide-in-from-bottom-4 duration-macro space-y-6', isCompact && 'pb-44')}>
+                    <div className={cn('animate-in fade-in slide-in-from-bottom-4 duration-medium2 space-y-6', isCompact && 'pb-44')}>
                         {isCompact ? (
                             <SearchFilterBar
                                 searchValue={searchQuery}

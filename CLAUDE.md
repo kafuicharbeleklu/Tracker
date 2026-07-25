@@ -17,8 +17,9 @@ npm run backend:agent    # Run the separate Node backend (backend/server.mjs, po
 npm run lint             # ESLint, zero-warnings policy (only lints src/)
 npm run lint:fix         # ESLint autofix
 npm run format           # Prettier (single quotes, 4-space indent, 100 cols)
-npm run md3:check        # MD3 design-token compliance audit
-npm run lint:md3         # lint + md3:check together
+npm run md3:check        # Design-token compliance audit (forbidden classes/hex)
+npm run check:tokens     # Tracker DS token-layer guard (orphans, cycles, tier leaks)
+npm run lint:md3         # lint + md3:check + encoding + cn-merge + tokens
 
 # Playwright-based QA (require Playwright browsers installed)
 npm run qa:a11y:auto     # Accessibility audit  -> docs/md3-a11y-automation-results-*
@@ -81,8 +82,16 @@ Finance/audit flows run OCR and document parsing entirely in the browser: `tesse
 ### Backend (separate, optional)
 `backend/server.mjs` is a standalone lightweight Node HTTP server (no framework) for machine-agent check-ins and auth admin (`/api/agent/checkin`, `/api/auth/*`). It persists JSONL/JSON files under `backend/data/`. Defaults: port 8787, API keys `NEEMBA_AGENT_KEY` / `NEEMBA_ADMIN_KEY`. See `backend/README.md`. The SPA works fully without it (mock fallbacks).
 
-## Design system (MD3)
-The design system is the proprietary Neemba/CAT brand (yellow `#FDC910` / warm black, light-only) on MD3 foundations. Tokens are CSS custom properties in `index.css` — a "MD3 foundations" block (motion, typescale, state layers) plus the CAT brand layer at the end of the file, which is the source of truth for all colors. Tailwind v4 loads `tailwind.config.js` via `@config` (there is no `@theme` block); classes like `primary`, `on-surface`, `focus-ring`, `shadow-elevation-*` map onto the tokens. Use semantic token classes rather than raw colors — `npm run md3:check` (CI-blocking) forbids hex and raw Tailwind palette classes in `src/components/**`. Key rule (X12): yellow is never a text/glyph color on light backgrounds — yellow means filled-with-black-text; keyboard focus is the opaque anthracite `focus-ring` token. Reference docs: `docs/DESIGN_TOKENS_SPEC.md`, `docs/AUDIT_DESIGN_SYSTEM.md`; compliance/audit reports under `docs/md3-*`.
+## Design system — "Tracker DS"
+The design system is the proprietary Neemba/CAT brand (yellow `#FDC910` / warm black, light-only). Tokens are CSS custom properties in `index.css`, organised in **three tiers** since 2026-07-25 — see **`DESIGN_SYSTEM.md`** (authoritative on naming):
+
+1. **Primitive** — `--cat-*`, `--ref-*`, `--color-neutral-*`: raw values, `index.css` only.
+2. **Semantic** — `--tk-*` (`--tk-color-*`, `--tk-radius-*`, `--tk-elevation-*`, `--tk-motion-*`, `--tk-state-*`, `--tk-type-*`, `--tk-space-*`): the roles. **The only layer components and the Tailwind bridge may consume** — this is the prerequisite for a future dark mode.
+3. **Component** — `--color-sidebar-*`, `--color-login-*`: owned by one component.
+
+The MD3 vocabulary (`--md-sys-*`) is **no longer a source**: it survives as `@deprecated` aliases at the end of `index.css` for progressive migration. Never point a `--tk-*` token at an alias (custom-property cycles fail silently).
+
+Tailwind v4 loads `tailwind.config.js` via `@config` (there is no `@theme` block); utility **class names are unchanged** (`primary`, `on-surface`, `focus-ring`, `shadow-elevation-*`) — only their definitions now resolve to `--tk-*`. Use semantic token classes rather than raw colors — `npm run md3:check` (CI-blocking) forbids hex and raw Tailwind palette classes in `src/components/**`, and `npm run check:tokens` blocks orphan/cyclic tokens and tier violations. Key rule (X12): yellow is never a text/glyph color on light backgrounds — yellow means filled-with-black-text; keyboard focus is the opaque anthracite `focus-ring` token. Reference docs: `DESIGN_SYSTEM.md`, `docs/DESIGN_TOKENS_SPEC.md`, `docs/AUDIT_DESIGN_SYSTEM.md`; compliance/audit reports under `docs/md3-*`.
 
 ## When editing
 - Keep changes scoped to one feature/domain; keep domain types in `src/types` and update all call sites in the same change.

@@ -61,8 +61,8 @@ const VARIANT_STYLES: Record<
     // (sidebar, rail), anneau de focus `primary` car le `focus-ring` anthracite
     // y est invisible.
     nav: {
-        base: 'bg-transparent text-[var(--color-neutral-400)]',
-        hover: 'hover:bg-white/5 hover:text-white',
+        base: 'bg-transparent text-on-nav-surface-variant',
+        hover: 'hover:bg-white/5 hover:text-on-nav-surface',
         selected: 'bg-primary text-on-primary',
         selectedHover: 'hover:shadow-elevation-1',
         focusRing: 'focus-visible:ring-primary',

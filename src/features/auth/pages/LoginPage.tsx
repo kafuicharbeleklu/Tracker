@@ -183,7 +183,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     ];
 
     return (
-        <div className="flex min-h-dvh w-full font-sans bg-[var(--color-login-page-bg)] text-[var(--color-text-primary)] overflow-x-hidden">
+        <div className="flex min-h-dvh w-full font-sans bg-[var(--color-login-page-bg)] text-[var(--tk-color-text-primary)] overflow-x-hidden">
 
             {/* LEFT PANEL - SMARTPROCURE-ALIGNED BRAND HERO */}
             <section
@@ -233,14 +233,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <div className="w-full max-w-[480px] space-y-7 ui-panel p-6 medium:p-8">
 
                     {/* MEDIUM HERO (600-839) */}
-                    <section className="hidden medium:block expanded:hidden rounded-lg border border-[var(--color-border-default)] bg-[var(--color-neutral-50)] p-5">
-                        <p className="text-title-large text-[var(--color-text-primary)] mb-1">{APP_CONFIG.appName}</p>
-                        <p className="text-body-medium text-[var(--color-text-muted)] mb-4">
+                    <section className="hidden medium:block expanded:hidden rounded-lg border border-[var(--tk-color-border-default)] bg-[var(--color-neutral-50)] p-5">
+                        <p className="text-title-large text-[var(--tk-color-text-primary)] mb-1">{APP_CONFIG.appName}</p>
+                        <p className="text-body-medium text-[var(--tk-color-text-muted)] mb-4">
                             Gérez vos actifs IT avec une vue unifiée et des workflows simplifiés.
                         </p>
                         <div className="space-y-2">
                             {featuresTracker.map((feature) => (
-                                <div key={`medium-${feature}`} className="flex items-center gap-2 text-[var(--color-text-muted)]">
+                                <div key={`medium-${feature}`} className="flex items-center gap-2 text-[var(--tk-color-text-muted)]">
                                     <MaterialIcon name="check_circle" size={18} className="text-primary" />
                                     <span className="text-label-medium font-medium">{feature}</span>
                                 </div>
@@ -249,7 +249,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     </section>
 
                     {/* MOBILE BRANDING */}
-                    <div className="medium:hidden flex items-center justify-center gap-2 text-[var(--color-text-primary)]">
+                    <div className="medium:hidden flex items-center justify-center gap-2 text-[var(--tk-color-text-primary)]">
                         <div className="w-8 h-8 rounded-md bg-primary text-on-primary flex items-center justify-center text-body-small font-black">
                             TR
                         </div>
@@ -260,13 +260,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     <div className="space-y-2">
                         {authView === 'login' ? (
                             <>
-                                <h1 className="text-headline-medium font-bold text-[var(--color-text-primary)]">Connexion</h1>
-                                <p className="text-body-medium text-[var(--color-text-muted)]">Heureux de vous revoir !</p>
+                                <h1 className="text-headline-medium font-bold text-[var(--tk-color-text-primary)]">Connexion</h1>
+                                <p className="text-body-medium text-[var(--tk-color-text-muted)]">Heureux de vous revoir !</p>
                             </>
                         ) : (
                             <>
-                                <h1 className="text-headline-medium font-bold text-[var(--color-text-primary)]">Réinitialiser le mot de passe</h1>
-                                <p className="text-body-medium text-[var(--color-text-muted)]">Saisissez votre e-mail pour recevoir un lien.</p>
+                                <h1 className="text-headline-medium font-bold text-[var(--tk-color-text-primary)]">Réinitialiser le mot de passe</h1>
+                                <p className="text-body-medium text-[var(--tk-color-text-muted)]">Saisissez votre e-mail pour recevoir un lien.</p>
                             </>
                         )}
                     </div>
@@ -280,10 +280,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                             <MaterialIcon name="info" size={20} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-label-large font-bold text-[var(--color-text-primary)]">
+                                            <p className="text-label-large font-bold text-[var(--tk-color-text-primary)]">
                                                 Environnement de production
                                             </p>
-                                            <p className="text-body-small text-[var(--color-text-muted)]">
+                                            <p className="text-body-small text-[var(--tk-color-text-muted)]">
                                                 La connexion e-mail/mot de passe de démonstration est désactivée.
                                                 Utilisez Microsoft SSO pour ouvrir votre session Azure AD.
                                             </p>
@@ -376,7 +376,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
                             {DEMO_LOGIN_ENABLED && (
                                 <div className="pt-8">
-                                    <p className="text-label-medium text-[var(--color-text-muted)] uppercase font-bold text-center mb-4">
+                                    <p className="text-label-medium text-[var(--tk-color-text-muted)] uppercase font-bold text-center mb-4">
                                         Comptes Démo
                                     </p>
                                     <div className="flex justify-center gap-3">
@@ -451,7 +451,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         </form>
                     )}
 
-                    <div className="pt-2 text-center text-body-small text-[var(--color-text-muted)] space-y-1">
+                    <div className="pt-2 text-center text-body-small text-[var(--tk-color-text-muted)] space-y-1">
                         <p>
                             © {LOGIN_FOOTER_YEAR} {APP_CONFIG.companyName}. Tous droits réservés.
                         </p>

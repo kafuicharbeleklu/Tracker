@@ -642,7 +642,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     })();
 
     return (
-        <div className="flex flex-col h-full bg-surface-background">
+        <div className="flex flex-col h-full bg-surface">
             {/* Shared Modals Components */}
             <AddCategoryPage
                 isOpen={isCategoryModalOpen}
@@ -728,7 +728,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-y-auto">
                 <PageContainer>
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-macro pb-12">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-medium2 pb-12">
                         {activeTab === 'categories' ? (
                             <div className="space-y-6">
 
@@ -818,7 +818,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                         <label className="inline-flex items-center gap-2 text-label-small text-on-surface-variant">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={allVisibleCategoriesSelected}
                                                 ref={(node) => {
                                                     if (node) {
@@ -861,7 +861,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                 checked={selectedCategorySet.has(cat.id)}
                                                                 onClick={(event) => event.stopPropagation()}
                                                                 onChange={(event) => toggleCategorySelection(cat.id, event.target.checked)}
-                                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                                 aria-label={`Sélectionner ${getCategoryLabel(cat.name)}`}
                                                             />
                                                         ) : (
@@ -985,7 +985,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                         <label className="inline-flex items-center gap-2 text-label-small text-on-surface-variant">
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                                 checked={allVisibleModelsSelected}
                                                 ref={(node) => {
                                                     if (node) {
@@ -1025,7 +1025,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                         checked={selectedModelSet.has(model.id)}
                                                         onClick={(event) => event.stopPropagation()}
                                                         onChange={(event) => toggleModelSelection(model.id, event.target.checked)}
-                                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)] shrink-0"
+                                                        className="h-4 w-4 accent-[var(--tk-color-primary)] shrink-0"
                                                         aria-label={`Sélectionner ${model.name}`}
                                                     />
                                                 )}

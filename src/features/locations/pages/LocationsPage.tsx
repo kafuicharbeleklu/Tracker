@@ -387,7 +387,7 @@ const LocationsPage = () => {
     );
 
     return (
-        <div className="flex flex-col h-full bg-surface-background">
+        <div className="flex flex-col h-full bg-surface">
             {/* Enveloppe non rendue quand le PageHeader n'affiche rien (compact portrait, X11) */}
             {!hasMobileTopBar && (
             <div className="bg-surface border-b border-outline-variant pt-page-sm medium:pt-page pb-0 px-0 sticky top-0 z-20">
@@ -479,7 +479,7 @@ const LocationsPage = () => {
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                <div className="px-page-sm medium:px-page pt-6 animate-in fade-in slide-in-from-right-4 duration-macro pb-12">
+                <div className="px-page-sm medium:px-page pt-6 animate-in fade-in slide-in-from-right-4 duration-medium2 pb-12">
                     <div className="grid grid-cols-12 gap-6">
                         <Card className="col-span-12 expanded:col-span-4 h-[320px]" title="Pays" actionIcon={!isCompact ? <MaterialIcon name="add" size={18} /> : undefined} onActionClick={!isCompact ? () => openCreateForm('country') : undefined}>
                             <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar max-h-[220px]">

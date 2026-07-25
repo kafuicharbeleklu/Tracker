@@ -158,7 +158,7 @@
       "route": "/dashboard",
       "status": "changed",
       "pass": false,
-      "hash": "35325801728ce3050324e3148cf99f97c2190db00ef5f607bc73bc80cee4695a",
+      "hash": "b6527657d90310c36c7b935cd2bc9b7b6429c21bc829c23ac71e8afc143294aa",
       "baselinePath": "docs/md3-visual-baseline/medium/dashboard.png",
       "currentPath": "docs/md3-visual-current/2026-07-25/medium/dashboard.png"
     },
@@ -288,7 +288,7 @@
       "route": "/dashboard",
       "status": "changed",
       "pass": false,
-      "hash": "8116c681235328b4defb9922440740ac01861822b76a57c7646ddc1740332279",
+      "hash": "6ddff89d3b6787da7f367fec2a3b0f911fb96a73ca064e41d89a41229310acf4",
       "baselinePath": "docs/md3-visual-baseline/expanded/dashboard.png",
       "currentPath": "docs/md3-visual-current/2026-07-25/expanded/dashboard.png"
     },

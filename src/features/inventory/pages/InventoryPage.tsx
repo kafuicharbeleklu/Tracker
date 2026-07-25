@@ -449,7 +449,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         <label className="inline-flex items-center gap-2 text-label-small text-on-surface-variant">
                             <input
                                 type="checkbox"
-                                className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                 checked={allVisibleSelected}
                                 ref={(node) => {
                                     if (node) {
@@ -486,7 +486,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                         type="checkbox"
                                         checked={selectedEquipmentSet.has(item.id)}
                                         onChange={(event) => toggleSelection(item.id, event.target.checked)}
-                                        className="h-4 w-4 accent-[var(--md-sys-color-primary)]"
+                                        className="h-4 w-4 accent-[var(--tk-color-primary)]"
                                         aria-label={`Sélectionner ${item.name}`}
                                     />
                                 ) : undefined}

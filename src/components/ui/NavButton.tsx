@@ -94,12 +94,12 @@ const STATE_STYLES: Record<NavSurface, { active: string; inactive: string }> = {
         inactive: 'text-text-secondary hover:bg-surface-variant',
     },
     rail: {
-        active: 'text-white hover:bg-white/5',
-        inactive: 'text-[var(--color-neutral-400)] hover:text-white hover:bg-white/5',
+        active: 'text-on-nav-surface hover:bg-white/5',
+        inactive: 'text-on-nav-surface-variant hover:text-on-nav-surface hover:bg-white/5',
     },
     drawer: {
         active: 'bg-primary text-on-primary ring-0 shadow-sm hover:bg-primary-hover',
-        inactive: 'bg-transparent text-[var(--color-neutral-400)] hover:bg-white/5 hover:text-white',
+        inactive: 'bg-transparent text-on-nav-surface-variant hover:bg-white/5 hover:text-on-nav-surface',
     },
 };
 

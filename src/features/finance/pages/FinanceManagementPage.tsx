@@ -31,9 +31,9 @@ import { FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../
 // --- MOCK DATA ---
 
 const MOCK_LOCATION_VALUE = [
-    { country: 'France', value: 85000, percent: 55, color: 'var(--md-sys-color-primary)' },
-    { country: 'Sénégal', value: 42000, percent: 28, color: 'var(--md-sys-color-secondary)' },
-    { country: 'Togo', value: 25000, percent: 17, color: 'var(--md-sys-color-tertiary)' },
+    { country: 'France', value: 85000, percent: 55, color: 'var(--tk-color-primary)' },
+    { country: 'Sénégal', value: 42000, percent: 28, color: 'var(--tk-color-secondary)' },
+    { country: 'Togo', value: 25000, percent: 17, color: 'var(--tk-color-tertiary)' },
 ];
 type FinanceView = 'overview' | 'expenses' | 'budget';
 const FINANCE_TABS_ID_BASE = 'finance-main-tabs';
@@ -458,7 +458,7 @@ const FinanceManagementPage = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-surface-background">
+        <div className="flex flex-col h-full bg-surface">
             <AddExpenseModal isOpen={isAddExpenseModalOpen} onClose={() => setIsAddExpenseModalOpen(false)} />
             <AddBudgetModal isOpen={isAddBudgetModalOpen} onClose={() => setIsAddBudgetModalOpen(false)} />
             <Modal
@@ -709,7 +709,7 @@ const FinanceManagementPage = () => {
             {/* Main Content Area */}
             <div className="flex-1 overflow-y-auto">
                 <PageContainer>
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-macro">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-medium2">
 
                         {isCompact && activeView === 'budget' && (
                             <div className="mb-5 rounded-card border border-outline-variant bg-surface-container-low p-4">
@@ -787,12 +787,12 @@ const FinanceManagementPage = () => {
                                             <svg viewBox="0 0 600 200" className="w-full h-full overflow-visible">
                                                 <defs>
                                                     <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                        <stop offset="0%" style={{ stopColor: 'var(--md-sys-color-primary)', stopOpacity: 0.2 }} />
-                                                        <stop offset="100%" style={{ stopColor: 'var(--md-sys-color-primary)', stopOpacity: 0 }} />
+                                                        <stop offset="0%" style={{ stopColor: 'var(--tk-color-primary)', stopOpacity: 0.2 }} />
+                                                        <stop offset="100%" style={{ stopColor: 'var(--tk-color-primary)', stopOpacity: 0 }} />
                                                     </linearGradient>
                                                 </defs>
                                                 {[0, 50, 100, 150, 200].map(y => (
-                                                    <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="var(--md-sys-color-outline-variant)" strokeWidth="1" />
+                                                    <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="var(--tk-color-outline-variant)" strokeWidth="1" />
                                                 ))}
                                                 <path
                                                     d={`M 0 200 ${projectionSteps.map((s, i) => `L ${i * 120} ${200 - (s.val / maxProj * 150)}`).join(' ')} L 600 200 Z`}
@@ -801,7 +801,7 @@ const FinanceManagementPage = () => {
                                                 <path
                                                     d={`M 0 ${200 - (projectionSteps[0].val / maxProj * 150)} ${projectionSteps.map((s, i) => `L ${i * 120} ${200 - (s.val / maxProj * 150)}`).join(' ')}`}
                                                     fill="none"
-                                                    stroke="var(--md-sys-color-primary)"
+                                                    stroke="var(--tk-color-primary)"
                                                     strokeWidth="3"
                                                     strokeLinecap="round"
                                                     className="animate-draw"
@@ -812,12 +812,12 @@ const FinanceManagementPage = () => {
                                                             cx={i * 120}
                                                             cy={200 - (s.val / maxProj * 150)}
                                                             r="4"
-                                                            fill="var(--md-sys-color-surface)"
-                                                            stroke="var(--md-sys-color-primary)"
+                                                            fill="var(--tk-color-surface)"
+                                                            stroke="var(--tk-color-primary)"
                                                             strokeWidth="2"
                                                         />
                                                         <text x={i * 120} y="195" textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className="text-label-small fill-on-surface-variant font-bold uppercase">{s.m}</text>
-                                                        <text x={i * 120} y={200 - (s.val / maxProj * 150) - 10} textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className={cn('text-label-small fill-dark font-bold transition-opacity', isHoverCapable ? 'opacity-0 group-hover/dot:opacity-100' : 'opacity-100')}>
+                                                        <text x={i * 120} y={200 - (s.val / maxProj * 150) - 10} textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className={cn('text-label-small fill-on-surface font-bold transition-opacity', isHoverCapable ? 'opacity-0 group-hover/dot:opacity-100' : 'opacity-100')}>
                                                             {formatCurrency(s.val, settings.currency, settings.compactNotation)}
                                                         </text>
                                                     </g>
@@ -1052,7 +1052,7 @@ const FinanceManagementPage = () => {
                                 role="tabpanel"
                                 id={getTabPanelId(FINANCE_TABS_ID_BASE, 'budget')}
                                 aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'budget')}
-                                className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-macro"
+                                className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-medium2"
                             >
                                 {/* Summary Cards */}
                                 <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
@@ -1286,7 +1286,7 @@ const FinanceManagementPage = () => {
         .animate-draw {
           stroke-dasharray: 1000;
           stroke-dashoffset: 1000;
-          animation: draw 2s var(--md-sys-motion-easing-emphasized-decelerate) forwards;
+          animation: draw 2s var(--tk-motion-easing-emphasized-decelerate) forwards;
         }
         @keyframes draw {
           to { stroke-dashoffset: 0; }

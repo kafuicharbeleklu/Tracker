@@ -147,7 +147,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 };
 
 export const WizardStep: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={cn('animate-in fade-in slide-in-from-right-8 duration-macro', className)}>
+  <div className={cn('animate-in fade-in slide-in-from-right-8 duration-medium2', className)}>
     {children}
   </div>
 );
