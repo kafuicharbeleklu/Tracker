@@ -525,7 +525,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                         <Button
                             variant="text"
                             onClick={onBack}
-                            className="h-11 w-11 min-w-0 rounded-full !text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
+                            className="h-11 w-11 min-w-0 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
                             icon={<MaterialIcon name="arrow_back" size={24} />}
                             aria-label="Retour"
                         />
@@ -789,7 +789,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                         authUser?.Status === 'active'
                                                             ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
                                                             : authUser?.Status === 'pending'
-                                                                ? 'bg-warning/10 text-warning border-warning/30'
+                                                                ? 'bg-warning/10 text-warning-strong border-warning/30'
                                                                 : 'bg-notebook-danger/10 text-notebook-danger border-notebook-danger/20'
                                                     }`}>
                                                         {authUser?.Status === 'active'
@@ -804,7 +804,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                         authUser?.PinStatus === 'active'
                                                             ? 'bg-notebook-success/10 text-notebook-success border-notebook-success/20'
                                                             : authUser?.PinStatus === 'pending'
-                                                                ? 'bg-warning/10 text-warning border-warning/30'
+                                                                ? 'bg-warning/10 text-warning-strong border-warning/30'
                                                                 : 'bg-outline-variant/50 text-on-surface-variant border-outline-variant'
                                                     }`}>
                                                         {authUser?.PinStatus === 'active'
@@ -836,8 +836,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                                 variant="outlined"
                                                 className={
                                                     authUser?.Status === 'inactive'
-                                                        ? '!text-notebook-success !border-notebook-success/40 hover:!bg-notebook-success/10'
-                                                        : '!text-error !border-error/30 hover:!bg-error/5'
+                                                        ? 'text-notebook-success border-notebook-success/40 hover:bg-notebook-success/10'
+                                                        : 'text-error border-error/30 hover:bg-error/5'
                                                 }
                                                 onClick={handleToggleAccountStatus}
                                                 icon={<MaterialIcon name={authUser?.Status === 'inactive' ? 'check_circle' : 'block'} size={18} />}
@@ -999,7 +999,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({ userId, onBack, onEqu
                                     type="button"
                                     variant="outlined"
                                     onClick={handleAssignClick}
-                                    className="h-auto min-h-[200px] w-full !rounded-md !border-2 !border-dashed !border-outline-variant !bg-transparent !p-card !text-on-surface-variant !flex-col !items-center !justify-center group hover:!border-primary hover:!bg-primary-container/20 hover:!text-on-surface"
+                                    className="h-auto min-h-[200px] w-full rounded-md border-2 border-dashed border-outline-variant bg-transparent p-card text-on-surface-variant flex-col items-center justify-center group hover:border-primary hover:bg-primary-container/20 hover:text-on-surface"
                                 >
                                     <div className="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-on-primary transition-colors">
                                         <MaterialIcon name="add" size={24} />

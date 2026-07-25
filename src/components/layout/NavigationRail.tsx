@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from '../ui/MaterialIcon';
-import Button from '../ui/Button';
 import IconButton from '../ui/IconButton';
+import NavButton from '../ui/NavButton';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { DESTINATIONS, getDestinationShortLabel } from '../../constants/destinations';
@@ -28,24 +28,17 @@ interface RailItemProps {
 
 const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
     ({ destinationId, icon, label, active, compact = false, onClick, onKeyDown, tabIndex }, ref) => (
-        <Button
+        <NavButton
             ref={ref}
-            variant="text"
-            size="sm"
+            surface="rail"
+            active={active}
+            dense={compact}
             onClick={onClick}
             onKeyDown={onKeyDown}
             tabIndex={tabIndex}
             aria-current={active ? 'page' : undefined}
             aria-label={label}
             aria-describedby={compact ? undefined : `rail-label-${destinationId}`}
-            className={cn(
-                compact
-                    ? "!w-12 !min-h-12 !px-1 !py-1 !flex-col !items-center !justify-center !gap-0.5 !rounded-lg"
-                    : "!w-20 !min-h-16 !px-2 !py-1 !flex-col !items-center !justify-center !gap-1 !rounded-lg",
-                "!outline-none focus-visible:!ring-2 focus-visible:!ring-primary focus-visible:!ring-inset",
-                "!transition-all !duration-short4 !ease-emphasized",
-                active ? "!text-white" : "!text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5"
-            )}
             title={label}
         >
             <span
@@ -62,7 +55,7 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
             >
                 {label}
             </span>
-        </Button>
+        </NavButton>
     )
 );
 
@@ -158,9 +151,8 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
             <div className={cn("flex flex-col items-center gap-2", compact && "gap-2")}>
                 <IconButton
                     icon="menu"
-                    variant="standard"
+                    variant="nav"
                     onClick={onMenuClick}
-                    className="!text-[var(--color-neutral-400)] hover:!text-white hover:!bg-white/5 focus-visible:!ring-primary"
                     aria-label="Ouvrir le menu lateral"
                     title="Menu"
                 />

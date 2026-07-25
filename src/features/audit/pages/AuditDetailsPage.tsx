@@ -545,7 +545,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <Button
                         variant="text"
                         onClick={onBack}
-                        className="h-11 w-11 min-w-0 p-0 rounded-full shrink-0 !text-on-surface-variant hover:text-on-surface"
+                        className="h-11 w-11 min-w-0 p-0 rounded-full shrink-0 text-on-surface-variant hover:text-on-surface"
                         icon={<MaterialIcon name="arrow_back" size={24} />}
                         aria-label="Retour"
                     />

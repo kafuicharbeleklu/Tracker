@@ -516,8 +516,9 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                         key={option.key}
                                         type="button"
                                         variant="outlined"
+                                        layout="card"
                                         onClick={option.action}
-                                        className="h-auto w-full !rounded-md !border !border-outline-variant !bg-surface !px-6 !py-5 !text-on-surface !justify-start !items-center !text-left group hover:!border-primary hover:!shadow-elevation-2"
+                                        className="w-full rounded-md border border-outline-variant bg-surface px-6 py-5 text-on-surface items-center group hover:border-primary hover:shadow-elevation-2"
                                     >
                                         <MaterialIcon name={option.icon} size={28} className={cn(option.iconClass, "mr-4 group-hover:scale-110 transition-transform")} />
                                         <div className="flex-1">
@@ -543,7 +544,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                         variant="standard"
                                         aria-label="Effacer la signature"
                                         onClick={(e) => { e.stopPropagation(); }}
-                                        className="absolute bottom-2 right-2 !w-8 !h-8 bg-surface-container-lowest rounded-sm shadow-elevation-1 text-on-surface-variant hover:!text-error"
+                                        className="absolute bottom-2 right-2 w-8 h-8 bg-surface-container-lowest rounded-sm shadow-elevation-1 text-on-surface-variant hover:text-error"
                                     />
                                 </div>
                                 <div className="flex gap-3 justify-center">
@@ -570,7 +571,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                             value={digit}
                                             onChange={(e) => handlePinChange(idx, e.target.value)}
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="h-14 !px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
+                                            className="h-14 px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
                                         />
                                     ))}
                                 </div>
@@ -689,12 +690,13 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                         <Button
                                             type="button"
                                             variant="outlined"
+                                            layout="card"
                                             onClick={() => setIsImmediateHandover(true)}
                                             className={cn(
-                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start !whitespace-normal",
+                                                "w-full rounded-md border-2 px-4 py-4 items-start whitespace-normal",
                                                 isImmediateHandover
-                                                    ? 'border-primary !bg-primary/5 shadow-elevation-1'
-                                                    : 'border-outline-variant !bg-surface hover:!border-outline'
+                                                    ? 'border-primary bg-primary/5 shadow-elevation-1'
+                                                    : 'border-outline-variant bg-surface hover:border-outline'
                                             )}
                                         >
                                             <span className="flex min-w-0 flex-col">
@@ -706,12 +708,13 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                         <Button
                                             type="button"
                                             variant="outlined"
+                                            layout="card"
                                             onClick={() => setIsImmediateHandover(false)}
                                             className={cn(
-                                                "h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-left !justify-start !items-start !whitespace-normal",
+                                                "w-full rounded-md border-2 px-4 py-4 items-start whitespace-normal",
                                                 !isImmediateHandover
-                                                    ? 'border-secondary !bg-secondary-container/30 shadow-elevation-1'
-                                                    : 'border-outline-variant !bg-surface hover:!border-outline'
+                                                    ? 'border-secondary bg-secondary-container/30 shadow-elevation-1'
+                                                    : 'border-outline-variant bg-surface hover:border-outline'
                                             )}
                                         >
                                             <span className="flex min-w-0 flex-col">
@@ -753,7 +756,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                                                 variant="standard"
                                                 aria-label="Effacer la signature capturée"
                                                 onClick={(e) => { e.stopPropagation(); setSignatureCaptured(false); }}
-                                                className="absolute top-2 right-2 !w-8 !h-8 text-on-surface-variant hover:!text-error bg-surface-container-lowest rounded-sm shadow-elevation-1"
+                                                className="absolute top-2 right-2 w-8 h-8 text-on-surface-variant hover:text-error bg-surface-container-lowest rounded-sm shadow-elevation-1"
                                             />
                                         )}
                                     </div>

@@ -53,7 +53,7 @@ const Modal: React.FC<ModalProps> = ({
         if (isOpen) {
             setVisible(true);
             setClosing(false);
-        } else if (visible) {
+        } else if (!visible) {
             // Start exit animation
             setClosing(true);
         }

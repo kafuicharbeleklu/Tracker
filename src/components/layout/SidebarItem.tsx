@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from '../ui/MaterialIcon';
-import Button from '../ui/Button';
 import Tooltip from '../ui/Tooltip';
+import NavButton from '../ui/NavButton';
 
 interface SidebarItemProps {
     /** Material Symbols icon name */
@@ -31,27 +31,14 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     const badgeCount = typeof badge === 'number' ? badge : (badge ? parseInt(badge as string) : 0);
 
     const item = (
-        <Button
-            variant="text"
-            size="sm"
+        <NavButton
+            surface="drawer"
+            active={active}
+            dense={isCollapsed}
             onClick={onClick}
             aria-label={label}
             aria-current={active ? 'page' : undefined}
-            className={cn(
-                "group relative !cursor-pointer !transition-all !duration-medium2 !ease-emphasized !flex !items-center !overflow-hidden",
-                "!rounded-lg",
-                // Accessibility
-                "!outline-none focus-visible:!ring-2 focus-visible:!ring-primary focus-visible:!ring-inset",
-                // Horizontal spacing
-                isCollapsed
-                    ? "!w-11 !h-11 !min-h-11 !min-w-11 !self-center !mx-auto !px-0 !py-0 !justify-center !gap-0"
-                    : "!w-full !min-h-11 !px-3 !py-2.5 !justify-start",
-                // MD3 Active: secondaryContainer background, onSecondaryContainer text
-                active
-                    ? "!bg-primary !text-on-primary !ring-0 !shadow-sm"
-                    : "!text-[var(--color-neutral-400)] hover:!bg-white/5 hover:!text-white",
-                className
-            )}
+            className={className}
         >
             {/* Icon — filled when active (MD3 spec) */}
             <span className="flex-shrink-0 flex items-center justify-center w-6 h-6">
@@ -84,7 +71,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
                     {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
             )}
-        </Button>
+        </NavButton>
     );
 
     // Rétracté : étiquette via la primitive Tooltip en stratégie fixed — un tooltip maison

@@ -252,7 +252,7 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
             title={sheetTitle}
             description="Détails contextualisés de l’événement sélectionné."
             width="standard"
-            className="!rounded-none"
+            className="rounded-none"
         >
             <div className="space-y-4">
                 {isAssignment

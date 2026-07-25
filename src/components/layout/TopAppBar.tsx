@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import Button from '../ui/Button';
 import MaterialIcon from '../ui/MaterialIcon';
+import Tooltip from '../ui/Tooltip';
 
 interface TopAppBarAction {
   icon: string;
@@ -38,15 +39,18 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
     >
       <div className="flex items-center min-w-0 flex-1">
         {leadingAction && (
-          <Button
-            variant="text"
-            size="sm"
-            onClick={leadingAction.onClick}
-            aria-label={leadingAction.label}
-            title={leadingAction.label}
-            className="!w-10 !h-10 !min-h-10 !min-w-10 !p-0"
-            icon={<MaterialIcon name={leadingAction.icon} size={24} />}
-          />
+          // Tooltip maison (au lieu de `title` natif) : hover desktop ET appui long tactile
+          // (600 ms) — l'icône seule n'est plus muette au tap (AUDIT_MOBILE #6).
+          <Tooltip content={leadingAction.label} placement="bottom">
+            <Button
+              variant="text"
+              size="sm"
+              onClick={leadingAction.onClick}
+              aria-label={leadingAction.label}
+              iconOnly
+              icon={<MaterialIcon name={leadingAction.icon} size={24} />}
+            />
+          </Tooltip>
         )}
         <div className={cn("section-title truncate ml-1 flex-1 text-[var(--color-text-primary)]", titleClassName)} role="heading" aria-level={2}>
           {title}
@@ -54,18 +58,20 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
       </div>
 
       {trailingActions.length > 0 && (
-        <div className="flex items-center">
+        // gap-2 : les hit-box étendues à 48px (touch-target) se juxtaposent sans se
+        // chevaucher (avant : boutons collés → zones de frappe superposées). AUDIT_MOBILE #7.
+        <div className="flex items-center gap-2">
           {trailingActions.slice(0, 3).map((action) => (
-            <Button
-              key={`${action.icon}-${action.label}`}
-              variant="text"
-              size="sm"
-              onClick={action.onClick}
-              aria-label={action.label}
-              title={action.label}
-              className="!w-10 !h-10 !min-h-10 !min-w-10 !p-0"
-              icon={<MaterialIcon name={action.icon} size={24} />}
-            />
+            <Tooltip key={`${action.icon}-${action.label}`} content={action.label} placement="bottom">
+              <Button
+                variant="text"
+                size="sm"
+                onClick={action.onClick}
+                aria-label={action.label}
+                iconOnly
+                icon={<MaterialIcon name={action.icon} size={24} />}
+              />
+            </Tooltip>
           ))}
         </div>
       )}

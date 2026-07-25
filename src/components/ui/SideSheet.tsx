@@ -68,7 +68,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
         if (open) {
             setVisible(true);
             setClosing(false);
-        } else if (visible) {
+        } else if (!visible) {
             setClosing(true);
         }
     }, [open, visible]);

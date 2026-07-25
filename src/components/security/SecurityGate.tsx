@@ -188,12 +188,12 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                     disabled={isVerifying || reasonMissing}
                     onChange={(e) => handlePinChange(idx, e.target.value)}
                     aria-label={`Chiffre PIN ${idx + 1}`}
-                    className="h-12 !px-0 border-2 border-outline-variant rounded-md text-center text-title-medium focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4 ease-emphasized"
+                    className="h-12 px-0 border-2 border-outline-variant rounded-md text-center text-title-medium focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4 ease-emphasized"
                   />
                 ))}
               </div>
               {attempts > 0 && <p className="text-error text-body-small">PIN incorrect ({attempts}/3)</p>}
-              <Button variant="outlined" onClick={handleClose} className="w-full !text-on-surface-variant">Annuler</Button>
+              <Button variant="outlined" onClick={handleClose} className="w-full text-on-surface-variant">Annuler</Button>
             </div>
           )}
 

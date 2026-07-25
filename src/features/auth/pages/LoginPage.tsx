@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { mockAllUsersExtended } from '../../../data/mockData';
 import InputField from '../../../components/ui/InputField';
 import Button from '../../../components/ui/Button';
+import Tooltip from '../../../components/ui/Tooltip';
 import { useData } from '../../../context/DataContext';
 import { APP_CONFIG } from '../../../config';
 
@@ -318,7 +319,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                         }}
                                         icon={<MaterialIcon name="mail" size={20} />}
                                         variant="filled"
-                                        className="!bg-white"
+                                        className="bg-white"
                                         autoComplete="username"
                                         error={emailError}
                                         disabled={isProductionOnlyMode}
@@ -339,7 +340,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                             }}
                                             icon={<MaterialIcon name="lock" size={20} />}
                                             variant="filled"
-                                            className="!bg-white"
+                                            className="bg-white"
                                             isPassword
                                             autoComplete="current-password"
                                             error={passwordError}
@@ -352,7 +353,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                                 variant="text"
                                                 onClick={openForgotPassword}
                                                 disabled={isLoading || isProductionOnlyMode}
-                                                className="!rounded-sm"
+                                                className="rounded-sm"
                                             >
                                                 Mot de passe oublié ?
                                             </Button>
@@ -380,14 +381,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                     </p>
                                     <div className="flex justify-center gap-3">
                                         {mockAllUsersExtended.slice(0, 4).map((user) => (
+                                            // Tooltip maison au lieu de `title` natif : au tap l'avatar pré-remplit ;
+                                            // l'appui long (600 ms) révèle nom + rôle complets — jusqu'ici hover-only,
+                                            // seul le badge-lettre survivait au tactile (AUDIT_MOBILE #6/#9).
+                                            <Tooltip key={user.id} content={`${user.name} · ${user.role}`}>
                                             <Button
-                                                key={user.id}
                                                 type="button"
                                                 variant="text"
                                                 onClick={() => fillDemoCredentials(user.email)}
                                                 aria-label={`Connexion démo: ${user.name}, rôle ${user.role}`}
-                                                className="group relative !w-12 !h-12 !p-0 !rounded-full !min-w-12 !min-h-12 !overflow-visible"
-                                                title={`Se connecter en tant que ${user.role} (${user.name})`}
+                                                className="group relative w-12 h-12 p-0 rounded-full min-w-12 min-h-12 overflow-visible"
                                             >
                                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-short4 ease-emphasized">
                                                     <img
@@ -400,6 +403,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                                     {user.role[0]}
                                                 </div>
                                             </Button>
+                                            </Tooltip>
                                         ))}
                                     </div>
                                 </div>
@@ -420,7 +424,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 }}
                                 icon={<MaterialIcon name="mail" size={20} />}
                                 variant="filled"
-                                className="!bg-white"
+                                className="bg-white"
                                 autoComplete="email"
                                 error={forgotPasswordError}
                                 required

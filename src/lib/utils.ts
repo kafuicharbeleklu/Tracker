@@ -7,9 +7,27 @@ import { extendTailwindMerge } from 'tailwind-merge';
  * Toute future classe maison à préfixe utilitaire (`text-*`, `shadow-*`, …)
  * doit être déclarée ici — synchro vérifiée par `scripts/check-cn-merge.mjs`.
  */
+/**
+ * Espacements MD3 nommés (tailwind.config.js `spacing`). Sans déclaration,
+ * tailwind-merge ne voit pas que `p-card` et `px-4` visent la même propriété :
+ * les deux classes sont émises et c'est l'ordre du CSS qui tranche — ce qui
+ * obligeait les appelants à écrire un `!` pour reprendre la main.
+ */
+const SPACING_TOKENS = ['page', 'page-sm', 'card', 'card-compact'];
+const SPACING_PREFIXES = [
+    'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl', 'ps', 'pe',
+    'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml', 'ms', 'me',
+    'gap', 'gap-x', 'gap-y',
+] as const;
+
+const spacingClassGroups = Object.fromEntries(
+    SPACING_PREFIXES.map((prefix) => [prefix, [{ [prefix]: SPACING_TOKENS }]])
+);
+
 const twMerge = extendTailwindMerge({
     extend: {
         classGroups: {
+            ...spacingClassGroups,
             // Typescale MD3 (index.css) : des tailles de texte, pas des couleurs.
             'font-size': [
                 {

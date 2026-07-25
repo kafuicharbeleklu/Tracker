@@ -541,7 +541,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                         <Button
                                             variant="text"
                                             size="sm"
-                                            className="h-9 w-9 min-w-0 p-0 rounded-full !text-error hover:bg-error-container/40"
+                                            className="h-9 w-9 min-w-0 p-0 rounded-full text-error hover:bg-error-container/40"
                                             icon={<MaterialIcon name="delete" size={18} />}
                                             onClick={(event) => {
                                                 event.stopPropagation();

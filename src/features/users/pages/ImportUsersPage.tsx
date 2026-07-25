@@ -6,6 +6,7 @@ import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { TableScrollArea } from '../../../components/ui/TableScrollArea';
 import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
 
 interface ImportUsersPageProps {
@@ -175,15 +176,18 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error">Changer</Button>
+                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Changer</Button>
                     </div>
 
                     <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
-                        <div className="overflow-x-auto max-h-[400px]">
+                        <TableScrollArea
+                            label="Aperçu des utilisateurs à importer"
+                            scrollerClassName="max-h-[400px]"
+                        >
                             <table className="w-full text-body-medium text-left">
                                 <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0 z-10">
                                     <tr>
-                                        <th className="px-4 py-3">Statut</th>
+                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
                                         <th className="px-4 py-3">Nom</th>
                                         <th className="px-4 py-3">Email</th>
                                         <th className="px-4 py-3">Rôle</th>
@@ -193,8 +197,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                 </thead>
                                 <tbody className="divide-y divide-outline-variant">
                                     {parsedData.map((row) => (
-                                        <tr key={row._id} className={cn("hover:bg-surface-container transition-colors", row._status === 'error' && "bg-error-container/50")}>
-                                            <td className="px-4 py-3">
+                                        <tr key={row._id} className={cn("group hover:bg-surface-container transition-colors", row._status === 'error' && "bg-error-container/50")}>
+                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface group-hover:bg-surface-container border-r border-outline-variant transition-colors">
                                                 {row._status === 'valid' ? <Badge variant="success">OK</Badge> : <Badge variant="danger">Erreur</Badge>}
                                             </td>
                                             <td className="px-4 py-3 font-bold text-on-surface">{row.name || '-'}</td>
@@ -206,7 +210,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </TableScrollArea>
                     </div>
                 </div>
             )}

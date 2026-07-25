@@ -343,12 +343,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         { label: 'Demandes en cours', count: myActiveRequestCount, icon: 'pending_actions', color: 'text-secondary', onClick: () => onViewChange('approvals') },
         { label: 'Réceptions à confirmer', count: myPendingReceiptCount, icon: 'move_to_inbox', color: 'text-tertiary', onClick: () => onViewChange('approvals') },
     ];
-    const dashboardHeaderActions = !isCompact && !isMedium ? (
+    // #8 (§3.4) : le medium (600–839) hérite des actions d'en-tête au lieu de
+    // rester orphelin — le PageHeader empile les actions sous le titre jusqu'à
+    // expanded, donc le medium accueille naturellement des boutons largeur-auto ;
+    // seul le compact (téléphone) garde la grille pleine-largeur ci-dessous.
+    const dashboardHeaderActions = !isCompact ? (
         <div className="flex gap-2">
             {permissions.canManageInventory ? (
                 <>
                     <Button variant="tonal" icon={<MaterialIcon name="assignment_return" size={18} />} onClick={() => onViewChange('return_wizard')}>
-                        Retour
+                        Retour matériel
                     </Button>
                     <Button variant="filled" icon={<MaterialIcon name="person_add" size={18} />} onClick={() => onViewChange('assignment_wizard')}>
                         Attribuer
@@ -371,7 +375,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     onClick={() => onViewChange('return_wizard')}
                     className="w-full justify-center"
                 >
-                    Retour
+                    Retour matériel
                 </Button>
                 <Button
                     variant="filled"
@@ -479,7 +483,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                             <Button
                                                                 size="sm"
                                                                 variant="text"
-                                                                className="!text-error px-2"
+                                                                className="text-error px-2"
                                                             >
                                                                 {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
                                                             </Button>
@@ -574,7 +578,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             size="sm"
                                             key={event.id}
                                             onClick={() => setSelectedEvent(event)}
-                                            className="!w-full !text-left !flex !items-center !gap-4 !p-3 !whitespace-normal hover:!bg-surface-container-low !transition-colors !cursor-pointer group !-mx-2 !px-2 !rounded-sm !justify-start !text-on-surface"
+                                            className="w-full text-left flex items-center gap-4 p-3 whitespace-normal hover:bg-surface-container-low transition-colors cursor-pointer group !-mx-2 px-2 rounded-sm justify-start text-on-surface"
                                         >
                                             <div className="relative">
                                                 <UserAvatar name={event.actorName} src={actor?.avatar} size="sm" />

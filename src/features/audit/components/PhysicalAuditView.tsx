@@ -476,13 +476,61 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                                 </p>
                                 <p className="truncate text-body-small text-on-surface-variant">{row.site} • {row.country}</p>
                             </div>
-                            <span className="text-body-small text-on-surface text-right">{row.expected}</span>
-                            <span className="text-body-small text-on-surface text-right">{row.found}</span>
-                            <span className="text-body-small text-error text-right">{row.missing}</span>
-                            <span className="text-body-small text-on-surface text-right">{row.exceptions}</span>
-                            <span className="text-body-small text-on-surface-variant text-right">{formatLastScan(row.lastScanAt)}</span>
-                            <div className="flex justify-end">{statusPill(row.status)}</div>
-                            <div className="flex justify-end">
+
+                            {/*
+                                Compact (< 600 px) : la rangée devient une carte (constat #4). Chaque valeur
+                                regagne son libellé — grille 2×2 aux libellés cohérents avec les MetricCard
+                                compactes (§9.1). Les cellules « desktop » ci-dessous sont masquées ici via
+                                hidden medium:*, donc le tableau medium/expanded reste inchangé (aucune de
+                                ces cellules ne prend de piste de grille tant qu'elle est display:none).
+                            */}
+                            <div className="medium:hidden space-y-3">
+                                <div className="grid grid-cols-2 gap-3 rounded-md border border-outline-variant bg-surface-container-low p-3">
+                                    <div>
+                                        <p className="text-label-small text-on-surface-variant">Attendus</p>
+                                        <p className="text-title-small font-semibold text-on-surface">{row.expected}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-label-small text-on-surface-variant">Scannés</p>
+                                        <p className="text-title-small font-semibold text-on-surface">{row.found}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-label-small text-on-surface-variant">Manquants</p>
+                                        {/* Danger uniquement si > 0 (token text-error du tableau) */}
+                                        <p className={cn('text-title-small font-semibold', row.missing > 0 ? 'text-error' : 'text-on-surface')}>{row.missing}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-label-small text-on-surface-variant">Écarts</p>
+                                        <p className="text-title-small font-semibold text-on-surface">{row.exceptions}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    {statusPill(row.status)}
+                                    <span className="text-body-small text-on-surface-variant">{formatLastScan(row.lastScanAt)}</span>
+                                </div>
+                                {/* Action en pied de carte — cible ≥ 44 px via le touch-target du Button */}
+                                <Button
+                                    variant="outlined"
+                                    size="md"
+                                    className="w-full"
+                                    icon={<MaterialIcon name="arrow_forward" size={16} />}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setSelectedRowKey(buildRowKey(row));
+                                        openAuditDetails(row);
+                                    }}
+                                >
+                                    Ouvrir
+                                </Button>
+                            </div>
+
+                            <span className="hidden medium:block text-body-small text-on-surface text-right">{row.expected}</span>
+                            <span className="hidden medium:block text-body-small text-on-surface text-right">{row.found}</span>
+                            <span className="hidden medium:block text-body-small text-error text-right">{row.missing}</span>
+                            <span className="hidden medium:block text-body-small text-on-surface text-right">{row.exceptions}</span>
+                            <span className="hidden medium:block text-body-small text-on-surface-variant text-right">{formatLastScan(row.lastScanAt)}</span>
+                            <div className="hidden medium:flex justify-end">{statusPill(row.status)}</div>
+                            <div className="hidden medium:flex justify-end">
                                 <Button
                                     variant="text"
                                     size="sm"

@@ -317,7 +317,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                 : null;
 
     return (
-        <PageContainer className="flex flex-col h-full !p-0 gap-0 max-w-full">
+        <PageContainer padding="none" className="flex flex-col h-full gap-0 max-w-full">
             {/* WRAPPED HEADER TO MATCH STANDARD SPACING */}
             <div className="px-page-sm medium:px-page pt-page-sm medium:pt-page sticky top-0 z-20 bg-surface/95 backdrop-blur-sm">
                 <PageHeader
@@ -359,7 +359,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
             </div>
 
             <div className="flex-1 overflow-hidden">
-                <PageContainer className="h-full flex flex-col expanded:flex-row gap-0 expanded:gap-8 !p-0 md:!px-page max-w-[1600px] mx-auto">
+                <PageContainer padding="none" className="h-full flex flex-col expanded:flex-row gap-0 expanded:gap-8 md:px-page max-w-[1600px] mx-auto">
 
                     {/* SIDEBAR NAVIGATION — compact/medium : PageTabs (affordance d'overflow
                         intégrée, X8) ; expanded : nav verticale */}
@@ -382,10 +382,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         variant={activeSection === section.id ? 'tonal' : 'text'}
                                         onClick={() => setActiveSection(section.id)}
                                         className={cn(
-                                            "h-auto w-full !rounded-md !px-4 !py-3 !text-title-small !font-medium !transition-all whitespace-nowrap expanded:whitespace-normal !justify-start",
+                                            "h-auto w-full rounded-md px-4 py-3 !text-title-small !font-medium transition-all whitespace-nowrap expanded:whitespace-normal justify-start",
                                             activeSection === section.id
-                                                ? "!bg-primary-container !text-on-primary-container shadow-elevation-1"
-                                                : "!text-on-surface-variant hover:!bg-surface-container-high hover:!text-on-surface"
+                                                ? "bg-primary-container text-on-primary-container shadow-elevation-1"
+                                                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                                         )}
                                     >
                                         <MaterialIcon name={section.icon} size={20} className={activeSection === section.id ? "text-primary" : "text-on-surface-variant"} />
@@ -726,7 +726,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                             <Button
                                                                 variant="text"
                                                                 size="sm"
-                                                                className="!text-error"
+                                                                className="text-error"
                                                                 disabled={device.status === 'ignored'}
                                                                 onClick={() => handleIgnoreDetected(device.id)}
                                                             >
@@ -776,7 +776,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                         <Button
                                             variant="outlined"
                                             onClick={onLogout}
-                                            className="!text-error hover:text-error hover:bg-error-container whitespace-nowrap shrink-0"
+                                            className="text-error hover:text-error hover:bg-error-container whitespace-nowrap shrink-0"
                                             icon={<MaterialIcon name="logout" size={18} />}
                                         >
                                             Déconnexion
@@ -796,7 +796,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                         <p className="text-body-medium text-on-surface-variant">Dernière modification il y a 90 jours</p>
                                                     </div>
                                                     {/* Règle X12 : couleur de texte par défaut du bouton outlined (sombre), pas de jaune */}
-                                                    <Button variant="outlined" className="whitespace-nowrap !px-4">Mettre à jour</Button>
+                                                    <Button variant="outlined" className="whitespace-nowrap px-4">Mettre à jour</Button>
                                                 </div>
                                                 <div className="h-px bg-outline-variant/50" />
                                                 <div className="flex items-center justify-between py-2 gap-3">
@@ -834,7 +834,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
                                                 key={idx}
                                                 type="button"
                                                 variant="outlined"
-                                                className="h-auto !rounded-lg !p-4 !bg-surface !border-outline-variant hover:!border-primary/50 hover:!bg-surface-container-low !text-left group !justify-start"
+                                                layout="card"
+                                                className="rounded-lg p-4 bg-surface border-outline-variant hover:border-primary/50 hover:bg-surface-container-low group"
                                             >
                                                 <div className="w-10 h-10 bg-secondary-container text-secondary rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                                     <MaterialIcon name={item.icon} size={20} />

@@ -6,6 +6,7 @@ import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { TableScrollArea } from '../../../components/ui/TableScrollArea';
 import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
 
 interface ImportEquipmentPageProps {
@@ -174,17 +175,20 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error hover:bg-error-container hover:text-on-error-container">
+                        <Button variant="outlined" size="sm" onClick={reset} className="text-error hover:bg-error-container hover:text-on-error-container">
                             Changer de fichier
                         </Button>
                     </div>
 
                     <div className="bg-surface rounded-md shadow-elevation-1 border border-outline-variant overflow-hidden">
-                        <div className="overflow-x-auto max-h-[400px]">
+                        <TableScrollArea
+                            label="Aperçu des équipements à importer"
+                            scrollerClassName="max-h-[400px]"
+                        >
                             <table className="w-full text-body-small text-left">
                                 <thead className="bg-surface-container text-on-surface-variant text-label-small uppercase sticky top-0 z-10">
                                     <tr>
-                                        <th className="px-4 py-3">Statut</th>
+                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
                                         <th className="px-4 py-3">Nom</th>
                                         <th className="px-4 py-3">Asset ID</th>
                                         <th className="px-4 py-3">Type</th>
@@ -195,7 +199,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                                 <tbody className="divide-y divide-outline-variant">
                                     {parsedData.map((row) => (
                                         <tr key={row._id} className={cn("hover:bg-surface-container-low transition-colors duration-short4", row._status === 'error' && "bg-error-container/30")}>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface border-r border-outline-variant">
                                                 {row._status === 'valid' ? (
                                                     <Badge variant="success" className="shadow-none">Prêt</Badge>
                                                 ) : (
@@ -213,7 +217,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </TableScrollArea>
                     </div>
                 </div>
             )}

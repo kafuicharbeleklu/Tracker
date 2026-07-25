@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from '../ui/MaterialIcon';
-import Button from '../ui/Button';
+import NavButton from '../ui/NavButton';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { DESTINATIONS, getDestinationShortLabel } from '../../constants/destinations';
@@ -45,22 +45,16 @@ interface NavItemProps {
 
 const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
     ({ icon, label, active, onClick, onKeyDown, tabIndex, ariaLabel, badge }, ref) => (
-        <Button
+        <NavButton
             ref={ref}
-            type="button"
-            variant="text"
+            surface="bar"
+            active={active}
             onClick={onClick}
             onKeyDown={onKeyDown}
             tabIndex={tabIndex}
             aria-current={active ? 'page' : undefined}
             aria-label={ariaLabel ?? label}
             title={label}
-            className={cn(
-                'flex-1 !px-0 !py-0 !min-h-0 !min-w-[64px] h-full !flex-col !items-center !justify-center gap-1 outline-none relative !rounded-lg !border-none !shadow-none transition-all duration-short4 ease-emphasized',
-                active
-                    ? '!bg-transparent !text-on-surface'
-                    : '!bg-transparent !text-text-secondary hover:!bg-surface-variant'
-            )}
         >
             <div className="relative flex items-center justify-center w-16 h-8 transition-all duration-short4 ease-emphasized">
                 <MaterialIcon
@@ -83,7 +77,7 @@ const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(
             >
                 {label}
             </span>
-        </Button>
+        </NavButton>
     )
 );
 

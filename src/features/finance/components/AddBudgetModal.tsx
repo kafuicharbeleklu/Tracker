@@ -12,6 +12,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { cn } from '../../../lib/utils';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { formatCurrency } from '../../../lib/financial';
 import { FinanceBudget, FinanceExpenseType } from '../../../types';
 import { ExtractedBudgetDraft, extractBudgetDraftFromFile } from '../../../lib/budgetExtraction';
@@ -38,6 +40,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const { showToast } = useToast();
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
+    // Sans vrai survol (tactile), l'action supprimer-ligne reste visible en permanence
+    // (sinon opacity-0 group-hover la cache au tap). Pattern repris de LocationsPage.
+    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
+    // Le tableau de saisie à 4 colonnes est recomposé en cartes empilées sous 600px (#12) :
+    // bascule JS et non `hidden`/`medium:hidden`, pour ne pas dupliquer des CHAMPS de
+    // formulaire (deux instances contrôlées du même `name` dans le DOM).
+    const isCompact = useMediaQuery(MEDIA.compact);
 
     const [mode, setMode] = useState<AddBudgetMode>('import');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -390,6 +399,68 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
                     {/* Table Container exactly like Finance Detail List */}
                     <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
+                        {isCompact ? (
+                            <div className="divide-y divide-outline-variant">
+                                {budgetLines.map((line) => {
+                                    const details = getCategoryDetails(line.category, line.amount);
+                                    return (
+                                        <div key={line.id} className="p-4 space-y-3">
+                                            <div className="flex items-end gap-3">
+                                                <div className={cn('p-2 rounded-lg shrink-0 mb-1', details.iconBg)}>
+                                                    {details.icon}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <SelectField
+                                                        name={`cat-${line.id}`}
+                                                        label="Catégorie"
+                                                        options={categoryOptions}
+                                                        value={line.category}
+                                                        onChange={(e) => updateLine(line.id, 'category', e.target.value)}
+                                                        placeholder="Choisir une catégorie..."
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                <IconButton
+                                                    icon="delete"
+                                                    variant="standard"
+                                                    aria-label="Supprimer la ligne budgétaire"
+                                                    onClick={() => removeLine(line.id)}
+                                                    className="shrink-0 mb-1 text-on-surface-variant hover:text-error hover:bg-error-container"
+                                                />
+                                            </div>
+                                            <div className="flex items-end gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <InputField
+                                                        label="Montant alloué"
+                                                        type="number"
+                                                        value={line.amount}
+                                                        onChange={(e) => updateLine(line.id, 'amount', e.target.value)}
+                                                        aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
+                                                        placeholder="0.00"
+                                                        prefix={settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}
+                                                        className="py-2 text-right font-mono font-bold bg-surface-container-low"
+                                                    />
+                                                </div>
+                                                {line.category ? (
+                                                    <Badge
+                                                        variant={details.type === 'CAPEX' ? 'info' : 'warning'}
+                                                        className="shrink-0 mb-2"
+                                                    >
+                                                        {details.type}
+                                                    </Badge>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {budgetLines.length === 0 && (
+                                    <p className="px-6 py-8 text-center text-on-surface-variant italic text-body-medium">
+                                        Aucune ligne budgétaire.
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-body-medium text-left">
                                 <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-small tracking-widest">
@@ -431,7 +502,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                             onChange={(e) => updateLine(line.id, 'amount', e.target.value)}
                                                             aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
                                                             placeholder="0.00"
-                                                            className="!py-2 !pr-4 !pl-8 text-right font-mono font-bold bg-surface-container-low"
+                                                            className="py-2 pr-4 pl-8 text-right font-mono font-bold bg-surface-container-low"
                                                         />
                                                     </div>
                                                 </td>
@@ -450,7 +521,12 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                         variant="standard"
                                                         aria-label="Supprimer la ligne budgétaire"
                                                         onClick={() => removeLine(line.id)}
-                                                        className="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error hover:bg-error-container"
+                                                        className={cn(
+                                                            'text-on-surface-variant hover:text-error hover:bg-error-container transition-opacity',
+                                                            isHoverCapable
+                                                                ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                                                                : 'opacity-100'
+                                                        )}
                                                         title="Supprimer la ligne"
                                                     />
                                                 </td>
@@ -468,6 +544,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 </tbody>
                             </table>
                         </div>
+                        )}
 
                         <div className="p-2 border-t border-outline-variant">
                             <Button

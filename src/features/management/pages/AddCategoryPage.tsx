@@ -150,15 +150,16 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         <Button
                             type="button"
                             variant="outlined"
+                            layout="card"
                             role="radio"
                             aria-checked={formData.method === 'linear'}
                             tabIndex={formData.method === 'linear' ? 0 : -1}
                             onClick={() => setFormData({ ...formData, method: 'linear' })}
                             className={cn(
-                                "h-auto !rounded-xl !border-2 !p-4 !text-left !justify-start !items-start transition-all group overflow-hidden hover:shadow-elevation-2",
+                                "rounded-xl border-2 p-4 items-start transition-all group overflow-hidden hover:shadow-elevation-2",
                                 formData.method === 'linear'
-                                    ? "border-primary !bg-surface ring-1 ring-primary/20"
-                                    : "border-outline-variant !bg-surface hover:!border-outline"
+                                    ? "border-primary bg-surface ring-1 ring-primary/20"
+                                    : "border-outline-variant bg-surface hover:border-outline"
                             )}
                         >
                             <div className="flex justify-between items-start mb-2">
@@ -182,15 +183,16 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         <Button
                             type="button"
                             variant="outlined"
+                            layout="card"
                             role="radio"
                             aria-checked={formData.method === 'degressive'}
                             tabIndex={formData.method === 'degressive' ? 0 : -1}
                             onClick={() => setFormData({ ...formData, method: 'degressive' })}
                             className={cn(
-                                "h-auto !rounded-xl !border-2 !p-4 !text-left !justify-start !items-start transition-all group overflow-hidden hover:shadow-elevation-2",
+                                "rounded-xl border-2 p-4 items-start transition-all group overflow-hidden hover:shadow-elevation-2",
                                 formData.method === 'degressive'
-                                    ? "border-primary !bg-surface ring-1 ring-primary/20"
-                                    : "border-outline-variant !bg-surface hover:!border-outline"
+                                    ? "border-primary bg-surface ring-1 ring-primary/20"
+                                    : "border-outline-variant bg-surface hover:border-outline"
                             )}
                         >
                             <div className="flex justify-between items-start mb-2">
@@ -248,11 +250,11 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                                 variant="text"
                                 onClick={() => setFormData({ ...formData, iconName: name })}
                                 className={cn(
-                                    "aspect-square !w-auto !h-auto !p-0 !min-w-0 !min-h-0 !rounded-xl !border-2 transition-all hover:scale-105 active:scale-95 !items-center !justify-center",
+                                    "aspect-square w-auto h-auto p-0 min-w-0 min-h-0 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 items-center justify-center",
                                     // Règle X12 : icône sombre, l'accent jaune reste sur la bordure/ring (non textuel)
                                     formData.iconName === name
-                                        ? "!bg-primary-container/45 !border-primary text-on-primary-container shadow-elevation-1 ring-1 ring-primary/20"
-                                        : "!bg-surface-container-low !border-transparent text-on-surface-variant hover:!bg-surface hover:!border-outline-variant hover:!text-on-surface"
+                                        ? "bg-primary-container/45 border-primary text-on-primary-container shadow-elevation-1 ring-1 ring-primary/20"
+                                        : "bg-surface-container-low border-transparent text-on-surface-variant hover:bg-surface hover:border-outline-variant hover:text-on-surface"
                                 )}
                                 title={name}
                             >

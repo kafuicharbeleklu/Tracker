@@ -320,7 +320,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                             variant="text"
                                             onClick={handleScanSerial}
                                             disabled={isScanning}
-                                            className="!px-2 !py-0.5 !rounded-xs !bg-primary-container !text-on-primary-container hover:!text-on-primary-container/80 !uppercase !text-label-small"
+                                            className="px-2 py-0.5 rounded-xs bg-primary-container text-on-primary-container hover:text-on-primary-container/80 uppercase !text-label-small"
                                         >
                                             {isScanning ? <MaterialIcon name="sync" size={12} className="animate-spin" /> : <MaterialIcon name="qr_code_scanner" size={12} />}
                                             {isScanning ? "Analyse..." : "Scan Caméra"}
@@ -450,7 +450,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     type="button"
                                     variant="text"
                                     onClick={() => setUseCustomDepreciation(!useCustomDepreciation)}
-                                    className="!px-0 !py-0 !text-label-small !text-secondary hover:!text-secondary/80 underline uppercase tracking-widest"
+                                    className="px-0 py-0 !text-label-small text-secondary hover:text-secondary/80 underline uppercase tracking-widest"
                                 >
                                     {useCustomDepreciation ? "Rétablir défauts" : "Personnaliser"}
                                 </Button>

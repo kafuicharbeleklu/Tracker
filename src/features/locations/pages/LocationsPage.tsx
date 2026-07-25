@@ -329,7 +329,7 @@ const LocationsPage = () => {
                 type="button"
                 onClick={onClick}
                 aria-current={isSelected || undefined}
-                className="flex min-h-11 flex-1 !items-center !justify-start gap-3 overflow-hidden !rounded-xl !px-4 !py-2.5 !pr-[5.75rem] !text-left !text-current text-label-large font-bold hover:!bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex min-h-11 flex-1 items-center justify-start gap-3 overflow-hidden rounded-xl px-4 py-2.5 pr-[5.75rem] text-left text-current text-label-large font-bold hover:bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
                 {type === 'country' && <MaterialIcon name="public" size={16} className={isSelected ? "text-on-primary-container" : "text-primary"} />}
                 {type === 'site' && <MaterialIcon name="apartment" size={16} className={isSelected ? "text-on-primary-container" : "text-secondary"} />}
@@ -349,7 +349,7 @@ const LocationsPage = () => {
                     variant="text"
                     size="sm"
                     onClick={(e) => openEditForm(e, type, item)}
-                    className={cn("!h-8 !w-8 !min-w-0 !p-0 !aspect-square !rounded-md border-none shadow-none !inline-flex !items-center !justify-center", isSelected ? "hover:bg-surface/20 text-current" : "hover:bg-outline-variant text-on-surface-variant")}
+                    className={cn("h-8 w-8 min-w-0 p-0 aspect-square rounded-md border-none shadow-none inline-flex items-center justify-center", isSelected ? "hover:bg-surface/20 text-current" : "hover:bg-outline-variant text-on-surface-variant")}
                     title="Renommer"
                 >
                     <MaterialIcon name="edit" size={16} />
@@ -358,7 +358,7 @@ const LocationsPage = () => {
                     variant="text"
                     size="sm"
                     onClick={(e) => handleDelete(e, type, item)}
-                    className={cn("!h-8 !w-8 !min-w-0 !p-0 !aspect-square !rounded-md border-none shadow-none !inline-flex !items-center !justify-center", isSelected ? "hover:bg-error hover:text-on-error text-current" : "hover:bg-error-container text-on-surface-variant hover:text-error")}
+                    className={cn("h-8 w-8 min-w-0 p-0 aspect-square rounded-md border-none shadow-none inline-flex items-center justify-center", isSelected ? "hover:bg-error hover:text-on-error text-current" : "hover:bg-error-container text-on-surface-variant hover:text-error")}
                     title="Supprimer"
                 >
                     <MaterialIcon name="delete" size={16} />

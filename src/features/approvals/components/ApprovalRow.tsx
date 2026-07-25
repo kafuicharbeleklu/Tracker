@@ -128,7 +128,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                     <Button
                                         variant="outlined"
                                         size="sm"
-                                        className="min-w-0 px-3 !text-on-surface-variant"
+                                        className="min-w-0 px-3 text-on-surface-variant"
                                         icon={<MaterialIcon name="do_not_disturb_on" size={16} />}
                                     >
                                         Annuler la demande
@@ -153,7 +153,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                     <Button
                                         variant="outlined"
                                         size="sm"
-                                        className="min-w-0 px-3 !text-error !border-error/40 hover:bg-error-container/20"
+                                        className="min-w-0 px-3 text-error border-error/40 hover:bg-error-container/20"
                                         icon={<MaterialIcon name={rejectIcon} size={16} />}
                                     >
                                         {rejectLabel}
@@ -273,7 +273,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                     <Button
                                         variant="outlined"
                                         size="sm"
-                                        className="w-full min-w-0 px-3 !text-error !border-error/40 hover:bg-error-container/20"
+                                        className="w-full min-w-0 px-3 text-error border-error/40 hover:bg-error-container/20"
                                         icon={<MaterialIcon name={rejectIcon} size={16} />}
                                     >
                                         {rejectLabel}
@@ -313,7 +313,7 @@ export const ApprovalRow: React.FC<ApprovalRowProps> = ({
                                     <Button
                                         variant="outlined"
                                         size="sm"
-                                        className="w-full min-w-0 px-3 !text-on-surface-variant"
+                                        className="w-full min-w-0 px-3 text-on-surface-variant"
                                         icon={<MaterialIcon name="do_not_disturb_on" size={16} />}
                                     >
                                         Annuler la demande

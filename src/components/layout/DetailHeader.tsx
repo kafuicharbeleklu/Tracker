@@ -35,7 +35,7 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
         <Button
           variant="text"
           onClick={onBack}
-          className="mb-4 !text-on-surface-variant hover:text-on-surface px-0 hover:bg-transparent border-none shadow-none active:scale-90 transition-transform duration-short4"
+          className="mb-4 text-on-surface-variant hover:text-on-surface px-0 hover:bg-transparent border-none shadow-none active:scale-90 transition-transform duration-short4"
           icon={<MaterialIcon name="arrow_back" size={18} />}
         >
           Retour

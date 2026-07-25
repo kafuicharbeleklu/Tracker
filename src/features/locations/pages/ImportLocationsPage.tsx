@@ -3,6 +3,7 @@ import { useToast } from '../../../context/ToastContext';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { TableScrollArea } from '../../../components/ui/TableScrollArea';
 import { GLOSSARY } from '../../../constants/glossary';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 
@@ -111,15 +112,18 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                             <p className="font-bold text-on-surface">{file?.name}</p>
                             <p className="text-body-small text-on-surface-variant">{stats.valid} valides, {stats.invalid} erreurs</p>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="!text-error">Annuler</Button>
+                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Annuler</Button>
                     </div>
 
                     <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden">
-                        <div className="overflow-x-auto max-h-[400px]">
+                        <TableScrollArea
+                            label={`Aperçu des ${GLOSSARY.LOCATION_PLURAL.toLowerCase()} à importer`}
+                            scrollerClassName="max-h-[400px]"
+                        >
                             <table className="w-full text-body-medium text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0">
+                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0 z-10">
                                     <tr>
-                                        <th className="px-4 py-3">Statut</th>
+                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
                                         <th className="px-4 py-3">Nom</th>
                                         <th className="px-4 py-3">Type</th>
                                         <th className="px-4 py-3">Parent</th>
@@ -128,8 +132,8 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                                 </thead>
                                 <tbody>
                                     {parsedData.map((row) => (
-                                        <tr key={row._id} className="hover:bg-surface-container border-b border-outline-variant/30 last:border-0">
-                                            <td className="px-4 py-3">
+                                        <tr key={row._id} className="group hover:bg-surface-container border-b border-outline-variant/30 last:border-0">
+                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface group-hover:bg-surface-container border-r border-outline-variant transition-colors">
                                                 {row._status === 'valid' ? <Badge variant="success">OK</Badge> : <Badge variant="danger">Erreur</Badge>}
                                             </td>
                                             <td className="px-4 py-3 font-bold">{row.name || '-'}</td>
@@ -140,7 +144,7 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </TableScrollArea>
                     </div>
                 </div>
             )}

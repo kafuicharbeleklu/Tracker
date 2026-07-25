@@ -11,6 +11,7 @@ import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { APP_CONFIG } from '../../config';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { useAccessControl } from '../../hooks/useAccessControl';
 
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
@@ -410,9 +411,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
                 {/* Page Content */}
                 <div className="flex-1 overflow-y-auto bg-[var(--color-app-bg)] relative">
-                    <Suspense fallback={<PageLoadingFallback />}>
-                        {renderContent()}
-                    </Suspense>
+                    {/* Filet par vue (#17) : la `key` remonte le boundary à chaque navigation,
+                        donc la coque de nav suffit à sortir d'une page cassée — sans recharger. */}
+                    <ErrorBoundary key={currentView} context={`vue: ${currentView}`}>
+                        <Suspense fallback={<PageLoadingFallback />}>
+                            {renderContent()}
+                        </Suspense>
+                    </ErrorBoundary>
                 </div>
 
                 {showBottomNav && (

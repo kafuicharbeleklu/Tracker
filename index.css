@@ -119,6 +119,43 @@
 }
 
 
+/* ---- CIBLE TACTILE ≥ 48px (AUDIT_MOBILE #6/#7 — plancher WCAG 2.5.5 / Material) ---- */
+/* Étend la ZONE DE FRAPPE à 48×48px minimum sur pointeurs grossiers (tactile),
+   SANS toucher au rendu visuel : un ::before transparent déborde jusqu'à 48px.
+   Ciblé par `(pointer: coarse)` = l'inverse de MEDIA.hoverCapable (pointer:fine),
+   donc AUCUN effet sur desktop souris/trackpad.
+
+   Pourquoi le pseudo-élément plutôt qu'une media-query géométrique (min-h/min-w) :
+     (a) zéro diff visuel à tout breakpoint — le ::before ne peint rien ;
+     (b) immunisé contre les ~1004 surcharges `!` de taille du codebase : le
+         ::before impose 48px quelle que soit la boîte (même `!w-8`/`!h-9`) ;
+     (c) auto-limité — n'étend QUE la dimension réellement < 48px ; les conteneurs
+         de nav déjà ≥48 (rail, NavItem) ne bougent pas.
+   Doit rester APRÈS `.state-layer` : sur coarse, `overflow: visible` y annule
+   l'`overflow: hidden` de state-layer qui, sinon, clipperait la zone de frappe.
+   NB connu : getBoundingClientRect() reste inchangé → l'audit qa:devices, qui
+   mesure la boîte et non le hit-area, ne reflète pas ce gain (mesure incomplète). */
+@media (pointer: coarse) {
+    .touch-target {
+        position: relative;
+        overflow: visible;
+    }
+
+    .touch-target::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        min-width: 48px;
+        min-height: 48px;
+        transform: translate(-50%, -50%);
+        /* zone de frappe transparente : n'intercepte rien de plus que le bouton lui-même */
+    }
+}
+
+
 /* ---- MD3 TYPOGRAPHY UTILITY CLASSES ---- */
 
 .text-display-large {
@@ -625,6 +662,14 @@ body {
     --color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
     --color-success-light: #d1fae5;
     --color-success-strong: #166534;
+    /* ⚠️ Répartition des rôles imposée par le contraste (AUDIT_MOBILE #14, §7) :
+       #E8710A ne fait que 3,09:1 sur blanc → INTERDIT en texte normal sur fond clair.
+       Réservé aux FONDS (`bg-warning`, `bg-warning/10`), aux BORDURES, aux ICÔNES et
+       au grand texte (≥ 3:1 suffit, WCAG 1.4.3/1.4.11).
+       Tout TEXTE de couleur avertissement sur fond clair passe par `warning-strong`
+       (#9A3412 : 6,60:1 sur le fond `bg-warning/10`, 7,31:1 sur blanc). C'est déjà la
+       règle appliquée par Badge (`bg-warning-light text-warning-strong`) et
+       ConfirmationDialog — ne pas réintroduire `text-warning`. */
     --color-warning: #E8710A;
     --color-warning-light: #FDEBD9;
     --color-warning-strong: #9A3412;
@@ -639,6 +684,11 @@ body {
     --color-neutral-100: #F4F2EF;
     --color-neutral-200: #E8E4DF;
     --color-neutral-300: #D6D0C8;
+    /* Palier RÉSERVÉ aux surfaces sombres (sidebar/rail) : 6,85:1 sur
+       --color-sidebar-bg (#1C1917) et 7,17:1 sur le dégradé du tiroir,
+       mais seulement 2,55:1 sur blanc (AUDIT_MOBILE #14).
+       Sur fond clair il ne peut porter que du décoratif/désactivé — pour du texte
+       informatif, descendre à neutral-500 (4,69:1) ou plus foncé. */
     --color-neutral-400: #A8A199;
     --color-neutral-500: #79736B;
     --color-neutral-600: #57514A;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../../../context/DataContext';
 import { mockCategories, mockModels, renderCategoryIcon } from '../../../data/mockData';
 import Badge from '../../../components/ui/Badge';
+import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import { DetailHeader } from '../../../components/layout/DetailHeader';
 
@@ -83,6 +84,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                     </div>
                 ) : (
                     <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                        <div className="hidden medium:block overflow-x-auto">
                         <table className="w-full text-body-medium text-left">
                             <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
                                 <tr>
@@ -120,6 +122,38 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                                 ))}
                             </tbody>
                         </table>
+                        </div>
+
+                        {/* Vue cartes (compact) — mêmes champs que le tableau, empilés (#12).
+                            Liste consultée en mobilité (recherche d'un actif sur le terrain) :
+                            recomposition en cartes plutôt que défilement horizontal. */}
+                        <div className="medium:hidden divide-y divide-outline-variant">
+                            {categoryEquipment.map(item => (
+                                <div key={item.id} className="p-4 space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={item.image}
+                                            loading="lazy"
+                                            decoding="async"
+                                            alt={item.name}
+                                            className="w-10 h-10 rounded-md bg-surface-container object-cover shrink-0"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium text-on-surface truncate">{item.name}</p>
+                                            <p className="font-mono text-body-small text-on-surface-variant truncate">{item.assetId}</p>
+                                        </div>
+                                        <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : 'warning'}>
+                                            {item.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-body-small text-on-surface-variant">
+                                        <MaterialIcon name="person" size={14} />
+                                        <span className="truncate">{item.user ? item.user.name : 'Non attribué'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         {categoryEquipment.length === 0 && (
                             <div className="text-center py-12 text-on-surface-variant">
                                 Aucun actif trouvé.

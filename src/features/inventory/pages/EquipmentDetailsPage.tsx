@@ -241,7 +241,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             <Button
                                 variant="text"
                                 onClick={onBack}
-                                className="h-11 w-11 min-w-0 rounded-full !text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
+                                className="h-11 w-11 min-w-0 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-none shadow-none p-0"
                                 icon={<MaterialIcon name="arrow_back" size={24} />}
                                 aria-label="Retour"
                             />
@@ -342,7 +342,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="filled"
                                             icon={<MaterialIcon name="person_add" size={18} />}
                                             onClick={handleOpenAssignmentWizard}
-                                            className="!min-h-11 !rounded-md"
+                                            className="min-h-11 rounded-md"
                                         >
                                             {GLOSSARY.ASSIGN}
                                         </Button>
@@ -352,7 +352,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="tonal"
                                             icon={<MaterialIcon name="undo" size={18} />}
                                             onClick={() => navigate('/wizards/return')}
-                                            className="!min-h-11 !rounded-md"
+                                            className="min-h-11 rounded-md"
                                         >
                                             {GLOSSARY.RETURN}
                                         </Button>
@@ -362,7 +362,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             variant="outlined"
                                             icon={<MaterialIcon name="delete" size={18} />}
                                             onClick={handleDelete}
-                                            className="!min-h-11 !rounded-md"
+                                            className="min-h-11 rounded-md"
                                         >
                                             Supprimer
                                         </Button>

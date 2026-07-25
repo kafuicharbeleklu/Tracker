@@ -1,13 +1,34 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-export type CanonicalButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated' | 'danger';
+export type CanonicalButtonVariant =
+  | 'filled'
+  | 'tonal'
+  | 'outlined'
+  | 'text'
+  | 'elevated'
+  | 'danger'
+  | 'nav';
 type LegacyButtonVariant = 'primary' | 'secondary' | 'ghost';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** MD3 button variants (legacy aliases still accepted for backward compatibility) */
   variant?: CanonicalButtonVariant | LegacyButtonVariant;
   size?: 'sm' | 'md' | 'lg';
+  /**
+   * Bouton carré sans libellé (action d'icône) : neutralise le padding horizontal
+   * du `size` et impose une boîte carrée. Évite la surcharge de largeur, hauteur
+   * et padding répétée dans les barres d'application (AUDIT_MOBILE #15).
+   */
+  iconOnly?: boolean;
+  /**
+   * Mise en page du contenu. `card` = tuile de choix : hauteur libre, contenu
+   * aligné à gauche. Neutralise `justify-center` + la hauteur du `size`, que les
+   * assistants et les listes d'options surchargeaient site par site
+   * (AUDIT_MOBILE #15). Le fond, le rayon et le padding restent à la charge de
+   * l'appelant : ils varient d'une tuile à l'autre.
+   */
+  layout?: 'inline' | 'card';
   icon?: React.ReactNode;
   /** Legacy alias kept for backward compatibility */
   startIcon?: React.ReactNode;
@@ -31,12 +52,29 @@ const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
   text: "bg-transparent text-text-secondary hover:text-on-surface hover:bg-surface-container disabled:text-on-surface/[0.38]",
   elevated: "bg-surface text-on-surface border border-outline-variant shadow-sm hover:bg-background disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0",
   danger: "bg-error text-on-error shadow-sm hover:bg-error/90 disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]",
+  // Chrome de navigation posé sur les surfaces SOMBRES (sidebar, rail) : le
+  // contraste y est inversé, d'où un anneau de focus `primary` au lieu du
+  // `focus-ring` anthracite (invisible sur fond sombre). Remplace les surcharges
+  // de couleur, de survol et d'anneau posées site par site (AUDIT_MOBILE #15).
+  nav: "bg-transparent text-[var(--color-neutral-400)] hover:bg-white/5 hover:text-white focus-visible:ring-primary disabled:text-on-surface/[0.38]",
 };
 
 const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
   sm: "min-h-8 px-3 py-1.5 text-label-medium gap-1.5",
   md: "min-h-10 px-4 py-2 text-label-large gap-2",
   lg: "min-h-11 px-5 py-2.5 text-label-large gap-2",
+};
+
+const LAYOUT_STYLES: Record<NonNullable<ButtonProps['layout']>, string> = {
+  inline: "",
+  card: "h-auto justify-start text-left",
+};
+
+/** Boîte carrée d'une action d'icône, par `size` (cf. prop `iconOnly`). */
+const ICON_ONLY_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
+  sm: "w-10 h-10 min-h-10 min-w-10 p-0",
+  md: "w-10 h-10 min-h-10 min-w-10 p-0",
+  lg: "w-11 h-11 min-h-11 min-w-11 p-0",
 };
 
 const resolveVariant = (variant: ButtonProps['variant'] | string | undefined): CanonicalButtonVariant => {
@@ -77,6 +115,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({
     variant = 'filled',
     size = 'md',
+    iconOnly = false,
+    layout = 'inline',
     icon,
     startIcon,
     children,
@@ -96,7 +136,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const hasVisibleLabel = React.Children.count(children) > 0;
 
     const baseStyles = cn(
-      "inline-flex items-center justify-center rounded-lg min-w-10 leading-none",
+      // `touch-target` : hit-box ≥ 48px sur tactile (pointer:coarse), rendu visuel inchangé — voir index.css.
+      "touch-target inline-flex items-center justify-center rounded-lg min-w-10 leading-none",
       "transition-[color,background-color,box-shadow,opacity,transform,filter] duration-short4 ease-emphasized",
       "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
       "disabled:cursor-not-allowed disabled:pointer-events-none",
@@ -110,7 +151,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type ?? 'button'}
         disabled={isDisabled}
         aria-busy={loading || undefined}
-        className={cn(baseStyles, VARIANT_STYLES[resolvedVariant], SIZE_STYLES[size], className)}
+        className={cn(
+          baseStyles,
+          VARIANT_STYLES[resolvedVariant],
+          SIZE_STYLES[size],
+          LAYOUT_STYLES[layout],
+          iconOnly && ICON_ONLY_STYLES[size],
+          className
+        )}
         {...props}
       >
         {resolvedIcon && <span className="inline-flex shrink-0 items-center justify-center">{resolvedIcon}</span>}

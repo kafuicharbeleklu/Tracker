@@ -1075,7 +1075,7 @@ const RbacManagementPanel: React.FC<RbacManagementPanelProps> = ({
                                     variant={workflowConfigStep === step.id ? 'filled' : 'outlined'}
                                     size="sm"
                                     onClick={() => setWorkflowConfigStep(step.id)}
-                                    className="!justify-start !h-auto !rounded-sm !px-3 !py-2"
+                                    className="justify-start h-auto rounded-sm px-3 py-2"
                                 >
                                     <span className="font-semibold">{index + 1}.</span> {step.label}
                                 </Button>

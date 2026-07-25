@@ -153,7 +153,11 @@ export const PageTabs: React.FC<PageTabsProps> = ({
               onClick={() => onChange(item.id)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
-                "group relative flex items-center gap-2 min-h-10 px-3 py-2 rounded-lg text-label-large transition-all duration-short4 ease-emphasized outline-none select-none whitespace-nowrap",
+                // `touch-target` : hit-box tactile ≥48px (index.css). L'onglet vit dans un
+                // scroller overflow-x-auto qui borne l'extension VERTICALE à la hauteur de la
+                // bande (40px) ; l'extension HORIZONTALE — l'axe des ratés sur une barre
+                // d'onglets scrollable — est bien portée à 48px.
+                "touch-target group relative flex items-center gap-2 min-h-10 px-3 py-2 rounded-lg text-label-large transition-all duration-short4 ease-emphasized outline-none select-none whitespace-nowrap",
                 "focus-visible:ring-2 focus-visible:ring-focus-ring",
                 isActive
                   ? "bg-primary text-on-primary shadow-sm"
@@ -197,7 +201,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                     "ml-1 px-1.5 py-0 h-4 min-w-[16px]",
                     // Onglet actif (rempli jaune) : pastille inverse noir/jaune — le ! est requis,
                     // cn ne fait pas de tailwind-merge et l'override perdait la cascade.
-                    isActive ? "!bg-on-primary !text-primary" : ""
+                    isActive ? "bg-on-primary text-primary" : ""
                   )}
                 >
                   {item.badge}
@@ -250,7 +254,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
           onClick={() => setAllViewsOpen(true)}
           aria-label={`Toutes les vues (${items.length})`}
           aria-haspopup="dialog"
-          className="shrink-0 flex min-h-10 min-w-10 items-center justify-center gap-0.5 rounded-md px-1.5 text-on-surface-variant transition-colors duration-short4 hover:bg-surface-container hover:text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="touch-target shrink-0 flex min-h-10 min-w-10 items-center justify-center gap-0.5 rounded-md px-1.5 text-on-surface-variant transition-colors duration-short4 hover:bg-surface-container hover:text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
           <MaterialIcon name="unfold_more" size={18} />
           <span className="text-label-small font-semibold">{items.length}</span>
@@ -275,7 +279,8 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                     if (!isActive) onChange(item.id);
                   }}
                   className={cn(
-                    "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-left text-label-large transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                    // Feuille « toutes les vues » : rangées 44px → hit-box 48px sur tactile (index.css).
+                    "touch-target flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-left text-label-large transition-colors duration-short4 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
                     isActive
                       ? "bg-primary text-on-primary"
                       : "text-on-surface hover:bg-surface-container"
@@ -292,7 +297,7 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                   {item.badge !== undefined && (
                     <Badge
                       variant="neutral"
-                      className={cn("px-1.5 py-0 h-4 min-w-[16px]", isActive && "!bg-on-primary !text-primary")}
+                      className={cn("px-1.5 py-0 h-4 min-w-[16px]", isActive && "bg-on-primary text-primary")}
                     >
                       {item.badge}
                     </Badge>

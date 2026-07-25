@@ -10,6 +10,7 @@ import AccessDeniedPage from './src/features/auth/pages/AccessDeniedPage';
 import ChangePasswordPage from './src/features/auth/pages/ChangePasswordPage';
 
 import LoadingSpinner from './src/components/ui/LoadingSpinner';
+import { ErrorBoundary } from './src/components/ui/ErrorBoundary';
 
 const AppLayout = lazy(() => import('./src/components/layout/AppLayout'));
 
@@ -42,17 +43,27 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <DataProvider>
-          <FinanceDataProvider>
-            <ConfirmationProvider>
-              <AppContent />
-            </ConfirmationProvider>
-          </FinanceDataProvider>
-        </DataProvider>
-      </AuthProvider>
-    </ToastProvider>
+    // Filet racine (#17) : couvre ce que le boundary par vue d'AppLayout ne peut pas
+    // atteindre — providers, coque, écrans hors session (Login / Accès refusé /
+    // Changement de mot de passe). Volontairement HORS de l'arbre de providers :
+    // son écran de repli ne doit dépendre d'aucun contexte pour s'afficher.
+    <ErrorBoundary
+      context="racine"
+      title="L'application n'a pas pu démarrer"
+      description="Une erreur inattendue a interrompu le chargement. Rechargez la page ; si le problème persiste, signalez-le au support avec l'heure exacte."
+    >
+      <ToastProvider>
+        <AuthProvider>
+          <DataProvider>
+            <FinanceDataProvider>
+              <ConfirmationProvider>
+                <AppContent />
+              </ConfirmationProvider>
+            </FinanceDataProvider>
+          </DataProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 };
 

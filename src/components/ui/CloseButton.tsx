@@ -8,8 +8,11 @@ const CloseButton: React.FC<ButtonProps> = ({ className, onClick, ...props }) =>
     <Button
       variant="text"
       size="sm"
+      iconOnly
       onClick={onClick}
-      className={cn("w-10 h-10 min-h-10 min-w-10 p-0 !text-on-surface-variant hover:text-on-surface rounded-lg border-none", className)}
+      // Couleur par DÉFAUT, pas imposée : le `!` d'origine gagnait aussi contre le
+      // `className` de l'appelant, qui n'avait donc aucun moyen de la changer.
+      className={cn("text-on-surface-variant hover:text-on-surface rounded-lg border-none", className)}
       aria-label="Fermer"
       {...props}
     >

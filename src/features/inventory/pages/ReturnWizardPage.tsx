@@ -320,8 +320,8 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value: 'Excellent' as ReturnCondition,
                                             icon: 'star',
                                             description: 'Comme neuf',
-                                            selectedState: 'border-tertiary !bg-tertiary-container shadow-elevation-2',
-                                            hoverState: 'hover:!border-tertiary',
+                                            selectedState: 'border-tertiary bg-tertiary-container shadow-elevation-2',
+                                            hoverState: 'hover:border-tertiary',
                                             selectedIconState: 'bg-tertiary text-on-tertiary',
                                             hoverIconState: 'group-hover:text-tertiary'
                                         },
@@ -329,8 +329,8 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value: 'Bon' as ReturnCondition,
                                             icon: 'thumb_up',
                                             description: 'Usure normale',
-                                            selectedState: 'border-secondary !bg-secondary-container shadow-elevation-2',
-                                            hoverState: 'hover:!border-secondary',
+                                            selectedState: 'border-secondary bg-secondary-container shadow-elevation-2',
+                                            hoverState: 'hover:border-secondary',
                                             selectedIconState: 'bg-secondary text-on-secondary',
                                             hoverIconState: 'group-hover:text-secondary'
                                         },
@@ -338,8 +338,8 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value: 'Moyen' as ReturnCondition,
                                             icon: 'error',
                                             description: 'Rayures / Usé',
-                                            selectedState: 'border-primary !bg-primary-container shadow-elevation-2',
-                                            hoverState: 'hover:!border-primary',
+                                            selectedState: 'border-primary bg-primary-container shadow-elevation-2',
+                                            hoverState: 'hover:border-primary',
                                             selectedIconState: 'bg-primary text-on-primary',
                                             hoverIconState: 'group-hover:text-primary'
                                         },
@@ -347,8 +347,8 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value: 'Mauvais' as ReturnCondition,
                                             icon: 'cancel',
                                             description: 'Endommagé / HS',
-                                            selectedState: 'border-error !bg-error-container shadow-elevation-2',
-                                            hoverState: 'hover:!border-error',
+                                            selectedState: 'border-error bg-error-container shadow-elevation-2',
+                                            hoverState: 'hover:border-error',
                                             selectedIconState: 'bg-error text-on-error',
                                             hoverIconState: 'group-hover:text-error'
                                         }
@@ -359,15 +359,16 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                                 key={option.value}
                                                 type="button"
                                                 variant="outlined"
+                                                layout="card"
                                                 role="radio"
                                                 aria-checked={isSelected}
                                                 tabIndex={isSelected ? 0 : -1}
                                                 onClick={() => setCondition(option.value)}
                                                 className={cn(
-                                                    'h-auto w-full !rounded-md !border-2 !px-4 !py-4 !text-on-surface !transition-all !duration-short4 !ease-emphasized !justify-start !items-center text-left group',
+                                                    'w-full rounded-md border-2 px-4 py-4 text-on-surface transition-all items-center group',
                                                     isSelected
                                                         ? option.selectedState
-                                                        : `!border-outline-variant !bg-surface ${option.hoverState}`
+                                                        : `border-outline-variant bg-surface ${option.hoverState}`
                                                 )}
                                             >
                                                 <div className={cn(
@@ -544,8 +545,9 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                         key={option.key}
                                         type="button"
                                         variant="outlined"
+                                        layout="card"
                                         onClick={option.action}
-                                        className="h-auto w-full !rounded-md !border !border-outline-variant !bg-surface !px-6 !py-5 !text-on-surface !justify-start !items-center !text-left group hover:!border-primary hover:!shadow-elevation-2"
+                                        className="w-full rounded-md border border-outline-variant bg-surface px-6 py-5 text-on-surface items-center group hover:border-primary hover:shadow-elevation-2"
                                     >
                                         <MaterialIcon name={option.icon} size={28} className={cn(option.iconClass, "mr-4 group-hover:scale-110 transition-transform")} />
                                         <div className="flex-1">
@@ -571,7 +573,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                         variant="standard"
                                         aria-label="Effacer la signature"
                                         onClick={(e) => { e.stopPropagation(); }}
-                                        className="absolute bottom-2 right-2 !w-8 !h-8 bg-surface-container-lowest rounded-sm shadow-elevation-1 text-on-surface-variant hover:!text-error"
+                                        className="absolute bottom-2 right-2 w-8 h-8 bg-surface-container-lowest rounded-sm shadow-elevation-1 text-on-surface-variant hover:text-error"
                                     />
                                 </div>
                                 <div className="flex gap-3 justify-center">
@@ -598,7 +600,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                                             value={digit}
                                             onChange={(e) => handlePinChange(idx, e.target.value)}
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="h-14 !px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
+                                            className="h-14 px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
                                         />
                                     ))}
                                 </div>

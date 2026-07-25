@@ -159,6 +159,9 @@ const FinanceManagementPage = () => {
         invoiceNumber: '',
     });
     const isCompact = useMediaQuery(MEDIA.compact);
+    // Sur tactile (pas de survol), les valeurs des points de la courbe de projection
+    // sont affichées en permanence — sinon opacity-0 group-hover/dot les rend illisibles.
+    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
 
     // Budget State
     const [selectedYear, setSelectedYear] = useState<number>(() => {
@@ -530,7 +533,7 @@ const FinanceManagementPage = () => {
                 title={selectedExpense ? toExpenseDisplayTitle(selectedExpense) : 'Détail de dépense'}
                 description="Vérification rapide d'une ligne du journal des dépenses."
                 width="standard"
-                className="!rounded-none"
+                className="rounded-none"
                 footer={selectedExpense ? (
                     <div className="flex items-center justify-end gap-2">
                         <Button
@@ -677,7 +680,7 @@ const FinanceManagementPage = () => {
                                             onChange={(e) => setSelectedYear(Number(e.target.value))}
                                             options={budgetYearOptions}
                                             placeholder="Choisir un exercice"
-                                            className="!space-y-0"
+                                            className="space-y-0"
                                         />
                                     </div>
                                     <Button
@@ -720,13 +723,13 @@ const FinanceManagementPage = () => {
                                             label: option.label.replace(' (', ' · ').replace(')', ''),
                                         }))}
                                         placeholder="Exercice"
-                                        className="!space-y-0"
+                                        className="space-y-0"
                                     />
                                     <Button
                                         variant="filled"
                                         icon={<MaterialIcon name="add" size={18} />}
                                         onClick={() => setIsAddBudgetModalOpen(true)}
-                                        className="w-full !h-12 !rounded-md !px-4 !justify-center whitespace-nowrap"
+                                        className="w-full h-12 rounded-md px-4 justify-center whitespace-nowrap"
                                     >
                                         Définir budget
                                     </Button>
@@ -814,7 +817,7 @@ const FinanceManagementPage = () => {
                                                             strokeWidth="2"
                                                         />
                                                         <text x={i * 120} y="195" textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className="text-label-small fill-on-surface-variant font-bold uppercase">{s.m}</text>
-                                                        <text x={i * 120} y={200 - (s.val / maxProj * 150) - 10} textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className="text-label-small fill-dark font-bold opacity-0 group-hover/dot:opacity-100 transition-opacity">
+                                                        <text x={i * 120} y={200 - (s.val / maxProj * 150) - 10} textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className={cn('text-label-small fill-dark font-bold transition-opacity', isHoverCapable ? 'opacity-0 group-hover/dot:opacity-100' : 'opacity-100')}>
                                                             {formatCurrency(s.val, settings.currency, settings.compactNotation)}
                                                         </text>
                                                     </g>
@@ -954,7 +957,7 @@ const FinanceManagementPage = () => {
                                                                 <Button
                                                                     variant="text"
                                                                     size="sm"
-                                                                    className="h-8 w-8 min-w-0 p-0 rounded-full !text-error hover:bg-error-container/40"
+                                                                    className="h-8 w-8 min-w-0 p-0 rounded-full text-error hover:bg-error-container/40"
                                                                     aria-label={`Supprimer la dépense ${exp.id}`}
                                                                     onClick={(event) => {
                                                                         event.stopPropagation();
@@ -1021,7 +1024,7 @@ const FinanceManagementPage = () => {
                                                         <Button
                                                             variant="text"
                                                             size="sm"
-                                                            className="h-9 min-w-0 px-2 rounded-full !text-error hover:bg-error-container/40"
+                                                            className="h-9 min-w-0 px-2 rounded-full text-error hover:bg-error-container/40"
                                                             aria-label={`Supprimer la dépense ${exp.id}`}
                                                             onClick={(event) => {
                                                                 event.stopPropagation();
@@ -1109,7 +1112,7 @@ const FinanceManagementPage = () => {
                                                                     variant="text"
                                                                     size="sm"
                                                                     onClick={() => setActiveView('expenses')}
-                                                                    className="!h-auto !min-h-0 !px-0"
+                                                                    className="h-auto min-h-0 px-0"
                                                                 >
                                                                     Ouvrir le journal des dépenses
                                                                 </Button>

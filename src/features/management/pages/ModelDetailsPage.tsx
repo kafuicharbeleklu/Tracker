@@ -133,7 +133,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                         <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden">
                             <div className="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
                                 <h2 className="text-title-medium font-bold text-on-surface">Unités en inventaire</h2>
-                                <Button variant="outlined" size="sm" className="!text-primary hover:text-primary-hover p-0 h-auto hover:bg-transparent border-none">
+                                <Button variant="outlined" size="sm" className="text-primary hover:text-primary-hover p-0 h-auto hover:bg-transparent border-none">
                                     Tout exporter
                                 </Button>
                             </div>

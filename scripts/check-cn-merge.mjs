@@ -80,6 +80,23 @@ for (const name of elevations) {
   );
 }
 
+// --- 1c. Synchro espacements nommés (source de vérité : tailwind.config.js) ---------------
+// Un espacement maison non déclaré n'entre en conflit avec RIEN : `p-card` et `px-4`
+// cohabitent et c'est l'ordre du CSS qui tranche — d'où les `!` de reprise en main
+// constatés en AUDIT_MOBILE #15.
+const spacingBlock = tailwindConfig.match(/spacing:\s*\{([^}]*)\}/)?.[1] ?? '';
+const spacings = [...new Set([...spacingBlock.matchAll(/'([a-z][\w-]*)'\s*:/g)].map((m) => m[1]))];
+if (spacings.length < 4) {
+  failures.push(`espacements : ${spacings.length}/4 trouvés dans tailwind.config.js (regex à revoir ?)`);
+}
+for (const name of spacings) {
+  check(
+    `p-${name} : doit fusionner avec le padding du size (groupe padding)`,
+    cn('px-4 py-2', `p-${name}`),
+    { keeps: [`p-${name}`], drops: ['px-4', 'py-2'] }
+  );
+}
+
 // --- 2. Cas mesurés (§11.3 / §11.4) -------------------------------------------------------
 check(
   'sonde §11.4 : le typescale ne doit pas être avalé par une couleur',
@@ -118,7 +135,7 @@ check(
 );
 
 // --- Verdict ------------------------------------------------------------------------------
-const total = typescale.length * 2 + elevations.length + 7;
+const total = typescale.length * 2 + elevations.length + spacings.length + 7;
 if (failures.length > 0) {
   console.error(`✗ Sonde cn()/tailwind-merge : ${failures.length} échec(s) sur ${total} vérifications\n`);
   for (const failure of failures) {
@@ -127,5 +144,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, élévations ${elevations.length}, cas §11) — OK`
+  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, élévations ${elevations.length}, espacements ${spacings.length}, cas §11) — OK`
 );
