@@ -4,6 +4,7 @@ import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
 import InputField from '../../../components/ui/InputField';
 import { TextArea } from '../../../components/ui/TextArea';
+import Toggle from '../../../components/ui/Toggle';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import { useData } from '../../../context/DataContext';
@@ -24,6 +25,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
         name: '',
         description: '',
         iconName: 'Laptop',
+        assignable: true,
         method: 'linear' as 'linear' | 'degressive',
         years: 3,
         salvageValuePercent: 0
@@ -35,6 +37,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                 name: categoryToEdit.name,
                 description: categoryToEdit.description || '',
                 iconName: categoryToEdit.iconName || 'Laptop',
+                assignable: categoryToEdit.assignable,
                 method: categoryToEdit.defaultDepreciation?.method || 'linear',
                 years: categoryToEdit.defaultDepreciation?.years || 3,
                 salvageValuePercent: categoryToEdit.defaultDepreciation?.salvageValuePercent || 0
@@ -44,6 +47,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                 name: '',
                 description: '',
                 iconName: 'Laptop',
+                assignable: true,
                 method: 'linear',
                 years: 3,
                 salvageValuePercent: 0
@@ -71,6 +75,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
             description: formData.description,
             icon: CATEGORY_ICONS[formData.iconName],
             iconName: formData.iconName,
+            assignable: formData.assignable,
             defaultDepreciation: {
                 method: formData.method,
                 years: formData.years,
@@ -127,6 +132,28 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                             rows={4}
                         />
                     </div>
+                </div>
+
+                {/* Ce que le type autorise — arbitrage du 2026-08-05, REGLES-TRANSVERSES.md §5.7 */}
+                <div className="bg-surface-container rounded-xl p-6 border border-outline-variant space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-surface rounded-md border border-outline-variant shadow-elevation-1 text-primary">
+                            <MaterialIcon name="assignment_ind" size={16} />
+                        </div>
+                        <h3 className="text-body-medium font-black text-on-surface uppercase tracking-wide">
+                            Ce que le type autorise
+                        </h3>
+                    </div>
+                    <Toggle
+                        checked={formData.assignable}
+                        onChange={(assignable) => setFormData({ ...formData, assignable })}
+                        label="Attribuable à une personne"
+                    />
+                    <p className="text-body-small text-on-surface-variant">
+                        {formData.assignable
+                            ? "Les objets de ce type apparaissent dans le sélecteur d'attribution."
+                            : "Les objets de ce type en sont retirés — un serveur, une imprimante ou du mobilier sert un lieu, pas une personne. Les attributions déjà faites ne sont pas défaites."}
+                    </p>
                 </div>
 
                 {/* Section Configuration Financière Améliorée */}

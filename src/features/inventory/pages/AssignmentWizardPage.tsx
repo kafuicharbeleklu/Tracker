@@ -28,7 +28,7 @@ type WizardContextMode = 'generic' | 'fromEquipment' | 'fromUser';
 type WizardStage = 'equipment' | 'user' | 'validation' | 'summary';
 
 const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void }> = ({ onCancel, onComplete }) => {
-    const { equipment, users, updateEquipment, updateApproval, addApproval, approvals } = useData();
+    const { equipment, users, updateEquipment, updateApproval, addApproval, approvals, categories } = useData();
     const { showToast } = useToast();
     const { user: adminUser } = useAccessControl();
 
@@ -129,8 +129,17 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
     // Taille de page selon le viewport (5 tél. / 8 tablette / 12 desktop) — audit W-4
     const itemsPerPage = isCompactViewport ? 5 : isMediumViewport ? 8 : 12;
 
+    // Un serveur, une imprimante ou du mobilier ne se remet pas en main propre : le catalogue
+    // le dit par `assignable`, et le sélecteur ne les propose pas. Une action impossible se
+    // masque, elle ne s'explique pas. (REGLES-TRANSVERSES.md §5.7, arbitrage du 2026-08-05.)
+    const nonAssignableTypes = React.useMemo(
+        () => new Set(categories.filter((c) => !c.assignable).map((c) => c.name)),
+        [categories]
+    );
+
     const filteredEquipment = equipment
         .filter(e => e.status === 'Disponible')
+        .filter(e => !nonAssignableTypes.has(e.type))
         .filter(e =>
             e.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
             e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase()) ||

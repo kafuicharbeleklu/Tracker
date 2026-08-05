@@ -258,6 +258,15 @@ export interface Category {
   description?: string;
   icon: React.ReactNode;
   iconName?: string;
+  /**
+   * Un objet de ce type se remet-il en main propre à quelqu'un ?
+   * Non pour un serveur, une imprimante, du mobilier : ils servent un lieu, pas une personne.
+   * Ce drapeau ne filtre pas les listes — il retire le type du SÉLECTEUR D'ATTRIBUTION.
+   * Le passer à `false` ne défait aucune attribution existante : un paramètre de type ne
+   * réécrit pas le passé (même règle que `defaultDepreciation`).
+   * Arbitrage du 2026-08-05 — projet Claude Design, REGLES-TRANSVERSES.md §5.7.
+   */
+  assignable: boolean;
   // 🆕 CONFIGURATION AMORTISSEMENT PAR DÉFAUT
   defaultDepreciation: {
     method: 'linear' | 'degressive';

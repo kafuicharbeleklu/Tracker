@@ -669,6 +669,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 return {
                     ...categoryData,
+                    // Une catégorie persistée avant l'ajout d'`assignable` n'a pas le champ.
+                    // Sans repli, `undefined` est faux : TOUS ses équipements disparaîtraient
+                    // du sélecteur d'attribution. Ce qui ne dit rien est attribuable.
+                    assignable: categoryData.assignable ?? true,
                     icon: CATEGORY_ICONS[categoryData.iconName || 'Laptop'] || CATEGORY_ICONS['Laptop']
                 } as Category;
             });

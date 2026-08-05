@@ -407,6 +407,7 @@ export const mockCategories: Category[] = [
     {
         id: '1',
         name: 'Laptop',
+        assignable: true,
         icon: <MaterialIcon name="laptop" size={24} />,
         iconName: 'Laptop',
         description: 'Ordinateurs portables',
@@ -415,6 +416,7 @@ export const mockCategories: Category[] = [
     {
         id: '2',
         name: 'Monitor',
+        assignable: true,
         icon: <MaterialIcon name="monitor" size={24} />,
         iconName: 'Monitor',
         description: 'Écrans et moniteurs',
@@ -423,6 +425,7 @@ export const mockCategories: Category[] = [
     {
         id: '3',
         name: 'Keyboard',
+        assignable: true,
         icon: <MaterialIcon name="keyboard" size={24} />,
         iconName: 'Keyboard',
         description: 'Claviers',
@@ -431,6 +434,7 @@ export const mockCategories: Category[] = [
     {
         id: '4',
         name: 'Mouse',
+        assignable: true,
         icon: <MaterialIcon name="mouse" size={24} />,
         iconName: 'Mouse',
         description: 'Souris',
@@ -439,6 +443,7 @@ export const mockCategories: Category[] = [
     {
         id: '5',
         name: 'Server',
+        assignable: false,
         icon: <MaterialIcon name="dns" size={24} />,
         iconName: 'Server',
         description: 'Serveurs physiques',
@@ -447,6 +452,7 @@ export const mockCategories: Category[] = [
     {
         id: '6',
         name: 'Headphones',
+        assignable: true,
         icon: <MaterialIcon name="headphones" size={24} />,
         iconName: 'Headphones',
         description: 'Casques audio',
@@ -455,6 +461,7 @@ export const mockCategories: Category[] = [
     {
         id: '7',
         name: 'Furniture',
+        assignable: false,
         icon: <MaterialIcon name="chair" size={24} />,
         iconName: 'Furniture',
         description: 'Mobilier de bureau',
@@ -463,6 +470,7 @@ export const mockCategories: Category[] = [
     {
         id: '8',
         name: 'Printer',
+        assignable: false,
         icon: <MaterialIcon name="print" size={24} />,
         iconName: 'Printer',
         description: 'Imprimantes',

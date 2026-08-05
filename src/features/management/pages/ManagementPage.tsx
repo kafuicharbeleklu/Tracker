@@ -484,6 +484,9 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                     description: values[1] || '',
                     icon: CATEGORY_ICONS[iconName],
                     iconName,
+                    // Le CSV ne porte pas la colonne : une catégorie importée est attribuable
+                    // par défaut, comme celle créée au formulaire.
+                    assignable: true,
                     defaultDepreciation: {
                         method,
                         years: Number.isFinite(years) ? Math.max(years, 1) : 3,
