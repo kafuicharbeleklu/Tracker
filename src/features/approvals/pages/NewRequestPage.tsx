@@ -5,14 +5,14 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import SelectField from '../../../components/ui/SelectField';
 import { TextArea } from '../../../components/ui/TextArea';
-import { GLOSSARY } from '../../../constants/glossary';
+import { GLOSSARY, getCategoryLabel } from '../../../constants/glossary';
 import { approvalRequiresManagerGate } from '../../../lib/businessRules';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 
 const NewRequestPage = () => {
     const { navigate } = useAppNavigation();
-    const { addApproval, users } = useData();
+    const { addApproval, users, categories } = useData();
     const { showToast } = useToast();
     const { user: currentUser, role } = useAccessControl();
 
@@ -22,6 +22,17 @@ const NewRequestPage = () => {
         reason: '',
         urgency: 'normal' as 'low' | 'normal' | 'high',
     });
+
+    // Les options viennent du catalogue, jamais d'une liste écrite ici : une valeur
+    // absente des catégories produit un équipement que rien ne joint — ni icône, ni
+    // amortissement, ni filtre. C'était le cas de « Headset » et « Autre ».
+    const categoryOptions = useMemo(
+        () =>
+            categories
+                .map((category) => ({ value: category.name, label: getCategoryLabel(category.name) }))
+                .sort((a, b) => a.label.localeCompare(b.label, 'fr')),
+        [categories]
+    );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,14 +177,7 @@ const NewRequestPage = () => {
                         <SelectField
                             label="Type d'équipement"
                             name="category"
-                            options={[
-                                { value: 'Laptop', label: 'Ordinateur portable' },
-                                { value: 'Monitor', label: 'Écran' },
-                                { value: 'Keyboard', label: 'Clavier' },
-                                { value: 'Mouse', label: 'Souris' },
-                                { value: 'Headset', label: 'Casque audio' },
-                                { value: 'Other', label: 'Autre' },
-                            ]}
+                            options={categoryOptions}
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                             error={errors.category}

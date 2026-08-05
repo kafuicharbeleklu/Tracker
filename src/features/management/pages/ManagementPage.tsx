@@ -8,7 +8,7 @@ import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageHeader } from '../../../components/layout/PageHeader';
-import { GLOSSARY } from '../../../constants/glossary';
+import { GLOSSARY, getCategoryLabel } from '../../../constants/glossary';
 import Button from '../../../components/ui/Button';
 import { ViewType, Category, Model } from '../../../types';
 import Badge from '../../../components/ui/Badge';
@@ -28,21 +28,6 @@ const MODELS_PER_PAGE = 10;
 type ManagementTab = 'categories' | 'models';
 type CategorySortValue = 'name-asc' | 'name-desc' | 'depreciation-asc' | 'depreciation-desc';
 type CategoryMethodFilter = '' | 'linear' | 'degressive';
-
-const CATEGORY_LABELS: Record<string, string> = {
-    Furniture: 'Mobilier',
-    Headphones: 'Casque',
-    Keyboard: 'Clavier',
-    Laptop: 'Ordinateur portable',
-    Monitor: 'Moniteur',
-    Mouse: 'Souris',
-    Printer: 'Imprimante',
-    Tablet: 'Tablette',
-    Server: 'Serveur',
-    Phone: 'Téléphone',
-};
-
-const getCategoryLabel = (name: string) => CATEGORY_LABELS[name] || name;
 
 interface ManagementPageProps {
     onCategoryClick?: (id: string) => void;
