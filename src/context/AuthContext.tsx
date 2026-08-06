@@ -14,6 +14,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   needsPasswordChange: boolean;
   accessDenied: boolean;
+  /** Motif du refus, tel que la vérification l'a renvoyé — l'écran le dit au lieu
+      de faire trier trois hypothèses à la personne (planche 12.1). */
+  accessDeniedReason: string | null;
   isLoading: boolean;
 
   login: (email: string) => void; // Legacy/Dev login
@@ -33,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [authSource, setAuthSource] = useState<'msal' | 'demo' | null>(null);
 
@@ -76,23 +80,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(appUser);
         setNeedsPasswordChange(!!result.needsPasswordChange);
         setAccessDenied(false);
+        setAccessDeniedReason(null);
         setAuthSource('msal');
 
       } else {
         console.warn(`[AuthContext] Access Denied: ${result.error}`);
         setCurrentUser(null);
         setAccessDenied(true);
-        if (result.error) showToast(result.error, 'error');
+        // Le motif vit sur l'écran de refus, pas dans un message qui disparaît
+        // (planche 12.1 : une erreur se lit là où elle a une conséquence).
+        setAccessDeniedReason(result.error ?? null);
       }
 
     } catch (error) {
       console.error("Auth verification failed", error);
-      showToast("Erreur lors de la vérification du compte.", "error");
       setAccessDenied(true);
+      setAccessDeniedReason("La vérification de votre compte n'a pas abouti.");
     } finally {
       setIsLoading(false);
     }
-  }, [accounts, instance, showToast]);
+  }, [accounts, instance]);
 
   // Check auth status (exposed for re-checks after password change)
   const checkAuthStatus = async () => {
@@ -113,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(null);
       setNeedsPasswordChange(false);
       setAccessDenied(false);
+      setAccessDeniedReason(null);
       setAuthSource(null);
     }
   }, [accounts, verifyUserWithBackend, currentUser, accessDenied, authSource]);
@@ -166,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!currentUser && !needsPasswordChange && !accessDenied,
       needsPasswordChange,
       accessDenied,
+      accessDeniedReason,
       isLoading,
       login,
       loginWithGoogle,

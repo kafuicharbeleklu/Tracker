@@ -176,11 +176,18 @@ export const authService = {
         const user = mockAppUsers.find(u => u.MicrosoftEmail.toLowerCase() === email.toLowerCase());
 
         if (!user) {
-            return { success: false, error: 'User not found in authorized list.' };
+            // Le motif est ce que l'écran d'accès refusé affiche (planche 12.1) : il dit
+            // la cause de cette personne, au lieu de lui faire trier trois hypothèses.
+            return {
+                success: false,
+                error: "Votre compte n'est pas sur la liste des personnes autorisées.",
+            };
         }
 
+        // `pending` n'est pas un refus : c'est le compte invité qui vient définir son
+        // mot de passe (planche 02.2). Seul `inactive` ferme la porte.
         if (user.Status === 'inactive') {
-            return { success: false, error: 'Account is inactive. Contact administrator.' };
+            return { success: false, error: 'Votre compte a été suspendu.' };
         }
 
         if (user.MustChangePassword) {

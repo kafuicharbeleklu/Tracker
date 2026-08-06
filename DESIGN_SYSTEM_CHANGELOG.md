@@ -26,6 +26,32 @@ Trois règles :
 
 ---
 
+## [1.3.0] — 2026-08-06
+
+### Ajouté
+- `Skeleton` / `SkeletonRow` / `SkeletonList` (`src/components/ui/Skeleton.tsx`) — le
+  produit n'avait **aucun état de chargement dessiné** : le fallback de route montrait
+  un tourniquet plein écran légendé « Chargement de la vue… », qui nomme la mécanique
+  et non ce que la personne attend. Le squelette **tient la place de ce qui arrive**,
+  donc l'écran ne saute pas quand la donnée arrive. Aucune couleur propre :
+  `bg-surface-container`, la surface d'information employée comme une absence.
+  Règle et métriques : planche 12.1, `REGLES-TRANSVERSES.md` §2.39.
+  Impact sur le rendu au repos : **aucun** — le composant ne s'affiche que pendant
+  l'attente d'une vue paresseuse.
+
+### Modifié
+- `AppLayout` — `PageLoadingFallback` passe de `LoadingSpinner` à `SkeletonList`
+  (4 rangées). Impact : aucun au repos ; la capture d'un écran en cours de chargement
+  change, mais aucun point de contrôle visuel n'en tient.
+- `AppLayout` — la vue `not_found` emploie `EmptyState` au lieu d'un gabarit local :
+  le `404` (un code d'un autre métier, adressé à personne) et « vérifiez le lien »
+  (personne n'a tapé de lien sur un téléphone) tombent ; deux sorties nommées les
+  remplacent. Impact : **re-baseline** si un point de contrôle couvre `#/404`.
+- `AccessDeniedPage` — l'écran listait **trois causes possibles** et laissait la
+  personne trier ; le motif réel remonte désormais de la vérification
+  (`AuthContext.accessDeniedReason`) et devient le titre. Le motif ne passe plus par
+  un message éphémère. Impact : **re-baseline** si un point de contrôle couvre l'écran.
+
 ## [1.2.1] — 2026-07-26
 
 ### Corrigé

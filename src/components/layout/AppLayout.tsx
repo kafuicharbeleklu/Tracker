@@ -12,6 +12,7 @@ import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { EmptyState } from '../ui/EmptyState';
 import { useAccessControl } from '../../hooks/useAccessControl';
 
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
@@ -44,11 +45,17 @@ interface AppLayoutProps {
     onLogout: () => void;
 }
 
-import LoadingSpinner from '../ui/LoadingSpinner';
+import { SkeletonList } from '../ui/Skeleton';
 
+/**
+ * Attente d'une vue — planche 12.1, registre §2.39 : on montre **la forme de ce qui
+ * arrive**, pas un tourniquet. La place est tenue, donc l'écran ne saute pas à
+ * l'arrivée de la donnée ; et « Chargement de la vue » nommait la mécanique, pas ce
+ * que la personne attend.
+ */
 const PageLoadingFallback: React.FC = () => (
-    <div data-testid="route-loading-fallback" className="flex items-center justify-center h-full min-h-[50vh]">
-        <LoadingSpinner size="lg" text="Chargement de la vue..." />
+    <div data-testid="route-loading-fallback" className="p-4 medium:p-6">
+        <SkeletonList rows={4} />
     </div>
 );
 
@@ -348,17 +355,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
 
             case 'not_found':
+                // Planche 12.1 : le « 404 » est un code d'un autre métier, adressé à
+                // personne, et « vérifiez le lien » suppose une adresse que personne n'a
+                // tapée sur un téléphone. Reste ce qui est vrai — et les deux portes qui servent.
                 return (
-                    <div className="p-8 min-h-[60vh] flex flex-col items-center justify-center text-center">
-                        <p className="text-display-large font-bold text-outline mb-2" aria-hidden="true">404</p>
-                        <h2 className="text-display-small mb-4">Page introuvable</h2>
-                        <p className="text-body-large text-on-surface-variant mb-6 max-w-md">
-                            L'adresse demandée n'existe pas ou n'est plus disponible. Vérifiez le lien ou revenez à l'accueil.
-                        </p>
-                        <Button variant="filled" onClick={() => handleViewChange('dashboard')}>
-                            Retour au tableau de bord
-                        </Button>
-                    </div>
+                    <EmptyState
+                        className="min-h-[60vh]"
+                        icon="search_off"
+                        title="Cette page n'existe plus"
+                        description="L'équipement ou la personne que vous cherchiez a peut-être été sorti du parc, ou son compte supprimé. L'historique, lui, est conservé dans l'audit."
+                        action={
+                            <div className="flex flex-col medium:flex-row gap-3">
+                                <Button variant="filled" onClick={() => handleViewChange('dashboard')}>
+                                    Revenir à l'accueil
+                                </Button>
+                                <Button variant="tonal" onClick={() => handleViewChange('equipment')}>
+                                    Chercher dans les équipements
+                                </Button>
+                            </div>
+                        }
+                    />
                 );
 
             default:

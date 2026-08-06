@@ -29,6 +29,9 @@ const NewRequestPage = () => {
     const categoryOptions = useMemo(
         () =>
             categories
+                // Un type non attribuable ne se remet pas en main propre : il n'y a
+                // rien à demander (planche 06.4, arbitrage `assignable` du 05/08).
+                .filter((category) => category.assignable)
                 .map((category) => ({ value: category.name, label: getCategoryLabel(category.name) }))
                 .sort((a, b) => a.label.localeCompare(b.label, 'fr')),
         [categories]
@@ -80,9 +83,11 @@ const NewRequestPage = () => {
         }
 
         if (!formData.reason.trim()) {
-            newErrors.reason = "Veuillez préciser la raison de votre demande";
+            newErrors.reason = 'Dites ce que vous avez et ce qui ne va plus.';
         } else if (formData.reason.length < 20) {
-            newErrors.reason = "La justification doit contenir au moins 20 caractères";
+            // Le seuil reste, son message non : une règle qu'on découvre en la ratant
+            // est une règle mal placée (planche 06.4).
+            newErrors.reason = 'Une phrase suffit : ce que vous avez, et ce qui ne va plus.';
         }
 
         setErrors(newErrors);
@@ -152,10 +157,10 @@ const NewRequestPage = () => {
 
     return (
         <FullScreenFormLayout
-            title="Nouvelle demande d'équipement"
+            title="Demander un équipement"
             onCancel={() => navigate('/approvals')}
             onSave={handleSubmit}
-            saveLabel={isSubmitting ? 'Envoi...' : 'Envoyer la demande'}
+            saveLabel={isSubmitting ? 'Envoi en cours' : 'Envoyer la demande'}
             isSaving={isSubmitting}
         >
             <div className="max-w-xl mx-auto">
@@ -187,10 +192,12 @@ const NewRequestPage = () => {
                         <SelectField
                             label="Urgence"
                             name="urgency"
+                            // Deux crans, pas trois : relevé dans `ApprovalRow`, seule
+                            // « Urgente » a un effet — « Basse » et « Normale » rendent
+                            // identiquement partout (planche 06.4).
                             options={[
-                                { value: 'low', label: 'Basse' },
                                 { value: 'normal', label: 'Normale' },
-                                { value: 'high', label: 'Haute' },
+                                { value: 'high', label: 'Urgente' },
                             ]}
                             value={formData.urgency}
                             onChange={(e) => setFormData({ ...formData, urgency: e.target.value as 'low' | 'normal' | 'high' })}
@@ -209,10 +216,11 @@ const NewRequestPage = () => {
 
                     <div className="p-4 bg-primary-container/40 border border-primary/10 rounded-lg">
                         <p className="text-body-medium text-on-surface">
-                            📌 Demande pour <strong>{selectedBeneficiary?.name}</strong>.
+                            {/* Un émoji est un dessin qu'on n'a pas choisi (registre §2.34). */}
+                            Demande pour <strong>{selectedBeneficiary?.name}</strong>.
                             {beneficiaryManager && beneficiaryManager.id !== currentUser?.id
-                                ? <span> Elle sera validée par <strong>{beneficiaryManager.name}</strong>.</span>
-                                : <span> Elle sera traitée par l'équipe IT.</span>
+                                ? <span> Elle part à <strong>{beneficiaryManager.name}</strong>, qui la validera.</span>
+                                : <span> Elle part directement à l'informatique.</span>
                             }
                         </p>
                     </div>
