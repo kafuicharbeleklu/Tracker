@@ -12,6 +12,13 @@ const HOST = '127.0.0.1';
 const PORT = 4173;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const RUN_DATE = new Date().toISOString().slice(0, 10);
+// Horloge figée. Sans elle, les écrans qui calculent depuis « maintenant » —
+// tableau de bord, finances, âges de la file — changent TOUS LES JOURS, et la suite
+// signale une régression à chaque run. Le 06/08 a coûté deux runs complets et un
+// arbre témoin pour distinguer 14 écarts réels de 9 dérives de date.
+// L'instant retenu est celui de la re-baseline du 2026-08-06 : les références
+// déposées ce jour-là restent valides. Le changer impose de re-baseliner.
+const FROZEN_CLOCK = new Date('2026-08-06T12:00:00.000Z');
 const UPDATE_BASELINE = process.argv.includes('--update');
 const VITE_BIN = path.resolve('node_modules/vite/bin/vite.js');
 
@@ -324,6 +331,9 @@ const run = async () => {
       );
 
       const page = await context.newPage();
+      // `setFixedTime` fige `Date.now()` sans arrêter les minuteries : les
+      // transitions et les délais du produit continuent de se dérouler.
+      await page.clock.setFixedTime(FROZEN_CLOCK);
       await bootstrapDeterministicSession(page);
 
       process.stdout.write(`[visual]  - capture: ${LOGIN_CHECKPOINT.id}\n`);
