@@ -87,6 +87,12 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
             label: getDestinationShortLabel('equipment'),
         }] : []),
         ...(permissions.canViewApprovals ? [{
+            // La file d'abord — c'est la destination des liens du produit (planche 03.3) ;
+            // la liste des demandes en est l'archive, et elle garde sa place au rail.
+            id: 'tasks' as ViewType,
+            icon: DESTINATIONS.tasks.icon,
+            label: getDestinationShortLabel('tasks'),
+        }, {
             id: 'approvals' as ViewType,
             icon: DESTINATIONS.approvals.icon,
             label: getDestinationShortLabel('approvals'),

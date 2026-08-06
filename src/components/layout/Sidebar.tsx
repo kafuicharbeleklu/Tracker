@@ -86,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     ]);
 
     const pendingCount = relevantApprovals.filter((a) => ACTIVE_APPROVAL_STATUSES.has(a.status)).length;
-    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'approvals' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
+    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'tasks' | 'approvals' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
         switch (section) {
             case 'dashboard':
                 return currentView === 'dashboard';
@@ -94,6 +94,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 return ['equipment', 'equipment_details', 'add_equipment', 'edit_equipment', 'import_equipment', 'assignment_wizard', 'return_wizard'].includes(currentView);
             case 'users':
                 return ['users', 'user_details', 'add_user', 'edit_user', 'import_users'].includes(currentView);
+            case 'tasks':
+                return currentView === 'tasks';
             case 'approvals':
                 return ['approvals', 'new_request'].includes(currentView);
             case 'finance':
@@ -311,11 +313,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {!hidePrimary && permissions.canViewApprovals && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
+                                icon={DESTINATIONS.tasks.icon}
+                                label={DESTINATIONS.tasks.label}
+                                active={isNavSectionActive('tasks')}
+                                onClick={() => handleItemClick('tasks')}
+                                badge={pendingCount > 0 ? pendingCount : undefined}
+                            />
+                        )}
+
+                        {!hidePrimary && permissions.canViewApprovals && (
+                            <SidebarItem
+                                isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.approvals.icon}
                                 label={DESTINATIONS.approvals.label}
                                 active={isNavSectionActive('approvals')}
                                 onClick={() => handleItemClick('approvals')}
-                                badge={pendingCount > 0 ? pendingCount : undefined}
                             />
                         )}
 
