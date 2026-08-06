@@ -18,6 +18,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
   import_users: 'Importer utilisateurs',
   approvals: DESTINATIONS.approvals.label,
   new_request: 'Nouvelle demande',
+  tasks: 'Tâches',
   management: DESTINATIONS.management.label,
   rbac: DESTINATIONS.rbac.label,
   add_category: 'Ajouter une catégorie',
@@ -69,6 +70,8 @@ export const useAppNavigation = () => {
       else if (action === 'import') computedView = 'import_users';
       else if (action) { computedView = 'user_details'; id = action; }
       else computedView = 'users';
+    } else if (section === 'tasks') {
+      computedView = 'tasks';
     } else if (section === 'approvals') {
       if (action === 'new') computedView = 'new_request';
       else computedView = 'approvals';
@@ -126,6 +129,7 @@ export const useAppNavigation = () => {
       'users': '/users',
       'add_user': '/users/add',
       'import_users': '/users/import',
+      'tasks': '/tasks',
       'approvals': '/approvals',
       'new_request': '/approvals/new',
       'management': '/management',

@@ -18,6 +18,7 @@ import { useAccessControl } from '../../hooks/useAccessControl';
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
 const UsersPage = lazy(() => import('../../features/users/pages/UsersPage'));
+const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'));
 const ApprovalsPage = lazy(() => import('../../features/approvals/pages/ApprovalsPage'));
 const NewRequestPage = lazy(() => import('../../features/approvals/pages/NewRequestPage'));
 const FinanceManagementPage = lazy(() => import('../../features/finance/pages/FinanceManagementPage'));
@@ -98,6 +99,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const bottomNavViews: ViewType[] = [
         'dashboard',
         'equipment',
+        'tasks',
         'approvals',
         'users',
         'finance',
@@ -125,6 +127,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         switch (view) {
             // Sections : libellés issus du registre unique de destinations (X1)
             case 'dashboard': return DESTINATIONS.dashboard.label;
+            case 'tasks': return 'Tâches';
             case 'equipment': return DESTINATIONS.equipment.label;
             case 'equipment_details': return 'Détail équipement';
             case 'add_equipment':
@@ -353,6 +356,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onComplete={() => handleViewChange('equipment')}
                     />
                 );
+
+            case 'tasks':
+                // Planche 03.3 : la destination unique des liens du tableau de bord.
+                return <TasksPage onNavigate={handleViewChange} onItemClick={handleItemClick} />;
 
             case 'not_found':
                 // Planche 12.1 : le « 404 » est un code d'un autre métier, adressé à

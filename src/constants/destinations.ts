@@ -23,6 +23,7 @@ export interface AppDestination {
 export type DestinationId = Extract<
     ViewType,
     | 'dashboard'
+    | 'tasks'
     | 'equipment'
     | 'approvals'
     | 'users'
@@ -43,10 +44,13 @@ export const DESTINATIONS: Record<DestinationId, AppDestination> = {
         icon: 'devices',
         route: '/inventory',
     },
+    // La file de travail (planche 03.3) : c'est elle que la barre du bas désignait
+    // déjà sous le nom « Tâches », alors qu'elle ouvrait la liste des approbations.
+    tasks: { label: 'Tâches', shortLabel: 'Tâches', icon: 'task_alt', route: '/tasks' },
     approvals: {
         label: GLOSSARY.APPROVALS,
-        shortLabel: 'Tâches',
-        icon: 'task_alt',
+        shortLabel: 'Demandes',
+        icon: 'inbox',
         route: '/approvals',
     },
     users: { label: GLOSSARY.USER_PLURAL, shortLabel: 'Équipe', icon: 'group', route: '/users' },

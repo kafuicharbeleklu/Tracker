@@ -14,7 +14,7 @@ interface NavigationBarProps {
     className?: string;
 }
 
-type NavDestinationId = 'dashboard' | 'equipment' | 'approvals' | 'users' | 'more';
+type NavDestinationId = 'dashboard' | 'equipment' | 'tasks' | 'users' | 'more';
 const MORE_VIEWS: ViewType[] = [
     'finance',
     'management',
@@ -106,8 +106,10 @@ const resolveBottomNavDestination = (view: ViewType): NavDestinationId | null =>
         return 'users';
     }
 
-    if (view === 'approvals' || view === 'new_request') {
-        return 'approvals';
+    // La file est la destination ; la liste des demandes en est l'archive, et
+    // l'onglet reste allumé quand on l'ouvre (planche 03.3).
+    if (view === 'tasks' || view === 'approvals' || view === 'new_request') {
+        return 'tasks';
     }
 
     if (view === 'dashboard') {
@@ -160,10 +162,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
         if (permissions.canViewApprovals) {
             items.push({
-                id: 'approvals',
-                icon: DESTINATIONS.approvals.icon,
-                label: getDestinationShortLabel('approvals'),
-                onSelect: () => onViewChange('approvals'),
+                id: 'tasks',
+                icon: DESTINATIONS.tasks.icon,
+                label: getDestinationShortLabel('tasks'),
+                onSelect: () => onViewChange('tasks'),
             });
         }
 
