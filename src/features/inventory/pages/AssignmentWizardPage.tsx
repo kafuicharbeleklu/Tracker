@@ -30,6 +30,11 @@ type WizardStage = 'equipment' | 'user' | 'validation' | 'summary';
 const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void }> = ({ onCancel, onComplete }) => {
     const { equipment, users, updateEquipment, updateApproval, addApproval, approvals, categories } = useData();
     const { showToast } = useToast();
+
+    // Planche 12.1, règle 3 : une erreur vit là où le geste a été engagé. Un refus
+    // annoncé par un message qui passe laisse croire au succès — celui-ci reste
+    // sous le geste, avec la saisie intacte, jusqu'à la tentative suivante.
+    const [refus, setRefus] = useState<string | null>(null);
     const { user: adminUser } = useAccessControl();
 
     const [step, setStep] = useState(1);
@@ -160,6 +165,8 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
     const paginatedUsers = filteredUsers.slice((safeUserPage - 1) * itemsPerPage, safeUserPage * itemsPerPage);
 
     const handleNext = () => {
+
+        setRefus(null);
         if (!isLastStep) {
             setStep((prev) => Math.min(prev + 1, stageSequence.length));
         } else if (selectedEquipment && selectedUser) {
@@ -180,10 +187,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         assignedEquipmentName: selectedEquipment.name,
                     });
                     if (!transitionDecision.allowed) {
-                        showToast(
-                            transitionDecision.reason || "Action non autorisée pour cette demande.",
-                            'error',
-                        );
+                        setRefus(transitionDecision.reason || "Action non autorisée pour cette demande.");
                         return;
                     }
 
@@ -215,10 +219,7 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
                         assignedEquipmentName: selectedEquipment.name,
                     });
                     if (!transitionDecision.allowed) {
-                        showToast(
-                            transitionDecision.reason || "Action non autorisée pour cette demande.",
-                            'error',
-                        );
+                        setRefus(transitionDecision.reason || "Action non autorisée pour cette demande.");
                         return;
                     }
 
@@ -365,12 +366,22 @@ const AssignmentWizardPage: React.FC<{ onCancel: () => void; onComplete: () => v
             onClose={onCancel}
             onBack={step > 1 ? () => setStep((prev) => Math.max(1, prev - 1)) : undefined}
             actions={
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2 items-stretch medium:items-end">
+                    {refus && (
+                        <p className="text-body-small text-error max-w-md">
+                            <strong className="font-medium">L'affectation n'est pas passée.</strong>{' '}
+                            {refus} Rien n'a été enregistré.
+                        </p>
+                    )}
+                    <div className="flex gap-3">
                     {currentStage === 'summary' && (
                         <Button onClick={handleNext} disabled={isImmediateHandover && !signatureCaptured}>
-                            {approvalId ? 'Valider l\'affectation' : 'Confirmer'}
+                            {refus
+                                ? 'Réessayer'
+                                : approvalId ? 'Valider l\'affectation' : 'Confirmer'}
                         </Button>
                     )}
+                    </div>
                 </div>
             }
         >
