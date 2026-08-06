@@ -31,6 +31,11 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
     const { user: actor } = useAccessControl();
     const { showToast } = useToast();
 
+    // Planche 12.1, règle 3 : jusqu'ici l'écran annonçait « Restitution initiée »
+    // même quand la règle de rôle refusait l'écriture — `updateEquipment` rendait
+    // la main sans rien dire. Le refus se lit maintenant sous le geste.
+    const [refus, setRefus] = useState<string | null>(null);
+
     const [step, setStep] = useState(1);
     const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
     const [condition, setCondition] = useState<ReturnCondition>('Excellent');
@@ -77,6 +82,8 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
     }, []);
 
     const handleNext = () => {
+
+        setRefus(null);
         if (step < 4) {
             setStep(step + 1);
         } else if (selectedEquipment) {
@@ -90,7 +97,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                     nowISO,
                 });
 
-                updateEquipment(selectedEquipment.id, {
+                const decision = updateEquipment(selectedEquipment.id, {
                     ...initiationUpdates,
                     notes: `${selectedEquipment.notes || ''}\n[DEMANDE RETOUR ${formatDate()}] ${comment.trim() || 'Aucun commentaire'}`,
                 }, {
@@ -99,6 +106,11 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                     comment: comment.trim() || undefined,
                     requestedBy: actor?.id || 'system',
                 });
+
+                if (!decision.allowed) {
+                    setRefus(decision.reason || "Vous n'avez pas le droit de modifier cet équipement.");
+                    return;
+                }
 
                 showToast(`Restitution initiée : ${selectedEquipment.name}`, 'success');
                 onComplete();
@@ -112,7 +124,7 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                 nowISO,
             });
 
-            updateEquipment(selectedEquipment.id, {
+            const decision = updateEquipment(selectedEquipment.id, {
                 ...inspectionUpdates,
                 operationalStatus: 'Actif',
                 notes: `${selectedEquipment.notes || ''}\n[INSPECTION RETOUR ${formatDate()}] État: ${condition}${comment ? ` - ${comment}` : ''}`,
@@ -124,6 +136,11 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                 source: 'return_wizard',
                 stage: 'inspection',
             });
+
+            if (!decision.allowed) {
+                setRefus(decision.reason || "Vous n'avez pas le droit de modifier cet équipement.");
+                return;
+            }
 
             showToast(`Retour clôturé : ${selectedEquipment.name}`, 'success');
             onComplete();
@@ -238,14 +255,24 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
             onClose={onCancel}
             onBack={step > 1 ? () => setStep(step - 1) : undefined}
             actions={
-                <div className="flex gap-3">
-                    {(step === 2 || step === 4) && (
-                        <Button onClick={handleNext} disabled={(step === 2 && !canProceedFromStateStep) || (step === 3 && !isValidated)}>
-                            {step === 4
-                                ? (isInspectionFlow ? 'Clôturer le retour' : 'Initier la restitution')
-                                : 'Suivant'}
-                        </Button>
+                <div className="flex flex-col gap-2 items-stretch medium:items-end">
+                    {refus && (
+                        <p className="text-body-small text-error max-w-md">
+                            <strong className="font-medium">Le retour n'a pas été enregistré.</strong>{' '}
+                            {refus} L'équipement n'a pas changé d'état.
+                        </p>
                     )}
+                    <div className="flex gap-3">
+                        {(step === 2 || step === 4) && (
+                            <Button onClick={handleNext} disabled={(step === 2 && !canProceedFromStateStep) || (step === 3 && !isValidated)}>
+                                {refus
+                                    ? 'Réessayer'
+                                    : step === 4
+                                        ? (isInspectionFlow ? 'Clôturer le retour' : 'Initier la restitution')
+                                        : 'Suivant'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             }
         >

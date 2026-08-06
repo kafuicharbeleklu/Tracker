@@ -79,7 +79,9 @@ interface DataContextType {
     updateUser: (id: string, updates: Partial<User>) => BusinessRuleDecision;
     deleteUser: (id: string) => BusinessRuleDecision;
     addEquipment: (item: Equipment) => void;
-    updateEquipment: (id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => void;
+    /** Retourne la décision : un refus de rôle était jusqu'ici un `return` muet, et
+        l'appelant annonçait son succès sans savoir (planche 12.1, règle 3). */
+    updateEquipment: (id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => BusinessRuleDecision;
     deleteEquipment: (id: string) => boolean;
     upsertEquipmentFromAuditScan: (
         payload: AuditScanPayload,
@@ -1629,12 +1631,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setEquipment(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
     }, [equipment, currentUser, logEvent]);
 
-    const updateEquipment = useCallback((id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => {
+    const updateEquipment = useCallback((
+        id: string,
+        updates: Partial<Equipment>,
+        logMetadata?: Record<string, unknown>,
+    ): BusinessRuleDecision => {
         const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
-            return;
+            return permissionDecision;
         }
         applyEquipmentWrite(id, updates, logMetadata);
+        return { allowed: true };
     }, [applyEquipmentWrite]);
 
     const deleteEquipment = useCallback((id: string) => {
