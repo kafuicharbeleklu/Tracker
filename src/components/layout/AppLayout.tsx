@@ -103,7 +103,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     ];
     const usesBottomNavShortcuts = isCompact && !isCompactLandscape && bottomNavViews.includes(currentView);
     const showBottomNav = usesBottomNavShortcuts && !isMobileMenuOpen;
-    const showTopAppBar = isCompact && !isCompactLandscape;
+
+    /**
+     * Vues passées à l'ADN mobile (DESIGN_BRIEF.md §5) : elles portent elles-mêmes
+     * l'en-tête « titre 22 + sous-titre contextuel ». La barre d'application ne
+     * rendrait qu'un DOUBLON du titre — sur ces vues, la barre du bas assure déjà
+     * la navigation, donc la barre du haut n'a plus de contenu propre.
+     * La liste s'allonge à chaque écran basculé, et disparaît quand la coque bascule.
+     */
+    const adnMobileViews: ViewType[] = ['audit'];
+    const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
     const getTopAppBarTitle = (view: ViewType): string => {
         switch (view) {

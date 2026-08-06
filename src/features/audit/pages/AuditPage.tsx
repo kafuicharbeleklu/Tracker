@@ -1,8 +1,10 @@
 import React from 'react';
 import { ViewType } from '../../../types';
+import { MEDIA } from '../../../constants/breakpoints';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { GLOSSARY } from '../../../constants/glossary';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { PhysicalAuditView } from '../components/PhysicalAuditView';
 import { PageTabs } from '../../../components/ui/PageTabs';
 
@@ -11,6 +13,24 @@ interface AuditPageProps {
 }
 
 const AuditPage: React.FC<AuditPageProps> = ({ onViewChange }) => {
+    const isCompact = useMediaQuery(MEDIA.compact);
+
+    // Compact : écran passé à l'ADN mobile v1 (DESIGN_BRIEF.md). En-tête, onglets et
+    // rythme vertical sont portés par la vue elle-même — le padding de page vaut 20 px
+    // (§3) au lieu des 16 px canoniques, d'où `padding="none"` puis `p-5`.
+    // `pt-[calc(...)]` : la barre d'application ne rend plus sur cette vue (AppLayout),
+    // c'est donc à la page de dégager l'encoche / la barre d'état.
+    if (isCompact) {
+        return (
+            <PageContainer
+                padding="none"
+                className="p-5 pt-[calc(env(safe-area-inset-top,0px)+1.25rem)] space-y-0"
+            >
+                <PhysicalAuditView onViewChange={onViewChange} />
+            </PageContainer>
+        );
+    }
+
     return (
         <PageContainer>
             <PageHeader

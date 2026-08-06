@@ -203,7 +203,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             <span className="text-primary font-light italic">unifiée</span>.
                         </h2>
 
-                        <p className="text-body-medium large:text-title-medium text-slate-400 max-w-md leading-relaxed mb-10 font-normal">
+                        <p className="text-body-medium large:text-title-medium text-[var(--color-login-hero-text-muted)] max-w-md leading-relaxed mb-10 font-normal">
                             Une plateforme opérationnelle pour suivre les affectations, les retours, les audits et les coûts du parc interne.
                         </p>
 
@@ -212,7 +212,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 <div key={feature} className="group flex items-start gap-3.5">
                                     <div className="h-5 w-[2px] bg-primary/40 mt-1 shrink-0 group-hover:bg-primary transition-colors" />
                                     <div className="flex-1 min-w-0">
-                                        <span className="text-label-large large:text-title-medium font-bold text-slate-200 group-hover:text-white transition-colors">
+                                        <span className="text-label-large large:text-title-medium font-bold text-[var(--color-login-hero-text)] group-hover:text-white transition-colors">
                                             {feature}
                                         </span>
                                     </div>
@@ -221,7 +221,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         </div>
                     </div>
 
-                    <div className="text-label-small uppercase font-semibold text-slate-400 flex justify-between items-center border-t border-white/[0.05] pt-6">
+                    <div className="text-label-small uppercase font-semibold text-[var(--color-login-hero-text-muted)] flex justify-between items-center border-t border-white/[0.05] pt-6">
                         <span>© {LOGIN_FOOTER_YEAR} {APP_CONFIG.companyName}</span>
                         <span>{APP_CONFIG.version}</span>
                     </div>
@@ -319,7 +319,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                         }}
                                         icon={<MaterialIcon name="mail" size={20} />}
                                         variant="filled"
-                                        className="bg-white"
                                         autoComplete="username"
                                         error={emailError}
                                         disabled={isProductionOnlyMode}
@@ -340,7 +339,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                             }}
                                             icon={<MaterialIcon name="lock" size={20} />}
                                             variant="filled"
-                                            className="bg-white"
                                             isPassword
                                             autoComplete="current-password"
                                             error={passwordError}
@@ -424,7 +422,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 }}
                                 icon={<MaterialIcon name="mail" size={20} />}
                                 variant="filled"
-                                className="bg-white"
                                 autoComplete="email"
                                 error={forgotPasswordError}
                                 required

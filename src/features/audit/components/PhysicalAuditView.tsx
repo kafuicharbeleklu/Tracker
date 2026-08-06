@@ -13,30 +13,26 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import { cn } from '../../../lib/utils';
 import { MetricCard } from '../../../components/ui/MetricCard';
+import { ALL_VALUE, buildRowKey, formatLastScan, ServiceAuditRow } from '../serviceAudit';
+import { AuditOverviewMobile } from './AuditOverviewMobile';
 
 interface PhysicalAuditViewProps {
     onViewChange?: (view: ViewType) => void;
 }
 
-interface ServiceAuditRow {
-    country: string;
-    site: string;
-    service: string;
-    expected: number;
-    found: number;
-    missing: number;
-    exceptions: number;
-    progress: number;
-    lastScanAt: string | null;
-    status: 'A lancer' | 'En cours' | 'Complet' | 'A planifier';
-}
-
 const AUDIT_SCOPE_PREF_KEY = 'audit_scope_pref';
-const ALL_VALUE = '__all__';
 const AUDIT_FILTER_PANEL_ID = 'audit-global-filter-panel';
 
+/** Options du filtre « statut de campagne » — source unique des deux rendus. */
+const STATUS_OPTIONS = [
+    { value: ALL_VALUE, label: 'Tous les statuts' },
+    { value: 'A lancer', label: 'À lancer' },
+    { value: 'En cours', label: 'En cours' },
+    { value: 'Complet', label: 'Complet' },
+    { value: 'A planifier', label: 'À planifier' },
+];
+
 const normalize = (value?: string): string => (value || '').trim().toLowerCase();
-const buildRowKey = (row: Pick<ServiceAuditRow, 'country' | 'site' | 'service'>): string => `${row.country}::${row.site}::${row.service}`;
 
 const readMetadata = (value: unknown): Record<string, unknown> | null => {
     if (!value || typeof value !== 'object') return null;
@@ -44,18 +40,6 @@ const readMetadata = (value: unknown): Record<string, unknown> | null => {
 };
 
 const readString = (value: unknown): string => (typeof value === 'string' ? value : '');
-
-const formatLastScan = (value: string | null): string => {
-    if (!value) return 'Jamais';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Jamais';
-    return date.toLocaleString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-};
 
 const statusPill = (status: ServiceAuditRow['status']) => {
     if (status === 'Complet') {
@@ -75,6 +59,9 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
     const { navigateToView } = useAppNavigation();
     const { locationData, equipment, events } = useData();
     const isMobile = useMediaQuery(MEDIA.belowExpanded);
+    // Compact (< 600 px) : écran passé à l'ADN mobile (DESIGN_BRIEF.md). Medium et
+    // expanded continuent de rendre l'arbre historique ci-dessous, au pixel près.
+    const isCompact = useMediaQuery(MEDIA.compact);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -304,6 +291,60 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
         openAuditDetails(selectedRow);
     };
 
+    /**
+     * Action du FAB de la vue compacte : lancer l'audit sur le PÉRIMÈTRE COURANT.
+     * Contrairement aux deux boutons supprimés par l'ADN (§4 : « jamais de bouton
+     * désactivé accompagné d'une phrase d'instruction »), elle n'exige aucune
+     * sélection préalable — donc elle n'est jamais impossible.
+     */
+    const handleStartScopedAudit = () => {
+        openAuditDetails();
+    };
+
+    const setFilterValue = (key: 'country' | 'site' | 'service' | 'status', value: string) => {
+        if (key === 'country') setSelectedCountry(value);
+        else if (key === 'site') setSelectedSite(value);
+        else if (key === 'service') setSelectedService(value);
+        else setSelectedStatus(value);
+    };
+
+    const resetFilters = () => {
+        setSelectedCountry(ALL_VALUE);
+        setSelectedSite(ALL_VALUE);
+        setSelectedService(ALL_VALUE);
+        setSelectedStatus(ALL_VALUE);
+        setSearchQuery('');
+    };
+
+    if (isCompact) {
+        return (
+            <AuditOverviewMobile
+                rows={displayedRows}
+                scopedServiceCount={scopedRows.length}
+                totals={totals}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filters={{
+                    country: selectedCountry,
+                    site: selectedSite,
+                    service: selectedService,
+                    status: selectedStatus,
+                }}
+                filterOptions={{
+                    country: countryOptions,
+                    site: siteOptions,
+                    service: serviceOptions,
+                    status: STATUS_OPTIONS,
+                }}
+                onFilterChange={setFilterValue}
+                onResetFilters={resetFilters}
+                onOpenService={openAuditDetails}
+                onStartAudit={handleStartScopedAudit}
+                onOpenDetailsTab={() => openAuditDetails()}
+            />
+        );
+    }
+
     return (
         // pb-28 mobile/medium : dégagement bas pour que le FAB ne recouvre pas les dernières
         // rangées du tableau (colonne Statut/Action, §9.4) — pattern du détail d'audit.
@@ -418,13 +459,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                             name="auditCampaignStatus"
                             value={selectedStatus}
                             onChange={(e) => setSelectedStatus(e.target.value)}
-                            options={[
-                                { value: ALL_VALUE, label: 'Tous les statuts' },
-                                { value: 'A lancer', label: 'À lancer' },
-                                { value: 'En cours', label: 'En cours' },
-                                { value: 'Complet', label: 'Complet' },
-                                { value: 'A planifier', label: 'À planifier' },
-                            ]}
+                            options={STATUS_OPTIONS}
                         />
                     </div>
                 </div>
