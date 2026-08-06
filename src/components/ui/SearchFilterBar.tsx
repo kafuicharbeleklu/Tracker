@@ -9,8 +9,14 @@ interface SearchFilterBarProps {
   filterActive?: boolean;
   filterPanelId?: string;
   resultCount?: number;
+  /** Nombre de filtres ACTIFS — pastille sur le bouton filtre (DESIGN_BRIEF.md §4 :
+      « un bouton filtre unique avec compteur + chips des filtres actifs »).
+      Absent ou 0 : aucune pastille, rendu strictement inchangé. */
+  filterCount?: number;
   placeholder?: string;
   className?: string;
+  /** Classes appliquées au bouton filtre (habillage ADN : rayon, couleurs d'état). */
+  filterButtonClassName?: string;
 }
 
 /**
@@ -24,15 +30,18 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   filterActive,
   filterPanelId,
   resultCount,
+  filterCount = 0,
   placeholder = "Rechercher...",
-  className
+  className,
+  filterButtonClassName
 }) => {
   const [localFilterActive, setLocalFilterActive] = React.useState(false);
   const hasCount = resultCount !== undefined;
   const isExternallyControlled = typeof filterActive === 'boolean';
   const isFilterActive = isExternallyControlled ? filterActive : localFilterActive;
   // Always reserve one fixed slot for filter icon to keep all bars consistent.
-  const controlCount = (searchValue ? 1 : 0) + (hasCount ? 1 : 0) + 1;
+  const hasFilterCount = filterCount > 0;
+  const controlCount = (searchValue ? 1 : 0) + (hasCount ? 1 : 0) + 1 + (hasFilterCount ? 1 : 0);
   const trailingSpaceClass = controlCount >= 3
     ? 'pr-44 medium:pr-48'
     : controlCount === 2
@@ -48,8 +57,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
     }
   };
 
+  // Le champ natif porte `focus:outline-none` : sans relais, le focus clavier n'était
+  // signalé que par une élévation (contraste insuffisant pour un indicateur de focus).
+  // L'anneau est porté par le conteneur, qui est la forme perçue du champ, et ciblé sur
+  // `input:focus-visible` pour ne pas doubler l'anneau propre des boutons de la barre
+  // (Tracker DS v1, tâche 1).
   return (
-    <div role="search" className={cn("bg-surface border border-outline-variant rounded-xl shadow-elevation-1 transition-shadow duration-short4 hover:shadow-elevation-2 focus-within:shadow-elevation-2", className)}>
+    <div role="search" className={cn("bg-surface border border-outline-variant rounded-xl shadow-elevation-1 transition-shadow duration-short4 hover:shadow-elevation-2 focus-within:shadow-elevation-2 has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-focus-ring", className)}>
       <div className="relative group flex items-center min-h-12">
         {/* Leading icon */}
         <div className="absolute left-4 inset-y-0 flex items-center pointer-events-none">
@@ -102,14 +116,25 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
               "h-10 w-10 rounded-lg transition-all duration-short4 ease-emphasized flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus-ring active:scale-95 state-layer",
               isFilterActive
                 ? "bg-primary text-on-primary shadow-elevation-1"
-                : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high",
+              hasFilterCount && "w-auto min-w-10 gap-1 px-2",
+              filterButtonClassName
             )}
-            aria-label={isFilterActive ? "Masquer les filtres" : "Afficher les filtres"}
+            aria-label={
+              hasFilterCount
+                ? `Filtres (${filterCount} actif${filterCount > 1 ? 's' : ''})`
+                : (isFilterActive ? "Masquer les filtres" : "Afficher les filtres")
+            }
             aria-pressed={isFilterActive}
             aria-controls={onFilterClick ? filterPanelId : undefined}
             aria-expanded={onFilterClick ? isFilterActive : undefined}
           >
             <MaterialIcon name="tune" size={18} />
+            {/* Compteur de filtres actifs : chiffre en clair, pas une pastille muette —
+                l'information « combien » doit être lisible sans ouvrir la feuille. */}
+            {hasFilterCount && (
+              <span className="text-label-medium tabular-nums">{filterCount}</span>
+            )}
           </button>
         </div>
       </div>

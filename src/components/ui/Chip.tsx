@@ -54,14 +54,15 @@ const Chip: React.FC<ChipProps> = ({
                 "inline-flex items-center gap-2 rounded-md px-3 h-8 text-label-large border transition-all duration-short4 ease-emphasized outline-none select-none",
                 // Focus ring
                 "focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1",
-                // State layer for interactive chips
-                isInteractive && !disabled && "cursor-pointer hover:bg-surface-container",
+                // State layer for interactive chips (+ état pressé — Tracker DS v1, tâche 1)
+                isInteractive && !disabled && "cursor-pointer hover:bg-surface-container active:scale-[0.98]",
                 // Disabled state
                 disabled && "opacity-38 cursor-not-allowed",
 
-                // Variant-specific styles
+                // Variant-specific styles. Le survol du chip SÉLECTIONNÉ était appliqué
+                // même désactivé : il est désormais conditionné comme celui du chip au repos.
                 selected
-                    ? "bg-primary text-on-primary border-transparent hover:bg-primary/90"
+                    ? cn("bg-primary text-on-primary border-transparent", !disabled && "hover:bg-primary/90")
                     : "bg-surface-container-low text-on-surface border-outline",
 
                 className
@@ -97,7 +98,10 @@ const Chip: React.FC<ChipProps> = ({
                             onClose?.();
                         }
                     }}
-                    className="ml-0.5 -mr-1 rounded-md p-2 -m-1.5 hover:bg-on-surface/[0.08] transition-colors cursor-pointer"
+                    // `touch-target` : la croix mesure ~28px de boîte — sous le plancher
+                    // de 48px (DESIGN_SYSTEM.md §12). Le pseudo-élément étend la zone de
+                    // frappe sur pointeur grossier sans aucun diff visuel.
+                    className="touch-target ml-0.5 -mr-1 rounded-md p-2 -m-1.5 hover:bg-on-surface/[0.08] transition-colors cursor-pointer"
                 >
                     <MaterialIcon name="close" size={16} />
                 </span>

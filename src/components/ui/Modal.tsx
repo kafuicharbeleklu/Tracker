@@ -53,8 +53,14 @@ const Modal: React.FC<ModalProps> = ({
         if (isOpen) {
             setVisible(true);
             setClosing(false);
-        } else if (!visible) {
+        } else if (visible) {
             // Start exit animation
+            // RÉGRESSION CORRIGÉE (2026-07-25) : `283dd58` avait inversé cette
+            // condition en `!visible`. Fermeture demandée alors que la boîte est
+            // montée (isOpen false, visible true) => aucune branche ne s'exécutait,
+            // `closing` restait faux, `finalizeClose` n'était jamais atteint : la
+            // boîte NE SE FERMAIT PLUS et `body.overflow` restait à `hidden`.
+            // Symétrique de BottomSheet, resté correct. Découvert par la galerie DS.
             setClosing(true);
         }
     }, [isOpen, visible]);

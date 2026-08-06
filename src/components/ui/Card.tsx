@@ -84,7 +84,9 @@ const Card: React.FC<CardProps> = ({
         'rounded-xl flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized overflow-hidden',
         variantStyles[variant],
         isInteractive && interactiveVariantStyles[variant],
-        isInteractive && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none',
+        // `active:scale` : état pressé annoncé par la doc du composant mais jamais
+        // implémenté — aligné sur MetricCard/EntityRow (Tracker DS v1, tâche 1).
+        isInteractive && 'cursor-pointer active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface outline-none',
         disabled && 'opacity-60 pointer-events-none',
         className
       )}

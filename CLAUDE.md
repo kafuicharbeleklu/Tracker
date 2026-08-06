@@ -17,9 +17,9 @@ npm run backend:agent    # Run the separate Node backend (backend/server.mjs, po
 npm run lint             # ESLint, zero-warnings policy (only lints src/)
 npm run lint:fix         # ESLint autofix
 npm run format           # Prettier (single quotes, 4-space indent, 100 cols)
-npm run md3:check        # Design-token compliance audit (forbidden classes/hex)
+npm run ds:check         # Tracker DS compliance audit (src/** : classes/hex interdits, avert. title=)
 npm run check:tokens     # Tracker DS token-layer guard (orphans, cycles, tier leaks)
-npm run lint:md3         # lint + md3:check + encoding + cn-merge + tokens
+npm run lint:ds          # lint + ds:check + encoding + cn-merge + tokens
 
 # Playwright-based QA (require Playwright browsers installed)
 npm run qa:a11y:auto     # Accessibility audit  -> docs/md3-a11y-automation-results-*
@@ -83,6 +83,8 @@ Finance/audit flows run OCR and document parsing entirely in the browser: `tesse
 `backend/server.mjs` is a standalone lightweight Node HTTP server (no framework) for machine-agent check-ins and auth admin (`/api/agent/checkin`, `/api/auth/*`). It persists JSONL/JSON files under `backend/data/`. Defaults: port 8787, API keys `NEEMBA_AGENT_KEY` / `NEEMBA_ADMIN_KEY`. See `backend/README.md`. The SPA works fully without it (mock fallbacks).
 
 ## Design system — "Tracker DS"
+
+**Toute tâche UI commence par relire `DESIGN_BRIEF.md`** (contrat « ADN mobile v1 », 2026-07-25) et doit s'y conformer ; ses **Interdits absolus (§8) sont bloquants**. Le brief tranche sur l'ADN mobile (couleur, typo, layout, composants, contenu) ; `DESIGN_SYSTEM.md` reste la référence du système (nommage, matrice d'états, choix de primitive, gouvernance). Divergences connues entre les deux : `DESIGN_BRIEF.md` §11. La bascule vers le brief est **progressive, écran par écran** (§9) : les valeurs cibles vivent dans des tokens `--tk-*-next` non encore consommés — ne pas les repointer globalement.
 The design system is the proprietary Neemba/CAT brand (yellow `#FDC910` / warm black, light-only). Tokens are CSS custom properties in `index.css`, organised in **three tiers** since 2026-07-25 — see **`DESIGN_SYSTEM.md`** (authoritative on naming):
 
 1. **Primitive** — `--cat-*`, `--ref-*`, `--color-neutral-*`: raw values, `index.css` only.
@@ -91,7 +93,9 @@ The design system is the proprietary Neemba/CAT brand (yellow `#FDC910` / warm b
 
 The MD3 vocabulary (`--md-sys-*`) is **no longer a source**: it survives as `@deprecated` aliases at the end of `index.css` for progressive migration. Never point a `--tk-*` token at an alias (custom-property cycles fail silently).
 
-Tailwind v4 loads `tailwind.config.js` via `@config` (there is no `@theme` block); utility **class names are unchanged** (`primary`, `on-surface`, `focus-ring`, `shadow-elevation-*`) — only their definitions now resolve to `--tk-*`. Use semantic token classes rather than raw colors — `npm run md3:check` (CI-blocking) forbids hex and raw Tailwind palette classes in `src/components/**`, and `npm run check:tokens` blocks orphan/cyclic tokens and tier violations. Key rule (X12): yellow is never a text/glyph color on light backgrounds — yellow means filled-with-black-text; keyboard focus is the opaque anthracite `focus-ring` token. Reference docs: `DESIGN_SYSTEM.md`, `docs/DESIGN_TOKENS_SPEC.md`, `docs/AUDIT_DESIGN_SYSTEM.md`; compliance/audit reports under `docs/md3-*`.
+Tailwind v4 loads `tailwind.config.js` via `@config` (there is no `@theme` block); utility **class names are unchanged** (`primary`, `on-surface`, `focus-ring`, `shadow-elevation-*`) — only their definitions now resolve to `--tk-*`. Use semantic token classes rather than raw colors — `npm run ds:check` (CI-blocking) forbids hex and raw Tailwind palette classes across **all of `src/**`**, and `npm run check:tokens` blocks orphan/cyclic tokens and tier violations. Key rule (X12): yellow is never a text/glyph color on light backgrounds — yellow means filled-with-black-text; keyboard focus is the opaque anthracite `focus-ring` token.
+
+Since **Tracker DS v1** (2026-07-25) `DESIGN_SYSTEM.md` also governs the component library: §10 state matrix (39 primitives × 7 states), §11 which component to pick when two look alike (`PageTabs` vs `SegmentedButton`, `Card`/`MetricCard`/`EntityRow`, `<Tooltip>` vs `title=`), §12 official patterns (responsive tables, forms, 48 px touch targets, empty/loading/error screens), §13 wording conventions (`src/constants/glossary.ts` is the terminology source), §14 governance and a component's definition of done. **Every component change needs an entry in `DESIGN_SYSTEM_CHANGELOG.md`.** A live gallery of all primitives is served in dev only at `#/dev/design-system`. Other reference docs: `docs/DESIGN_TOKENS_SPEC.md`, `docs/AUDIT_DESIGN_SYSTEM.md`; compliance/audit reports under `docs/md3-*`.
 
 ## When editing
 - Keep changes scoped to one feature/domain; keep domain types in `src/types` and update all call sites in the same change.

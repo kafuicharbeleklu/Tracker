@@ -71,6 +71,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (isProcessing) return;
     e.preventDefault();
     setIsDragging(true);
   };
@@ -83,7 +84,24 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (isProcessing) return;
     dispatchFiles(Array.from(e.dataTransfer.files || []));
+  };
+
+  const openFilePicker = () => {
+    if (isProcessing) return;
+    fileInputRef.current?.click();
+  };
+
+  /**
+   * La zone est un `div` cliquable dont l'input de fichier est `hidden` (donc non
+   * focalisable) : sans ces attributs, elle était totalement inatteignable au
+   * clavier et n'avait aucun état de focus (Tracker DS v1, tâche 1).
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    openFilePicker();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,15 +111,23 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      aria-busy={isProcessing || undefined}
+      aria-disabled={isProcessing || undefined}
       className={cn(
-        "border-2 border-dashed rounded-md p-8 medium:p-12 flex flex-col items-center justify-center text-center transition-all duration-short4 ease-emphasized cursor-pointer group relative overflow-hidden",
+        "border-2 border-dashed rounded-md p-8 medium:p-12 flex flex-col items-center justify-center text-center transition-all duration-short4 ease-emphasized group relative overflow-hidden",
+        "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+        isProcessing ? "cursor-progress" : "cursor-pointer",
         isDragging ? "border-primary bg-primary-container/20 scale-[1.01]" : "border-outline-variant hover:border-primary/50 hover:bg-surface-container-low",
         className
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={() => !isProcessing && fileInputRef.current?.click()}
+      onKeyDown={handleKeyDown}
+      onClick={openFilePicker}
     >
       <input
         type="file"

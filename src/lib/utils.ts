@@ -13,7 +13,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
  * les deux classes sont émises et c'est l'ordre du CSS qui tranche — ce qui
  * obligeait les appelants à écrire un `!` pour reprendre la main.
  */
-const SPACING_TOKENS = ['page', 'page-sm', 'card', 'card-compact'];
+const SPACING_TOKENS = ['page', 'page-sm', 'card', 'card-compact', 'fab'];
 const SPACING_PREFIXES = [
     'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl', 'ps', 'pe',
     'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml', 'ms', 'me',
@@ -26,6 +26,19 @@ const spacingClassGroups = Object.fromEntries(
 
 const twMerge = extendTailwindMerge({
     extend: {
+        /**
+         * Échelles maison connues de tailwind-merge. `radius` couvre d'un coup tous
+         * les groupes `rounded-*`, `spacing` tous les groupes dimensionnels (w-, h-,
+         * p-, m-, gap-…) : sans ça, `rounded-adn-card` ne chasse pas le `rounded-xl`
+         * d'une primitive et les deux classes sont émises — c'est l'ordre du CSS qui
+         * tranche, donc le `!` de reprise en main (AUDIT_MOBILE #15).
+         */
+        theme: {
+            // Échelle de l'ADN mobile (DESIGN_BRIEF.md §3) — 10 / 14 / 16.
+            radius: ['adn-control', 'adn-card', 'adn-sheet'],
+            // Diamètre du FAB de l'ADN (52 px) : doit chasser le `w-14 h-14` du size.
+            spacing: ['fab'],
+        },
         classGroups: {
             ...spacingClassGroups,
             // Typescale MD3 (index.css) : des tailles de texte, pas des couleurs.
@@ -48,6 +61,12 @@ const twMerge = extendTailwindMerge({
                         'label-medium',
                         'label-small',
                         'stat-value',
+                        // Rôles de l'ADN mobile (index.css, DESIGN_BRIEF.md §2)
+                        'stat-value-mobile',
+                        'headline-medium-plain',
+                        'title-medium-plain',
+                        'label-large-plain',
+                        'label-small-plain',
                     ],
                 },
             ],

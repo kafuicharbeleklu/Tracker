@@ -42,11 +42,15 @@ const check = (label, output, { keeps = [], drops = [] }) => {
 
 // --- 1a. Synchro typescale (source de vérité : index.css) ---------------------------------
 const indexCss = await fs.readFile(path.resolve('index.css'), 'utf8');
+// `-plain` / `-mobile` : rôles typographiques de l'ADN mobile (DESIGN_BRIEF.md §2),
+// suffixés pour ne pas écraser le cran canonique tant que la bascule est en cours.
 const typescale = [
   ...new Set(
-    [...indexCss.matchAll(/\.text-((?:display|headline|title|body|label)-(?:large|medium|small)|stat-value)\b/g)].map(
-      (m) => m[1]
-    )
+    [
+      ...indexCss.matchAll(
+        /\.text-((?:display|headline|title|body|label)-(?:large|medium|small)(?:-plain)?|stat-value(?:-mobile)?)\b/g
+      ),
+    ].map((m) => m[1])
   ),
 ];
 if (typescale.length < 16) {
@@ -97,6 +101,27 @@ for (const name of spacings) {
   );
 }
 
+// --- 1d. Échelle de rayons de l'ADN mobile (source de vérité : tailwind.config.js) --------
+// Ces classes existent pour SURCHARGER le rayon canonique d'une primitive (`rounded-xl`
+// de Card, `rounded-lg` du FAB…) depuis un `className`. Non déclarées à tailwind-merge,
+// les deux classes seraient émises et le rendu dépendrait de l'ordre du CSS.
+const adnRadii = [...new Set([...tailwindConfig.matchAll(/'(adn-(?:control|card|sheet))'\s*:/g)].map((m) => m[1]))];
+if (adnRadii.length < 3) {
+  failures.push(`rayons ADN : ${adnRadii.length}/3 trouvés dans tailwind.config.js (regex à revoir ?)`);
+}
+for (const name of adnRadii) {
+  check(
+    `rounded-${name} : doit chasser le rayon canonique d'une primitive (groupe rounded)`,
+    cn('rounded-xl', `rounded-${name}`),
+    { keeps: [`rounded-${name}`], drops: ['rounded-xl'] }
+  );
+}
+check(
+  'w-fab / h-fab : doivent chasser le gabarit du FAB (groupes w et h)',
+  cn('w-14 h-14', 'w-fab h-fab'),
+  { keeps: ['w-fab', 'h-fab'], drops: ['w-14', 'h-14'] }
+);
+
 // --- 2. Cas mesurés (§11.3 / §11.4) -------------------------------------------------------
 check(
   'sonde §11.4 : le typescale ne doit pas être avalé par une couleur',
@@ -135,7 +160,7 @@ check(
 );
 
 // --- Verdict ------------------------------------------------------------------------------
-const total = typescale.length * 2 + elevations.length + spacings.length + 7;
+const total = typescale.length * 2 + elevations.length + spacings.length + adnRadii.length + 1 + 7;
 if (failures.length > 0) {
   console.error(`✗ Sonde cn()/tailwind-merge : ${failures.length} échec(s) sur ${total} vérifications\n`);
   for (const failure of failures) {
@@ -144,5 +169,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, élévations ${elevations.length}, espacements ${spacings.length}, cas §11) — OK`
+  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, élévations ${elevations.length}, espacements ${spacings.length}, rayons ADN ${adnRadii.length}, cas §11) — OK`
 );

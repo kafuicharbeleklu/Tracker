@@ -165,8 +165,8 @@
         left: 50%;
         width: 100%;
         height: 100%;
-        min-width: 48px;
-        min-height: 48px;
+        min-width: var(--tk-size-touch-target);
+        min-height: var(--tk-size-touch-target);
         transform: translate(-50%, -50%);
         /* zone de frappe transparente : n'intercepte rien de plus que le bouton lui-même */
     }
@@ -302,7 +302,6 @@
     font-weight: var(--tk-type-stat-value-weight);
     letter-spacing: var(--tk-type-stat-value-tracking);
 }
-
 
 /* ---- GLOBAL STYLES ---- */
 
@@ -856,6 +855,95 @@ body {
     --tk-type-label-large-tracking: 0;
     --tk-type-label-medium-tracking: 0;
     --tk-type-label-small-tracking: 0.075em;
+
+    /* ============================================================
+       ADN MOBILE v1 — VALEURS CIBLES (voir DESIGN_BRIEF.md)
+       ------------------------------------------------------------
+       Contrat de design mobile arrêté le 2026-07-25. Ces rôles portent les
+       valeurs du brief mais ne sont PAS ENCORE CONSOMMÉS : la bascule est
+       progressive, écran par écran (DESIGN_BRIEF.md §9). Tant qu'un écran n'a
+       pas basculé, il rend avec les rôles canoniques ci-dessus — d'où l'absence
+       de diff visuel à ce stade (baselines inchangées).
+
+       Convention de nommage :
+         `<rôle>-next`  le rôle canonique existe DÉJÀ et est consommé ; le
+                        suffixe porte la valeur CIBLE. Basculer = reporter la
+                        valeur dans le rôle canonique, puis supprimer le `-next`.
+         `<rôle>`       rôle NOUVEAU, sans équivalent canonique : déjà à son nom
+                        définitif, rien à renommer à la bascule.
+
+       ⚠️ Trois valeurs du brief n'atteignent pas AA — elles sont déclarées
+       TELLES QUELLES (le brief fait foi) et tracées en Q-B1/Q-B2/Q-B3 dans
+       DESIGN_BRIEF.md §10. Ne pas les consommer pour du texte avant arbitrage.
+       ============================================================ */
+
+    /* ---- §1 Couleur — neutres chauds (rampe affinée par le brief) ---- */
+    --tk-color-text-primary-next: #1A1917; /* 16,70:1 sur canvas — AAA */
+    --tk-color-text-secondary-next: #78746C; /* 4,42:1 canvas / 4,65:1 carte — Q-B2 */
+    --tk-color-text-muted-next: #A29D93; /* 2,57:1 — décoratif SEULEMENT, Q-B1 */
+    --tk-color-border-default-next: #F0EEE9; /* filets — non-texte */
+    --tk-color-surface-muted-next: #EFEDE8; /* fonds neutres (segmented, pressed) */
+
+    /* ---- §1 Couleur — texte sur le jaune de marque ---- */
+    --tk-color-brand-text-next: #1A1917; /* 11,33:1 sur --cat-yellow */
+
+    /* ---- §1 Couleur — sémantiques ----
+       Le brief ne redéfinit ni le ton médian d'avertissement (--tk-color-warning,
+       bordures/icônes) ni les variantes `-light` de danger/succès : conservés. */
+    --tk-color-danger-next: #B3261E; /* 6,21:1 sur canvas (actuel #DC2626 : 4,83:1) */
+    --tk-color-success-next: #1B7F4D; /* 4,76:1 sur canvas (actuel #047857 : 5,48:1) */
+    --tk-color-warning-light-next: #FEF3D6; /* fond ambre */
+    --tk-color-warning-strong-next: #7A5A00; /* 5,78:1 sur le fond ambre ci-dessus */
+
+    /* ---- §5 Couleur — destination ACTIVE de la barre du bas ----
+       Rôle nouveau : aujourd'hui l'icône active est peinte en jaune plein
+       (`text-primary`, ≈1,55:1 sur clair — écart X12). L'or foncé du brief est
+       une amélioration nette, mais reste sous AA pour le libellé 11px (Q-B3). */
+    --tk-color-nav-active: #B8860B; /* 3,09:1 sur canvas */
+
+    /* ---- §6 Couleur — retour tactile (pressed) ---- */
+    --tk-color-pressed-surface: #EFEDE8; /* = surface neutre §1, 100 ms */
+
+    /* ---- §3 Forme — RÔLES adossés à l'échelle canonique ----
+       Q-B5 TRANCHÉE le 2026-07-26 : l'échelle 10/14/16 du brief est ABANDONNÉE.
+       Essayée sur l'écran Audit, elle a été jugée trop arrondie pour la nature du
+       projet — l'identité visée est « légèrement adouci, mais qui se lit encore
+       comme un carré », soit l'échelle canonique 2/4/8 (rendu carré/industriel
+       CAT, décision F2 de l'audit UX). Ces trois rôles SURVIVENT malgré tout :
+       ils nomment une INTENTION (contrôle / carte / feuille) là où `md`/`lg`
+       ne nomment qu'un cran, et ils offrent un point de réglage unique.
+       Ils pointent donc sur la canonique au lieu de la concurrencer. */
+    --tk-radius-control: var(--tk-radius-md); /* 4px — boutons, champs, chips, segments */
+    --tk-radius-card: var(--tk-radius-lg); /* 8px — cartes */
+    --tk-radius-sheet: var(--tk-radius-lg); /* 8px — FAB, feuilles de bas */
+
+    /* ---- §3 Espacement — crans mobiles (grille 4 pt) ----
+       Les fourchettes du brief (gap 10–12, padding interne 14–16) sont arrondies
+       au cran 4 pt supérieur : 10 et 14 ne sont pas sur la grille, 12 et 16 le sont. */
+    --tk-space-page-mobile: 20px; /* padding de page (canonique : 24 / 16 compact) */
+    --tk-space-card-gap: 12px; /* entre cartes */
+    --tk-space-card-padding: 16px; /* padding interne de carte */
+    --tk-space-section-gap: 24px; /* entre sections */
+
+    /* ---- §4/§5 Dimensions de contrôles ---- */
+    --tk-size-control-height: 48px; /* hauteur du bouton primaire */
+    --tk-size-touch-target: 48px; /* cible tactile minimale (.touch-target) */
+    --tk-size-fab: 52px;
+
+    /* ---- §2 Typographie — cibles du brief ----
+       Deux graisses seulement (400 + une forte) : la graisse forte retenue est
+       600, donc le 700 du titre de carte descend. Les micro-labels passent en
+       bas de casse : leur tracking d'espacement de MAJUSCULES tombe à 0. */
+    --tk-type-title-medium-weight-next: 600; /* canonique : 700 */
+    --tk-type-label-small-tracking-next: 0; /* canonique : 0.075em */
+    --tk-type-label-small-weight-next: 400; /* bas de casse : graisse de corps (canonique : 500) */
+    --tk-type-stat-value-mobile-size: 20px; /* canonique : 30px, compact 24px */
+    --tk-type-stat-value-mobile-line-height: 28px;
+    /* Graisse « forte » UNIQUE des écrans ADN — titres, valeurs, actions.
+       500 : spec d'écran Audit du 2026-07-25. Le brief §2 retenait 600 au niveau
+       système (« choisir une seule graisse forte et s'y tenir ») : divergence
+       ouverte, tracée en Q-B6. Un seul point à basculer le jour de l'arbitrage. */
+    --tk-type-weight-strong-next: 500;
 }
 
 
@@ -883,6 +971,14 @@ body {
     --color-login-page-bg: #F8FAFC;   /* backdrop racine (couvert par les panneaux) */
     --color-login-surface: #FBFBFA;   /* panneau du formulaire */
     --color-login-hero-bg: #090A0B;   /* panneau héro de marque (≥ expanded) */
+    /* Textes du héro sombre. Valeurs reprises TELLES QUELLES de la palette Tailwind
+       (slate-200 / slate-400) que le composant utilisait en classes brutes, en
+       oklch et non en hex pour rester au pixel près : la conversion vers sRGB de
+       Tailwind v4 ne repasse pas exactement par #E2E8F0 / #94A3B8.
+       Tokenisés le 2026-07-25 (Tracker DS v1, tâche 5a — extension du périmètre
+       de `ds:check` à `src/**`). */
+    --color-login-hero-text: oklch(92.9% 0.013 255.508);        /* intitulés de la liste */
+    --color-login-hero-text-muted: oklch(70.4% 0.04 256.788);   /* accroche + pied de page */
 }
 
 html,
@@ -935,6 +1031,61 @@ h6,
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: 0;
+}
+
+/* ---- Rôles typographiques de l'ADN MOBILE v1 (DESIGN_BRIEF.md §2) ----
+   L'ADN n'admet que DEUX graisses par écran (interdit §8.5) : 400 pour le corps,
+   `--tk-type-weight-strong-next` pour tout le reste. L'échelle canonique, elle,
+   panache 500/600/700 selon le cran — d'où ces variantes `-plain`, identiques à
+   leur cran d'origine SAUF la graisse (et le tracking pour les micro-labels, dont
+   le cran canonique porte un espacement de MAJUSCULES).
+
+   ⚠️ Pourquoi des CLASSES et pas un simple `font-medium` à l'appel : les classes du
+   typescale vivent dans CE fichier, donc après les utilitaires Tailwind dans la
+   cascade ; à spécificité égale, `.text-title-medium` (700) l'emporte sur
+   `.font-medium` (500) et la surcharge est silencieusement perdue. Mesuré.
+
+   Toute classe ajoutée ici doit l'être aussi dans `cn()` (src/lib/utils.ts), sinon
+   tailwind-merge la classe « couleur de texte » et avale les couleurs (§11.4). */
+.text-headline-medium-plain {
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-headline-medium-size);
+    line-height: var(--tk-type-headline-medium-line-height);
+    font-weight: var(--tk-type-weight-strong-next);
+    letter-spacing: var(--tk-type-headline-medium-tracking);
+}
+
+.text-title-medium-plain {
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-title-medium-size);
+    line-height: var(--tk-type-title-medium-line-height);
+    font-weight: var(--tk-type-weight-strong-next);
+    letter-spacing: var(--tk-type-title-medium-tracking);
+}
+
+.text-label-large-plain {
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-label-large-size);
+    line-height: var(--tk-type-label-large-line-height);
+    font-weight: var(--tk-type-weight-strong-next);
+    letter-spacing: var(--tk-type-label-large-tracking);
+}
+
+.text-stat-value-mobile {
+    font-family: var(--tk-type-font-brand);
+    font-size: var(--tk-type-stat-value-mobile-size);
+    line-height: var(--tk-type-stat-value-mobile-line-height);
+    font-weight: var(--tk-type-weight-strong-next);
+    letter-spacing: var(--tk-type-stat-value-tracking);
+}
+
+.text-label-small-plain {
+    font-family: var(--tk-type-font-plain);
+    font-size: var(--tk-type-label-small-size);
+    line-height: var(--tk-type-label-small-line-height);
+    font-weight: var(--tk-type-label-small-weight-next);
+    letter-spacing: var(--tk-type-label-small-tracking-next);
+    text-transform: none;
 }
 
 .ui-panel {
@@ -1150,7 +1301,7 @@ h6,
        non promus dans l'espace `--tk-*` pour ne pas y importer du code mort. */
     --color-border-subtle: var(--color-neutral-100);
     --color-primary-default: var(--tk-color-brand);
-    --color-primary-light: #fff4b8;
+    --color-primary-light: #FFF4B8;
     --color-primary-dark: var(--tk-color-brand-dark);
     --text-title-2: 1.375rem;
     --text-caption: 0.75rem;

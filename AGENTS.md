@@ -111,9 +111,9 @@ npm run lint                 # ESLint check (zero warnings policy)
 npm run lint:fix             # Auto-fix lint issues
 npm run format               # Prettier formatting
 
-# MD3 Quality Assurance
-npm run md3:check            # Check MD3 token compliance
-npm run lint:md3             # Lint + MD3 check combined
+# Tracker DS Quality Assurance
+npm run ds:check             # Check Tracker DS compliance (whole of src/**)
+npm run lint:ds              # Lint + all Tracker DS guards
 npm run qa:a11y:auto         # Run automated accessibility audit
 npm run qa:devices:auto      # Run multi-device breakpoint audit
 npm run qa:visual:auto       # Run visual regression tests

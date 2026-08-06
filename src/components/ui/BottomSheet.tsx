@@ -15,6 +15,9 @@ interface BottomSheetProps {
     dragHandle?: boolean;
     /** Title (optional) */
     title?: string;
+    /** Classes du titre — permet à un écran d'imposer sa graisse (l'ADN mobile n'en
+        admet que deux par écran, DESIGN_BRIEF.md §8.5, et `.section-title` porte 700). */
+    titleClassName?: string;
     /** Custom class */
     className?: string;
 }
@@ -32,6 +35,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     children,
     dragHandle = true,
     title,
+    titleClassName,
     className,
 }) => {
     const sheetRef = useRef<HTMLDivElement>(null);
@@ -208,7 +212,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 {/* Title */}
                 {title && (
                     <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
-                        <h2 id={titleId} className="section-title">{title}</h2>
+                        <h2 id={titleId} className={cn('section-title', titleClassName)}>{title}</h2>
                         <CloseButton onClick={onClose} />
                     </div>
                 )}

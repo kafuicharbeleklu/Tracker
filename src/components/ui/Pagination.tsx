@@ -19,7 +19,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="w-10 h-10 p-0 inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4 ease-emphasized"
+        className="w-10 h-10 p-0 inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4 ease-emphasized"
         aria-label="Page précédente"
       >
         <MaterialIcon name="chevron_left" size={18} />
@@ -38,6 +38,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
                 onClick={() => onPageChange(page)}
                 className={cn(
                   "w-10 h-10 flex items-center justify-center rounded-lg text-label-large font-semibold transition-all duration-short4 ease-emphasized",
+                  "active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                   currentPage === page
                     ? "bg-primary text-on-primary shadow-elevation-1"
                     : "text-on-surface-variant hover:bg-surface-container"
@@ -59,7 +60,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="w-10 h-10 p-0 inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4 ease-emphasized"
+        className="w-10 h-10 p-0 inline-flex items-center justify-center rounded-lg border border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4 ease-emphasized"
         aria-label="Page suivante"
       >
         <MaterialIcon name="chevron_right" size={18} />

@@ -53,6 +53,10 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
             "cursor-pointer overflow-hidden",
             "shadow-elevation-3 hover:shadow-elevation-4 active:shadow-elevation-3", // Standard FAB elevation
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
+            // État désactivé : le composant acceptait `disabled` sans AUCUN rendu
+            // associé — bouton mort d'aspect actif (Tracker DS v1, tâche 1).
+            // `pointer-events-none` neutralise aussi la couche d'état `after:` ci-dessous.
+            "disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-[0.38] disabled:shadow-elevation-0",
             // State Layer
             "relative after:absolute after:inset-0 after:bg-current after:opacity-0 hover:after:opacity-[0.08] active:after:opacity-[0.12] after:transition-opacity after:pointer-events-none"
         );

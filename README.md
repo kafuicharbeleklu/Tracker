@@ -88,19 +88,19 @@ npm run format
 - `lint:fix`: Autofix lint issues
 - `format`: Prettier formatting
 
-### MD3 and QA Automation
+### Design system and QA automation
 
 ```bash
-npm run md3:check
-npm run lint:md3
+npm run ds:check
+npm run lint:ds
 npm run qa:a11y:auto
 npm run qa:devices:auto
 npm run qa:visual:auto
 npm run qa:visual:update
 ```
 
-- `md3:check`: Material Design 3 token compliance audit
-- `lint:md3`: Lint + MD3 compliance check
+- `ds:check`: Tracker DS compliance audit (whole of `src/**`)
+- `lint:ds`: Lint + all Tracker DS guards
 - `qa:a11y:auto`: Accessibility automation
 - `qa:devices:auto`: Breakpoint/device coverage automation
 - `qa:visual:auto`: Visual regression checks

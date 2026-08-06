@@ -102,7 +102,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                 type="button"
                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
                                 aria-label="Page précédente de l'historique"
                             >
                                 <MaterialIcon name="chevron_left" size={16} />
@@ -113,7 +113,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                 type="button"
                                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
-                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
                                 aria-label="Page suivante de l'historique"
                             >
                                 Suivant

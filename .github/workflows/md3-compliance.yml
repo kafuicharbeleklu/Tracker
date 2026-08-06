@@ -24,8 +24,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run MD3 Guardrails
-        run: npm run md3:check
+      # `md3:check` renommé `ds:check` le 2026-07-25 (Tracker DS v1). Le NOM du
+      # workflow et des jobs reste inchangé : il sert de « required status check »
+      # côté GitHub, le renommer romprait la protection de branche.
+      - name: Run Tracker DS Guardrails
+        run: npm run ds:check
 
       - name: Run Encoding Guard
         run: npm run check:encoding

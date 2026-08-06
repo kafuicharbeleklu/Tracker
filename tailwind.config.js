@@ -143,6 +143,26 @@ module.exports = {
                 'inverse-primary': 'var(--tk-color-inverse-primary)',
                 // Voile
                 scrim: 'var(--tk-color-scrim)',
+
+                /* ---- ADN MOBILE v1 (DESIGN_BRIEF.md) — rôles cibles ----
+                   Namespace `adn-` le temps de la bascule écran par écran : les rôles
+                   canoniques (`text-on-surface`, `bg-surface-container`…) restent en
+                   place sur les écrans NON basculés, et ces classes-ci ne servent que
+                   les écrans passés à l'ADN. Elles disparaissent en fin de bascule,
+                   quand les valeurs `-next` seront reportées dans les rôles canoniques
+                   (DESIGN_BRIEF.md §9, « Fin de bascule »). */
+                'adn-text': 'var(--tk-color-text-primary-next)',
+                'adn-text-secondary': 'var(--tk-color-text-secondary-next)',
+                // ⚠️ Q-B1 : 2,57:1 — décoratif/désactivé UNIQUEMENT, jamais du texte.
+                'adn-text-muted': 'var(--tk-color-text-muted-next)',
+                'adn-line': 'var(--tk-color-border-default-next)',
+                'adn-surface-muted': 'var(--tk-color-surface-muted-next)',
+                'adn-pressed': 'var(--tk-color-pressed-surface)',
+                'adn-danger': 'var(--tk-color-danger-next)',
+                'adn-success': 'var(--tk-color-success-next)',
+                'adn-warning-light': 'var(--tk-color-warning-light-next)',
+                'adn-warning-strong': 'var(--tk-color-warning-strong-next)',
+                'adn-on-brand': 'var(--tk-color-brand-text-next)',
             },
 
             /* ---- ÉLÉVATION (box-shadow) ---- */
@@ -166,6 +186,13 @@ module.exports = {
                 'full': 'var(--tk-radius-full)',
                 // Rayon de carte unifié (= rounded-xl / --tk-radius-xl) pour cohérence des surfaces
                 'card': 'var(--tk-radius-xl)',
+                /* ---- Échelle de l'ADN MOBILE v1 : 10 / 14 / 16 (DESIGN_BRIEF.md §3) ----
+                   Conflit ASSUMÉ avec l'échelle canonique 2/4/8/full (§11.1 du brief) :
+                   les deux coexistent le temps de la bascule, d'où le namespace `adn-`
+                   (`rounded-card` reste à 8 px pour les écrans non basculés). */
+                'adn-control': 'var(--tk-radius-control)',
+                'adn-card': 'var(--tk-radius-card)',
+                'adn-sheet': 'var(--tk-radius-sheet)',
             },
 
             /* ---- ESPACEMENT (crans nommés du DS) ---- */
@@ -174,6 +201,11 @@ module.exports = {
                 'page-sm': 'var(--tk-space-page-sm)',
                 'card': 'var(--tk-space-card)',
                 'card-compact': 'var(--tk-space-card-compact)',
+                /* Diamètre du FAB de l'ADN mobile (52 px, DESIGN_BRIEF.md §5). Passe par
+                   l'échelle `spacing` pour alimenter w-/h- d'un coup ; les crans
+                   d'espacement du brief (20/12/16/24) sont eux sur la grille 4 pt
+                   native (p-5, gap-3, p-4, gap-6) — le brief l'acte en §3. */
+                'fab': 'var(--tk-size-fab)',
             },
 
             /* ---- MOUVEMENT ---- */

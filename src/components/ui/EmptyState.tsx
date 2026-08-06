@@ -8,6 +8,9 @@ interface EmptyStateProps {
     description?: string;
     action?: React.ReactNode;
     className?: string;
+    /** Classes du titre — permet à un écran d'imposer sa graisse (l'ADN mobile n'en
+        admet que deux par écran, DESIGN_BRIEF.md §8.5, et `text-title-medium` porte 700). */
+    titleClassName?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -16,6 +19,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     description,
     action,
     className,
+    titleClassName,
 }) => {
     return (
         <div
@@ -28,7 +32,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 <MaterialIcon name={icon} size={28} className="text-on-surface-variant" />
             </div>
 
-            <h3 className="text-title-medium text-on-surface mb-2">
+            <h3 className={cn('text-title-medium text-on-surface mb-2', titleClassName)}>
                 {title}
             </h3>
 

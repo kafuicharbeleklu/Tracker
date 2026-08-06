@@ -21,9 +21,12 @@ const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabled = fa
   return (
     <label className={cn("inline-flex items-center select-none group gap-3", disabled ? "cursor-not-allowed opacity-38" : "cursor-pointer", className)}>
       <div className="relative">
+        {/* `peer` : l'input est visuellement masqué (sr-only) mais reste l'élément
+            focalisable. Sans relais `peer-focus-visible` sur la piste, le composant
+            n'avait AUCUN état de focus — invisible au clavier (Tracker DS v1, tâche 1). */}
         <input
           type="checkbox"
-          className="sr-only"
+          className="peer sr-only"
           checked={checked}
           onChange={(e) => !disabled && onChange(e.target.checked)}
           disabled={disabled}
@@ -35,6 +38,7 @@ const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, disabled = fa
         <div
           className={cn(
             "w-[52px] h-[32px] rounded-full transition-all duration-medium1 ease-emphasized border-2",
+            "peer-focus-visible:ring-2 peer-focus-visible:ring-focus-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface",
             checked
               ? 'bg-primary border-primary'
               : 'bg-surface-container-highest border-outline'

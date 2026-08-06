@@ -34,6 +34,14 @@ interface PageTabsProps {
       (décision F6 au registre X8). Rendu uniquement quand des onglets débordent ;
       false pour le désactiver. */
   allViewsButton?: boolean;
+  /** Habillage de la barre.
+      - `brand` (défaut) : barre sur surface, onglet actif rempli jaune — rendu
+        historique, conservé sur tous les écrans non basculés.
+      - `neutral` : segmented control de l'ADN mobile (fond `surface-muted` de l'ADN,
+        segment actif BLANC, segments à largeur égale). DESIGN_BRIEF.md §4 :
+        « PLUS JAMAIS de pilule jaune » — et §1, le jaune n'est pas un fond d'onglet
+        (interdit §8.1). À utiliser sur les écrans passés à l'ADN. */
+  appearance?: 'brand' | 'neutral';
 }
 
 /**
@@ -50,7 +58,9 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   ariaLabel = 'Navigation par onglets',
   shortLabelBreakpoint = 'medium',
   allViewsButton = true,
+  appearance = 'brand',
 }) => {
+  const isNeutral = appearance === 'neutral';
   const generatedBaseId = useId().replace(/:/g, '');
   const baseId = idBase ? sanitizeIdPart(idBase) : generatedBaseId;
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
@@ -126,7 +136,16 @@ export const PageTabs: React.FC<PageTabsProps> = ({
   }, [items, onChange]);
 
   return (
-    <div className={cn("w-full bg-surface border border-outline-variant rounded-xl p-1 shadow-elevation-1 flex items-center gap-1", className)}>
+    <div
+      className={cn(
+        "w-full bg-surface border border-outline-variant rounded-xl p-1 shadow-elevation-1 flex items-center gap-1",
+        // Segmented neutre : plus de bordure ni d'ombre. Rayon de CARTE sur le
+        // conteneur, rayon de CONTRÔLE sur le segment actif — l'écart vaut le padding
+        // de 4 px, donc l'imbrication reste régulière quelle que soit l'échelle.
+        isNeutral && "bg-adn-surface-muted border-0 rounded-adn-card shadow-none",
+        className
+      )}
+    >
       <div className="relative min-w-0 flex-1">
       <div
         ref={scrollerRef}
@@ -161,7 +180,16 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                 "focus-visible:ring-2 focus-visible:ring-focus-ring",
                 isActive
                   ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container",
+                // Segmented neutre : segments à largeur égale, actif BLANC sur le fond
+                // neutre — le jaune reste réservé à l'action primaire et à la nav (§1).
+                // `-plain` : le cran `label-large` porte 600 ; l'ADN veut la graisse forte
+                // unique de l'écran (§4). Un `font-medium` serait perdu — le typescale vit
+                // dans index.css, donc APRÈS les utilitaires Tailwind dans la cascade.
+                isNeutral && "flex-1 justify-center rounded-adn-control text-label-large-plain",
+                isNeutral && (isActive
+                  ? "bg-surface text-adn-text shadow-none"
+                  : "bg-transparent text-adn-text-secondary hover:bg-transparent hover:text-adn-text")
               )}
             >
               {/* Icon — masquée en compact quand la place manque (X8-bis, §9.6) */}
@@ -218,7 +246,10 @@ export const PageTabs: React.FC<PageTabsProps> = ({
       {overflow.left && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-12 items-center justify-start rounded-l-lg bg-gradient-to-r from-surface via-surface/80 to-transparent"
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 z-10 flex w-12 items-center justify-start rounded-l-lg bg-gradient-to-r to-transparent",
+            isNeutral ? "from-adn-surface-muted via-adn-surface-muted/80" : "from-surface via-surface/80"
+          )}
         >
           <button
             type="button"
@@ -233,7 +264,10 @@ export const PageTabs: React.FC<PageTabsProps> = ({
       {overflow.right && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-end rounded-r-lg bg-gradient-to-l from-surface via-surface/80 to-transparent"
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-end rounded-r-lg bg-gradient-to-l to-transparent",
+            isNeutral ? "from-adn-surface-muted via-adn-surface-muted/80" : "from-surface via-surface/80"
+          )}
         >
           <button
             type="button"

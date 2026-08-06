@@ -68,7 +68,10 @@ const SideSheet: React.FC<SideSheetProps> = ({
         if (open) {
             setVisible(true);
             setClosing(false);
-        } else if (!visible) {
+        } else if (visible) {
+            // Même régression que Modal, introduite par le même commit (`283dd58`) :
+            // avec `!visible`, la fermeture d'un panneau monté n'amorçait jamais
+            // l'animation de sortie et le panneau restait affiché. Voir Modal.tsx.
             setClosing(true);
         }
     }, [open, visible]);
