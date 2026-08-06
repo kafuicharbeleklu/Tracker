@@ -1,26 +1,26 @@
 {
-  "date": "2026-07-25",
+  "date": "2026-07-26",
   "baseUrl": "http://127.0.0.1:4173",
   "updateBaseline": false,
   "totals": {
     "checkpoints": 39,
-    "match": 36,
+    "match": 33,
     "baselineCreated": 0,
     "updated": 0,
-    "changed": 3,
-    "pass": 36,
-    "fail": 3
+    "changed": 6,
+    "pass": 33,
+    "fail": 6
   },
   "results": [
     {
       "device": "compact",
       "checkpoint": "login",
       "route": "/",
-      "status": "match",
-      "pass": true,
-      "hash": "d1ef560496d55d2f8da80b02f6eb032a02fdb1c6e1f3f9d46c822942b8c163d8",
+      "status": "changed",
+      "pass": false,
+      "hash": "743792e8145ad950587d6aed17b3541397c3d151c4b28a90c13ce48d9d9a8633",
       "baselinePath": "docs/md3-visual-baseline/compact/login.png",
-      "currentPath": null
+      "currentPath": "docs/md3-visual-current/2026-07-26/compact/login.png"
     },
     {
       "device": "compact",
@@ -30,7 +30,7 @@
       "pass": false,
       "hash": "82b0c93371f43f58a9b7f7bd0ed877d7ff7efa73636de9d7c6f70191b8f77fe8",
       "baselinePath": "docs/md3-visual-baseline/compact/dashboard.png",
-      "currentPath": "docs/md3-visual-current/2026-07-25/compact/dashboard.png"
+      "currentPath": "docs/md3-visual-current/2026-07-26/compact/dashboard.png"
     },
     {
       "device": "compact",
@@ -146,11 +146,11 @@
       "device": "medium",
       "checkpoint": "login",
       "route": "/",
-      "status": "match",
-      "pass": true,
-      "hash": "6d84d2d4637ab2c8fcffd9c9a00bc1713e949ecef3ac0ffe1cc9ef79571d59cb",
+      "status": "changed",
+      "pass": false,
+      "hash": "b2ed812fecd7a0684b274b8b7e4830e8537535c81417ae7844134670b39b38e5",
       "baselinePath": "docs/md3-visual-baseline/medium/login.png",
-      "currentPath": null
+      "currentPath": "docs/md3-visual-current/2026-07-26/medium/login.png"
     },
     {
       "device": "medium",
@@ -158,9 +158,9 @@
       "route": "/dashboard",
       "status": "changed",
       "pass": false,
-      "hash": "f39d099e4605a3e91957113dd1c3d27bb1a582a1460c0fb0f405dbb1128fb16b",
+      "hash": "f5c7b8f8a201a78ce5a8389d572ac30c974f4aab367249d47aa801c581778b8d",
       "baselinePath": "docs/md3-visual-baseline/medium/dashboard.png",
-      "currentPath": "docs/md3-visual-current/2026-07-25/medium/dashboard.png"
+      "currentPath": "docs/md3-visual-current/2026-07-26/medium/dashboard.png"
     },
     {
       "device": "medium",
@@ -238,7 +238,7 @@
       "route": "/inventory/add",
       "status": "match",
       "pass": true,
-      "hash": "b85259efe8684d541b4b926bc483679961194811bef3e40605b6cf05eadf4554",
+      "hash": "3ab4733edd7f43efa0181116fa9b96c77e9866bf0173d91a4bd565f16575c6fc",
       "baselinePath": "docs/md3-visual-baseline/medium/add_equipment.png",
       "currentPath": null
     },
@@ -276,11 +276,11 @@
       "device": "expanded",
       "checkpoint": "login",
       "route": "/",
-      "status": "match",
-      "pass": true,
-      "hash": "e2c9de2558dbed212533e430741f11033f17353d3b889aeb9477f5c8129257ac",
+      "status": "changed",
+      "pass": false,
+      "hash": "25f8fe94fb6098b543c90124473c222722b9f499a114bbd1f2946785108c8a33",
       "baselinePath": "docs/md3-visual-baseline/expanded/login.png",
-      "currentPath": null
+      "currentPath": "docs/md3-visual-current/2026-07-26/expanded/login.png"
     },
     {
       "device": "expanded",
@@ -288,9 +288,9 @@
       "route": "/dashboard",
       "status": "changed",
       "pass": false,
-      "hash": "0fcadd4c00a4842da228df3ede539cc31e70b5ce97cb4bacc99ec2c5c705d7d6",
+      "hash": "d2586f49b19b4d74012eea02f08dfa5acb4c48dd622abe98ed1df800227b999d",
       "baselinePath": "docs/md3-visual-baseline/expanded/dashboard.png",
-      "currentPath": "docs/md3-visual-current/2026-07-25/expanded/dashboard.png"
+      "currentPath": "docs/md3-visual-current/2026-07-26/expanded/dashboard.png"
     },
     {
       "device": "expanded",
@@ -368,7 +368,7 @@
       "route": "/inventory/add",
       "status": "match",
       "pass": true,
-      "hash": "0b3743ca4fdf0ecf7a38a8717629e82262d8d39744cfbf264c313453982926d5",
+      "hash": "50942d03e85b05039391f4efef22c157655fc014befdae7bda915143754483a3",
       "baselinePath": "docs/md3-visual-baseline/expanded/add_equipment.png",
       "currentPath": null
     },
@@ -398,7 +398,7 @@
       "route": "/finance",
       "status": "match",
       "pass": true,
-      "hash": "05ecd141e99ccd97fa9995cf412da1a35fab0a7008f213a86898dd7bdee365b5",
+      "hash": "742f62cffd2330b9cc288251d4c758c41fb577777bd0055db7b2f34460f6301e",
       "baselinePath": "docs/md3-visual-baseline/expanded/finance.png",
       "currentPath": null
     }
