@@ -186,6 +186,8 @@ module.exports = {
                 'full': 'var(--tk-radius-full)',
                 // Rayon de carte unifié (= rounded-xl / --tk-radius-xl) pour cohérence des surfaces
                 'card': 'var(--tk-radius-xl)',
+                // Vignette de rangée : 6 px, rôle du registre §2.2/§2.31
+                'vignette': 'var(--tk-radius-vignette)',
                 /* ---- Échelle de l'ADN MOBILE v1 : 10 / 14 / 16 (DESIGN_BRIEF.md §3) ----
                    Conflit ASSUMÉ avec l'échelle canonique 2/4/8/full (§11.1 du brief) :
                    les deux coexistent le temps de la bascule, d'où le namespace `adn-`

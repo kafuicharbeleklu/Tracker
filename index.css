@@ -916,6 +916,10 @@ body {
     --tk-radius-control: var(--tk-radius-md); /* 4px — boutons, champs, chips, segments */
     --tk-radius-card: var(--tk-radius-lg); /* 8px — cartes */
     --tk-radius-sheet: var(--tk-radius-lg); /* 8px — FAB, feuilles de bas */
+    /* 6px — vignette de rangée et porte-glyphe. Rôle fixé par REGLES-TRANSVERSES §2.2
+       et §2.31 (40 × 40, rayon 6), employé 88 fois dans les planches ; il n'avait aucune
+       classe au pont, ce qu'un portage a fait apparaître le 08/08. */
+    --tk-radius-vignette: 6px;
 
     /* ---- §3 Espacement — crans mobiles (grille 4 pt) ----
        Les fourchettes du brief (gap 10–12, padding interne 14–16) sont arrondies

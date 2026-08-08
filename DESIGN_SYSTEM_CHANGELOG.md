@@ -26,6 +26,27 @@ Trois règles :
 
 ---
 
+## [1.4.0] — 2026-08-08
+
+### Ajouté
+- **Jeton de rôle `--tk-radius-vignette` (6 px) et sa classe `rounded-vignette`.** Le registre
+  fixe la vignette de rangée à **40 × 40, rayon 6** depuis le 31/07 (`REGLES-TRANSVERSES` §2.2
+  et §2.31) et les planches l'emploient **88 fois** — mais le pont Tailwind n'offrait que
+  `rounded-sm`/`md` (4 px) et `rounded-lg` (8 px). Le rayon canonique de la vignette était donc
+  **inexprimable** en code : le premier portage l'a rendu à 4 px sans que rien ne le signale.
+  Le jeton rejoint les rôles existants (`control`, `card`, `sheet`) : il nomme une intention,
+  il ne concurrence pas l'échelle. Impact sur le rendu au repos : **aucun** — aucun composant
+  ne l'employait avant.
+
+### Modifié
+- `LoginPage` — **porté sur la planche 02.1** (piste B validée). Le double panneau
+  hero/formulaire laisse place à la composition de la planche : bandeau de marque (motif
+  cartouche des quatre marques de valeurs, filet jaune, nom, **une** phrase), puis le formulaire
+  sur le canevas, en **une colonne bornée à 440 px centrée à toutes les largeurs** (§2.43 : le
+  contenu ne s'étire pas). Les comptes de démonstration passent des avatars générés aux
+  **initiales** (§2.21). Les trois arguments de vente, le hero `medium` et la double signature
+  de pied tombent. Impact : **re-baseline** des trois points de contrôle `login`.
+
 ## [1.3.0] — 2026-08-06
 
 ### Ajouté
