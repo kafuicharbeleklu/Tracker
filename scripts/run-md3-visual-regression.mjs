@@ -148,27 +148,26 @@ const bootstrapDeterministicSession = async (page) => {
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
   // Cold Vite dev on a slow disk can take minutes before the login form renders.
+  // On vise le CHAMP, jamais sa formulation : la sonde s'accrochait au texte de
+  // l'invite (« Ex: nom@… »), et le portage de la connexion sur la planche 02.1 l'a
+  // cassée en changeant une phrase. Un harnais qui dépend de la copie casse à chaque
+  // portage — et il en reste vingt-quatre.
   await page
-    .getByPlaceholder(/Ex:\s*nom@/i)
+    .locator('input[type="email"]')
     .first()
     .waitFor({ state: 'visible', timeout: 180000 });
   await page.waitForTimeout(500);
 };
 
 const loginWithDemoAccount = async (page) => {
-  const isLoginVisible = async () => {
-    const byLabel = page.getByLabel('Adresse e-mail').first();
-    const byPlaceholder = page.getByPlaceholder(/Ex:\s*nom@/i).first();
-    return (await byLabel.count()) > 0 || (await byPlaceholder.count()) > 0;
-  };
+  const emailField = () => page.locator('input[type="email"]').first();
+  const isLoginVisible = async () => (await emailField().count()) > 0;
 
-  const byLabel = page.getByLabel('Adresse e-mail').first();
-  const byPlaceholder = page.getByPlaceholder(/Ex:\s*nom@/i).first();
-  const emailInput = (await byLabel.count()) > 0 ? byLabel : byPlaceholder;
+  const emailInput = emailField();
 
   if ((await emailInput.count()) > 0) {
     await emailInput.fill('alice.admin@tracker.app');
-    await page.getByPlaceholder('Votre mot de passe').fill('demo-password');
+    await page.locator('input[type="password"]').first().fill('demo-password');
     await page.getByRole('button', { name: /Se connecter/i }).click();
     await page.waitForTimeout(1300);
   }
