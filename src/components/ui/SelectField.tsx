@@ -188,7 +188,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
         <label
           id={labelId}
           className={cn(
-            "block text-body-small ml-1 mb-1 transition-colors duration-short4",
+            "block text-[11px] font-medium tracking-[0.02em] mb-1.5 transition-colors duration-short4",
             error ? "text-error" : isFocused ? "text-on-surface" : "text-on-surface-variant",
             disabled && "text-on-surface/[0.38]"
           )}
@@ -217,23 +217,23 @@ const SelectField: React.FC<SelectFieldProps> = ({
         aria-required={required || undefined}
         aria-describedby={resolvedAriaDescribedBy}
         className={cn(
-          'w-full min-h-10 px-3 py-2 pr-10 text-left relative text-body-medium',
+          'w-full min-h-12 px-4 py-3 pr-12 text-left relative text-title-small font-medium',
           'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized outline-none',
           'disabled:cursor-not-allowed disabled:text-on-surface/[0.38]',
           variant === 'outlined'
             ? cn(
-              'bg-surface border rounded-lg',
+              'bg-surface border rounded-md',
               error
                 ? 'border-error hover:border-error'
-                : 'border-outline-variant hover:border-outline',
+                : 'border-outline hover:border-outline',
               isFocused && (error ? 'border-error ring-2 ring-error' : 'border-focus-ring ring-2 ring-focus-ring'),
               'disabled:border-on-surface/[0.12] disabled:bg-surface'
             )
             : cn(
-              'bg-surface border rounded-lg',
+              'bg-surface border rounded-md',
               error
                 ? 'border-error hover:border-error'
-                : 'border-outline-variant hover:border-outline',
+                : 'border-outline hover:border-outline',
               isFocused && (error ? 'border-error ring-2 ring-error' : 'border-focus-ring ring-2 ring-focus-ring'),
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             ),
@@ -257,7 +257,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       {(isOpen || closing) && !disabled && (
         <div
           className={cn(
-            'absolute z-50 w-full mt-1 bg-surface rounded-lg border border-outline-variant shadow-elevation-2 py-1 origin-top overflow-hidden',
+            'absolute z-50 w-full mt-1 bg-surface rounded-md border border-outline shadow-elevation-2 py-1 origin-top overflow-hidden',
             closing ? 'animate-out fade-out zoom-out-95 duration-150' : 'animate-in fade-in zoom-in-95 duration-200',
           )}
           role="listbox"

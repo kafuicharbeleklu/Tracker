@@ -26,7 +26,7 @@ import Tooltip from '../../../components/ui/Tooltip';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { parseAmountString } from '../../../lib/expenseExtraction';
 import { getExpenseSourceFile } from '../../../lib/financeFileStorage';
-import { FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../../types';
+import { FinanceBudgetItem, FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../../types';
 
 // --- MOCK DATA ---
 
@@ -38,16 +38,20 @@ const MOCK_LOCATION_VALUE = [
 type FinanceView = 'overview' | 'expenses' | 'budget';
 const FINANCE_TABS_ID_BASE = 'finance-main-tabs';
 
-// Fonction simple simulant une classification IA
-const classifyBudgetLine = (category: string, amount: number): 'CAPEX' | 'OPEX' => {
-    const lowerCat = category.toLowerCase();
-    // Règles heuristiques "IA"
-    if (lowerCat.includes('matériel') || lowerCat.includes('hardware') || lowerCat.includes('serveur')) return 'CAPEX';
-    if (lowerCat.includes('licence') || lowerCat.includes('cloud') || lowerCat.includes('maintenance') || lowerCat.includes('service')) return 'OPEX';
-
-    // Fallback basé sur le montant (Investissement lourd vs Frais courants)
-    return amount > 5000 ? 'CAPEX' : 'OPEX';
-};
+/**
+ * Le classement d'une ligne de budget — **relevé sur la ligne, jamais déduit**.
+ *
+ * Le produit le devinait : deux listes de mots-clés, puis un repli sur le montant —
+ * au-dessus de 5 000, investissement ; en dessous, frais courants. La colonne
+ * s'appelait « Type (IA) » et rien, à l'écran, ne distinguait cette supposition d'un
+ * classement saisi. Planche 15.1 : *un chiffre deviné ne se présente pas comme un
+ * chiffre su* — celui-ci **se demande**, à la saisie du budget.
+ *
+ * Une ligne héritée qui n'en porte pas n'affiche rien : un blanc se remarque et se
+ * corrige, une supposition se recopie dans le rapport de clôture.
+ */
+const budgetCapitalization = (item: FinanceBudgetItem): 'CAPEX' | 'OPEX' | null =>
+    item.capitalization ?? null;
 
 const EXPENSE_TYPE_LABELS: Record<FinanceExpenseType, string> = {
     Purchase: 'Achat',
@@ -587,16 +591,17 @@ const FinanceManagementPage = () => {
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between gap-4">
                                         <span className="text-body-small text-on-surface-variant">Fichier source</span>
-                                        <button
-                                            type="button"
+                                        <Button
+                                            variant="text"
+                                            size="sm"
                                             onClick={() => {
                                                 void handlePreviewSourceFile(selectedExpense);
                                             }}
-                                            className="text-label-medium text-on-surface underline underline-offset-2 hover:text-on-surface-variant truncate text-right"
+                                            className="h-auto min-h-0 p-0 text-label-medium text-on-surface underline underline-offset-2 hover:text-on-surface-variant truncate text-right font-normal"
                                             title={selectedExpense.sourceFileName || 'Document source'}
                                         >
                                             {selectedExpense.sourceFileName || 'Document source'}
-                                        </button>
+                                        </Button>
                                     </div>
                                     <div className="flex items-center justify-end gap-2">
                                         <Button
@@ -745,8 +750,24 @@ const FinanceManagementPage = () => {
                                 role="tabpanel"
                                 id={getTabPanelId(FINANCE_TABS_ID_BASE, 'overview')}
                                 aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'overview')}
-                                className="space-y-8"
+                                className="space-y-6"
                             >
+                                {/* HERO PLANCHE 15.1 */}
+                                <section className="rounded-lg bg-surface-inverse p-5 text-white shadow-elevation-2 flex flex-col gap-3">
+                                    <p className="text-body-small text-[var(--tk-color-on-dark-2)]">Exercice {selectedYear} · en cours</p>
+                                    <div className="flex items-baseline gap-3 border-t border-white/10 pt-3">
+                                        <b className="font-brand text-[32px] font-semibold text-white tracking-tight tabular-nums">
+                                            {formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}
+                                        </b>
+                                        <span className="text-body-small text-[var(--tk-color-on-dark-2)]">
+                                            restants sur<br />une enveloppe de {formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)}
+                                        </span>
+                                    </div>
+                                    <p className="text-body-small text-[var(--tk-color-on-dark-2)] border-t border-white/10 pt-2.5 mt-0.5">
+                                        {spentPercent.toFixed(0)} % consommés sur l'exercice en cours.
+                                    </p>
+                                </section>
+
                                 {/* SECTION 1: TOP KPIS */}
                                 <div className="grid grid-cols-1 expanded:grid-cols-12 gap-4">
                                     <div className="expanded:col-span-5 bg-primary-container/35 rounded-card p-6 border border-primary/25 shadow-elevation-2">
@@ -1119,9 +1140,13 @@ const FinanceManagementPage = () => {
                                                             </div>
                                                         )}
                                                     >
-                                                        <button type="button" className="inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-surface-container-high" aria-label="Aide analyse IA">
-                                                            <MaterialIcon name="info" size={14} />
-                                                        </button>
+                                                        <IconButton
+                                                            icon={<MaterialIcon name="info" size={14} />}
+                                                            size="sm"
+                                                            variant="standard"
+                                                            aria-label="Aide analyse IA"
+                                                            className="w-6 h-6 p-0 hover:bg-surface-container-high"
+                                                        />
                                                     </Tooltip>
                                                 </div>
                                             </div>
@@ -1139,14 +1164,14 @@ const FinanceManagementPage = () => {
                                                     <th className="px-6 py-4 text-right">Dépensé</th>
                                                     <th className="px-6 py-4 text-right">Restant</th>
                                                     <th className="px-6 py-4 w-1/5">Utilisation</th>
-                                                    <th className="px-6 py-4 text-center">Type (IA)</th>
+                                                    <th className="px-6 py-4 text-center">Immobilisation</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-outline-variant bg-surface">
                                                 {currentBudget.items.map((item, idx) => {
                                                     const itemPercent = (item.spent / item.allocated) * 100;
                                                     const itemRemaining = item.allocated - item.spent;
-                                                    const budgetType = classifyBudgetLine(item.category, item.allocated);
+                                                    const budgetType = budgetCapitalization(item);
 
                                                     return (
                                                         <tr key={idx} className="hover:bg-surface-container/50 transition-colors group">
@@ -1192,9 +1217,13 @@ const FinanceManagementPage = () => {
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-5 text-center">
-                                                                <Badge variant={budgetType === 'CAPEX' ? 'info' : 'warning'}>
-                                                                    {budgetType}
-                                                                </Badge>
+                                                                {budgetType ? (
+                                                                    <Badge variant={budgetType === 'CAPEX' ? 'info' : 'warning'}>
+                                                                        {budgetType}
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <span className="text-body-small text-text-muted">non renseigné</span>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     );
@@ -1208,7 +1237,7 @@ const FinanceManagementPage = () => {
                                         {currentBudget.items.map((item, idx) => {
                                             const itemPercent = (item.spent / item.allocated) * 100;
                                             const itemRemaining = item.allocated - item.spent;
-                                            const budgetType = classifyBudgetLine(item.category, item.allocated);
+                                            const budgetType = budgetCapitalization(item);
                                             return (
                                                 <div key={idx} className="p-4 space-y-3">
                                                     <div className="flex items-center justify-between gap-3">
@@ -1227,9 +1256,13 @@ const FinanceManagementPage = () => {
                                                             </div>
                                                             <span className="font-bold text-on-surface truncate">{item.category}</span>
                                                         </div>
-                                                        <Badge variant={budgetType === 'CAPEX' ? 'info' : 'warning'}>
-                                                            {budgetType}
-                                                        </Badge>
+                                                        {budgetType ? (
+                                                            <Badge variant={budgetType === 'CAPEX' ? 'info' : 'warning'}>
+                                                                {budgetType}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="shrink-0 text-body-small text-text-muted">non renseigné</span>
+                                                        )}
                                                     </div>
                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                         <div>

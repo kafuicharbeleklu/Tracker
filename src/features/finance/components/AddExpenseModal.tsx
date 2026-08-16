@@ -17,7 +17,7 @@ import {
     parseAmountString,
 } from '../../../lib/expenseExtraction';
 import { deleteExpenseSourceFile, saveExpenseSourceFile } from '../../../lib/financeFileStorage';
-import { FinanceExpenseType } from '../../../types';
+import { ExtractionConfidence, FinanceExpenseType } from '../../../types';
 
 interface AddExpenseModalProps {
     isOpen: boolean;
@@ -123,17 +123,48 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         }
     };
 
+    /**
+     * **La confiance ne se dit pas, elle décide** — planche 15.1.
+     *
+     * Le produit pré-remplissait *aussi* ce que la machine n'avait pas su lire, avec
+     * une mention de confiance à côté que rien n'oblige à lire — et un `INV-2026-O412`
+     * où la lettre O a pris la place du zéro traverse la validation sans être vu.
+     * **Personne ne relit un champ déjà rempli.**
+     *
+     * Un champ lu avec une confiance faible arrive donc **vide** : un champ vide se
+     * remplit en trois secondes, un champ faux se découvre trois mois plus tard.
+     */
+    const keepIfRead = (value: string, confidence: ExtractionConfidence): string =>
+        confidence === 'low' ? '' : value;
+
+    /** Les champs laissés vides parce que la lecture n'était pas franche. */
+    const unreadFields = extractionMeta?.fieldConfidence
+        ? (
+              [
+                  ['le fournisseur', extractionMeta.fieldConfidence.supplier],
+                  ['le montant', extractionMeta.fieldConfidence.amount],
+                  ['le numéro de facture', extractionMeta.fieldConfidence.invoiceNumber],
+                  ['la date', extractionMeta.fieldConfidence.date],
+              ] as const
+          )
+              .filter(([, confidence]) => confidence === 'low')
+              .map(([label]) => label)
+        : [];
+
     const applyDraftToForm = (file: File, extracted: ExtractedExpenseDraft) => {
         setScannedFile(file);
         setMode('manual');
         setIsLowConfidenceReviewed(false);
         setFormData({
             type: extracted.type,
-            amount: extracted.amount,
-            supplier: extracted.supplier,
-            date: extracted.date,
+            amount: keepIfRead(extracted.amount, extracted.fieldConfidence.amount),
+            supplier: keepIfRead(extracted.supplier, extracted.fieldConfidence.supplier),
+            date: keepIfRead(extracted.date, extracted.fieldConfidence.date),
             description: extracted.description,
-            invoiceNumber: extracted.invoiceNumber,
+            invoiceNumber: keepIfRead(
+                extracted.invoiceNumber,
+                extracted.fieldConfidence.invoiceNumber
+            ),
         });
         setExtractionMeta({
             confidence: extracted.confidence,
@@ -487,9 +518,13 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         </div>
                     ) : null}
 
-                    {extractionMeta?.fieldConfidence ? (
+                    {/* Ce que la machine n'a pas su lire — nommé, parce que c'est le seul
+                        endroit où l'œil doit se poser. Le reste est acquis (planche 15.1). */}
+                    {unreadFields.length > 0 ? (
                         <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant">
-                            Champs détectés: fournisseur {confidenceLabel(extractionMeta.fieldConfidence.supplier)} · montant {confidenceLabel(extractionMeta.fieldConfidence.amount)} · référence {confidenceLabel(extractionMeta.fieldConfidence.invoiceNumber)} · date {confidenceLabel(extractionMeta.fieldConfidence.date)}
+                            {unreadFields.length === 1
+                                ? `${unreadFields[0]} n’a pas été lu sur le document : le champ est resté vide.`
+                                : `${unreadFields.join(', ')} n’ont pas été lus sur le document : ces champs sont restés vides.`}
                         </div>
                     ) : null}
 

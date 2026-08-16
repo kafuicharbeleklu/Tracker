@@ -77,6 +77,19 @@ export interface FinanceBudgetItem {
   type: FinanceExpenseType;
   allocated: number;
   spent: number;
+  /**
+   * Investissement (CAPEX) ou frais courant (OPEX) — **saisi, jamais deviné**.
+   *
+   * Le produit le déduisait du montant : au-dessus de 5 000, investissement ; en
+   * dessous, frais courants. Rien ne distinguait ce classement d'un classement
+   * saisi, et une ligne de budget mal classée se découvre à la clôture de
+   * l'exercice. Planche 15.1 : *un chiffre deviné ne se présente pas comme un
+   * chiffre su.*
+   *
+   * Absent sur une ligne héritée : l'écran n'affiche alors **rien** plutôt qu'une
+   * supposition.
+   */
+  capitalization?: 'CAPEX' | 'OPEX';
 }
 
 export interface FinanceBudget {
@@ -252,12 +265,40 @@ export interface Equipment {
 }
 
 // Management
+/**
+ * Les quatre familles du référentiel — **arbitrage A2, planche 09.1**.
+ *
+ * Le catalogue se range sur **deux niveaux, famille → type**, et c'est la famille que
+ * porte le filtre. La mesure qui a tranché : à 393 px, cinq pastilles de famille
+ * occupent deux rangées là où neuf pastilles de type en occupaient trois. Le gain
+ * immédiat est d'une rangée — et ce n'est pas là qu'il est. **Quatre familles restent
+ * quatre à quinze types ; huit types en deviennent quinze.** La rangée de familles est
+ * bornée, la liste de types ne l'est pas.
+ *
+ * Les familles à un seul enfant ne se replient pas : une famille qui change de forme
+ * selon le nombre d'enfants apprend une grammaire différente à chaque ouverture.
+ */
+export type CategoryFamily =
+  | 'Informatique'
+  | 'Périphériques'
+  | 'Impression et réseau'
+  | 'Mobilier et divers';
+
+export const CATEGORY_FAMILIES: CategoryFamily[] = [
+  'Informatique',
+  'Périphériques',
+  'Impression et réseau',
+  'Mobilier et divers',
+];
+
 export interface Category {
   id: string;
   name: string;
   description?: string;
   icon: React.ReactNode;
   iconName?: string;
+  /** La famille qui coiffe ce type (A2). Absente sur une donnée héritée. */
+  family?: CategoryFamily;
   /**
    * Un objet de ce type se remet-il en main propre à quelqu'un ?
    * Non pour un serveur, une imprimante, du mobilier : ils servent un lieu, pas une personne.

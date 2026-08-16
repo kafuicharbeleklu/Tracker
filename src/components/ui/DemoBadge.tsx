@@ -16,10 +16,13 @@ interface DemoBadgeProps {
  * donnée concernée — le simulé ne doit jamais être présenté comme réel sans
  * cette étiquette.
  */
-export const DemoBadge: React.FC<DemoBadgeProps> = ({ label = 'Démo', title, className }) => (
-    <span
-        title={title ?? 'Donnée de démonstration — non issue du système réel'}
-        className={cn(
+export const DemoBadge: React.FC<DemoBadgeProps> = ({ label = 'Démo', title, className }) => {
+    const accessibleTitle = title ?? 'Donnée de démonstration — non issue du système réel';
+    return (
+        <span
+            aria-label={accessibleTitle}
+            title={accessibleTitle}
+            className={cn(
             'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-outline-variant',
             'bg-surface-container text-on-surface-variant text-label-small uppercase tracking-wide whitespace-nowrap',
             className
@@ -28,6 +31,7 @@ export const DemoBadge: React.FC<DemoBadgeProps> = ({ label = 'Démo', title, cl
         <MaterialIcon name="science" size={12} />
         {label}
     </span>
-);
+    );
+};
 
 export default DemoBadge;

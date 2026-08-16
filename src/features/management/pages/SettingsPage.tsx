@@ -1,891 +1,989 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+    ArrowLeft,
+    CheckCircle,
+    Clock,
+    ShieldWarning,
+    SignOut,
+    Warning,
+    type Icon as PhosphorGlyph,
+} from '@phosphor-icons/react';
 
-import { MEDIA } from '../../../constants/breakpoints';
-import React, { useState, useMemo, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
-import { PageHeader, useHasMobileTopBar } from '../../../components/layout/PageHeader';
+import Icon from '../../../components/ui/Icon';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
-import SelectField from '../../../components/ui/SelectField';
-import Badge from '../../../components/ui/Badge';
 import Toggle from '../../../components/ui/Toggle';
+import BottomSheet from '../../../components/ui/BottomSheet';
+import RuleGroup from '../../../components/ui/RuleGroup';
+import type { RuleRowTone } from '../../../components/ui/RuleGroup';
+import Notice from '../../../components/ui/Notice';
+import { FileDropzone } from '../../../components/ui/FileDropzone';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
-import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
-import { cn } from '../../../lib/utils';
-import { PageContainer } from '../../../components/layout/PageContainer';
-import { PageTabs, TabItem } from '../../../components/ui/PageTabs';
-import type { AgentCheckInPayload } from '../../../types';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { APP_CONFIG } from '../../../config';
-import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { MEDIA } from '../../../constants/breakpoints';
+import { authService } from '../../../services/authService';
 import { parseAgentBatchContent } from '../../../lib/agentCheckin';
 import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
+import { APP_CONFIG } from '../../../config';
+import { cn } from '../../../lib/utils';
+import type { AgentCheckInPayload, AppSettings, AutoCollectionSource, ViewType } from '../../../types';
+
+/**
+ * Paramètres — **porté sur la planche 14.1**.
+ *
+ * ## Ce que la planche a tranché
+ *
+ * L'écran tenait 891 lignes derrière **cinq onglets** — *Affichage · Compte &
+ * Sécurité · Finances & Paramètres · Collecte automatique · Aide* — dont deux
+ * seulement enregistraient, avec un bouton qui changeait de nom selon l'onglet
+ * regardé. Le relevé de la planche dit pourquoi c'était intenable : ces cinq
+ * sections **n'appartiennent pas aux mêmes personnes**. Deux sont à la personne,
+ * une à l'entreprise, une à l'informatique, et la dernière ne se règle pas.
+ *
+ * **Paramètres devient une liste de destinations**, rangée par propriétaire :
+ * quatre **groupes à filets** (`RuleGroup`, R4 de 00.1) au lieu de onze cartes
+ * blanches, et **la valeur passe à droite de la rangée**, où elle se lit sans
+ * ouvrir. Une personne qui vient changer la devise ne traverse plus les réglages de
+ * l'agent local.
+ *
+ * ## Les quatre retraits, et ce qui les justifie
+ *
+ * - **La section « Affichage »** portait un seul réglage — un thème clair qu'on ne
+ *   peut pas changer — et une promesse : *« Le mode sombre sera proposé dans une
+ *   prochaine version. »* On n'annonce pas ce qui n'existe pas, et le clair est une
+ *   **décision d'identité**, pas une attente. Le fait descend en ligne d'« À propos ».
+ * - **La file des machines détectées** n'est pas un réglage, c'est **du travail qui
+ *   attend quelqu'un** : sa place est *Tâches › À faire*, au même titre qu'une
+ *   demande à valider. Paramètres règle les sources ; il ne garde pas leur produit.
+ * - **Le bouton « Enregistrer » par section.** Un geste qui apparaît et se renomme
+ *   selon l'endroit apprend qu'un réglage posé **ne compte pas tant qu'on n'a pas
+ *   trouvé le bouton**. Il ne reste qu'en pied de feuille, là où des champs valent
+ *   ensemble ou pas du tout : les identifiants d'une source.
+ * - **Le « Centre d'aide » et ses quatre pavés** — *Documentation · Support ·
+ *   Tutoriels · FAQ* — étaient des `<Button variant="outlined">` **sans `onClick`** :
+ *   ils réagissaient au survol et ne menaient nulle part. Un geste mort est pire
+ *   qu'un manque. Il en reste **une ligne**, « Contacter le support », qui ne
+ *   s'affiche que si l'organisation a rempli l'adresse.
+ *
+ * ## Deux écarts relevés au portage, et ce qu'ils changent au texte
+ *
+ * La planche fait dire à l'amortissement qu'il *« décide de la valeur de 14 actifs »*.
+ * Le code disait le contraire : `settings.defaultDepreciationYears` **n'avait aucun
+ * consommateur** — `AddEquipmentPage` retombait sur un `GLOBAL_FINANCIAL_SETTINGS`
+ * écrit en dur à côté. Le portage **branche le réglage** sur la cascade réelle
+ * (fiche → type → défaut global) ; et comme les huit types portent déjà leur durée,
+ * l'écran dit la vérité mesurée sur la donnée, pas le chiffre de la planche.
+ *
+ * `renewalThreshold` et `roundingRule` restent sans consommateur **et sans écran** :
+ * un réglage qui ne change rien ne mérite pas une rangée.
+ */
 
 interface SettingsPageProps {
     onLogout: () => void;
+    /** La file de collecte vit dans Tâches : cette page y renvoie, elle ne la refait pas. */
+    onNavigate?: (view: ViewType) => void;
 }
 
-type SettingsSection = 'general' | 'finance' | 'collection' | 'account' | 'help';
+/** Les vues de l'écran. Chacune est un état de Paramètres, pas une page du produit. */
+type SettingsView = 'index' | 'account' | 'currency' | 'depreciation' | 'sources';
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
+/** Le propriétaire du réglage, écrit sous le titre de la vue — 14.1 `.aid`. */
+const VIEW_OWNER: Record<SettingsView, string | null> = {
+    index: null,
+    account: 'Paramètres · vous',
+    currency: "Paramètres · l'entreprise",
+    depreciation: "Paramètres · l'entreprise",
+    sources: "Paramètres · l'informatique",
+};
+
+const VIEW_TITLE: Record<SettingsView, string> = {
+    index: 'Paramètres',
+    account: 'Compte et sécurité',
+    currency: 'Devise et année fiscale',
+    depreciation: 'Amortissement',
+    sources: 'Sources de collecte',
+};
+
+const FISCAL_MONTHS: Array<{ value: string; label: string; short: string }> = [
+    { value: '01', label: '1er janvier', short: '1er janv.' },
+    { value: '04', label: '1er avril', short: '1er avr.' },
+    { value: '09', label: '1er septembre', short: '1er sept.' },
+];
+
+const DEPRECIATION_METHODS: Array<{ value: AppSettings['defaultDepreciationMethod']; label: string }> = [
+    { value: 'linear', label: 'Linéaire' },
+    { value: 'degressive', label: 'Dégressif' },
+];
+
+interface SourceDescriptor {
+    id: AutoCollectionSource;
+    title: string;
+    subtitle: string;
+    enabledKey: keyof AppSettings;
+}
+
+/** Les trois sources relevées dans le code, dans l'ordre où 14.1 les pose. */
+const SOURCES: SourceDescriptor[] = [
+    {
+        id: 'agent',
+        title: 'Agent local',
+        subtitle: 'GPO / Intune',
+        enabledKey: 'autoCollectionAgentEnabled',
+    },
+    {
+        id: 'active_directory',
+        title: 'Annuaire',
+        subtitle: 'LDAP',
+        enabledKey: 'autoCollectionAdEnabled',
+    },
+    {
+        id: 'network_scan',
+        title: 'Scan réseau',
+        subtitle: 'Passif, sur les plages déclarées',
+        enabledKey: 'autoCollectionNetworkEnabled',
+    },
+];
+
+/** « il y a 6 j » — l'état d'une source, c'est ce qu'elle a renvoyé **et quand**. */
+const daysSince = (iso: string): number =>
+    Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+
+/**
+ * La barre de la vue — `.tbar` de 14.1. Au téléphone elle porte le titre à 22 px ;
+ * au rail la destination est déjà écrite à gauche, la barre ne la redit pas (00.4).
+ */
+const SettingsBar: React.FC<{
+    title: string;
+    owner?: string | null;
+    onBack?: () => void;
+}> = ({ title, owner, onBack }) => {
+    const isCompact = useMediaQuery(MEDIA.compact);
+
+    if (isCompact) {
+        return (
+            <div className="flex min-h-14 items-center gap-1 border-b border-outline-variant bg-surface px-5 py-1">
+                {onBack && (
+                    <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="-ml-2 shrink-0">
+                        <Icon glyph={ArrowLeft} size={24} />
+                    </Button>
+                )}
+                <div className="min-w-0 flex-1">
+                    <h1 className="truncate font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                        {title}
+                    </h1>
+                    {owner && <p className="truncate text-label-small text-text-secondary">{owner}</p>}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-3 px-page pt-5">
+            {onBack && (
+                <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="-ml-2 shrink-0">
+                    <Icon glyph={ArrowLeft} size={24} />
+                </Button>
+            )}
+            <h1 className="shrink-0 font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                {title}
+            </h1>
+            {owner && <span className="text-body-medium text-text-secondary">{owner}</span>}
+        </div>
+    );
+};
+
+/** La mesure de lecture du système — 960 px, une seule valeur (§2.43). */
+const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+    <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>
+);
+
+const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate }) => {
     const { showToast } = useToast();
     const { currentUser } = useAuth();
-    const {
-        settings,
-        updateSettings,
-        detectedDevices,
-        ingestAgentCheckIn,
-        promoteDetectedDeviceToInventory,
-        markDetectedDeviceAsIgnored,
-    } = useData();
-    const [activeSection, setActiveSection] = useState<SettingsSection>('general');
+    const { settings, updateSettings, equipment, categories, detectedDevices, ingestAgentCheckIn } = useData();
+
+    const [view, setView] = useState<SettingsView>('index');
     const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
-    const isCompactOrMedium = useMediaQuery(MEDIA.belowExpanded);
-    const hasMobileTopBar = useHasMobileTopBar();
 
-    // Local state for finance form
-    const [financeForm, setFinanceForm] = useState(settings);
-    const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
-    const [isBatchImporting, setIsBatchImporting] = useState(false);
-    const [batchImportSummary, setBatchImportSummary] = useState<{
-        files: number;
-        accepted: number;
-        rejected: number;
-        apiForwarded: number;
-        apiFailed: number;
-    } | null>(null);
+    /** La feuille d'une source — le seul endroit de l'écran qui garde un pied. */
+    const [openSource, setOpenSource] = useState<AutoCollectionSource | null>(null);
+    const [sourceDraft, setSourceDraft] = useState<AppSettings>(settings);
+    const [sourceError, setSourceError] = useState<string | null>(null);
+
+    const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
+    const [feedSheetOpen, setFeedSheetOpen] = useState(false);
 
     useEffect(() => {
-        setFinanceForm(settings);
-    }, [settings]);
+        if (!openSource) setSourceDraft(settings);
+    }, [openSource, settings]);
 
-    const handleFinanceChange = (field: string, value: string | boolean | number) => {
-        setFinanceForm(prev => ({ ...prev, [field]: value }));
-    };
+    /** Un réglage s'applique **au geste** : il n'attend pas un bouton (14.1). */
+    const apply = (patch: Partial<AppSettings>) => updateSettings({ ...settings, ...patch });
 
-    const handleSave = () => {
-        updateSettings(financeForm);
-        const scopeLabel = activeSection === 'collection' ? 'Collecte automatique' : 'Paramètres financiers';
-        showToast(`${scopeLabel} sauvegardés.`, 'success');
-        setSaveFeedback(`${scopeLabel} enregistrés`);
-    };
+    const fiscalMonth = useMemo(
+        () => FISCAL_MONTHS.find((month) => month.value === settings.fiscalYearStart) ?? FISCAL_MONTHS[0],
+        [settings.fiscalYearStart]
+    );
 
-    useEffect(() => {
-        if (!saveFeedback) return;
-        const timeoutId = window.setTimeout(() => setSaveFeedback(null), 2500);
-        return () => window.clearTimeout(timeoutId);
-    }, [saveFeedback]);
-
-    // --- SIMULATION ---
-    // Aperçu calculé avec le vrai moteur de valorisation (calculateLinearDepreciation),
-    // qui applique la formule linéaire quelle que soit la méthode configurée.
-    const simulation = useMemo(() => {
-        const price = 1000000;
-        const years = Number(financeForm.defaultDepreciationYears) || 1;
-        const salvagePercent = Number(financeForm.salvageValuePercent) || 0;
-
-        const { monthlyDepreciation, salvageValue } = calculateLinearDepreciation(
-            price,
-            new Date(),
-            years,
-            salvagePercent,
+    /**
+     * Ce que le réglage d'amortissement décide **réellement** : les actifs dont ni la
+     * fiche ni le type ne portent de plan. Le chiffre est compté sur la donnée — la
+     * planche en annonçait 14 sans avoir vu la cascade.
+     */
+    const governedAssets = useMemo(() => {
+        const typedWithoutPlan = new Set(
+            categories.filter((category) => !category.defaultDepreciation?.years).map((category) => category.name)
         );
+        return equipment.filter(
+            (item) => !item.financial?.depreciationYears && typedWithoutPlan.has(item.type)
+        ).length;
+    }, [categories, equipment]);
 
-        return { monthly: monthlyDepreciation, salvageValue };
-    }, [financeForm]);
+    const typesWithOwnPlan = useMemo(
+        () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
+        [categories]
+    );
 
-    const detectedStats = useMemo(() => {
-        const total = detectedDevices.length;
-        const pending = detectedDevices.filter((item) => item.status === 'pending_review').length;
-        const linked = detectedDevices.filter((item) => item.status === 'linked_existing').length;
-        const imported = detectedDevices.filter((item) => item.status === 'imported').length;
-        const ambiguous = detectedDevices.filter((item) => item.status === 'ambiguous_match').length;
-        return { total, pending, linked, imported, ambiguous };
+    /** L'état d'une source : ce qu'elle a renvoyé, et quand. */
+    const sourceState = useMemo(() => {
+        const bySource = new Map<AutoCollectionSource, { last: string | null; count: number }>();
+        SOURCES.forEach((source) => bySource.set(source.id, { last: null, count: 0 }));
+
+        detectedDevices.forEach((device) => {
+            const entry = bySource.get(device.source);
+            if (!entry) return;
+            entry.count += 1;
+            if (!entry.last || new Date(device.lastSeenAt) > new Date(entry.last)) {
+                entry.last = device.lastSeenAt;
+            }
+        });
+
+        return bySource;
     }, [detectedDevices]);
 
-    const recentDetectedDevices = useMemo(
-        () => [...detectedDevices]
-            .sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime())
-            .slice(0, 12),
-        [detectedDevices],
+    const enabledSources = useMemo(
+        () => SOURCES.filter((source) => Boolean(settings[source.enabledKey])).length,
+        [settings]
     );
 
-    const shouldForwardToApi = useMemo(
-        () => financeForm.autoCollectionForwardToApi && Boolean(financeForm.autoCollectionApiBaseUrl.trim()),
-        [financeForm.autoCollectionApiBaseUrl, financeForm.autoCollectionForwardToApi],
-    );
-
-    const formatCheckinDate = (value?: string) => {
-        if (!value) return '-';
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return '-';
-        return date.toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
+    /**
+     * La source dont l'état mérite d'être remonté au sommaire : celle qui est active
+     * et qui **ne dit plus rien**. Une source éteinte n'est pas une anomalie.
+     */
+    const stalestSource = useMemo(() => {
+        let worst: { title: string; days: number } | null = null;
+        SOURCES.forEach((source) => {
+            if (!settings[source.enabledKey]) return;
+            const last = sourceState.get(source.id)?.last;
+            const days = last ? daysSince(last) : Infinity;
+            if (days < 2) return;
+            if (!worst || days > worst.days) worst = { title: source.title, days };
         });
+        return worst as { title: string; days: number } | null;
+    }, [settings, sourceState]);
+
+    const pendingDevices = useMemo(
+        () =>
+            detectedDevices.filter((device) =>
+                ['pending_review', 'ambiguous_match'].includes(device.status)
+            ).length,
+        [detectedDevices]
+    );
+
+    const twoFactor: { tone: RuleRowTone; icon: PhosphorGlyph; label: string } = isTwoFactorEnabled
+        ? { tone: 'positive', icon: CheckCircle, label: '2FA active' }
+        : { tone: 'pending', icon: ShieldWarning, label: '2FA inactive' };
+
+    const openSourceSheet = (id: AutoCollectionSource) => {
+        setSourceDraft(settings);
+        setSourceError(null);
+        setOpenSource(id);
     };
 
-    const buildDetectedStatusBadge = (status: string) => {
-        if (status === 'pending_review') return <Badge variant="warning">À valider</Badge>;
-        if (status === 'linked_existing') return <Badge variant="info">Équipement lié</Badge>;
-        if (status === 'ambiguous_match') return <Badge variant="danger">Ambigu</Badge>;
-        if (status === 'imported') return <Badge variant="success">Importé</Badge>;
-        return <Badge variant="neutral">Ignoré</Badge>;
+    const saveSource = () => {
+        updateSettings(sourceDraft);
+        setOpenSource(null);
+        setSourceError(null);
+        showToast('Source enregistrée.', 'success');
+    };
+
+    const testApiConnection = async () => {
+        if (!sourceDraft.autoCollectionApiBaseUrl.trim()) {
+            setSourceError("L'URL de l'API est vide : rien à joindre.");
+            return;
+        }
+        const health = await checkAgentApiHealth(sourceDraft.autoCollectionApiBaseUrl);
+        if (!health.ok) {
+            setSourceError(
+                'L’API n’a pas répondu. Vos deux réglages restent écrits — aucune source n’a été enregistrée.'
+            );
+            return;
+        }
+        setSourceError(null);
+        showToast(`API joignable (${health.service || 'service check-in'}).`, 'success');
     };
 
     const ingestWithOptionalApiForwarding = async (rawPayload: AgentCheckInPayload) => {
         const payload: AgentCheckInPayload = {
             ...rawPayload,
-            apiKey: rawPayload.apiKey || financeForm.autoCollectionAgentApiKey,
+            apiKey: rawPayload.apiKey || settings.autoCollectionAgentApiKey,
         };
+        const forward =
+            settings.autoCollectionForwardToApi && Boolean(settings.autoCollectionApiBaseUrl.trim());
 
-        let apiOk = false;
-        let apiMessage = '';
-        if (shouldForwardToApi) {
-            const apiResult = await postAgentCheckIn(
-                financeForm.autoCollectionApiBaseUrl,
+        if (forward) {
+            await postAgentCheckIn(
+                settings.autoCollectionApiBaseUrl,
                 payload,
-                financeForm.autoCollectionAgentApiKey,
+                settings.autoCollectionAgentApiKey
             );
-            apiOk = apiResult.ok;
-            apiMessage = apiResult.message || '';
         }
-
-        const localResult = ingestAgentCheckIn(payload);
-        return {
-            localResult,
-            apiForwarded: shouldForwardToApi,
-            apiOk,
-            apiMessage,
-        };
+        return ingestAgentCheckIn(payload);
     };
 
-    const handleSimulateAgentCheckIn = async () => {
-        const token = Date.now().toString().slice(-4);
-        const { localResult, apiForwarded, apiOk, apiMessage } = await ingestWithOptionalApiForwarding({
-            source: 'agent',
-            machineName: `PC-IT-${token}`,
-            hostname: `pc-it-${token}`,
-            assetId: `ASSET-AUTO-${token}`,
-            serialNumber: `SN-AUTO-${token}`,
-            os: 'Windows 11 Pro 23H2',
-            ram: '16 GB',
-            storage: '512 GB SSD',
-            cpu: 'Intel Core i7',
-            userName: 'Alice SuperAdmin',
-            userEmail: 'alice.admin@tracker.app',
-            country: 'France',
-            site: 'Bureau Paris',
-            service: 'IT',
-            ipAddress: '10.10.0.25',
-            domain: 'tracker.local',
-            macAddress: '00:1A:2B:3C:4D:5E',
-            scannedAt: new Date().toISOString(),
-            agents: {
-                sentinelOne: true,
-                matrix42: true,
-                manageEngine: true,
-            },
-        });
-
-        if (!localResult.ok) {
-            showToast(localResult.message, 'error');
-            return;
-        }
-
-        if (apiForwarded && !apiOk) {
-            showToast(`Check-in local OK, mais API indisponible (${apiMessage || 'erreur inconnue'}).`, 'warning');
-            return;
-        }
-
-        if (apiForwarded && apiOk) {
-            showToast('Check-in envoyé API + appliqué localement.', 'success');
-            return;
-        }
-
-        showToast(localResult.message, 'success');
-    };
-
-    const handleBatchCheckInImport = async (files: File[]) => {
+    const importCheckInFiles = async (files: File[]) => {
         if (!files.length) return;
+        let accepted = 0;
+        let rejected = 0;
 
-        setIsBatchImporting(true);
         try {
-            let accepted = 0;
-            let rejected = 0;
-            let apiForwarded = 0;
-            let apiFailed = 0;
-
             for (const file of files) {
-                const raw = await file.text();
-                const parsedBatch = parseAgentBatchContent(raw);
-
-                for (const payload of parsedBatch.payloads) {
+                const parsed = parseAgentBatchContent(await file.text());
+                for (const payload of parsed.payloads) {
                     const result = await ingestWithOptionalApiForwarding(payload);
-                    if (result.localResult.ok) accepted += 1;
+                    if (result.ok) accepted += 1;
                     else rejected += 1;
-                    if (result.apiForwarded) {
-                        apiForwarded += 1;
-                        if (!result.apiOk) apiFailed += 1;
-                    }
                 }
-
-                rejected += parsedBatch.errors.length;
-            }
-
-            setBatchImportSummary({
-                files: files.length,
-                accepted,
-                rejected,
-                apiForwarded,
-                apiFailed,
-            });
-
-            if (accepted > 0 && rejected === 0 && apiFailed === 0) {
-                showToast(`Import check-in terminé: ${accepted} machine(s) traitée(s).`, 'success');
-            } else if (accepted > 0 && apiForwarded > 0 && apiFailed > 0) {
-                showToast(
-                    `Import partiel: ${accepted} locale(s), ${rejected} rejetée(s), API en échec sur ${apiFailed}/${apiForwarded}.`,
-                    'warning',
-                );
-            } else if (accepted > 0) {
-                showToast(`Import partiel: ${accepted} traitée(s), ${rejected} rejetée(s).`, 'warning');
-            } else {
-                showToast("Aucune entrée valide trouvée dans les fichiers d'import.", 'error');
+                rejected += parsed.errors.length;
             }
         } catch {
-            showToast("Impossible de lire les fichiers d'import check-in.", 'error');
-        } finally {
-            setIsBatchImporting(false);
-        }
-    };
-
-    const handlePromoteDetected = (detectedId: string) => {
-        const result = promoteDetectedDeviceToInventory(detectedId);
-        showToast(result.message, result.ok ? 'success' : 'error');
-    };
-
-    const handleIgnoreDetected = (detectedId: string) => {
-        const ok = markDetectedDeviceAsIgnored(detectedId);
-        showToast(ok ? 'Machine ignorée.' : 'Action refusée.', ok ? 'success' : 'warning');
-    };
-
-    const handleTestApiConnection = async () => {
-        if (!financeForm.autoCollectionApiBaseUrl.trim()) {
-            showToast("Veuillez renseigner l'URL API backend.", 'warning');
+            showToast("Impossible de lire les fichiers de remontée.", 'error');
             return;
         }
 
-        const health = await checkAgentApiHealth(financeForm.autoCollectionApiBaseUrl);
-        if (!health.ok) {
-            showToast('Connexion API impossible. Vérifiez URL, port et backend.', 'error');
-            return;
+        setFeedSheetOpen(false);
+        if (accepted && !rejected) {
+            showToast(`${accepted} machine(s) remontée(s) — elles attendent dans Tâches.`, 'success');
+        } else if (accepted) {
+            showToast(`${accepted} remontée(s), ${rejected} rejetée(s).`, 'warning');
+        } else {
+            showToast('Aucune entrée valide dans les fichiers.', 'error');
         }
-
-        showToast(`API joignable (${health.service || 'service check-in'}).`, 'success');
     };
 
-    // --- SECTIONS ---
-    // Libellés courts en compact via TabItem.shortLabel (X8-bis)
-    // « Compte » en 2e position : visible sans scroll même à 393px (§9.3 — la Déconnexion y vit)
-    const sections: Array<{ id: SettingsSection; label: string; shortLabel?: string; icon: string }> = [
-        { id: 'general', label: 'Affichage', icon: 'palette' },
-        { id: 'account', label: 'Compte & Sécurité', shortLabel: 'Compte', icon: 'manage_accounts' },
-        { id: 'finance', label: 'Finances & Paramètres', shortLabel: 'Finances', icon: 'account_balance' },
-        { id: 'collection', label: 'Collecte automatique', shortLabel: 'Collecte', icon: 'developer_board' },
-        { id: 'help', label: 'Aide', icon: 'help' },
-    ];
-
-    const sectionTabs: TabItem[] = sections.map((section) => ({
-        id: section.id,
-        label: section.label,
-        shortLabel: section.shortLabel,
-        icon: <MaterialIcon name={section.icon} size={20} />,
-    }));
-
-    const canSaveSettings = activeSection === 'finance' || activeSection === 'collection';
-    const saveButtonLabel = activeSection === 'collection' ? 'Enregistrer collecte' : 'Enregistrer finances';
-    const passiveSectionHint = activeSection === 'general'
-        ? 'Apparence appliquée automatiquement'
-        : activeSection === 'account'
-            ? 'Gestion du compte sans sauvegarde globale'
-            : activeSection === 'help'
-                ? 'Section informative'
-                : null;
+    const goBack = () => setView('index');
 
     return (
-        <PageContainer padding="none" className="flex flex-col h-full gap-0 max-w-full">
-            {/* WRAPPED HEADER TO MATCH STANDARD SPACING */}
-            <div className="px-page-sm medium:px-page pt-page-sm medium:pt-page sticky top-0 z-20 bg-surface/95 backdrop-blur-sm">
-                <PageHeader
-                    sticky={false}
-                    title="Paramètres"
-                    subtitle="Gérez vos préférences et la configuration système."
-                    breadcrumb="PARAMÈTRES"
-                    actions={
-                        // Sur compact portrait, seules les sections sauvegardables ont une action réelle :
-                        // ne rien passer sinon (le hint est masqué sous medium — éviter la bande vide, X11).
-                        canSaveSettings || !hasMobileTopBar ? (
-                            <div className="flex gap-2 flex-wrap justify-end">
-                                {canSaveSettings ? (
-                                    <Button
-                                        variant="filled"
-                                        icon={<MaterialIcon name="save" size={18} />}
-                                        onClick={handleSave}
-                                        className="whitespace-nowrap"
-                                        title="Enregistrer la configuration de cette section."
-                                    >
-                                        {saveButtonLabel}
-                                    </Button>
-                                ) : (
-                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant whitespace-nowrap">
-                                        <MaterialIcon name="check_circle" size={14} />
-                                        {passiveSectionHint}
-                                    </span>
+        <div className="flex min-h-0 w-full flex-1 flex-col">
+            <SettingsBar
+                title={VIEW_TITLE[view]}
+                owner={VIEW_OWNER[view]}
+                onBack={view === 'index' ? undefined : goBack}
+            />
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 medium:px-page">
+                <Reading className="flex flex-col gap-5 pb-16">
+                    {view === 'index' && (
+                        <>
+                            <RuleGroup header="Ce qui est à vous">
+                                <RuleGroup.Row
+                                    title="Compte et sécurité"
+                                    subtitle="Mot de passe, double authentification, session"
+                                    status={{ icon: twoFactor.icon, tone: twoFactor.tone }}
+                                    value={twoFactor.label}
+                                    valueTone={twoFactor.tone}
+                                    onOpen={() => setView('account')}
+                                />
+                            </RuleGroup>
+
+                            <RuleGroup header="Ce qui est à l'entreprise">
+                                <RuleGroup.Row
+                                    title="Devise et année fiscale"
+                                    subtitle="Tout montant du produit s'écrit avec"
+                                    value={`${settings.currency} · ${fiscalMonth.short}`}
+                                    onOpen={() => setView('currency')}
+                                />
+                                <RuleGroup.Row
+                                    title="Amortissement par défaut"
+                                    subtitle={
+                                        governedAssets > 0
+                                            ? `Décide de la valeur de ${governedAssets} actif${governedAssets > 1 ? 's' : ''}`
+                                            : "Sert quand ni le type ni la fiche ne portent le leur"
+                                    }
+                                    value={`${settings.defaultDepreciationYears} ans`}
+                                    onOpen={() => setView('depreciation')}
+                                />
+                            </RuleGroup>
+
+                            <RuleGroup
+                                header="Ce qui est à l'informatique"
+                                note={
+                                    <>
+                                        Ce que les sources produisent est <strong className="font-medium text-text-secondary">du travail</strong>, pas un réglage :
+                                        il attend dans la file, avec le reste. Paramètres règle les sources ; il ne garde pas leur produit.
+                                    </>
+                                }
+                            >
+                                <RuleGroup.Row
+                                    title="Sources de collecte"
+                                    subtitle={
+                                        stalestSource
+                                            ? `${stalestSource.title} n'a rien renvoyé depuis ${stalestSource.days} jours`
+                                            : 'Agent local, annuaire, scan réseau'
+                                    }
+                                    status={stalestSource ? { icon: Clock, tone: 'pending' } : undefined}
+                                    value={
+                                        enabledSources === 0
+                                            ? 'Aucune active'
+                                            : `${enabledSources} active${enabledSources > 1 ? 's' : ''} sur ${SOURCES.length}`
+                                    }
+                                    valueTone={
+                                        enabledSources === 0 ? 'muted' : stalestSource ? 'pending' : undefined
+                                    }
+                                    onOpen={() => setView('sources')}
+                                />
+                                {pendingDevices > 0 && (
+                                    <RuleGroup.Row
+                                        title={`${pendingDevices} machine${pendingDevices > 1 ? 's' : ''} détectée${pendingDevices > 1 ? 's' : ''} à valider`}
+                                        subtitle="Ce que les sources produisent attend dans Tâches › À faire"
+                                        external
+                                        onOpen={() => onNavigate?.('tasks')}
+                                    />
                                 )}
-                                {saveFeedback && (
-                                    <span className="hidden medium:inline-flex items-center gap-1.5 rounded-md bg-tertiary-container px-3 py-2 text-label-small text-on-tertiary-container whitespace-nowrap">
-                                        <MaterialIcon name="done" size={14} />
-                                        {saveFeedback}
-                                    </span>
+                            </RuleGroup>
+
+                            <RuleGroup
+                                header="À propos"
+                                note="Les éléments de démonstration (équipements, utilisateurs) sont restaurés à chaque chargement, y compris après suppression. Vos créations et modifications sont, elles, conservées."
+                            >
+                                <RuleGroup.Row title="Version" value={APP_CONFIG.version} />
+                                <RuleGroup.Row
+                                    title="Thème"
+                                    subtitle="Clair par décision d'identité — il n'y a pas de mode sombre à attendre"
+                                    value="Clair"
+                                />
+                                {APP_CONFIG.supportEmail && (
+                                    <RuleGroup.Row
+                                        title="Contacter le support"
+                                        value={APP_CONFIG.supportEmail}
+                                        onOpen={() => {
+                                            window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
+                                        }}
+                                        external
+                                    />
                                 )}
-                            </div>
-                        ) : undefined
-                    }
-                />
-            </div>
+                            </RuleGroup>
+                        </>
+                    )}
 
-            <div className="flex-1 overflow-hidden">
-                <PageContainer padding="none" className="h-full flex flex-col expanded:flex-row gap-0 expanded:gap-8 md:px-page max-w-[1600px] mx-auto">
+                    {view === 'account' && (
+                        <>
+                            <RuleGroup header="Qui est connecté">
+                                <RuleGroup.Row
+                                    title={currentUser?.name ?? 'Utilisateur'}
+                                    subtitle={currentUser?.email ?? ''}
+                                    value={currentUser?.role}
+                                />
+                            </RuleGroup>
 
-                    {/* SIDEBAR NAVIGATION — compact/medium : PageTabs (affordance d'overflow
-                        intégrée, X8) ; expanded : nav verticale */}
-                    <aside className="w-full expanded:w-64 shrink-0 bg-surface expanded:bg-transparent border-b expanded:border-b-0 border-outline-variant p-4 expanded:py-8">
-                        {isCompactOrMedium ? (
-                            <PageTabs
-                                items={sectionTabs}
-                                activeId={activeSection}
-                                onChange={(id) => setActiveSection(id as SettingsSection)}
-                                idBase="settings-sections"
-                                ariaLabel="Sections des paramètres"
-                                shortLabelBreakpoint="expanded"
-                            />
-                        ) : (
-                            <nav className="flex flex-col gap-2">
-                                {sections.map(section => (
-                                    <Button
-                                        key={section.id}
-                                        type="button"
-                                        variant={activeSection === section.id ? 'tonal' : 'text'}
-                                        onClick={() => setActiveSection(section.id)}
-                                        className={cn(
-                                            "h-auto w-full rounded-md px-4 py-3 !text-title-small !font-medium transition-all whitespace-nowrap expanded:whitespace-normal justify-start",
-                                            activeSection === section.id
-                                                ? "bg-primary-container text-on-primary-container shadow-elevation-1"
-                                                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                                        )}
-                                    >
-                                        <MaterialIcon name={section.icon} size={20} className={activeSection === section.id ? "text-primary" : "text-on-surface-variant"} />
-                                        {section.label}
-                                    </Button>
-                                ))}
-                            </nav>
-                        )}
-                    </aside>
+                            <RuleGroup header="Sécurité">
+                                <RuleGroup.Row
+                                    title="Mot de passe"
+                                    subtitle="Il sert à ouvrir la session, pas à signer une réception"
+                                    onOpen={() => setPasswordSheetOpen(true)}
+                                />
+                                <RuleGroup.Row
+                                    title="Double authentification"
+                                    subtitle="Un second facteur à chaque connexion"
+                                    trailing={
+                                        <Toggle checked={isTwoFactorEnabled} onChange={setIsTwoFactorEnabled} />
+                                    }
+                                />
+                            </RuleGroup>
 
-                    {/* MAIN CONTENT AREA */}
-                    <main className="flex-1 overflow-y-auto p-4 expanded:py-8 expanded:pr-4">
-                        <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-medium2 pb-20">
-
-                            {/* --- GENERAL SECTION --- */}
-                            {activeSection === 'general' && (
-                                <div className="space-y-6">
-                                    <h2 className="text-title-large font-bold">Apparence</h2>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1">
-                                        <h3 className="text-title-medium font-semibold mb-2">Thème</h3>
-                                        <div className="flex items-center gap-3 rounded-md bg-surface-container-low border border-outline-variant p-4">
-                                            <MaterialIcon name="light_mode" size={24} className="text-primary" />
-                                            <div>
-                                                <p className="text-body-medium font-medium text-on-surface">Thème clair (identité Caterpillar)</p>
-                                                <p className="text-body-small text-on-surface-variant">Le mode sombre sera proposé dans une prochaine version.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* --- FINANCE SECTION --- */}
-                            {activeSection === 'finance' && (
-                                <div className="space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h2 className="text-title-large font-bold">Configuration Financière</h2>
-                                        <Badge variant="neutral" className="gap-1">
-                                            <MaterialIcon name="info" size={14} /> Global
-                                        </Badge>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 expanded:grid-cols-2 gap-6">
-                                        <div className="space-y-6">
-                                            <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 h-full">
-                                                <h3 className="text-title-medium font-semibold mb-4 flex items-center gap-2">
-                                                    <MaterialIcon name="settings" size={20} className="text-primary" />
-                                                    Paramètres Généraux
-                                                </h3>
-                                                <div className="space-y-4">
-                                                    <SelectField
-                                                        label="Devise"
-                                                        name="currency"
-                                                        value={financeForm.currency}
-                                                        onChange={(e) => handleFinanceChange('currency', e.target.value)}
-                                                        options={[
-                                                            { value: 'XOF', label: 'XOF (Franc CFA)' }
-                                                        ]}
-                                                    />
-                                                    <SelectField
-                                                        label="Début année fiscale"
-                                                        name="fiscalYearStart"
-                                                        value={financeForm.fiscalYearStart}
-                                                        onChange={(e) => handleFinanceChange('fiscalYearStart', e.target.value)}
-                                                        options={[
-                                                            { value: '01', label: 'Janvier' },
-                                                            { value: '04', label: 'Avril' },
-                                                            { value: '09', label: 'Septembre' }
-                                                        ]}
-                                                    />
-
-                                                    <div className="flex items-center justify-between pt-2">
-                                                        <label className="text-title-small font-medium text-on-surface">Notation compacte (1k, 1M)</label>
-                                                        <Toggle checked={financeForm.compactNotation} onChange={(v) => handleFinanceChange('compactNotation', v)} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-6">
-                                            <div className="p-6 bg-primary-container/20 rounded-lg border border-primary/20 h-full">
-                                                {/* Règle X12 : pas de jaune en texte sur fond clair — l'accent reste le fond teinté */}
-                                                <h3 className="text-title-medium font-semibold mb-4 flex items-center gap-2 text-on-surface">
-                                                    <MaterialIcon name="preview" size={20} />
-                                                    Aperçu Amortissement
-                                                </h3>
-                                                <div className="space-y-4 text-body-medium">
-                                                    <div className="flex justify-between py-2 border-b border-outline-variant/50">
-                                                        <span className="text-on-surface-variant">Base (Exemple)</span>
-                                                        <span className="font-mono font-bold">1 000 000 {financeForm.currency}</span>
-                                                    </div>
-                                                    <div className="flex justify-between py-2 border-b border-outline-variant/50">
-                                                        <span className="text-on-surface-variant">Mensualité</span>
-                                                        <span className="font-mono font-bold text-on-surface">{formatCurrency(simulation.monthly, financeForm.currency, financeForm.compactNotation)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between py-2">
-                                                        <span className="text-on-surface-variant">Valeur Résiduelle</span>
-                                                        <span className="font-mono font-bold text-tertiary">{formatCurrency(simulation.salvageValue, financeForm.currency, financeForm.compactNotation)}</span>
-                                                    </div>
-                                                    <div className="bg-surface/50 p-3 rounded-md text-body-small text-on-surface-variant italic mt-4 border border-outline-variant/50">
-                                                        {financeForm.defaultDepreciationMethod === 'linear'
-                                                            ? '* Estimation calculée avec la formule linéaire du moteur de valorisation.'
-                                                            : "* Méthode dégressive sélectionnée : le moteur de valorisation applique aujourd'hui la formule linéaire — l'aperçu reflète ce calcul réel."}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1">
-                                        <h3 className="text-title-medium font-semibold mb-4">Règles d'Amortissement par défaut</h3>
-                                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-6">
-                                            <SelectField
-                                                label="Méthode"
-                                                name="method"
-                                                value={financeForm.defaultDepreciationMethod}
-                                                onChange={(e) => handleFinanceChange('defaultDepreciationMethod', e.target.value)}
-                                                options={[
-                                                    { value: 'linear', label: 'Linéaire (Constant)' },
-                                                    { value: 'degressive', label: 'Dégressif (Accéléré)' }
-                                                ]}
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <InputField
-                                                    label="Durée (Ans)"
-                                                    type="number"
-                                                    value={financeForm.defaultDepreciationYears.toString()}
-                                                    onChange={(e) => handleFinanceChange('defaultDepreciationYears', Number(e.target.value))}
-                                                />
-                                                <InputField
-                                                    label="Valeur Résid. (%)"
-                                                    type="number"
-                                                    value={financeForm.salvageValuePercent.toString()}
-                                                    onChange={(e) => handleFinanceChange('salvageValuePercent', Number(e.target.value))}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* --- AUTO COLLECTION SECTION --- */}
-                            {activeSection === 'collection' && (
-                                <div className="space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h2 className="text-title-large font-bold">Collecte automatique</h2>
-                                        <Button
-                                            variant="outlined"
-                                            icon={<MaterialIcon name="data_object" size={16} />}
-                                            onClick={handleSimulateAgentCheckIn}
-                                        >
-                                            Simuler check-in
-                                        </Button>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 medium:grid-cols-5 gap-3">
-                                        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
-                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Détectées</p>
-                                            <p className="text-title-large font-semibold">{detectedStats.total}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
-                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">À valider</p>
-                                            <p className="text-title-large font-semibold text-secondary">{detectedStats.pending}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
-                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Liées existant</p>
-                                            {/* Règle X12 : valeur en on-surface, pas de jaune en texte sur fond clair */}
-                                            <p className="text-title-large font-semibold text-on-surface">{detectedStats.linked}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
-                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Importées</p>
-                                            <p className="text-title-large font-semibold text-tertiary">{detectedStats.imported}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-3">
-                                            <p className="text-label-small uppercase tracking-wide text-on-surface-variant">Ambiguës</p>
-                                            <p className="text-title-large font-semibold text-error">{detectedStats.ambiguous}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 space-y-4">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h3 className="text-title-medium font-semibold">Agent local (GPO / Intune)</h3>
-                                            <Toggle
-                                                checked={financeForm.autoCollectionAgentEnabled}
-                                                onChange={(value) => handleFinanceChange('autoCollectionAgentEnabled', value)}
-                                            />
-                                        </div>
-                                        <InputField
-                                            label="Clé API agent"
-                                            value={financeForm.autoCollectionAgentApiKey}
-                                            onChange={(e) => handleFinanceChange('autoCollectionAgentApiKey', e.target.value)}
-                                            placeholder="NEEMBA_AGENT_KEY"
-                                        />
-                                        <InputField
-                                            label="Fréquence check-in (minutes)"
-                                            type="number"
-                                            value={String(financeForm.autoCollectionHeartbeatMinutes)}
-                                            onChange={(e) => handleFinanceChange('autoCollectionHeartbeatMinutes', Number(e.target.value))}
-                                        />
-                                        <div className="flex items-center justify-between pt-2">
-                                            <span className="text-body-medium text-on-surface">Forward des check-ins vers API backend</span>
-                                            <Toggle
-                                                checked={financeForm.autoCollectionForwardToApi}
-                                                onChange={(value) => handleFinanceChange('autoCollectionForwardToApi', value)}
-                                            />
-                                        </div>
-                                        <InputField
-                                            label="URL API backend"
-                                            value={financeForm.autoCollectionApiBaseUrl}
-                                            onChange={(e) => handleFinanceChange('autoCollectionApiBaseUrl', e.target.value)}
-                                            placeholder="http://localhost:8787"
-                                        />
-                                        <div className="flex justify-end">
-                                            <Button variant="outlined" size="sm" onClick={handleTestApiConnection}>
-                                                Tester la connexion API
-                                            </Button>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-2">
-                                            <span className="text-body-medium text-on-surface">Validation manuelle obligatoire</span>
-                                            <Toggle
-                                                checked={financeForm.autoCollectionRequireManualValidation}
-                                                onChange={(value) => handleFinanceChange('autoCollectionRequireManualValidation', value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 space-y-4">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h3 className="text-title-medium font-semibold">Active Directory (LDAP)</h3>
-                                            <Toggle
-                                                checked={financeForm.autoCollectionAdEnabled}
-                                                onChange={(value) => handleFinanceChange('autoCollectionAdEnabled', value)}
-                                            />
-                                        </div>
-                                        <InputField
-                                            label="Contrôleur de domaine"
-                                            value={financeForm.autoCollectionAdHost}
-                                            onChange={(e) => handleFinanceChange('autoCollectionAdHost', e.target.value)}
-                                            placeholder="dc01.tracker.local"
-                                        />
-                                        <InputField
-                                            label="Base DN"
-                                            value={financeForm.autoCollectionAdBaseDn}
-                                            onChange={(e) => handleFinanceChange('autoCollectionAdBaseDn', e.target.value)}
-                                            placeholder="OU=Computers,DC=tracker,DC=local"
-                                        />
-                                        <InputField
-                                            label="Compte de service"
-                                            value={financeForm.autoCollectionAdServiceAccount}
-                                            onChange={(e) => handleFinanceChange('autoCollectionAdServiceAccount', e.target.value)}
-                                            placeholder="svc-neemba-ldap"
-                                        />
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 space-y-4">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h3 className="text-title-medium font-semibold">Scan réseau passif</h3>
-                                            <Toggle
-                                                checked={financeForm.autoCollectionNetworkEnabled}
-                                                onChange={(value) => handleFinanceChange('autoCollectionNetworkEnabled', value)}
-                                            />
-                                        </div>
-                                        <InputField
-                                            label="Plages IP (séparées par virgule)"
-                                            value={financeForm.autoCollectionNetworkRanges}
-                                            onChange={(e) => handleFinanceChange('autoCollectionNetworkRanges', e.target.value)}
-                                            placeholder="10.10.0.0/24, 10.20.0.0/24"
-                                        />
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 space-y-4">
-                                        <h3 className="text-title-medium font-semibold">Import batch check-in</h3>
-                                        <p className="text-body-small text-on-surface-variant">
-                                            Formats acceptés: JSON (objet, tableau ou `checkins[]`) et NDJSON.
-                                            Schema versionné supporté: <code>{'neemba.agent.checkin.v1'}</code>.
-                                        </p>
-                                        <FileDropzone
-                                            onFileSelect={(file) => handleBatchCheckInImport([file])}
-                                            onFilesSelect={handleBatchCheckInImport}
-                                            multiple
-                                            accept=".json,.ndjson,.txt"
-                                            isProcessing={isBatchImporting}
-                                            label="Importer des fichiers check-in"
-                                            subLabel="Déposez un ou plusieurs fichiers de remontée agent"
-                                        />
-                                        {batchImportSummary && (
-                                            <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
-                                                {batchImportSummary.files} fichier(s) • {batchImportSummary.accepted} entrée(s) traitée(s) • {batchImportSummary.rejected} rejetée(s)
-                                                {batchImportSummary.apiForwarded > 0 && (
-                                                    <> • API: {batchImportSummary.apiForwarded - batchImportSummary.apiFailed}/{batchImportSummary.apiForwarded} OK</>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 space-y-4">
-                                        <h3 className="text-title-medium font-semibold">Machines détectées</h3>
-                                        {recentDetectedDevices.length === 0 ? (
-                                            <div className="rounded-md border border-dashed border-outline-variant p-5 text-body-small text-on-surface-variant">
-                                                Aucune machine détectée pour le moment.
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {recentDetectedDevices.map((device) => (
-                                                    <div
-                                                        key={device.id}
-                                                        className="rounded-md border border-outline-variant bg-surface-container-low p-3"
-                                                    >
-                                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                                            <div>
-                                                                <p className="text-title-small font-semibold">{device.machineName}</p>
-                                                                <p className="text-body-small text-on-surface-variant">
-                                                                    {device.assetId || '-'} • {device.hostname || '-'} • {formatCheckinDate(device.lastSeenAt)}
-                                                                </p>
-                                                            </div>
-                                                            {buildDetectedStatusBadge(device.status)}
-                                                        </div>
-                                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-body-small text-on-surface-variant">
-                                                            <span>{device.country || '-'} / {device.site || '-'} / {device.service || '-'}</span>
-                                                            <span>•</span>
-                                                            <span>Confiance: {device.matchConfidence || 'none'}</span>
-                                                            <span>•</span>
-                                                            <span>S1: {device.apps.sentinelOne ? 'Oui' : 'Non'}</span>
-                                                            <span>•</span>
-                                                            <span>M42: {device.apps.matrix42 ? 'Oui' : 'Non'}</span>
-                                                            <span>•</span>
-                                                            <span>ME: {device.apps.manageEngine ? 'Oui' : 'Non'}</span>
-                                                        </div>
-                                                        <div className="mt-3 flex flex-wrap gap-2">
-                                                            <Button
-                                                                variant="outlined"
-                                                                size="sm"
-                                                                disabled={device.status === 'ignored' || device.status === 'imported'}
-                                                                onClick={() => handlePromoteDetected(device.id)}
-                                                            >
-                                                                Importer / Mettre à jour
-                                                            </Button>
-                                                            <Button
-                                                                variant="text"
-                                                                size="sm"
-                                                                className="text-error"
-                                                                disabled={device.status === 'ignored'}
-                                                                onClick={() => handleIgnoreDetected(device.id)}
-                                                            >
-                                                                Ignorer
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* --- ACCOUNT SECTION --- */}
-                            {activeSection === 'account' && (
-                                <div className="space-y-6">
-                                    <h2 className="text-title-large font-bold">Mon Compte</h2>
-
-                                    {/* Carte branchée sur la session (§9.3 : elle affichait Alice en dur pour
-                                        tout le monde) ; le CTA « Modifier » sans handler a été retiré (INV-7). */}
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex flex-wrap items-start gap-6">
-                                        {/* Règle X12 : initiales sombres sur fond teinté primaire (jaune jamais en texte sur fond clair) */}
-                                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-on-primary-container text-display-small font-bold border-2 border-surface shadow-elevation-1 shrink-0">
-                                            {(currentUser?.name ?? '')
-                                                .split(/\s+/)
-                                                .filter(Boolean)
-                                                .slice(0, 2)
-                                                .map((part) => part[0]?.toUpperCase())
-                                                .join('') || '—'}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-title-large font-bold break-words">{currentUser?.name ?? 'Utilisateur'}</h3>
-                                            <p className="text-on-surface-variant break-words">{currentUser?.email ?? ''}</p>
-                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                {currentUser?.role && <Badge variant="info">{currentUser.role}</Badge>}
-                                                {currentUser?.department && <Badge variant="neutral">{currentUser.department}</Badge>}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1 flex items-center justify-between gap-4">
-                                        <div className="min-w-0">
-                                            <h3 className="text-title-medium font-semibold">Session</h3>
-                                            <p className="text-body-medium text-on-surface-variant mt-1">Se déconnecter de l'application sur cet appareil.</p>
-                                        </div>
-                                        <Button
-                                            variant="outlined"
-                                            onClick={onLogout}
-                                            className="text-error hover:text-error hover:bg-error-container whitespace-nowrap shrink-0"
-                                            icon={<MaterialIcon name="logout" size={18} />}
-                                        >
+                            <RuleGroup header="Session">
+                                <RuleGroup.Row
+                                    title="Cet appareil"
+                                    subtitle="Se déconnecter ferme la session ici, pas ailleurs"
+                                    trailing={
+                                        <Button variant="outlined" size="sm" onClick={onLogout} icon={<Icon glyph={SignOut} size={18} />}>
                                             Déconnexion
                                         </Button>
-                                    </div>
+                                    }
+                                />
+                            </RuleGroup>
+                        </>
+                    )}
 
-                                    <div className="grid grid-cols-1 gap-6">
-                                        <div className="p-6 bg-surface rounded-lg border border-outline-variant shadow-elevation-1">
-                                            <h3 className="text-title-medium font-semibold mb-6 flex items-center gap-2">
-                                                <MaterialIcon name="security" size={20} className="text-tertiary" />
-                                                Sécurité
-                                            </h3>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between py-2">
-                                                    <div>
-                                                        <p className="font-medium">Mot de passe</p>
-                                                        <p className="text-body-medium text-on-surface-variant">Dernière modification il y a 90 jours</p>
-                                                    </div>
-                                                    {/* Règle X12 : couleur de texte par défaut du bouton outlined (sombre), pas de jaune */}
-                                                    <Button variant="outlined" className="whitespace-nowrap px-4">Mettre à jour</Button>
-                                                </div>
-                                                <div className="h-px bg-outline-variant/50" />
-                                                <div className="flex items-center justify-between py-2 gap-3">
-                                                    <div className="min-w-0">
-                                                        <p className="font-medium">Authentification 2FA</p>
-                                                        <p className="text-body-medium text-on-surface-variant">Recommandé pour les administrateurs</p>
-                                                        {!isTwoFactorEnabled && (
-                                                            <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-error-container px-2 py-1 text-label-small text-on-error-container">
-                                                                <MaterialIcon name="warning" size={14} />
-                                                                Protection inactive
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <Toggle checked={isTwoFactorEnabled} onChange={setIsTwoFactorEnabled} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                    {view === 'currency' && (
+                        <>
+                            <RuleGroup
+                                header="Lecture des montants"
+                                note="Ces réglages ne changent pas un calcul mais une lecture : tous les montants du produit s'écrivent avec."
+                            >
+                                <RuleGroup.Row
+                                    title="Devise"
+                                    subtitle="Le franc CFA est la seule devise du parc"
+                                    value={settings.currency}
+                                />
+                                <RuleGroup.Row
+                                    title="Notation compacte"
+                                    subtitle="1 200 000 s'écrit 1,2 M"
+                                    trailing={
+                                        <Toggle
+                                            checked={settings.compactNotation}
+                                            onChange={(value) => apply({ compactNotation: value })}
+                                        />
+                                    }
+                                />
+                            </RuleGroup>
 
-                            {/* --- HELP SECTION --- */}
-                            {activeSection === 'help' && (
-                                <div className="space-y-6">
-                                    <h2 className="text-title-large font-bold">Centre d'aide</h2>
+                            <RuleGroup header="Début de l'année fiscale">
+                                {FISCAL_MONTHS.map((month) => (
+                                    <RuleGroup.Row
+                                        key={month.value}
+                                        title={month.label}
+                                        status={
+                                            settings.fiscalYearStart === month.value
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={settings.fiscalYearStart === month.value ? 'Retenu' : undefined}
+                                        valueTone={settings.fiscalYearStart === month.value ? 'positive' : undefined}
+                                        onOpen={() => apply({ fiscalYearStart: month.value })}
+                                    />
+                                ))}
+                            </RuleGroup>
 
-                                    <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4">
-                                        {[ 
-                                            { title: 'Documentation', icon: 'menu_book', desc: 'Guides complets et manuels.' },
-                                            { title: 'Support', icon: 'support_agent', desc: 'Contacter l\'équipe technique.' },
-                                            { title: 'Tutoriels', icon: 'play_circle', desc: 'Vidéos de démonstration.' },
-                                            { title: 'FAQ', icon: 'quiz', desc: 'Questions fréquentes.' },
-                                        ].map((item, idx) => (
-                                            <Button
-                                                key={idx}
-                                                type="button"
-                                                variant="outlined"
-                                                layout="card"
-                                                className="rounded-lg p-4 bg-surface border-outline-variant hover:border-primary/50 hover:bg-surface-container-low group"
-                                            >
-                                                <div className="w-10 h-10 bg-secondary-container text-secondary rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                    <MaterialIcon name={item.icon} size={20} />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-on-surface">{item.title}</h3>
-                                                    <p className="text-body-medium text-on-surface-variant">{item.desc}</p>
-                                                </div>
-                                            </Button>
-                                        ))}
-                                    </div>
+                            <p className="text-[12px] leading-[17px] text-text-muted">
+                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on le pose.
+                            </p>
+                        </>
+                    )}
 
-                                    <div className="p-6 bg-surface-container-low rounded-lg border border-outline-variant text-center">
-                                        <p className="text-body-medium text-on-surface-variant mb-2">Version du système</p>
-                                        <p className="font-mono font-bold">{APP_CONFIG.appName} v{APP_CONFIG.version}</p>
-                                    </div>
+                    {view === 'depreciation' && (
+                        <>
+                            <RuleGroup
+                                header="Par défaut"
+                                note={
+                                    <>
+                                        Un plan se prend d'abord sur la fiche, puis sur le type, et seulement ensuite ici.
+                                        {typesWithOwnPlan === categories.length && categories.length > 0
+                                            ? ` Les ${categories.length} types portent déjà le leur : ce plan ne sert donc qu'aux types créés sans lui.`
+                                            : ` ${categories.length - typesWithOwnPlan} type(s) n'en portent pas : ce plan est le leur.`}
+                                    </>
+                                }
+                            >
+                                {DEPRECIATION_METHODS.map((method) => (
+                                    <RuleGroup.Row
+                                        key={method.value}
+                                        title={method.label}
+                                        subtitle={
+                                            method.value === 'linear'
+                                                ? 'La valeur se répartit également sur la durée'
+                                                : 'La valeur tombe plus vite les premières années'
+                                        }
+                                        status={
+                                            settings.defaultDepreciationMethod === method.value
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={
+                                            settings.defaultDepreciationMethod === method.value ? 'Retenue' : undefined
+                                        }
+                                        valueTone={
+                                            settings.defaultDepreciationMethod === method.value ? 'positive' : undefined
+                                        }
+                                        onOpen={() => apply({ defaultDepreciationMethod: method.value })}
+                                    />
+                                ))}
+                            </RuleGroup>
 
-                                    {/* INV-9 / D8 (Option B) : le réamorçage des données de démo est assumé — le dire ici */}
-                                    <div className="p-4 bg-secondary-container/30 rounded-lg border border-secondary/30 flex items-start gap-3">
-                                        <MaterialIcon name="info" size={20} className="text-secondary shrink-0 mt-0.5" />
-                                        <p className="text-body-medium text-on-surface-variant">
-                                            <strong className="text-on-surface">Données de démonstration :</strong>{' '}
-                                            les éléments fournis avec la démo (équipements, utilisateurs) sont
-                                            restaurés à chaque chargement de l'application, y compris après
-                                            suppression. Vos créations et modifications sont, elles, conservées.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
+                            <RuleGroup header="Durée et fin de vie">
+                                <RuleGroup.Row
+                                    title="Durée"
+                                    subtitle="Au bout de laquelle un objet ne vaut plus rien au bilan"
+                                    trailing={
+                                        <InputField
+                                            type="number"
+                                            aria-label="Durée en années"
+                                            value={String(settings.defaultDepreciationYears)}
+                                            onChange={(event) =>
+                                                apply({ defaultDepreciationYears: Number(event.target.value) })
+                                            }
+                                            className="w-24"
+                                        />
+                                    }
+                                />
+                                <RuleGroup.Row
+                                    title="Valeur résiduelle"
+                                    subtitle="Ce qu'il vaut encore à la fin, en pourcentage"
+                                    trailing={
+                                        <InputField
+                                            type="number"
+                                            aria-label="Valeur résiduelle en pourcentage"
+                                            value={String(settings.salvageValuePercent)}
+                                            onChange={(event) =>
+                                                apply({ salvageValuePercent: Number(event.target.value) })
+                                            }
+                                            className="w-24"
+                                        />
+                                    }
+                                />
+                            </RuleGroup>
 
-                        </div>
-                    </main>
-                </PageContainer>
+                            <RuleGroup header="Ce que porte chaque type" headerTrailing={`${typesWithOwnPlan} sur ${categories.length}`}>
+                                {categories.map((category) => (
+                                    <RuleGroup.Row
+                                        key={category.id}
+                                        title={category.name}
+                                        value={
+                                            category.defaultDepreciation?.years
+                                                ? `${category.defaultDepreciation.years} ans`
+                                                : 'Prend le défaut'
+                                        }
+                                        valueTone={category.defaultDepreciation?.years ? undefined : 'muted'}
+                                    />
+                                ))}
+                            </RuleGroup>
+
+                            <Notice>
+                                <strong className="font-medium text-on-surface">La devise et l'année fiscale sont ailleurs.</strong>{' '}
+                                Elles ne changent pas un calcul mais une lecture.
+                            </Notice>
+
+                            <p className="text-[12px] leading-[17px] text-text-muted">
+                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on le pose.
+                            </p>
+                        </>
+                    )}
+
+                    {view === 'sources' && (
+                        <>
+                            <RuleGroup note="L'état d'une source, c'est ce qu'elle a renvoyé et quand. Une source qui ne dit plus rien depuis six jours est le seul fait qui mérite d'être remonté au sommaire.">
+                                {SOURCES.map((source) => {
+                                    const enabled = Boolean(settings[source.enabledKey]);
+                                    const state = sourceState.get(source.id);
+                                    const days = state?.last ? daysSince(state.last) : null;
+                                    const stale = enabled && (days === null || days >= 2);
+
+                                    return (
+                                        <RuleGroup.Row
+                                            key={source.id}
+                                            title={source.title}
+                                            subtitle={source.subtitle}
+                                            status={
+                                                !enabled
+                                                    ? undefined
+                                                    : stale
+                                                      ? { icon: Clock, tone: 'pending' }
+                                                      : { icon: CheckCircle, tone: 'positive' }
+                                            }
+                                            value={
+                                                !enabled
+                                                    ? 'Désactivée'
+                                                    : days === null
+                                                      ? 'Rien reçu'
+                                                      : days === 0
+                                                        ? `${state?.count} machines aujourd'hui`
+                                                        : `Rien depuis ${days} j`
+                                            }
+                                            valueTone={!enabled ? 'muted' : stale ? 'pending' : 'positive'}
+                                            onOpen={() => openSourceSheet(source.id)}
+                                        />
+                                    );
+                                })}
+                            </RuleGroup>
+
+                            <RuleGroup
+                                header="Alimenter à la main"
+                                note="Une machine remontée n'entre pas au parc toute seule : elle attend une validation dans Tâches."
+                            >
+                                <RuleGroup.Row
+                                    title="Importer des fichiers de remontée"
+                                    subtitle="JSON, tableau, ou NDJSON"
+                                    onOpen={() => setFeedSheetOpen(true)}
+                                />
+                                <RuleGroup.Row
+                                    title="Validation manuelle obligatoire"
+                                    subtitle="Sans elle, une machine reconnue entre au parc sans être vue"
+                                    trailing={
+                                        <Toggle
+                                            checked={settings.autoCollectionRequireManualValidation}
+                                            onChange={(value) =>
+                                                apply({ autoCollectionRequireManualValidation: value })
+                                            }
+                                        />
+                                    }
+                                />
+                            </RuleGroup>
+                        </>
+                    )}
+                </Reading>
             </div>
-        </PageContainer>
+
+            {/* ── La feuille d'une source : la seule exception au geste ─────────────
+                Une clé d'API et une URL **valent ensemble ou pas du tout** — à moitié
+                saisies, elles cassent la collecte. C'est le seul pied de l'écran. */}
+            <BottomSheet
+                open={openSource !== null}
+                onClose={() => setOpenSource(null)}
+                title={SOURCES.find((source) => source.id === openSource)?.title}
+            >
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-[14px] font-medium text-on-surface">Source active</span>
+                        <Toggle
+                            checked={Boolean(
+                                sourceDraft[
+                                    SOURCES.find((source) => source.id === openSource)?.enabledKey ??
+                                        'autoCollectionAgentEnabled'
+                                ]
+                            )}
+                            onChange={(value) => {
+                                const key = SOURCES.find((source) => source.id === openSource)?.enabledKey;
+                                if (key) setSourceDraft((draft) => ({ ...draft, [key]: value }));
+                            }}
+                        />
+                    </div>
+
+                    {openSource === 'agent' && (
+                        <>
+                            <InputField
+                                label="Clé d'API"
+                                value={sourceDraft.autoCollectionAgentApiKey}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({
+                                        ...draft,
+                                        autoCollectionAgentApiKey: event.target.value,
+                                    }))
+                                }
+                                placeholder="NEEMBA_AGENT_KEY"
+                            />
+                            <InputField
+                                label="Fréquence de remontée (minutes)"
+                                type="number"
+                                value={String(sourceDraft.autoCollectionHeartbeatMinutes)}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({
+                                        ...draft,
+                                        autoCollectionHeartbeatMinutes: Number(event.target.value),
+                                    }))
+                                }
+                            />
+                            <p className="text-[12px] leading-[17px] text-text-secondary">
+                                En dessous de 15 minutes, l'agent parle plus qu'il n'observe.
+                            </p>
+                            <InputField
+                                label="URL de l'API"
+                                value={sourceDraft.autoCollectionApiBaseUrl}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({
+                                        ...draft,
+                                        autoCollectionApiBaseUrl: event.target.value,
+                                    }))
+                                }
+                                placeholder="http://localhost:8787"
+                            />
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-[14px] text-on-surface">Renvoyer les remontées à l'API</span>
+                                <Toggle
+                                    checked={sourceDraft.autoCollectionForwardToApi}
+                                    onChange={(value) =>
+                                        setSourceDraft((draft) => ({ ...draft, autoCollectionForwardToApi: value }))
+                                    }
+                                />
+                            </div>
+                            <Button variant="text" size="sm" onClick={testApiConnection} className="self-start">
+                                Tester la connexion
+                            </Button>
+                        </>
+                    )}
+
+                    {openSource === 'active_directory' && (
+                        <>
+                            <InputField
+                                label="Contrôleur de domaine"
+                                value={sourceDraft.autoCollectionAdHost}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({ ...draft, autoCollectionAdHost: event.target.value }))
+                                }
+                                placeholder="dc01.tracker.local"
+                            />
+                            <InputField
+                                label="Base DN"
+                                value={sourceDraft.autoCollectionAdBaseDn}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({
+                                        ...draft,
+                                        autoCollectionAdBaseDn: event.target.value,
+                                    }))
+                                }
+                                placeholder="OU=Computers,DC=tracker,DC=local"
+                            />
+                            <InputField
+                                label="Compte de service"
+                                value={sourceDraft.autoCollectionAdServiceAccount}
+                                onChange={(event) =>
+                                    setSourceDraft((draft) => ({
+                                        ...draft,
+                                        autoCollectionAdServiceAccount: event.target.value,
+                                    }))
+                                }
+                                placeholder="svc-neemba-ldap"
+                            />
+                        </>
+                    )}
+
+                    {openSource === 'network_scan' && (
+                        <InputField
+                            label="Plages IP (séparées par une virgule)"
+                            value={sourceDraft.autoCollectionNetworkRanges}
+                            onChange={(event) =>
+                                setSourceDraft((draft) => ({
+                                    ...draft,
+                                    autoCollectionNetworkRanges: event.target.value,
+                                }))
+                            }
+                            placeholder="10.10.0.0/24, 10.20.0.0/24"
+                        />
+                    )}
+
+                    <Notice>
+                        Une machine remontée <strong className="font-medium text-on-surface">n'entre pas au parc toute seule</strong> :
+                        elle attend une validation dans Tâches.
+                    </Notice>
+
+                    {sourceError && (
+                        <p className="flex gap-2 text-[12px] leading-[17px] text-error">
+                            <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
+                            <span>{sourceError}</span>
+                        </p>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                        <Button variant="text" onClick={() => setOpenSource(null)}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={saveSource} className="flex-1">
+                            Enregistrer la source
+                        </Button>
+                    </div>
+                </div>
+            </BottomSheet>
+
+            {/* Le mot de passe — l'ancien bouton « Mettre à jour » n'avait pas de `onClick`. */}
+            <PasswordSheet
+                open={passwordSheetOpen}
+                onClose={() => setPasswordSheetOpen(false)}
+                userId={currentUser?.id}
+            />
+
+            <BottomSheet
+                open={feedSheetOpen}
+                onClose={() => setFeedSheetOpen(false)}
+                title="Importer des remontées"
+            >
+                <FileDropzone
+                    onFileSelect={(file) => importCheckInFiles([file])}
+                    onFilesSelect={importCheckInFiles}
+                    multiple
+                    accept=".json,.ndjson,.txt"
+                    label="Déposer les fichiers de remontée"
+                    subLabel="JSON (objet, tableau ou checkins[]) et NDJSON"
+                />
+            </BottomSheet>
+        </div>
+    );
+};
+
+/** Changer son propre mot de passe — trois champs, un pied, et rien d'autre. */
+const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: string }> = ({
+    open,
+    onClose,
+    userId,
+}) => {
+    const { showToast } = useToast();
+    const [current, setCurrent] = useState('');
+    const [next, setNext] = useState('');
+    const [confirm, setConfirm] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [pending, setPending] = useState(false);
+
+    useEffect(() => {
+        if (!open) {
+            setCurrent('');
+            setNext('');
+            setConfirm('');
+            setError(null);
+        }
+    }, [open]);
+
+    const submit = async () => {
+        if (!userId) return;
+        if (next.length < 8) {
+            setError('Le nouveau mot de passe fait au moins 8 caractères.');
+            return;
+        }
+        if (next !== confirm) {
+            setError('Les deux saisies ne sont pas identiques.');
+            return;
+        }
+
+        setPending(true);
+        try {
+            await authService.changePassword(userId, current, next);
+            showToast('Mot de passe modifié.', 'success');
+            onClose();
+        } catch {
+            setError("Le mot de passe actuel n'a pas été reconnu. Rien n'a été modifié.");
+        } finally {
+            setPending(false);
+        }
+    };
+
+    return (
+        <BottomSheet open={open} onClose={onClose} title="Mot de passe">
+            <div className="flex flex-col gap-3">
+                <InputField
+                    label="Mot de passe actuel"
+                    type="password"
+                    value={current}
+                    onChange={(event) => setCurrent(event.target.value)}
+                />
+                <InputField
+                    label="Nouveau mot de passe"
+                    type="password"
+                    value={next}
+                    onChange={(event) => setNext(event.target.value)}
+                />
+                <InputField
+                    label="Confirmer"
+                    type="password"
+                    value={confirm}
+                    onChange={(event) => setConfirm(event.target.value)}
+                />
+
+                {error && (
+                    <p className="flex gap-2 text-[12px] leading-[17px] text-error">
+                        <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
+                        <span>{error}</span>
+                    </p>
+                )}
+
+                <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                    <Button variant="text" onClick={onClose}>
+                        Annuler
+                    </Button>
+                    <Button variant="filled" onClick={submit} disabled={pending} className="flex-1">
+                        Changer le mot de passe
+                    </Button>
+                </div>
+            </div>
+        </BottomSheet>
     );
 };
 
 export default SettingsPage;
-
-
-
-
-
-
-
-
-
-
-
-
-
-

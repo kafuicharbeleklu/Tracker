@@ -1,0 +1,459 @@
+<!-- @dsCard group="05. Utilisateur" viewport="1320x3290" name="05.2 Détail utilisateur" subtitle="Le héro de 04.2 appliqué à une personne — nom à 28 px, trois métriques dans le voile, l'état de compte par inversion et non par bandeau · le menu de débordement · « Mon profil », qui renvoie à la vue unique 07.1" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Détail utilisateur — piste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--colnote-h:144px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;--dark-line:rgba(255,255,255,.14);
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro h2{font-size:15px;font-weight:500;margin:22px 0 6px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.ch{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}.ch.glyph{align-items:center;justify-content:flex-start;gap:10px}
+.ch h3{flex:1;min-width:0;font-size:13px;font-weight:500}
+.ch .n{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.phone .code{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.015em}
+/* barre du haut : l'identité n'est écrite qu'ici */
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tb:hover{background:var(--inset)}
+.tid{flex:1;min-width:0;padding:0 4px}
+.tid>span,.ev .tt>span,.idt .ty,.idt .md{display:block}
+.tid .code{font-size:16px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tid .aid{font-size:11px;line-height:15px;color:var(--ink2)}
+.ovf{position:relative;flex:0 0 48px}
+.ovf>summary{list-style:none;cursor:pointer;width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+.ovf>summary::-webkit-details-marker{display:none}
+.ovf .menu{position:absolute;top:50px;right:0;width:262px;background:var(--surface);border-radius:8px;box-shadow:0 8px 28px rgba(10,25,29,.20),0 0 0 1px var(--line);padding:6px;z-index:6}
+.mi{display:flex;flex-direction:column;justify-content:center;gap:1px;min-height:48px;padding:8px 10px;font-size:14px;text-decoration:none;color:var(--ink)}
+.mi .md{font-size:11px;line-height:15px;color:var(--ink3)}
+.mi:hover{background:var(--inset);color:var(--ink)}
+.mi.dang{color:var(--danger)}
+.mi.dang:hover{color:var(--danger)}
+.msep{height:1px;background:var(--line);margin:4px 0}
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+/* héro : la personne, son état de compte, ce qu'elle détient, le geste */
+.hero{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:13px}.hero.plain{display:block}.hero.stack{position:relative;isolation:isolate;overflow:hidden}
+.idhead{display:flex;gap:14px;align-items:flex-start}
+.idh{width:56px;height:56px;flex:0 0 56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:20px;letter-spacing:-.01em;background:rgba(84,169,220,.24);color:#CBE6F5}
+.idt{flex:1;min-width:0;padding-top:2px}
+/* R3 · étiquette 11 caps → sujet Archivo 28 → état → trois métriques */
+.idt .nm{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:28px;line-height:32px;letter-spacing:-.02em;color:var(--on-dark);margin-top:3px;text-wrap:pretty}
+.qual{display:flex;gap:18px;margin-top:14px;padding-top:12px;border-top:1px solid var(--dark-line)}
+.qual>div{flex:1;min-width:0}
+.qual .v{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;line-height:23px;letter-spacing:-.015em;color:var(--on-dark);font-variant-numeric:tabular-nums;white-space:nowrap}
+.qual .n{display:block;font-size:11px;line-height:15px;color:var(--on-dark-2);margin-top:2px}
+/* R4 · le filet remplace la carte */
+.grp{background:var(--surface);border-radius:8px;overflow:hidden}
+.grp>.gh{display:flex;align-items:baseline;gap:10px;padding:14px var(--pad) 8px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.grp>.gh .n{margin-left:auto;letter-spacing:0;text-transform:none;font-size:12px}
+.grow{display:flex;align-items:center;gap:12px;min-height:56px;padding:var(--rowy) var(--pad);border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.grp>.gh+.grow{border-top:0}
+.grp>.grow:first-child{border-top:0}
+.grow .body{flex:1;min-width:0}
+.grow .t{font-size:14px;font-weight:500}
+.grow .s{font-size:12px;line-height:17px;color:var(--ink2);margin-top:1px}
+.grow .val{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;text-align:right}
+.grow .val.q{font-weight:400;color:var(--ink3)}
+.grow:active{background:var(--inset)}
+.grow .mk{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--inset);color:var(--ink2);display:flex;align-items:center;justify-content:center}
+.gnote{font-size:11px;line-height:16px;color:var(--ink3);padding:9px var(--pad) 13px;border-top:1px solid var(--line);background:var(--inset)}
+.gnote b{font-weight:500;color:var(--ink2)}
+.bst{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 9px;border-radius:4px;background:rgba(255,255,255,.10);font-size:12px;color:var(--on-dark);align-self:flex-start}
+.st{display:inline-block;width:7px;height:7px;border-radius:2px;flex:0 0 7px}
+.st-v{background:var(--live-vert)}
+.st-o{background:var(--live-orange)}
+.st-a{background:var(--live-ambre)}
+.idt .ty{font-size:11px;line-height:15px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--on-dark-2);margin-top:0}
+.idt .md{font-size:13px;line-height:18px;color:var(--on-dark-2);margin-top:2px}
+.meta{margin-top:14px;padding-top:12px;border-top:1px solid var(--dark-line);display:flex;flex-direction:column;gap:7px}
+.dmrow{display:flex;align-items:center;gap:9px;font-size:13px;line-height:18px;color:var(--on-dark-2)}
+.dmrow .i{flex:0 0 15px}
+.dmrow b{font-weight:400;color:var(--on-dark)}
+.hact{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--dark-line)}
+.hact.row{flex-direction:row}
+.hact.row>.btn{flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-full{width:100%}
+.btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.hnote{font-size:12px;line-height:17px;color:var(--on-dark-2);margin-top:10px;padding-top:10px;border-top:1px solid var(--dark-line)}
+.hnote b{font-weight:500;color:var(--on-dark)}
+/* rangées d'objets détenus */
+/* rangée de renvoi — le composant de « Mon compte », planche 07.1, aux mêmes métriques */
+.arow{display:flex;align-items:center;gap:12px;min-height:56px;padding:var(--rowy) 0;font-size:14px;color:inherit;text-decoration:none}
+.arow+.arow{border-top:1px solid var(--line)}
+.at2{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.at2 .t{font-size:14px;font-weight:500}
+.at2 .s{font-size:12px;line-height:17px;color:var(--ink2)}
+.at2 .s.q{color:var(--ink3)}
+.arow>svg{flex:0 0 15px;color:var(--ink3)}
+.arow .dest{flex:0 0 auto;font-size:12px;color:var(--ink3);text-align:right;max-width:150px;line-height:16px}
+.orow{display:flex;align-items:center;gap:12px;min-height:60px;padding:var(--rowy) 0}
+.orow+.orow{border-top:1px solid var(--line)}
+
+.orow .tt{flex:1;min-width:0}
+.orow .tt>span{display:block}
+.orow .t{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .s{font-size:12px;line-height:17px;color:var(--ink2);margin-top:1px}
+.orow>svg.chev{flex:0 0 auto;color:var(--ink3)}
+.more{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:8px;border-top:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+.hero .more,.hact .more{border-top-color:var(--dark-line);color:var(--on-dark)}
+.more.center{justify-content:center;gap:8px}
+.more svg{flex:0 0 15px;color:var(--ink2)}
+.more .mo{margin-left:auto;font-weight:400;font-size:12px;color:var(--ink2);white-space:nowrap}
+/* rangées de référence */
+.rlist{margin-top:12px}
+.rrow{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:11px 0;border-top:1px solid var(--line);font-size:13px;line-height:19px}
+.rrow:first-of-type{border-top:0}
+.rrow .k{flex:0 0 auto;color:var(--ink2)}
+.rrow .v{min-width:0;text-align:right;font-weight:500;color:var(--ink);word-break:break-word}
+.rrow .v.q{font-weight:400;color:var(--ink3)}
+.rrow .dest{display:block;font-weight:400;font-size:11px;line-height:15px;color:var(--ink3);margin-top:2px}
+/* historique */
+.ev{display:flex;gap:12px;padding:var(--rowy) 0;align-items:center;min-height:56px}
+.ev+.ev{border-top:1px solid var(--line)}
+.ev .mk{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--inset);color:var(--ink2);display:flex;align-items:center;justify-content:center}
+.ev .tt{flex:1;min-width:0}
+.ev .t{font-size:14px;line-height:19px}
+.ev .d{font-size:12px;line-height:17px;color:var(--ink2);margin-top:2px;font-variant-numeric:tabular-nums}
+.nt{font-size:14px;line-height:20px;color:var(--ink);margin-top:2px}
+.ntm{font-size:12px;color:var(--ink2);margin-top:8px}
+.prov{font-size:11px;line-height:16px;color:var(--ink3);padding:10px 20px 0;margin-top:10px;border-top:1px solid var(--line)}.prov.in{border-top:0;padding:0}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+/* réglages */
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark-2);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark-2);--btn-y-fg:#fff;--nav-on:var(--ink)}
+body[data-vie="assumee"] .idh{background:rgba(84,169,220,.34)}
+/* l'état de compte se dit par inversion du héro, jamais par un bandeau */
+body[data-etat="suspendu"] .hero-etat{background:#DCD8D0;--on-dark:#1A1917;--on-dark-2:#6B665E;--dark-line:rgba(26,25,23,.16)}
+body[data-etat="suspendu"] .hero-etat .idh{background:rgba(26,25,23,.10);color:#4A453E}
+body[data-etat="depart"] .hero-etat{background:var(--dark-2)}
+.et{display:none}
+body[data-etat="actif"] .et-a,body[data-etat="suspendu"] .et-s,body[data-etat="depart"] .et-d{display:block}
+body[data-etat="actif"] .btn.et-a,body[data-etat="suspendu"] .btn.et-s,body[data-etat="depart"] .btn.et-d{display:flex}
+body[data-etat="actif"] .bst.et-a,body[data-etat="suspendu"] .bst.et-s,body[data-etat="depart"] .bst.et-d{display:inline-flex}
+
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.hint{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px}
+.hint b{font-weight:500;color:var(--ink)}
+.hint.bad{color:var(--danger)}
+body[data-echec="reussi"] .gko.gko.gko.gko{display:none}
+body[data-echec="echoue"] .gok.gok.gok.gok{display:none}
+.stg{flex:0 0 auto}.stg-v{color:var(--st-vert,#5B913C)}.stg-b{color:var(--st-bleu,#288AC5)}.stg-a{color:var(--st-ambre,#A97C00)}.stg-o{color:var(--st-orange,#E45329)}.stg-m{color:var(--ink3,#8B8580)}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action" data-vie="sobre" data-etat="actif">
+<div class="intro">
+<h1>Détail utilisateur — le lien entre une personne et ce qu'elle détient</h1>
+<p><b>Cadrage.</b> Le gestionnaire ouvre cette fiche pour deux décisions : <i>cette personne a-t-elle le bon matériel</i>, et <i>que fait-on quand elle part</i>. Tout le reste — téléphone, dernier accès, notes — est de la <b>référence bornée</b> : utile quand on la cherche, jamais en tête d'écran.</p>
+<p><b>Le principe.</b> Une fiche utilisateur n'est pas un profil : c'est le <b>pendant de la fiche équipement, dans l'autre sens</b>. Là où l'objet dit « je suis chez untel », la personne dit « je détiens ceci ». Elle hérite donc du <b>héro de 04.2 sans en renégocier la hiérarchie</b> (R3) : étiquette, sujet à 28 px, état, trois métriques — et rien de plus.</p>
+<p><b>Ce que le héro porte, les cartes ne le reprennent pas.</b> C'est le corollaire de R3, et il coûte trois retraits ici : le compteur « 3 » du groupe des équipements, la rangée « Dernier accès » du groupe Compte, et la ligne « Compte créé le » — tous trois montés dans le voile. L'e-mail et le téléphone <b>descendent</b> : le cadrage ci-dessus les dit référence bornée, ils ne peuvent pas être en tête d'écran.</p>
+<p style="margin-top:10px;font-size:12px;color:#6B665E">Défauts relevés sur <code>screens/actuel/utilisateur-detail.png</code> — non repris en colonne ici (règle du 30/07) ; ils sont écrits dans <code>PASSATION.md</code>.</p>
+
+<h2>Ce qui tombe, et pourquoi</h2>
+<p><b>Le double en-tête.</b> « Profil utilisateur » puis une barre au nom d'Alice : deux titres pour un écran. Le nom suffit — il est plus précis que le mot « profil ».</p>
+<p><b>Les onglets Aperçu / Équipements.</b> Une personne détient une poignée d'objets : la liste tient dans une carte bornée, elle n'a pas besoin d'un onglet. Et l'onglet <i>séparait</i> ce que l'Aperçu <i>comptait</i> — « Équipements assignés : 2 » d'un côté, la liste de l'autre. Deux endroits pour la même chose.</p>
+<p><b>« Appareil principal ».</b> Notion inventée par l'écran : la capture y met une <b>souris</b> comme appareil principal. Rien dans le modèle ne désigne un objet principal — et une fois la liste visible, le classement est un tri, pas une carte.</p>
+<p><b>La carte « Sécurité du compte », marquée DÉMO.</b> Elle est démontée, mais <b>pas comme les autres cartes DÉMO</b> : ses <b>actions sont réelles</b> (réinitialiser le mot de passe, suspendre) et montent en entrées nommées du menu de débordement. Seuls ses <b>états</b> — « ENTRA ID : ACTIF », « PIN : ACTIF », deux badges en majuscules pour un fait — redescendent en <b>rangées de référence</b>, où on les lit sans les chercher.</p>
+<p><b>« Demandes en attente : 1 » quitte les compteurs.</b> Jurisprudence du dashboard : un statut qui appelle une action n'est pas un compteur. Il devient un <b>lien</b> vers la file des tâches filtrée sur la personne.</p>
+<p><b>« Notes manager » vide est une carte morte.</b> Un cadre, un texte en italique qui dit qu'il n'y a rien, et un bouton Éditer : trois éléments pour zéro information. La carte n'apparaît <b>qu'avec une note</b> ; sinon « Ajouter une note » est une entrée du menu.</p>
+<p><b>L'historique reste, borné à trois</b>, avec un lien vers l'Audit filtré sur la personne. Ici il est légitime — c'est <i>sa</i> fiche — contrairement à la vue utilisateur final de la fiche équipement, où l'historique d'un objet expose ses porteurs précédents.</p>
+
+<h2>Ce que la fiche gagne</h2>
+<p><b>Le geste primaire suit l'état du compte</b> — c'est le réglage de la planche. Compte <b>actif</b> → « Attribuer un équipement ». Compte <b>suspendu</b> → « Réactiver le compte » : rien d'autre n'a de sens avant. <b>Départ prévu</b> → « Organiser la restitution », avec le nombre d'objets et la date. C'est le moment où un parc se perd, et aujourd'hui aucun écran ne le nomme.</p>
+<p><b>Supprimer un compte qui détient du matériel est impossible</b> — sinon les objets deviennent introuvables. L'entrée <b>disparaît</b> du menu (règle : une action impossible se masque, jamais un bouton grisé avec une phrase d'excuse) et le menu offre à la place <b>le chemin qui débloque</b> : organiser la restitution. On n'explique pas le blocage, on propose la sortie.</p>
+<p><b>Le rôle est un mot, pas un badge peint</b> (§8.4 et §8.8, déjà tranché sur la liste). Les <b>permissions ne sont pas reprises ici</b> : l'écran Rôles en est la source, et les afficher créerait une seconde vérité. La fiche renvoie au rôle, elle ne le redéfinit pas.</p>
+
+<h2>Le menu dit « Modifier la fiche », et « Mon profil » n'a pas de menu — tranché le 04/08</h2>
+<p><b>Un seul libellé pour l'acte.</b> Ce menu écrivait « Modifier le profil » quand la planche 05.4, qui dessine ses feuilles, écrivait « Modifier la fiche ». <b>Deux libellés pour la même entrée du même menu</b>, ce que la règle des vues de référence interdit. Retenu : <b>« Modifier la fiche »</b> — c'est déjà la forme du menu de la fiche équipement (04.2), et « profil » est un mot <b>occupé</b> par la destination « Mon profil » : lire « Modifier le profil » sur la fiche d'Alice laisse croire qu'on ouvre <i>son</i> Mon profil. Cette planche défendait d'ailleurs déjà le mot dans son cadrage — <i>une fiche utilisateur n'est pas un profil</i> —, son menu la contredisait.</p>
+<p><b>Et « Mon profil » ne reçoit pas de menu de débordement.</b> La question s'est posée : la fiche d'un autre porte un <b>⋮</b>, la mienne n'en a pas, et rien n'expliquait l'écart. Il est voulu, et voici la règle : <b>les actes sur une fiche vivent dans son menu ⋮ ; les réglages de mon propre compte vivent dans une vue, atteinte par un renvoi.</b> Les actes d'un administrateur sont ponctuels et conséquents — un menu, une feuille chacun ; mes réglages de connexion forment un domaine avec des <b>états à afficher</b> (sessions, double authentification, code PIN), ce qui demande une vue et non un menu.</p>
+<p><b>Le corollaire, et c'est le point dur : une fiche n'est pas modifiée par son sujet.</b> L'identité qui y figure est celle qui <b>signe les attestations</b> — si la personne peut la changer, deux ans d'historique désignent un nom qu'elle a choisi. C'est la même règle que « les permissions ne sont pas reprises ici » : <b>une source par champ</b>. Chez Ethan comme chez Alice, le nom, le service et le site viennent de l'annuaire. L'absence de menu n'est donc pas un oubli — mais elle ne reste pas muette : le héro de « Mon profil » porte désormais <b>une ligne qui dit d'où vient son identité</b>, exactement le service que rend 05.4 quand elle masque une action impossible.</p>
+<p><b>Données.</b> Le nom, le rôle, le département, l'e-mail, le téléphone et le dernier accès viennent de la capture. Sont <b>fabriqués et déclarés</b> : les dates d'attribution, la date de départ 15/08, la note manager, et le contenu de l'historique au-delà des trois lignes visibles. <b>Contradiction relevée dans les données de démonstration</b> : la fiche annonce « Équipements assignés : 2 » alors que l'écran de restitution liste <b>trois</b> objets au nom d'Alice (LPT-HQ-01, MSE-HQ-03, SVR-HQ-01). J'ai retenu trois — <b>à vérifier côté code</b>.</p>
+</div>
+<p style="max-width:1180px;margin:-8px auto 26px;font-size:12px;line-height:18px;color:#4A453E">Le panneau <b style="font-weight:500">Tweaks</b> porte les quatre réglages d'aspect du chantier, plus un propre à cette planche : l'<b style="font-weight:500">état du compte</b> (actif / suspendu / départ prévu), qui change le bandeau du héro <b style="font-weight:500">et</b> le geste primaire de la colonne 1.</p>
+
+<div class="wrap">
+
+<!-- ============ COLONNE 1 — FICHE GESTIONNAIRE ============ -->
+<div class="col">
+<p class="collab">Vue — fiche gestionnaire</p>
+<p class="colnote">Le héro de 04.2, appliqué à une personne : <b>rôle et site en micro-libellé</b>, <b>nom à 28 px</b>, l'état du compte en badge, et <b>trois métriques dans le voile</b>. L'état ne se dit pas par un bandeau mais par <b>l'inversion du héro</b> — la surface s'éteint quand le compte est suspendu. Sous le héro, quatre groupes à filets : ce qu'elle détient, ses coordonnées, son compte, son historique.</p>
+<div class="phone">
+<div class="tbar">
+<span class="tb"><i class="ic ph ph-arrow-left"></i></span>
+<span class="tid"><span class="code">Alice SuperAdmin</span><span class="aid">Super admin · IT HQ</span></span>
+<details class="ovf"><summary><i class="ic s20 ph ph-dots-three-vertical"></i></summary>
+<div class="menu">
+<a class="mi" href="#">Modifier la fiche</a>
+<a class="mi" href="#">Ajouter une note</a>
+<div class="msep"></div>
+<a class="mi" href="#">Réinitialiser le code PIN<span class="md">Ses prochaines réceptions passeront par signature.</span></a>
+<a class="mi" href="#">Organiser la restitution<span class="md">3 objets à récupérer.</span></a>
+<div class="msep"></div>
+<a class="mi" href="#">Suspendre le compte<span class="md">L'accès est coupé ; ce qu'elle détient ne change pas.</span></a>
+</div>
+</details>
+</div>
+<div class="page">
+<section class="hero plain stack hero-etat">
+<div class="idhead">
+<span class="idh">AS</span>
+<span class="idt">
+<span class="ty">Super admin · IT HQ</span>
+<span class="nm">Alice SuperAdmin</span>
+</span>
+</div>
+<span class="bst et et-a" style="margin-top:13px"><i class="ic s18 ph ph-check-circle stg stg-v"></i>Compte actif depuis le 08/01/2026</span>
+<span class="bst et et-s" style="margin-top:13px"><i class="ic s18 ph ph-prohibit stg stg-o"></i>Compte suspendu le 22/07</span>
+<span class="bst et et-d" style="margin-top:13px"><i class="ic s18 ph ph-clock stg stg-a"></i>Départ prévu le 15/08/2026</span>
+<div class="qual">
+<div><span class="v tnum">3</span><span class="n">équipements détenus</span></div>
+<div><span class="v tnum">1</span><span class="n">demande en attente</span></div>
+<div><span class="v tnum">14/01</span><span class="n">dernier accès</span></div>
+</div>
+<div class="hact">
+<button class="btn btn-y btn-full et et-a"><i class="ic s18 ph ph-plus"></i>Attribuer un équipement</button>
+<button class="btn btn-y btn-full et et-s gok"><i class="ic s18 ph ph-arrow-counter-clockwise"></i>Réactiver le compte</button>
+<button class="btn btn-y btn-full et et-s gko"><i class="ic s18 ph ph-arrow-counter-clockwise"></i>Réessayer</button>
+<button class="btn btn-y btn-full et et-d"><i class="ic s18 ph ph-sign-out"></i>Organiser la restitution</button>
+</div>
+<p class="hnote et et-s">Suspendu par Clara Admin France. <b>Les 3 objets restent à son nom</b> : une suspension coupe l'accès, elle ne rend pas le matériel.</p>
+<p class="hnote et et-d">Les 3 objets doivent être récupérés avant son dernier jour, sinon ils resteront attribués à un compte fermé.</p>
+</section>
+<p class="hint bad et et-s gko">La réactivation a échoué — l'annuaire n'a pas répondu. <b>Le compte reste suspendu</b> ; aucun accès n'a été rouvert.</p>
+
+<div class="grp">
+<div class="gh">Équipements détenus</div>
+<a class="grow" href="#"><span class="vig"><i class="ic s20 ph ph-laptop"></i></span><div class="body"><div class="t">LPT-HQ-01</div><div class="s">Ordinateur portable</div></div><span class="val tnum">12/03/2026</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="grow" href="#"><span class="vig"><i class="ic s20 ph ph-mouse"></i></span><div class="body"><div class="t">MSE-HQ-03</div><div class="s">Souris</div></div><span class="val tnum">12/03/2026</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="grow" href="#"><span class="vig"><i class="ic s20 ph ph-hard-drives"></i></span><div class="body"><div class="t">SVR-HQ-01</div><div class="s">Serveur · responsable, reste en salle serveurs</div></div><span class="val tnum">12/03/2026</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="grow" href="#"><i class="ic s20 ph ph-bell stg stg-a"></i><div class="body"><div class="t">Sa demande de casque attend</div><div class="s">Déposée il y a 4 jours · à arbitrer</div></div><i class="ic s20 ph ph-caret-right chev"></i></a>
+<p class="gnote">La demande est un lien vers la file des tâches filtrée sur Alice, pas un compteur : un statut qui appelle une action ne se compte pas, il s'ouvre.</p>
+</div>
+
+<div class="grp">
+<div class="gh">Coordonnées</div>
+<div class="grow"><div class="body"><div class="t">alice.admin@tracker.app</div><div class="s">Adresse de l'annuaire</div></div></div>
+<div class="grow"><div class="body"><div class="t">+33 6 00 00 00 01</div><div class="s">Mobile professionnel</div></div></div>
+<p class="gnote">Ces deux lignes étaient en tête d'écran. Le cadrage de la planche les dit <b>référence bornée</b> : utiles quand on les cherche, jamais au-dessus de ce que la personne détient.</p>
+</div>
+
+<div class="grp">
+<div class="gh">Compte</div>
+<div class="grow"><div class="body"><div class="t">Connexion</div><div class="s">Mot de passe géré dans l'annuaire</div></div><span class="val">Annuaire d'entreprise</span></div>
+<div class="grow"><div class="body"><div class="t">Code PIN</div><div class="s">Sert à signer une réception sans e-mail</div></div><span class="val">Défini</span></div>
+<p class="gnote">Ce sont les deux badges « ENTRA ID : ACTIF » et « PIN : ACTIF » de la carte DÉMO, redescendus en référence. Les actions qui les accompagnaient sont dans le menu.</p>
+</div>
+
+<div class="grp">
+<div class="gh">Historique<span class="n">3 derniers</span></div>
+<span class="grow"><span class="mk"><i class="ic s18 ph ph-package"></i></span><div class="body"><div class="t">LPT-HQ-01 attribué</div><div class="s tnum">12/03/2026 · par Clara Admin France</div></div></span>
+<span class="grow"><span class="mk"><i class="ic s18 ph ph-arrow-u-up-left"></i></span><div class="body"><div class="t">KEY-SALES-02 rendu, remis en stock</div><div class="s tnum">12/01/2026 · état : repart en stock</div></div></span>
+<span class="grow"><span class="mk"><i class="ic s18 ph ph-user-plus"></i></span><div class="body"><div class="t">Compte créé</div><div class="s tnum">08/01/2026 · import depuis l'annuaire</div></div></span>
+<a class="grow" href="#"><i class="ic s20 ph ph-clock-counter-clockwise"></i><div class="body"><div class="t">Tout l'historique d'Alice</div></div><span class="val q">dans l'Audit</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+</div>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#" class="on"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<!-- ============ COLONNE 2 — LE MENU, ET LA NOTE QUAND ELLE EXISTE ============ -->
+<div class="col">
+<p class="collab">État — le menu ouvert</p>
+<p class="colnote">Où sont passées les actions de la carte Sécurité : <b>nommées</b>, avec leur conséquence en une ligne. « Supprimer le compte » <b>n'y est pas</b> — Alice détient trois objets — et le menu offre à la place <b>ce qui débloque</b> : organiser la restitution. Plus bas, la carte de note <b>telle qu'elle n'apparaît que si une note existe</b> : ici, sur Marc, qui n'a plus rien à rendre et dont le compte peut donc être supprimé.</p>
+<div class="phone">
+<div class="tbar">
+<span class="tb"><i class="ic ph ph-arrow-left"></i></span>
+<span class="tid"><span class="code">Marc Finance</span><span class="aid">Utilisateur · Finance</span></span>
+<details class="ovf" open><summary><i class="ic s20 ph ph-dots-three-vertical"></i></summary>
+<div class="menu">
+<a class="mi" href="#">Modifier la fiche</a>
+<a class="mi" href="#">Modifier la note</a>
+<div class="msep"></div>
+<a class="mi" href="#">Réinitialiser le mot de passe<span class="md">Un lien est envoyé à son adresse.</span></a>
+<div class="msep"></div>
+<a class="mi" href="#">Suspendre le compte<span class="md">L'accès est coupé, rien d'autre.</span></a>
+<a class="mi dang" href="#">Supprimer le compte<span class="md">Possible : il ne détient aucun équipement.</span></a>
+</div>
+</details>
+</div>
+<div class="scrim"></div>
+<div class="page">
+<section class="hero plain stack">
+<div class="idhead">
+<span class="idh">MF</span>
+<span class="idt">
+<span class="ty">Utilisateur · Finance</span>
+<span class="nm">Marc Finance</span>
+</span>
+</div>
+<span class="bst" style="margin-top:13px"><i class="ic s18 ph ph-check-circle stg stg-v"></i>Compte actif depuis le 12/02/2026</span>
+<div class="qual">
+<div><span class="v tnum">0</span><span class="n">équipement détenu</span></div>
+<div><span class="v tnum">0</span><span class="n">demande en attente</span></div>
+<div><span class="v tnum">28/07</span><span class="n">dernier accès</span></div>
+</div>
+<div class="hact"><button class="btn btn-y btn-full"><i class="ic s18 ph ph-plus"></i>Attribuer un équipement</button></div>
+</section>
+<div class="grp">
+<div class="gh">Note<span class="n">Clara Admin France · 21/07</span></div>
+<div class="grow"><div class="body"><div class="t" style="font-weight:400;line-height:20px">A rendu son portable pour le départ de son prédécesseur. En attente d'un poste fixe pour le bureau du 2ᵉ.</div></div></div>
+<p class="gnote">Visible par les gestionnaires uniquement. <b>La carte n'existe que s'il y a une note</b> — sinon « Ajouter une note » est une entrée du menu, et rien ne s'affiche.</p>
+</div>
+<div class="grp">
+<div class="gh">Compte</div>
+<div class="grow"><div class="body"><div class="t">Connexion</div><div class="s">Mot de passe local, pas d'annuaire</div></div><span class="val">Mot de passe</span></div>
+<div class="grow"><div class="body"><div class="t">Code PIN</div><div class="s">Sert à signer une réception sans e-mail</div></div><span class="val q">Non défini</span></div>
+</div>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#" class="on"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<!-- ============ COLONNE 3 — MON PROFIL ============ -->
+<div class="col">
+<p class="collab">Vue — « Mon profil » (utilisateur final)</p>
+<p class="colnote">La destination validée du menu de l'avatar. Même moule, <b>quatre retraits</b> : aucune action d'administration, aucune note de gestionnaire — <b>elle parle de lui sans lui</b> —, pas d'historique complet, et <b>aucun menu ⋮</b>. Ce dernier point est une règle, pas un oubli : une fiche n'est pas modifiée par son sujet, et le héro dit d'où vient son identité. Le seul geste qui lui appartient : <b>demander</b>.</p>
+<div class="phone">
+<div class="tbar">
+<span class="tb"><i class="ic ph ph-arrow-left"></i></span>
+<span class="tid"><span class="code">Mon profil</span><span class="aid">Ethan Employé</span></span>
+</div>
+<div class="page">
+<section class="hero plain stack">
+<div class="idhead">
+<span class="idh">EE</span>
+<span class="idt">
+<span class="ty">Ventes · Bureau Paris</span>
+<span class="nm">Ethan Employé</span>
+</span>
+</div>
+<span class="bst" style="margin-top:13px"><i class="ic s18 ph ph-buildings stg stg-b"></i>Identité tenue par l'annuaire</span>
+<div class="qual">
+<div><span class="v tnum">2</span><span class="n">équipements à moi</span></div>
+<div><span class="v tnum">1</span><span class="n">demande en cours</span></div>
+<div><span class="v">3<sup>e</sup> ét.</span><span class="n">bureau Paris</span></div>
+</div>
+<div class="hact"><button class="btn btn-y btn-full"><i class="ic s18 ph ph-plus"></i>Demander un équipement</button></div>
+<p class="hnote"><b>Nom, service et site viennent de l'annuaire de l'entreprise.</b> Une correction se demande à un gestionnaire : cette fiche est celle qui signe vos attestations.</p>
+</section>
+<div class="grp">
+<div class="gh">Mes équipements</div>
+<a class="grow" href="#"><span class="vig"><i class="ic s20 ph ph-laptop"></i></span><div class="body"><div class="t">MBP-SALES-01</div><div class="s">Ordinateur portable</div></div><span class="val tnum">04/02/2026</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="grow" href="#"><span class="vig"><i class="ic s20 ph ph-keyboard"></i></span><div class="body"><div class="t">KEY-SALES-02</div><div class="s">Clavier</div></div><span class="val tnum">04/02/2026</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="grow" href="#"><i class="ic s20 ph ph-bell stg stg-a"></i><div class="body"><div class="t">Ma demande de casque</div><div class="s">En attente depuis 4 jours</div></div><i class="ic s20 ph ph-caret-right chev"></i></a>
+</div>
+<div class="grp">
+<div class="gh">Mon compte</div>
+<a class="grow" href="mon-compte-piste.html"><i class="ic s20 ph ph-lock-key"></i><div class="body"><div class="t">Sécurité et connexion</div><div class="s">Code PIN non défini · mot de passe géré dans l'annuaire</div></div><i class="ic s20 ph ph-caret-right chev"></i></a>
+<p class="gnote">Cette carte <b>recopiait</b> l'écran « Mon compte » : ses deux rangées et son bouton « Définir un code PIN ». Elle y <b>renvoie</b> maintenant — définir son code, changer son mot de passe, fermer une session se font à un seul endroit, planche 07.1. C'est aussi pourquoi cette fiche n'a pas de menu ⋮ : les réglages du compte forment une vue, pas une liste d'actes.</p>
+</div>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#" class="on"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+</div>
+<div id="tw-root"></div>
+<script>
+document.addEventListener('click',function(e){
+  var s=e.target.closest('.scrim');
+  if(s){var d=s.parentNode.querySelector('details.ovf[open]');if(d){d.open=false;e.preventDefault();return}}
+  document.querySelectorAll('details.ovf[open]').forEach(function(d){if(!d.contains(e.target)&&!d.parentNode.parentNode.querySelector('.scrim'))d.open=false});
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('details.ovf[open]').forEach(function(d){d.open=false})});
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "echec": "Réussi",
+  "etat": "Actif",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action",
+  "vie": "Sobre"
+}/*EDITMODE-END*/;
+const ECHEC = {"Réussi":"reussi","Échoué":"echoue"};
+const ETAT = {"Actif":"actif","Suspendu":"suspendu","Départ prévu":"depart"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+const VIE = {"Sobre":"sobre","Assumée":"assumee"};
+function DetailUserTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.echec = ECHEC[t.echec] || 'reussi';
+    b.dataset.etat = ETAT[t.etat] || 'actif';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+    b.dataset.vie = VIE[t.vie] || 'sobre';
+  },[t.echec,t.etat,t.tone,t.densite,t.accent,t.vie]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="L'acte qui échoue (compte suspendu)" />
+      <TweakRadio label="Réactivation" value={t.echec} options={Object.keys(ECHEC)} onChange={(v)=>setTweak('echec',v)} />
+      <TweakSection label="État du compte (colonne 1)" />
+      <TweakRadio label="Compte" value={t.etat} options={Object.keys(ETAT)} onChange={(v)=>setTweak('etat',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+      <TweakSection label="Intensité de vie" />
+      <TweakRadio label="Traitement" value={t.vie} options={Object.keys(VIE)} onChange={(v)=>setTweak('vie',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<DetailUserTweaks />);
+</script>
+</body>
+</html>

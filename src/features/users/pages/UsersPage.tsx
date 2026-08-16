@@ -1,637 +1,587 @@
-import { MEDIA } from '../../../constants/breakpoints';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+    CaretDown,
+    EnvelopeSimple,
+    Funnel,
+    Plus,
+    UsersThree,
+} from '@phosphor-icons/react';
+
 import { useData } from '../../../context/DataContext';
-import StatusBadge from '../../../components/ui/StatusBadge';
-import Pagination from '../../../components/ui/Pagination';
-import Button from '../../../components/ui/Button';
-import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
-import { SelectFilter } from '../../../components/ui/SelectFilter';
-import { useAccessControl } from '../../../hooks/useAccessControl';
-import { ViewType } from '../../../types';
-import { PageContainer } from '../../../components/layout/PageContainer';
-import { PageHeader } from '../../../components/layout/PageHeader';
-import { useDebounce } from '../../../hooks/useDebounce';
-import { EmptyState } from '../../../components/ui/EmptyState';
-import { GLOSSARY } from '../../../constants/glossary';
-import { EntityRow } from '../../../components/ui/EntityRow';
-import { UserAvatar } from '../../../components/ui/UserAvatar';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useToast } from '../../../context/ToastContext';
-import ListActionFab from '../../../components/ui/ListActionFab';
-import { APP_CONFIG } from '../../../config';
 import { useConfirmation } from '../../../context/ConfirmationContext';
-import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
+import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useDebounce } from '../../../hooks/useDebounce';
+import useSelection from '../../../hooks/useSelection';
+import { ViewType, UserRole } from '../../../types';
+
+import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
+import ListRow from '../../../components/ui/ListRow';
+import ScreenState from '../../../components/ui/ScreenState';
+import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import { FabContainer } from '../../../components/ui/FabContainer';
+import BottomSheet from '../../../components/ui/BottomSheet';
+
+import { canDeleteUserByRoleRule, getStatusLabel } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
 import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
 
-const ITEMS_PER_PAGE = 10;
+/**
+ * Annuaire des personnes — **porté sur la planche 05.1** (gabarit `ListTemplate`).
+ *
+ * *Un annuaire de parc, pas un annuaire d'entreprise.* Le gestionnaire l'ouvre pour
+ * deux choses : trouver une personne dont on lui parle, et **choisir à qui attribuer
+ * un objet**. La question n'est donc jamais « qui travaille ici » — l'entreprise a
+ * déjà un annuaire pour ça — mais **qui détient quoi**.
+ *
+ * **Ce que le portage ajoute**, et c'est la seule donnée qui décide quelque chose :
+ * **le nombre d'équipements détenus**. C'est le pendant exact de « chez qui est
+ * l'objet » sur la liste des actifs, dans l'autre sens.
+ *
+ * **Ce qu'il retire :**
+ *
+ * - **les avatars illustrés** → des initiales. Onze visages de dessin animé dans une
+ *   liste font onze taches de couleur qui ne signifient rien et pèsent plus que les
+ *   noms.
+ * - **les badges de rôle en majuscules colorées** — deux interdits d'un coup : les
+ *   capitales (§8.4), et **la couleur qui code une catégorie** (§8.8). Un rôle n'est
+ *   pas un état ; le peindre, c'est le défaut corrigé au tableau de bord. Le rôle
+ *   devient **un mot**, en fin de première ligne, à la place qu'occupe le type sur la
+ *   liste des actifs.
+ * - **la corbeille de rangée** et **la pagination** — même arbitrage que 04.1.
+ * - **l'e-mail de la rangée.** Il reste **clé de recherche** — le champ l'annonce —
+ *   mais trente caractères écrasaient le nom qu'ils accompagnaient. Écart assumé avec
+ *   `ASSET-10001`, gardé sur les actifs : une étiquette se lit **sur l'objet**, une
+ *   adresse ne se lit pas sur une personne.
+ *
+ * **Le tri est dit.** Il n'y a pas d'ordre naturel pour des personnes : la liste
+ * actuelle rangeait sans le dire. Il est alphabétique, il partage la ligne du
+ * décompte, et il se renverse.
+ */
+
 const STORAGE_KEY_SEARCH = 'users_search';
-const STORAGE_KEY_DEPT = 'users_department';
 const STORAGE_KEY_ROLE = 'users_role';
-const USERS_FILTER_PANEL_ID = 'users-filter-panel';
+
+/** L'ordre de lecture des rôles, du plus nombreux au plus rare (05.1). */
+const FACET_ORDER: UserRole[] = ['User', 'Manager', 'Admin', 'SuperAdmin'];
+
+/** Le pluriel du rôle, tel que la planche l'écrit en tête d'écran. */
+const FACET_LABEL: Record<UserRole, string> = {
+    User: 'Utilisateurs',
+    Manager: 'Managers',
+    Admin: 'Admins',
+    SuperAdmin: 'Super admin',
+};
+
+const initials = (name: string) =>
+    name
+        .split(' ')
+        .map((part) => part[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
 
 interface UsersPageProps {
-  onUserClick?: (id: string) => void;
-  onViewChange: (view: ViewType) => void;
+    onUserClick?: (id: string) => void;
+    onViewChange: (view: ViewType) => void;
 }
 
 const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
-  const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '');
-  const [departmentFilter, setDepartmentFilter] = useState(() => sessionStorage.getItem(STORAGE_KEY_DEPT) || '');
-  const [roleFilter, setRoleFilter] = useState(() => sessionStorage.getItem(STORAGE_KEY_ROLE) || '');
-  const [showFilters, setShowFilters] = useState(() => Boolean(sessionStorage.getItem(STORAGE_KEY_DEPT) || sessionStorage.getItem(STORAGE_KEY_ROLE)));
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const filterPanelRef = useRef<HTMLDivElement>(null);
+    const { users: allUsers, equipment, deleteUser, locationData } = useData();
+    const { user: currentUser, filterUsers, permissions } = useAccessControl();
+    const { showToast } = useToast();
+    const { requestConfirmation } = useConfirmation();
 
-  const debouncedSearch = useDebounce(searchQuery, 300);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const { users: allUsers, deleteUser } = useData();
-  const { role, user: currentUser, filterUsers, permissions } = useAccessControl();
-  const { showToast } = useToast();
-  const { requestConfirmation } = useConfirmation();
-  const isCompact = useMediaQuery(MEDIA.compact);
-
-  const users = useMemo(() => filterUsers(allUsers), [allUsers, filterUsers]);
-  const activeSuperAdminCount = useMemo(
-    () => allUsers.filter((user) => user.role === 'SuperAdmin' && user.status !== 'inactive').length,
-    [allUsers],
-  );
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY_SEARCH, searchQuery);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY_DEPT, departmentFilter);
-  }, [departmentFilter]);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY_ROLE, roleFilter);
-  }, [roleFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, departmentFilter, roleFilter]);
-
-  useEffect(() => {
-    if (!showFilters) return;
-    const focusFirstFilterControl = () => {
-      const firstFocusable = filterPanelRef.current?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      firstFocusable?.focus();
-    };
-    const timeoutId = window.setTimeout(focusFirstFilterControl, 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [showFilters]);
-
-  const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const searchLower = debouncedSearch.toLowerCase();
-
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        (user.department && user.department.toLowerCase().includes(searchLower));
-
-      const matchesDept = departmentFilter === '' || user.department === departmentFilter;
-      const matchesRole = roleFilter === '' || user.role === roleFilter;
-
-      return matchesSearch && matchesDept && matchesRole;
-    });
-  }, [users, debouncedSearch, departmentFilter, roleFilter]);
-
-  useEffect(() => {
-    setSelectedUserIds((prev) => {
-      const visibleIds = new Set(filteredUsers.map((item) => item.id));
-      const next = prev.filter((id) => visibleIds.has(id));
-      return next.length === prev.length ? prev : next;
-    });
-  }, [filteredUsers]);
-
-  useEffect(() => {
-    if (!selectionMode) {
-      setSelectedUserIds([]);
-    }
-  }, [selectionMode]);
-
-  const totalPages = useMemo(() => Math.ceil(filteredUsers.length / ITEMS_PER_PAGE), [filteredUsers]);
-  const paginatedUsers = useMemo(() => {
-    return filteredUsers.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
+    const users = useMemo(() => filterUsers(allUsers), [allUsers, filterUsers]);
+    const activeSuperAdminCount = useMemo(
+        () => allUsers.filter((user) => user.role === 'SuperAdmin' && user.status !== 'inactive').length,
+        [allUsers]
     );
-  }, [filteredUsers, currentPage]);
 
-  const departments = useMemo(() => {
-    const depts = Array.from(new Set(users.map(u => u.department)));
-    return depts.map(d => ({ value: d, label: d }));
-  }, [users]);
+    const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '');
+    const [roleFilter, setRoleFilter] = useState(() => sessionStorage.getItem(STORAGE_KEY_ROLE) || '');
+    const [ascending, setAscending] = useState(true);
+    const selection = useSelection();
 
-  const handleExport = (itemsToExport = filteredUsers) => {
-    if (itemsToExport.length === 0) {
-      showToast('Aucune donnée à exporter avec les filtres actuels.', 'info');
-      return;
-    }
+    // Filtres avancés feuille montante (05.1)
+    const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+    const [departmentFilter, setDepartmentFilter] = useState('Tous');
+    const [siteFilter, setSiteFilter] = useState('Tous');
+    const [statusFilter, setStatusFilter] = useState('Tous');
 
-    const headers = ['Nom', 'Email', 'Département', 'Rôle', 'Dernière connexion', 'Pays', 'Site', 'Statut'];
-    const rows = itemsToExport.map(user => [
-      user.name,
-      user.email,
-      user.department || '',
-      user.role,
-      user.lastLogin || '',
-      user.country || '',
-      user.site || '',
-      user.status || ''
-    ]);
+    // Feuille montante d'ajout (05.1)
+    const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
-    const csvContent = [
-      buildCsvLine(headers),
-      ...rows.map(row => buildCsvLine(row))
-    ].join('\n');
+    const debouncedSearch = useDebounce(searchQuery, 300);
 
-    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const fileDate = new Date().toISOString().slice(0, 10);
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+    useEffect(() => {
+        sessionStorage.setItem(STORAGE_KEY_SEARCH, searchQuery);
+    }, [searchQuery]);
 
-    link.href = url;
-    link.download = `utilisateurs-${fileDate}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    useEffect(() => {
+        sessionStorage.setItem(STORAGE_KEY_ROLE, roleFilter);
+    }, [roleFilter]);
 
-    showToast(`${itemsToExport.length} utilisateur(s) exporté(s).`, 'success');
-  };
+    /**
+     * Ce que chaque personne détient — la donnée que la liste n'avait pas et qui
+     * décide du choix d'un destinataire.
+     */
+    const holdings = useMemo(() => {
+        const counts = new Map<string, number>();
+        equipment.forEach((item) => {
+            const key = item.user?.id || item.user?.email || item.user?.name;
+            if (!key) return;
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        });
+        return (user: { id: string; email: string; name: string }) =>
+            counts.get(user.id) ?? counts.get(user.email) ?? counts.get(user.name) ?? 0;
+    }, [equipment]);
 
-  const selectedUserSet = useMemo(() => new Set(selectedUserIds), [selectedUserIds]);
-  const selectedUsers = useMemo(
-    () => filteredUsers.filter((user) => selectedUserSet.has(user.id)),
-    [filteredUsers, selectedUserSet],
-  );
-  const pageUserIds = useMemo(() => paginatedUsers.map((user) => user.id), [paginatedUsers]);
-  const selectedCount = selectedUserIds.length;
-  const allVisibleSelected = pageUserIds.length > 0 && pageUserIds.every((id) => selectedUserSet.has(id));
-  const someVisibleSelected = pageUserIds.some((id) => selectedUserSet.has(id));
+    const departments = useMemo(() => {
+        const set = new Set<string>();
+        users.forEach((u) => {
+            if (u.department) set.add(u.department);
+        });
+        return ['Tous', ...Array.from(set)];
+    }, [users]);
 
-  const toggleSelection = (id: string, checked: boolean) => {
-    setSelectedUserIds((prev) => {
-      if (checked) {
-        if (prev.includes(id)) return prev;
-        return [...prev, id];
-      }
-      return prev.filter((entry) => entry !== id);
-    });
-  };
+    const sites = useMemo(() => {
+        const allSites: string[] = [];
+        Object.values(locationData.sites).forEach((sList) => allSites.push(...sList));
+        return ['Tous', ...Array.from(new Set(allSites))];
+    }, [locationData.sites]);
 
-  const togglePageSelection = (checked: boolean) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      pageUserIds.forEach((id) => {
-        if (checked) next.add(id);
-        else next.delete(id);
-      });
-      return Array.from(next);
-    });
-  };
+    const activeSheetFiltersCount = useMemo(() => {
+        let count = 0;
+        if (departmentFilter !== 'Tous') count += 1;
+        if (siteFilter !== 'Tous') count += 1;
+        if (statusFilter !== 'Tous') count += 1;
+        return count;
+    }, [departmentFilter, siteFilter, statusFilter]);
 
-  const handleDeleteOne = (id: string, name: string) => {
-    const targetUser = allUsers.find((user) => user.id === id);
-    const permissionDecision = canDeleteUserByRoleRule({
-      actorRole: currentUser?.role,
-      targetRole: targetUser?.role,
-      isSelfDelete: id === currentUser?.id,
-      activeSuperAdminCount,
-    });
-    if (!permissionDecision.allowed) {
-      showToast(permissionDecision.reason || 'Suppression impossible pour cet utilisateur.', 'info');
-      return;
-    }
+    const filteredUsers = useMemo(() => {
+        const searchLower = debouncedSearch.toLowerCase();
+        const matching = users.filter((user) => {
+            const matchesSearch =
+                user.name.toLowerCase().includes(searchLower) ||
+                user.email.toLowerCase().includes(searchLower) ||
+                (user.department && user.department.toLowerCase().includes(searchLower));
+            const matchesRole = roleFilter === '' || user.role === roleFilter;
+            const matchesDept = departmentFilter === 'Tous' || user.department === departmentFilter;
+            const matchesSite = siteFilter === 'Tous' || user.site === siteFilter;
+            const matchesStatus =
+                statusFilter === 'Tous' ||
+                (statusFilter === 'Actif' && user.status === 'active') ||
+                (statusFilter === 'Suspendu' && user.status === 'inactive') ||
+                (statusFilter === 'Départ prévu' && user.status === 'pending');
 
-    requestConfirmation({
-      title: 'Supprimer le compte utilisateur',
-      message: `Supprimer le compte de "${name}" ?`,
-      confirmText: 'Supprimer',
-      variant: 'danger',
-      onConfirm: () => {
-        const decision = deleteUser(id);
-        if (decision.allowed) {
-          showToast(`${name} supprimé.`, 'success');
-          if (isDemoSeedUser(id)) {
-            showToast(DEMO_RESEED_NOTICE, 'info');
-          }
-          return;
-        }
-        showToast(decision.reason || 'Suppression impossible pour cet utilisateur.', 'info');
-      },
-    });
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedCount === 0) return;
-
-    requestConfirmation({
-      title: 'Supprimer la sélection',
-      message: `Supprimer ${selectedCount} utilisateur(s) sélectionné(s) ? Les comptes avec équipements assignés seront ignorés.`,
-      confirmText: 'Supprimer',
-      variant: 'danger',
-      onConfirm: () => {
-        let deleted = 0;
-        let blocked = 0;
-        let seeded = 0;
-
-        selectedUserIds.forEach((id) => {
-          if (id === currentUser?.id) {
-            blocked += 1;
-            return;
-          }
-          const decision = deleteUser(id);
-          if (decision.allowed) {
-            deleted += 1;
-            if (isDemoSeedUser(id)) seeded += 1;
-          } else {
-            blocked += 1;
-          }
+            return matchesSearch && matchesRole && matchesDept && matchesSite && matchesStatus;
         });
 
-        setSelectedUserIds([]);
+        // Le tri est dit, donc il est appliqué : alphabétique, réversible.
+        return matching
+            .slice()
+            .sort((a, b) => (ascending ? 1 : -1) * a.name.localeCompare(b.name, 'fr'));
+    }, [users, debouncedSearch, roleFilter, departmentFilter, siteFilter, statusFilter, ascending]);
 
-        if (deleted > 0) {
-          showToast(`${deleted} utilisateur(s) supprimé(s).`, 'success');
-        }
-        if (seeded > 0) {
-          showToast(DEMO_RESEED_NOTICE, 'info');
-        }
-        if (blocked > 0) {
-          showToast(`${blocked} utilisateur(s) n’ont pas pu être supprimés.`, 'warning');
-        }
-      },
-    });
-  };
+    const facets = useMemo<ListFacet[]>(() => {
+        const counts = new Map<string, number>();
+        users.forEach((user) => counts.set(user.role, (counts.get(user.role) ?? 0) + 1));
 
-  const userHeaderActions = isCompact ? null : (
-    <div className="flex items-center gap-3">
-      <Button
-        variant={selectionMode ? 'filled' : 'outlined'}
-        className="hidden medium:inline-flex"
-        icon={<MaterialIcon name={selectionMode ? 'checklist_rtl' : 'check_box'} size={18} />}
-        onClick={() => setSelectionMode((prev) => !prev)}
-      >
-        {selectionMode ? 'Terminer sélection' : 'Sélection'}
-      </Button>
-      <Button variant="outlined" className="hidden medium:inline-flex" icon={<MaterialIcon name="download" size={18} />} onClick={handleExport}>Exporter</Button>
-      {permissions.canManageUsers && (
+        return [
+            { id: 'tous', label: 'Tous', count: users.length },
+            ...FACET_ORDER.filter((role) => counts.has(role)).map((role) => ({
+                id: role,
+                label: FACET_LABEL[role],
+                count: counts.get(role) ?? 0,
+            })),
+        ];
+    }, [users]);
+
+    const selectedUsers = useMemo(
+        () => filteredUsers.filter((user) => selection.isSelected(user.id)),
+        [filteredUsers, selection]
+    );
+
+    const handleExport = (itemsToExport = filteredUsers) => {
+        if (itemsToExport.length === 0) {
+            showToast('Aucune donnée à exporter avec les filtres actuels.', 'info');
+            return;
+        }
+
+        const headers = ['Nom', 'Email', 'Département', 'Rôle', 'Dernière connexion', 'Pays', 'Site', 'Statut'];
+        const rows = itemsToExport.map((user) => [
+            user.name,
+            user.email,
+            user.department || '',
+            user.role,
+            user.lastLogin || '',
+            user.country || '',
+            user.site || '',
+            user.status || '',
+        ]);
+
+        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join('\n');
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const fileDate = new Date().toISOString().slice(0, 10);
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.href = url;
+        link.download = `utilisateurs-${fileDate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showToast(`${itemsToExport.length} compte(s) exporté(s).`, 'success');
+    };
+
+    const handleBulkDelete = () => {
+        if (selection.count === 0) return;
+        const ids = [...selection.selectedIds];
+
+        requestConfirmation({
+            title:
+                ids.length > 1
+                    ? `Supprimer ${ids.length} comptes ?`
+                    : 'Supprimer ce compte ?',
+            message: (
+                <p>
+                    Les accès associés seront révoqués. Cette opération ne peut pas être
+                    annulée.
+                </p>
+            ),
+            confirmText: 'Supprimer',
+            onConfirm: () => {
+                let deleted = 0;
+                let blocked = 0;
+                let seeded = 0;
+
+                ids.forEach((id) => {
+                    const target = allUsers.find((user) => user.id === id);
+                    const rule = canDeleteUserByRoleRule({
+                        actorRole: currentUser?.role,
+                        targetRole: target?.role,
+                        isSelfDelete: id === currentUser?.id,
+                        activeSuperAdminCount,
+                    });
+                    if (!rule.allowed) {
+                        blocked += 1;
+                        return;
+                    }
+                    const decision = deleteUser(id);
+                    if (decision.allowed) {
+                        deleted += 1;
+                        if (isDemoSeedUser(id)) seeded += 1;
+                    } else {
+                        blocked += 1;
+                    }
+                });
+
+                selection.exit();
+
+                if (deleted > 0) showToast(`${deleted} compte(s) supprimé(s).`, 'success');
+                if (seeded > 0) showToast(DEMO_RESEED_NOTICE, 'info');
+                if (blocked > 0) {
+                    showToast(`${blocked} compte(s) n’ont pas pu être supprimés.`, 'warning');
+                }
+            },
+        });
+    };
+
+    const isFiltered = Boolean(
+        roleFilter ||
+        debouncedSearch ||
+        departmentFilter !== 'Tous' ||
+        siteFilter !== 'Tous' ||
+        statusFilter !== 'Tous'
+    );
+    const holdersCount = users.filter((user) => holdings(user) > 0).length;
+    const heldCount = users.reduce((total, user) => total + holdings(user), 0);
+
+    return (
         <>
-          <Button variant="outlined" className="hidden medium:inline-flex" icon={<MaterialIcon name="upload" size={18} />} onClick={() => onViewChange('import_users')}>Importer</Button>
-          <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_user')}>Ajouter</Button>
-        </>
-      )}
-    </div>
-  );
-  const hasActiveFilters = Boolean(departmentFilter || roleFilter || searchQuery);
-  const activeFilterSummary = [
-    departmentFilter ? 'Département: ' + departmentFilter : null,
-    roleFilter ? 'Rôle: ' + roleFilter : null,
-    searchQuery ? 'Recherche: "' + searchQuery + '"' : null,
-  ].filter(Boolean).join(' • ');
-  const resetFilters = () => {
-    setSearchQuery('');
-    setDepartmentFilter('');
-    setRoleFilter('');
-  };
-  return (
-    <PageContainer>
-      <PageHeader
-        title={GLOSSARY.USER_PLURAL}
-        subtitle={`${users.length} ${role === 'Manager'
-          ? 'collaborateur(s) dans votre équipe'
-          : 'collaborateurs ' + APP_CONFIG.companyName
-          }`}
-        breadcrumb={GLOSSARY.USERS}
-        actions={userHeaderActions}
-      />
-
-      <div className="space-y-6">
-        {isCompact ? (
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <SearchFilterBar
-                searchValue={searchQuery}
-                onSearchChange={setSearchQuery}
-                onFilterClick={() => setShowFilters((prev) => !prev)}
-                filterActive={showFilters}
-                filterPanelId={USERS_FILTER_PANEL_ID}
-                placeholder="Rechercher par nom, email, département..."
-              />
-            </div>
-
-          </div>
-        ) : (
-          <SearchFilterBar
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
-            onFilterClick={() => setShowFilters((prev) => !prev)}
-            filterActive={showFilters}
-            filterPanelId={USERS_FILTER_PANEL_ID}
-            resultCount={filteredUsers.length}
-            placeholder="Rechercher par nom, email, département..."
-          />
-        )}
-
-        {isCompact && (
-          <p className="-mt-3 text-body-small text-on-surface-variant">
-            {filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''}
-          </p>
-        )}
-
-        {hasActiveFilters && (
-          <div className="-mt-2 rounded-md border border-secondary/30 bg-secondary-container/40 px-3 py-2.5 flex flex-col medium:flex-row medium:items-center medium:justify-between gap-1.5">
-            <div className="inline-flex items-center gap-1.5 text-label-small text-on-secondary-container">
-              <MaterialIcon name="filter_alt" size={14} />
-              <span className="font-semibold uppercase tracking-wide">Filtres actifs</span>
-            </div>
-            <p className="text-body-small text-on-secondary-container/90 truncate" title={activeFilterSummary}>
-              {activeFilterSummary}
-            </p>
-          </div>
-        )}
-
-        {showFilters && (
-          <div
-            id={USERS_FILTER_PANEL_ID}
-            ref={filterPanelRef}
-            className="flex flex-col medium:flex-row gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-short4"
-            role="region"
-            aria-label="Filtres utilisateurs"
-          >
-            <SelectFilter
-              options={departments}
-              value={departmentFilter}
-              onChange={setDepartmentFilter}
-              placeholder="Tous les départements"
-              className="w-full medium:w-64"
-            />
-            <SelectFilter
-              options={[
-                { value: 'SuperAdmin', label: 'SuperAdmin' },
-                { value: 'Admin', label: 'Admin' },
-                { value: 'Manager', label: 'Manager' },
-                { value: 'User', label: 'User' },
-              ]}
-              value={roleFilter}
-              onChange={setRoleFilter}
-              placeholder="Tous les rôles"
-              className="w-full medium:w-64"
-            />
-            {(departmentFilter || roleFilter || searchQuery) && (
-              <Button
-                variant="outlined"
-                icon={<MaterialIcon name="restart_alt" size={16} />}
-                className="w-full medium:w-auto"
-                onClick={resetFilters}
-              >
-                Réinitialiser les filtres
-              </Button>
-            )}
-          </div>
-        )}
-
-        {selectionMode && (
-          <div className="-mt-2 rounded-md border border-outline-variant bg-surface-container-low px-3 py-2.5 flex flex-col gap-2">
-            <div className="flex flex-col medium:flex-row medium:items-center medium:justify-between gap-2">
-              <p className="text-body-small text-on-surface-variant">
-                {selectedCount} élément{selectedCount > 1 ? 's' : ''} sélectionné{selectedCount > 1 ? 's' : ''}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outlined"
-                  size="sm"
-                  icon={<MaterialIcon name="download" size={16} />}
-                  disabled={selectedCount === 0}
-                  onClick={() => handleExport(selectedUsers)}
-                >
-                  Exporter sélection
-                </Button>
-                {permissions.canManageUsers && (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    icon={<MaterialIcon name="delete" size={16} />}
-                    disabled={selectedCount === 0}
-                    onClick={handleBulkDelete}
-                  >
-                    Supprimer
-                  </Button>
-                )}
-                <Button
-                  variant="text"
-                  size="sm"
-                  onClick={() => setSelectionMode(false)}
-                >
-                  Annuler
-                </Button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-label-small text-on-surface-variant">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-[var(--tk-color-primary)]"
-                checked={allVisibleSelected}
-                ref={(node) => {
-                  if (node) {
-                    node.indeterminate = !allVisibleSelected && someVisibleSelected;
-                  }
+            <ListTemplate
+                title="Équipe"
+                search={{
+                    value: searchQuery,
+                    onChange: setSearchQuery,
+                    placeholder: 'Nom, e-mail, département',
                 }}
-                onChange={(event) => togglePageSelection(event.target.checked)}
-              />
-              Tout sélectionner sur la page
-            </label>
-          </div>
-        )}
-
-        <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden">
-          {paginatedUsers.length > 0 ? (
-            paginatedUsers.map((user) => {
-              const roleDeleteDecision = canDeleteUserByRoleRule({
-                actorRole: currentUser?.role,
-                targetRole: user.role,
-                isSelfDelete: user.id === currentUser?.id,
-                activeSuperAdminCount,
-              });
-              const canDeleteRow = !selectionMode && permissions.canManageUsers && roleDeleteDecision.allowed;
-              return (
-                <EntityRow
-                key={user.id}
-                image={user.avatar}
-                imageFit="cover"
-                onClick={() => {
-                  if (selectionMode) {
-                    toggleSelection(user.id, !selectedUserSet.has(user.id));
-                    return;
-                  }
-                  onUserClick && onUserClick(user.id);
-                }}
-                selected={selectionMode && selectedUserSet.has(user.id)}
-                selectionControl={selectionMode ? (
-                  <input
-                    type="checkbox"
-                    checked={selectedUserSet.has(user.id)}
-                    onChange={(event) => toggleSelection(user.id, event.target.checked)}
-                    className="h-4 w-4 accent-[var(--tk-color-primary)]"
-                    aria-label={`Sélectionner ${user.name}`}
-                  />
-                ) : undefined}
-                imageFallback={
-                  <UserAvatar
-                    name={user.name}
-                    src={user.avatar}
-
-                    size="md"
-                    className="w-full h-full"
-                  />
-                }
-                title={user.name}
-                subtitle={
-                  <div className="flex items-center gap-2 text-body-small text-on-surface-variant mt-0.5 min-w-0">
-                    <span className="truncate">{user.email}</span>
-                  </div>
-                }
-                location={
-                  <div className="flex w-full min-w-0 items-center gap-1.5 text-label-small text-on-surface-variant">
-                    <MaterialIcon name="work" size={14} className="shrink-0" />
-                    <span className="truncate text-body-medium">{user.department || 'N/A'}</span>
-                  </div>
-                }
-                meta={
-                  <div className="hidden expanded:flex w-full min-w-0 justify-end">
-                    <div className="w-[220px] text-right">
-                      <p className="text-label-small text-on-surface-variant uppercase tracking-wider mb-0.5">Dernière activité</p>
-                      <div className="flex items-center justify-end gap-1.5 text-body-small text-on-surface-variant">
-                        <MaterialIcon name="schedule" size={12} />
-                        <span className="truncate">{user.lastLogin || 'Jamais'}</span>
-                      </div>
-                    </div>
-                  </div>
-                }
-                status={
-                  <div className="flex medium:w-[164px] items-center justify-end pr-1">
-                    <StatusBadge status={user.role} size="sm" />
-                  </div>
-                }
-                actions={
-                  canDeleteRow ? (
-                    <Button
-                      variant="text"
-                      size="sm"
-                      className="h-9 w-9 min-w-0 p-0 rounded-full text-error hover:bg-error-container/40"
-                      icon={<MaterialIcon name="delete" size={18} />}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleDeleteOne(user.id, user.name);
-                      }}
-                      aria-label={`Supprimer ${user.name}`}
-                      title="Supprimer"
-                    />
-                  ) : (
-                    <span className="inline-flex h-9 w-9 min-w-0 opacity-0 pointer-events-none" aria-hidden="true" />
-                  )
-                }
-              />
-              );
-            })
-          ) : (
-            <div className="p-8">
-              <EmptyState
-                icon="person_off"
-                title="Aucun utilisateur trouvé"
-                description="Ajustez vos critères de recherche ou ajoutez un nouveau collaborateur."
-                action={
-                  users.length === 0 && permissions.canManageUsers ? (
-                    <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('add_user')}>
-                      Ajouter un utilisateur
-                    </Button>
-                  ) : hasActiveFilters ? (
-                    <Button
-                      variant="outlined"
-                      icon={<MaterialIcon name="restart_alt" size={18} />}
-                      onClick={resetFilters}
+                filter={
+                    <button
+                        type="button"
+                        onClick={() => setIsFilterSheetOpen(true)}
+                        aria-label="Filtrer"
+                        className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-outline text-on-surface hover:bg-surface-container transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
                     >
-                      Réinitialiser les filtres
-                    </Button>
-                  ) : undefined
+                        <Icon glyph={Funnel} size={20} />
+                        {activeSheetFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-[10px] font-semibold tabular-nums text-inverse-on-surface">
+                                {activeSheetFiltersCount}
+                            </span>
+                        )}
+                    </button>
                 }
-              />
-            </div>
-          )}
-        </div>
-      </div>
+                facets={facets}
+                activeFacetId={roleFilter || 'tous'}
+                onFacetSelect={(id) => setRoleFilter(id === 'tous' ? '' : id)}
+                count={{ total: users.length, shown: filteredUsers.length, noun: 'personnes' }}
+                sort={{
+                    label: ascending ? 'Nom (A → Z)' : 'Nom (Z → A)',
+                    onClick: () => setAscending((previous) => !previous),
+                }}
+                selection={{
+                    active: selection.isActive,
+                    count: selection.count,
+                    total: filteredUsers.length,
+                    onExit: selection.exit,
+                    onSelectAll: () => selection.selectAll(filteredUsers.map((user) => user.id)),
+                    onClearAll: selection.clear,
+                    actions: (
+                        <Button variant="filled" onClick={() => handleExport(selectedUsers)}>
+                            Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
+                        </Button>
+                    ),
+                    bulkOverflow: permissions.canManageUsers ? (
+                        <Button variant="danger" onClick={handleBulkDelete}>
+                            Supprimer
+                        </Button>
+                    ) : undefined,
+                }}
+                empty={
+                    <ScreenState
+                        icon={UsersThree}
+                        title={isFiltered ? 'Personne ne correspond' : 'Aucune personne ici'}
+                        description={
+                            isFiltered
+                                ? 'Élargissez la recherche, ou revenez à toute l’équipe.'
+                                : 'Ce périmètre n’a encore aucun compte rattaché.'
+                        }
+                        actions={
+                            isFiltered ? (
+                                <Button
+                                    variant="filled"
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        setRoleFilter('');
+                                        setDepartmentFilter('Tous');
+                                        setSiteFilter('Tous');
+                                        setStatusFilter('Tous');
+                                    }}
+                                >
+                                    {`Voir les ${users.length} personnes`}
+                                </Button>
+                            ) : permissions.canManageUsers ? (
+                                <Button variant="filled" onClick={() => onViewChange('add_user')}>
+                                    Inviter une personne
+                                </Button>
+                            ) : undefined
+                        }
+                    />
+                }
+                footer={
+                    filteredUsers.length > 0 && heldCount > 0
+                        ? `${heldCount} des ${equipment.length} actifs sont portés par ${holdersCount} personne${holdersCount > 1 ? 's' : ''}.`
+                        : undefined
+                }
+                fab={
+                    permissions.canManageUsers && !selection.isActive ? (
+                        <FabContainer description="Ajouter une personne" className="bottom-[76px] right-5 compact:bottom-[76px]">
+                            <button
+                                type="button"
+                                aria-label="Ajouter une personne"
+                                className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-[var(--tk-color-brand-text)] shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95 cursor-pointer"
+                                onClick={() => setIsAddSheetOpen(true)}
+                            >
+                                <Icon glyph={Plus} size={24} />
+                            </button>
+                        </FabContainer>
+                    ) : undefined
+                }
+            >
+                {filteredUsers.map((user) => {
+                    const held = holdings(user);
+                    return (
+                        <ListRow
+                            key={user.id}
+                            vignette={<span className="font-brand text-[15px] font-semibold">{initials(user.name)}</span>}
+                            title={user.name}
+                            type={getStatusLabel(user.role)}
+                            holder={user.department || user.site || '—'}
+                            reference={held > 0 ? `${held} équipement${held > 1 ? 's' : ''}` : 'aucun équipement'}
+                            referenceClassName={held > 0 ? 'text-text-secondary' : 'text-text-muted'}
+                            onOpen={() => onUserClick?.(user.id)}
+                            selectionActive={selection.isActive}
+                            selected={selection.isSelected(user.id)}
+                            onToggle={() => selection.toggle(user.id)}
+                            onLongPress={() => selection.enter(user.id)}
+                        />
+                    );
+                })}
+            </ListTemplate>
 
-      {isCompact && (
-        <ListActionFab
-          label="Utilisateur"
-          sheetTitle="Actions Utilisateurs"
-          actions={[
-            {
-              id: 'toggle-selection',
-              label: selectionMode ? 'Terminer sélection' : 'Mode sélection',
-              icon: selectionMode ? 'checklist_rtl' : 'check_box',
-              variant: 'outlined' as const,
-              onSelect: () => setSelectionMode((prev) => !prev),
-            },
-            ...(permissions.canManageUsers ? [
-              {
-                id: 'add-user',
-                label: 'Ajouter un utilisateur',
-                icon: 'add',
-                variant: 'filled' as const,
-                onSelect: () => onViewChange('add_user'),
-              },
-              {
-                id: 'import-users',
-                label: 'Importer des utilisateurs',
-                icon: 'upload',
-                variant: 'outlined' as const,
-                onSelect: () => onViewChange('import_users'),
-              },
-            ] : []),
-            {
-              id: 'export-users',
-              label: 'Exporter la liste',
-              icon: 'download',
-              variant: 'outlined' as const,
-              onSelect: handleExport,
-            },
-            ...(selectionMode && selectedCount > 0 ? [
-              {
-                id: 'export-selected-users',
-                label: 'Exporter la sélection',
-                icon: 'download',
-                variant: 'outlined' as const,
-                onSelect: () => handleExport(selectedUsers),
-              },
-              ...(permissions.canManageUsers ? [{
-                id: 'delete-selected-users',
-                label: 'Supprimer la sélection',
-                icon: 'delete',
-                variant: 'outlined' as const,
-                onSelect: handleBulkDelete,
-              }] : []),
-            ] : []),
-          ]}
-        />
-      )}
-      {filteredUsers.length > 0 && (
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-      )}
-    </PageContainer>
-  );
+            {/* Feuille montante de filtrage (05.1) */}
+            <BottomSheet
+                open={isFilterSheetOpen}
+                onClose={() => setIsFilterSheetOpen(false)}
+                title="Filtrer"
+            >
+                <div className="space-y-4 px-1 pb-2">
+                    {/* Département */}
+                    <div>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                            Département
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {departments.map((dept) => (
+                                <button
+                                    key={dept}
+                                    type="button"
+                                    onClick={() => setDepartmentFilter(dept)}
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                        departmentFilter === dept
+                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                    }`}
+                                >
+                                    {dept}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Site */}
+                    <div>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                            Site
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {sites.map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setSiteFilter(s)}
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                        siteFilter === s
+                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                    }`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* État du compte */}
+                    <div>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                            État du compte
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {['Tous', 'Actif', 'Suspendu', 'Départ prévu'].map((st) => (
+                                <button
+                                    key={st}
+                                    type="button"
+                                    onClick={() => setStatusFilter(st)}
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                        statusFilter === st
+                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                    }`}
+                                >
+                                    {st}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Actions de pied */}
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-outline-variant pt-3.5">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDepartmentFilter('Tous');
+                                setSiteFilter('Tous');
+                                setStatusFilter('Tous');
+                            }}
+                            className="text-[14px] font-medium text-on-surface hover:text-text-secondary cursor-pointer"
+                        >
+                            Tout effacer
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsFilterSheetOpen(false)}
+                            className="flex-1 max-w-[240px] flex h-12 items-center justify-center rounded-md bg-inverse-surface text-inverse-on-surface text-[14px] font-medium transition-colors hover:bg-inverse-surface/90 cursor-pointer"
+                        >
+                            Voir les {filteredUsers.length} personnes
+                        </button>
+                    </div>
+
+                    <p className="text-center text-[11px] text-text-muted">
+                        Le rôle n’est pas repris ici : il est déjà en tête d’écran sous forme de pastilles.
+                    </p>
+                </div>
+            </BottomSheet>
+
+            {/* Feuille montante d'ajout (05.1) */}
+            <BottomSheet
+                open={isAddSheetOpen}
+                onClose={() => setIsAddSheetOpen(false)}
+                title="Ajouter une personne"
+            >
+                <div className="space-y-2 px-1 pb-4">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsAddSheetOpen(false);
+                            onViewChange('add_user');
+                        }}
+                        className="flex w-full min-h-16 items-center gap-3.5 rounded-lg p-2 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                    >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface">
+                            <Icon glyph={EnvelopeSimple} size={20} />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[15px] font-medium text-on-surface">Inviter par e-mail</p>
+                            <p className="text-[11px] text-text-muted leading-4">
+                                La personne choisit son mot de passe à la première connexion.
+                            </p>
+                        </div>
+                        <Icon glyph={CaretDown} size={18} className="shrink-0 -rotate-90 text-text-muted" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsAddSheetOpen(false);
+                            onViewChange('import_users');
+                        }}
+                        className="flex w-full min-h-16 items-center gap-3.5 rounded-lg p-2 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                    >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface">
+                            <Icon glyph={UsersThree} size={20} />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[15px] font-medium text-on-surface">Importer depuis l’annuaire</p>
+                            <p className="text-[11px] text-text-muted leading-4">
+                                Le compte existe déjà côté entreprise : rien à saisir.
+                            </p>
+                        </div>
+                        <Icon glyph={CaretDown} size={18} className="shrink-0 -rotate-90 text-text-muted" />
+                    </button>
+
+                    <p className="mt-2 border-t border-outline-variant pt-2 text-center text-[11px] text-text-muted">
+                        Proposition — le compte peut être invité ou synchronisé depuis l’annuaire.
+                    </p>
+                </div>
+            </BottomSheet>
+        </>
+    );
 };
 
 export default UsersPage;
-

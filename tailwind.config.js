@@ -87,6 +87,8 @@ module.exports = {
                     variant: 'var(--tk-color-on-nav-surface-variant)',
                 },
                 background: 'var(--tk-color-background)',
+                // Nuance d'attente des squelettes (planche 17.3, règle A3)
+                skeleton: 'var(--tk-color-skeleton)',
                 // Rôle de texte CAT sans équivalent dans l'échelle de surface (Chantier B §4.3,
                 // 7,83:1) — text-primary ≡ on-surface, text-muted ≡ on-surface-variant, eux, en ont un
                 'text-secondary': 'var(--tk-color-text-secondary)',

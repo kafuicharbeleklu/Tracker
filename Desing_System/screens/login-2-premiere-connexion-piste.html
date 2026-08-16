@@ -1,0 +1,358 @@
+<!-- @dsCard group="02. Connexion" viewport="2160x1720" name="02.2 Première connexion" subtitle="Accepter l'invitation · le mot de passe · le code PIN (renvoi 06.2) · les quatre cas qui cassent une arrivée" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Première connexion — accepter l'invitation, ouvrir son compte</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--phone-h:820px;--colnote-h:146px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;--inset-2:#EDEAE3;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--dark-line:rgba(255,255,255,.14);--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro h2{font-size:15px;font-weight:500;margin:22px 0 6px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.rule{max-width:1180px;margin:18px auto 0;padding:15px 18px;background:var(--inset-2);border-left:3px solid var(--brand);border-radius:0 6px 6px 0;font-size:15px;line-height:23px}
+.rule b{font-weight:500}
+.rule .sec{display:block;font-size:13px;line-height:19px;color:#4A453E;margin-top:6px}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+/* ══ BANDEAU DE MARQUE — §2.22. Rôle distinct du héro inversé de §2.10 : noir chaud, plein
+   cadre, sans rayon, avant authentification. Son nom est .brand, pas .hero — voir la note. ══ */
+.brand{background:var(--ink);color:#fff;padding:56px 20px 36px}
+.brand .accent{display:block;width:40px;height:3px;background:var(--brand);margin-bottom:24px}
+.brand h1{font-size:28px;line-height:34px;font-weight:500;margin-bottom:10px}
+.brand p{font-size:15px;line-height:21px;color:#B8B2A9;max-width:290px}
+.brand.short{padding:40px 20px 30px}
+.panel{flex:1;background:var(--canvas);padding:24px 20px 20px;display:flex;flex-direction:column;gap:var(--gap)}
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tid{flex:1;min-width:0;padding:0 4px}
+.tid>span{display:block}
+.tid .code{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.015em;font-size:16px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tid .aid{font-size:11px;line-height:15px;color:var(--ink2)}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.card .ct{font-size:13px;font-weight:500;margin-bottom:10px}
+.lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.field .fv{flex:1;min-width:0}
+.field .phold{color:var(--ink3)}
+.field .gl{flex:0 0 15px;color:var(--ink3)}
+.field .eye{flex:0 0 auto;color:var(--ink2)}
+.field.on{border-width:2px;border-color:var(--ink)}
+.hint{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px}
+.hint b{font-weight:500;color:var(--ink)}
+.hint.bad{color:var(--danger)}
+.meter{display:flex;gap:5px;margin-top:9px}
+.meter i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.meter i.f{background:var(--st-vert)}
+.warn{display:flex;gap:10px;padding:11px 12px;background:var(--inset);border-radius:4px;font-size:12px;line-height:17px;color:#4A453E}
+.warn svg{flex:0 0 16px;color:var(--ink2);margin-top:1px}
+.warn b{font-weight:500;color:var(--ink)}
+.prefill{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--inset);border-radius:4px}
+.prefill .pt{flex:1;min-width:0}
+.prefill .pt>span{display:block}
+.prefill .t{font-size:14px;font-weight:500}
+.prefill .s{font-size:12px;color:var(--ink2);margin-top:2px}
+.prefill .lk{font-size:12px;font-weight:500;white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+.pico{width:40px;height:40px;flex:0 0 40px;border-radius:6px;background:var(--inset-2);display:flex;align-items:center;justify-content:center;color:var(--ink2)}
+.rrow{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:11px 0;border-top:1px solid var(--line);font-size:13px;line-height:19px}
+.rrow:first-of-type{border-top:0}
+.rrow .k{flex:0 0 auto;color:var(--ink2)}
+.rrow .v{min-width:0;text-align:right;font-weight:500;color:var(--ink);word-break:break-word}
+.rrow .v.q{font-weight:400;color:var(--ink3)}
+.rrow .dest{display:block;font-weight:400;font-size:11px;line-height:15px;color:var(--ink3);margin-top:2px}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-full{width:100%}
+.btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.btn-d{background:var(--dark);color:var(--on-dark)}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+/* bloc de gestes sur le CANEVAS — le pendant clair de .hact (§2.14) ; la distribution est
+   portée par le conteneur, jamais par la classe du bouton (§2.29). */
+.cact{display:flex;flex-direction:column;gap:10px}
+.cact>.btn{width:100%}
+/* ══ LE CHAMP CODE PIN — composant unique, QUATRE cases, 64 × 76 (§2.1) ══ */
+.pin{display:flex;gap:12px;justify-content:center}
+.pin i{width:64px;height:76px;border:1px solid var(--line-strong);border-radius:4px;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:34px;line-height:1;color:var(--ink)}
+.pin i.e{border-style:dashed;border-color:var(--line);color:#C9C4BA;font-size:26px}
+.pin i.on{border:2px solid var(--ink)}
+.pin i.ok{font-size:30px;color:var(--ink2)}
+.pin.err i{border-color:var(--danger)}
+.pin.err i.ok{color:var(--danger)}
+.pinhint{font-size:12px;line-height:17px;color:var(--ink2);text-align:center;margin-top:10px}
+.pinhint b{font-weight:500;color:var(--ink)}
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.who{background:var(--surface);border-radius:8px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.14);margin-top:12px}
+.who .ct{font-size:13px;font-weight:500;margin-bottom:10px}
+.tl{display:flex;gap:10px;font-size:13px;line-height:19px;color:#4A453E;padding:9px 0;border-top:1px solid var(--line)}
+.tl:first-of-type{border-top:0;padding-top:0}
+.tl svg{flex:0 0 16px;color:var(--ink2);margin-top:2px}
+.tl b{font-weight:500;color:var(--ink)}
+/* ══ LE COURRIEL — spécimen, hors interface ══ */
+.mail{background:var(--surface);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden}
+.mail .mh{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+.mail .mh .mf{font-size:13px;font-weight:500}
+.mail .mh .ms{font-size:12px;color:var(--ink2)}
+.mail .mb{padding:22px 18px 20px;display:flex;flex-direction:column;gap:14px}
+.mail .mt{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;line-height:25px;letter-spacing:-.01em}
+.mail .mp{font-size:13px;line-height:20px;color:#4A453E}
+.mail .mp b{font-weight:500;color:var(--ink)}
+.mail .mfoot{padding:14px 18px;border-top:1px solid var(--line);font-size:11px;line-height:16px;color:var(--ink3)}
+/* ══ L'ARBRE DES CAS — hors interface ══ */
+.tree{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:20px 18px;display:flex;flex-direction:column;gap:0}
+.tree .q{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:16px;line-height:22px;letter-spacing:-.01em}
+.tree .qs,.tree .om,.tree .ow{display:block}
+.tree .qs{font-size:12px;line-height:17px;color:var(--on-dark-2);margin-top:4px}
+.tree .arm{display:flex;gap:12px;padding:12px 0 12px 2px}
+.tree .yn{flex:0 0 44px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--on-dark-2);padding-top:3px}
+.tree .out{flex:1;min-width:0}
+.tree .om{font-size:15px;font-weight:500}
+.tree .ow{font-size:12px;line-height:17px;color:var(--on-dark-2);margin-top:3px}
+.tree .nx{border-top:1px solid var(--dark-line);padding-top:15px;margin-top:3px}
+.tree .none .om{color:#E9A79A}
+.abs{margin-top:12px;padding:12px 14px;background:var(--inset-2);border:1px dashed #C9C4BA;border-radius:6px}
+.abs .at{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+.abs p:not(.at){font-size:12px;line-height:17px;color:#4A453E;display:flex;gap:8px}
+.abs p:not(.at)+p{margin-top:6px}
+.abs p:not(.at)::before{content:"—";color:var(--ink3)}
+.abs b{font-weight:500;color:var(--ink)}
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone,body[data-tone="neutre"] .mail{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone,body[data-tone="franc"] .mail{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-densite="aeree"] .phone{--gap:26px;--rowy:14px;--pad:20px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--rowy:7px;--pad:12px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action">
+<div class="intro">
+<h1>La première connexion — accepter l'invitation, ouvrir son compte</h1>
+<p><b>Le seul trou d'un parcours déjà dessiné.</b> L'informatique crée une personne (planche 05.3), lui attribue des équipements (06.1), et la personne les confirme avec son code PIN (06.2). Entre les deux, <b>rien n'était dessiné</b> : ni comment on entre la première fois, ni où le code PIN se définit quand il n'a jamais existé. La planche 06.2 dessinait bien le formulaire de code — mais seulement <b>après une réinitialisation</b>, c'est-à-dire pour quelqu'un qui a déjà un compte.</p>
+<p><b>Ce que cette planche ne redessine pas.</b> Le bandeau de marque vient de la planche 02.1, le champ de code PIN de la planche 06.2, la fiche personne de 05.2. Une arrivée ne mérite pas de composants à elle : elle mérite <b>l'ordre dans lequel on les rencontre</b>.</p>
+</div>
+
+<p class="rule"><b>Une arrivée demande deux secrets, et l'écran dit lequel sert à quoi avant de les demander.</b><span class="sec">Le <b>mot de passe</b> ouvre l'application. Le <b>code PIN</b> vaut signature. Ce sont deux objets différents, et c'est la seule confusion qui compte ici : une personne qui croit avoir « un code » en aura deux, et retapera le mauvais devant l'informatique le jour d'une remise. Ils se demandent donc <b>l'un après l'autre</b>, sur deux écrans, chacun avec sa phrase — jamais dans un même formulaire d'inscription.</span></p>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">Relevé — ce qui arrive avant l'écran</p>
+<p class="colnote">Le courriel n'est pas de la maquette : il est <b>le premier écran du produit</b>, et le seul que l'informatique ne voit jamais. Il dit <b>qui invite</b> — une invitation anonyme se lit comme du hameçonnage — et <b>ce qui attend</b>, parce que c'est la seule raison de cliquer. <b>Il ne porte aucun mot de passe provisoire :</b> un mot de passe envoyé par courriel est connu de tous ceux qui liront ce courriel, et il survivra dans la boîte pendant des années.</p>
+<div class="mail">
+<div class="mh"><span class="mf">Tracker — Neemba</span><span class="ms">à k.diallo@neemba.com · 31 juillet, 09:12</span></div>
+<div class="mb">
+<p class="mt">Clara Admin vous a ouvert un compte Tracker</p>
+<p class="mp">Bonjour Karim,<br>Vous suivrez ici les équipements de l'entreprise qui sont à votre nom. <b>Deux vous attendent déjà</b> — vous les confirmerez à la réception.</p>
+<div class="prefill"><span class="pico"><i class="ic s20 ph ph-package"></i></span><span class="pt"><span class="t">2 équipements en attente</span><span class="s">un ordinateur portable, un écran</span></span></div>
+<button class="btn btn-y btn-full">Ouvrir mon compte</button>
+<p class="mp" style="font-size:12px;line-height:18px;color:var(--ink2)">Ce lien est valable <b style="font-weight:500;color:var(--ink)">7 jours</b> et ne fonctionne qu'une fois. Passé ce délai, demandez-en un nouveau depuis la même page.</p>
+</div>
+<p class="mfoot">Vous recevez ce message parce que Clara Admin, de l'informatique de Neemba, a créé un compte à votre adresse professionnelle. Si vous pensez que c'est une erreur, ne cliquez pas et prévenez-la.</p>
+</div>
+<div class="abs">
+<p class="at">Trois règles tenues par ce courriel</p>
+<p><span><b>Aucun secret dedans.</b> Ni mot de passe provisoire, ni code PIN. Le lien ouvre un formulaire, il ne livre rien.</span></p>
+<p><span><b>L'adresse ne se choisit pas.</b> Elle est fixée à la création (05.3) et sert d'identifiant. La personne n'en change pas : ce serait changer de compte.</span></p>
+<p><span><b>Un lien, un usage, sept jours.</b> Au-delà, on ne prolonge pas — on en redemande un, et l'informatique le voit passer.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — écran 1, l'invitation hors session</p>
+<p class="colnote">Le <b>bandeau de marque</b> de la planche 02.1, à l'identique : c'est lui qui dit qu'on est bien arrivé dans l'application que le lien annonçait. Il ne se personnalise pas — un bandeau qui changerait de texte d'un écran hors session à l'autre ne serait plus une marque, mais un titre. <b>L'invitation vit sous lui</b>, dans une carte, avec l'inviteur en vignette. Un seul geste, et un désistement qui ne mène nulle part dans l'application : <b>« ce n'est pas moi » ne se règle pas dans un écran</b>, il se dit à une personne.</p>
+<div class="phone">
+<div class="brand">
+<span class="accent"></span>
+<h1>Tracker</h1>
+<p>Pilotez vos actifs avec une expérience unifiée.</p>
+</div>
+<div class="panel">
+<section class="card">
+<p class="ct">Vous êtes invité</p>
+<div class="prefill"><span class="vig">CA</span><span class="pt"><span class="t">Clara Admin</span><span class="s">Informatique · Neemba</span></span></div>
+<div style="margin-top:12px">
+<div class="rrow"><span class="k">Nom</span><span class="v">Karim Diallo</span></div>
+<div class="rrow"><span class="k">Adresse</span><span class="v">k.diallo@neemba.com<span class="dest">fixée par l'informatique</span></span></div>
+<div class="rrow"><span class="k">Rôle</span><span class="v">Utilisateur<span class="dest">Support · Bureau Paris</span></span></div>
+</div>
+</section>
+<section class="card">
+<p class="ct">Ce qui vous attend</p>
+<div class="tl"><i class="ic s18 ph ph-package"></i><span><b>Deux équipements</b> sont déjà à votre nom. Vous les confirmerez à la réception, et pas avant.</span></div>
+<div class="tl"><i class="ic s18 ph ph-clock-counter-clockwise"></i><span>Tout ce qui vous est remis ou repris reste <b>lisible dans votre historique</b>, y compris par vous.</span></div>
+</section>
+<div style="flex:1;min-height:12px"></div>
+<div class="cact">
+<button class="btn btn-y">Ouvrir mon compte</button>
+<button class="btn btn-d">Ce n'est pas moi</button>
+</div>
+</div>
+</div>
+<div class="abs">
+<p class="at">Le désistement, et pourquoi il n'a pas d'écran</p>
+<p><span>« Ce n'est pas moi » ouvre une <b>feuille de choix</b> (§2.9) d'une seule phrase : <b>prévenez Clara Admin</b>, avec son adresse et son poste. Le lien n'est pas consommé.</span></p>
+<p><span>L'application <b>n'offre aucun geste</b> pour refuser une invitation : un refus enregistré par un inconnu vaudrait moins qu'un appel.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — écran 2, le mot de passe qui ouvre l'application</p>
+<p class="colnote"><b>Pas de champ « confirmer »</b>, et c'est une règle, pas un oubli : le mot de passe est <b>relisible</b> — l'œil le dévoile — donc une seconde saisie ne prouve rien. Le code PIN, lui, n'est jamais relisible, donc il se retape (06.2, étape 2). <b>On redemande ce qu'on ne peut pas relire.</b> La séquence porte une barre de titre et une étape, pas la barre du bas : on n'y navigue pas, il n'y a qu'un chemin.</p>
+<div class="phone">
+<div class="tbar"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">Votre mot de passe</span><span class="aid">Étape 1 sur 2</span></span></div>
+<div class="page">
+<section class="card">
+<p class="lab">Choisissez un mot de passe</p>
+<div class="field on"><i class="ic s18 gl ph ph-lock-simple"></i><span class="fv">un été à Kaolack 1998</span><span class="eye"><i class="ic s18 ph ph-eye"></i></span></div>
+<div class="meter"><i class="f"></i><i class="f"></i><i class="f"></i><i></i></div>
+<p class="hint"><b>Solide.</b> 12 caractères minimum ; une phrase vaut mieux qu'un mot compliqué.</p>
+</section>
+<section class="card">
+<p class="ct">Deux secrets, deux usages</p>
+<div class="tl"><i class="ic s18 ph ph-lock-simple"></i><span><b>Le mot de passe ouvre l'application</b>, depuis n'importe quel appareil. Vous le tapez rarement : la session tient.</span></div>
+<div class="tl"><i class="ic s18 ph ph-key"></i><span><b>Le code PIN prouve une remise</b> — quatre chiffres, sur place, devant la personne qui vous tend l'objet. Il <b>vaut signature</b>. Vous le choisirez à l'écran suivant.</span></div>
+</section>
+<div class="warn"><i class="ic s18 ph ph-eye"></i><span>Le champ est <b>dévoilable</b> : c'est ce qui remplace la double saisie. Un mot de passe qu'on peut relire n'a pas besoin d'être retapé.</span></div>
+<div style="flex:1;min-height:12px"></div>
+<button class="btn btn-y btn-full">Continuer</button>
+</div>
+</div>
+<div class="abs">
+<p class="at">Ce que cet écran ne demande pas</p>
+<p><span><b>Ni nom, ni service, ni téléphone.</b> Ils viennent de la fiche créée par l'informatique (05.3) et se corrigent depuis <b>Mon profil</b> — pas dans un tunnel d'arrivée, où l'on n'a rien à vérifier.</span></p>
+<p><span><b>Pas de double authentification ici.</b> Elle vit dans « Mon compte » (07.1) et se propose <b>après</b> la première remise, quand le compte a un contenu à protéger.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — écran 3, le code PIN et ce qu'il emprunte à 06.2</p>
+<p class="colnote">Ce formulaire <b>existe déjà</b> : il est la vue de référence de la planche 06.2, dessinée pour le retour de réinitialisation. Ce qui change ici est <b>l'en-tête de provenance</b>, et c'est exactement ce que §1 autorise — le reste, champ, masquage, refus, seconde saisie, est le même fichier. <b>C'est la première fois que la règle des vues de référence est appliquée avant de dessiner, et non après avoir trouvé un doublon.</b></p>
+<div class="phone">
+<div class="tbar"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">Votre code de remise</span><span class="aid">Étape 2 sur 2</span></span></div>
+<div class="page">
+<section class="card">
+<p class="ct">Pourquoi maintenant</p>
+<p style="font-size:13px;line-height:19px;color:#4A453E"><b style="font-weight:500;color:var(--ink)">Deux équipements vous attendent.</b> Vous les confirmerez avec ce code, en présence de la personne qui vous les remet. Tant qu'il n'existe pas, vos réceptions se prouvent <b style="font-weight:500;color:var(--ink)">par signature</b>.</p>
+</section>
+<section class="card">
+<p class="lab">Choisissez un code à 4 chiffres</p>
+<div class="pin"><i class="ok">•</i><i class="ok">•</i><i class="on">7</i><i class="e">·</i></div>
+<p class="pinhint">Il vous sera demandé à chaque remise. <b>Personne ne peut le lire</b>, pas même l'informatique.</p>
+</section>
+<section class="card">
+<p class="ct">Ce que le code refuse</p>
+<div class="tl"><i class="ic s18 ph ph-info"></i><span><b>1234</b>, <b>0000</b> et les suites — trop devinables pour une preuve opposable.</span></div>
+<div class="tl"><i class="ic s18 ph ph-info"></i><span>Votre <b>année de naissance</b>, si elle est connue de l'annuaire.</span></div>
+</section>
+<div style="flex:1;min-height:12px"></div>
+<button class="btn btn-y btn-full">Continuer</button>
+</div>
+</div>
+<div class="abs">
+<p class="at">Deux points tranchés en dessinant</p>
+<p><span><b>Quand rien n'attend</b>, l'en-tête change de temps : « Vous en aurez besoin le jour où on vous remettra un équipement. » Le formulaire, lui, ne bouge pas.</span></p>
+<p><span><b>Le code PIN n'est pas facultatif à l'arrivée</b>, mais il est <b>reportable</b> : « Plus tard » renvoie au tableau de bord et laisse une tâche. Sans cela, une arrivée sans matériel se termine par une exigence sans objet.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — les quatre cas qui cassent une arrivée</p>
+<p class="colnote">Un tunnel d'arrivée se juge sur ses ratés, parce qu'ils arrivent à la personne <b>qui ne connaît pas encore le produit</b> et qui n'a personne à qui demander. Les quatre cas ci-dessous se règlent tous <b>sans support</b>, sauf le dernier — et celui-là le dit franchement plutôt que de faire semblant. <b>Aucun message ne révèle si une adresse existe</b> : c'est ce qui distingue un écran hors session d'un écran d'application.</p>
+<div class="phone" style="--phone-h:0">
+<div class="brand short">
+<span class="accent"></span>
+<h1>Tracker</h1>
+</div>
+<div class="panel" style="gap:14px">
+<section class="card">
+<p class="ct">Ce lien a expiré</p>
+<p style="font-size:13px;line-height:19px;color:#4A453E">Les invitations sont valables <b style="font-weight:500;color:var(--ink)">7 jours</b>. Demandez-en une nouvelle : elle partira à la même adresse, et l'informatique en sera informée.</p>
+<button class="btn btn-y btn-full" style="margin-top:14px">Demander un nouveau lien</button>
+</section>
+<div class="warn"><i class="ic s18 ph ph-envelope-simple"></i><span>Le message ne dit <b>pas</b> si l'adresse a un compte : hors session, un écran qui répond à cette question la répond aussi à un inconnu.</span></div>
+</div>
+</div>
+<div class="tree" style="margin-top:14px">
+<p class="q">Lien déjà employé<span class="qs">Le compte est actif — il n'y a rien à réparer.</span></p>
+<div class="arm"><span class="yn">→</span><span class="out"><span class="om">La connexion ordinaire (02.1)</span><span class="ow">Sans message d'erreur : arriver sur un formulaire de connexion <b style="font-weight:600">est</b> la réponse.</span></span></div>
+<p class="q nx" style="padding-top:15px">Ce n'est pas la bonne personne<span class="qs">Un lien transféré, une adresse mal saisie.</span></p>
+<div class="arm"><span class="yn">→</span><span class="out none"><span class="om">Aucun geste dans l'application</span><span class="ow">Le nom de l'inviteur et son poste, rien de plus. <b style="font-weight:600">Un refus enregistré par un inconnu ne vaut rien</b> ; un appel à Clara, si.</span></span></div>
+<p class="q nx" style="padding-top:15px">Compte suspendu entre l'envoi et le clic<span class="qs">Le cas d'un départ annoncé puis avancé (05.4).</span></p>
+<div class="arm"><span class="yn">→</span><span class="out none"><span class="om">Le lien ne s'ouvre pas</span><span class="ow">Un message unique, sans motif : « Ce compte n'est pas disponible. Contactez votre informatique. » <b style="font-weight:600">Le motif d'une suspension ne se dit pas hors session.</b></span></span></div>
+</div>
+<div class="abs">
+<p class="at">Et le quatrième, qui n'est pas un raté</p>
+<p><span><b>La personne a un compte mais aucun équipement.</b> C'est le cas le plus fréquent d'une grande arrivée — un service entier créé le même jour. L'atterrissage est alors <b>l'état vide du tableau de bord</b>, déjà dessiné en 03.2 : il ne se redessine pas ici.</span></p>
+</div>
+</div>
+
+</div>
+
+<div id="tw-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action"
+}/*EDITMODE-END*/;
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+function PlancheTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+  },[t.tone,t.densite,t.accent]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<PlancheTweaks />);
+</script>
+</body>
+</html>

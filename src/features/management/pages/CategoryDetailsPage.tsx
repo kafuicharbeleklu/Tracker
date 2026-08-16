@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import {
+    CaretRight,
+    Info,
+    Warning,
+} from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
-import { mockCategories, mockModels, renderCategoryIcon } from '../../../data/mockData';
-import Badge from '../../../components/ui/Badge';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
-import { PageTabs } from '../../../components/ui/PageTabs';
-import { DetailHeader } from '../../../components/layout/DetailHeader';
+import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import DetailTemplate from '../../../components/layout/DetailTemplate';
+import ScreenState from '../../../components/ui/ScreenState';
+import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import { renderCategoryIcon } from '../../../data/mockData';
+import { useConfirmation } from '../../../context/ConfirmationContext';
+import { useToast } from '../../../context/ToastContext';
+import AddCategoryPage from './AddCategoryPage';
 
 interface CategoryDetailsPageProps {
     categoryId: string;
@@ -13,159 +22,244 @@ interface CategoryDetailsPageProps {
 }
 
 const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, onBack, onModelClick }) => {
-    const { equipment } = useData();
-    const [activeTab, setActiveTab] = useState<'models' | 'assets'>('models');
-    const category = mockCategories.find(c => c.id === categoryId);
+    const { equipment, categories, models, deleteCategory } = useData();
+    const { navigateToView } = useAppNavigation();
+    const { requestConfirmation } = useConfirmation();
+    const { showToast } = useToast();
+    const [isEditOpen, setIsEditOpen] = useState(false);
 
-    if (!category) return <div className="p-page-sm medium:p-page">Category not found</div>;
+    const category = categories.find((c) => c.id === categoryId);
 
-    // Filter models and equipment
-    const categoryModels = mockModels.filter(m => m.type === category.name);
-    const categoryEquipment = equipment.filter(e => e.type === category.name);
+    const categoryModels = useMemo(
+        () => (category ? models.filter((m) => m.type === category.name) : []),
+        [category, models]
+    );
+    const categoryEquipment = useMemo(
+        () => (category ? equipment.filter((e) => e.type === category.name) : []),
+        [equipment, category]
+    );
+
+    if (!category) {
+        return (
+            <ScreenState
+                title="Catégorie introuvable"
+                description="La catégorie demandée n'existe pas ou a été retirée du catalogue."
+                actions={
+                    <Button variant="filled" onClick={onBack}>
+                        Revenir au catalogue
+                    </Button>
+                }
+            />
+        );
+    }
+
+    // B1 — la clé de la donnée **est** le nom porté par le type ; le français est un
+    // libellé. Cet écran la montre, les autres ne la montrent jamais (09.1). La famille
+    // se lit sur le type (A2) : elle était déduite du nom par un `switch` de trente
+    // lignes, qui se trompait sur tout type créé après lui.
+    const family = category.family || 'Mobilier et divers';
+    const dataKey = category.name;
+    const isDataKeyReleve = true;
+    const isAssignable = category.assignable !== false;
+    const depreciationYears = category.defaultDepreciation?.years ?? 3;
+    const depreciationMethod = category.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire';
 
     return (
-        <div className="flex flex-col h-full bg-surface-container-low">
-            {/* Header */}
-            <DetailHeader
-                onBack={onBack}
-                title={category.name}
-                subtitle={`${categoryEquipment.length} actifs • ${categoryModels.length} modèles`}
-                leadingVisual={(
-                    <div className="w-16 h-16 bg-primary rounded-card flex items-center justify-center text-on-surface shadow-elevation-2">
-                        {renderCategoryIcon(category, 32)}
+        <DetailTemplate
+            code={category.name}
+            reference={`${categoryEquipment.length} actif(s) · ${categoryModels.length} modèle(s)`}
+            onBack={onBack}
+            hero={
+                <section className="flex flex-col gap-3 rounded-lg bg-inverse-surface p-4 text-inverse-on-surface">
+                    <div className="flex items-start gap-3.5">
+                        <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-md bg-white/12 text-white">
+                            {renderCategoryIcon(category, 28)}
+                        </div>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                            <h1 className="truncate font-brand text-[20px] font-semibold tracking-[-0.01em] text-white">
+                                {category.name}
+                            </h1>
+                            <p className="mt-0.5 text-[13px] text-text-secondary">
+                                {family} · {isAssignable ? 'Attribuable' : 'Non attribuable'}
+                            </p>
+                        </div>
                     </div>
-                )}
-                tabs={(
-                    <PageTabs
-                        activeId={activeTab}
-                        onChange={(tabId) => setActiveTab(tabId as 'models' | 'assets')}
-                        items={[
-                            { id: 'models', label: 'Modèles' },
-                            { id: 'assets', label: 'Tous les actifs', shortLabel: 'Actifs' }
-                        ]}
-                    />
-                )}
-            />
 
-            {/* Content */}
-            <div className="p-page-sm medium:p-page overflow-y-auto">
-                {activeTab === 'models' ? (
-                    <div className="grid grid-cols-1 expanded:grid-cols-2 extra-large:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2">
-                        {categoryModels.map(model => (
+                    <div className="flex items-baseline gap-2.5 border-t border-white/14 pt-3.5">
+                        <b className="font-brand text-[32px] font-semibold tracking-[-0.01em] tabular-nums text-white">
+                            {categoryEquipment.length}
+                        </b>
+                        <span className="text-[13px] leading-[19px] text-text-secondary">
+                            actif{categoryEquipment.length > 1 ? 's' : ''} au parc sur {categoryModels.length} modèle{categoryModels.length > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </section>
+            }
+        >
+            {/* Section 1 : Caractéristiques du type (Planche 09.1) */}
+            <section className="rounded-lg bg-surface p-4 shadow-elevation-1 divide-y divide-outline-variant">
+                <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-body-medium text-on-surface">Famille</span>
+                    <span className="text-body-medium font-medium text-on-surface">{family}</span>
+                </div>
+                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-body-medium text-on-surface">Attribuable à une personne</span>
+                        <span className="text-body-small text-text-secondary">
+                            {isAssignable
+                                ? "décide si le type entre dans le sélecteur d'attribution"
+                                : 'ne se remet pas en main propre'}
+                        </span>
+                    </div>
+                    <span className="text-body-medium font-medium text-on-surface shrink-0">
+                        {isAssignable ? 'Oui' : 'Non'}
+                    </span>
+                </div>
+                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-body-medium text-on-surface">Clé de la donnée</span>
+                        <span className="text-body-small text-text-secondary">
+                            {isDataKeyReleve
+                                ? 'ce que lisent les imports et les intégrations'
+                                : 'aucune clé relevée — les imports ne savent pas nommer ce type'}
+                        </span>
+                    </div>
+                    <span
+                        className={`text-body-medium shrink-0 ${
+                            isDataKeyReleve ? 'font-medium text-on-surface' : 'text-text-secondary italic'
+                        }`}
+                    >
+                        {dataKey}
+                    </span>
+                </div>
+                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-body-medium text-on-surface">Amortissement</span>
+                        <span className="text-body-small text-text-secondary">
+                            décide de la valeur actuelle affichée en Finances
+                        </span>
+                    </div>
+                    <span className="text-body-medium font-medium text-on-surface shrink-0 text-right">
+                        {depreciationMethod} <span className="block text-body-small font-normal text-text-secondary">{depreciationYears} ans</span>
+                    </span>
+                </div>
+            </section>
+
+            {/* Section 2 : Modèles référencés */}
+            <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                    <h3 className="text-body-medium font-semibold text-on-surface">Modèles</h3>
+                    <span className="font-brand text-body-medium font-semibold tabular-nums text-text-secondary">
+                        {categoryModels.length}
+                    </span>
+                </div>
+
+                {categoryModels.length > 0 ? (
+                    <div className="divide-y divide-outline-variant">
+                        {categoryModels.map((model) => (
                             <div
                                 key={model.id}
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => onModelClick(model.id)}
-                                className="bg-surface rounded-card p-card shadow-elevation-1 border border-transparent hover:border-primary/50 hover:shadow-elevation-2 transition-all cursor-pointer group flex flex-col"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onModelClick(model.id);
+                                    }
+                                }}
+                                className="flex min-h-14 w-full items-center gap-3 py-2 text-left transition-colors hover:bg-surface-container cursor-pointer px-1 rounded-md"
                             >
-                                <div className="flex-1 flex flex-col items-center mb-6">
-                                    <div className="w-full h-32 bg-surface-container rounded-card mb-4 p-4 border border-outline-variant group-hover:scale-105 transition-transform">
-                                        <img
-                                            src={model.image}
-                                            alt={model.name}
-                                            loading="lazy"
-                                            decoding="async"
-                                            className="w-full h-full object-contain mix-blend-multiply"
-                                        />
+                                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <span className="font-brand text-body-medium font-semibold text-on-surface truncate">
+                                            {model.name}
+                                        </span>
+                                        <span className="text-body-small font-medium text-on-surface shrink-0">
+                                            {model.brand || ''}
+                                        </span>
                                     </div>
-                                    <h3 className="font-bold text-on-surface text-title-medium text-center group-hover:text-primary transition-colors">{model.name}</h3>
-                                    <p className="text-on-surface-variant text-body-medium">{model.type}</p>
+                                    <span className="truncate text-body-small text-text-secondary">
+                                        {model.count} actif{model.count > 1 ? 's' : ''} dans le parc
+                                    </span>
                                 </div>
-                                <div className="border-t border-outline-variant/30 pt-4 flex justify-between items-center text-body-medium">
-                                    <span className="text-on-surface-variant">Unités</span>
-                                    <span className="font-bold text-on-surface">{model.count}</span>
-                                </div>
+                                <Icon glyph={CaretRight} size={18} className="shrink-0 text-text-secondary" />
                             </div>
                         ))}
-                        {categoryModels.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-on-surface-variant">
-                                Aucun modèle trouvé pour cette catégorie.
-                            </div>
-                        )}
                     </div>
                 ) : (
-                    <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                        <div className="hidden medium:block overflow-x-auto">
-                        <table className="w-full text-body-medium text-left">
-                            <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
-                                <tr>
-                                    <th className="px-6 py-4">Nom</th>
-                                    <th className="px-6 py-4">Asset ID</th>
-                                    <th className="px-6 py-4">Statut</th>
-                                    <th className="px-6 py-4">Utilisateur</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-outline-variant">
-                                {categoryEquipment.map(item => (
-                                    <tr key={item.id} className="hover:bg-surface-container/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-on-surface">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={item.image}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    alt={item.name}
-                                                    className="w-8 h-8 rounded-md bg-surface-container object-cover"
-                                                />
-                                                {item.name}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 font-mono text-on-surface-variant">{item.assetId}</td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : 'warning'}>
-                                                {item.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-on-surface-variant">
-                                            {item.user ? item.user.name : '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        </div>
-
-                        {/* Vue cartes (compact) — mêmes champs que le tableau, empilés (#12).
-                            Liste consultée en mobilité (recherche d'un actif sur le terrain) :
-                            recomposition en cartes plutôt que défilement horizontal. */}
-                        <div className="medium:hidden divide-y divide-outline-variant">
-                            {categoryEquipment.map(item => (
-                                <div key={item.id} className="p-4 space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <img
-                                            src={item.image}
-                                            loading="lazy"
-                                            decoding="async"
-                                            alt={item.name}
-                                            className="w-10 h-10 rounded-md bg-surface-container object-cover shrink-0"
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium text-on-surface truncate">{item.name}</p>
-                                            <p className="font-mono text-body-small text-on-surface-variant truncate">{item.assetId}</p>
-                                        </div>
-                                        <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : 'warning'}>
-                                            {item.status}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-body-small text-on-surface-variant">
-                                        <MaterialIcon name="person" size={14} />
-                                        <span className="truncate">{item.user ? item.user.name : 'Non attribué'}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {categoryEquipment.length === 0 && (
-                            <div className="text-center py-12 text-on-surface-variant">
-                                Aucun actif trouvé.
-                            </div>
-                        )}
+                    <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-on-surface">
+                        <Icon glyph={Warning} size={18} className="text-[var(--tk-color-st-ambre)] shrink-0 mt-0.5" />
+                        <span>
+                            <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type n'apparaît pas dans la création d'équipement.
+                        </span>
                     </div>
                 )}
-            </div>
-        </div>
+            </section>
+
+            {/* Section 3 : Note d'amortissement et actions */}
+            <section className="rounded-lg bg-surface p-4 shadow-elevation-1 flex flex-col gap-3">
+                <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-text-secondary">
+                    <Icon glyph={Info} size={18} className="shrink-0 text-text-secondary mt-0.5" />
+                    <span>
+                        Changer l'amortissement <strong>ne recalcule pas le passé</strong> : la valeur des {categoryEquipment.length} actifs déjà créés suit le paramètre en vigueur à leur acquisition.
+                    </span>
+                </div>
+
+                {categoryEquipment.length > 0 && (
+                    <Button
+                        variant="text"
+                        onClick={() => navigateToView('equipment')}
+                        className="flex min-h-12 w-full items-center justify-start gap-2.5 border-t border-outline-variant pt-2 text-left text-body-medium font-medium text-on-surface transition-colors hover:text-text-secondary rounded-none px-1"
+                    >
+                        <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
+                        <span>Voir les {categoryEquipment.length} actifs dans l'inventaire</span>
+                    </Button>
+                )}
+            </section>
+
+            {/* Les deux actes du type. **Rien de destructif dans une rangée** : une
+                suppression se décide devant l'objet, jamais en le survolant dans une
+                liste (04.1). Ils étaient au survol d'une carte du catalogue. */}
+            <section className="flex flex-col gap-3">
+                <Button variant="outlined" onClick={() => setIsEditOpen(true)}>
+                    Modifier le type
+                </Button>
+                <Button
+                    variant="text"
+                    className="text-error"
+                    onClick={() =>
+                        requestConfirmation({
+                            title: `Supprimer « ${category.name} » du catalogue ?`,
+                            message:
+                                categoryEquipment.length > 0
+                                    ? `${categoryEquipment.length} actif(s) portent ce type. Ils ne sont pas supprimés, mais plus rien ne définira ce qu'ils sont.`
+                                    : 'Aucun actif ne porte ce type. Les modèles qui en dépendent perdent leur rattachement.',
+                            confirmText: 'Supprimer le type',
+                            tone: 'destructive',
+                            irreversible: true,
+                            onConfirm: () => {
+                                deleteCategory(category.id);
+                                showToast(`« ${category.name} » supprimé du catalogue.`, 'success');
+                                onBack();
+                            },
+                        })
+                    }
+                >
+                    Supprimer le type
+                </Button>
+            </section>
+
+            <AddCategoryPage
+                isOpen={isEditOpen}
+                onClose={() => setIsEditOpen(false)}
+                categoryToEdit={category}
+            />
+        </DetailTemplate>
     );
 };
 
 export default CategoryDetailsPage;
+
 
 

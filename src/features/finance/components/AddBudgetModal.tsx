@@ -6,7 +6,6 @@ import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
 import SegmentedButton from '../../../components/ui/SegmentedButton';
 import IconButton from '../../../components/ui/IconButton';
-import Badge from '../../../components/ui/Badge';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
@@ -27,9 +26,25 @@ interface BudgetLine {
     id: string;
     category: string;
     amount: string;
+    /**
+     * Investissement ou frais courant — **saisi**. Le modal le devinait de la
+     * catégorie, puis du montant au-delà de 5 000 (planche 15.1). Vide tant que la
+     * personne n'a pas répondu : c'est le seul moyen de distinguer « OPEX » de
+     * « on a supposé OPEX ».
+     */
+    capitalization: '' | 'CAPEX' | 'OPEX';
 }
 
 type AddBudgetMode = 'import' | 'manual';
+
+/**
+ * Les deux réponses possibles, et **aucune par défaut**. Un défaut ici serait la
+ * devinette sous un autre nom : la moitié des lignes le garderaient sans l'avoir lu.
+ */
+const CAPITALIZATION_OPTIONS = [
+    { value: 'CAPEX', label: 'CAPEX — investissement' },
+    { value: 'OPEX', label: 'OPEX — frais courant' },
+];
 
 const MODE_OPTIONS = [
     { value: 'import', label: 'Import Excel', icon: 'table_chart' },
@@ -59,8 +74,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
     // Dynamic Rows State
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
-        { id: '1', category: 'Matériel IT', amount: '' },
-        { id: '2', category: 'Licences Logiciel', amount: '' }
+        { id: '1', category: 'Matériel IT', amount: '', capitalization: '' },
+        { id: '2', category: 'Licences Logiciel', amount: '', capitalization: '' }
     ]);
 
     const totalBudget = useMemo(() => {
@@ -68,11 +83,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     }, [budgetLines]);
 
     // Helper pour déterminer le type (CAPEX/OPEX) et l'icône dynamiquement
-    const getCategoryDetails = (category: string, amount: string) => {
+    /** L'icône d'une catégorie — une aide à la lecture, pas un classement comptable. */
+    const getCategoryDetails = (category: string) => {
         const lower = category.toLowerCase();
-        const amountVal = parseFloat(amount) || 0;
 
-        let type: 'CAPEX' | 'OPEX' = 'OPEX';
         let icon = <MaterialIcon name="layers" size={16} />;
         let iconBg = 'bg-surface-container text-on-surface-variant';
 
@@ -91,17 +105,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             iconBg = 'bg-surface-container text-on-surface-variant';
         }
 
-        // Détection Type (IA logic simulation)
-        if (lower.includes('matériel') || lower.includes('hardware') || lower.includes('ordinateur')) {
-            type = 'CAPEX';
-        } else if (lower.includes('licence') || lower.includes('cloud') || lower.includes('service') || lower.includes('maintenance')) {
-            type = 'OPEX';
-        } else {
-            // Fallback sur le montant si ambigu
-            type = amountVal > 5000 ? 'CAPEX' : 'OPEX';
-        }
-
-        return { type, icon, iconBg };
+        return { icon, iconBg };
     };
 
     const getFinanceTypeFromCategory = (category: string): FinanceExpenseType => {
@@ -229,6 +233,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                 type: getFinanceTypeFromCategory(line.category),
                 allocated,
                 spent: Math.min(existingSpent, allocated),
+                capitalization: line.capitalization || undefined,
             };
         });
 
@@ -402,7 +407,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                         {isCompact ? (
                             <div className="divide-y divide-outline-variant">
                                 {budgetLines.map((line) => {
-                                    const details = getCategoryDetails(line.category, line.amount);
+                                    const details = getCategoryDetails(line.category);
                                     return (
                                         <div key={line.id} className="p-4 space-y-3">
                                             <div className="flex items-end gap-3">
@@ -441,14 +446,17 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                         className="py-2 text-right font-mono font-bold bg-surface-container-low"
                                                     />
                                                 </div>
-                                                {line.category ? (
-                                                    <Badge
-                                                        variant={details.type === 'CAPEX' ? 'info' : 'warning'}
-                                                        className="shrink-0 mb-2"
-                                                    >
-                                                        {details.type}
-                                                    </Badge>
-                                                ) : null}
+                                                <div className="w-40 shrink-0">
+                                                    <SelectField
+                                                        name={`cap-${line.id}`}
+                                                        label="Immobilisation"
+                                                        options={CAPITALIZATION_OPTIONS}
+                                                        value={line.capitalization}
+                                                        onChange={(e) => updateLine(line.id, 'capitalization', e.target.value)}
+                                                        placeholder="À renseigner"
+                                                        className="w-full"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -467,13 +475,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                     <tr>
                                         <th className="px-6 py-4">Catégorie</th>
                                         <th className="px-6 py-4 w-48 text-right">Montant Alloué</th>
-                                        <th className="px-6 py-4 text-center w-32">Type (IA)</th>
+                                        <th className="px-6 py-4 text-center w-40">Immobilisation</th>
                                         <th className="px-6 py-4 w-16"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-outline-variant bg-surface">
                                     {budgetLines.map((line) => {
-                                        const details = getCategoryDetails(line.category, line.amount);
+                                        const details = getCategoryDetails(line.category);
                                         return (
                                             <tr key={line.id} className="hover:bg-surface-container/50 transition-colors group">
                                                 <td className="px-6 py-3">
@@ -507,13 +515,14 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-3 text-center">
-                                                    {line.category ? (
-                                                        <Badge variant={details.type === 'CAPEX' ? 'info' : 'warning'}>
-                                                            {details.type}
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className="text-on-surface-variant text-body-small">-</span>
-                                                    )}
+                                                    <SelectField
+                                                        name={`cap-${line.id}`}
+                                                        options={CAPITALIZATION_OPTIONS}
+                                                        value={line.capitalization}
+                                                        onChange={(e) => updateLine(line.id, 'capitalization', e.target.value)}
+                                                        placeholder="À renseigner"
+                                                        className="mb-0 w-full"
+                                                    />
                                                 </td>
                                                 <td className="px-6 py-3 text-right">
                                                     <IconButton

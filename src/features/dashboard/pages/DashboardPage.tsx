@@ -1,259 +1,414 @@
-import { MEDIA } from '../../../constants/breakpoints';
-import React, { useMemo, useState, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
-import Card from '../../../components/ui/Card';
-import { Approval, ViewType, HistoryEvent } from '../../../types';
+import React, { useState, useMemo } from 'react';
+import {
+    ArrowCircleRight,
+    ArrowUUpLeft,
+    CaretDown,
+    ChartBar,
+    Check,
+    CheckCircle,
+    Clock,
+    ClockCounterClockwise,
+    FileText,
+    Laptop,
+    Package,
+    Plus,
+    ShieldWarning,
+    Tray,
+    Truck,
+    UserCheck,
+    Warning,
+    Wrench,
+} from '@phosphor-icons/react';
+
+import { ViewType } from '../../../types';
+import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
-import { PageContainer } from '../../../components/layout/PageContainer';
-import { PageHeader } from '../../../components/layout/PageHeader';
-import { GLOSSARY } from '../../../constants/glossary';
-import { useAccessControl } from '../../../hooks/useAccessControl';
-import Button from '../../../components/ui/Button';
+import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useToast } from '../../../context/ToastContext';
-import SecurityGate from '../../../components/security/SecurityGate';
-import { calculateLinearDepreciation, formatCurrency, formatDate, formatNumber } from '../../../lib/financial';
-import { MetricCard } from '../../../components/ui/MetricCard';
-import { UserAvatar } from '../../../components/ui/UserAvatar';
+import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useHistory } from '../../../hooks/useHistory';
-import { cn } from '../../../lib/utils';
-import TransactionTicketModal from '../../../components/modals/TransactionTicketModal';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
+
+import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import ProportionRow from '../../../components/ui/ProportionRow';
+import { OfflineBanner } from '../../../components/ui/ContextBanner';
+import SecurityGate from '../../../components/security/SecurityGate';
+import dashboardHeroImage from '../../../../Desing_System/uploads/footer-cartouche-bas-nl.webp';
+
+import { getCategoryLabel } from '../../../constants/glossary';
+import { calculateLinearDepreciation, formatDate } from '../../../lib/financial';
 import {
     ACTIVE_APPROVAL_STATUSES,
     canUserActOnApproval,
-    getHistoryEventIcon,
     getHistoryEventSentence,
-    isOperationalEquipmentStatus,
 } from '../../../lib/businessRules';
+import { Approval } from '../../../types';
+import { cn } from '../../../lib/utils';
+
+/**
+ * Tableau de bord — **porté sur la planche 03.1**.
+ *
+ * L'arc de l'écran est fixe : **décision → état → analyse → activité**. Le code
+ * plaçait l'activité avant les graphiques ; elle passe en dernier.
+ *
+ * ## « À traiter » n'est pas une liste, c'est une zone bornée
+ *
+ * Sa **forme change avec le volume**, jamais sa hauteur : rien à traiter, quelques
+ * rangées qui agissent **sur place**, ou les plus anciennes suivies d'un renvoi. À
+ * dix-sept demandes elle n'est pas plus haute qu'à deux. Le tableau de bord dit la
+ * **taille et la forme** du travail ; la file (onglet Tâches) est le lieu où on le
+ * fait.
+ *
+ * **Une seule destination** : les liens n'ouvrent pas un autre écran, ils ouvrent
+ * **le même** — Tâches — en portant le filtre et le tri. Un second inventaire de la
+ * même liste serait une deuxième source de vérité.
+ *
+ * ## « Répartition par type » devient « Types en tension »
+ *
+ * Compter les unités de chaque type décrit le parc sans rien décider ; ce qui décide,
+ * c'est **de quel type il ne reste plus rien**. La carte ne liste que les types à
+ * **zéro disponible**, les plus nombreux d'abord, bornée à cinq lignes. Pas de barre :
+ * à zéro disponible, une barre ne dit rien. Ce qui est couvert se dit **en une
+ * phrase**, jamais en lignes.
+ *
+ * ## Ce que le portage retire
+ *
+ * - **l'anneau de répartition** et ses quatre couleurs de catégorie — un type n'est
+ *   pas un état, et le peindre est l'interdit §8.8 ;
+ * - **les quatre cartes financières** (dépenses, valeur, amortissement mensuel) : ce
+ *   sont des totaux qui ne décident rien. Reste ce qui appelle un geste — les
+ *   équipements en fin de vie comptable, et ceux qui ne sont plus couverts ;
+ * - **les deux bandeaux d'alerte** empilés en tête, remplacés par la zone unique ;
+ * - **le sous-titre « Vue d'ensemble de votre parc informatique »**, qui ne dit rien
+ *   qu'on ne sache déjà : il devient **le volume de travail qui attend**.
+ *
+ * ## Ce qui n'est pas porté, et pourquoi
+ *
+ * - **Le filtrage déjà appliqué dans Tâches** : le régime saturé en présente les
+ *   natures d'action, puis ouvre la file unique. La définition précise du filtre
+ *   appartient au travail de cette file, pas au tableau de bord.
+ * - **Le menu de compte sous l'avatar** : la planche l'y déplace en même temps qu'elle
+ *   redécoupe Paramètres (14.1). Tant que ce découpage n'est pas fait, l'accès au
+ *   compte reste là où il est — « Plus » au téléphone, la barre latérale au-delà.
+ */
 
 interface DashboardPageProps {
     onViewChange: (view: ViewType) => void;
     onNavigate?: (path: string) => void;
 }
 
+type DashboardTask =
+    | {
+          id: string;
+          status: Approval['status'];
+          who: string;
+          what: string;
+          kind: 'validation' | 'receipt';
+      }
+    | {
+          id: string;
+          who: string;
+          what: string;
+          kind: 'return';
+      };
+
+const TODO_SATURATION_THRESHOLD = 250;
+const HERO_BACKGROUND_STYLE: React.CSSProperties = {
+    backgroundImage: `linear-gradient(180deg, rgb(10 25 29 / 0.62) 0%, rgb(10 25 29 / 0.78) 62%), url(${dashboardHeroImage})`,
+    backgroundPosition: 'center 42%',
+    backgroundSize: 'cover',
+    backgroundRepeat: 'no-repeat',
+};
+
+/** La mesure de lecture du système — §2.43. */
+const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+    <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>
+);
+
+const Card: React.FC<{ icon: React.ComponentProps<typeof Icon>['glyph']; title: string; children: React.ReactNode }> = ({
+    icon,
+    title,
+    children,
+}) => (
+    <section className="rounded-card bg-surface p-4">
+        <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+            <Icon glyph={icon} size={18} className="text-on-surface-variant" />
+            {title}
+        </p>
+        {children}
+    </section>
+);
+
+/** Rangée d'orientation commune aux liens « Voir… » de la planche 03.1. */
+const DashboardMoreAction: React.FC<{
+    label: React.ReactNode;
+    destination: React.ReactNode;
+    onClick: () => void;
+    tone?: 'surface' | 'inverse';
+    spacing?: 'card' | 'hero';
+}> = ({ label, destination, onClick, tone = 'surface', spacing = 'card' }) => {
+    const isInverse = tone === 'inverse';
+
+    return (
+        <Button
+            variant="text"
+            onClick={onClick}
+            className={cn(
+                'min-h-11 w-full justify-start gap-2.5 border-t px-0 text-label-large hover:bg-transparent',
+                spacing === 'card' ? 'mt-2' : 'mt-0.5',
+                isInverse
+                    ? 'border-white/[0.14] text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary'
+                    : 'border-outline-variant text-on-surface hover:text-on-surface'
+            )}
+        >
+            <span className="shrink-0">{label}</span>
+            <span
+                className={cn(
+                    'ml-auto min-w-0 flex-1 truncate text-right text-body-medium font-normal',
+                    isInverse ? 'text-on-nav-surface-variant' : 'text-text-secondary'
+                )}
+            >
+                {destination}
+            </span>
+            <Icon
+                glyph={CaretDown}
+                size={18}
+                className={cn('-rotate-90 shrink-0', isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface')}
+            />
+        </Button>
+    );
+};
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate }) => {
-    const { equipment: allEquipment, users, approvals, updateApproval, settings } = useData();
+    const { logout } = useAuth();
+    const { equipment: allEquipment, users, approvals, updateApproval } = useData();
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
     const { showToast } = useToast();
-    const isCompact = useMediaQuery(MEDIA.compact);
-    const isMedium = useMediaQuery(MEDIA.medium);
-    const [animateChart, setAnimateChart] = useState(false);
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setAnimateChart(true), 200);
-        return () => clearTimeout(timer);
-    }, []);
-
-    const [selectedEvent, setSelectedEvent] = useState<HistoryEvent | null>(null);
+    const userInitials = useMemo(() => {
+        return (
+            (currentUser?.name || '')
+                .split(' ')
+                .map((part) => part[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join('')
+                .toUpperCase() || 'AS'
+        );
+    }, [currentUser?.name]);
 
     const equipment = useMemo(() => filterEquipment(allEquipment, users), [allEquipment, users, filterEquipment]);
+    const equipmentById = useMemo(() => new Map(allEquipment.map((item) => [item.id, item])), [allEquipment]);
 
-    const recentEvents = useMemo(() => {
-        const all = getRecentActivity(20);
-        return all.slice(0, 8); // Slightly increased for the new list view
-    }, [getRecentActivity]);
+    // ---- ce qui attend un geste ------------------------------------------------
+    const pendingValidations = useMemo<DashboardTask[]>(() => {
+        if (!currentUser) return [];
+        return approvals
+            .filter(
+                (approval) =>
+                    (approval.status === 'WAITING_MANAGER_APPROVAL' ||
+                        approval.status === 'WAITING_DOTATION_APPROVAL') &&
+                    canUserActOnApproval({ approval, actorRole: currentUser.role, actorId: currentUser.id, users })
+            )
+            .map((approval) => ({
+                id: approval.id,
+                status: approval.status,
+                who: approval.beneficiaryName || '',
+                what:
+                    approval.assignedEquipmentName ||
+                    (approval.assignedEquipmentId ? equipmentById.get(approval.assignedEquipmentId)?.name : undefined) ||
+                    approval.equipmentName ||
+                    approval.equipmentCategory ||
+                    '',
+                kind: 'validation' as const,
+            }));
+    }, [approvals, currentUser, equipmentById, users]);
 
-    const equipmentById = useMemo(
-        () => new Map(allEquipment.map((item) => [item.id, item])),
-        [allEquipment],
+    const pendingReceipts = useMemo<DashboardTask[]>(() => {
+        if (!currentUser) return [];
+        return approvals
+            .filter(
+                (approval) =>
+                    approval.status === 'PENDING_DELIVERY' &&
+                    canUserActOnApproval({ approval, actorRole: currentUser.role, actorId: currentUser.id, users })
+            )
+            .map((approval) => ({
+                id: approval.id,
+                status: approval.status,
+                who: approval.beneficiaryName || '',
+                what:
+                    approval.assignedEquipmentName ||
+                    (approval.assignedEquipmentId ? equipmentById.get(approval.assignedEquipmentId)?.name : undefined) ||
+                    approval.equipmentName ||
+                    approval.equipmentCategory ||
+                    '',
+                kind: 'receipt' as const,
+            }));
+    }, [approvals, currentUser, equipmentById, users]);
+
+    const pendingReturns = useMemo<DashboardTask[]>(
+        () =>
+            equipment
+                .filter((item) => item.assignmentStatus === 'PENDING_RETURN')
+                .map((item) => ({
+                    id: `return-${item.id}`,
+                    who: item.user?.name || '',
+                    what: item.name || `${getCategoryLabel(item.type)} (${item.assetId})`,
+                    kind: 'return',
+                })),
+        [equipment]
     );
 
-    const pendingManagerValidations = useMemo(() => {
-        if (!currentUser) return [];
+    const todo = useMemo(
+        () => [...pendingValidations, ...pendingReceipts, ...pendingReturns],
+        [pendingValidations, pendingReceipts, pendingReturns]
+    );
 
-        return approvals
-            .filter((approval) =>
-                (approval.status === 'WAITING_MANAGER_APPROVAL'
-                    || approval.status === 'WAITING_DOTATION_APPROVAL')
-                && canUserActOnApproval({
-                    approval,
-                    actorRole: currentUser.role,
-                    actorId: currentUser.id,
-                    users,
-                }),
-            )
-            .map((approval) => {
-                const linkedEquipment = approval.assignedEquipmentId
-                    ? equipmentById.get(approval.assignedEquipmentId)
-                    : undefined;
-                return {
-                    approvalId: approval.id,
-                    approvalStatus: approval.status,
-                    beneficiaryName: approval.beneficiaryName,
-                    beneficiaryAvatar: users.find((user) => user.id === approval.beneficiaryId)?.avatar,
-                    equipmentName:
-                        approval.assignedEquipmentName
-                        || linkedEquipment?.name
-                        || approval.equipmentName
-                        || approval.equipmentCategory,
-                };
-            });
-    }, [approvals, currentUser, equipmentById, users]);
+    const todoBreakdown = useMemo(
+        () => [
+            { label: "validations d'attribution", count: pendingValidations.length, nature: 'validation' as const },
+            { label: 'réceptions à confirmer', count: pendingReceipts.length, nature: 'reception' as const },
+            { label: 'retours à réceptionner', count: pendingReturns.length, nature: 'retour' as const },
+        ].filter((item) => item.count > 0),
+        [pendingValidations.length, pendingReceipts.length, pendingReturns.length]
+    );
 
-    const equipmentToConfirm = useMemo(() => {
-        if (!currentUser) return [];
+    const openTasks = () => onViewChange('tasks');
 
-        return approvals
-            .filter((approval) =>
-                approval.status === 'PENDING_DELIVERY'
-                && canUserActOnApproval({
-                    approval,
-                    actorRole: currentUser.role,
-                    actorId: currentUser.id,
-                    users,
-                }),
-            )
-            .map((approval) => {
-                const linkedEquipment = approval.assignedEquipmentId
-                    ? equipmentById.get(approval.assignedEquipmentId)
-                    : undefined;
-                return {
-                    approvalId: approval.id,
-                    equipmentName:
-                        approval.assignedEquipmentName
-                        || linkedEquipment?.name
-                        || approval.equipmentName
-                        || approval.equipmentCategory,
-                };
-            });
-    }, [approvals, currentUser, equipmentById, users]);
+    // ---- l'état du parc --------------------------------------------------------
+    const counts = useMemo(
+        () => ({
+            total: equipment.length,
+            assigned: equipment.filter((item) => item.status === 'Attribué').length,
+            available: equipment.filter((item) => item.status === 'Disponible').length,
+            repair: equipment.filter((item) => item.status === 'En réparation').length,
+        }),
+        [equipment]
+    );
 
-    const financialTotals = useMemo(() => {
-        return equipment.reduce((acc, item) => {
-            if (item.financial) {
-                const stats = calculateLinearDepreciation(
-                    item.financial.purchasePrice,
-                    item.financial.purchaseDate,
-                    item.financial.depreciationYears,
-                    item.financial.purchasePrice > 0 ? ((item.financial.salvageValue || 0) / item.financial.purchasePrice) * 100 : 0
-                );
-                acc.totalPurchaseValue += item.financial.purchasePrice || 0;
-                acc.totalCurrentValue += stats.currentValue;
-                acc.totalMonthlyDepreciation += stats.monthlyDepreciation;
-            }
-            return acc;
-        }, { totalPurchaseValue: 0, totalCurrentValue: 0, totalMonthlyDepreciation: 0 });
+    /**
+     * **Types en tension** : uniquement ceux dont il ne reste aucune unité
+     * disponible, les plus nombreux d'abord. Ce qui est couvert tient en une phrase.
+     */
+    const tension = useMemo(() => {
+        const byType = new Map<string, { label: string; total: number; available: number }>();
+        equipment.forEach((item) => {
+            const entry = byType.get(item.type) ?? { label: getCategoryLabel(item.type), total: 0, available: 0 };
+            entry.total += 1;
+            if (item.status === 'Disponible') entry.available += 1;
+            byType.set(item.type, entry);
+        });
+
+        const all = [...byType.entries()];
+        const stressed = all
+            .filter(([, entry]) => entry.available === 0)
+            .sort((a, b) => b[1].total - a[1].total)
+            .slice(0, 5);
+        return { stressed, calm: all.length - stressed.length };
     }, [equipment]);
 
-    const assignedCount = equipment.filter(e => e.status === 'Attribué').length;
-    const availableCount = equipment.filter(e => e.status === 'Disponible').length;
-    const pendingCount = equipment.filter(e => e.status === 'En attente').length;
-    const repairCount = equipment.filter(e => e.status === 'En réparation').length;
-    const totalCount = equipment.length;
+    const fleet = useMemo(() => {
+        const active = equipment.filter((item) => item.operationalStatus !== 'Retiré');
+        const now = Date.now();
 
-    const categories = equipment.reduce((acc, item) => {
-        acc[item.type] = (acc[item.type] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const sortedCategories = (Object.entries(categories) as [string, number][])
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 4);
-
-    const chartColors = useMemo(() => ([
-        { hex: 'var(--tk-color-primary)', bg: 'bg-primary' },
-        { hex: 'var(--tk-color-secondary)', bg: 'bg-secondary' },
-        { hex: 'var(--tk-color-tertiary)', bg: 'bg-tertiary' },
-        { hex: 'var(--tk-color-error)', bg: 'bg-error' }
-    ]), []);
-
-    const chartData = useMemo(() => {
-        let accumulatedPercent = 0;
-        return sortedCategories.map(([catName, count], idx) => {
-            const percent = totalCount > 0 ? ((count as number) / totalCount) * 100 : 0;
-            const offset = accumulatedPercent;
-            accumulatedPercent += percent;
-            return { catName, count, percent, offset, color: chartColors[idx % chartColors.length] };
-        });
-    }, [sortedCategories, totalCount, chartColors]);
-
-    const warrantyMetrics = useMemo(() => {
-        const activeFleet = equipment.filter(e => e.operationalStatus !== 'Retiré');
-        const now = new Date();
-
-        const toPercent = (count: number, total: number) => total > 0 ? Math.round((count / total) * 100) : 0;
-
-        const underWarranty = activeFleet.filter(e => e.warrantyEnd && new Date(e.warrantyEnd) > now);
-        const expiredWarranty = activeFleet.filter(e => e.warrantyEnd && new Date(e.warrantyEnd) <= now);
-        const unknownWarranty = activeFleet.filter(e => !e.warrantyEnd);
-
-        const countOperational = (items: typeof equipment) => items.filter(e => isOperationalEquipmentStatus(e.status)).length;
-
-        const baseSegments = [
-            {
-                key: 'under-warranty',
-                shortLabel: 'Garantie',
-                count: underWarranty.length,
-                availability: toPercent(countOperational(underWarranty), underWarranty.length),
-                stroke: 'var(--tk-color-primary)',
-                dotClass: 'bg-primary'
-            },
-            {
-                key: 'expired-warranty',
-                shortLabel: 'Hors garantie',
-                count: expiredWarranty.length,
-                availability: toPercent(countOperational(expiredWarranty), expiredWarranty.length),
-                stroke: 'var(--tk-color-tertiary)',
-                dotClass: 'bg-tertiary'
-            },
-            {
-                key: 'unknown-warranty',
-                shortLabel: 'Sans date',
-                count: unknownWarranty.length,
-                availability: toPercent(countOperational(unknownWarranty), unknownWarranty.length),
-                stroke: 'var(--tk-color-outline-variant)',
-                dotClass: 'bg-outline-variant'
-            }
-        ];
-
-        let cumulative = 0;
-        const segments = baseSegments.map(segment => {
-            const percent = toPercent(segment.count, activeFleet.length);
-            const offset = -cumulative;
-            cumulative += percent;
-            return { ...segment, percent, offset };
-        });
-
-        const globalAvailability = toPercent(countOperational(activeFleet), activeFleet.length);
-
-        const recentCount = activeFleet.filter(e => {
-            if (!e.financial?.purchaseDate) return false;
-            return new Date().getFullYear() - new Date(e.financial.purchaseDate).getFullYear() <= 3;
+        const endOfLife = active.filter((item) => {
+            if (!item.financial) return false;
+            const stats = calculateLinearDepreciation(
+                item.financial.purchasePrice,
+                item.financial.purchaseDate,
+                item.financial.depreciationYears,
+                item.financial.purchasePrice > 0
+                    ? ((item.financial.salvageValue || 0) / item.financial.purchasePrice) * 100
+                    : 0
+            );
+            return stats.progressPercent > 85;
         }).length;
 
-        const agingCount = activeFleet.filter(e => {
-            if (!e.financial?.purchaseDate) return false;
-            return new Date().getFullYear() - new Date(e.financial.purchaseDate).getFullYear() >= 5;
-        }).length;
+        const uncovered = active.filter(
+            (item) => item.warrantyEnd && new Date(item.warrantyEnd).getTime() <= now
+        ).length;
+        const unknownWarranty = active.filter((item) => !item.warrantyEnd).length;
 
-        let insight = 'Ajoutez des dates de garantie pour un suivi plus fiable.';
+        return { size: active.length, endOfLife, uncovered, unknownWarranty };
+    }, [equipment]);
 
-        if (activeFleet.length === 0) {
-            insight = 'Aucun équipement actif à analyser.';
-        } else if (underWarranty.length === 0 && expiredWarranty.length === 0) {
-            insight = 'Ajoutez des dates de garantie pour un suivi plus fiable.';
-        } else if (expiredWarranty.length === 0) {
-            insight = 'Le parc suivi est entièrement sous garantie.';
-        } else {
-            const diff = segments[0].availability - segments[1].availability;
-            if (diff >= 10) insight = `Le parc sous garantie est +${diff} pts plus disponible.`;
-            else if (diff <= -5) insight = 'Le parc hors garantie reste performant, surveillez la maintenance.';
-            else insight = 'Disponibilité proche entre parc garanti et hors garantie.';
-        }
+    const { financeBudgets } = useFinanceData();
+
+    const budgetStats = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const currentBudget = financeBudgets.find((b) => b.year === currentYear) || financeBudgets[0];
+        if (!currentBudget) return null;
+        const totalAllocated = currentBudget.totalAllocated || 0;
+        const totalSpent = currentBudget.items.reduce((acc, item) => acc + (item.spent || 0), 0);
+        const percentSpent = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
+        const remaining = totalAllocated - totalSpent;
+        const overPacedCount = currentBudget.items.filter(
+            (item) => item.allocated > 0 && item.spent / item.allocated > 0.25
+        ).length;
 
         return {
-            activeCount: activeFleet.length,
-            globalAvailability,
-            segments,
-            recentCount,
-            agingCount,
-            insight
+            year: currentBudget.year,
+            totalAllocated,
+            totalSpent,
+            percentSpent,
+            remaining,
+            itemCount: currentBudget.items.length,
+            overPacedCount,
         };
-    }, [equipment]);
-    // Step-up uniforme (D9, audit §7.1) : mêmes transitions que les rangées Approbations,
-    // donc même PIN via SecurityGate — le dialog de confirmation simple ne suffit plus.
-    const handleConfirmReceipt = (approvalId: string): boolean => {
+    }, [financeBudgets]);
+
+    const recentEvents = useMemo(() => getRecentActivity(3), [getRecentActivity]);
+
+    // ---- la vue de l'utilisateur porteur ---------------------------------------
+    const myEquipment = useMemo(
+        () => allEquipment.filter((item) => item.user?.id === currentUser?.id || item.user?.name === currentUser?.name),
+        [allEquipment, currentUser]
+    );
+
+    const myTypes = useMemo(() => {
+        const countsByType = new Map<string, number>();
+        myEquipment.forEach((item) => {
+            countsByType.set(getCategoryLabel(item.type), (countsByType.get(getCategoryLabel(item.type)) || 0) + 1);
+        });
+        const max = Math.max(...countsByType.values(), 1);
+        return [...countsByType.entries()].map(([type, count]) => ({
+            type,
+            count,
+            percent: (count / max) * 100,
+        }));
+    }, [myEquipment]);
+
+    const myWarranty = useMemo(() => {
+        const now = Date.now();
+        const covered = myEquipment.filter(
+            (item) => item.warrantyEnd && new Date(item.warrantyEnd).getTime() > now
+        ).length;
+        const uncoveredItem = myEquipment.find(
+            (item) => item.warrantyEnd && new Date(item.warrantyEnd).getTime() <= now
+        );
+        const percent = myEquipment.length > 0 ? (covered / myEquipment.length) * 100 : 0;
+        return { covered, total: myEquipment.length, percent, uncoveredItem };
+    }, [myEquipment]);
+
+    const mine = useMemo(
+        () => ({
+            equipment: myEquipment.length,
+            requests: approvals.filter(
+                (approval) =>
+                    ACTIVE_APPROVAL_STATUSES.includes(approval.status) &&
+                    (approval.requesterId === currentUser?.id || approval.beneficiaryId === currentUser?.id)
+            ).length,
+            receipts: approvals.filter(
+                (approval) => approval.status === 'PENDING_DELIVERY' && approval.beneficiaryId === currentUser?.id
+            ).length,
+        }),
+        [myEquipment, approvals, currentUser]
+    );
+
+    // ---- les actes -------------------------------------------------------------
+    const confirmReceipt = (approvalId: string): boolean => {
         const decision = updateApproval(approvalId, 'Completed');
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
@@ -263,488 +418,607 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         return true;
     };
 
-    const handleManagerValidation = (
-        approvalId: string,
-        status: Approval['status'],
-        approve: boolean,
-        reason?: string,
-    ): boolean => {
+    const validate = (approvalId: string, status: Approval['status'], approve: boolean, reason?: string): boolean => {
         const isDotation = status === 'WAITING_DOTATION_APPROVAL';
-        const nextStatus: Approval['status'] = isDotation
-            ? (approve ? 'PENDING_DELIVERY' : 'WAITING_IT_PROCESSING')
-            : (approve ? 'WAITING_IT_PROCESSING' : 'Rejected');
+        const next: Approval['status'] = isDotation
+            ? approve
+                ? 'PENDING_DELIVERY'
+                : 'WAITING_IT_PROCESSING'
+            : approve
+              ? 'WAITING_IT_PROCESSING'
+              : 'Rejected';
 
-        const decision = updateApproval(approvalId, nextStatus, approve ? undefined : { reason });
+        const decision = updateApproval(approvalId, next, approve ? undefined : { reason });
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;
         }
-
-        if (isDotation) {
-            showToast(
-                approve
-                    ? 'Dotation validée. En attente de confirmation utilisateur.'
-                    : 'Dotation renvoyée au traitement IT.',
-                approve ? 'success' : 'info',
-            );
-            return true;
-        }
-
         showToast(
-            approve
-                ? "Besoin validé. Demande transmise à l'IT."
-                : 'Demande rejetée.',
-            approve ? 'success' : 'info',
+            approve ? 'Demande validée.' : isDotation ? 'Dotation renvoyée au traitement IT.' : 'Demande refusée.',
+            approve ? 'success' : 'info'
         );
         return true;
     };
 
-    const formatRelativeTime = (timestamp: string) => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const diffDays = Math.floor((startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24));
-        const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const openFleet = (status: string) => onNavigate?.(`/inventory/filter/${encodeURIComponent(status)}`);
 
-        if (diffDays === 0) return `Aujourd'hui, ${timeStr}`;
-        if (diffDays === 1) return `Hier, ${timeStr}`;
-        return formatDate(date) + ', ' + timeStr;
-    };
+    const isManager = permissions.canManageInventory;
+    const firstName = (currentUser?.name || '').split(' ')[0];
 
-    const handleStatusClick = (status: string) => {
-        if (onNavigate) {
-            onNavigate(`/inventory/filter/${encodeURIComponent(status)}`);
-        }
-    };
+    /** Le sous-titre dit **le volume de travail**, pas la nature de l'écran. */
+    const subtitle = isManager
+        ? `${todo.length === 0 ? 'Rien à traiter' : `${todo.length} chose${todo.length > 1 ? 's' : ''} vous attend${todo.length > 1 ? 'ent' : ''}`} · ${counts.total} actifs`
+        : `${mine.receipts === 0 ? 'Rien à confirmer' : `${mine.receipts} réception${mine.receipts > 1 ? 's' : ''} à confirmer`} · ${mine.equipment} équipements`;
 
-    // Composition par persona (audit D2) : les KPIs de flotte n'ont pas de sens
-    // pour un utilisateur simple — il voit « mes équipements / mes demandes ».
-    const myEquipmentCount = allEquipment.filter(
-        (item) => item.user?.id === currentUser?.id || item.user?.name === currentUser?.name,
-    ).length;
-    const myActiveRequestCount = approvals.filter(
-        (approval) =>
-            ACTIVE_APPROVAL_STATUSES.includes(approval.status)
-            && (approval.requesterId === currentUser?.id || approval.beneficiaryId === currentUser?.id),
-    ).length;
-    const myPendingReceiptCount = approvals.filter(
-        (approval) => approval.status === 'PENDING_DELIVERY' && approval.beneficiaryId === currentUser?.id,
-    ).length;
-
-    const KPI_CARDS = permissions.canManageInventory ? [
-        { label: 'Total Actifs', count: totalCount, icon: 'inventory_2', color: 'text-primary', onClick: () => handleStatusClick('') },
-        { label: 'Attribués', count: assignedCount, icon: 'person_check', color: 'text-secondary', onClick: () => handleStatusClick('Attribué') },
-        { label: 'En attente', count: pendingCount, icon: 'hourglass_top', color: 'text-primary', onClick: () => handleStatusClick('En attente') },
-        { label: 'Disponibles', count: availableCount, icon: 'check_circle', color: 'text-tertiary', onClick: () => handleStatusClick('Disponible') },
-        { label: 'En Réparation', count: repairCount, icon: 'build', color: 'text-error', onClick: () => handleStatusClick('En réparation') },
-    ] : [
-        { label: 'Mes équipements', count: myEquipmentCount, icon: 'devices', color: 'text-primary', onClick: () => handleStatusClick('') },
-        { label: 'Demandes en cours', count: myActiveRequestCount, icon: 'pending_actions', color: 'text-secondary', onClick: () => onViewChange('approvals') },
-        { label: 'Réceptions à confirmer', count: myPendingReceiptCount, icon: 'move_to_inbox', color: 'text-tertiary', onClick: () => onViewChange('approvals') },
-    ];
-    // #8 (§3.4) : le medium (600–839) hérite des actions d'en-tête au lieu de
-    // rester orphelin — le PageHeader empile les actions sous le titre jusqu'à
-    // expanded, donc le medium accueille naturellement des boutons largeur-auto ;
-    // seul le compact (téléphone) garde la grille pleine-largeur ci-dessous.
-    const dashboardHeaderActions = !isCompact ? (
-        <div className="flex gap-2">
-            {permissions.canManageInventory ? (
-                <>
-                    <Button variant="tonal" icon={<MaterialIcon name="assignment_return" size={18} />} onClick={() => onViewChange('return_wizard')}>
-                        Retour matériel
-                    </Button>
-                    <Button variant="filled" icon={<MaterialIcon name="person_add" size={18} />} onClick={() => onViewChange('assignment_wizard')}>
-                        Attribuer
-                    </Button>
-                </>
-            ) : (
-                <Button variant="filled" icon={<MaterialIcon name="add" size={18} />} onClick={() => onViewChange('new_request')}>
-                    Nouvelle demande
-                </Button>
-            )}
-        </div>
-    ) : null;
-
-    const dashboardCompactActions = isCompact ? (
-        permissions.canManageInventory ? (
-            <div className="grid grid-cols-2 gap-3">
-                <Button
-                    variant="tonal"
-                    icon={<MaterialIcon name="assignment_return" size={18} />}
-                    onClick={() => onViewChange('return_wizard')}
-                    className="w-full justify-center"
-                >
-                    Retour matériel
-                </Button>
-                <Button
-                    variant="filled"
-                    icon={<MaterialIcon name="person_add" size={18} />}
-                    onClick={() => onViewChange('assignment_wizard')}
-                    className="w-full justify-center"
-                >
-                    Attribuer
-                </Button>
-            </div>
-        ) : (
-            <Button
-                variant="filled"
-                icon={<MaterialIcon name="add" size={18} />}
-                onClick={() => onViewChange('new_request')}
-                className="w-full justify-center"
-            >
-                Nouvelle demande
-            </Button>
-        )
-    ) : null;
-
-    const dashboardSubtitle = isMedium ? undefined : "Vue d'ensemble de votre parc informatique.";
-    const dashboardBreadcrumb = isMedium ? undefined : 'Tableau de bord';
+    /** Trois rangées au plus dans la zone : au-delà, c'est la file qui prend. */
+    const isTodoSaturated = todo.length >= TODO_SATURATION_THRESHOLD;
+    const shown = todo.slice(0, 3);
+    const rest = todo.length - shown.length;
 
     return (
-        <PageContainer>
-            <TransactionTicketModal
-                isOpen={!!selectedEvent}
-                onClose={() => setSelectedEvent(null)}
-                event={selectedEvent}
-            />
+        <div className="flex min-w-0 flex-1 flex-col bg-background pb-8">
+            <OfflineBanner />
 
-            <PageHeader
-                title={GLOSSARY.DASHBOARD}
-                subtitle={dashboardSubtitle}
-                breadcrumb={dashboardBreadcrumb}
-                actions={dashboardHeaderActions}
-            />
+            <div className="flex flex-1 flex-col gap-5 px-5 py-4 medium:px-page">
+                <Reading>
+                    <header className="flex items-start justify-between gap-3">
+                        <div>
+                            <h1 className="font-brand text-[23px] font-semibold leading-7 tracking-tight text-on-surface">
+                                Bonjour {firstName}
+                            </h1>
+                            <p className="mt-1 text-body-large text-text-secondary">{subtitle}</p>
+                        </div>
 
-            {dashboardCompactActions && (
-                <div className="mb-6">
-                    {dashboardCompactActions}
-                </div>
-            )}
+                        <div className="relative shrink-0">
+                            <Button
+                                variant="text"
+                                size="md"
+                                iconOnly
+                                onClick={() => setIsAccountOpen((prev) => !prev)}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] font-brand text-[15px] font-semibold tracking-wide text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                aria-label={`Compte — ${currentUser?.name || 'Utilisateur'}`}
+                                aria-expanded={isAccountOpen}
+                            >
+                                {userInitials}
+                            </Button>
 
-            {/* KPI ROW - TOP LEVEL (cartes demi-hauteur sur téléphone — X9) */}
-            <div className={cn(
-                "grid grid-cols-2 mb-6 relative z-10",
-                isCompact ? "gap-2" : "medium:grid-cols-3 gap-4",
-                !isCompact && (KPI_CARDS.length > 3 ? "expanded:grid-cols-5" : "expanded:grid-cols-3")
-            )}>
-                {KPI_CARDS.map((kpi, idx) => (
-                    <MetricCard
-                        key={idx}
-                        compact={isCompact}
-                        title={kpi.label}
-                        value={formatNumber(kpi.count, settings.compactNotation)}
-                        onClick={kpi.onClick}
-                        className={cn(!isCompact && "min-h-[132px]", idx === KPI_CARDS.length - 1 && KPI_CARDS.length % 2 === 1 ? "col-span-2 medium:col-span-1" : "")}
-                        icon={<MaterialIcon name={kpi.icon} size={isCompact ? 20 : 24} className={kpi.color} />}
-                    />
-                ))}
-            </div>
-
-            {/* MAIN LAYOUT: 2 Columns (Content + Sidebar) */}
-            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
-
-                {/* LEFT COLUMN (Main Content) */}
-                <div className="expanded:col-span-2 space-y-6">
-
-                    {/* ALERTS SECTION (Conditional) */}
-                    {(pendingManagerValidations.length > 0 || equipmentToConfirm.length > 0) && (
-                        <div className="space-y-4 animate-in slide-in-from-top-4">
-                            {pendingManagerValidations.length > 0 && (
-                                <div className="p-4 bg-tertiary-container rounded-md border border-tertiary/20 flex flex-col gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <MaterialIcon name="shield_person" size={24} className="text-on-tertiary-container" />
-                                        <h3 className="text-title-medium text-on-tertiary-container">Validations Managériales ({pendingManagerValidations.length})</h3>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {pendingManagerValidations.map(e => (
-                                            <div key={e.approvalId} className="bg-surface/80 p-3 rounded-md flex items-center justify-between backdrop-blur-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <UserAvatar name={e.beneficiaryName || ''} src={e.beneficiaryAvatar} size="xs" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-body-medium font-medium">{e.beneficiaryName} — {e.equipmentName}</span>
-                                                        <span className="text-label-small text-on-surface-variant">
-                                                            {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Étape: Validation dotation' : 'Étape: Validation manager'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <SecurityGate
-                                                        onVerified={(reason) => handleManagerValidation(e.approvalId, e.approvalStatus, false, reason)}
-                                                        title={e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
-                                                        description={`${e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'} cette demande ?`}
-                                                        reasonField={{
-                                                            label: e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Motif du renvoi' : 'Motif du refus',
-                                                            required: true,
-                                                        }}
-                                                        entityId={e.approvalId}
-                                                        entityName={e.equipmentName}
-                                                        trigger={
-                                                            <Button
-                                                                size="sm"
-                                                                variant="text"
-                                                                className="text-error px-2"
-                                                            >
-                                                                {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Renvoyer' : 'Refuser'}
-                                                            </Button>
-                                                        }
-                                                    />
-                                                    <SecurityGate
-                                                        onVerified={() => handleManagerValidation(e.approvalId, e.approvalStatus, true)}
-                                                        title={e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Valider dotation' : 'Valider'}
-                                                        description="Confirmer cette action."
-                                                        entityId={e.approvalId}
-                                                        entityName={e.equipmentName}
-                                                        trigger={
-                                                            <Button
-                                                                size="sm"
-                                                                variant="tonal"
-                                                                className="px-3"
-                                                            >
-                                                                {e.approvalStatus === 'WAITING_DOTATION_APPROVAL' ? 'Valider dotation' : 'Valider'}
-                                                            </Button>
-                                                        }
-                                                    />
-                                                </div>
+                            {isAccountOpen && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setIsAccountOpen(false)}
+                                    />
+                                    <div className="absolute right-0 top-[52px] z-50 w-[240px] rounded-lg border border-outline-variant bg-surface p-1.5 shadow-elevation-3">
+                                        <div className="flex items-center gap-2.5 p-2 pb-3">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] font-brand text-sm font-semibold text-white">
+                                                {userInitials}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-medium text-on-surface">
+                                                    {currentUser?.name || 'Utilisateur'}
+                                                </p>
+                                                <p className="truncate text-xs text-text-secondary">
+                                                    {currentUser?.role === 'ADMIN'
+                                                        ? 'Super-administrateur'
+                                                        : currentUser?.jobTitle || currentUser?.department || 'Utilisateur'}
+                                                </p>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                        </div>
 
-                            {equipmentToConfirm.length > 0 && (
-                                <div className="p-4 bg-primary-container rounded-md border border-primary/20 flex flex-col gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <MaterialIcon name="inventory" size={24} className="text-on-primary-container" />
-                                        <h3 className="text-title-medium text-on-primary-container">Réceptions à confirmer ({equipmentToConfirm.length})</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {equipmentToConfirm.map(e => (
-                                            <SecurityGate
-                                                key={e.approvalId}
-                                                onVerified={() => handleConfirmReceipt(e.approvalId)}
-                                                title="Confirmer la réception"
-                                                description="Confirmez-vous avoir bien reçu cet équipement ?"
-                                                entityId={e.approvalId}
-                                                entityName={e.equipmentName}
-                                                trigger={
-                                                    <Button size="sm" variant="filled" icon={<MaterialIcon name="check" size={14} />}>
-                                                        Valider {e.equipmentName}
-                                                    </Button>
-                                                }
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* FINANCIAL SUMMARY (Admin Only) */}
-                    {permissions.canManageInventory && (
-                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4">
-                            <MetricCard
-                                title="Total Dépenses"
-                                value={formatCurrency(financialTotals.totalPurchaseValue, settings.currency, settings.compactNotation)}
-                                subtitle="Investissement initial total"
-                                icon={<MaterialIcon name="account_balance_wallet" size={24} className="text-secondary" />}
-                                className="border-l-4 border-l-secondary"
-                            />
-                            <MetricCard
-                                title="Valeur Actuelle"
-                                value={formatCurrency(financialTotals.totalCurrentValue, settings.currency, settings.compactNotation)}
-                                subtitle="Après amortissement"
-                                icon={<MaterialIcon name="savings" size={24} className="text-primary" />}
-                                className="border-l-4 border-l-primary"
-                                onClick={() => onViewChange('finance')}
-                            />
-                        </div>
-                    )}
-
-                    {/* RECENT ACTIVITY LIST */}
-                    <Card
-                        title="Derniers événements"
-                        onActionClick={() => onViewChange('audit')}
-                        actionIcon={<MaterialIcon name="history" size={18} />}
-                        className="min-h-[400px]"
-                    >
-                        <div className="mt-2 space-y-0 divide-y divide-outline-variant/50">
-                            {recentEvents.length > 0 ? (
-                                recentEvents.map((event) => {
-                                    const actor = users.find(u => u.id === event.actorId);
-                                    return (
                                         <Button
                                             variant="text"
                                             size="sm"
-                                            key={event.id}
-                                            onClick={() => setSelectedEvent(event)}
-                                            className="w-full text-left flex items-center gap-4 p-3 whitespace-normal hover:bg-surface-container-low transition-colors cursor-pointer group !-mx-2 px-2 rounded-sm justify-start text-on-surface"
+                                            layout="card"
+                                            onClick={() => {
+                                                setIsAccountOpen(false);
+                                                if (currentUser?.id) onNavigate?.(`/users/${currentUser.id}`);
+                                            }}
+                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
                                         >
-                                            <div className="relative">
-                                                <UserAvatar name={event.actorName} src={actor?.avatar} size="sm" />
-                                                <div className="absolute -bottom-1 -right-1 bg-surface rounded-full p-0.5 border border-outline-variant flex items-center justify-center leading-none">
-                                                    <MaterialIcon name={getHistoryEventIcon(event.type)} size={12} className="text-primary" />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-body-medium text-on-surface leading-tight">
-                                                    {getHistoryEventSentence({
-                                                        event,
-                                                        perspectiveActorId: currentUser?.id,
-                                                    })}
-                                                </p>
-                                                <p className="text-body-small text-on-surface-variant mt-0.5">
-                                                    {formatRelativeTime(event.timestamp)}
-                                                </p>
-                                            </div>
-                                            <MaterialIcon name="chevron_right" size={16} className="text-outline-variant group-hover:text-primary transition-colors" />
+                                            <span className="font-medium">Mon profil</span>
+                                            <span className="text-[11px] text-text-secondary">
+                                                Mes équipements, mon historique
+                                            </span>
                                         </Button>
-                                    );
-                                })
-                            ) : (
-                                <div className="text-center py-12 text-on-surface-variant italic">Aucune activité récente.</div>
+
+                                        <Button
+                                            variant="text"
+                                            size="sm"
+                                            layout="card"
+                                            onClick={() => {
+                                                setIsAccountOpen(false);
+                                                onViewChange('settings');
+                                            }}
+                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
+                                        >
+                                            <span className="font-medium">Mon compte</span>
+                                            <span className="text-[11px] text-text-secondary">
+                                                Mot de passe, code PIN, sessions
+                                            </span>
+                                        </Button>
+
+                                        <Button
+                                            variant="text"
+                                            size="sm"
+                                            layout="card"
+                                            onClick={() => {
+                                                setIsAccountOpen(false);
+                                                onNavigate?.('/documentation/ui-flow-map');
+                                            }}
+                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
+                                        >
+                                            <span className="font-medium">Aide et support</span>
+                                            <span className="text-[11px] text-text-secondary">
+                                                Documentation, tutoriels, FAQ
+                                            </span>
+                                        </Button>
+
+                                        <div className="my-1 h-px bg-outline-variant" />
+
+                                        <Button
+                                            variant="text"
+                                            size="sm"
+                                            layout="card"
+                                            onClick={() => {
+                                                setIsAccountOpen(false);
+                                                logout();
+                                            }}
+                                            className="flex w-full min-h-[40px] items-center rounded-md px-2.5 py-2 text-left text-sm font-medium text-danger hover:bg-error-container/30"
+                                        >
+                                            Se déconnecter
+                                        </Button>
+
+                                        <div className="border-t border-outline-variant px-2.5 pt-2 pb-0.5 text-[11px] tabular-nums text-text-secondary">
+                                            Tracker v1.2.0
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
-                    </Card>
+                    </header>
+                </Reading>
 
-                </div>
+                {/* Décision — les deux gestes, et l'unique jaune du contenu. */}
+                <Reading>
+                    {isManager ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                variant="tonal"
+                                className="!rounded-[4px] !shadow-none bg-[var(--tk-color-inverse-surface)] text-white hover:bg-[var(--tk-color-inverse-surface)]/90"
+                                icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                                onClick={() => onViewChange('return_wizard')}
+                            >
+                                Restituer
+                            </Button>
+                            <Button
+                                variant="filled"
+                                className="!rounded-[4px] !shadow-none bg-primary text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
+                                icon={<Icon glyph={ArrowCircleRight} size={18} />}
+                                onClick={() => onViewChange('assignment_wizard')}
+                            >
+                                Attribuer
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button
+                            variant="filled"
+                            className="w-full !rounded-[4px] !shadow-none bg-primary text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
+                            icon={<Icon glyph={Plus} size={18} />}
+                            onClick={() => onViewChange('new_request')}
+                        >
+                            Demander un équipement
+                        </Button>
+                    )}
+                </Reading>
 
-                {/* RIGHT COLUMN (Sidebar Stats) */}
-                <div className="space-y-6">
+                {/* La zone bornée : sa forme suit le volume, jamais sa hauteur. */}
+                <Reading>
+                    <section
+                        className="relative min-h-[196px] overflow-hidden rounded-card bg-inverse-surface p-4 text-inverse-on-surface"
+                        style={HERO_BACKGROUND_STYLE}
+                    >
+                        <p className="mb-1 flex items-center gap-2.5 font-brand text-[17px] font-semibold">
+                            <Icon glyph={CheckCircle} size={18} className="text-on-nav-surface-variant" />
+                            À traiter
+                        </p>
 
-                    {/* DISTRIBUTION CHART */}
-                    <Card title="Répartition par Type" className="overflow-hidden">
-                        <div className="flex flex-col items-center justify-center py-6 relative">
-                            {/* Simple Donut Chart Representation */}
-                            <div className="w-40 h-40 relative flex items-center justify-center mb-6">
-                                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                    <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--tk-color-surface-container-high)" strokeWidth="3" />
-                                    {chartData.map((item, idx) => (
-                                        <circle
-                                            key={item.catName}
-                                            cx="18" cy="18" r="15.915"
-                                            fill="transparent"
-                                            stroke={item.color.hex}
-                                            strokeWidth="3"
-                                            strokeDasharray={animateChart ? `${item.percent} ${100 - item.percent}` : `0 100`}
-                                            strokeDashoffset={`-${item.offset}`}
-                                            strokeLinecap="round"
-                                            className="transition-all duration-[1000ms] ease-emphasized"
-                                            style={{ transitionDelay: `${idx * 150}ms` }}
-                                        />
-                                    ))}
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span className="text-headline-medium font-black text-on-surface">{totalCount}</span>
-                                    <span className="text-label-small uppercase tracking-widest text-on-surface-variant">Actifs</span>
+                        {todo.length === 0 ? (
+                            <div className="flex items-center gap-3.5 py-4">
+                                <Icon glyph={Tray} size={32} className="text-on-nav-surface-variant" />
+                                <div>
+                                    <p className="font-brand text-base font-semibold">Rien à traiter</p>
+                                    <p className="mt-0.5 text-body-medium text-on-nav-surface-variant">
+                                        Aucune demande en attente. Le parc est à jour.
+                                    </p>
                                 </div>
                             </div>
+                        ) : isTodoSaturated ? (
+                            <div className="mt-3">
+                                <p className="font-brand text-[30px] font-semibold leading-[34px] tracking-tight tabular-nums">
+                                    {todo.length}
+                                </p>
+                                <p className="mt-0.5 text-body-medium text-on-nav-surface-variant">
+                                    demandes en attente : ouvrez Tâches pour traiter la file.
+                                </p>
+                                <div className="mt-2 border-t border-white/[0.14]">
+                                    {todoBreakdown.map((item) => (
+                                        <Button
+                                            key={item.label}
+                                            variant="text"
+                                            onClick={openTasks}
+                                            className="min-h-11 w-full justify-start border-b border-white/[0.14] px-0 text-inverse-on-surface hover:bg-transparent hover:text-inverse-on-surface focus-visible:ring-primary"
+                                        >
+                                            <span className="w-11 font-brand text-base font-semibold tabular-nums">
+                                                {item.count}
+                                            </span>
+                                            <span className="text-body-large text-on-nav-surface-variant">{item.label}</span>
+                                            <Icon glyph={CaretDown} size={18} className="ml-auto -rotate-90 text-on-nav-surface-variant" />
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="mt-1 text-body-medium tabular-nums text-on-nav-surface-variant">
+                                    {todo.length} {todo.length > 1 ? 'demandes' : 'demande'}
+                                </p>
 
-                            <div className="w-full space-y-2 px-2">
-                                {chartData.map((item) => (
-                                    <div key={item.catName} className="flex items-center justify-between text-body-medium">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full ${item.color.bg}`} />
-                                            <span className="text-on-surface">{item.catName}</span>
+                                {shown.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        className="flex items-center gap-3 border-t border-white/[0.14] py-2.5 first-of-type:border-t-0"
+                                    >
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-info/25 font-brand text-[15px] font-semibold">
+                                            {entry.who
+                                                .split(' ')
+                                                .map((part) => part[0])
+                                                .filter(Boolean)
+                                                .slice(0, 2)
+                                                .join('')
+                                                .toUpperCase() || '—'}
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-[15px] font-medium">
+                                                {entry.who ? `${entry.who} — ${entry.what}` : entry.what}
+                                            </p>
+                                            <p className="mt-px text-body-medium text-on-nav-surface-variant">
+                                                {entry.kind === 'receipt'
+                                                    ? 'Réception à confirmer'
+                                                    : entry.kind === 'return'
+                                                      ? 'Retour à réceptionner'
+                                                    : entry.status === 'WAITING_DOTATION_APPROVAL'
+                                                      ? 'Validation de la dotation'
+                                                      : 'Validation du manager'}
+                                            </p>
                                         </div>
-                                        <span className="text-title-small text-on-surface-variant">{item.count}</span>
+                                        {entry.kind === 'receipt' ? (
+                                            <SecurityGate
+                                                onVerified={() => confirmReceipt(entry.id)}
+                                                title="Confirmer la réception"
+                                                description="Confirmez-vous avoir bien reçu cet équipement ?"
+                                                entityId={entry.id}
+                                                entityName={entry.what}
+                                                trigger={
+                                                    <Button
+                                                        variant="text"
+                                                        size="sm"
+                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                                    >
+                                                        Confirmer la réception
+                                                    </Button>
+                                                }
+                                            />
+                                        ) : entry.kind === 'return' ? (
+                                            <Button
+                                                variant="text"
+                                                size="sm"
+                                                onClick={() => onViewChange('return_wizard')}
+                                                className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                            >
+                                                Réceptionner
+                                            </Button>
+                                        ) : (
+                                            <SecurityGate
+                                                onVerified={() => validate(entry.id, entry.status, true)}
+                                                title="Valider la demande"
+                                                description="Confirmer cette action."
+                                                entityId={entry.id}
+                                                entityName={entry.what}
+                                                trigger={
+                                                    <Button
+                                                        variant="text"
+                                                        size="sm"
+                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                                    >
+                                                        Valider la demande
+                                                    </Button>
+                                                }
+                                            />
+                                        )}
                                     </div>
                                 ))}
-                            </div>
+
+                                {rest > 0 && (
+                                    <DashboardMoreAction
+                                        label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
+                                        destination="dans Tâches, par ancienneté"
+                                        onClick={() => openTasks()}
+                                        tone="inverse"
+                                        spacing="hero"
+                                    />
+                                )}
+                            </>
+                        )}
+                    </section>
+                </Reading>
+
+                {/* État — une carte à séparateurs, le rouge sur le seul chiffre qui alerte. */}
+                <Reading>
+                    <section className="rounded-card bg-surface p-4">
+                        <div className="grid grid-cols-2">
+                            {(isManager
+                                ? [
+                                      { label: 'Total actifs', value: counts.total, icon: Package, iconTint: 'text-on-surface-variant', onClick: () => openFleet('') },
+                                      { label: 'Attribués', value: counts.assigned, icon: UserCheck, iconTint: 'text-info', onClick: () => openFleet('Attribué') },
+                                      { label: 'Disponibles', value: counts.available, icon: Check, iconTint: 'text-success', onClick: () => openFleet('Disponible') },
+                                      { label: 'En réparation', value: counts.repair, icon: Wrench, iconTint: 'text-warning-strong', alert: true, onClick: () => openFleet('En réparation') },
+                                  ]
+                                : [
+                                      { label: 'Mes équipements', value: mine.equipment, icon: Laptop, iconTint: 'text-on-surface-variant', onClick: () => openFleet('') },
+                                      { label: 'Demandes en cours', value: mine.requests, icon: Clock, iconTint: 'text-info', onClick: () => onViewChange('approvals') },
+                                      { label: 'Réceptions à confirmer', value: mine.receipts, icon: Truck, iconTint: 'text-warning-strong', onClick: () => onViewChange('approvals') },
+                                  ]
+                            ).map((kpi, index, all) => (
+                                <Button
+                                    key={kpi.label}
+                                    variant="text"
+                                    layout="card"
+                                    onClick={kpi.onClick}
+                                    className={cn(
+                                        'block rounded-none py-3.5 hover:bg-transparent',
+                                        index % 2 === 1 ? 'border-l border-outline-variant pl-3.5' : 'pr-3.5',
+                                        index > 1 && 'border-t border-outline-variant',
+                                        index < 2 && 'pt-0',
+                                        // Une troisième cellule seule occupe toute la largeur (2 + 1).
+                                        all.length === 3 && index === 2 && 'col-span-2 border-l-0 pl-0'
+                                    )}
+                                >
+                                    <span className="flex items-center justify-between gap-2">
+                                        <span className="text-body-medium text-text-secondary">{kpi.label}</span>
+                                        <Icon glyph={kpi.icon} size={18} className={kpi.iconTint} />
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'mt-1.5 block font-brand text-2xl font-semibold tabular-nums',
+                                            kpi.alert ? 'text-danger' : 'text-on-surface'
+                                        )}
+                                    >
+                                        {kpi.value}
+                                    </span>
+                                </Button>
+                            ))}
                         </div>
-                    </Card>
+                    </section>
+                </Reading>
 
-                    {/* HEALTH CENTER - PERFORMANCE COMPARISON */}
-                    <Card title="Performance & Garantie" className="overflow-hidden">
-                        <div className="p-2 space-y-5">
-                            <div className="flex flex-col items-center justify-center py-2 relative">
-                                <div className="w-40 h-40 relative flex items-center justify-center mb-4">
-                                    <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                        <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="var(--tk-color-surface-container-high)" strokeWidth="3" />
-                                        {warrantyMetrics.segments.map(segment => (
-                                            <circle
-                                                key={segment.key}
-                                                cx="18"
-                                                cy="18"
-                                                r="15.915"
-                                                fill="transparent"
-                                                stroke={segment.stroke}
-                                                strokeWidth="3"
-                                                strokeDasharray={`${segment.percent} ${100 - segment.percent}`}
-                                                strokeDashoffset={segment.offset}
-                                                strokeLinecap={segment.percent > 0 ? "round" : "butt"}
-                                                className="transition-all duration-1000 ease-out"
-                                            />
+                {/* Analyse — ce qui décide, pas ce qui décrit. */}
+                {isManager ? (
+                    <>
+                        <Reading>
+                            <Card icon={ChartBar} title="Types en tension">
+                                {tension.stressed.length > 0 ? (
+                                    <>
+                                        <p className="mt-1 text-body-medium leading-4 text-text-secondary">
+                                            Aucune unité disponible — les plus nombreux d’abord.
+                                        </p>
+                                        {tension.stressed.map(([type, entry]) => (
+                                            <p key={type} className="mt-3 flex items-center gap-2.5 text-body-large">
+                                                <Icon glyph={Warning} size={18} className="text-warning-strong" />
+                                                <span className="min-w-0 flex-1 truncate text-on-surface">{entry.label}</span>
+                                                <span className="tabular-nums text-text-secondary">
+                                                    0 sur {entry.total}
+                                                </span>
+                                            </p>
                                         ))}
-                                    </svg>
+                                        {tension.calm > 0 && (
+                                            <p className="mt-3 border-t border-outline-variant pt-3 text-body-medium text-text-secondary">
+                                                {tension.calm === 1
+                                                    ? 'L’autre type a au moins une unité disponible.'
+                                                    : `Les ${tension.calm} autres types ont au moins une unité disponible.`}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                        Chaque type a au moins une unité disponible.
+                                    </p>
+                                )}
+                            </Card>
+                        </Reading>
 
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                        <span className="text-headline-small font-bold text-on-surface">{warrantyMetrics.globalAvailability}%</span>
-                                        <span className="text-label-small uppercase tracking-widest text-on-surface-variant">Dispo globale</span>
-                                    </div>
-                                </div>
+                        <Reading>
+                            <Card icon={ShieldWarning} title="État du parc">
+                                <ProportionRow
+                                    value={fleet.endOfLife}
+                                    label={`équipements sur ${fleet.size} arrivent en fin de vie comptable`}
+                                    percent={fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0}
+                                    tone={fleet.endOfLife > 0 ? 'attention' : 'neutral'}
+                                    note="Amortis à plus de 85 %. Leur renouvellement reste à provisionner."
+                                />
+                                <ProportionRow
+                                    className="mt-4 border-t border-outline-variant pt-1"
+                                    value={fleet.uncovered}
+                                    label={`équipements sur ${fleet.size} ne sont plus sous garantie`}
+                                    percent={fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0}
+                                    tone={fleet.uncovered > 0 ? 'attention' : 'neutral'}
+                                    note={
+                                        fleet.unknownWarranty > 0
+                                            ? `${fleet.unknownWarranty} sans date de fin connue. Leur remise en état n’est provisionnée nulle part.`
+                                            : 'Aucun sans date de fin. Leur remise en état n’est provisionnée nulle part.'
+                                    }
+                                />
+                                <DashboardMoreAction
+                                    label="Valeur et amortissement"
+                                    destination="dans Finances"
+                                    onClick={() => onViewChange('finance')}
+                                />
+                            </Card>
+                        </Reading>
 
-                                {/* Simplified Legend */}
-                                <div className="w-full space-y-2 px-2">
-                                    {warrantyMetrics.segments.map(segment => (
-                                        <div key={segment.key} className="flex items-center justify-between text-body-medium">
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn("w-3 h-3 rounded-full", segment.dotClass)} />
-                                                <span className="text-on-surface font-medium">{segment.shortLabel}</span>
+                        <Reading>
+                            <Card icon={FileText} title={`Budget ${budgetStats?.year || 2026}`}>
+                                {budgetStats ? (
+                                    <>
+                                        <div className="mt-3 flex items-baseline gap-2.5">
+                                            <span className="font-brand text-[24px] font-semibold leading-none tabular-nums text-on-surface">
+                                                {new Intl.NumberFormat('fr-FR').format(budgetStats.totalSpent)}
+                                            </span>
+                                            <span className="min-w-0 flex-1 text-body-large leading-[19px] text-text-secondary">
+                                                XOF engagés sur les {new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)} de l’exercice
+                                            </span>
+                                            <span className="text-body-medium font-medium tabular-nums text-text-secondary">
+                                                {budgetStats.percentSpent.toFixed(1).replace('.', ',')} %
+                                            </span>
+                                        </div>
+
+                                        <div
+                                            role="img"
+                                            aria-label={`${budgetStats.percentSpent.toFixed(1)} % ; repère du premier trimestre à 25 %`}
+                                            className="relative mt-3.5 h-1.5 overflow-hidden rounded-xs bg-surface-container"
+                                        >
+                                            <span
+                                                className="block h-full rounded-xs bg-on-surface"
+                                                style={{ width: `${Math.min(100, Math.max(0, budgetStats.percentSpent))}%` }}
+                                            />
+                                            <span
+                                                className="absolute top-0 bottom-0 w-0.5 bg-outline-variant"
+                                                style={{ left: '25%' }}
+                                                aria-hidden="true"
+                                            />
+                                        </div>
+
+                                        <p className="mt-2 text-body-medium leading-[18px] text-text-secondary">
+                                            Le repère marque le quart d’exercice écoulé : l’engagement est{' '}
+                                            <strong className="font-semibold text-on-surface">
+                                                {Math.abs(Math.round(25 - budgetStats.percentSpent))} points {budgetStats.percentSpent <= 25 ? 'sous le rythme' : 'au-dessus du rythme'}
+                                            </strong>
+                                            .{' '}
+                                            {budgetStats.overPacedCount === 0
+                                                ? `Aucune des ${budgetStats.itemCount > 0 ? budgetStats.itemCount : 'quatre'} enveloppes ne dépasse son rythme.`
+                                                : `${budgetStats.overPacedCount} enveloppe${budgetStats.overPacedCount > 1 ? 's dépassent' : ' dépasse'} son rythme.`}{' '}
+                                            {new Intl.NumberFormat('fr-FR').format(budgetStats.remaining)} XOF restent disponibles.
+                                        </p>
+
+                                        <DashboardMoreAction
+                                            label="Détail par enveloppe"
+                                            destination="dans Pilotage"
+                                            onClick={() => onViewChange('finance')}
+                                        />
+                                    </>
+                                ) : (
+                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                        Aucun budget configuré pour cet exercice.
+                                    </p>
+                                )}
+                            </Card>
+                        </Reading>
+                    </>
+                ) : (
+                    <>
+                        {/* Vue Utilisateur — Mes équipements par type */}
+                        <Reading>
+                            <Card icon={ChartBar} title="Mes équipements par type">
+                                {myTypes.length > 0 ? (
+                                    <div className="mt-2 space-y-3">
+                                        {myTypes.map((item) => (
+                                            <div key={item.type} className="flex items-center gap-2.5 text-body-medium">
+                                                <span className="min-w-0 flex-1 truncate text-on-surface">{item.type}</span>
+                                                <div className="h-1 w-24 shrink-0 overflow-hidden rounded-xs bg-surface-container">
+                                                    <div
+                                                        className="h-full rounded-xs bg-on-surface"
+                                                        style={{ width: `${item.percent}%` }}
+                                                    />
+                                                </div>
+                                                <span className="w-8 text-right font-medium tabular-nums text-text-secondary">
+                                                    {item.count}
+                                                </span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-on-surface font-bold">{segment.count}</span>
-                                                <span className="text-label-small text-on-surface-variant">{segment.percent}%</span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                        Aucun équipement ne vous est actuellement attribué.
+                                    </p>
+                                )}
+                            </Card>
+                        </Reading>
+
+                        {/* Vue Utilisateur — Garantie de mes équipements */}
+                        <Reading>
+                            <Card icon={ShieldWarning} title="Garantie de mes équipements">
+                                <ProportionRow
+                                    value={myWarranty.covered}
+                                    label={`de mes ${myWarranty.total} équipements sont couverts`}
+                                    percent={myWarranty.percent}
+                                    tone={myWarranty.percent > 0 ? 'positive' : 'neutral'}
+                                    note={
+                                        myWarranty.uncoveredItem
+                                            ? `1 hors garantie : ${myWarranty.uncoveredItem.name || myWarranty.uncoveredItem.model}, depuis ${formatDate(new Date(myWarranty.uncoveredItem.warrantyEnd || ''))}.`
+                                            : 'Tous vos équipements sont sous garantie constructeur active.'
+                                    }
+                                />
+                            </Card>
+                        </Reading>
+                    </>
+                )}
+
+                {/* Activité — en dernier. */}
+                <Reading>
+                    <Card icon={ClockCounterClockwise} title="Derniers événements">
+                        {recentEvents.length > 0 ? (
+                            <>
+                                <div className="mt-2">
+                                    {recentEvents.map((event) => (
+                                        <div
+                                            key={event.id}
+                                            className="flex min-h-14 items-center gap-3 border-t border-outline-variant py-2.5 first-of-type:border-t-0"
+                                        >
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+                                                <Icon glyph={ClockCounterClockwise} size={18} />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-body-large leading-5 text-on-surface">
+                                                    {getHistoryEventSentence({ event, perspectiveActorId: currentUser?.id })}
+                                                </p>
+                                                <p className="mt-0.5 text-body-medium tabular-nums text-text-secondary">
+                                                    {formatDate(new Date(event.timestamp))}
+                                                </p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-
-                            <div className="bg-surface-container-low p-3 rounded-md border border-outline-variant/50 text-body-medium text-on-surface-variant">
-                                {warrantyMetrics.insight}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-outline-variant/50">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-label-small text-on-surface-variant uppercase">≤ 3 ans</span>
-                                    <span className="text-label-medium font-bold text-on-surface">{warrantyMetrics.recentCount}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-label-small text-on-surface-variant uppercase">≥ 5 ans</span>
-                                    <span className="text-label-medium font-bold text-error">{warrantyMetrics.agingCount}</span>
-                                </div>
-                            </div>
-                        </div>
+                                <DashboardMoreAction
+                                    label="Voir tout"
+                                    destination={isManager ? 'dans Audit' : 'dans Mon profil'}
+                                    onClick={() => {
+                                        if (isManager) {
+                                            onViewChange('audit');
+                                        } else if (currentUser?.id) {
+                                            onNavigate?.(`/users/${currentUser.id}`);
+                                        }
+                                    }}
+                                />
+                            </>
+                        ) : (
+                            <p className="mt-2 text-body-medium text-text-secondary">
+                                Aucun événement enregistré pour l’instant.
+                            </p>
+                        )}
                     </Card>
-
-                    {/* HELP / SUPPORT TEASER */}
-                    <Card title="Besoin d'aide ?" variant="filled">
-                        <p className="text-body-medium text-on-surface-variant mb-4">Consultez la documentation ou contactez le support.</p>
-                    </Card>
-
-                </div>
+                </Reading>
             </div>
-        </PageContainer>
+        </div>
     );
 };
 
 export default DashboardPage;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -6,6 +6,7 @@ import { useData } from '../../../context/DataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { PageTabs } from '../../../components/ui/PageTabs';
+import FacetChip from '../../../components/ui/FacetChip';
 import { DetailHeader } from '../../../components/layout/DetailHeader';
 import { useToast } from '../../../context/ToastContext';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -252,7 +253,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     const sessionTotal = baselineEquipment.length;
     const sessionFound = scannedItems.length;
-    const sessionMissing = missingItems.length;
     const sessionExceptions = exceptionEntries.length;
     const progressPercentage = sessionTotal > 0 ? Math.round((sessionFound / sessionTotal) * 100) : 0;
 
@@ -482,17 +482,45 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         });
     };
 
+    /**
+     * **Deux onglets, trois puces** — planche 16.2.
+     *
+     * Trois des quatre onglets d'origine montraient **la même liste à trois moments** :
+     * un actif est *à scanner*, puis *retrouvé*, et *manquant* seulement si la campagne
+     * se clôture sans lui. Ce ne sont pas trois sujets, ce sont **trois états d'un même
+     * sujet** — donc un onglet et trois puces. L'écart, lui, est un autre sujet : un
+     * objet que le service n'attendait pas.
+     *
+     * Les puces filtrent le même parc ; l'onglet change de sujet.
+     */
     const sessionTabs = (
         <PageTabs
-            activeId={activeTab}
-            onChange={(tabId) => setActiveTab(tabId as AuditTab)}
+            activeId={activeTab === 'exceptions' ? 'exceptions' : 'parc'}
+            onChange={(tabId) => setActiveTab(tabId === 'exceptions' ? 'exceptions' : 'todo')}
             items={[
-                { id: 'todo', label: 'À scanner', badge: todoItems.length },
-                { id: 'scanned', label: 'Retrouvés', shortLabel: 'Trouvés', badge: scannedItems.length },
-                { id: 'missing', label: 'Manquants', badge: missingItems.length },
+                { id: 'parc', label: 'Le parc du service', shortLabel: 'Le parc', badge: sessionTotal },
                 { id: 'exceptions', label: 'Écarts', badge: exceptionEntries.length },
             ]}
         />
+    );
+
+    /** Les trois moments du même parc. Le badge d'écart est le seul qui demande une décision. */
+    const parcChips = (
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+            {([
+                ['todo', 'À scanner', todoItems.length],
+                ['scanned', 'Retrouvés', scannedItems.length],
+                ['missing', 'Manquants', missingItems.length],
+            ] as const).map(([id, label, count]) => (
+                <FacetChip
+                    key={id}
+                    label={label}
+                    count={count}
+                    selected={activeTab === id}
+                    onClick={() => setActiveTab(id)}
+                />
+            ))}
+        </div>
     );
 
     const heroHeader = (
@@ -623,7 +651,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 <div className="grid grid-cols-2 large:grid-cols-5 gap-3">
                     <MetricCard compact title="Attendus" value={sessionTotal} />
                     <MetricCard compact title="Retrouvés" value={sessionFound} />
-                    <MetricCard compact title="Manquants" value={sessionMissing} valueClassName="text-error" />
+                    {/* « Manquants » n'est pas un qualifiant : il n'existe qu'**après la
+                        clôture**, et un chiffre qui vaudra zéro jusqu'à la dernière seconde
+                        n'en est pas un (16.2). Il reste, en puce, dans le parc du service. */}
                     <MetricCard compact title="Écarts" value={sessionExceptions} />
                     <MetricCard compact title="Couverture" value={`${progressPercentage}%`} />
                 </div>
@@ -652,6 +682,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         Le scan QR est réservé à la version mobile. Utilisez un téléphone pour scanner les QR générés par le script.
                     </div>
                 )}
+
+                {activeTab !== 'exceptions' && parcChips}
 
                 {activeTab !== 'exceptions' && (
                     <section className="overflow-hidden rounded-card border border-outline-variant bg-surface shadow-elevation-1">

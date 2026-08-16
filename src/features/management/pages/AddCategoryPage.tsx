@@ -8,7 +8,8 @@ import Toggle from '../../../components/ui/Toggle';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import { useData } from '../../../context/DataContext';
-import { Category } from '../../../types';
+import SelectField from '../../../components/ui/SelectField';
+import { CATEGORY_FAMILIES, Category, CategoryFamily } from '../../../types';
 import { CATEGORY_ICONS } from '../../../data/mockData';
 
 interface AddCategoryPageProps {
@@ -25,6 +26,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
         name: '',
         description: '',
         iconName: 'Laptop',
+        family: 'Informatique' as CategoryFamily,
         assignable: true,
         method: 'linear' as 'linear' | 'degressive',
         years: 3,
@@ -37,6 +39,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                 name: categoryToEdit.name,
                 description: categoryToEdit.description || '',
                 iconName: categoryToEdit.iconName || 'Laptop',
+                family: categoryToEdit.family || 'Informatique',
                 assignable: categoryToEdit.assignable,
                 method: categoryToEdit.defaultDepreciation?.method || 'linear',
                 years: categoryToEdit.defaultDepreciation?.years || 3,
@@ -47,6 +50,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                 name: '',
                 description: '',
                 iconName: 'Laptop',
+                family: 'Informatique',
                 assignable: true,
                 method: 'linear',
                 years: 3,
@@ -75,6 +79,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
             description: formData.description,
             icon: CATEGORY_ICONS[formData.iconName],
             iconName: formData.iconName,
+            family: formData.family,
             assignable: formData.assignable,
             defaultDepreciation: {
                 method: formData.method,
@@ -119,6 +124,16 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         placeholder="Ex: Écrans incurvés"
                         variant="outlined"
                         required
+                    />
+
+                    {/* A2 — le référentiel se range sur deux niveaux : la famille se choisit
+                        à la création du type, elle ne se devine pas de son nom (09.1). */}
+                    <SelectField
+                        name="category-family"
+                        label="Famille"
+                        value={formData.family}
+                        onChange={(e) => setFormData({ ...formData, family: e.target.value as CategoryFamily })}
+                        options={CATEGORY_FAMILIES.map((family) => ({ value: family, label: family }))}
                     />
 
                     <div>

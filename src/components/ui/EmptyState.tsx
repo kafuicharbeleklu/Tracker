@@ -2,6 +2,15 @@ import React from 'react';
 import MaterialIcon from './MaterialIcon';
 import { cn } from '../../lib/utils';
 
+/**
+ * ⚠️ **Forme héritée — remplacée par `ScreenState`** (planche 17.1).
+ *
+ * L'état vide y prend sa forme canonique : la marque ronde de 112 px, le titre au
+ * palier haut, deux portes au plus. Celle-ci reste en place le temps que ses douze
+ * appels soient portés — elle disparaît avec le dernier. Ne pas l'employer dans du
+ * code neuf : deux formes pour un même moment, c'est la divergence que le registre
+ * appelle « un nom, deux rôles » (§2.18).
+ */
 interface EmptyStateProps {
     icon: string;
     title: string;

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Login — piste A, sobre et industriel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --canvas:#FAF9F7; --surface:#FFFFFF; --ink:#1A1917; --ink-2:#78746C;
+    --line:#F0EEE9; --line-strong:#8E877E; --brand:#FDC910; --on-brand:#1A1917;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:#EDEBE7;display:flex;justify-content:center;
+       padding:24px 12px;color:var(--ink)}
+  .phone{width:393px;min-height:760px;background:var(--canvas);border-radius:8px;overflow:hidden;
+         box-shadow:0 1px 3px rgba(0,0,0,.12);display:flex;flex-direction:column}
+  .note{width:393px;margin:0 auto 12px;font-size:12px;color:#57514A;line-height:1.5}
+  .note b{font-weight:600}
+
+  /* Bande de marque : 4 px de jaune, franc. Le jaune est présent sans être décoratif. */
+  .rule{height:4px;background:var(--brand)}
+
+  .wrap{flex:1;display:flex;flex-direction:column;padding:32px 20px 20px}
+
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:40px}
+  .brand .mark{width:32px;height:32px;background:var(--ink);border-radius:4px;display:flex;
+               align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#fff}
+  .brand .name{font-size:16px;font-weight:500;letter-spacing:.01em}
+
+  h1{font-size:28px;line-height:34px;font-weight:500;margin-bottom:6px}
+  .sub{font-size:14px;color:var(--ink-2);margin-bottom:32px}
+
+  .lab{display:block;font-size:12px;font-weight:400;color:var(--ink-2);margin-bottom:6px}
+  .field{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;background:var(--surface);
+         border:1px solid var(--line-strong);border-radius:4px;margin-bottom:18px}
+  .field .ph{color:var(--ink-2);font-size:14px}
+  .field .ic{color:var(--ink-2);font-size:15px}
+
+  .forgot{display:block;font-size:14px;font-weight:500;color:var(--ink);margin:2px 0 28px;
+          text-decoration:underline;text-underline-offset:3px}
+  .cta{width:100%;height:48px;background:var(--brand);color:var(--on-brand);border:0;border-radius:4px;
+       font-size:14px;font-weight:500;font-family:inherit}
+
+  .spacer{flex:1;min-height:24px}
+  .demo{border-top:1px solid var(--line);padding-top:16px}
+  .demo-t{font-size:12px;color:var(--ink-2);margin-bottom:12px}
+  .avatars{display:flex;gap:10px}
+  .av{width:36px;height:36px;border-radius:50%;background:#EFEDE8;display:flex;align-items:center;
+      justify-content:center;font-size:15px}
+  .foot{margin-top:20px;font-size:11px;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div>
+  <p class="note"><b>Piste A — sobre et industriel.</b> Plus de carte : la page respire en pleine
+  largeur. Un seul axe d'alignement à gauche. Le jaune n'apparaît que deux fois : le filet du haut
+  et le bouton. Rayons 4 px, deux graisses (400 / 500), aucune majuscule.</p>
+  <div class="phone">
+    <div class="rule"></div>
+    <div class="wrap">
+      <div class="brand"><div class="mark">TR</div><div class="name">Tracker</div></div>
+
+      <h1>Connexion</h1>
+      <p class="sub">Accédez au parc Neemba Togo.</p>
+
+      <span class="lab">Adresse e-mail</span>
+      <div class="field"><span class="ic">✉</span><span class="ph">nom@neemba.com</span></div>
+
+      <span class="lab">Mot de passe</span>
+      <div class="field"><span class="ic">🔒</span><span class="ph">••••••••</span></div>
+
+      <a class="forgot">Mot de passe oublié</a>
+      <button class="cta">Se connecter</button>
+
+      <div class="spacer"></div>
+
+      <div class="demo">
+        <p class="demo-t">Comptes de démonstration — développement uniquement</p>
+        <div class="avatars">
+          <div class="av">🙂</div><div class="av">😮</div><div class="av">😌</div><div class="av">😄</div>
+        </div>
+      </div>
+      <p class="foot">© 2026 Neemba · Application interne</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

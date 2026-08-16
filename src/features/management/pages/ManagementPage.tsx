@@ -1,7 +1,9 @@
 import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
-import { CATEGORY_ICONS, renderCategoryIcon } from '../../../data/mockData';
+import { Warning } from '@phosphor-icons/react';
+import RuleGroup from '../../../components/ui/RuleGroup';
+import { CATEGORY_ICONS } from '../../../data/mockData';
 import { useData } from '../../../context/DataContext';
 import Pagination from '../../../components/ui/Pagination';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
@@ -10,8 +12,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import { GLOSSARY, getCategoryLabel } from '../../../constants/glossary';
 import Button from '../../../components/ui/Button';
-import { ViewType, Category, Model } from '../../../types';
-import Badge from '../../../components/ui/Badge';
+import { CATEGORY_FAMILIES, ViewType, Category, Model } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import AddCategoryPage from './AddCategoryPage';
@@ -134,6 +135,23 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             .map((type) => ({ value: type, label: getCategoryLabel(type) }));
     }, [models]);
 
+    /**
+     * Le référentiel rangé en familles (A2). Une famille à un seul enfant **ne se
+     * replie pas** : une famille qui change de forme selon le nombre d'enfants
+     * apprend une grammaire différente à chaque ouverture (09.1).
+     */
+    const categoriesByFamily = useMemo(() => {
+        const buckets = new Map<string, Category[]>();
+        filteredCategories.forEach((category) => {
+            const family = category.family || 'Mobilier et divers';
+            buckets.set(family, [...(buckets.get(family) || []), category]);
+        });
+        return CATEGORY_FAMILIES.filter((family) => buckets.has(family)).map((family) => ({
+            family,
+            items: buckets.get(family) as Category[],
+        }));
+    }, [filteredCategories]);
+
     const totalCategoryPages = useMemo(() => Math.ceil(sortedCategories.length / CATEGORIES_PER_PAGE), [sortedCategories]);
     const paginatedCategories = useMemo(
         () => sortedCategories.slice((currentPage - 1) * CATEGORIES_PER_PAGE, currentPage * CATEGORIES_PER_PAGE),
@@ -182,33 +200,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
         setIsCategoryModalOpen(true);
     };
 
-    const handleOpenEditCategory = (e: React.MouseEvent, cat: Category) => {
-        e.stopPropagation();
-        setCategoryToEdit(cat);
-        setIsCategoryModalOpen(true);
-    };
 
-    const handleDeleteCategory = (e: React.MouseEvent, cat: Category) => {
-        e.stopPropagation();
-        const count = equipment.filter(e => e.type === cat.name).length;
-        if (count > 0) {
-            showToast(`Impossible : ${count} actifs sont encore liés à cette catégorie.`, 'error');
-            return;
-        }
-
-        requestConfirmation({
-            title: "Supprimer la catégorie",
-            message: `Êtes-vous certain de vouloir supprimer la catégorie "${cat.name}" ? Cette action est irréversible.`,
-            variant: 'danger',
-            confirmKeyword: "SUPPRIMER",
-            confirmText: "Supprimer définitivement",
-            onConfirm: () => {
-                if (deleteCategory(cat.id)) {
-                    showToast(`Catégorie "${cat.name}" supprimée`, 'success');
-                }
-            }
-        });
-    };
 
     // --- Model Actions ---
     const handleOpenAddModel = () => {
@@ -719,6 +711,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-medium2 pb-12">
                         {activeTab === 'categories' ? (
                             <div className="space-y-6">
+                                {/* PORTE-VOIX PLANCHE 09.1 */}
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-baseline gap-2">
+                                        <b className="font-brand text-[28px] font-semibold tracking-tight tabular-nums text-on-surface">
+                                            {models.length} modèles
+                                        </b>
+                                        <span className="text-body-medium text-text-secondary">
+                                            au catalogue, sous {categories.length} types — c'est ce nombre qui décide de ce qu'on peut créer.
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-body-small text-text-secondary pt-1">
+                                        <span><strong>{categoriesByFamily.length}</strong> familles · <strong>{equipment.length}</strong> actifs au parc</span>
+                                    </div>
+                                </div>
 
                                 <div className="flex flex-col medium:flex-row medium:items-center gap-3">
                                     <SearchFilterBar
@@ -822,67 +828,65 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
 
                                 {filteredCategories.length > 0 ? (
                                     <>
-                                        <div className="grid grid-cols-1 gap-3 medium:grid-cols-2 expanded:grid-cols-3 medium:gap-6">
-                                            {paginatedCategories.map((cat) => (
-                                                <div
-                                                    key={cat.id}
-                                                    onClick={() => {
-                                                        if (selectionMode) {
-                                                            toggleCategorySelection(cat.id, !selectedCategorySet.has(cat.id));
-                                                            return;
-                                                        }
-                                                        onCategoryClick?.(cat.id);
-                                                    }}
-                                                    className={`bg-surface rounded-card p-4 medium:p-card border shadow-elevation-1 relative group transition-all duration-300 cursor-pointer overflow-hidden ${
-                                                        selectionMode && selectedCategorySet.has(cat.id)
-                                                            ? 'border-primary shadow-elevation-2'
-                                                            : 'border-outline-variant hover:shadow-elevation-3 hover:-translate-y-1'
-                                                    }`}
+                                        {/* A2 — deux niveaux, famille → type (planche 09.1). Le référentiel
+                                            est **borné** : quatre familles restent quatre à quinze types. Il se
+                                            parcourt donc d'un bout à l'autre, sans pagination.
+                                            B1 — la clé anglaise se lit à droite, à la place où la liste des
+                                            équipements montre `ASSET-10001`. C'est le seul écran qui en a
+                                            besoin : un intégrateur qui branche un import cherche `Laptop`,
+                                            pas « Ordinateur portable ». */}
+                                        <div className="flex flex-col gap-5">
+                                            {categoriesByFamily.map(({ family, items }) => (
+                                                <RuleGroup
+                                                    key={family}
+                                                    header={family}
+                                                    headerTrailing={`${items.length} type${items.length > 1 ? 's' : ''}`}
                                                 >
-                                                    <div className="flex justify-between items-start mb-2 medium:mb-4 relative z-10">
-                                                        <div className="w-10 h-10 medium:w-12 medium:h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors duration-300">
-                                                            {renderCategoryIcon(cat, 24)}
-                                                        </div>
-                                                        {selectionMode ? (
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedCategorySet.has(cat.id)}
-                                                                onClick={(event) => event.stopPropagation()}
-                                                                onChange={(event) => toggleCategorySelection(cat.id, event.target.checked)}
-                                                                className="h-4 w-4 accent-[var(--tk-color-primary)]"
-                                                                aria-label={`Sélectionner ${getCategoryLabel(cat.name)}`}
+                                                    {items.map((cat) => {
+                                                        const modelCount = models.filter((model) => model.type === cat.name).length;
+                                                        const assetCount = equipment.filter((item) => item.type === cat.name).length;
+                                                        const unusable = modelCount === 0;
+                                                        const selected = selectedCategorySet.has(cat.id);
+
+                                                        return (
+                                                            <RuleGroup.Row
+                                                                key={cat.id}
+                                                                title={getCategoryLabel(cat.name)}
+                                                                subtitle={
+                                                                    unusable
+                                                                        ? `Aucun modèle — ${assetCount} actif${assetCount > 1 ? 's' : ''} au parc, rien pour en créer`
+                                                                        : `${modelCount} modèle${modelCount > 1 ? 's' : ''} · ${assetCount} actif${assetCount > 1 ? 's' : ''} au parc`
+                                                                }
+                                                                status={unusable ? { icon: Warning, tone: 'pending' } : undefined}
+                                                                value={
+                                                                    selectionMode ? undefined : (
+                                                                        <span className="font-mono text-[11px] tracking-wide text-text-muted">
+                                                                            {cat.name}
+                                                                        </span>
+                                                                    )
+                                                                }
+                                                                trailing={
+                                                                    selectionMode ? (
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selected}
+                                                                            onChange={(event) => toggleCategorySelection(cat.id, event.target.checked)}
+                                                                            className="h-4 w-4 accent-[var(--tk-color-primary)]"
+                                                                            aria-label={`Sélectionner ${getCategoryLabel(cat.name)}`}
+                                                                        />
+                                                                    ) : undefined
+                                                                }
+                                                                onOpen={
+                                                                    selectionMode
+                                                                        ? () => toggleCategorySelection(cat.id, !selected)
+                                                                        : () => onCategoryClick?.(cat.id)
+                                                                }
                                                             />
-                                                        ) : (
-                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <IconButton
-                                                                    icon="edit"
-                                                                    size={16}
-                                                                    variant="standard"
-                                                                    aria-label={`Modifier ${getCategoryLabel(cat.name)}`}
-                                                                    onClick={(e) => handleOpenEditCategory(e, cat)}
-                                                                    className="w-9 h-9 shadow-elevation-1"
-                                                                />
-                                                                <IconButton
-                                                                    icon="delete"
-                                                                    size={16}
-                                                                    variant="standard"
-                                                                    aria-label={`Supprimer ${getCategoryLabel(cat.name)}`}
-                                                                    onClick={(e) => handleDeleteCategory(e, cat)}
-                                                                    className="w-9 h-9 shadow-elevation-1 text-on-surface-variant hover:text-error hover:bg-surface"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <h3 className="text-title-medium font-bold text-on-surface mb-1">{getCategoryLabel(cat.name)}</h3>
-                                                    <p className="text-body-medium text-on-surface-variant mb-2 medium:mb-4 line-clamp-1 medium:line-clamp-2 medium:min-h-[2.5rem]">{cat.description || 'Aucune description'}</p>
-                                                    <div className="border-t border-outline-variant pt-2 medium:pt-4 flex gap-2">
-                                                        <Badge variant="info" className="text-label-small">{cat.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire'}</Badge>
-                                                        <span className="text-label-small font-bold text-on-surface-variant">{cat.defaultDepreciation?.years} ans</span>
-                                                    </div>
-                                                </div>
+                                                        );
+                                                    })}
+                                                </RuleGroup>
                                             ))}
                                         </div>
-                                        <Pagination currentPage={currentPage} totalPages={totalCategoryPages} onPageChange={setCurrentPage} />
                                     </>
                                 ) : (
                                     <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden">

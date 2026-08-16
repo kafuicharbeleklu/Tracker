@@ -1,0 +1,557 @@
+<!-- @dsCard group="06. Attribuer et restituer" viewport="1900x4920" name="06.1 Le parcours complet" subtitle="Le statut décide du geste · l'IT pose, l'autre partie confirme la réception · les trois façons d'attester" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Attribuer et restituer — le parcours complet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--phone-h:900px;--colnote-h:150px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-line:rgba(255,255,255,.14);--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;--live-ambre-wash:#FEF3D6;
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px;}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro h2{font-size:15px;font-weight:500;margin:22px 0 6px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.quo{margin-top:10px;padding-left:14px;border-left:2px solid #C9C4BA}
+.band{max-width:1180px;margin:0 auto 10px}
+.band h2{font-family:Archivo,Inter,sans-serif;font-weight:500;font-size:17px;letter-spacing:-.01em;margin-bottom:6px}
+.band p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.band b{font-weight:500;color:#1A1917}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+/* la chaîne des statuts : qui agit entre deux états */
+.chain{background:var(--surface);border-radius:8px;padding:22px 20px;display:flex;align-items:flex-start;width:max-content;max-width:none;margin:0 auto 18px}
+.node{flex:0 0 158px;display:flex;flex-direction:column;gap:6px;text-align:center}
+.node .pill{min-height:44px;border-radius:4px;background:var(--inset);display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;padding:0 10px}
+.node .pill .d{width:8px;height:8px;flex:0 0 8px;border-radius:50%}
+.node .sub{font-size:11px;line-height:15px;color:var(--ink3)}
+.node.hold .pill{background:var(--live-ambre-wash);color:#7A5A00}
+.edge{flex:1;min-width:96px;padding-top:9px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.edge .who{font-size:11px;line-height:15px;font-weight:500;text-align:center}
+.edge .arw{width:100%;display:flex;align-items:center;gap:0;color:var(--line-strong)}
+.edge .arw .ln{flex:1;height:1px;background:currentColor}
+.edge .act{font-size:10px;line-height:14px;color:var(--ink3);text-align:center}
+.matrix{width:1174px;max-width:none;margin:0 auto 34px;background:var(--surface);border-radius:8px;padding:18px 20px}
+.matrix h3{font-size:13px;font-weight:500;margin-bottom:10px}
+.matrix table{width:100%;border-collapse:collapse;font-size:13px}
+.matrix th{text-align:left;font-weight:500;color:var(--ink2);padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:bottom;line-height:17px}
+.matrix td{padding:11px 10px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:18px;color:#4A453E}
+.matrix tr:last-child td{border-bottom:0}
+.matrix td b{font-weight:500;color:var(--ink)}
+.matrix td.no{color:var(--ink3)}
+.matrix .mst{display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--ink);white-space:nowrap}
+.matrix .mst .d{width:8px;height:8px;flex:0 0 8px;border-radius:50%}
+.d-dispo{background:var(--st-vert)}.d-attente{background:var(--st-ambre)}.d-attrib{background:var(--st-bleu)}.d-retour{background:var(--st-ambre)}.d-rep{background:var(--st-orange)}
+/* téléphone */
+.m-sig,.m-code,.m-bio{flex-direction:column;gap:8px}
+.pnote{width:393px;background:var(--surface);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);padding:22px 20px;display:flex;flex-direction:column;gap:18px}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.phone.free{--phone-h:0}
+.behind{flex:1;background:var(--canvas);position:relative}
+.bhead{padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}.bhead.icon{padding:4px 8px 4px 20px;min-height:56px;gap:6px}
+.bhead h2{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:16px;line-height:20px;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bhead .tid{flex:1;min-width:0}
+.bhead .tid h2{flex:none}
+.bhead .aid{display:block;font-size:11px;line-height:15px;color:var(--ink2)}
+.bdim{padding:16px 20px;opacity:.3;display:flex;flex-direction:column;gap:10px}
+.bline{height:12px;border-radius:2px;background:var(--ink3)}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sttl .sub{display:block;font-family:Inter,sans-serif;font-weight:400;font-size:12px;letter-spacing:0;color:var(--ink2);margin-top:2px}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.sbody{flex:1;min-height:0;overflow:hidden;padding:10px 20px 0;display:flex;flex-direction:column;gap:12px}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.btn-d{background:var(--dark);color:var(--on-dark)}
+.btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.prov{font-size:11px;line-height:16px;color:var(--ink3);padding:10px 20px 0;margin-top:10px;border-top:1px solid var(--line)}
+.lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.fixed{display:flex;align-items:center;gap:12px;padding:8px 0}
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.hero .vig,.hact .vig{background:rgba(84,169,220,.24);color:#CBE6F5}
+.ftt{flex:1;min-width:0}
+.ftt>span{display:block}
+.ftt .t{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ftt .s{font-size:12px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swap{font-size:13px;font-weight:500;flex:0 0 auto;padding:0 4px}
+.pick{display:flex;align-items:center;gap:12px;min-height:var(--btnh);padding:6px 12px;border:1px solid var(--line-strong);border-radius:4px}
+.val.multi{min-height:56px;align-items:flex-start;padding-top:14px}
+.val.phold{color:var(--ink3);font-size:13px}
+.val{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.val svg{flex:0 0 16px;color:var(--ink2)}
+.warn{display:flex;gap:10px;padding:11px 12px;background:var(--inset);border-radius:4px;font-size:12px;line-height:17px;color:#4A453E}
+.warn svg{flex:0 0 16px;color:var(--ink2);margin-top:1px}
+.warn b{font-weight:500;color:var(--ink)}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.ct{font-size:13px;font-weight:500;margin-bottom:10px}
+/* héro : le statut est la première chose que la fiche dit */
+.hero{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:13px}
+.hero .hi{display:flex;align-items:center;gap:14px}
+.idh{width:52px;height:52px;flex:0 0 52px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;background:rgba(84,169,220,.24);color:#CBE6F5}
+.hero .ht{flex:1;min-width:0}
+.hero .ht>span{display:block}
+.hero .hn{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:21px;letter-spacing:-.01em}
+.hero .hs{font-size:13px;color:var(--on-dark-2);margin-top:3px}
+.hero .stt{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:19px;padding-top:13px;border-top:1px solid var(--dark-line)}
+.hero .stt .d{width:8px;height:8px;flex:0 0 8px;border-radius:50%;margin-top:6px}
+.hero .stt .di{flex:0 0 15px;margin-top:2px;color:var(--on-dark-2)}
+.hero .stt b{font-weight:500}
+.hact{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--dark-line)}
+.hact.row{flex-direction:row}
+.hact.row>.btn{flex:1}
+.hact.row.lead>.btn:last-child{flex:0 0 auto}
+.hact.bare{margin-top:0;padding-top:0;border-top:0}
+.hact .btn-o,.hact .btn-d{background:rgba(255,255,255,.12);color:var(--on-dark)}
+/* l'acquittement : deux lignes, une par partie */
+.ack{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.ack .ar{display:flex;align-items:center;gap:12px;padding:12px;min-height:64px}
+.ack .ar+.ar{border-top:1px solid var(--line)}
+.ack .ar .step{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--inset);color:var(--ink3);display:flex;align-items:center;justify-content:center}
+.ack .ar.done .step{background:var(--dark);color:#fff}
+.ack .at{flex:1;min-width:0}
+.ack .at>span{display:block}
+.ack .at .t{font-size:14px;font-weight:500}
+.ack .at .s{font-size:12px;color:var(--ink2);margin-top:2px;line-height:17px}
+.ack .ar.wait .t{color:var(--ink3)}
+.ack .tag{flex:0 0 auto;font-size:11px;color:var(--ink3);text-align:right;line-height:15px}
+/* méthodes d'attestation */
+.sig{height:140px;border:1px solid var(--line-strong);border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding:0 0 10px;color:var(--ink3);font-size:12px;position:relative;overflow:hidden}
+.sig svg.tr{position:absolute;top:22px;left:50%;transform:translateX(-50%);color:var(--ink)}
+.pin{display:flex;gap:12px;justify-content:center}
+.pin i{width:64px;height:76px;border:1px solid var(--line-strong);border-radius:4px;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:34px;line-height:1;color:var(--ink)}
+.pin i.e{border-style:dashed;border-color:var(--line);color:#C9C4BA;font-size:26px}
+.pin i.on{border:2px solid var(--ink)}
+.pin i.ok{font-size:30px;color:var(--ink2)}
+.bio{height:148px;border-radius:4px;background:var(--inset);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink2);font-size:13px}
+.scale{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 12px;border:1px solid var(--line);border-radius:4px}
+.opt .otx{flex:1;min-width:0}
+.opt .otx>span{display:block}
+.opt .t{font-size:15px;font-weight:500}
+.opt .s{font-size:12px;color:var(--ink2);margin-top:1px}
+.opt .rd{width:20px;height:20px;flex:0 0 20px;border:1.5px solid var(--line-strong);border-radius:50%}
+.opt .rd svg{display:none}
+.opt.on{border-color:var(--ink);border-width:1.5px}
+.opt.on .rd{border:0;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
+.opt.on .rd svg{display:block}
+.shots{display:flex;gap:8px}
+.shot{width:56px;height:56px;flex:0 0 56px;border-radius:4px;background:var(--inset);color:var(--ink3);display:flex;align-items:center;justify-content:center}
+.shot.add{border:1.5px dashed var(--line-strong);background:none;color:var(--ink2);flex-direction:column;gap:2px;font-size:10px}
+.conseq{display:flex;flex-direction:column;gap:9px;padding:13px 14px;background:var(--inset);border-radius:4px}
+.conseq .lab{display:block;margin-bottom:0}
+.conseq .cl{display:flex;gap:10px;font-size:13px;line-height:19px;color:#4A453E}
+.conseq .cl svg{flex:0 0 16px;color:var(--ink2);margin-top:2px}
+.conseq .cl b{font-weight:500;color:var(--ink)}
+
+.mrow{display:flex;gap:12px;padding:var(--rowy) 0;border-top:1px solid var(--line);font-size:13px;line-height:19px;color:#4A453E}
+.mrow:first-of-type{border-top:0}
+.mrow .tic{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--inset);color:var(--ink2);display:flex;align-items:center;justify-content:center}
+.mrow b{font-weight:500;color:var(--ink)}
+.mrow .tm{display:block;font-size:11px;color:var(--ink3);margin-top:2px}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+.m-sig.m-sig.m-sig,.m-code.m-code.m-code,.m-bio.m-bio.m-bio{display:none}
+body[data-methode="signature"] .m-sig.m-sig.m-sig,body[data-methode="code"] .m-code.m-code.m-code,body[data-methode="empreinte"] .m-bio.m-bio.m-bio{display:block}
+body[data-methode="signature"] .m-sig.m-sig.m-sig.fx,body[data-methode="code"] .m-code.m-code.m-code.fx,body[data-methode="empreinte"] .m-bio.m-bio.m-bio.fx{display:flex}
+</style>
+</head>
+<body data-methode="signature" data-tone="chaud" data-densite="standard" data-accent="action" data-vie="sobre">
+<div class="intro">
+<h1>Attribuer et restituer — un objet ne change pas de mains sans que les deux parties le disent</h1>
+<p><b>Cette planche remplace les deux précédentes.</b> « Le geste » et « La chaîne » décrivaient la même opération à deux niveaux de zoom : côte à côte dans le volet, elles ressemblaient à deux propositions concurrentes. Elles n'en formaient qu'une, mal découpée. Elles sont archivées ; tout est ici, dans l'ordre où la question se pose.</p>
+<p><b>Et le principe central, je l'avais raté — il est déjà dans votre produit.</b> Le tableau de bord de l'utilisateur porte un compteur « <b>Réceptions à confirmer</b> », celui de l'administrateur un statut « <b>En attente</b> ». Ces deux mots disent la même chose : <b>une remise faite par l'informatique n'est pas une remise reçue.</b> J'avais traité la preuve comme un acte unilatéral — faire signer le bénéficiaire sur le téléphone de l'informatique. C'est l'inverse du besoin.</p>
+<p class="quo"><b>Chaque partie atteste son propre acte.</b> L'informatique atteste avoir remis ; la personne atteste avoir reçu. Tant que les deux acquittements ne sont pas là, l'objet reste dans un <b>état intermédiaire</b> qui n'accuse personne. C'est ce qui empêche la situation où l'un affirme avoir rendu et l'autre ne se souvient pas d'avoir reçu : ce n'est plus une parole contre une autre, c'est <b>deux traces horodatées, ou une seule et un objet qui n'est passé nulle part</b>.</p>
+
+<h2>Ce que le statut décide</h2>
+<p>Le statut de l'objet n'est pas une étiquette de couleur : c'est <b>lui qui dit quel geste est possible, et par qui</b>. Un objet disponible ne se restitue pas ; un objet attribué ne s'attribue pas une deuxième fois. Chaque écran qui montre un équipement — le tableau de bord, la liste, la fiche de l'objet, la fiche de la personne — propose donc <b>le geste que le statut autorise, et lui seul</b>. C'est la règle qui remplace la barre d'actions fixe.</p>
+<p>Les deux statuts intermédiaires — <b>en attente</b> et <b>retour à confirmer</b> — ne sont pas des états d'erreur. Ce sont les <b>moments où la responsabilité n'a pas encore changé de main</b>, et ils ont un propriétaire : quelqu'un doit confirmer la réception. C'est exactement ce que le bloc « à traiter » du tableau de bord liste déjà.</p>
+</div>
+
+<div class="chain">
+<div class="node"><span class="pill"><span class="d d-dispo"></span>Disponible</span><span class="sub">Personne n'en répond. Il est dans les sélecteurs.</span></div>
+<div class="edge"><span class="who">L'informatique remet</span><span class="arw"><span class="ln"></span><i class="ic s18 ph ph-caret-right"></i></span><span class="act">et atteste son geste</span></div>
+<div class="node hold"><span class="pill">En attente</span><span class="sub">Remis, pas encore reçu. Aucune des deux parties n'en répond seule.</span></div>
+<div class="edge"><span class="who">La personne confirme la réception</span><span class="arw"><span class="ln"></span><i class="ic s18 ph ph-caret-right"></i></span><span class="act">et atteste à son tour</span></div>
+<div class="node"><span class="pill"><span class="d d-attrib"></span>Attribué</span><span class="sub">Elle en répond. C'est le seul état où la responsabilité est nette.</span></div>
+<div class="edge"><span class="who">La personne rend</span><span class="arw"><span class="ln"></span><i class="ic s18 ph ph-caret-right"></i></span><span class="act">et atteste son geste</span></div>
+<div class="node hold"><span class="pill">Retour à confirmer</span><span class="sub">Rendu, pas encore réceptionné. L'objet n'est pas re-proposable.</span></div>
+<div class="edge"><span class="who">L'informatique réceptionne</span><span class="arw"><span class="ln"></span><i class="ic s18 ph ph-caret-right"></i></span><span class="act">constate l'état et atteste</span></div>
+<div class="node"><span class="pill"><span class="d d-dispo"></span>Disponible</span><span class="sub">ou <b style="font-weight:500">en réparation</b>, selon ce qui a été constaté.</span></div>
+</div>
+
+<div class="matrix">
+<h3>Ce que chaque écran propose, selon le statut et selon qui regarde</h3>
+<table>
+<tr><th style="width:150px">Statut de l'objet</th><th style="width:32%">Ce que voit l'informatique</th><th style="width:32%">Ce que voit la personne qui le détient</th><th>Où le geste est offert</th></tr>
+<tr><td><span class="mst"><span class="d d-dispo"></span>Disponible</span></td><td><b>Attribuer</b> — geste primaire</td><td class="no">L'objet n'apparaît pas chez elle</td><td>Fiche objet · liste (survol) · tableau de bord</td></tr>
+<tr><td><span class="mst"><span class="d d-attente"></span>En attente</span></td><td><b>Relancer</b> · annuler la remise</td><td><b>Confirmer la réception</b> — et c'est le seul geste</td><td>Tableau de bord des deux · fiche objet</td></tr>
+<tr><td><span class="mst"><span class="d d-attrib"></span>Attribué</span></td><td><b>Demander la restitution</b> · réaffecter · déclarer un incident</td><td><b>Restituer</b> · déclarer un incident</td><td>Fiche objet · fiche de la personne · liste</td></tr>
+<tr><td><span class="mst"><span class="d d-retour"></span>Retour à confirmer</span></td><td><b>Réceptionner</b></td><td class="no">Rien à faire — elle a déjà attesté</td><td>Tableau de bord informatique · fiche objet</td></tr>
+<tr><td><span class="mst"><span class="d d-rep"></span>En réparation</span></td><td><b>Clore l'intervention</b></td><td class="no">L'objet a quitté son poste</td><td>Fiche objet</td></tr>
+</table>
+<p style="font-size:11px;line-height:16px;color:var(--ink3);margin-top:12px">Deux points à confirmer dans le code : que le produit filtre réellement les actions par statut (vous le pensez, je n'ai pas accès au dépôt depuis ce projet), et le vocabulaire exact des statuts intermédiaires — « en attente » est celui du compteur admin, « réceptions à confirmer » celui du compteur utilisateur : ce sont probablement les deux faces du même état.</p>
+</div>
+
+<div class="band" style="margin-top:34px">
+<h2>1 · Attribuer</h2>
+<p>Trois choses se passent, dans cet ordre : quelqu'un <b>déclenche</b> (l'informatique de sa propre initiative, ou une demande validée), l'informatique <b>remet et atteste</b>, la personne <b>confirme la réception et atteste</b>. Tant que le troisième temps manque, l'objet est <b>en attente</b> — ni disponible pour un autre, ni sous la responsabilité de qui que ce soit.</p>
+</div>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">État — d'où part une attribution</p>
+<p class="colnote">L'objet est <b>disponible</b> : le seul geste primaire possible est <b>Attribuer</b>. La fiche dit aussi <b>pourquoi</b> on l'attribue — soit une demande validée en amont, soit une dotation directe de l'informatique. Les deux existent ; ce qui compte est que <b>le fil le dise</b>, sinon un audit ne distingue pas une attribution légitime d'un contournement. Le même geste part de la liste (au survol), de la fiche de la personne, et du tableau de bord.</p>
+<div class="phone">
+<div class="bhead icon"><span class="tid"><h2 class="tnum">LPT-HQ-15</h2><span class="aid">Dell Latitude 7420 · Bureau Paris</span></span><span class="tb"><i class="ic s20 ph ph-dots-three-vertical"></i></span></div>
+<div class="page">
+<div class="hero">
+<div class="hi"><span class="idh"><i class="ic ph ph-package"></i></span><span class="ht"><span class="hn tnum">LPT-HQ-15</span><span class="hs">Dell Latitude 7420 · Bureau Paris</span></span></div>
+<div class="stt"><span class="d" style="background:var(--live-vert)"></span><span><b>Disponible</b> — personne n'en répond aujourd'hui.</span></div>
+<div class="hact row bare"><button class="btn btn-y">Attribuer</button></div>
+</div>
+<section class="card">
+<p class="ct">Une demande attend cet objet</p>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-user"></i></span><span><b>Demandé par Karim Diallo</b><span class="tm">ordinateur portable · il y a 3 jours — motif : remplacement, poste en panne</span></span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-check"></i></span><span>Validé par <b>Jane Smith</b>, sa manager<span class="tm">avant-hier — c'est ce qui autorise la remise</span></span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-caret-right"></i></span><span>En attente de <b>traitement informatique</b><span class="tm">l'étape en cours : c'est vous</span></span></div>
+</section>
+<div class="warn"><i class="ic s18 ph ph-info"></i><span><b>Sans demande, cette carte dit « dotation directe ».</b> Elle ne disparaît pas : un fil sans ligne de validation se lit comme une validation manquante, pas comme un cas normal.</span></div>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — l'informatique remet et atteste</p>
+<p class="colnote">Une seule question reste ouverte : <b>à partir de quand</b>. Le destinataire vient de la demande, l'objet de sa fiche — <b>on ne repose pas une question dont on connaît la réponse</b>. Puis vient l'attestation : <b>celle de l'informatique, sur son propre acte</b>. Elle ne dit pas « Karim a reçu », elle dit « j'ai remis ». La nuance est tout l'écran.</p>
+<div class="phone">
+<div class="behind"><div class="bhead icon"><span class="tid"><h2 class="tnum">LPT-HQ-15</h2><span class="aid">Dell Latitude 7420 · Bureau Paris</span></span></div><div class="bdim"><div class="bline" style="width:60%"></div><div class="bline" style="width:100%;height:80px"></div></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Remettre l'équipement<span class="sub">Vous attestez votre geste, pas celui de Karim.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="fixed"><span class="vig"><i class="ic s20 ph ph-package"></i></span><span class="ftt"><span class="t tnum">LPT-HQ-15</span><span class="s">Dell Latitude 7420</span></span></div>
+<div><p class="lab">Remis à</p><div class="pick"><span class="vig">KD</span><span class="ftt"><span class="t">Karim Diallo</span><span class="s">Support · Bureau Paris</span></span><span class="swap">Changer</span></div></div>
+<div><p class="lab">À partir du</p><div class="val"><i class="ic s18 ph ph-calendar-blank"></i>aujourd'hui</div></div>
+<div>
+<p class="lab">Votre attestation</p>
+<div class="m-sig fx"><div class="sig"><svg class="tr" width="120" height="46" viewBox="0 0 120 46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 34c10-2 14-24 21-24s5 18 12 18 10-13 17-13 6 12 13 12 12-9 19-9"/></svg>Clara Admin</div></div>
+<div class="m-code fx"><div class="pin"><i class="ok">•</i><i class="ok">•</i><i class="on">7</i><i class="e">·</i></div></div>
+<div class="m-bio fx"><div class="bio"><i class="ic s32 ph ph-fingerprint"></i>Posez votre doigt</div></div>
+</div>
+<div class="warn"><i class="ic s18 ph ph-info"></i><span>Enregistré au nom de <b>Clara Admin</b>, horodaté. <b>L'objet ne devient pas « attribué »</b> : il passe <b>en attente</b> jusqu'à ce que Karim confirme la réception.</span></div>
+</div>
+<div class="sfoot"><button class="btn btn-ghost">Annuler</button><button class="btn btn-y">Remettre</button></div>
+<p class="prov">La méthode d'attestation se règle dans le panneau. Signature, code et empreinte sont les trois mécanismes déjà présents dans votre écran actuel — ils sont ici sur la bonne personne : chacun atteste le sien.</p>
+</div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — Karim confirme la réception et atteste</p>
+<p class="colnote">Sur <b>son</b> téléphone. Le compteur « Réceptions à confirmer » existe déjà dans votre tableau de bord utilisateur : c'est cet écran qu'il ouvrait sans le dire. Il ne valide pas l'action de l'informatique, <b>il atteste la sienne</b> : « j'ai reçu cet objet, ce jour, dans cet état ». C'est le deuxième acquittement — et c'est lui qui rend l'objet <b>attribué</b>.</p>
+<div class="phone">
+<div class="behind"><div class="bhead icon"><h2>Bonjour Karim</h2></div><div class="bdim"><div class="bline" style="width:52%"></div><div class="bline" style="width:100%;height:72px"></div></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Confirmer la réception<span class="sub">Remis par Clara Admin, aujourd'hui à 09:42.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="fixed"><span class="vig"><i class="ic s20 ph ph-package"></i></span><span class="ftt"><span class="t tnum">LPT-HQ-15</span><span class="s">Dell Latitude 7420 · SN-ASSET10015</span></span></div>
+<div class="ack">
+<div class="ar done"><span class="step"><i class="ic s18 ph ph-check"></i></span><span class="at"><span class="t">Clara Admin atteste avoir remis</span><span class="s">aujourd'hui à 09:42</span></span></div>
+<div class="ar wait"><span class="step"><i class="ic s18 ph ph-user"></i></span><span class="at"><span class="t">Vous attestez avoir reçu</span><span class="s">c'est ce qui reste à faire</span></span></div>
+</div>
+<div class="warn"><i class="ic s18 ph ph-warning"></i><span>Si l'objet ne correspond pas, ou s'il est arrivé abîmé, <b>ne confirmez pas</b> : signalez l'écart. Confirmer, c'est en devenir responsable.</span></div>
+<div>
+<p class="lab">Votre attestation</p>
+<div class="m-sig fx"><div class="sig"><svg class="tr" width="120" height="46" viewBox="0 0 120 46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 32c8 0 12-20 18-20s7 16 13 16 9-11 15-11 8 10 14 10"/></svg>Karim Diallo</div></div>
+<div class="m-code fx"><div class="pin"><i class="ok">•</i><i class="on">9</i><i class="e">·</i><i class="e">·</i></div></div>
+<div class="m-bio fx"><div class="bio"><i class="ic s32 ph ph-fingerprint"></i>Posez votre doigt</div></div>
+</div>
+</div>
+<div class="sfoot"><button class="btn btn-ghost">Signaler un écart</button><button class="btn btn-y">Je confirme avoir reçu</button></div>
+<p class="prov">Quand les deux personnes sont ensemble, les deux attestations s'enchaînent sur le même appareil, en dix secondes. Quand elles ne le sont pas, cet écran attend sur le téléphone de Karim — et l'objet reste en attente.</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="band">
+<h2>2 · Restituer</h2>
+<p>Exactement symétrique, dans l'autre sens — <b>et c'est la personne qui commence</b>. Elle détient l'objet, elle est la seule à savoir qu'elle le rend. Une différence de fond avec l'attribution : la réception, ici, <b>constate un état</b>. C'est la seule occasion où le parc apprend l'usure, et c'est pour cela que le second temps ne peut pas être un simple bouton.</p>
+</div>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">État — la personne rend et atteste</p>
+<p class="colnote">Depuis <b>sa</b> fiche d'équipement, où le geste primaire est <b>Restituer</b> parce que le statut est « attribué ». Elle coche ce qu'elle rend si elle en détient plusieurs — un départ rend tout d'un coup. Elle atteste, et <b>l'objet quitte immédiatement sa responsabilité</b> : il passe en « retour à confirmer ». Il ne redevient pas disponible pour autant — personne ne peut se le voir attribuer tant que l'informatique ne l'a pas dans les mains.</p>
+<div class="phone">
+<div class="behind"><div class="bhead icon"><h2>Mes équipements</h2></div><div class="bdim"><div class="bline" style="width:52%"></div><div class="bline" style="width:100%;height:72px"></div></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Restituer<span class="sub">Vous attestez rendre. L'informatique attestera recevoir.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="fixed"><span class="vig"><i class="ic s20 ph ph-package"></i></span><span class="ftt"><span class="t tnum">LPT-HQ-15</span><span class="s">Dell Latitude 7420 · détenu depuis 4 mois</span></span></div>
+<div><p class="lab">Rendu à</p><div class="pick"><span class="vig">CA</span><span class="ftt"><span class="t">Clara Admin</span><span class="s">Informatique · Bureau Paris</span></span><span class="swap">Changer</span></div></div>
+<div><p class="lab">Un mot sur l'état, si nécessaire</p><div class="val multi phold">Optionnel — l'informatique constatera de son côté.</div></div>
+<div>
+<p class="lab">Votre attestation</p>
+<div class="m-sig fx"><div class="sig"><svg class="tr" width="120" height="46" viewBox="0 0 120 46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 32c8 0 12-20 18-20s7 16 13 16 9-11 15-11 8 10 14 10"/></svg>Karim Diallo</div></div>
+<div class="m-code fx"><div class="pin"><i class="ok">•</i><i class="ok">•</i><i class="on">4</i><i class="e">·</i></div></div>
+<div class="m-bio fx"><div class="bio"><i class="ic s32 ph ph-fingerprint"></i>Posez votre doigt</div></div>
+</div>
+<div class="warn"><i class="ic s18 ph ph-check"></i><span><b>C'est votre preuve.</b> Si l'informatique oublie de réceptionner, votre attestation est horodatée et l'objet apparaît dans sa file comme un retour non traité — pas comme un équipement que vous détenez encore.</span></div>
+</div>
+<div class="sfoot"><button class="btn btn-ghost">Annuler</button><button class="btn btn-y">Je rends cet équipement</button></div>
+<p class="prov">C'est le point que vous avez soulevé : sans cette attestation, une restitution oubliée reste une parole contre une autre. Avec elle, l'oubli est visible et il a un propriétaire.</p>
+</div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — l'informatique réceptionne et constate</p>
+<p class="colnote">Le seul écran des quatre qui ne soit pas symétrique : <b>on est devant l'objet</b>. L'attestation seule ne suffit pas — il faut dire <b>dans quel état il revient</b>, parce que c'est ce qui décide s'il repart en stock. Les quatre crans sont nommés par leur <b>conséquence</b>, pas par une appréciation, et la photo passe avant le texte : une rayure se photographie en une seconde et se décrit mal en trois phrases.</p>
+<div class="phone">
+<div class="behind"><div class="bhead icon"><h2>Tâches</h2></div><div class="bdim"><div class="bline" style="width:44%"></div><div class="bline" style="width:100%;height:72px"></div></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Réceptionner le retour<span class="sub">Rendu par Karim Diallo, hier à 17:20.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="ack">
+<div class="ar done"><span class="step"><i class="ic s18 ph ph-check"></i></span><span class="at"><span class="t">Karim Diallo atteste avoir rendu</span><span class="s">hier à 17:20</span></span></div>
+<div class="ar wait"><span class="step"><i class="ic s18 ph ph-user"></i></span><span class="at"><span class="t">Vous attestez avoir reçu</span><span class="s">et vous constatez l'état</span></span></div>
+</div>
+<div><p class="lab">Ce que vous voyez</p><div class="shots"><span class="shot"><i class="ic s20 ph ph-camera"></i></span><span class="shot add"><i class="ic s18 ph ph-camera"></i>ajouter</span></div></div>
+<div>
+<p class="lab">Ce que l'objet devient</p>
+<div class="scale">
+<div class="opt"><span class="otx"><span class="t">Repart en stock</span><span class="s">Rien à signaler</span></span><span class="rd"><i class="ic s18 ph ph-check"></i></span></div>
+<div class="opt on"><span class="otx"><span class="t">À réviser d'abord</span><span class="s">Ne sera pas proposé avant l'intervention</span></span><span class="rd"><i class="ic s18 ph ph-check"></i></span></div>
+<div class="opt"><span class="otx"><span class="t">Hors service</span><span class="s">Sortie d'inventaire — une validation est demandée</span></span><span class="rd"><i class="ic s18 ph ph-check"></i></span></div>
+</div>
+</div>
+<div class="conseq">
+<span class="lab">Ce que cela déclenche</span>
+<span class="cl"><i class="ic s18 ph ph-wrench"></i><span>L'objet passe <b>en réparation</b> et une tâche est ouverte. Il <b>ne rejoint pas</b> les disponibles.</span></span>
+<span class="cl"><i class="ic s18 ph ph-check"></i><span>Karim <b>n'en répond plus</b> depuis hier 17:20 — l'usure constatée aujourd'hui ne lui est pas imputée.</span></span>
+</div>
+</div>
+<div class="sfoot"><button class="btn btn-ghost">Plus tard</button><button class="btn btn-y">Réceptionner</button></div>
+<p class="prov">Le quatrième cran (« repart avec réserve ») est masqué faute de place ; il existe dans la piste précédente. Reste à confirmer côté code : une réception peut-elle ouvrir une tâche de maintenance ?</p>
+</div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">Vue — la preuve croisée, dans l'historique</p>
+<p class="colnote">Voilà ce que les deux attestations produisent, et c'est <b>la raison d'être de tout le mécanisme</b>. Chaque passage de main porte <b>deux lignes</b> — qui, quoi, quand, par quel moyen — et l'écart entre les deux est visible. Un retour attesté d'un côté et jamais réceptionné de l'autre ne se cache pas : il <b>reste ouvert</b>, en haut du fil, avec le nom de qui doit agir.</p>
+<div class="phone free">
+<div class="bhead icon" style="padding-left:8px"><span class="tb"><i class="ic s20 ph ph-arrow-left"></i></span><span class="tid"><h2 class="tnum">LPT-HQ-15</h2><span class="aid">Dell Latitude 7420 · Bureau Dakar</span></span></div>
+<div class="page">
+<section class="card">
+<p class="ct">Passages de main</p>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-sign-in"></i></span><span><b>Réceptionné par Clara Admin</b> — à réviser<span class="tm">aujourd'hui 08:15 · empreinte · photo jointe</span></span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-sign-out"></i></span><span><b>Rendu par Karim Diallo</b><span class="tm">hier 17:20 · code PIN</span></span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-sign-in"></i></span><span><b>Réception confirmée par Karim Diallo</b><span class="tm">12 mars 09:44 · signature</span></span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-sign-out"></i></span><span><b>Remis par Clara Admin</b><span class="tm">12 mars 09:42 · signature · suite à la demande validée par Jane Smith</span></span></div>
+</section>
+<section class="card">
+<p class="ct">Un cas resté ouvert</p>
+<div class="ack">
+<div class="ar done"><span class="step"><i class="ic s18 ph ph-check"></i></span><span class="at"><span class="t tnum">MSE-HQ-03 — rendu par Oumar</span><span class="s">il y a 6 jours</span></span></div>
+<div class="ar wait"><span class="step"><i class="ic s18 ph ph-warning"></i></span><span class="at"><span class="t">Jamais réceptionné</span><span class="s">l'objet n'est ni chez Oumar, ni en stock</span></span><span class="tag">à traiter<br>informatique</span></div>
+</div>
+<p style="font-size:12px;line-height:18px;color:#4A453E;margin-top:12px">C'est exactement la situation que la double attestation rend <b style="font-weight:500">visible au lieu de conflictuelle</b> : Oumar a sa trace, l'informatique a une tâche, et personne n'a besoin de se souvenir.</p>
+</section>
+<p style="font-size:11px;line-height:16px;color:var(--ink3);padding:0 2px">Événements fabriqués pour la maquette. La colonne « par quel moyen » suppose que le mécanisme d'attestation soit enregistré avec l'événement — à confirmer côté code, c'est ce qui donne sa valeur au fil.</p>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+</div>
+
+<div class="band">
+<h2>3 · Comment on atteste</h2>
+<p>Trois mécanismes, <b>les vôtres</b> — ils étaient dans l'écran actuel, sous l'étiquette « Validation d'identité administrateur — SIMULATION ». Ce n'est pas l'intention qui était fausse, c'est la <b>personne</b> à qui on les demandait. Ils ne servent pas à authentifier quelqu'un de déjà connecté : ils servent à ce que <b>chacun signe son propre acte</b>. La règle de choix ne dépend d'aucune préférence d'organisation, seulement d'un fait matériel : <b>les deux parties sont-elles au même endroit, au même moment ?</b></p>
+</div>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">Vue — les trois mécanismes, et quand chacun sert</p>
+<p class="colnote">Réglez la <b>méthode</b> dans le panneau pour la voir changer sur les quatre écrans précédents. Aucun n'est meilleur : ils répondent à des situations différentes, et l'application propose <b>celui que la situation permet</b> — elle ne fait pas choisir dans une liste de trois boutons équivalents, ce qui était le défaut de l'écran actuel.</p>
+<div class="phone free">
+<div class="bhead icon" style="padding-left:8px"><span class="tb"><i class="ic s20 ph ph-arrow-left"></i></span><span class="tid"><h2>Attester</h2><span class="aid">Les trois formes de preuve</span></span></div>
+<div class="page">
+<section class="card">
+<p class="ct">Signature</p>
+<div class="sig" style="margin-bottom:10px"><svg class="tr" width="120" height="46" viewBox="0 0 120 46" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 34c10-2 14-24 21-24s5 18 12 18 10-13 17-13 6 12 13 12 12-9 19-9"/></svg>Karim Diallo</div>
+<p style="font-size:12px;line-height:18px;color:#4A453E"><b style="font-weight:500">Quand on a un instant, ensemble.</b> C'est la plus forte : elle est manuscrite, datée, et personne ne signe par distraction. C'est le récépissé du comptoir.</p>
+</section>
+<section class="card">
+<p class="ct">Code PIN</p>
+<div class="pin" style="margin-bottom:12px"><i class="ok">•</i><i class="ok">•</i><i class="on">4</i><i class="e">·</i></div>
+<p style="font-size:12px;line-height:18px;color:#4A453E"><b style="font-weight:500">Quand on est ensemble mais pressé</b> — comptoir, atelier, gants, dix remises d'affilée. Aussi opposable, sans passer l'appareil de main en main. <b style="font-weight:500">Impossible</b> pour quelqu'un qui ne s'est jamais connecté : il n'a pas encore de code.</p>
+</section>
+<section class="card">
+<p class="ct">Empreinte</p>
+<div class="bio" style="margin-bottom:12px"><i class="ic s32 ph ph-fingerprint"></i>Posez votre doigt</div>
+<p style="font-size:12px;line-height:18px;color:#4A453E"><b style="font-weight:500">Sur son propre appareil, jamais sur celui de l'autre.</b> Elle n'atteste rien de plus qu'un code — sauf qu'elle est instantanée. C'est le bon mécanisme pour les actes à conséquence financière déclenchés à distance : déclarer hors service, sortir du parc.</p>
+</section>
+<p style="font-size:11px;line-height:16px;color:var(--ink3);padding:0 2px">Question ouverte : le code PIN est-il le PIN de la fiche utilisateur (visible dans votre écran actuel) ou un code à usage unique envoyé par message ? La planche montre le premier, le moins coûteux.</p>
+</div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — quand l'autre partie n'est pas là</p>
+<p class="colnote">Le cas le plus fréquent, et celui qu'aucune signature ne résout : l'objet est expédié, ou remis par un tiers. <b>Inventer une preuve serait pire que ne pas en avoir.</b> L'objet reste donc <b>en attente</b>, visiblement, avec un propriétaire et un délai. Ce n'est pas un échec du mécanisme : c'est le mécanisme qui fonctionne — <b>il refuse de conclure ce qui n'est pas conclu</b>.</p>
+<div class="phone">
+<div class="bhead icon"><span class="tid"><h2 class="tnum">LPT-HQ-15</h2><span class="aid">Dell Latitude 7420 · en route vers Bureau Dakar</span></span><span class="tb"><i class="ic s20 ph ph-dots-three-vertical"></i></span></div>
+<div class="page">
+<div class="hero">
+<div class="hi"><span class="idh"><i class="ic ph ph-package"></i></span><span class="ht"><span class="hn tnum">LPT-HQ-15</span><span class="hs">Dell Latitude 7420 · en route vers Bureau Dakar</span></span></div>
+<div class="stt"><i class="ic s18 di ph ph-clock-counter-clockwise"></i><span><b>En attente de réception</b> — remis il y a 3 jours, Karim n'a pas encore confirmé.</span></div>
+<div class="hact row bare lead"><button class="btn btn-y">Relancer Karim</button><button class="btn btn-o">Annuler</button></div>
+</div>
+<section class="card">
+<p class="ct">Où en est la remise</p>
+<div class="ack">
+<div class="ar done"><span class="step"><i class="ic s18 ph ph-check"></i></span><span class="at"><span class="t">Clara Admin atteste avoir remis</span><span class="s">lundi 09:42 · signature</span></span></div>
+<div class="ar wait"><span class="step"><i class="ic s18 ph ph-clock-counter-clockwise"></i></span><span class="at"><span class="t">Karim Diallo n'a pas confirmé</span><span class="s">relance automatique dans 2 jours</span></span></div>
+</div>
+</section>
+<section class="card">
+<p class="ct">Ce que cet état veut dire</p>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-user"></i></span><span><b>Karim n'en répond pas encore.</b> S'il n'arrive jamais, la perte n'est pas la sienne.</span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-package"></i></span><span><b>Il n'est proposable à personne d'autre.</b> Il ne compte pas dans les disponibles.</span></div>
+<div class="mrow"><span class="tic"><i class="ic s18 ph ph-check-circle"></i></span><span>Il figure dans <b>les deux files</b> : « à confirmer » chez Karim, « remises en attente » chez l'informatique.</span></div>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">Relevé — les trois décisions prises faute d'arbitrage</p>
+<p class="colnote">Vous m'avez laissé trancher trois points. Les voici, avec leur raison — chacun découle du principe que vous avez énoncé, aucun n'est une préférence de maquette.</p>
+<div class="pnote">
+<div>
+<p style="font-size:15px;font-weight:500;margin-bottom:6px">L'attestation est obligatoire — des deux côtés</p>
+<p style="font-size:13px;line-height:20px;color:#4A453E">Une attestation facultative ne prouve rien : le jour où elle manque, on ne sait pas si c'est parce que le geste n'a pas eu lieu ou parce que personne n'a cliqué. <b style="font-weight:500">Le mécanisme ne vaut que s'il est systématique.</b> Ce qui est facultatif, en revanche, c'est le <b style="font-weight:500">délai</b> : l'objet peut rester en attente aussi longtemps qu'il faut, visiblement.</p>
+</div>
+<div>
+<p style="font-size:15px;font-weight:500;margin-bottom:6px">« Réaffecter » existe — mais ne saute rien</p>
+<p style="font-size:13px;line-height:20px;color:#4A453E">Passer un objet d'Alice à Karim, c'est <b style="font-weight:500">une restitution puis une attribution</b>, donc <b style="font-weight:500">quatre attestations</b>. Le raccourci porte sur la <b style="font-weight:500">navigation</b> — on ne repasse pas par la liste — jamais sur la preuve. Un geste unique qui escamoterait les acquittements recréerait exactement l'ambiguïté qu'on cherche à supprimer.</p>
+</div>
+<div>
+<p style="font-size:15px;font-weight:500;margin-bottom:6px">Le manager est un champ de la fiche</p>
+<p style="font-size:13px;line-height:20px;color:#4A453E">Il est dessiné sur la fiche utilisateur, planche 10. S'il n'existe pas dans les données, on le <b style="font-weight:500">saisit</b> plutôt que de le déduire du département : deux personnes du même service peuvent dépendre de managers différents, et une validation adressée à la mauvaise personne est pire qu'une validation absente.</p>
+</div>
+<div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line)">
+<p style="font-size:13px;font-weight:500;margin-bottom:8px">Ce que je n'ai pas pu vérifier</p>
+<p style="font-size:12px;line-height:18px;color:var(--ink2)">Je n'ai pas accès au dépôt depuis ce projet — seulement aux captures et aux analyses qui y sont rangées. Trois vérifications à faire côté code, dans cet ordre : <b style="font-weight:500">(1)</b> les actions sont-elles réellement filtrées par statut, et où (<span class="tnum">EquipmentDetailPage</span>, la liste, le tableau de bord) ; <b style="font-weight:500">(2)</b> l'état « en attente » est-il un statut de l'actif ou une entrée de file distincte — les deux compteurs suggèrent un statut ; <b style="font-weight:500">(3)</b> le mécanisme d'attestation est-il enregistré avec l'événement d'audit, ou seulement l'auteur et l'heure ?</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<div id="tw-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "methode": "Code PIN",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action",
+  "vie": "Sobre"
+}/*EDITMODE-END*/;
+const METHODE = {"Signature":"signature","Code PIN":"code","Empreinte":"empreinte"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+const VIE = {"Sobre":"sobre","Assumée":"assumee"};
+function PlancheTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.methode = METHODE[t.methode] || 'signature';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+    b.dataset.vie = VIE[t.vie] || 'sobre';
+  },[t.methode,t.tone,t.densite,t.accent,t.vie]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="Comment chaque partie atteste" />
+      <TweakRadio label="Mécanisme" value={t.methode} options={Object.keys(METHODE)} onChange={(v)=>setTweak('methode',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+      <TweakSection label="Intensité de vie" />
+      <TweakRadio label="Traitement" value={t.vie} options={Object.keys(VIE)} onChange={(v)=>setTweak('vie',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<PlancheTweaks />);
+</script>
+</body>
+</html>

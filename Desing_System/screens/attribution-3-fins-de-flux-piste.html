@@ -1,0 +1,394 @@
+<!-- @dsCard group="06. Attribuer et restituer" viewport="2140x1660" name="06.3 Fins de flux — les clôtures" subtitle="Trois formes de clôture selon ce que l'acte laisse derrière lui · signaler un écart · suspendre · supprimer · les accusés qui ne méritent pas d'écran" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fins de flux — les clôtures</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--phone-h:780px;--colnote-h:126px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;--inset-2:#EDEAE3;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--dark-line:rgba(255,255,255,.14);--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.rule{max-width:1180px;margin:18px auto 0;padding:15px 18px;background:var(--inset-2);border-left:3px solid var(--brand);border-radius:0 6px 6px 0;font-size:15px;line-height:23px}
+.rule b{font-weight:500}
+.rule .sec{display:block;font-size:13px;line-height:19px;color:#4A453E;margin-top:6px}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tid{flex:1;min-width:0;padding:0 4px}
+.tid>span{display:block}
+.tid .code{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.015em;font-size:16px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tid .aid{font-size:11px;line-height:15px;color:var(--ink2)}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card.blank{}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.card .ct{font-size:13px;font-weight:500;margin-bottom:10px}
+.card .ct .cs{font-weight:400;font-size:11px;color:var(--ink3);margin-left:6px}
+/* le bandeau de clôture — la forme légère */
+.ban{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border-radius:6px;background:#E4EDE2}
+.ban .bi{flex:0 0 20px;color:#3D5A34;margin-top:1px}
+.ban .bt{flex:1;min-width:0;font-size:13px;line-height:19px;color:#2F4728}
+.ban .bt b{display:block;font-weight:500;color:#243A1E;font-size:14px;margin-bottom:2px}
+.ban.wait{background:#FBEFC6}
+.ban.wait .bi{color:#6B5106}
+.ban.wait .bt{color:#5C4705}
+.ban.wait .bt b{color:#4A3903}
+.ban.grey{background:var(--inset-2)}
+.ban.grey .bi{color:var(--ink2)}
+.ban.grey .bt{color:#4A453E}
+.ban.grey .bt b{color:var(--ink)}
+.ban .un{flex:0 0 auto;font-size:12px;font-weight:500;text-decoration:underline;text-underline-offset:3px;color:inherit;padding-top:2px}
+/* héro d'objet / de personne */
+.hero{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:13px}
+.hero.off{background:linear-gradient(rgba(255,255,255,.14),rgba(255,255,255,.14)),var(--dark)}
+.hi{display:flex;align-items:center;gap:14px}
+.idh{width:52px;height:52px;flex:0 0 52px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;background:rgba(84,169,220,.24);color:#CBE6F5}
+.idh.mut{background:rgba(255,255,255,.10);color:var(--on-dark-2)}
+.oth{width:52px;height:52px;flex:0 0 52px;border-radius:6px;background:var(--dark-2);display:flex;align-items:center;justify-content:center;color:var(--on-dark-2)}
+.ht{flex:1;min-width:0}
+.ht>span{display:block}
+.hn{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:20px;letter-spacing:-.01em}
+.hs{font-size:13px;color:var(--on-dark-2);margin-top:3px}
+.bst{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 9px;border-radius:4px;background:rgba(255,255,255,.10);font-size:12px;color:var(--on-dark);align-self:flex-start}
+.st{display:inline-block;width:7px;height:7px;border-radius:2px;flex:0 0 7px}
+.st-v{background:var(--live-vert)}
+.st-a{background:var(--live-ambre)}
+.st-o{background:var(--live-orange)}
+.st-m{background:var(--on-dark-2)}
+.hact{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--dark-line)}
+.hact.row{flex-direction:row}
+.hact.row>.btn{flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-full{width:100%}
+.btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.hact .btn-o,.hact .btn-d{background:rgba(255,255,255,.12);color:var(--on-dark)}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.btn-dang{background:var(--danger);color:#fff}
+.tl{display:flex;gap:10px;font-size:13px;line-height:19px;color:#4A453E;padding:9px 0;border-top:1px solid var(--line)}
+.tl:first-of-type{border-top:0;padding-top:0}
+.tl svg{flex:0 0 16px;color:var(--ink2);margin-top:2px}
+.tl b{font-weight:500;color:var(--ink)}
+.tl .tm{display:block;font-size:11px;color:var(--ink3);margin-top:2px}
+.rrow{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:11px 0;border-top:1px solid var(--line);font-size:13px;line-height:19px}
+.rrow:first-of-type{border-top:0}
+.rrow .k{flex:0 0 auto;color:var(--ink2)}
+.rrow .v{min-width:0;text-align:right;font-weight:500;color:var(--ink);word-break:break-word}
+.rrow .v.q{font-weight:400;color:var(--ink3)}
+.rrow .dest{display:block;font-weight:400;font-size:11px;line-height:15px;color:var(--ink3);margin-top:2px}
+/* la feuille */
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sttl .sub{display:block;font-family:Inter,sans-serif;font-weight:400;font-size:12px;line-height:17px;letter-spacing:0;color:var(--ink2);margin-top:3px}
+.sbody{flex:1;min-height:0;overflow:hidden;padding:10px 20px 0;display:flex;flex-direction:column;gap:12px}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.prov{font-size:11px;line-height:16px;color:var(--ink3);padding:10px 20px 0;margin-top:10px;border-top:1px solid var(--line)}
+.lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.lab .rq{text-transform:none;letter-spacing:0;color:var(--ink2);font-weight:400}
+.field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.field.multi{align-items:flex-start;padding:13px 12px;line-height:21px}
+.field .phold{color:var(--ink3)}
+.opt{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 12px;border:1px solid var(--line);border-radius:4px}
+.opt.on{border-color:var(--ink);border-width:1.5px}
+.opt .otx{flex:1;min-width:0}
+.opt .otx>span{display:block}
+.opt .t{font-size:14px;font-weight:500}
+.opt .s{font-size:12px;line-height:16px;color:var(--ink2);margin-top:2px}
+.rd{width:20px;height:20px;flex:0 0 20px;border:1.5px solid var(--line-strong);border-radius:50%}
+.opt.on .rd{border:0;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center}
+.prefill{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--inset);border-radius:4px}
+.prefill .pt{flex:1;min-width:0}
+.prefill .pt>span{display:block}
+.prefill .t{font-size:14px;font-weight:500}
+.prefill .s{font-size:12px;color:var(--ink2);margin-top:2px}
+.pico{width:40px;height:40px;flex:0 0 40px;border-radius:6px;background:var(--inset-2);display:flex;align-items:center;justify-content:center;color:var(--ink2)}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+/* la liste, après suppression */
+.lrow{display:flex;align-items:center;gap:12px;min-height:72px;padding:var(--rowy) 0}
+.lrow+.lrow{border-top:1px solid var(--line)}
+.lrow.lrow .lt{flex:1;min-width:0}
+.lrow .lt>span{display:block}
+.lrow .t{font-size:15px;font-weight:500}
+.lrow .s{font-size:12px;color:var(--ink2);margin-top:2px}
+/* les trois formes — hors interface */
+.forms{background:var(--surface);border-radius:8px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:0}
+.fm{padding:15px 0}
+.fm+.fm{border-top:1px solid var(--line)}
+.fm:first-child{padding-top:0}
+.fm .fh{display:flex;align-items:center;gap:9px}
+.fm .fh .g{color:var(--ink3);flex:0 0 auto}
+.fm .fh .fc{margin-left:auto}
+.fm .fn{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;line-height:24px;letter-spacing:-.015em}
+.fm .fc{font-size:11px;color:var(--ink3)}
+.fm .fq{font-size:13px;line-height:19px;color:#4A453E;margin-top:7px}
+.fm .fq b{font-weight:500;color:var(--ink)}
+.fm .fe{font-size:12px;line-height:17px;color:var(--ink2);margin-top:8px;padding-left:12px;border-left:2px solid var(--line)}
+.fm .fe b{font-weight:500;color:var(--ink)}
+.motion{background:var(--inset-2);border-radius:6px;padding:13px 15px;margin-top:12px}
+.motion .mt{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.motion .mr{display:flex;justify-content:space-between;gap:14px;font-size:12px;line-height:18px;color:var(--ink2);padding:5px 0}
+.motion .mr+.mr{border-top:1px solid #DFDBD3}
+.motion .mr b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.abs{margin-top:12px;padding:12px 14px;background:var(--inset-2);border:1px dashed #C9C4BA;border-radius:6px}
+.abs .at{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+.abs p:not(.at){font-size:12px;line-height:17px;color:#4A453E;display:flex;gap:8px}
+.abs p:not(.at)+p{margin-top:6px}
+.abs p:not(.at)::before{content:"—";color:var(--ink3)}
+.abs b{font-weight:500;color:var(--ink)}
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone,body[data-tone="neutre"] .forms{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone,body[data-tone="franc"] .forms{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-densite="aeree"] .phone{--gap:26px;--rowy:14px;--pad:20px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--rowy:7px;--pad:12px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.stg{flex:0 0 auto}.stg-v{color:var(--st-vert,#5B913C)}.stg-b{color:var(--st-bleu,#288AC5)}.stg-a{color:var(--st-ambre,#A97C00)}.stg-o{color:var(--st-orange,#E45329)}.stg-m{color:var(--ink3,#8B8580)}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action">
+<div class="intro">
+<h1>Fins de flux — ce qu'on voit quand c'est fait</h1>
+<p><b>Neuf états manquaient.</b> Ils manquaient parce qu'aucune règle ne disait <b>quelle forme</b> une clôture doit prendre — et sans règle, chaque flux invente la sienne. Cette planche pose la règle, puis dessine les quatre cas qui la couvrent tous.</p>
+<p><b>Le piège à éviter.</b> Un écran de félicitations après chaque acte est le réflexe le plus courant et le plus coûteux : il ajoute un tap, il masque le résultat, et il finit par être fermé sans être lu. <b>La meilleure clôture est souvent l'absence d'écran</b> — l'écran qu'on avait sous les yeux a simplement changé.</p>
+</div>
+
+<p class="rule"><b>La forme de la clôture dépend de ce que l'acte laisse derrière lui, pas de son importance.</b><span class="sec">Trois questions, une seule fois : <b>le sujet est-il encore là ?</b> — <b>la suite dépend-elle de quelqu'un d'autre ?</b> — <b>l'acte est-il défaisable ?</b> Les réponses donnent l'une des trois formes ci-contre. Aucun acte n'en mérite une quatrième.</span></p>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">Vue — les trois formes, et rien d'autre</p>
+<p class="colnote">Elles sont classées par <b>coût pour la personne</b>. On prend toujours la moins chère qui suffit. Le seul acte du produit qui justifie la troisième est la <b>suppression d'un compte</b> : c'est le seul dont le sujet disparaît de l'écran qu'on regardait.</p>
+<div class="forms">
+<div class="fm">
+<p class="fh"><i class="ic s20 ph ph-arrows-clockwise g"></i><span class="fn">1 · L'écran a changé</span><span class="fc">coût : zéro</span></p>
+<p class="fq"><b>Le sujet est encore là.</b> La fiche se met à jour sous les yeux : nouveau statut, nouveau geste primaire, nouvelle ligne d'historique. Un bandeau bref confirme, puis s'efface.</p>
+<p class="fe"><b>Employée par :</b> confirmer la réception · réceptionner un retour · valider une demande · suspendre · réinitialiser un code.</p>
+</div>
+<div class="fm">
+<p class="fh"><i class="ic s20 ph ph-paper-plane-tilt g"></i><span class="fn">2 · L'accusé en ligne</span><span class="fc">coût : une ligne</span></p>
+<p class="fq"><b>Rien de visible n'a changé</b> — l'effet est ailleurs, chez quelqu'un d'autre. Le bandeau dit <b>quoi</b>, <b>chez qui</b> et <b>quand</b>, puis reste jusqu'à la sortie de l'écran.</p>
+<p class="fe"><b>Employée par :</b> relance envoyée · lien de mot de passe envoyé · écart signalé · invitation envoyée.</p>
+</div>
+<div class="fm">
+<p class="fh"><i class="ic s20 ph ph-door-open g"></i><span class="fn">3 · L'écran de clôture</span><span class="fc">coût : un écran</span></p>
+<p class="fq"><b>Le sujet a disparu.</b> Rester sur sa fiche n'a plus de sens, et revenir en arrière mènerait à un écran mort. Il faut donner une <b>destination</b> et dire <b>ce qui reste</b>.</p>
+<p class="fe"><b>Employée par :</b> supprimer un compte — et <b>rien d'autre</b> aujourd'hui.</p>
+</div>
+</div>
+<div class="motion">
+<p class="mt">Les animations de clôture</p>
+<div class="mr"><span>Fermeture de la feuille</span><b>220 ms · sortie</b></div>
+<div class="mr"><span>Apparition du bandeau</span><b>160 ms · fondu + 8 px</b></div>
+<div class="mr"><span>Bandeau forme 1 — durée</span><b>4 s puis fondu</b></div>
+<div class="mr"><span>Bandeau forme 2 — durée</span><b>jusqu'à la sortie</b></div>
+<div class="mr"><span>Statut du héro</span><b>fondu croisé 200 ms</b></div>
+<div class="mr"><span>Nouvelle ligne d'historique</span><b>aucune — elle est déjà là</b></div>
+</div>
+<div class="abs">
+<p class="at">La règle négative</p>
+<p><span><b>Aucune coche animée plein écran</b>, aucun compte à rebours, aucun « Terminé » à taper. La preuve est faite : l'écran n'a pas à s'en réjouir.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — forme 1, réception confirmée</p>
+<p class="colnote">La feuille se ferme, <b>et la fiche a changé</b> : « En attente » devient « Attribué », le geste primaire devient « Restituer », la ligne d'attestation est en tête d'historique. Le bandeau ne fait que <b>nommer ce qui vient de se produire</b> — il pourrait disparaître sans que l'information soit perdue, et c'est le test d'une bonne clôture.</p>
+<div class="phone">
+<div class="tbar"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">ASSET-30117</span><span class="aid">Écran Dell U2722</span></span></div>
+<div class="page">
+<div class="ban"><i class="ic s20 bi ph ph-check"></i><span class="bt"><b>Réception confirmée</b>Il est à votre nom depuis aujourd'hui 14:32.</span></div>
+<div class="hero">
+<div class="hi"><span class="oth"><i class="ic ph ph-monitor"></i></span><span class="ht"><span class="hn">Écran Dell U2722</span><span class="hs">Moniteur · 27 pouces · Siège</span></span></div>
+<span class="bst"><i class="ic s18 ph ph-check-circle stg stg-v"></i>Attribué — à vous</span>
+<div class="hact"><button class="btn btn-y btn-full">Restituer</button><button class="btn btn-o btn-full">Déclarer un incident</button></div>
+</div>
+<section class="card">
+<p class="ct">Passages de main</p>
+<div class="tl"><i class="ic s18 ph ph-check"></i><span><b>Réception confirmée par vous</b><span class="tm">aujourd'hui 14:32 · code PIN</span></span></div>
+<div class="tl"><i class="ic s18 ph ph-signature"></i><span>Remis par Clara Admin<span class="tm">27 juillet 09:42 · signature</span></span></div>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Le test</p>
+<p><span>Masquez le bandeau : <b>l'information tient encore</b> — statut, geste, historique. Si elle ne tenait pas, c'est la fiche qu'il faudrait corriger, pas le bandeau qu'il faudrait allonger.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — le formulaire manquant, signaler un écart</p>
+<p class="colnote">Le contraire d'une confirmation : <b>on refuse d'attester</b>. Trois natures d'écart seulement, parce qu'elles n'ouvrent pas la même suite. Le motif est <b>obligatoire</b> — c'est la seule chose que l'informatique lira. Et l'objet <b>reste en attente</b> : refuser n'annule pas la remise, cela la suspend.</p>
+<div class="phone">
+<div class="tbar" style="opacity:.5"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">ASSET-30117</span><span class="aid">En attente</span></span></div>
+<div class="page" style="opacity:.3"><div class="card blank" style="height:150px"></div><div class="card blank" style="height:100px"></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Signaler un écart<span class="sub">L'objet restera en attente : rien ne passe à votre nom.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="prefill"><span class="pico"><i class="ic s20 ph ph-monitor"></i></span><span class="pt"><span class="t">Écran Dell U2722</span><span class="s">remis par Clara Admin, il y a 4 jours</span></span></div>
+<div>
+<p class="lab">Ce qui ne va pas</p>
+<div style="display:flex;flex-direction:column;gap:9px">
+<div class="opt on"><span class="otx"><span class="t">Je ne l'ai pas reçu</span><span class="s">L'informatique reprend la remise à zéro.</span></span><span class="rd"><i class="ic s18 ph ph-check"></i></span></div>
+<div class="opt"><span class="otx"><span class="t">Ce n'est pas le bon objet</span><span class="s">Le numéro de série ne correspond pas.</span></span><span class="rd"></span></div>
+<div class="opt"><span class="otx"><span class="t">Il est abîmé</span><span class="s">Ouvre un incident, au nom de personne.</span></span><span class="rd"></span></div>
+</div>
+</div>
+<div>
+<p class="lab">Précisez <span class="rq">— obligatoire</span></p>
+<div class="field multi"><span class="phold">C'est la seule chose que l'informatique lira.</span></div>
+</div>
+</div>
+<div class="sfoot"><button class="btn btn-ghost">Annuler</button><button class="btn btn-y">Envoyer le signalement</button></div>
+<p class="prov">Les trois natures ne sont pas des nuances de gravité : chacune ouvre une suite différente côté informatique. Une quatrième option « autre » les rendrait toutes inutiles.</p>
+</div>
+</div>
+<div class="abs">
+<p class="at">Sa clôture — forme 2</p>
+<p><span>« <b>Écart signalé.</b> Clara Admin l'a reçu. L'objet reste en attente, personne n'en répond. » Le bandeau <b>reste</b> jusqu'à la sortie de l'écran : rien de visible n'a changé sur la fiche.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — forme 1, compte suspendu</p>
+<p class="colnote">La fiche <b>s'inverse</b> : le héro passe en gris, le statut devient « Compte suspendu », et le geste primaire est désormais <b>« Réactiver le compte »</b>. C'est ce retournement qui dit que l'acte a réussi — pas un message. Ce qu'il détient <b>ne bouge pas</b>, et la fiche continue de le montrer, sans quoi trois objets deviendraient invisibles.</p>
+<div class="phone">
+<div class="tbar"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">Alice SuperAdmin</span><span class="aid">Compte suspendu</span></span></div>
+<div class="page">
+<div class="ban grey"><i class="ic s20 bi ph ph-lock-simple"></i><span class="bt"><b>Compte suspendu</b>Sa session a pris fin. Le compte peut être réactivé à tout moment.</span><a class="un" href="#">Annuler</a></div>
+<div class="hero off">
+<div class="hi"><span class="idh mut">AS</span><span class="ht"><span class="hn">Alice SuperAdmin</span><span class="hs">Super-administrateur · Direction</span></span></div>
+<span class="bst"><i class="ic s18 ph ph-minus-circle stg stg-m"></i>Compte suspendu — depuis aujourd'hui</span>
+<div class="hact"><button class="btn btn-y btn-full">Réactiver le compte</button><button class="btn btn-o btn-full">Organiser la restitution</button></div>
+</div>
+<section class="card">
+<p class="ct">Ce qu'elle détient toujours <span class="cs">inchangé</span></p>
+<div class="tl"><i class="ic s18 ph ph-monitor"></i><span>3 équipements, à son nom<span class="tm">MacBook Pro · Écran Dell U2722 · Souris MX</span></span></div>
+<div class="tl"><i class="ic s18 ph ph-clock-counter-clockwise"></i><span>1 remise <b>en attente de sa confirmation</b> — elle ne pourra pas la confirmer tant que le compte est suspendu.</span></div>
+</section>
+<section class="card">
+<p class="ct">La suspension</p>
+<span class="rrow"><span class="k">Depuis</span><span class="v tnum">31/07/2026 15:04</span></span>
+<span class="rrow"><span class="k">Par</span><span class="v">Clara Admin</span></span>
+<span class="rrow"><span class="k">Motif</span><span class="v">Congé sabbatique</span></span>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#" class="on"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Le bandeau porte « Annuler »</p>
+<p><span>Parce que l'acte est <b>défaisable</b> — et qu'un acte défaisable doit se défaire là où il vient d'être fait, pas trois écrans plus loin. Il disparaît avec le bandeau, au bout de 4 s.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — forme 3, compte supprimé</p>
+<p class="colnote">Le seul acte du produit dont <b>le sujet disparaît</b>. Rester sur sa fiche n'aurait pas de sens ; on retourne à la liste, et l'écran dit les deux choses qu'on voudra savoir : <b>c'est fait</b>, et <b>ce qui reste</b>. La ligne sur les attestations conservées n'est pas une précaution juridique : c'est la réponse à la seule inquiétude que cet acte provoque.</p>
+<div class="phone">
+<div class="tbar"><span class="tid" style="padding-left:12px"><span class="code">Utilisateurs</span><span class="aid tnum">11 personnes</span></span><span class="tb"><i class="ic s20 ph ph-magnifying-glass"></i></span></div>
+<div class="page">
+<div class="ban grey"><i class="ic s20 bi ph ph-check"></i><span class="bt"><b>Le compte de Marc Finance est supprimé</b>Ses attestations signées sont conservées, avec son nom et l'heure.</span></div>
+<section class="card">
+<div class="lrow"><span class="vig">AS</span><span class="lt"><span class="t">Alice SuperAdmin</span><span class="s">Super-administrateur · 3 équipements</span></span></div>
+<div class="lrow"><span class="vig">EB</span><span class="lt"><span class="t">Ethan Brown</span><span class="s">Administrateur · 2 équipements</span></span></div>
+<div class="lrow"><span class="vig">JS</span><span class="lt"><span class="t">Jane Smith</span><span class="s">Manager · 1 équipement</span></span></div>
+<div class="lrow"><span class="vig">KD</span><span class="lt"><span class="t">Karim Diallo</span><span class="s">Utilisateur · 1 équipement</span></span></div>
+</section>
+<section class="card">
+<p class="ct">Où retrouver Marc Finance</p>
+<div class="tl"><i class="ic s18 ph ph-signature"></i><span>Sur la fiche de <b>chaque objet</b> qu'il a détenu — ses attestations y sont, datées.</span></div>
+<div class="tl"><i class="ic s18 ph ph-clock-counter-clockwise"></i><span>Dans l'<b>audit</b>, filtré sur son nom. C'est la seule recherche qui le trouvera encore.</span></div>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#" class="on"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Forme 2 — les quatre accusés qui n'ont pas d'écran</p>
+<p><span><b>Relance envoyée</b> — « Un courriel est reparti à karim.diallo@neemba.com. Prochaine relance dans 7 jours. »</span></p>
+<p><span><b>Lien de mot de passe envoyé</b> — « Valable 24 h. Son mot de passe actuel reste valable jusque-là. »</span></p>
+<p><span><b>Code PIN réinitialisé</b> — « Ses prochaines réceptions passeront par signature. » <i>(forme 1 : la rangée « Code PIN » de la fiche passe à « Non défini ».)</i></span></p>
+<p><span><b>Invitation envoyée</b> — <i>(forme 1 : la fiche du compte en attente s'ouvre, planche 10.)</i></span></p>
+</div>
+</div>
+
+</div>
+
+<div id="tw-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action"
+}/*EDITMODE-END*/;
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+function PlancheTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+  },[t.tone,t.densite,t.accent]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<PlancheTweaks />);
+</script>
+</body>
+</html>

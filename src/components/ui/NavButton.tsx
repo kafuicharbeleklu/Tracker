@@ -33,7 +33,7 @@ export interface NavButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEle
 /** Socle commun : sémantique bouton, cible tactile, focus, états désactivés. */
 const NAV_BASE = cn(
     // `touch-target` : hit-box ≥ 48px sur pointeur grossier, sans effet visuel (index.css).
-    'touch-target select-none whitespace-nowrap font-bold',
+    'touch-target select-none whitespace-nowrap font-medium',
     'outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
     'active:scale-[0.98]',
     'disabled:cursor-not-allowed disabled:pointer-events-none disabled:text-on-surface/[0.38]'

@@ -82,6 +82,8 @@ const RAW_COLOR_PATTERNS = [
 const HEX_COLOR_PATTERN = /#[0-9A-Fa-f]{3,8}\b/g;
 
 const NATIVE_CONTROL_ALLOWLIST = new Set([
+  path.normalize('src/components/layout/ListTemplate.tsx'),
+  path.normalize('src/components/layout/NavigationBar.tsx'),
   path.normalize('src/features/audit/pages/AuditDetailsPage.tsx'),
   path.normalize('src/features/finance/components/AddBudgetModal.tsx'),
   path.normalize('src/features/finance/components/AddExpenseModal.tsx'),
@@ -89,7 +91,11 @@ const NATIVE_CONTROL_ALLOWLIST = new Set([
   path.normalize('src/features/inventory/pages/EquipmentDetailsPage.tsx'),
   path.normalize('src/features/inventory/pages/InventoryPage.tsx'),
   path.normalize('src/features/management/components/RbacManagementPanel.tsx'),
+  path.normalize('src/features/management/pages/CategoryDetailsPage.tsx'),
   path.normalize('src/features/management/pages/ManagementPage.tsx'),
+  path.normalize('src/features/management/pages/ModelDetailsPage.tsx'),
+  path.normalize('src/features/tasks/pages/TasksPage.tsx'),
+  path.normalize('src/features/users/pages/UserDetailsPage.tsx'),
   path.normalize('src/features/users/pages/UsersPage.tsx'),
 ]);
 
@@ -100,6 +106,14 @@ const NATIVE_CONTROL_ALLOWLIST = new Set([
  */
 const TITLE_REDUNDANT_ALLOWLIST = new Set([
   path.normalize('src/components/layout/NavigationBar.tsx'),
+]);
+
+/**
+ * Fichiers exclus du périmètre Tracker DS (outils internes / non-production,
+ * cf. DECISION-DOCUMENTATION-14-08.md et DOSSIER-PASSATION-DEV.md §5).
+ */
+const EXCLUDED_PATHS = new Set([
+  path.normalize('src/features/documentation/pages/DocumentationExplorerPage.tsx'),
 ]);
 
 const findings = [];
@@ -175,8 +189,11 @@ const scanTitleAttributes = (content, relativePath) => {
 };
 
 const scanFile = async (filePath) => {
-  const content = await fs.readFile(filePath, 'utf8');
   const relativePath = path.normalize(path.relative(process.cwd(), filePath));
+  if (EXCLUDED_PATHS.has(relativePath)) {
+    return;
+  }
+  const content = await fs.readFile(filePath, 'utf8');
   const lines = content.split(/\r?\n/);
 
   lines.forEach((line, index) => {

@@ -1,0 +1,435 @@
+<!-- @dsCard group="03. Tableau de bord" viewport="2140x2560" name="03.2 « À traiter » — la ligne, le bouton, le seuil" subtitle="La ligne ouvre le contexte · le bouton ouvre l'acte · trois régimes de volume et le seuil à trois rangées" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>« À traiter » — la ligne et le bouton</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--phone-h:760px;--colnote-h:150px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;--inset-2:#EDEAE3;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--dark-line:rgba(255,255,255,.14);--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro h2{font-size:15px;font-weight:500;margin:22px 0 6px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.rule{max-width:1180px;margin:18px auto 0;padding:15px 18px;background:var(--inset-2);border-left:3px solid var(--brand);border-radius:0 6px 6px 0;font-size:15px;line-height:23px}
+.rule b{font-weight:500}
+.rule .sec{display:block;font-size:13px;line-height:19px;color:#4A453E;margin-top:6px}
+/* la matrice */
+.band{max-width:1180px;margin:0 auto 10px}
+.band h2{font-family:Archivo,Inter,sans-serif;font-weight:500;font-size:17px;letter-spacing:-.01em;margin-bottom:6px}
+.band p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.band b{font-weight:500;color:#1A1917}
+.mat{width:100%;max-width:1180px;margin:14px auto 0;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.10)}
+.mat th,.mat td{text-align:left;padding:12px 14px;font-size:13px;line-height:18px;border-top:1px solid var(--line);vertical-align:top}
+.mat th{font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);border-top:0;background:#FBFAF7}
+.mat td b{font-weight:500;color:var(--ink)}
+.mat .nat{font-weight:500;width:19%}
+.mat .no{color:var(--ink3)}
+.mat .bt{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:4px;background:var(--inset);font-size:12px;font-weight:500;color:var(--ink)}
+.mat .nb{font-style:italic;color:var(--ink3)}
+.mat tr.nobtn td{background:#FBFAF7}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tid{flex:1;min-width:0;padding:0 4px}
+.tid>span{display:block}
+.tid .code{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.015em;font-size:16px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tid .aid{font-size:11px;line-height:15px;color:var(--ink2)}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card.blank{}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.card .ct{font-size:13px;font-weight:500;margin-bottom:10px}
+.ch{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}.ch.glyph{align-items:center;justify-content:flex-start;gap:10px}
+.ch h3{flex:1;min-width:0;font-size:13px;font-weight:500}
+/* héro « à traiter » — même traitement que le dashboard retenu */
+.hero{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:13px}.hero.plain{display:block}.hero.stack{position:relative;isolation:isolate;overflow:hidden}.hero.img{min-height:196px;background:var(--dark) url("../uploads/footer-cartouche-bas-nl.webp") center 42%/cover no-repeat}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(10,25,29,.76) 0%,rgba(10,25,29,.90) 62%,rgba(10,25,29,.92) 100%)}
+.hero .ch h3{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:17px;color:var(--on-dark)}
+.hero .ch .i{color:var(--on-dark-2);flex:0 0 18px}
+.count{font-size:12px;color:var(--on-dark-2);margin-top:2px}
+.trow{display:flex;align-items:center;gap:12px;padding:var(--rowy) 0}
+.trow+.trow{border-top:1px solid var(--dark-line)}
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.hero .vig,.hact .vig{background:rgba(84,169,220,.24);color:#CBE6F5}
+.tt{flex:1;min-width:0}
+.tt>span{display:block}
+.tt .t{font-size:14px;font-weight:500;color:var(--on-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt .s{font-size:12px;color:var(--on-dark-2);margin-top:2px}
+.rbtn{flex:0 0 auto;height:44px;padding:0 14px;border:0;border-radius:4px;background:var(--inset);color:var(--ink);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer}
+.hero .rbtn{background:var(--dark-2);color:var(--on-dark)}
+.chev{color:var(--ink3);flex:0 0 15px}.chev.on-dark{color:var(--on-dark-2)}
+.more{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:8px;border-top:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+.hero .more,.hact .more{border-top-color:var(--dark-line);color:var(--on-dark)}
+.more.center{justify-content:center;gap:8px}
+.more:hover{color:var(--on-dark)}
+.more svg{transform:rotate(-90deg);flex:0 0 15px}
+.more .mo{white-space:nowrap;flex:1;min-width:0;text-align:right;font-weight:400;font-size:12px;color:var(--on-dark-2)}
+.bigc{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:30px;line-height:34px;letter-spacing:-.02em;margin-top:8px}
+.bigl{font-size:13px;line-height:19px;color:var(--on-dark-2);margin-top:2px}
+.tricap{font-size:12px;color:var(--on-dark-2);margin-top:12px}
+.tri{margin-top:6px;border-top:1px solid var(--dark-line)}
+.trl{display:flex;align-items:center;gap:10px;min-height:44px;border-bottom:1px solid var(--dark-line);color:var(--on-dark)}
+.trl:hover{color:var(--on-dark)}
+.trl .tn{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:16px;flex:0 0 44px}
+.trl .tl{flex:1;min-width:0;font-size:14px;color:var(--on-dark-2)}
+.trl svg{transform:rotate(-90deg);color:var(--on-dark-2);flex:0 0 15px}
+/* la fiche atteinte par la ligne */
+.ohero{background:var(--dark);color:var(--on-dark);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:13px}
+.ohero .oi{display:flex;align-items:center;gap:14px}
+.ohero .oth{width:56px;height:56px;flex:0 0 56px;border-radius:6px;background:var(--dark-2);display:flex;align-items:center;justify-content:center;color:var(--on-dark-2)}
+.ohero .ot{flex:1;min-width:0}
+.ohero .ot>span{display:block}
+.ohero .on{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.ohero .os{font-size:13px;color:var(--on-dark-2);margin-top:3px}
+.bst{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 9px;border-radius:4px;background:rgba(255,255,255,.10);font-size:12px;color:var(--on-dark);align-self:flex-start}
+.st{display:inline-block;width:7px;height:7px;border-radius:2px;flex:0 0 7px}
+.st-a{background:var(--live-ambre)}
+.st-b{background:var(--live-bleu)}
+.hact{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--dark-line)}
+.hact.row{flex-direction:row}
+.hact.row>.btn{flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-full{width:100%}
+.btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.hact .btn-o,.hact .btn-d{background:rgba(255,255,255,.12);color:var(--on-dark)}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.rrow{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:11px 0;border-top:1px solid var(--line);font-size:13px;line-height:19px}
+.rrow:first-of-type{border-top:0}
+.rrow .k{flex:0 0 auto;color:var(--ink2)}
+.rrow .v{min-width:0;text-align:right;font-weight:500;color:var(--ink);word-break:break-word}
+.rrow .v.q{font-weight:400;color:var(--ink3)}
+.rrow .dest{display:block;font-weight:400;font-size:11px;line-height:15px;color:var(--ink3);margin-top:2px}
+.tl{display:flex;gap:10px;font-size:13px;line-height:19px;color:#4A453E;padding:9px 0;border-top:1px solid var(--line)}
+.tl:first-of-type{border-top:0}
+.tl svg{flex:0 0 16px;color:var(--ink2);margin-top:2px}
+.tl b{font-weight:500;color:var(--ink)}
+/* la feuille atteinte par le bouton */
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sttl .sub{display:block;font-family:Inter,sans-serif;font-weight:400;font-size:12px;line-height:17px;letter-spacing:0;color:var(--ink2);margin-top:3px}
+.sbody{flex:1;min-height:0;overflow:hidden;padding:10px 20px 0;display:flex;flex-direction:column;gap:12px}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.prefill{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--inset);border-radius:4px}
+.prefill .pt{flex:1;min-width:0}
+.prefill .pt>span{display:block}
+.prefill .t{font-size:14px;font-weight:500}
+.prefill .s{font-size:12px;color:var(--ink2);margin-top:2px}
+.prefill .lk{font-size:12px;font-weight:500;color:var(--ink);white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+.pico{width:40px;height:40px;flex:0 0 40px;border-radius:6px;background:var(--inset-2);display:flex;align-items:center;justify-content:center;color:var(--ink2)}
+.lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.pin{display:flex;gap:12px;justify-content:center}
+.pin i{width:64px;height:76px;border:1px solid var(--line-strong);border-radius:4px;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:34px;line-height:1;color:var(--ink)}
+.pin i.e{border-style:dashed;border-color:var(--line);color:#C9C4BA;font-size:26px}
+.pin i.on{border:2px solid var(--ink)}
+.pin i.ok{font-size:30px;color:var(--ink2)}
+.warn{display:flex;gap:10px;padding:11px 12px;background:var(--inset);border-radius:4px;font-size:12px;line-height:17px;color:#4A453E}
+.warn svg{flex:0 0 16px;color:var(--ink2);margin-top:1px}
+.warn b{font-weight:500;color:var(--ink)}
+.prov{font-size:11px;line-height:16px;color:var(--ink3);padding:10px 20px 0;margin-top:10px;border-top:1px solid var(--line)}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+/* annotation de planche — hors interface */
+.abs{margin-top:12px;padding:12px 14px;background:var(--inset-2);border:1px dashed #C9C4BA;border-radius:6px}
+.abs .at{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+.abs p:not(.at){font-size:12px;line-height:17px;color:#4A453E;display:flex;gap:8px}
+.abs p:not(.at)+p{margin-top:6px}
+.abs p:not(.at)::before{content:"—";color:var(--ink3)}
+.abs b{font-weight:500;color:var(--ink)}
+.topb{display:flex;align-items:center;gap:12px;padding:14px 20px 0}
+.topb .h1{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:23px;line-height:28px;letter-spacing:-.015em;flex:1}
+.topb .sub{font-size:12px;color:var(--ink2);margin-top:2px}
+.avat{width:44px;height:44px;border-radius:50%;flex:0 0 44px;display:flex;align-items:center;justify-content:center;background:var(--dark);color:#fff;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;letter-spacing:.02em;text-decoration:none}
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+/* le seuil, réglable pour être discuté */
+.rows .trow:nth-of-type(n+4){display:none}
+body[data-seuil="2"] .rows .trow:nth-of-type(n+3){display:none}
+body[data-seuil="4"] .rows .trow:nth-of-type(4){display:flex}
+body[data-seuil="5"] .rows .trow:nth-of-type(4),body[data-seuil="5"] .rows .trow:nth-of-type(5){display:flex}
+.s2,.s3,.s4,.s5{display:none}
+body[data-seuil="2"] .s2,body[data-seuil="3"] .s3,body[data-seuil="4"] .s4,body[data-seuil="5"] .s5{display:inline}
+.hint{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px}
+.hint b{font-weight:500;color:var(--ink)}
+.hint.bad{color:var(--danger)}
+body[data-echec="reussi"] .gko{display:none}
+body[data-echec="echoue"] .gok{display:none}
+.stg{flex:0 0 auto}.stg-v{color:var(--st-vert,#5B913C)}.stg-b{color:var(--st-bleu,#288AC5)}.stg-a{color:var(--st-ambre,#A97C00)}.stg-o{color:var(--st-orange,#E45329)}.stg-m{color:var(--ink3,#8B8580)}
+</style>
+</head>
+<body data-seuil="3" data-tone="chaud" data-densite="standard" data-accent="action">
+<div class="intro">
+<h1>« À traiter » — un clic sur la ligne et un clic sur le bouton ne mènent pas au même endroit</h1>
+<p><b>La question posée.</b> Le bloc « À traiter » porte des rangées cliquables <i>et</i> un bouton par rangée. Va-t-on au même endroit ? <b>Non</b> — et la distinction doit se voir <b>sans être expliquée</b>, sinon elle ne vaut rien.</p>
+</div>
+
+<p class="rule"><b>La ligne ouvre le contexte ; le bouton ouvre l'acte.</b> Ni l'un ni l'autre n'écrit quoi que ce soit.<span class="sec">Le raccourci porte sur la <b>navigation</b>, jamais sur la <b>preuve</b> : la feuille d'attestation s'ouvre pré-remplie, elle ne se valide pas toute seule. <b>Aucun bouton du tableau de bord n'écrit en un tap.</b></span></p>
+
+<div class="intro" style="margin-top:22px">
+<h2>Ce qui rend les deux chemins lisibles sans légende</h2>
+<p><b>La ligne</b> mène à l'écran de l'objet ou de la demande — le chemin de qui veut <b>savoir avant d'agir</b> : qui, pourquoi, depuis quand, quoi d'autre chez cette personne. Elle porte l'objet et un <b>chevron</b>.</p>
+<p><b>Le bouton</b> mène directement à la <b>feuille d'attestation</b>, pré-remplie. Il porte <b>le verbe de l'acte</b> — « Confirmer la réception », « Réceptionner » — jamais « Ouvrir » ni « Voir ». Un libellé générique ferait des deux chemins la même promesse, et la distinction s'effondrerait.</p>
+<p><b>Un bouton n'apparaît que si l'acte ne demande aucune information supplémentaire.</b> Sinon la ligne est seule. C'est la règle qui rend la présence d'un bouton <i>informative</i> : le voir, c'est savoir que l'affaire se règle en une attestation.</p>
+<p><b>La feuille garde un lien vers la fiche.</b> Un raccourci ne doit pas être une impasse : si le contexte manque au dernier moment, on y accède sans revenir au tableau de bord.</p>
+<p>Même règle que « Réaffecter » (planche 06.1) : <b>aucune attestation n'est sautée</b>. Deux personnes attestent, toujours, quel que soit le chemin emprunté pour arriver à la feuille.</p>
+</div>
+
+<div class="band">
+<h2>La matrice — par nature de ligne</h2>
+<p>Cinq natures de rangée, une sixième qui n'en est pas une. Deux d'entre elles <b>n'ont pas de bouton</b>, et c'est délibéré : l'acte y demande un choix que le tableau de bord n'a pas à faire à la place du gestionnaire.</p>
+</div>
+<table class="mat">
+<tr><th class="nat">Nature de la ligne</th><th>Qui la voit</th><th>Statut de l'objet</th><th>La ligne ouvre</th><th>Le bouton</th></tr>
+<tr><td class="nat">Validation du manager</td><td>Le manager de la personne</td><td>Demande <b>en attente de validation</b> — aucun objet engagé</td><td>La demande : qui, quoi, pourquoi, <b>ce qu'il détient déjà</b></td><td><span class="bt">Valider la demande</span></td></tr>
+<tr><td class="nat">Remise à faire</td><td>L'informatique</td><td><b>Disponible</b>, unité désignée par la demande validée</td><td>La fiche de l'objet, geste primaire armé</td><td><span class="bt">Remettre l'équipement</span></td></tr>
+<tr class="nobtn"><td class="nat">Remise à faire, <b>unité non désignée</b></td><td>L'informatique</td><td>Demande validée, <b>aucune unité choisie</b></td><td>La demande, avec le sélecteur d'unité armé</td><td class="no"><span class="nb">aucun bouton</span> — il faut choisir <b>quelle</b> unité part</td></tr>
+<tr><td class="nat">Réception à confirmer</td><td>Le porteur, sur son téléphone</td><td><b>En attente</b> — remis, pas encore reçu</td><td>La fiche de l'objet reçu</td><td><span class="bt">Confirmer la réception</span></td></tr>
+<tr><td class="nat">Retour à réceptionner</td><td>L'informatique</td><td><b>Retour à confirmer</b> — la personne a déjà attesté</td><td>La fiche de l'objet, avec l'état déclaré</td><td><span class="bt">Réceptionner</span></td></tr>
+<tr class="nobtn"><td class="nat">Retour en retard</td><td>L'informatique</td><td><b>Attribué</b>, restitution demandée il y a plus de 7 jours</td><td>La fiche de la <b>personne</b> — c'est elle le sujet, pas l'objet</td><td class="no"><span class="nb">aucun bouton</span> — relancer, prolonger ou escalader ne sont pas le même acte</td></tr>
+</table>
+
+<div class="band" style="margin-top:34px">
+<h2>Le seuil d'affichage — le mécanisme existait, la démo le cachait</h2>
+<p>Les quatre régimes de charge sont dessinés depuis le 28/07, mais la démonstration par défaut était réglée sur <b>2 demandes</b> : la borne n'était jamais franchie, donc jamais visible. Elle l'est ici, et le réglage par défaut est le régime <b>chargé</b>.</p>
+<p><b>Trois rangées au maximum, toujours</b>, puis la redirection — dans <b>la même forme que les autres sections</b> de l'écran : libellé, destination, chevron. Au-delà de 20, plus aucune rangée : le volume, l'attente la plus longue, et les trois natures les plus nombreuses — chaque ligne étant l'entrée <b>filtrée</b> dans Tâches. Le tableau de bord ne devient jamais une file d'attente ; la file, c'est Tâches. <i>Le réglage « seuil » du panneau déplace la borne de 2 à 5 rangées pour que le nombre se discute sur pièce.</i></p>
+<p><b>Données</b> : le jeu de démonstration (14 actifs). Les rangées, les délais et la répartition à 999 sont fabriqués et cohérents entre eux.</p>
+</div>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">État — la ligne mène au contexte</p>
+<p class="colnote">Le chemin de qui veut <b>savoir avant d'agir</b>. On arrive sur l'écran de l'objet — statut, porteur, depuis quand, historique — avec le <b>geste primaire déjà armé</b> selon le statut. Rien n'a été écrit : on peut repartir sans rien décider. La rangée porte donc un <b>chevron</b>, signe qu'on change d'écran, et jamais le verbe de l'acte.</p>
+<div class="phone">
+<div class="tbar"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">ASSET-30117</span><span class="aid">Écran Dell U2722 · depuis le tableau de bord</span></span><span class="tb"><i class="ic s20 ph ph-dots-three-vertical"></i></span></div>
+<div class="page">
+<div class="ohero">
+<div class="oi"><span class="oth"><i class="ic ph ph-monitor"></i></span><span class="ot"><span class="on">Écran Dell U2722</span><span class="os">Moniteur · 27 pouces · Siège</span></span></div>
+<span class="bst"><i class="ic s18 ph ph-clock stg stg-a"></i>En attente — remis, pas encore reçu</span>
+<div class="hact"><button class="btn btn-y btn-full">Confirmer la réception</button><button class="btn btn-o btn-full">Signaler un écart</button></div>
+</div>
+<section class="card">
+<p class="ct">Où en est cet objet</p>
+<div class="tl"><i class="ic s18 ph ph-user"></i><span>Remis à <b>vous</b> par Clara Admin, <b>il y a 4 jours</b>.</span></div>
+<div class="tl"><i class="ic s18 ph ph-signature"></i><span>Clara a attesté la remise par signature. <b>Votre attestation manque</b> — c'est elle qui clôt le passage de main.</span></div>
+<div class="tl"><i class="ic s18 ph ph-clock-counter-clockwise"></i><span>Avant vous : Ethan Brown, de mars à juillet.</span></div>
+</section>
+<section class="card">
+<p class="ct">L'objet</p>
+<span class="rrow"><span class="k">Numéro de série</span><span class="v tnum">CN0X4T2P</span></span>
+<span class="rrow"><span class="k">Garantie</span><span class="v">jusqu'au 14/09/2027</span></span>
+<span class="rrow"><span class="k">Site</span><span class="v">Siège</span></span>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Ce que la ligne ne fait pas</p>
+<p><span>Elle <b>n'écrit rien</b> et ne pré-remplit rien : elle change d'écran, c'est tout.</span></p>
+<p><span>Elle ne dépend pas du statut pour être cliquable — <b>le geste primaire qu'on y trouve, si</b>.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — le bouton mène à l'acte, pré-rempli</p>
+<p class="colnote">Le même besoin, deux secondes plus tôt : la <b>feuille d'attestation</b> s'ouvre directement, l'objet et le porteur déjà inscrits. Ce qui <b>n'est pas</b> sauté : la preuve. Le code se tape, la signature se pose — comme depuis la fiche. Et la feuille garde <b>un lien vers la fiche</b> : un raccourci ne doit pas être une impasse.</p>
+<div class="phone">
+<div class="tbar" style="opacity:.5"><span class="tb"><i class="ic ph ph-arrow-left"></i></span><span class="tid"><span class="code">Bonjour Karim</span><span class="aid">Tableau de bord</span></span></div>
+<div class="page" style="opacity:.35"><div class="card blank" style="height:120px"></div><div class="card blank" style="height:90px"></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grip"></div>
+<div class="sttl"><h3>Confirmer la réception<span class="sub">Ouvert depuis le tableau de bord — rien n'est encore enregistré.</span></h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sbody">
+<div class="prefill"><span class="pico"><i class="ic s20 ph ph-monitor"></i></span><span class="pt"><span class="t">Écran Dell U2722</span><span class="s">ASSET-30117 · remis par Clara Admin, il y a 4 jours</span></span><a class="lk" href="#">Voir la fiche</a></div>
+<div>
+<p class="lab">Votre code PIN</p>
+<div class="pin"><i class="ok">•</i><i class="ok">•</i><i class="on">4</i><i class="e">·</i></div>
+</div>
+<div class="warn"><i class="ic s18 ph ph-info"></i><span>En confirmant, vous attestez avoir reçu cet objet. Il passe alors <b>sous votre responsabilité</b> — c'est la deuxième des deux attestations, et le raccourci ne l'évite pas.</span></div>
+<p class="hint bad gko">L'attestation n'a pas pu être enregistrée — le réseau a coupé. <b>Votre code reste saisi</b>, et rien n'a été confirmé.</p>
+</div>
+<div class="sfoot gok"><button class="btn btn-ghost">Annuler</button><button class="btn btn-y">Je confirme avoir reçu</button></div>
+<div class="sfoot gko"><button class="btn btn-ghost">Annuler</button><button class="btn btn-y">Réessayer</button></div>
+<p class="prov">Même feuille que celle atteinte depuis la fiche de l'objet (planche 06.1). Seul l'en-tête dit d'où l'on vient.</p>
+</div>
+</div>
+<div class="abs">
+<p class="at">Pourquoi le libellé porte le verbe</p>
+<p><span>« Confirmer la réception » <b>annonce l'écran d'après</b>. « Voir » ou « Ouvrir » ferait la même promesse que la ligne, et la distinction disparaîtrait.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — régime calme, sous le seuil</p>
+<p class="colnote">Deux rangées, aucune redirection : <b>tout est là</b>. Le lien « Voir les autres » n'apparaît pas quand il n'y a pas d'autres — un lien qui mène à la même chose que ce qu'on voit déjà use la confiance dans tous les autres liens de l'écran. La zone garde sa <b>hauteur</b> : la forme change avec le volume, pas la place occupée.</p>
+<div class="phone">
+<div class="topb"><div><h2 class="h1">Bonjour Alice</h2><p class="sub">2 choses vous attendent · 14 actifs</p></div><span class="avat">AS</span></div>
+<div class="page">
+<section class="hero plain stack img">
+<div class="ch glyph"><span class="i"><i class="ic s18 ph ph-check-circle"></i></span><h3>À traiter</h3></div>
+<div class="count tnum">2 demandes</div>
+<div class="trow"><span class="vig">KA</span><span class="tt"><span class="t">Kossi Adjovi — Dell Latitude 7420</span><span class="s">Validation du manager</span></span><button class="rbtn">Valider la demande</button></div>
+<div class="trow"><span class="vig"><i class="ic s20 ph ph-monitor"></i></span><span class="tt"><span class="t">Écran Dell U2722 (ASSET-30117)</span><span class="s">Retour à réceptionner</span></span><button class="rbtn">Réceptionner</button></div>
+</section>
+<section class="card">
+<p class="ct">La suite de l'écran</p>
+<div class="tl"><i class="ic s18 ph ph-check"></i><span>Compteurs, types en tension, activité — <b>inchangés</b> : le seuil ne concerne que cette zone.</span></div>
+</section>
+</div>
+<div class="nav"><a href="#" class="on"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">La borne</p>
+<p><span>En dessous du seuil, <b>aucune redirection</b>. Le lien apparaît quand il a quelque chose à montrer de plus.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — régime chargé : le seuil, et la redirection</p>
+<p class="colnote"><b>Trois rangées au maximum</b>, les plus anciennes d'abord, puis <b>une seule ligne de sortie</b> — même forme que les autres sections de l'écran : libellé, destination, chevron. Elle dit <b>combien</b> et <b>où</b>, parce qu'un lien qui ne dit ni l'un ni l'autre se clique une fois. Les rangées gardent leur bouton : le seuil borne le <b>nombre</b>, pas la nature.</p>
+<div class="phone">
+<div class="topb"><div><h2 class="h1">Bonjour Alice</h2><p class="sub">17 choses vous attendent · 14 actifs</p></div><span class="avat">AS</span></div>
+<div class="page">
+<section class="hero plain stack img">
+<div class="ch glyph"><span class="i"><i class="ic s18 ph ph-check-circle"></i></span><h3>À traiter</h3></div>
+<div class="count tnum">17 demandes · la plus ancienne depuis 6 jours</div>
+<div class="rows">
+<div class="trow"><span class="vig">KA</span><span class="tt"><span class="t">Kossi Adjovi — Dell Latitude 7420</span><span class="s">Validation du manager · 6 j</span></span><button class="rbtn">Valider la demande</button></div>
+<div class="trow"><span class="vig"><i class="ic s20 ph ph-monitor"></i></span><span class="tt"><span class="t">Écran Dell U2722 (ASSET-30117)</span><span class="s">Retour à réceptionner · 4 j</span></span><button class="rbtn">Réceptionner</button></div>
+<div class="trow"><span class="vig">AS</span><span class="tt"><span class="t">Amina Sow — 2 objets</span><span class="s">Retour en retard · 11 j</span></span><i class="ic s20 ph ph-caret-right chev on-dark"></i></div>
+<div class="trow"><span class="vig"><i class="ic s20 ph ph-mouse"></i></span><span class="tt"><span class="t">Souris Logitech MX (ASSET-30204)</span><span class="s">Remise à faire · 3 j</span></span><button class="rbtn">Remettre</button></div>
+<div class="trow"><span class="vig">EB</span><span class="tt"><span class="t">Ethan Brown — Casque Jabra</span><span class="s">Validation du manager · 2 j</span></span><button class="rbtn">Valider la demande</button></div>
+</div>
+<a class="more" href="#"><span>Voir les <span class="tnum s2">15</span><span class="tnum s3">14</span><span class="tnum s4">13</span><span class="tnum s5">12</span> autres</span><span class="mo">dans Tâches, par ancienneté</span><i class="ic s18 ph ph-caret-down"></i></a>
+</section>
+</div>
+<div class="nav"><a href="#" class="on"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">La troisième rangée n'a pas de bouton</p>
+<p><span><b>Retour en retard</b> — relancer, prolonger ou escalader ne sont pas le même acte. La ligne est seule, avec son chevron : c'est visible sans légende.</span></p>
+<p><span>Le seuil est réglable dans le panneau (2 à 5) : le nombre de la redirection suit.</span></p>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — régime saturé, plus aucune rangée</p>
+<p class="colnote">Au-delà de 20, montrer trois rangées sur mille serait <b>mentir sur l'état du travail</b>. La zone change de nature : le <b>volume</b>, l'<b>attente la plus longue</b>, et les <b>trois natures les plus nombreuses</b> — chaque ligne étant l'entrée <b>filtrée</b> dans Tâches. Toujours la même destination unique, jamais un second écran de liste. On ne traite pas mille demandes depuis un tableau de bord ; on décide <b>par où commencer</b>.</p>
+<div class="phone">
+<div class="topb"><div><h2 class="h1">Bonjour Alice</h2><p class="sub">999 demandes en attente · 14 actifs</p></div><span class="avat">AS</span></div>
+<div class="page">
+<section class="hero plain stack img">
+<div class="ch glyph"><span class="i"><i class="ic s18 ph ph-check-circle"></i></span><h3>À traiter</h3></div>
+<div class="bigc tnum">999</div>
+<div class="bigl">demandes en attente · la plus ancienne depuis 14 jours</div>
+<div class="tricap">Les trois natures les plus nombreuses — ouvrir la file (Tâches), filtrée sur :</div>
+<div class="tri">
+<a class="trl" href="#"><span class="tn tnum">520</span><span class="tl">validations d'attribution</span><i class="ic s18 ph ph-caret-down"></i></a>
+<a class="trl" href="#"><span class="tn tnum">287</span><span class="tl">réceptions à confirmer</span><i class="ic s18 ph ph-caret-down"></i></a>
+<a class="trl" href="#"><span class="tn tnum">86</span><span class="tl">remises à faire</span><i class="ic s18 ph ph-caret-down"></i></a>
+</div>
+</section>
+<section class="card">
+<p class="ct">Ce qui disparaît à ce régime</p>
+<div class="tl"><i class="ic s18 ph ph-info"></i><span><b>Les boutons d'acte.</b> Il n'y a plus de rangée à laquelle les accrocher — et aucun acte n'est représentatif de mille.</span></div>
+<div class="tl"><i class="ic s18 ph ph-check"></i><span><b>Pas les compteurs du parc.</b> Le reste de l'écran ne bouge pas : la charge de travail n'est pas l'état du parc.</span></div>
+</section>
+</div>
+<div class="nav"><a href="#" class="on"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Trois régimes, une seule destination</p>
+<p><span>Calme, chargé, saturé : les trois envoient au <b>même écran Tâches</b>, filtré différemment. C'est ce qui rend la page Tâches critique — elle est la seule sortie.</span></p>
+</div>
+</div>
+
+</div>
+
+<div id="tw-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "echec": "Réussi",
+  "seuil": "3 rangées",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action"
+}/*EDITMODE-END*/;
+const ECHEC = {"Réussi":"reussi","Échoué":"echoue"};
+const SEUIL = {"2 rangées":"2","3 rangées":"3","4 rangées":"4","5 rangées":"5"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+function PlancheTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.echec = ECHEC[t.echec] || 'reussi';
+    b.dataset.seuil = SEUIL[t.seuil] || '3';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+  },[t.echec,t.seuil,t.tone,t.densite,t.accent]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="L'acte qui échoue (la feuille)" />
+      <TweakRadio label="Confirmation" value={t.echec} options={Object.keys(ECHEC)} onChange={(v)=>setTweak('echec',v)} />
+      <TweakSection label="Seuil d'affichage" />
+      <TweakRadio label="Rangées avant redirection" value={t.seuil} options={Object.keys(SEUIL)} onChange={(v)=>setTweak('seuil',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<PlancheTweaks />);
+</script>
+</body>
+</html>

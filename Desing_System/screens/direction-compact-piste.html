@@ -1,0 +1,514 @@
+<!-- @dsCard group="00. Références du système" viewport="2980x3800" name="00.1 Direction esthétique — la référence de forme" subtitle="Palette, échelle, composants, icônes, densité. Ce n'est pas une page du produit : c'est ce à quoi toute page se conforme. Les règles opposables sont dans REGLES-TRANSVERSES.md §0." -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Direction esthétique — compact</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+:root{
+--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#6C6862;--ink3:#8A847A;
+--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--nav-on:#8A6508;--danger:#B3261E;
+--dark:#0A191D;--dark-2:#1B3238;--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;--dark-line:rgba(255,255,255,.14);
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--gap:20px;--pad:16px;--btnh:48px;--rowh:44px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 56px}
+svg{display:block}
+.intro{max-width:1180px;margin:0 auto 28px}
+.intro h1{font-family:Archivo,Inter,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
+.intro h2{font-size:15px;font-weight:500;margin:22px 0 6px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:var(--ink)}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:1180px;margin:16px auto 0}
+.rule{background:var(--surface);border-radius:6px;padding:14px 16px}
+.rule .k{font-family:Archivo,Inter,sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--nav-on);margin-bottom:6px}
+.rule h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.rule p{font-size:12px;line-height:18px;color:var(--ink2)}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:36px auto 0;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.col.w2{flex:0 0 814px;width:814px}
+.collab{font-family:Archivo,Inter,sans-serif;font-size:13px;font-weight:600;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:76px}
+.colnote b{font-weight:500;color:var(--ink)}
+.phone{width:393px;background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 24px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}a:hover{color:var(--ink2)}
+.disp{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.02em}
+
+/* ------- barre du haut ------- */
+.top{display:flex;align-items:center;gap:12px;background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--line)}
+.top .t{font-size:15px;font-weight:500}
+.top .sub{font-size:12px;color:var(--ink2)}
+
+/* ------- héro sombre : le sujet ------- */
+.hero{position:relative;isolation:isolate;overflow:hidden;color:var(--on-dark);padding:22px 20px 20px;background:var(--dark) url("../uploads/footer-cartouche-bas-nl.webp") center 42%/cover no-repeat}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(10,25,29,.62) 0%,rgba(10,25,29,.80) 58%,rgba(10,25,29,.92) 100%)}
+.hero>*{position:relative}
+.hero .lab{color:var(--on-dark-2)}
+.hero h2{font-family:Archivo,Inter,sans-serif;font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:8px 0 6px}
+.hero p{font-size:13px;line-height:19px;color:var(--on-dark-2)}
+.hero .meta{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid var(--dark-line)}
+.hero .meta div{display:flex;flex-direction:column;gap:2px}
+.hero .meta .v{font-family:Archivo,Inter,sans-serif;font-size:20px;font-weight:600}
+.hero .meta .l{font-size:11px;color:var(--on-dark-2)}
+
+/* ------- filets groupés (remplace l'empilement de cartes) ------- */
+.grp{background:var(--surface);border-radius:8px;overflow:hidden}
+.grp>.gh{padding:14px 16px 8px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.row{display:flex;align-items:center;gap:12px;min-height:var(--rowh);padding:11px 16px;border-top:1px solid var(--line)}
+.grp>.gh+.row{border-top:0}
+.row .body{flex:1;min-width:0}
+.row .t{font-size:14px;font-weight:500}
+.row .s{font-size:12px;line-height:17px;color:var(--ink2);margin-top:1px}
+.row .val{font-size:13px;font-weight:500;color:var(--ink)}
+.chev{flex:0 0 auto;color:var(--ink3)}
+.row.tap:active{background:var(--inset)}
+
+/* ------- boutons ------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:var(--btnh);border-radius:6px;font-size:14px;font-weight:500;background:var(--brand);color:var(--ink);border:0;width:100%;cursor:pointer;animation:none}
+.btn:active{animation:press 90ms ease-out}
+.btn.dark{background:var(--dark);color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
+.btn.small{height:36px;width:auto;padding:0 14px;font-size:13px;border-radius:4px}
+@keyframes press{50%{transform:scale(.982)}}
+
+/* ------- champs ------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.inp{display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;font-size:15px}
+.inp.on{border-color:var(--ink);box-shadow:0 0 0 3px rgba(253,201,16,.30)}
+.inp .phold{color:var(--ink3)}
+.hint{font-size:12px;color:var(--ink2)}
+.err{font-size:12px;color:var(--danger)}
+.inp.bad{border-color:var(--danger)}
+
+/* ------- pastilles, badges, puces ------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:500;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.chip.on{background:var(--dark);border-color:var(--dark);color:#fff}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.av{width:36px;height:36px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-size:12px;font-weight:600;flex:none}
+
+/* ------- barre du bas ------- */
+.nav{display:flex;background:var(--surface);border-top:1px solid var(--line);padding:8px 4px 10px}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--ink2);min-height:var(--rowh);justify-content:center}
+.nav a.on{color:var(--nav-on);font-weight:500}
+.nav .ic{font-size:24px}
+
+/* ------- échelle & palette ------- */
+.sw{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.swx{border-radius:6px;overflow:hidden;background:var(--surface)}
+.swx .c{height:56px}
+.swx .m{padding:8px 10px}
+.swx .n{font-size:12px;font-weight:500}
+.swx .h{font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.swx .u{font-size:11px;line-height:15px;color:var(--ink2);margin-top:3px}
+.lad{display:flex;flex-direction:column}
+.lad .st{display:flex;align-items:baseline;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.lad .st:first-child{border-top:0}
+.lad .px{font-size:11px;color:var(--ink2);width:74px;flex:none;font-variant-numeric:tabular-nums}
+
+/* ------- système d'icônes ------- */
+.spr{display:none}
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}
+.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+.iset{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.icell{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;border-radius:4px}
+.icell span{font-size:9px;line-height:11px;color:var(--ink2);text-align:center}
+.icell.new{background:var(--inset);box-shadow:inset 0 0 0 1px var(--line)}
+.gridemo{display:flex;gap:14px;align-items:flex-start}
+.gridemo .box{position:relative;width:72px;height:72px;flex:none;background:var(--inset);border-radius:4px}
+.gridemo .box svg{position:absolute;inset:0;width:100%;height:100%}
+.strip{display:flex;height:8px;border-radius:2px;overflow:hidden}
+.strip i{flex:1}
+
+/* ------- démonstration avant / après ------- */
+.ab{display:grid;grid-template-columns:393px 393px;gap:28px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:4px;margin-bottom:8px}
+.tag.no{background:#F3E3E1;color:#8C2F26}
+.tag.yes{background:#E7F0E2;color:#3F6B27}
+.old .card{border-radius:8px}
+.old .ct{font-size:13px;font-weight:500;margin-bottom:2px}
+.old .orow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.old .orow:first-of-type{border-top:0}
+.old .ot{font-size:13px;font-weight:500}
+.old .os{font-size:12px;line-height:17px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Direction esthétique — version compact</h1>
+  <p><b>Ce document est la référence.</b> Toute planche reprise ou créée à partir du 11/08 s'y conforme, et toute planche qui s'en écarte doit le déclarer. Il ne remplace pas le registre <b>REGLES-TRANSVERSES.md</b> : il en fixe le <b>niveau esthétique</b>, que le registre n'a jamais fixé — le registre dit quel nom porte un rôle, pas si l'écran est beau.</p>
+  <p><b>Ce qui a été mesuré le 11/08 sur les 26 planches.</b> Le plafond typographique ne dépasse pas <b>20–22 px sur 16 planches</b> — contre 28 px sur la connexion et 34 px sur le tableau de bord. Le jaune n'apparaît <b>qu'une ou deux fois par planche</b>. <b>Archivo n'est appelé que pour les chiffres de code</b>, jamais pour un titre. Et <b>aucune des 26 planches ne contient une seule animation</b>. Ce ne sont pas des défauts de goût : ce sont quatre leviers non tirés. Les tirer suffit.</p>
+  <p><b>L'iconographie, elle, n'est pas absente — elle est non gouvernée.</b> 73 symboles et 1 001 emplois existent déjà, mais le sprite est <b>recopié dans chacune des 28 planches</b> : <code>i-close</code> y figure 22 fois, et <b>11 symboles ont déjà deux tracés divergents</b>. Le trait dérive sur <b>13 épaisseurs</b>. Surtout, le produit dessine ses icônes avec <b>Material Symbols Outlined</b> — une police variable — quand les planches les tracent à la main : deux systèmes qui ne convergeront jamais à l'implémentation si personne ne l'écrit. Le détail est en colonne 5. <b>La réponse retenue n'est pas de mieux gouverner le set maison : c'est d'adopter une bibliothèque</b> — Phosphor Icons, 1 500 pictogrammes, six graisses, MIT, disponible en paquet React côté produit.</p>
+  <h2>Les six règles de forme, et les trois règles d'icône</h2>
+  <div class="rules">
+    <div class="rule"><div class="k">R1</div><h3>Un porte-voix par écran</h3><p>Exactement <b>un</b> élément à 28 px ou plus, en Archivo 600 : le sujet de l'écran, ou le chiffre qui décide. Deux porte-voix, c'est aucun.</p></div>
+    <div class="rule"><div class="k">R2</div><h3>L'encre sombre porte le sujet</h3><p>Tout écran qui a un sujet ouvre sur un héro <b>en image</b>, voilée d'encre <b>#0A191D</b> — le modèle du tableau de bord. Pas de motif géométrique. Les listes et les réglages n'en ont pas : ils n'ont pas de sujet.</p></div>
+    <div class="rule"><div class="k">R3</div><h3>Le jaune une seule fois</h3><p>Le geste primaire, et rien d'autre. Jamais un fond, jamais un état, jamais un ornement. Un écran sans geste engageant n'a pas de jaune.</p></div>
+    <div class="rule"><div class="k">R4</div><h3>Le filet remplace la carte</h3><p>Une carte porte <b>un sujet</b>. Une suite de réglages est <b>un groupe à filets</b> dans une seule surface. C'est ce qui datait le plus.</p></div>
+    <div class="rule"><div class="k">R5</div><h3>44 px, jamais moins</h3><p>Rangées et onglets à 44 px de haut, boutons à 48, gouttière à 20, respiration inter-blocs à 20. La densité vient du filet, pas du serrage.</p></div>
+    <div class="rule"><div class="k">R6</div><h3>Trois mouvements, pas plus</h3><p>Feuille 220 ms, bandeau 160 ms, pression 90 ms. Écrits une fois, réemployés partout. Rien d'autre ne bouge.</p></div>
+    <div class="rule"><div class="k">I1</div><h3>Une bibliothèque, pas un set maison</h3><p><b>Phosphor Icons</b> — 1 500 pictogrammes, six graisses, licence MIT, un paquet React côté produit. On cesse de dessiner : les 11 tracés divergents disparaissent avec le set qui les portait.</p></div>
+    <div class="rule"><div class="k">I2</div><h3>Graisse <i>regular</i>, quatre tailles</h3><p>Une seule graisse — <i>regular</i> — et quatre tailles : 32 état vide, 24 nav, 20 rangée, 18 en ligne. <i>light</i> au-delà de 32, <i>fill</i> pour l'onglet actif seul.</p></div>
+    <div class="rule"><div class="k">I3</div><h3>L'état porte une icône <b>et</b> une couleur</h3><p>Jamais la couleur seule. Et l'icône ne remplace pas un mot : elle le précède. Seules les deux barres ont droit à l'icône nue.</p></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- 1 · PALETTE -->
+  <div class="col">
+    <p class="collab">1 · La palette et ce qu'elle a le droit de faire</p>
+    <p class="colnote">Inchangée dans ses teintes — <b>un seul correctif</b> : le secondaire passe de <b>#78746C à #6C6862</b> (4,42:1 → 5,1:1) et devient utilisable sous AA. Ce qui change vraiment, c'est le <b>droit d'usage</b> : chaque teinte porte désormais une permission écrite.</p>
+    <div class="phone"><div class="page">
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Surfaces</div>
+        <div class="sw">
+          <div class="swx" style="box-shadow:inset 0 0 0 1px var(--line)"><div class="c" style="background:#F2F0EA"></div><div class="m"><div class="n">canvas</div><div class="h">#F2F0EA</div><div class="u">Le fond de tout écran. Jamais une carte.</div></div></div>
+          <div class="swx" style="box-shadow:inset 0 0 0 1px var(--line)"><div class="c" style="background:#FFFFFF"></div><div class="m"><div class="n">surface</div><div class="h">#FFFFFF</div><div class="u">Carte, groupe, barre. Porte un sujet.</div></div></div>
+          <div class="swx" style="box-shadow:inset 0 0 0 1px var(--line)"><div class="c" style="background:#0A191D"></div><div class="m"><div class="n">dark</div><div class="h">#0A191D</div><div class="u">Héro du sujet, geste sombre. R2.</div></div></div>
+          <div class="swx" style="box-shadow:inset 0 0 0 1px var(--line)"><div class="c" style="background:#1B3238"></div><div class="m"><div class="n">dark-2</div><div class="h">#1B3238</div><div class="u">Rangée posée sur le héro. Jamais seule.</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Encres</div>
+        <div class="lad">
+          <div class="st"><span class="px">#1A1917</span><span style="font-size:15px;font-weight:500">ink — titres, valeurs, gestes</span></div>
+          <div class="st"><span class="px">#6C6862</span><span style="font-size:15px;color:#6C6862">ink2 — sous-titres, micro-libellés</span></div>
+          <div class="st"><span class="px">#8A847A</span><span style="font-size:15px;color:#8A847A">ink3 — chevrons, gabarit vide</span></div>
+          <div class="st"><span class="px">#EAE6DF</span><span style="font-size:13px;color:#6C6862">line — le filet de R4</span></div>
+        </div>
+        <p class="hint" style="margin-top:10px">Le muté <b>#A29D93</b> est retiré du texte : 2,57:1, illisible même en non-texte.</p>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Marque et états</div>
+        <div class="strip" style="margin-bottom:12px"><i style="background:#FDC910"></i><i style="background:#8A6508"></i><i style="background:#5B913C"></i><i style="background:#288AC5"></i><i style="background:#A97C00"></i><i style="background:#E45329"></i><i style="background:#B3261E"></i></div>
+        <div class="lad">
+          <div class="st"><span class="px">#FDC910</span><span style="font-size:13px">brand — <b>le geste primaire seul</b></span></div>
+          <div class="st"><span class="px">#8A6508</span><span style="font-size:13px">nav-on — onglet actif, 5,06:1</span></div>
+          <div class="st"><span class="px">#5B913C</span><span class="badge" style="font-size:13px;color:var(--st-vert)"><i class="ic s18 ph ph-check-circle"></i><span style="color:var(--ink)">en service</span></span></div>
+          <div class="st"><span class="px">#288AC5</span><span class="badge" style="font-size:13px;color:var(--st-bleu)"><i class="ic s18 ph ph-arrow-circle-right"></i><span style="color:var(--ink)">attribué</span></span></div>
+          <div class="st"><span class="px">#A97C00</span><span class="badge" style="font-size:13px;color:var(--st-ambre)"><i class="ic s18 ph ph-clock"></i><span style="color:var(--ink)">en attente</span></span></div>
+          <div class="st"><span class="px">#E45329</span><span class="badge" style="font-size:13px;color:var(--st-orange)"><i class="ic s18 ph ph-warning"></i><span style="color:var(--ink)">hors service</span></span></div>
+          <div class="st"><span class="px">#B3261E</span><span class="badge" style="font-size:13px;color:#B3261E"><i class="ic s18 ph ph-x-circle"></i><span style="color:var(--ink)">refus, suppression</span></span></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 2 · TYPE -->
+  <div class="col">
+    <p class="collab">2 · L'échelle — le levier principal</p>
+    <p class="colnote">Deux familles, un partage net : <b>Archivo 600 au-dessus de 20 px</b>, Inter en dessous. C'est le changement qui fait le plus de travail : les 16 planches plates n'avaient <b>aucun</b> palier au-dessus de 22 px, donc aucune hiérarchie possible. Archivo cesse d'être la police des codes pour devenir <b>la police du sujet</b>.</p>
+    <div class="phone"><div class="page">
+      <div class="card">
+        <div class="lab" style="margin-bottom:14px">Six paliers, pas sept</div>
+        <div class="lad">
+          <div class="st"><span class="px">34 · Archivo 600</span><span class="disp" style="font-size:34px;line-height:1.05">17 440</span></div>
+          <div class="st"><span class="px">28 · Archivo 600</span><span class="disp" style="font-size:28px;line-height:1.1">Latitude 5540</span></div>
+          <div class="st"><span class="px">20 · Archivo 600</span><span class="disp" style="font-size:20px">Amina Sow</span></div>
+          <div class="st"><span class="px">15 · Inter 500</span><span style="font-size:15px;font-weight:500">Titre de rangée, champ</span></div>
+          <div class="st"><span class="px">13 · Inter 400</span><span style="font-size:13px">Corps, sous-titre, note</span></div>
+          <div class="st"><span class="px">11 · Inter 500</span><span class="lab">Micro-libellé</span></div>
+        </div>
+        <p class="hint" style="margin-top:12px"><b>34</b> pour un chiffre qui décide. <b>28</b> pour le nom du sujet. Un seul des deux par écran — R1.</p>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:10px">Ce que R1 corrige</div>
+        <div class="ab" style="grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <span class="tag no">avant</span>
+            <div style="background:var(--inset);border-radius:6px;padding:12px">
+              <div style="font-size:13px;font-weight:500">Latitude 5540</div>
+              <div style="font-size:12px;color:var(--ink2);margin-top:2px">ASSET-30012 · Dell</div>
+              <div style="font-size:13px;font-weight:500;margin-top:10px">En service</div>
+            </div>
+            <p class="hint" style="margin-top:6px">Trois informations au même poids : l'œil ne sait pas où entrer.</p>
+          </div>
+          <div>
+            <span class="tag yes">après</span>
+            <div style="background:var(--inset);border-radius:6px;padding:12px">
+              <div class="lab" style="font-size:10px">ASSET-30012</div>
+              <div class="disp" style="font-size:20px;margin-top:4px;line-height:1.15">Latitude 5540</div>
+              <div class="badge" style="margin-top:8px;color:var(--st-vert)"><i class="ic s18 ph ph-check-circle"></i><span style="color:var(--ink)">En service · Dell</span></div>
+            </div>
+            <p class="hint" style="margin-top:6px">Un sujet, sa référence au-dessus, son état en dessous.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:10px">Chiffres</div>
+        <div class="row" style="border-top:0;padding:8px 0"><div class="body"><div class="t">Toujours en chiffres tabulaires</div><div class="s">Une colonne de montants ne doit jamais danser.</div></div><span class="disp tnum" style="font-size:20px">132 560</span></div>
+        <div class="row" style="padding:8px 0"><div class="body"><div class="t">Unité au secondaire, jamais au display</div><div class="s">Le nombre porte, l'unité accompagne.</div></div><span style="font-size:13px;color:var(--ink2)">XOF</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 3 · COMPOSANTS -->
+  <div class="col">
+    <p class="collab">3 · Les composants au niveau attendu</p>
+    <p class="colnote">Mêmes rôles qu'au registre, redessinés une fois pour toutes. <b>Le groupe à filets est le composant neuf</b> : il remplace l'empilement de cartes blanches qui donnait aux écrans de réglage et de référentiel leur air de formulaire d'administration.</p>
+    <div class="phone"><div class="page">
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Gestes</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn">Attribuer</button>
+          <button class="btn dark">Restituer</button>
+          <button class="btn ghost">Annuler</button>
+          <div style="display:flex;gap:8px"><button class="btn small dark">Valider</button><button class="btn small ghost">Refuser</button></div>
+        </div>
+        <p class="hint" style="margin-top:10px">48 px, rayon 6. Le jaune ne se répète pas dans un même écran.</p>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Saisie</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="field"><span class="lab">Numéro de série</span><div class="inp on"><span>SN-4471-KX</span></div><span class="hint">Bordure encre + halo jaune 3 px au focus.</span></div>
+          <div class="field"><span class="lab">Adresse professionnelle</span><div class="inp bad"><span>karim.diallo@</span></div><span class="err">Adresse incomplète — il manque le domaine.</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:12px">Filtres et états</div>
+        <div class="chips" style="margin-bottom:14px"><span class="chip on">Tous · 14</span><span class="chip">En service · 9</span><span class="chip">Attribué · 4</span></div>
+        <div class="grp" style="box-shadow:inset 0 0 0 1px var(--line)">
+          <div class="row" style="border-top:0"><span class="av">AS</span><div class="body"><div class="t">Amina Sow</div><div class="s">Direction financière · 3 équipements</div></div><i class="ic s20 ph ph-caret-right chev"></i></div>
+          <div class="row"><span class="av" style="background:var(--inset);color:var(--ink2)">KA</span><div class="body"><div class="t">Kossi Adjovi</div><div class="s">Suspendu le 04/08</div></div><span class="badge" style="color:var(--st-ambre)"><i class="ic s20 ph ph-clock"></i></span></div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="on" href="#"><i class="ic ph-fill ph-squares-four"></i>Accueil</a>
+        <a href="#"><i class="ic ph ph-laptop"></i>Actifs</a>
+        <a href="#"><i class="ic ph ph-check-circle"></i>Tâches</a>
+        <a href="#"><i class="ic ph ph-users-three"></i>Équipe</a>
+        <a href="#"><i class="ic ph ph-list"></i>Plus</a>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 4 · HÉRO + DENSITÉ -->
+  <div class="col">
+    <p class="collab">4 · Le héro du sujet (R2) et la densité</p>
+    <p class="colnote">Le héro <b>en image voilée</b> — celui du tableau de bord — existait là et nulle part ailleurs. Il devient <b>l'ouverture de toute fiche</b> : équipement, personne, modèle, session. Il porte le porte-voix, l'état, et les deux ou trois chiffres qui qualifient le sujet — ce que les fiches actuelles dispersaient en trois cartes blanches.</p>
+    <div class="phone">
+      <div class="top"><i class="ic ph ph-arrow-left" style="color:var(--ink)"></i><div><div class="t">Parc</div></div></div>
+      <div class="hero">
+                <div class="lab">ASSET-30012 · Dell</div>
+        <h2>Latitude 5540</h2>
+        <p><span class="badge" style="color:var(--on-dark)"><i class="ic s18 ph ph-check-circle" style="color:var(--live-vert,#7AB955)"></i>En service</span> · détenu par Amina Sow</p>
+        <div class="meta">
+          <div><span class="v tnum">2,4</span><span class="l">ans d'âge</span></div>
+          <div><span class="v tnum">14</span><span class="l">mois de garantie</span></div>
+          <div><span class="v tnum">420 000</span><span class="l">XOF à l'achat</span></div>
+        </div>
+      </div>
+      <div class="page">
+        <div style="display:flex;gap:8px"><button class="btn" style="flex:1">Restituer</button><button class="btn ghost" style="flex:0 0 48px;padding:0"><i class="ic s20 ph ph-dots-three-vertical"></i></button></div>
+        <div class="grp">
+          <div class="gh">Ce que l'objet a vécu</div>
+          <div class="row"><i class="ic s20 ph ph-arrow-circle-right" style="color:var(--st-bleu)"></i><div class="body"><div class="t">Attribué à Amina Sow</div><div class="s">03/03/2026 · preuve par code PIN</div></div></div>
+          <div class="row"><i class="ic s20 ph ph-check-circle" style="color:var(--st-vert)"></i><div class="body"><div class="t">Réception confirmée</div><div class="s">28/02/2026 · bon de livraison BL-2291</div></div></div>
+          <div class="row tap"><div class="body"><div class="t">Voir les 9 mouvements</div></div><i class="ic s20 ph ph-caret-right chev"></i></div>
+        </div>
+        <div class="card">
+          <div class="lab" style="margin-bottom:10px">Densité — ce qui est fixé</div>
+          <div class="lad">
+            <div class="st"><span class="px" style="width:56px">20 px</span><span style="font-size:13px">gouttière d'écran, et respiration entre blocs</span></div>
+            <div class="st"><span class="px" style="width:56px">16 px</span><span style="font-size:13px">retrait intérieur de carte et de rangée</span></div>
+            <div class="st"><span class="px" style="width:56px">44 px</span><span style="font-size:13px">hauteur minimale de rangée, d'onglet, de puce</span></div>
+            <div class="st"><span class="px" style="width:56px">48 px</span><span style="font-size:13px">hauteur de bouton · 52 px pour un champ</span></div>
+            <div class="st"><span class="px" style="width:56px">2·4·6·8</span><span style="font-size:13px">rayons, plus la pastille et le rond</span></div>
+            <div class="st"><span class="px" style="width:56px">voile</span><span style="font-size:13px">.62 en haut → .92 en bas sur l'image</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 · ICÔNES -->
+  <div class="col">
+    <p class="collab">5 · Le système d'icônes</p>
+    <p class="colnote">Un set maison existe : 73 symboles, 1 001 emplois. Mais il est recopié dans chacune des 28 planches (<b>22 copies de <code>i-close</code></b>), <b>11 symboles ont déjà deux tracés divergents</b>, et le trait dérive sur <b>13 épaisseurs</b>. Gouverner ce set demandait un fichier, une règle et une vigilance permanente. <b>Adopter une bibliothèque supprime le problème au lieu de l'administrer.</b></p>
+    <p class="colnote" style="min-height:0"><b>Phosphor, et pourquoi lui.</b> Il couvre les 16 pictogrammes qui manquaient — serveur, imprimante, réseau, licence, empreinte, enveloppe, les cinq états vides — sans qu'on en dessine un seul. Ses six graisses donnent la hiérarchie que le trait unique ne donnait pas. Il est <b>maintenu</b>, ce qu'un sprite recopié 28 fois ne sera jamais. Et il existe en paquet React : le produit <b>remplace</b> Material Symbols au lieu d'entretenir une table de correspondance vers lui — le pont disparaît avec le besoin de pont.</p>
+    <div class="phone"><div class="page">
+      <div class="card">
+        <div class="lab" style="margin-bottom:10px">La graisse, fixée une fois</div>
+        <div class="gridemo">
+          <div class="box" style="display:flex;align-items:center;justify-content:center"><i class="ic s32 ph ph-laptop"></i></div>
+          <div class="lad" style="flex:1">
+            <div class="st"><span class="px" style="width:62px">regular</span><span style="font-size:13px">partout, par défaut</span></div>
+            <div class="st"><span class="px" style="width:62px">light</span><i class="ic s32 ph-light ph-package" style="color:var(--ink2)"></i><span style="font-size:13px">au-delà de 32</span></div>
+            <div class="st"><span class="px" style="width:62px">fill</span><i class="ic s20 ph-fill ph-squares-four" style="color:var(--nav-on)"></i><span style="font-size:13px">onglet actif seul</span></div>
+            <div class="st"><span class="px" style="width:62px">24 × 24</span><span style="font-size:13px">grille de la bibliothèque</span></div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:10px">La graisse est une <b>propriété de police</b>, pas un attribut de tracé : elle ne dérive pas, et elle ne peut pas prendre treize valeurs par accident. C'est exactement ce que le set maison ne savait pas garantir.</p>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:10px">Quatre tailles, et leur emploi</div>
+        <div class="lad">
+          <div class="st"><span class="px" style="width:44px">32</span><i class="ic s32 ph ph-tray" style="color:var(--ink2)"></i><span style="font-size:13px">état vide — seul emploi</span></div>
+          <div class="st"><span class="px" style="width:44px">24</span><i class="ic ph ph-magnifying-glass"></i><span style="font-size:13px">barre du haut, barre du bas</span></div>
+          <div class="st"><span class="px" style="width:44px">20</span><i class="ic s20 ph ph-certificate"></i><span style="font-size:13px">rangée, puce, geste de rangée</span></div>
+          <div class="st"><span class="px" style="width:44px">18</span><i class="ic s18 ph ph-clock-counter-clockwise"></i><span style="font-size:13px">en ligne dans un texte de 13</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:6px">Les états — icône <b>et</b> couleur</div>
+        <p class="hint" style="margin-bottom:12px">Aujourd'hui l'état se dit par une puce de couleur seule. Cinq états discriminés par la teinte : illisible au daltonisme, et invisible au scan rapide. <b>La puce nue est retirée de cette planche</b> — il n'en reste aucune, y compris dans la palette : une teinte sans son pictogramme n'a pas d'exemple à donner. <b>Chaque état reçoit son pictogramme.</b></p>
+        <div class="lad">
+          <div class="st"><i class="ic s20 ph ph-check-circle" style="color:var(--st-vert)"></i><span style="font-size:13px">En service</span></div>
+          <div class="st"><i class="ic s20 ph ph-arrow-circle-right" style="color:var(--st-bleu)"></i><span style="font-size:13px">Attribué</span></div>
+          <div class="st"><i class="ic s20 ph ph-clock" style="color:var(--st-ambre)"></i><span style="font-size:13px">En attente</span></div>
+          <div class="st"><i class="ic s20 ph ph-warning" style="color:var(--st-orange)"></i><span style="font-size:13px">Hors service</span></div>
+          <div class="st"><i class="ic s20 ph ph-archive" style="color:var(--ink2)"></i><span style="font-size:13px">Retiré du parc</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:4px">Les huit catégories du Catalogue</div>
+        <p class="hint" style="margin-bottom:8px">Les huit existent chez Phosphor. Quatre manquaient au set maison ; il n'y a plus rien à dessiner.</p>
+        <div class="iset">
+          <div class="icell"><i class="ic ph ph-laptop"></i><span>Portable</span></div>
+          <div class="icell"><i class="ic ph ph-monitor"></i><span>Moniteur</span></div>
+          <div class="icell"><i class="ic ph ph-hard-drives"></i><span>Serveur</span></div>
+          <div class="icell"><i class="ic ph ph-device-mobile"></i><span>Téléphone</span></div>
+          <div class="icell"><i class="ic ph ph-printer"></i><span>Imprimante</span></div>
+          <div class="icell"><i class="ic ph ph-network"></i><span>Réseau</span></div>
+          <div class="icell"><i class="ic ph ph-keyboard"></i><span>Périphérique</span></div>
+          <div class="icell"><i class="ic ph ph-certificate"></i><span>Licence</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:4px">Les cinq états vides</div>
+        <p class="hint" style="margin-bottom:8px">Le produit exige un pictogramme pour chacun de ses 9 <code>EmptyState</code>. Les planches n'en dessinent <b>aucun</b> : c'est le trou le plus net de l'audit.</p>
+        <div class="iset" style="grid-template-columns:repeat(5,1fr)">
+          <div class="icell"><i class="ic s32 ph ph-package" style="color:var(--ink3)"></i><span>Parc vide</span></div>
+          <div class="icell"><i class="ic s32 ph ph-tray" style="color:var(--ink3)"></i><span>File vide</span></div>
+          <div class="icell"><i class="ic s32 ph ph-magnifying-glass-minus" style="color:var(--ink3)"></i><span>Sans résultat</span></div>
+          <div class="icell"><i class="ic s32 ph ph-folder-open" style="color:var(--ink3)"></i><span>Référentiel</span></div>
+          <div class="icell"><i class="ic s32 ph ph-shield-warning" style="color:var(--ink3)"></i><span>Sans droit</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:4px">Gestes, preuve, argent</div>
+        <div class="iset" style="margin-top:8px">
+          <div class="icell"><i class="ic ph ph-plus"></i><span>Ajouter</span></div>
+          <div class="icell"><i class="ic ph ph-magnifying-glass"></i><span>Chercher</span></div>
+          <div class="icell"><i class="ic ph ph-funnel"></i><span>Filtrer</span></div>
+          <div class="icell"><i class="ic ph ph-sort-ascending"></i><span>Trier</span></div>
+          <div class="icell"><i class="ic ph ph-pencil-simple"></i><span>Corriger</span></div>
+          <div class="icell"><i class="ic ph ph-trash"></i><span>Supprimer</span></div>
+          <div class="icell"><i class="ic ph ph-scan"></i><span>Scanner</span></div>
+          <div class="icell"><i class="ic ph ph-export"></i><span>Exporter</span></div>
+          <div class="icell"><i class="ic ph ph-clock-counter-clockwise"></i><span>Historique</span></div>
+          <div class="icell"><i class="ic ph ph-signature"></i><span>Signature</span></div>
+          <div class="icell"><i class="ic ph ph-dots-nine"></i><span>Code PIN</span></div>
+          <div class="icell"><i class="ic ph ph-fingerprint"></i><span>Empreinte</span></div>
+          <div class="icell"><i class="ic ph ph-wallet"></i><span>Enveloppe</span></div>
+          <div class="icell"><i class="ic ph ph-bell-ringing"></i><span>Relance</span></div>
+          <div class="icell"><i class="ic ph ph-dots-three-vertical"></i><span>Débordement</span></div>
+          <div class="icell"><i class="ic ph ph-check"></i><span>Valider</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lab" style="margin-bottom:10px">Ce que l'icône fait gagner — et où elle est interdite</div>
+        <div class="ab" style="grid-template-columns:1fr;gap:18px">
+          <div>
+            <span class="tag no">avant</span>
+            <div style="background:var(--inset);border-radius:6px;overflow:hidden">
+              <div class="row" style="border-top:0;padding:10px 12px"><div class="body"><div class="t">Latitude 5540</div><div class="s">Portable · en service</div></div></div>
+              <div class="row" style="padding:10px 12px"><div class="body"><div class="t">EliteDisplay E243</div><div class="s">Moniteur · hors service</div></div></div>
+              <div class="row" style="padding:10px 12px"><div class="body"><div class="t">Licence Office 365</div><div class="s">Licence · en attente</div></div></div>
+            </div>
+            <p class="hint" style="margin-top:6px">Nature et état en mots, au même poids : trois lectures pour trois lignes.</p>
+          </div>
+          <div>
+            <span class="tag yes">après</span>
+            <div style="background:var(--inset);border-radius:6px;overflow:hidden">
+              <div class="row" style="border-top:0;padding:10px 12px"><i class="ic s20 ph ph-laptop" style="color:var(--ink2)"></i><div class="body"><div class="t">Latitude 5540</div><div class="s">Amina Sow</div></div><i class="ic s18 ph ph-check-circle" style="color:var(--st-vert)"></i></div>
+              <div class="row" style="padding:10px 12px"><i class="ic s20 ph ph-monitor" style="color:var(--ink2)"></i><div class="body"><div class="t">EliteDisplay E243</div><div class="s">Atelier · depuis 12 j</div></div><i class="ic s18 ph ph-warning" style="color:var(--st-orange)"></i></div>
+              <div class="row" style="padding:10px 12px"><i class="ic s20 ph ph-certificate" style="color:var(--ink2)"></i><div class="body"><div class="t">Licence Office 365</div><div class="s">Demandée le 09/08</div></div><i class="ic s18 ph ph-clock" style="color:var(--st-ambre)"></i></div>
+            </div>
+            <p class="hint" style="margin-top:6px">La nature passe à gauche, l'état à droite : <b>le sous-titre est libéré pour ce qu'on ne peut pas dessiner</b> — qui, où, depuis quand.</p>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+          <p class="hint"><b>Interdits, sans exception.</b> Un pictogramme redessiné à la main quand la bibliothèque en a un. Une icône décorative en tête de carte. Une icône seule pour un acte engageant — sauf dans la barre du haut et la barre du bas, qui sont apprises. Une icône pleine, sauf l'onglet actif. Une icône de plus de 32 px : au-delà, c'est une illustration, et le produit n'en a pas.</p>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 6 · AVANT / APRÈS -->
+  <div class="col w2">
+    <p class="collab">6 · La démonstration — Paramètres (planche 14.1)</p>
+    <p class="colnote">La planche la plus symptomatique : <b>onze cartes blanches</b>, treize chevrons, aucun palier au-dessus de 20 px, aucun jaune, aucun sombre. À droite, la même donnée, les mêmes actes, sous les six règles. <b>Rien n'a été retiré ni ajouté</b> — seule la mise en forme change, et c'est le test : si la direction demandait de changer le contenu, ce ne serait pas une direction mais une refonte fonctionnelle.</p>
+    <div class="ab">
+      <div class="old">
+        <span class="tag no">avant — réplique</span>
+        <div class="phone">
+          <div class="top"><i class="ic ph ph-arrow-left" style="color:var(--ink)"></i><div class="t">Paramètres</div></div>
+          <div class="page">
+            <div class="card"><div class="ct">Ce qui est à vous</div><div class="orow"><div style="flex:1"><div class="ot">Compte et sécurité</div><div class="os">mot de passe modifié il y a 90 jours · double authentification non activée</div></div><i class="ic s20 ph ph-caret-right chev"></i></div></div>
+            <div class="card"><div class="ct">Ce qui est à l'entreprise</div><div class="orow"><div style="flex:1"><div class="ot">Finances</div><div class="os">euro · année fiscale au 1<sup>er</sup> janvier</div></div><i class="ic s20 ph ph-caret-right chev"></i></div><div class="orow"><div style="flex:1"><div class="ot">Amortissement par défaut</div><div class="os">linéaire sur 3 ans, valeur résiduelle 0 %</div></div><i class="ic s20 ph ph-caret-right chev"></i></div></div>
+            <div class="card"><div class="ct">Ce qui est à l'informatique</div><div class="orow"><div style="flex:1"><div class="ot">Collecte automatique</div><div class="os">agent sur 12 postes · dernière remontée il y a 2 h</div></div><i class="ic s20 ph ph-caret-right chev"></i></div><div class="orow"><div style="flex:1"><div class="ot">Clés d'API</div><div class="os">2 clés actives</div></div><i class="ic s20 ph ph-caret-right chev"></i></div></div>
+            <div class="card"><div class="ct">À propos</div><div class="orow"><div style="flex:1"><div class="ot">Version</div></div><span style="font-size:13px;font-weight:500">2.4.1</span></div><div class="orow"><div style="flex:1"><div class="ot">Thème</div></div><span style="font-size:13px;font-weight:500">Clair</span></div><div class="orow"><div style="flex:1"><div class="ot">Centre d'aide</div></div><i class="ic s20 ph ph-caret-right chev"></i></div></div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:10px">Quatre cartes qui ne portent aucun sujet, seulement des listes. Titres à 13 px, valeurs à 13 px, sous-titres à 12 px : <b>trois poids pour dix-sept informations</b>. L'écran est correct et illisible.</p>
+      </div>
+      <div>
+        <span class="tag yes">après — direction</span>
+        <div class="phone">
+          <div class="top"><i class="ic ph ph-arrow-left" style="color:var(--ink)"></i><div><div class="t">Paramètres</div><div class="sub">Neemba · entreprise</div></div></div>
+          <div class="page">
+            <div class="grp">
+              <div class="gh">Ce qui est à vous</div>
+              <div class="row tap"><div class="body"><div class="t">Compte et sécurité</div><div class="s">Mot de passe modifié il y a 90 jours</div></div><span class="badge" style="color:var(--st-ambre)"><i class="ic s18 ph ph-clock"></i>2FA inactive</span><i class="ic s20 ph ph-caret-right chev"></i></div>
+            </div>
+            <div class="grp">
+              <div class="gh">Ce qui est à l'entreprise</div>
+              <div class="row tap"><div class="body"><div class="t">Devise et année fiscale</div><div class="s">Tout montant du produit s'écrit avec</div></div><span class="val tnum">XOF · 1<sup>er</sup> janv.</span><i class="ic s20 ph ph-caret-right chev"></i></div>
+              <div class="row tap"><div class="body"><div class="t">Amortissement par défaut</div><div class="s">Linéaire · résiduelle 0 %</div></div><span class="val tnum">3 ans</span><i class="ic s20 ph ph-caret-right chev"></i></div>
+            </div>
+            <div class="grp">
+              <div class="gh">Ce qui est à l'informatique</div>
+              <div class="row tap"><div class="body"><div class="t">Collecte automatique</div><div class="s">Dernière remontée il y a 2 h</div></div><span class="val tnum">12 postes</span><i class="ic s20 ph ph-caret-right chev"></i></div>
+              <div class="row tap"><div class="body"><div class="t">Clés d'API</div><div class="s">Aucune n'expire dans les 30 jours</div></div><span class="val tnum">2 actives</span><i class="ic s20 ph ph-caret-right chev"></i></div>
+            </div>
+            <div class="grp">
+              <div class="gh">À propos</div>
+              <div class="row"><div class="body"><div class="t">Version</div></div><span class="val tnum">2.4.1</span></div>
+              <div class="row"><div class="body"><div class="t">Thème</div></div><span class="val">Clair — identité Neemba</span></div>
+              <div class="row tap"><div class="body"><div class="t">Centre d'aide</div></div><i class="ic s20 ph ph-caret-right chev"></i></div>
+            </div>
+            <p class="hint" style="text-align:center">Aucun bouton d'enregistrement : chaque réglage s'applique quand on le pose.</p>
+          </div>
+          <div class="nav">
+            <a href="#"><i class="ic ph ph-squares-four"></i>Accueil</a>
+            <a href="#"><i class="ic ph ph-laptop"></i>Actifs</a>
+            <a href="#"><i class="ic ph ph-check-circle"></i>Tâches</a>
+            <a href="#"><i class="ic ph ph-users-three"></i>Équipe</a>
+            <a class="on" href="#"><i class="ic ph-fill ph-list"></i>Plus</a>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:10px">Quatre groupes à filets au lieu de onze cartes. <b>La valeur du réglage est passée à droite de la rangée</b> : elle se lit sans ouvrir. Le sous-titre ne répète plus la valeur, il dit la conséquence. Onze cartes → quatre groupes, dix-sept informations → quatre paliers de lecture. <b>Aucun jaune : cet écran n'engage rien</b> (R3).</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

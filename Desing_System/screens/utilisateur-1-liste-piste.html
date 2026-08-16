@@ -1,0 +1,339 @@
+<!-- @dsCard group="05. Utilisateur" viewport="1320x2600" name="05.1 Liste utilisateurs" subtitle="Annuaire gestionnaire (3 volumes) + « choisir un destinataire »" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Liste utilisateurs — piste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--r-pill:999px;--colnote-h:144px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;--dark-line:rgba(255,255,255,.14);
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px;}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.h1.bar{font-size:19px}
+.phone h2.h1,.phone .chip b,.phone .cnt b{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.01em}
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tbar.plain{padding-left:20px;padding-right:20px}
+.tbar h2.h1{flex:1;min-width:0;font-size:22px;line-height:28px}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tb:hover{background:var(--inset)}
+.seek{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-direction:column;gap:10px}
+.field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.field .phold{color:var(--ink3)}
+.field svg{flex:0 0 18px}
+.frow{display:flex;gap:8px;align-items:center}
+.frow .field{flex:1;min-width:0}
+.frow .field span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fbtn{position:relative;width:var(--btnh);height:var(--btnh);flex:0 0 var(--btnh);border:1px solid var(--line-strong);border-radius:4px;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.fbtn:hover{background:var(--inset)}
+.fbtn b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);background:var(--dark);color:#fff;font-size:10px;font-weight:600;line-height:18px;font-variant-numeric:tabular-nums;text-align:center}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-right:20px;margin-right:-20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border-radius:4px;background:var(--inset);color:var(--ink);font-size:13px;white-space:nowrap}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--dark);color:var(--on-dark)}
+.cnt{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-size:13px;color:var(--ink2)}
+.cnt>span{flex:0 0 auto;white-space:nowrap}
+.cnt b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.sort{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;margin-right:-8px;border:0;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;border-radius:4px}
+.sort:hover{background:var(--inset)}
+.sort svg{flex:0 0 14px;color:var(--ink2)}
+/* rangées : une personne se reconnaît à son nom, se choisit à ce qu'elle détient */
+.lrow{display:flex;align-items:center;gap:12px;min-height:72px;padding:var(--rowy) 0}
+.lrow+.lrow{border-top:1px solid var(--line)}
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.ltt{flex:1;min-width:0}
+.ltt>span.l1,.ltt>span.l2{display:flex}
+.l1{display:flex;align-items:baseline;gap:10px}
+.l1 .c{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l1 .ty{margin-left:auto;font-size:12px;color:var(--ink2);white-space:nowrap}
+.l2{display:flex;align-items:center;gap:7px;margin-top:3px;font-size:13px;color:var(--ink2);min-width:0}
+.l2 .who{white-space:nowrap;flex:0 0 auto}
+.l2 .mail{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink3)}
+.l2 .mail::before{content:"· "}
+.l2 .aid{margin-left:auto;padding-left:8px;font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.l2 .aid.has{color:var(--ink2)}
+.more{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:8px;border-top:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+.more.center{justify-content:center;gap:8px}
+.more svg{flex:0 0 15px;color:var(--ink2)}
+.lfoot{font-size:12px;line-height:17px;color:var(--ink3);text-align:center;margin-top:6px;font-variant-numeric:tabular-nums}
+.phone:has(.fab) .page{padding-bottom:92px}
+.ovl{position:static;flex:0 0 var(--btnh)}
+.ovl>summary{list-style:none;cursor:pointer}
+.ovl>summary::-webkit-details-marker{display:none}
+.fab{position:absolute;right:20px;bottom:76px;width:56px;height:56px;border-radius:8px;border:0;background:var(--btn-y-bg);color:var(--btn-y-fg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,25,29,.22);cursor:pointer}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+/* feuilles montantes */
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.scrim.above-nav{bottom:56px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sh{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 20px 6px}
+.sgrp{padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+.sgrp .chip{min-height:44px}
+.si{display:flex;flex-direction:column;justify-content:center;gap:1px;min-height:48px;padding:6px 20px;font-size:14px;color:var(--ink)}
+.si:hover{background:var(--inset);color:var(--ink)}
+.sd{font-size:11px;line-height:16px;color:var(--ink3)}
+.si.big{flex-direction:row;align-items:center;gap:14px;min-height:64px}
+
+.si.big .tt{flex:1;min-width:0}
+.si.big .tt>span{display:block}
+.si.big .t{font-size:15px;font-weight:500}
+.si.big .chq{flex:0 0 15px;color:var(--ink3);transform:rotate(-90deg)}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.prov{font-size:11px;line-height:16px;color:var(--ink3);padding:10px 20px 0;margin-top:10px;border-top:1px solid var(--line)}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.btn-d{background:var(--dark);color:var(--on-dark)}
+/* colonne 2 : la même liste en contexte de choix */
+.ctx{padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12px;color:var(--ink2)}
+.lrow.sel{background:var(--inset);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:4px}
+.lrow .ck{flex:0 0 22px;color:var(--ink)}
+.abar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 20px;display:flex;gap:12px}
+.abar>.btn:not(.btn-ghost){flex:1}
+/* réglages */
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-tone="franc"] .phone .card{border:1px solid var(--line)}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+body[data-vie="assumee"] .lrow{min-height:84px}
+body[data-mail="non"] .l2 .mail{display:none}
+.vv{display:none}
+body[data-vol="11"] b.v-11,body[data-vol="120"] b.v-120,body[data-vol="800"] b.v-800,body[data-vol="120"] .cnt span.v-120,body[data-vol="800"] .cnt span.v-800{display:inline}
+body[data-vol="120"] .more.v-120,body[data-vol="800"] .more.v-800{display:flex}
+body[data-vol="11"] p.lfoot.v-11,body[data-vol="120"] p.lfoot.v-120,body[data-vol="800"] p.lfoot.v-800{display:block}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action" data-vie="sobre" data-vol="11" data-mail="non">
+<div class="intro">
+<h1>Liste des utilisateurs — un annuaire de parc, pas un annuaire d'entreprise</h1>
+<p><b>Cadrage.</b> Le <b>gestionnaire de parc</b> ouvre cet écran pour deux choses : <i>trouver une personne dont on lui parle</i>, et <i>choisir à qui attribuer un objet</i>. L'utilisateur final n'y a pas accès. La question qu'il pose n'est donc jamais « qui travaille ici » — l'entreprise a déjà un annuaire pour ça — mais <b>qui détient quoi</b>.</p>
+<p><b>Le principe qui gouverne l'écran.</b> C'est celui de la liste des équipements, appliqué aux personnes : une rangée porte <b>le minimum qui permet de reconnaître et de choisir</b>. Elle gagne donc la donnée que la liste actuelle n'a pas et qui est la seule à décider quoi que ce soit — <b>le nombre d'équipements détenus</b>. C'est le pendant exact de « chez qui est l'objet » sur la liste des actifs, dans l'autre sens.</p>
+<p><b>Les emoji laissent place aux initiales.</b> Décision déjà prise sur le dashboard : les personnes sont des initiales sur pastille, jamais un visage de dessin animé. Onze avatars illustrés dans une liste font onze taches de couleur qui ne signifient rien et pèsent plus que les noms.</p>
+<p><b>Les badges de rôle en majuscules colorées tombent</b> — deux interdits d'un coup. Les <b>majuscules</b> (§8.4) : « SUPER ADMIN », « MANAGER », « UTILISATEUR » en aplat, quatre par écran. Et la <b>couleur qui code une catégorie</b> (§8.8) : vert pour super admin, bleu pour admin, pêche pour manager — un rôle n'est pas un état, et le peindre est exactement le défaut qu'on corrige sur le dashboard (« Headphones » en rouge, « Mouse » en vert). Le rôle devient un <b>mot</b>, en fin de première ligne, à la place qu'occupe le type sur la liste des actifs.</p>
+<p><b>Les rôles montent en tête avec leurs compteurs.</b> Même grammaire que les états d'équipement : l'axe sur lequel on filtre vraiment devient visible au lieu d'être enfermé derrière un bouton muet. Le bouton de filtre garde le reste — <b>département, site, état du compte, activité</b> — et porte le nombre de filtres actifs. Le <b>tri</b>, absent aujourd'hui, partage la ligne du décompte : il n'y a pas d'ordre naturel pour des personnes, donc il faut le dire (le tri par défaut est alphabétique ; la liste actuelle ne dit pas dans quel ordre elle range).</p>
+<p><b>La corbeille quitte la rangée</b> (même arbitrage que la liste des actifs) et la <b>pagination disparaît</b> : 11 personnes sur deux pages, avec la page active en aplat jaune — troisième jaune de l'écran. Défilement par lots, et la recherche pour réduire.</p>
+<p><b>Supprimer une personne qui détient du matériel doit être refusé.</b> C'est la conséquence directe de la donnée qu'on ajoute dans la rangée : effacer un compte qui porte deux machines rend ces machines introuvables. La suppression se décide sur la fiche, et la fiche propose d'abord <b>la restitution</b>. <i>Règle proposée — à valider côté code.</i></p>
+<p><b>L'e-mail sort de la rangée.</b> Il reste <b>clé de recherche</b> — le champ l'annonce déjà — mais il n'est plus affiché : trente caractères qui écrasent le nom qu'ils accompagnent. C'est un écart assumé avec <b>ASSET-10001</b>, gardé sur la liste des actifs : une étiquette se lit <i>sur l'objet</i>, alors qu'un e-mail ne se lit pas sur une personne. Le réglage est dans le panneau pour revenir dessus.</p>
+<p><b>Le bouton d'ajout ouvre un choix, pas un formulaire</b> — même moule que la liste des actifs : <b>inviter par e-mail</b> quand la personne n'existe nulle part, <b>importer depuis l'annuaire</b> quand le compte existe déjà côté entreprise. C'est cohérent avec l'arbitrage du Login (le backend sait, en coulisses, si un compte est sur l'annuaire ou en base locale). <i>Proposition ; le second chemin n'existe pas aujourd'hui.</i></p>
+<p><b>La colonne 2 est le second usage de cette liste</b> : la même liste appelée depuis « Attribuer » sur une fiche équipement. C'est elle qui justifie les deux données ajoutées à la rangée — on choisit un destinataire en regardant <b>ce qu'il détient déjà</b> et <b>où il est</b>, pas son adresse e-mail. Le bouton de validation nomme la personne et il est <b>noir, pas jaune</b> : le budget est pris par le bouton d'ajout et l'onglet actif. <i>La capture de ce chemin est arrivée depuis : c'est l'étape 2 d'un assistant en quatre étapes, avec avatars emoji, rôles peints et une pagination au milieu du geste. Le traitement complet de l'attribution est sur la planche « Attribuer et restituer » ; cette colonne en reste le sélecteur de personne.</i></p>
+<p><b>Données.</b> Sont des <b>hypothèses déclarées</b> : le <b>11ᵉ compte</b> (la capture ne montre que la page 1, soit dix personnes sur onze) ; les <b>départements</b>, déduits des noms et du seul cas visible sur une fiche (« IT HQ ») ; la <b>répartition des sept actifs attribués</b> sur les personnes — seule Alice est confirmée à 2 par sa fiche ; les volumes 120 et 800 comptes et leur ventilation par rôle.</p>
+</div>
+<p style="max-width:1180px;margin:-12px auto 24px;font-size:12px;line-height:18px;color:#4A453E">Le panneau <b style="font-weight:500">Tweaks</b> porte les quatre réglages d'aspect du chantier, plus deux propres à cette planche : le <b style="font-weight:500">volume de l'annuaire</b> (11 → 800 comptes) et l'<b style="font-weight:500">e-mail dans la rangée</b>, retiré par défaut pour la raison ci-dessus — <b style="font-weight:500">à confirmer</b>, puisque la décision inverse a été prise sur ASSET-10001.</p>
+<p style="max-width:1180px;margin:-4px auto 24px;font-size:12px;line-height:18px;color:#6B665E">Défauts relevés sur <code>screens/actuel/utilisateurs.png</code> — non repris en colonne ici (règle du 30/07) ; ils sont écrits dans <code>PASSATION.md</code>.</p>
+
+<div class="wrap">
+
+<!-- ============ COLONNE 1 — PISTE, GESTIONNAIRE ============ -->
+<div class="col">
+<p class="collab">Vue — gestionnaire de parc</p>
+<p class="colnote">Rangée en <b>deux lignes</b> : qui c'est, puis où il est et <b>combien d'objets il porte</b>. Initiales au lieu d'emoji, rôle en mot au lieu de badge peint, rôles en tête <b>avec leurs compteurs</b>, tri sur la ligne du décompte. Ni corbeille, ni pagination. <b>Un seul jaune</b> dans le contenu : le bouton d'ajout.</p>
+<div class="phone">
+<div class="tbar plain"><h2 class="h1">Équipe</h2></div>
+<div class="seek">
+<div class="frow">
+<div class="field"><i class="ic s18 ph ph-magnifying-glass"></i><span class="phold">Nom, e-mail, département</span></div>
+<details class="ovl"><summary class="fbtn" aria-label="Filtrer"><i class="ic s20 ph ph-funnel"></i></summary>
+<div class="scrim above-nav"></div>
+<div class="sheet above">
+<div class="grip"></div>
+<div class="sttl"><h3>Filtrer</h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sh">Département</div>
+<div class="sgrp"><span class="chip on">Tous</span><span class="chip">IT HQ</span><span class="chip">Ventes</span><span class="chip">Finance</span><span class="chip">Support</span><span class="chip">Direction</span></div>
+<div class="sh">Site</div>
+<div class="sgrp"><span class="chip on">Tous</span><span class="chip">Bureau Paris</span><span class="chip">Bureau Dakar</span></div>
+<div class="sh">État du compte</div>
+<div class="sgrp"><span class="chip on">Tous</span><span class="chip">Actif</span><span class="chip">Suspendu</span><span class="chip">Départ prévu</span></div>
+<div class="sh">Activité</div>
+<div class="sgrp"><span class="chip on">Toute</span><span class="chip">Sans connexion depuis 90 jours</span></div>
+<div class="sfoot"><button class="btn btn-ghost">Tout effacer</button><button class="btn btn-d">Voir les 11 personnes</button></div>
+<p class="prov">Le rôle n'est pas repris ici : il est déjà en tête d'écran, et rien ne s'écrit deux fois.</p>
+</div>
+</details>
+</div>
+<div class="chips">
+<span class="chip on">Tous <b class="vv v-11">11</b><b class="vv v-120">120</b><b class="vv v-800">800</b></span>
+<span class="chip">Utilisateurs <b class="vv v-11">5</b><b class="vv v-120">99</b><b class="vv v-800">706</b></span>
+<span class="chip">Managers <b class="vv v-11">3</b><b class="vv v-120">14</b><b class="vv v-800">74</b></span>
+<span class="chip">Admins <b class="vv v-11">2</b><b class="vv v-120">6</b><b class="vv v-800">18</b></span>
+<span class="chip">Super admin <b class="vv v-11">1</b><b class="vv v-120">1</b><b class="vv v-800">2</b></span>
+</div>
+</div>
+<div class="page">
+<div>
+<div class="cnt">
+<span><b class="vv v-11">11</b><b class="vv v-120">120</b><b class="vv v-800">800</b> personnes<span class="vv v-120"> · 11 affichées</span><span class="vv v-800"> · 11 affichées</span></span>
+<button class="sort"><i class="ic s18 ph ph-sort-ascending"></i>Nom (A → Z)</button>
+</div>
+<section class="card">
+<a class="lrow" href="#"><span class="vig">AT</span><span class="ltt"><span class="l1"><span class="c">Abdoulaye Deen Touré</span><span class="ty">Utilisateur</span></span><span class="l2"><span class="who">Support</span><span class="mail">abdoulaye.toure@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">AS</span><span class="ltt"><span class="l1"><span class="c">Alice SuperAdmin</span><span class="ty">Super admin</span></span><span class="l2"><span class="who">IT HQ</span><span class="mail">alice.admin@tracker.app</span><span class="aid has">2 équipements</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">BS</span><span class="ltt"><span class="l1"><span class="c">Bob Admin Sénégal</span><span class="ty">Admin</span></span><span class="l2"><span class="who">IT HQ</span><span class="mail">bob.senegal@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">CF</span><span class="ltt"><span class="l1"><span class="c">Clara Admin France</span><span class="ty">Admin</span></span><span class="l2"><span class="who">IT HQ</span><span class="mail">clara.france@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">EE</span><span class="ltt"><span class="l1"><span class="c">Ethan Employé</span><span class="ty">Utilisateur</span></span><span class="l2"><span class="who">Ventes</span><span class="mail">ethan.user@tracker.app</span><span class="aid has">2 équipements</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">FS</span><span class="ltt"><span class="l1"><span class="c">Fatou Support</span><span class="ty">Utilisateur</span></span><span class="l2"><span class="who">Support</span><span class="mail">fatou.support@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">JM</span><span class="ltt"><span class="l1"><span class="c">Jane Manager</span><span class="ty">Manager</span></span><span class="l2"><span class="who">Ventes</span><span class="mail">jane.manager@tracker.app</span><span class="aid has">1 équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">LU</span><span class="ltt"><span class="l1"><span class="c">Léa Utilisateur</span><span class="ty">Utilisateur</span></span><span class="l2"><span class="who">Direction</span><span class="mail">lea.user@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">MF</span><span class="ltt"><span class="l1"><span class="c">Marc Finance</span><span class="ty">Utilisateur</span></span><span class="l2"><span class="who">Finance</span><span class="mail">marc.finance@tracker.app</span><span class="aid has">1 équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">NM</span><span class="ltt"><span class="l1"><span class="c">Nora Finance Manager</span><span class="ty">Manager</span></span><span class="l2"><span class="who">Finance</span><span class="mail">nora.manager@tracker.app</span><span class="aid">aucun équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">OM</span><span class="ltt"><span class="l1"><span class="c">Oumar Manager Dakar</span><span class="ty">Manager</span></span><span class="l2"><span class="who">Ventes</span><span class="mail">oumar.manager@tracker.app</span><span class="aid has">1 équipement</span></span></span></a>
+<span class="more center vv v-120"><i class="ic s18 ph ph-caret-down"></i>Charger 20 de plus</span>
+<span class="more center vv v-800"><i class="ic s18 ph ph-caret-down"></i>Charger 20 de plus</span>
+</section>
+<p class="lfoot vv v-11">Sept des quatorze actifs sont portés par cinq personnes.</p>
+<p class="lfoot vv v-120">11 sur 120 · affinez par département ou par site plutôt que de défiler.</p>
+<p class="lfoot vv v-800">11 sur 800 · sur un annuaire de cette taille, la recherche est le seul chemin.</p>
+</div>
+</div>
+<details class="ovl"><summary class="fab" aria-label="Ajouter une personne"><i class="ic ph ph-plus"></i></summary>
+<div class="scrim above-nav"></div>
+<div class="sheet above">
+<div class="grip"></div>
+<div class="sttl"><h3>Ajouter une personne</h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<a class="si big" href="#"><span class="vig"><i class="ic s20 ph ph-envelope-simple"></i></span><span class="tt"><span class="t">Inviter par e-mail</span><span class="sd">La personne choisit son mot de passe à la première connexion.</span></span><i class="ic s18 chq ph ph-caret-down"></i></a>
+<a class="si big" href="#"><span class="vig"><i class="ic s20 ph ph-users-three"></i></span><span class="tt"><span class="t">Importer depuis l'annuaire</span><span class="sd">Le compte existe déjà côté entreprise : rien à saisir.</span></span><i class="ic s18 chq ph ph-caret-down"></i></a>
+<p class="prov">Proposition. Seule l'invitation existe aujourd'hui ; l'import depuis l'annuaire reste à spécifier.</p>
+</div>
+</details>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#" class="on"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<!-- ============ COLONNE 2 — CHOISIR UN DESTINATAIRE ============ -->
+<div class="col">
+<p class="collab">Vue — choisir un destinataire</p>
+<p class="colnote">La <b>même liste</b>, appelée depuis « Attribuer » sur une fiche équipement. C'est ce chemin qui justifie les deux données ajoutées à la rangée : on choisit en regardant <b>ce que la personne détient déjà</b> et <b>où elle est</b>. Disparaissent les rôles en tête, le tri, le bouton d'ajout et la barre du bas — on est dans un geste, pas dans un écran. <b>Reconstruction déclarée.</b></p>
+<div class="phone">
+<div class="tbar plain"><span class="tb" style="margin-left:-12px"><i class="ic ph ph-arrow-left"></i></span><h2 class="h1 bar">Attribuer à</h2></div>
+<div class="ctx">LPT-HQ-01 · Ordinateur portable · Bureau Paris</div>
+<div class="seek">
+<div class="frow"><div class="field"><i class="ic s18 ph ph-magnifying-glass"></i><span class="phold">Nom, e-mail, département</span></div></div>
+</div>
+<div class="page">
+<div>
+<div class="cnt"><span>Sur le même site d'abord</span></div>
+<section class="card">
+<a class="lrow sel" href="#"><span class="vig">EE</span><span class="ltt"><span class="l1"><span class="c">Ethan Employé</span><span class="ty">Ventes</span></span><span class="l2"><span class="who">Bureau Paris</span><span class="aid has">2 équipements</span></span></span><i class="ic s20 ck ph ph-check"></i></a>
+<a class="lrow" href="#"><span class="vig">JM</span><span class="ltt"><span class="l1"><span class="c">Jane Manager</span><span class="ty">Ventes</span></span><span class="l2"><span class="who">Bureau Paris</span><span class="aid has">1 équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">MF</span><span class="ltt"><span class="l1"><span class="c">Marc Finance</span><span class="ty">Finance</span></span><span class="l2"><span class="who">Bureau Paris</span><span class="aid has">1 équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">LU</span><span class="ltt"><span class="l1"><span class="c">Léa Utilisateur</span><span class="ty">Direction</span></span><span class="l2"><span class="who">Bureau Paris</span><span class="aid">aucun équipement</span></span></span></a>
+</section>
+</div>
+<div>
+<div class="cnt"><span>Autres sites</span></div>
+<section class="card">
+<a class="lrow" href="#"><span class="vig">OM</span><span class="ltt"><span class="l1"><span class="c">Oumar Manager Dakar</span><span class="ty">Ventes</span></span><span class="l2"><span class="who">Bureau Dakar</span><span class="aid has">1 équipement</span></span></span></a>
+<a class="lrow" href="#"><span class="vig">AT</span><span class="ltt"><span class="l1"><span class="c">Abdoulaye Deen Touré</span><span class="ty">Support</span></span><span class="l2"><span class="who">Bureau Dakar</span><span class="aid">aucun équipement</span></span></span></a>
+<span class="more center"><i class="ic s18 ph ph-caret-down"></i>Charger 20 de plus</span>
+</section>
+<p class="lfoot">Un objet et son porteur sur deux sites différents, c'est un transport à prévoir : la liste le dit avant, pas après.</p>
+</div>
+</div>
+<div class="abar"><button class="btn btn-d">Attribuer à Ethan Employé</button></div>
+</div>
+</div>
+
+</div>
+<div id="tw-root"></div>
+<script>
+document.addEventListener('click',function(e){
+  var s=e.target.closest('.scrim,.sttl .tb');
+  if(s){var d=s.closest('details.ovl');if(d&&d.open){d.open=false;e.preventDefault();return}}
+  document.querySelectorAll('details.ovl[open]').forEach(function(d){if(!d.contains(e.target))d.open=false});
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('details.ovl[open]').forEach(function(d){d.open=false})});
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "vol": "11 comptes (démonstration)",
+  "mail": "Retiré",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action",
+  "vie": "Sobre"
+}/*EDITMODE-END*/;
+const VOL = {"11 comptes (démonstration)":"11","120 comptes":"120","800 comptes":"800"};
+const MAIL = {"Retiré":"non","Affiché":"oui"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+const VIE = {"Sobre":"sobre","Assumée":"assumee"};
+function ListeTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.vol = VOL[t.vol] || '11';
+    b.dataset.mail = MAIL[t.mail] || 'non';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+    b.dataset.vie = VIE[t.vie] || 'sobre';
+  },[t.vol,t.mail,t.tone,t.densite,t.accent,t.vie]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="Volume de l'annuaire (colonne gestionnaire)" />
+      <TweakRadio label="Comptes" value={t.vol} options={Object.keys(VOL)} onChange={(v)=>setTweak('vol',v)} />
+      <TweakSection label="E-mail dans la rangée" />
+      <TweakRadio label="Adresse" value={t.mail} options={Object.keys(MAIL)} onChange={(v)=>setTweak('mail',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+      <TweakSection label="Intensité de vie" />
+      <TweakRadio label="Traitement" value={t.vie} options={Object.keys(VIE)} onChange={(v)=>setTweak('vie',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<ListeTweaks />);
+</script>
+</body>
+</html>

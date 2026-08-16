@@ -496,20 +496,30 @@ primitive sous-jacente.
 | `Badge` | ✅ | — | — | — | — | — | — |
 | `BottomSheet` | ✅ | — | ✅ piège + focus initial | — | — | — | — |
 | `Button` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| `BulkActionBar` | ➕ | ↳ `Button` | ↳ | ↳ | — *(S1 : à sélection vide il n'existe pas, il n'est pas grisé)* | — | — |
 | `Card` | ✅ | ✅ si cliquable | ✅ | ➕ | ✅ | — | — |
 | `Chip` | ✅ | ✅ | ✅ | ➕ | ✅ *(corrigé)* | — | — |
 | `CloseButton` | ↳ `Button` | ↳ | ↳ | ↳ | ↳ | — | — |
-| `ConfirmationDialog` | ✅ | ↳ | ↳ `Modal` | ↳ | ✅ tant que le mot-clé manque | ✅ | — |
+| `ConfirmationSheet` | ➕ | ↳ `Button` | ➕ piège + Échap + focus initial | ↳ | ➕ tant que le mot-clé ou le motif manque | ➕ | ➕ *(l'acte échoué garde la feuille ouverte, 17.1 règle 1)* |
+| `ContextBanner` · `OfflineBanner` | ➕ | — | — | — | — | — | — *(il **dit** un état, il n'en a pas)* |
 | `DemoBadge` | ✅ | — | — | — | — | — | — |
+| `DetailHero` | ➕ | ↳ actions | ↳ | ↳ | — | — | — |
+| `DetailTemplate` | ➕ | ↳ | ↳ | ↳ | — | ➕ *(`SkeletonDetail` après 300 ms)* | ➕ *(hors ligne ; l'échec d'acte se pose sous le héro)* |
 | `Divider` | ✅ | — | — | — | — | — | — |
-| `EmptyState` | ✅ | ↳ action | ↳ action | ↳ action | — | — | — |
+| `EmptyState` *(déprécié → `ScreenState`)* | ✅ | ↳ action | ↳ action | ↳ action | — | — | — |
 | `EntityRow` | ✅ | ✅ | ✅ *(inset)* | ✅ | ✅ | — | — |
+| `FacetChip` | ➕ | ✅ | ➕ | — *(voir note)* | — | — | — |
 | `ErrorBoundary` | ✅ | — | — | — | — | — | ✅ *(c'est sa raison d'être)* |
 | `FabContainer` | ✅ | — | — | — | — | — | — |
 | `FileDropzone` | ✅ | ✅ | ➕ | — *(voir note)* | — | ✅ ➕ *(clic et dépôt neutralisés, `aria-busy`)* | — |
 | `FloatingActionButton` | ✅ | ✅ | ✅ | ✅ | ➕ | — | — |
 | `IconButton` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| `Icon` | ➕ | — | — | — | — | — | — *(décoratif : `aria-hidden`, le mot est à côté — I3)* |
+| `InlineError` | ➕ | — | — | — | — | — | ➕ *(c'est sa raison d'être)* |
 | `InputField` | ✅ | ✅ | ✅ | — | ✅ | — | ✅ |
+| `ListRow` | ➕ | — *(voir note)* | ➕ | — | — | ↳ `Skeleton*` | — |
+| `ListRow` *(sélection)* | ➕ | — *(S4)* | ➕ | — | — | — | — |
+| `ListTemplate` | ➕ | ↳ | ↳ | ↳ | — | ➕ *(squelette après 300 ms)* | ➕ *(hors ligne, vide)* |
 | `ListActionFab` | ↳ | ↳ | ↳ | ↳ | ✅ ➕ *(rendu par le FAB)* | — | — |
 | `LoadingSpinner` | — | — | — | — | — | ✅ *(c'est sa raison d'être)* | — |
 | `MaterialIcon` | ✅ | — | — | — | — | — | — |
@@ -520,11 +530,19 @@ primitive sous-jacente.
 | `NavButton` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
 | `PageTabs` | ✅ | ✅ | ✅ | — *(voir note)* | — | — | — |
 | `Pagination` | ✅ | ✅ | ➕ | ➕ | ✅ | — | — |
+| `ProportionRow` | ➕ | — | — | — | — | — | — *(un amortissement n'est pas une anomalie)* |
+| `ReferenceRow` | ➕ | ✅ *(valeur copiable)* | ➕ *(idem)* | — | — | — | — |
 | `SearchFilterBar` | ✅ | ✅ | ➕ | ✅ *(bouton filtre)* | — | — | — |
+| `ScanView` | ➕ | ✅ | ➕ | — *(voir note)* | — | — *(l'attente **est** la caméra)* | — *(la lecture appartient à l'appelant)* |
+| `ScreenState` | ➕ | ↳ action | ↳ action | ↳ action | — | — | ➕ *(introuvable et refusé sont deux de ses trois emplois)* |
 | `SegmentedButton` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
 | `SelectField` | ✅ | ✅ | ✅ | — | ✅ | — | ✅ |
+| `SelectableRow` | ➕ | — *(voir note)* | ➕ | — | — | — | — |
 | `SelectFilter` | ✅ | ✅ | ✅ | — | — | — | — |
+| `SelectionTopBar` | ➕ | ✅ | ➕ | — | — | — | — |
+| `SearchField` | ➕ | — | ➕ *(anneau porté par le cadre)* | — | — | — | — |
 | `SideSheet` | ✅ | — | ✅ piège + focus initial | — | — | — | — |
+| `Skeleton*` *(List · Queue · Detail)* | — | — | — | — | — | ➕ *(c'est sa raison d'être)* | — |
 | `Snackbar` | ✅ | ✅ | ✅ *(exception, §10.5)* | — | — | — | ✅ `variant="error"` |
 | `StatusBadge` | ✅ | — | — | — | — | — | — |
 | `TableScrollArea` | ✅ | ✅ | ✅ *(région focalisable)* | — | — | — | — |
@@ -539,6 +557,18 @@ primitive sous-jacente.
   retour d'appui y serait illisible. L'état qui compte est le **survol de
   fichier** (`isDragging` → bordure `primary` + fond `primary-container/20`),
   déjà implémenté.
+- `ListRow` **hover** : la rangée entière est la cible et le chevron le dit ; les
+  planches ne dessinent aucun retour de survol, et **rien de destructif** n'y vit
+  qui pourrait en réclamer un (04.1 : la corbeille de rangée est tombée).
+- `FacetChip` **pressed** : la sélection est un état **permanent** (surface
+  inversée). Un retour d'appui transitoire par-dessus brouillerait sa lecture —
+  même raison que `PageTabs`.
+- `ListRow` en **sélection**, **hover** : rien n'apparaît au survol — règle **S4** de la planche
+  17.2, *jamais un acte au seul survol*. Tout est tactile : les actes de rangée sont
+  visibles en permanence ou dans le débordement. Le seul retour est l'état **coché**,
+  qui est permanent, pas transitoire.
+- `ScanView` **pressed** : le geste qui compte n'est pas l'appui, c'est la **lecture** —
+  et elle se dit par le retour visuel **et haptique** de N3, jamais par un état de bouton.
 - `PageTabs` **pressed** : l'onglet actif est un état **permanent** (rempli
   jaune). Ajouter un retour d'appui transitoire par-dessus brouillerait la
   lecture de la sélection.
@@ -589,9 +619,9 @@ servi de référence.
   `isOpen`) plutôt que par `:focus-visible`. Conséquence assumée : l'anneau
   apparaît aussi au clic souris. Le déclencheur est un `combobox` dont l'état
   ouvert doit être visible quelle que soit la modalité d'entrée.
-- **`ConfirmationDialog` — indicateur de chargement local** (`MaterialIcon
-  progress_activity` animé) plutôt que la prop `loading` de `Button`. Écart
-  cosmétique connu, non corrigé en v1 pour ne pas toucher au rendu.
+- ~~**`ConfirmationDialog` — indicateur de chargement local**~~ — **caduque le
+  2026-08-15** : le composant est remplacé par `ConfirmationSheet` (planche 17.2),
+  qui emploie la prop `loading` de `Button`. L'écart n'existe plus faute de porteur.
 
 ---
 
@@ -680,6 +710,24 @@ l'icône — n'est pas décidable lexicalement, et vit dans une liste d'exceptio
 explicite.
 
 ---
+
+
+### 11.6 `FacetChip` ou `Chip` · `SearchField` ou `SearchFilterBar`
+
+Deux paires nées du portage du gabarit de liste (2026-08-15). Elles se ressemblent
+à l'œil et ne portent pas le même rôle ; la règle est **l'écran**, pas le goût.
+
+| | Écran **non basculé** | Écran porté sur les planches |
+| --- | --- | --- |
+| puce de filtre | `Chip` — 32 px, sélection **jaune plein** | `FacetChip` — 44 px, sélection en **surface inversée**, avec **décompte** |
+| recherche | `SearchFilterBar` — barre MD3 en gélule, bouton de filtre **inclus** | `SearchField` — le champ **seul**, 48 px, rayon 4, le filtre reste à l'écran |
+
+**Pourquoi deux et pas une.** La sélection jaune de `Chip` dépense le budget de
+deux jaunes par écran (X12) que les planches réservent à l'onglet actif et au
+bouton d'ajout ; et `SearchFilterBar` possède son bouton de filtre, là où le
+gabarit veut placer lui-même une feuille de filtre à trois axes. Les deux couples
+cohabitent **le temps de la bascule**, comme le namespace `adn-` : la forme
+héritée disparaît avec son dernier appel.
 
 ## 12. Patterns officiels
 

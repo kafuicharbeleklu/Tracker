@@ -1,0 +1,589 @@
+<!-- @dsCard group="04. Équipement" viewport="1320x5560" name="04.1 Liste équipements" subtitle="Liste gestionnaire (3 volumes) · « Mes équipements » · l'arrivée pré-filtrée depuis le tableau de bord · scanner adaptatif (6 états)" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Liste équipements — piste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--r-pill:999px;--colnote-h:126px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--dark-2:#1B3238;--on-dark:#FFFFFF;--on-dark-2:#A9C0C4;--dark-line:rgba(255,255,255,.14);
+--live-vert:#7AB955;--live-bleu:#54A9DC;--live-orange:#E45329;--live-ambre:#E9C46A;
+--st-vert:#5B913C;--st-bleu:#288AC5;--st-orange:#E45329;--st-ambre:#A97C00;
+--data:var(--ink);--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.prov-row{display:flex;align-items:center;gap:8px;padding:0 2px 9px;font-size:12px;line-height:17px;color:var(--ink2)}
+.prov-row i{color:var(--ink3);flex:0 0 auto}
+.prov-row b{font-weight:500;color:var(--ink)}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.phone h2.h1,.phone .cnt b,.phone .chip b{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.01em}
+/* en-tête */
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tbar.plain{padding-left:20px;padding-right:20px}
+.tbar h2.h1{flex:1;min-width:0;font-size:22px;line-height:28px}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tb:hover{background:var(--inset)}
+/* zone de recherche : elle reste en haut quand la liste défile */
+.seek{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-direction:column;gap:10px}
+.field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.field .phold{color:var(--ink3)}
+.field svg{flex:0 0 18px}
+.frow{display:flex;gap:8px;align-items:center}
+.frow .field{flex:1;min-width:0}
+.fbtn{position:relative;width:var(--btnh);height:var(--btnh);flex:0 0 var(--btnh);border:1px solid var(--line-strong);border-radius:4px;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.fbtn:hover{background:var(--inset)}
+.fbtn b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);background:var(--dark);color:#fff;font-size:10px;font-weight:600;line-height:18px;font-variant-numeric:tabular-nums;text-align:center}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-right:20px;margin-right:-20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border-radius:4px;background:var(--inset);color:var(--ink);font-size:13px;white-space:nowrap}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--dark);color:var(--on-dark)}
+.st{display:inline-block;width:7px;height:7px;border-radius:2px;flex:0 0 7px}
+.st-b{background:var(--st-bleu)}
+.st-v{background:var(--st-vert)}
+.st-o{background:var(--st-orange)}
+.st-a{background:var(--st-ambre)}
+/* compteur et tri sur la même ligne */
+.cnt{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-size:13px;color:var(--ink2)}
+.cnt>span{flex:0 0 auto;white-space:nowrap}
+.cnt b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.sort{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;margin-right:-8px;border:0;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;border-radius:4px}
+.sort:hover{background:var(--inset)}
+.sort svg{flex:0 0 14px;color:var(--ink2)}
+/* rangées : une liste sert à trouver, pas à lire */
+.lrow{display:flex;align-items:center;gap:12px;min-height:72px;padding:var(--rowy) 0}
+.lrow+.lrow{border-top:1px solid var(--line)}
+.lrow:hover{color:var(--ink)}
+.lth{width:40px;height:40px;flex:0 0 40px;border-radius:6px;overflow:hidden;background:var(--inset);display:flex;align-items:center;justify-content:center;color:var(--ink3)}
+.lth image-slot::part(empty){display:none!important}
+.ltt{flex:1;min-width:0}
+.ltt>span.l1,.ltt>span.l2{display:flex}
+.l1{display:flex;align-items:baseline;gap:10px}
+.l1 .c{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l1 .ty{margin-left:auto;font-size:12px;color:var(--ink2);white-space:nowrap}
+.l2{display:flex;align-items:center;gap:7px;margin-top:3px;font-size:13px;color:var(--ink2);min-width:0}
+.l2 .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l2 .aid{margin-left:auto;font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap}
+.more{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:8px;border-top:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+.more.center{justify-content:center;gap:8px}
+.more svg{flex:0 0 15px;color:var(--ink2)}
+.lfoot{font-size:12px;line-height:17px;color:var(--ink3);text-align:center;margin-top:6px;font-variant-numeric:tabular-nums}
+/* bouton d'ajout */
+.phone:has(.fab) .page{padding-bottom:92px}
+.ovl>summary.fab{list-style:none}
+.fab{position:absolute;right:20px;bottom:76px;width:56px;height:56px;border-radius:8px;border:0;background:var(--btn-y-bg);color:var(--btn-y-fg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,25,29,.22);cursor:pointer}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+/* réglages */
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-tone="franc"] .phone .card{border:1px solid var(--line)}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+body[data-vie="assumee"] .lrow{min-height:84px}
+/* réglage « ce que la caméra voit » : il ne pilote que le scanner vivant de la colonne 2 */
+.live .sw{display:none}
+body[data-sym="idle"] .live .s-i,body[data-sym="1d"] .live .s-1,body[data-sym="2d"] .live .s-2{display:flex}
+.live .ret{width:100%;height:210px}
+body[data-sym="1d"] .live .ret{height:112px}
+body[data-sym="1d"] .live .ret b{display:block}
+body[data-sym="2d"] .live .ret{width:212px;height:212px}
+/* feuilles montantes et plein écran : la même grammaire pour les trois commandes */
+.ovl{position:static;flex:0 0 var(--btnh)}
+.ovl>summary{list-style:none;cursor:pointer}
+.ovl>summary::-webkit-details-marker{display:none}
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.scrim.above-nav{bottom:56px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sh{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 20px 6px}
+.si{display:flex;flex-direction:column;justify-content:center;gap:1px;min-height:48px;padding:6px 20px;font-size:14px;color:var(--ink)}
+.si:hover{background:var(--inset);color:var(--ink)}
+.sd{font-size:11px;line-height:16px;color:var(--ink3)}
+.si.big{flex-direction:row;align-items:center;gap:14px;min-height:64px}
+
+.si.big .tt{flex:1;min-width:0}
+.si.big .tt>span{display:block}
+.si.big .t{font-size:15px;font-weight:500}
+.si.big .chq{flex:0 0 15px;color:var(--ink3);transform:rotate(-90deg)}
+.prov.dark-none{font-size:11px;line-height:16px;color:var(--ink3);padding:12px 20px 4px;margin-top:8px;border-top:1px solid var(--line)}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sgrp{padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+.sgrp .chip{min-height:44px}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.vb{display:flex;gap:12px;align-items:center;margin-top:12px}
+.vb>.btn:not(.btn-ghost){flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.btn-d{background:var(--dark);color:var(--on-dark)}
+/* scanner : plein cadre, la caméra est le fond */
+.scan{position:absolute;left:0;right:0;top:0;height:852px;background:var(--dark);z-index:6;display:flex;flex-direction:column;color:var(--on-dark)}
+.scan+.mask{position:absolute;left:0;right:0;top:852px;bottom:0;background:var(--dark);opacity:.94;z-index:6}
+.scan .sbar{display:flex;align-items:center;gap:4px;padding:8px 8px 0}
+.scan .sbar .tb{color:var(--on-dark)}
+.scan .sbar .tb:hover{background:var(--dark-2)}
+.scan .sbar .lbl{flex:1;min-width:0;font-size:15px;font-weight:500;padding-left:12px}
+.scan .view{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:0 32px}
+/* le viseur : sa GÉOMÉTRIE est le retour, il n'y a pas de sélecteur de mode */
+.ret{position:relative;border-radius:8px;background:rgba(255,255,255,.05);transition:width .2s ease,height .2s ease}
+.ret i{position:absolute;width:26px;height:26px;border:2px solid var(--brand)}
+.ret i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+.ret i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+.ret i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
+.ret i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
+.ret b{display:none;position:absolute;left:12px;right:12px;top:50%;height:2px;background:rgba(255,255,255,.72)}
+.ret-idle{width:100%;height:210px}
+.ret-1d{width:100%;height:112px}
+.ret-1d b{display:block}
+.ret-2d{width:212px;height:212px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:14px}
+.sym{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:4px;background:var(--dark-2);font-size:12px;font-weight:500;color:var(--on-dark)}
+.scan .say{font-size:15px;line-height:21px;text-align:center;color:var(--on-dark-2)}
+.scan .say em{font-style:normal;font-weight:500;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.scan .foot{padding:0 20px 24px;display:flex;flex-direction:column;gap:10px}
+.scan .alt{display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--btnh);border-radius:4px;background:var(--dark-2);color:var(--on-dark);font-size:14px;font-weight:500;cursor:pointer}
+.scan .prov{font-size:11px;line-height:16px;text-align:center;color:var(--on-dark-2)}
+/* une lecture qui identifie passe ; une lecture qui crée ou modifie demande */
+.verdict{flex:0 0 auto;background:var(--surface);color:var(--ink);border-radius:8px 8px 0 0;padding:14px 20px 20px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.verdict .vh{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2)}
+.verdict .vh svg{flex:0 0 18px}
+.verdict h4{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.verdict .vl{display:flex;align-items:baseline;gap:12px;justify-content:space-between;font-size:13px;color:var(--ink2);padding:9px 0;border-top:1px solid var(--line)}
+.verdict .vl span:last-child{color:var(--ink);font-weight:500;white-space:nowrap}
+.verdict .vn{font-size:12px;line-height:17px;color:var(--ink3)}
+.verdict .vb{display:flex;gap:10px;align-items:center;margin-top:2px}
+/* récolement : la caméra reste ouverte et compte */
+.tally{flex:0 0 auto;background:var(--surface);color:var(--ink);border-radius:8px 8px 0 0;padding:14px 20px 20px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.tally .th{display:flex;align-items:baseline;gap:8px}
+.tally .th b{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:24px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.tally .th span{font-size:13px;color:var(--ink2)}
+.tally .tl{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink2);padding:9px 0;border-top:1px solid var(--line)}
+.tally .tl svg{flex:0 0 16px;color:var(--ink3)}
+.tally .tl b{font-weight:500;color:var(--ink)}
+.tally>.btn{flex:0 0 var(--btnh)}
+.sframe{width:393px;height:852px;position:relative;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.14);background:var(--dark)}
+.vv{display:none}
+body[data-vol="14"] p.vv.v-14,body[data-vol="120"] p.vv.v-120,body[data-vol="800"] p.vv.v-800{display:block}
+body[data-vol="14"] b.vv.v-14,body[data-vol="14"] span.vv.v-14,body[data-vol="120"] b.vv.v-120,body[data-vol="120"] span.vv.v-120,body[data-vol="800"] b.vv.v-800,body[data-vol="800"] span.vv.v-800{display:inline}
+body[data-vol="14"] a.vv.v-14,body[data-vol="120"] a.vv.v-120,body[data-vol="800"] a.vv.v-800{display:flex}
+#tw-root:empty{display:none}
+
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.stg{flex:0 0 auto}.stg-v{color:var(--st-vert,#5B913C)}.stg-b{color:var(--st-bleu,#288AC5)}.stg-a{color:var(--st-ambre,#A97C00)}.stg-o{color:var(--st-orange,#E45329)}.stg-m{color:var(--ink3,#8B8580)}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action" data-vie="sobre" data-vol="14" data-sym="idle">
+<div class="intro">
+<h1>Liste des équipements — une liste sert à trouver, pas à lire</h1>
+<p><b>Cadrage.</b> Le <b>gestionnaire de parc</b> ouvre cette liste pour une seule chose : <i>trouver l'objet dont on lui parle</i>, ou <i>choisir dans ce qui est disponible</i>. Il enchaîne sur la fiche, puis sur attribuer. L'<b>utilisateur porteur</b> voit une autre liste sous le même onglet : <i>les quatre miens</i> — il n'y cherche rien, il y entre.</p>
+<p><b>Le principe qui gouverne l'écran.</b> Une rangée n'est pas une fiche résumée : elle porte <b>le minimum qui permet de reconnaître et de choisir</b>. Trois conséquences appliquées : la rangée tient sur <b>deux lignes</b> (elle en fait trois aujourd'hui, ce qui donne 180 px par actif et 14 actifs sur deux pages), elle dit <b>chez qui est l'objet</b> — l'information la plus demandée sur un parc, aujourd'hui absente de la liste — et <b>rien de destructif ne s'y trouve</b>.</p>
+<p><b>La corbeille disparaît de chaque rangée.</b> C'était l'action la plus irréversible de l'écran, en rouge, à droite, exactement là où passe le pouce qui fait défiler dix rangées. Elle a déjà été arbitrée sur la fiche : <b>« Sortir du parc »</b>, dans le menu de débordement, sur l'objet qu'on regarde. Une suppression se décide devant l'objet, pas en le survolant.</p>
+<p><b>La pagination disparaît aussi.</b> Deux pages pour 14 actifs, avec la page active en <b>aplat jaune</b> : c'était le troisième jaune de l'écran après le bouton d'ajout et l'onglet actif — deux de plus que le budget. Et pour atteindre la page 2 il fallait défiler 10 rangées de 180 px, puis viser un contrôle de 40 px logé sous le bouton flottant. À la place : <b>défilement continu par lots</b>, et surtout la <b>recherche et les filtres</b> comme moyen de réduire — sur un parc, on ne feuillette pas, on cherche.</p>
+<p><b>L'état sort des majuscules et des aplats.</b> « DISPONIBLE » en vert, « ATTRIBUÉ » en bleu, « EN RÉPARATION » en rouge : trois badges pleins par écran, en majuscules (interdit §8.4), qui pèsent plus que le nom de l'objet. L'état devient une <b>pastille de teinte LIVE + un mot</b>, dans la deuxième ligne, avec le porteur — la même grammaire que sur la fiche.</p>
+<p><b>Les états montent en tête, avec leurs compteurs.</b> Le bouton de filtre actuel est muet : il ne dit ni sur quoi il porte, ni combien de filtres sont actifs. L'axe sur lequel on filtre presque toujours — <i>qu'est-ce qui est disponible</i> — devient <b>visible</b> : quatre pastilles avec leur décompte. Le bouton garde le reste (type, emplacement, période) et <b>porte un compteur dès qu'un filtre est posé</b> — l'état dessiné ici est celui d'arrivée, sans filtre, donc le compteur n'apparaît pas. Le <b>tri</b>, absent aujourd'hui, partage la ligne du compteur.</p>
+<p><b>Les trois commandes sont cliquables sur la planche</b> — filtre, scan, « Plus ». Voile, clic extérieur et Échap les ferment, une seule ouverte à la fois. <b>La feuille de filtre ne reprend pas l'état</b> : il est déjà en tête d'écran sous forme de pastilles, et rien ne s'écrit deux fois. Elle porte donc les trois axes qui restent — famille, emplacement, période — chacun en <b>chips à plat</b>, sans sous-feuille à ouvrir : trois axes tiennent sur un écran, une arborescence de filtres n'en vaudrait pas le prix. <b>Le premier axe porte les quatre familles du Catalogue, plus « Toutes »</b> — cinq pastilles sur <b>deux</b> rangées, contre neuf sur trois auparavant (mesuré à 393 px) ; les <b>types</b> de la famille choisie apparaissent dessous une fois qu'une famille est prise, et pas avant. <i>Refait le 05/08 — arbitrage A2, voir 09.1 : la rangée de familles est bornée à quatre quand la liste de types, elle, grandit.</i> Son bouton de validation dit <b>combien de résultats attendent</b> (« Voir les 14 équipements » tant que rien n'est réduit) et il est <b>noir, pas jaune</b> — le budget de deux jaunes est déjà pris par le bouton d'ajout et l'onglet actif, et une feuille n'est pas un écran séparé. « Plus » est la <b>feuille validée sur le dashboard</b>, reprise à l'identique : trois groupes, sept destinations.</p>
+<p><b>Le bouton d'ajout ouvre un choix, pas un formulaire.</b> « Ajouter » n'est pas un geste unique sur un parc : on <b>scanne</b> une étiquette déjà collée, on <b>saisit</b> une fiche quand il n'y a rien à lire, ou on <b>importe une livraison</b> de dix machines identiques — troisième cas que rien ne couvre aujourd'hui et qui est le plus fréquent en arrivée de stock. La feuille pose donc les trois chemins avec ce qui les distingue, et le <b>formulaire de création reste un écran à part</b>, non traité ici. <i>Les trois chemins sont validés (29/07) ; seul le second existe aujourd'hui, les deux autres restent à spécifier avant implémentation.</i></p>
+<p><b>Le geste qui manque : scanner.</b> L'application sait déjà scanner une facture (écran Finances). Sur une liste de parc, l'étiquette collée sur l'objet est le chemin le plus court entre la machine qu'on tient et sa fiche. La loupe porte donc un second geste. <i>Validé le 29/07, avec une exigence ajoutée : le scanner reconnaît de lui-même ce qu'il lit — code-barres ou QR — et s'adapte, visuellement et fonctionnellement. Les six états sont dessinés en bas de planche.</i></p>
+<p><b>Deux questions de données, tranchées ici plutôt que renvoyées au code.</b> <b>(1) Le porteur dans la rangée est une exigence, pas une option</b> : l'affectation est un champ de l'actif au même titre que l'état, que la liste affiche déjà. Si la charge utile de la liste ne le contient pas encore, c'est la charge utile qu'on étend, pas la rangée qu'on ampute — avec un <b>repli</b> en attendant : la deuxième ligne montre l'<b>emplacement</b>, même dessin, plutôt qu'un vide. <b>(2) Les compteurs des pastilles ne valent que s'ils comptent tout le parc filtré</b>, jamais la page chargée : un « 5 » qui ne compte que les vingt premiers actifs est un mensonge. Sans total côté serveur, les pastilles <b>perdent leur chiffre et restent des filtres</b>. La forme dégrade, elle ne fausse pas.</p>
+<p><b>Données.</b> Le jeu de démonstration (14 actifs, dont 5 disponibles, 7 attribués, 2 en réparation — répartition <b>déduite</b> des captures, à confirmer). Sont des <b>hypothèses déclarées</b> : les <b>quatre dernières rangées</b> — la capture actuelle ne montre que la page 1, soit dix actifs sur quatorze, et les codes FRN-HQ-02, LPT-SNG-01, HDP-HQ-02, MSE-DK-01 sont donc reconstruits d'après la nomenclature et les huit catégories du Catalogue ; les volumes 120 et 800 actifs <b>et leur ventilation par état</b> (réglage de volumétrie), les porteurs affichés en deuxième ligne (avec la règle de repli énoncée plus haut) — et la vue « Mes équipements », dont aucune capture n'existe.</p>
+</div>
+<p style="max-width:1180px;margin:-12px auto 24px;font-size:12px;line-height:18px;color:#4A453E">Le panneau <b style="font-weight:500">Tweaks</b> porte les quatre réglages d'aspect du chantier, plus deux propres à cette planche : le <b style="font-weight:500">volume du parc</b> (14 → 800 actifs, pour voir ce que devient une liste qui n'a plus de pagination) et <b style="font-weight:500">ce que la caméra voit</b>, qui fait changer de forme le viseur du scanner ouvrable en colonne 2. <b style="font-weight:500">Tranché le 29/07 : ASSET-10001 reste dans la rangée</b>, son réglage a donc disparu — on lit parfois l'identifiant sur l'étiquette collée sur l'objet, et une clé de recherche visible rassure.</p>
+
+<p style="max-width:1180px;margin:-4px auto 24px;font-size:12px;line-height:18px;color:#6B665E">Défauts relevés sur <code>screens/actuel/inventaire.png</code> — non repris en colonne ici (règle du 30/07) ; ils sont écrits dans <code>PASSATION.md</code>.</p>
+
+<div class="wrap">
+
+<!-- ================= COLONNE 2 — PISTE, GESTIONNAIRE ================= -->
+<div class="col">
+<p class="collab">Vue — gestionnaire de parc</p>
+<p class="colnote">Rangée en <b>deux lignes</b> : ce qu'est l'objet, puis où il en est et chez qui. L'état passe en <b>pastille + mot</b>, les états montent en tête <b>avec leurs compteurs</b>, le tri partage la ligne du décompte. Ni corbeille, ni pagination. <b>Un seul jaune</b> dans le contenu : le bouton d'ajout.</p>
+<div class="phone">
+<div class="tbar plain">
+<h2 class="h1">Équipements</h2>
+<details class="ovl"><summary class="tb" aria-label="Scanner une étiquette"><i class="ic ph ph-scan"></i></summary>
+<div class="scan live">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw s-i"><p class="say">Cadrez l'étiquette collée sur l'objet.<br>Code-barres ou QR, le viseur s'ajuste seul.</p></div>
+<div class="sw s-1"><span class="sym">Code-barres</span><p class="say">Tenez le téléphone à l'horizontale.<br>La fiche s'ouvre dès que le code est lu.</p></div>
+<div class="sw s-2"><span class="sym">QR</span><p class="say">Ne bougez plus, la distance suffit.<br>Ce code peut porter plus qu'un identifiant.</p></div>
+</div>
+<div class="foot">
+<span class="alt"><i class="ic s18 ph ph-keyboard"></i>Saisir le code à la main</span>
+<p class="prov">Réglage « ce que la caméra voit » dans le panneau Tweaks. Les six états sont dessinés en bas de planche.</p>
+</div>
+</div>
+<div class="mask"></div>
+</details>
+</div>
+<div class="seek">
+<div class="frow">
+<div class="field"><i class="ic s18 ph ph-magnifying-glass"></i><span class="phold">Code, identifiant, modèle</span></div>
+<details class="ovl"><summary class="fbtn" aria-label="Filtrer"><i class="ic s20 ph ph-funnel"></i></summary>
+<div class="scrim above-nav"></div>
+<div class="sheet above">
+<div class="grip"></div>
+<div class="sttl"><h3>Filtrer</h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sh">Famille</div>
+<div class="sgrp">
+<span class="chip on">Toutes</span>
+<span class="chip">Informatique</span>
+<span class="chip">Périphériques</span>
+<span class="chip">Impression et réseau</span>
+<span class="chip">Mobilier et divers</span>
+</div>
+<div class="sh">Emplacement</div>
+<div class="sgrp">
+<span class="chip on">Tous</span>
+<span class="chip">Bureau Paris</span>
+<span class="chip">Bureau Dakar</span>
+<span class="chip">Salle serveurs</span>
+</div>
+<div class="sh">Ajouté</div>
+<div class="sgrp">
+<span class="chip on">Toute période</span>
+<span class="chip">30 derniers jours</span>
+<span class="chip">Cette année</span>
+</div>
+<div class="sfoot">
+<button class="btn btn-ghost">Tout effacer</button>
+<button class="btn btn-d">Voir les 14 équipements</button>
+</div>
+</div>
+</details>
+</div>
+<div class="chips">
+<span class="chip on">Tous <b class="vv v-14">14</b><b class="vv v-120">120</b><b class="vv v-800">800</b></span>
+<span class="chip"><i class="ic s18 ph ph-check-circle stg stg-v"></i>Disponibles <b class="vv v-14">5</b><b class="vv v-120">38</b><b class="vv v-800">251</b></span>
+<span class="chip"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i>Attribués <b class="vv v-14">7</b><b class="vv v-120">74</b><b class="vv v-800">497</b></span>
+<span class="chip"><i class="ic s18 ph ph-warning stg stg-o"></i>En réparation <b class="vv v-14">2</b><b class="vv v-120">8</b><b class="vv v-800">52</b></span>
+</div>
+</div>
+<div class="page">
+<div>
+<div class="cnt">
+<span><b class="vv v-14">14</b><b class="vv v-120">120</b><b class="vv v-800">800</b> actifs<span class="vv v-120"> · 14 affichés</span><span class="vv v-800"> · 14 affichés</span></span>
+<button class="sort"><i class="ic s18 ph ph-sort-ascending"></i>Ajout récent</button>
+</div>
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-1" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">LPT-HQ-01</span><span class="ty">Ordinateur portable</span></span><span class="l2"><i class="ic s18 ph ph-check-circle stg stg-v"></i><span class="who">Disponible</span><span class="aid">ASSET-10001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-2" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">SCR-DK-01</span><span class="ty">Moniteur</span></span><span class="l2"><i class="ic s18 ph ph-check-circle stg stg-v"></i><span class="who">Disponible</span><span class="aid">ASSET-20001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-3" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">MBP-SALES-01</span><span class="ty">Ordinateur portable</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Claire Martin</span><span class="aid">ASSET-30001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-4" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">KEY-SALES-02</span><span class="ty">Clavier</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Claire Martin</span><span class="aid">ASSET-30002</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-5" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">SCR-SNG-02</span><span class="ty">Moniteur</span></span><span class="l2"><i class="ic s18 ph ph-warning stg stg-o"></i><span class="who">En réparation · 17 j</span><span class="aid">ASSET-20002</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-6" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">MSE-HQ-03</span><span class="ty">Souris</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Alice SuperAdmin</span><span class="aid">ASSET-10003</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-7" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">SVR-HQ-01</span><span class="ty">Serveur</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Salle serveurs</span><span class="aid">ASSET-50001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-8" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">HDP-DK-01</span><span class="ty">Casque</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Marc Dubois</span><span class="aid">ASSET-60001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-9" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">PRT-HQ-01</span><span class="ty">Imprimante</span></span><span class="l2"><i class="ic s18 ph ph-check-circle stg stg-v"></i><span class="who">Disponible</span><span class="aid">ASSET-70001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-10" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">LPT-DK-03</span><span class="ty">Ordinateur portable</span></span><span class="l2"><i class="ic s18 ph ph-check-circle stg stg-v"></i><span class="who">Disponible</span><span class="aid">ASSET-90001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-11" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">FRN-HQ-02</span><span class="ty">Mobilier</span></span><span class="l2"><i class="ic s18 ph ph-check-circle stg stg-v"></i><span class="who">Disponible</span><span class="aid">ASSET-80001</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-12" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">LPT-SNG-01</span><span class="ty">Ordinateur portable</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Yasmine Cissé</span><span class="aid">ASSET-90002</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-13" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">HDP-HQ-02</span><span class="ty">Casque</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Marc Dubois</span><span class="aid">ASSET-60002</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eql-14" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">MSE-DK-01</span><span class="ty">Souris</span></span><span class="l2"><i class="ic s18 ph ph-warning stg stg-o"></i><span class="who">En réparation · 4 j</span><span class="aid">ASSET-10004</span></span></span></a>
+<a class="more center vv v-120" href="#"><i class="ic s18 ph ph-caret-down"></i>Charger la suite</a>
+<a class="more center vv v-800" href="#"><i class="ic s18 ph ph-caret-down"></i>Charger la suite</a>
+</section>
+<p class="lfoot vv v-14">Les 14 actifs du parc.</p>
+<p class="lfoot vv v-120">14 sur 120. Au-delà, la recherche va plus vite que le défilement.</p>
+<p class="lfoot vv v-800">14 sur 800. Au-delà, la recherche va plus vite que le défilement.</p>
+</div>
+</div>
+<details class="ovl"><summary class="fab" aria-label="Ajouter un équipement"><i class="ic ph ph-plus"></i></summary>
+<div class="scrim above-nav"></div>
+<div class="sheet above">
+<div class="grip"></div>
+<div class="sttl"><h3>Nouvel équipement</h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<a class="si big" href="#"><span class="vig"><i class="ic s20 ph ph-scan"></i></span><span class="tt"><span class="t">Scanner l'étiquette</span><span class="sd">le code et le type sont lus sur l'objet</span></span><i class="ic s18 chq ph ph-caret-down"></i></a>
+<a class="si big" href="#"><span class="vig"><i class="ic s20 ph ph-keyboard"></i></span><span class="tt"><span class="t">Saisir la fiche</span><span class="sd">type, code, emplacement, numéro de série</span></span><i class="ic s18 chq ph ph-caret-down"></i></a>
+<a class="si big" href="#"><span class="vig"><i class="ic s20 ph ph-package"></i></span><span class="tt"><span class="t">Importer une livraison</span><span class="sd">plusieurs actifs identiques d'un coup</span></span><i class="ic s18 chq ph ph-caret-down"></i></a>
+<p class="prov dark-none">Proposition — le formulaire de création est un écran à part, non traité dans ce chantier.</p>
+</div>
+</details>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<!-- ================= COLONNE 3 — PISTE, UTILISATEUR FINAL ================= -->
+<div class="col">
+<p class="collab">Vue — utilisateur final</p>
+<p class="colnote">Quatre équipements : on n'y cherche pas, on y entre. Disparaissent la recherche, les filtres, le tri, le décompte et le bouton d'ajout — <b>six commandes pour quatre rangées</b> serait un formulaire, pas une liste. La rangée dit ce qu'est l'objet et <b>depuis quand il est à lui</b>. <b>Reconstruction</b> : aucune capture de cette vue n'existe.</p>
+<div class="phone">
+<div class="tbar plain">
+<h2 class="h1">Mes équipements</h2>
+</div>
+<div class="page">
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><image-slot id="equ-1" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">LPT-HQ-01</span><span class="ty">Ordinateur portable</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Depuis le 25 juillet</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="equ-2" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">MSE-HQ-03</span><span class="ty">Souris</span></span><span class="l2"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i><span class="who">Depuis le 14 janvier</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="equ-3" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">SCR-SNG-02</span><span class="ty">Moniteur</span></span><span class="l2"><i class="ic s18 ph ph-warning stg stg-o"></i><span class="who">En réparation · 17 j</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="equ-4" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">HDP-DK-01</span><span class="ty">Casque</span></span><span class="l2"><i class="ic s18 ph ph-clock stg stg-a"></i><span class="who">Réception à confirmer</span></span></span></a>
+</section>
+<p class="lfoot">Un équipement en attente de votre confirmation.</p>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — arrivée pré-filtrée depuis le tableau de bord</p>
+<p class="colnote">Le tableau de bord porte une carte <b>« En réparation · 2 »</b> ; la toucher amène ici. Le produit applique alors le filtre <b>sans le dire</b> : on arrive sur une liste de deux rangées là où le parc en compte quatorze, et rien n'explique l'écart. Trois choses le disent ici : le <b>jeton du filtre en tête de rangée</b>, retirable, la <b>provenance en toutes lettres</b>, et le <b>décompte qui nomme les deux nombres</b>. Le geste de sortie n'est pas « effacer les filtres » mais <b>voir les quatorze</b> — on nomme la destination, pas la mécanique.</p>
+<div class="phone">
+<div class="tbar plain">
+<h2 class="h1">Équipements</h2>
+<span class="tb" aria-label="Scanner une étiquette"><i class="ic ph ph-scan"></i></span>
+</div>
+<div class="seek">
+<div class="frow">
+<div class="field"><i class="ic s18 ph ph-magnifying-glass"></i><span class="phold">Code, identifiant, modèle</span></div>
+<span class="fbtn" aria-label="Filtrer"><i class="ic s20 ph ph-funnel"></i></span>
+</div>
+<div class="chips">
+<span class="chip on"><i class="ic s18 ph ph-warning"></i>En réparation <b class="vv v-14">2</b><b class="vv v-120">8</b><b class="vv v-800">52</b><i class="ic s18 ph ph-x"></i></span>
+<span class="chip">Tous <b class="vv v-14">14</b><b class="vv v-120">120</b><b class="vv v-800">800</b></span>
+<span class="chip"><i class="ic s18 ph ph-check-circle stg stg-v"></i>Disponibles <b class="vv v-14">5</b><b class="vv v-120">38</b><b class="vv v-800">251</b></span>
+<span class="chip"><i class="ic s18 ph ph-arrow-circle-right stg stg-b"></i>Attribués <b class="vv v-14">7</b><b class="vv v-120">74</b><b class="vv v-800">497</b></span>
+</div>
+</div>
+<div class="page">
+<div>
+<div class="prov-row"><i class="ic s18 ph ph-arrow-bend-down-left"></i><span>Depuis <b>le tableau de bord</b> · carte « En réparation »</span></div>
+<div class="cnt">
+<span><b class="vv v-14">2</b><b class="vv v-120">8</b><b class="vv v-800">52</b> actifs en réparation <span style="color:var(--ink3)">sur <span class="vv v-14">14</span><span class="vv v-120">120</span><span class="vv v-800">800</span></span></span>
+<button class="sort"><i class="ic s18 ph ph-sort-ascending"></i>Ancienneté</button>
+</div>
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><image-slot id="eqf-1" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">SCR-SNG-02</span><span class="ty">Moniteur</span></span><span class="l2"><i class="ic s18 ph ph-warning stg stg-o"></i><span class="who">En réparation · 17 j</span><span class="aid">ASSET-20002</span></span></span></a>
+<a class="lrow" href="#"><span class="lth"><image-slot id="eqf-2" placeholder="photo"></image-slot></span><span class="ltt"><span class="l1"><span class="c">MSE-DK-01</span><span class="ty">Souris</span></span><span class="l2"><i class="ic s18 ph ph-warning stg stg-o"></i><span class="who">En réparation · 4 j</span><span class="aid">ASSET-10004</span></span></span></a>
+<a class="more center vv v-120" href="#"><i class="ic s18 ph ph-caret-down"></i>Charger la suite</a>
+<a class="more center vv v-800" href="#"><i class="ic s18 ph ph-caret-down"></i>Charger la suite</a>
+</section>
+<a class="more center" href="#"><i class="ic s18 ph ph-list"></i>Voir les <span class="vv v-14">14</span><span class="vv v-120">120</span><span class="vv v-800">800</span> actifs du parc</a>
+<p class="note">Le tri est <b>l'ancienneté</b>, pas l'ajout récent : on vient d'une carte qui parlait de retard, la question est <b>depuis combien de temps</b>. La provenance choisit le tri — c'est le seul endroit du produit où elle le fait, et c'est ce qui rend l'arrivée utile plutôt que seulement filtrée.</p>
+<p class="lfoot"><span class="vv v-14">2 sur 14</span><span class="vv v-120">8 sur 120</span><span class="vv v-800">52 sur 800</span> · le filtre est en tête de rangée, nommé, et retirable d'un geste.</p>
+</div>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#" class="on"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+<div class="abs">
+<p class="at">Ce que cet état n'est pas</p>
+<p><span><b>Ce n'est pas une planche.</b> C'est la même page que la colonne « gestionnaire », avec un filtre posé à l'arrivée — la liste, les rangées et les commandes sont les mêmes objets. Une planche séparée aurait fait croire à un second écran de parc.</span></p>
+<p><span><b>Ce n'est pas un état vide.</b> Deux rangées, c'est une réponse. Le vide d'un filtre — « aucun actif en réparation » — se dit ailleurs, et il dit autre chose : que le filtre ne trouve rien, pas que le parc est vide.</span></p>
+</div>
+</div>
+
+</div>
+
+<div class="intro" style="margin-top:48px">
+<h1>Le scanner s'adapte à ce qu'il lit — six états, un seul geste</h1>
+<p><b>Aucun sélecteur de mode.</b> Un onglet « Code-barres / QR » demanderait à la personne de nommer ce qu'elle tient avant de le lire — alors que la caméra le reconnaît en une fraction de seconde. Le viseur part donc d'une forme neutre et <b>change de géométrie</b> quand il a reconnu : c'est la seule chose qui bouge, et elle enseigne le geste sans phrase d'instruction.</p>
+<p><b>Ce que la forme dit.</b> Un <b>code-barres</b> se lit de près et en travers : le viseur s'aplatit en bandeau large et la ligne de balayage apparaît — la main tourne le téléphone d'elle-même. Un <b>QR</b> se lit de plus loin, à n'importe quelle rotation : le viseur devient carré et la ligne disparaît, elle ne voudrait plus rien dire. <i>C'est la seule exception au « aucune animation » du chantier : ce n'est pas un ornement d'écran, c'est le retour d'un capteur en temps réel — au même titre qu'un indicateur de mise au point.</i></p>
+<p><b>Ce que la lecture déclenche, ensuite, dépend de ce que le code porte — pas de sa symbologie.</b> La règle qui tranche : <b>une lecture qui se contente d'identifier passe sans confirmation ; une lecture qui créerait ou modifierait quelque chose demande.</b> Un code d'actif — linéaire ou QR — ouvre la fiche directement. Un QR de <b>bon de livraison</b> n'ouvre aucune fiche : il propose d'importer les N actifs, et rien n'est écrit avant l'accord. Un QR d'<b>emplacement</b> ne mène pas non plus à une fiche : il ouvre le <b>récolement</b> de ce lieu.</p>
+<p><b>Le scanner se souvient de sa course.</b> Entré par la loupe de la liste, il lit <b>un</b> code et s'efface derrière la fiche. Entré par un QR d'emplacement ou par « importer une livraison », il <b>reste ouvert</b>, accumule et compte : sur un parc, c'est le cas le plus fréquent et le plus coûteux à faire à la main. Un scanner qui se referme après chaque objet transforme un récolement de trente machines en trente ouvertures de caméra.</p>
+<p><b>Aucune impasse.</b> Une étiquette abîmée, une mauvaise lumière, un code venu d'un autre système : le sixième état montre ce qui a été lu <b>en clair</b>, propose de le chercher dans le parc et laisse la saisie à la main. L'éclairage est proposé de lui-même quand plusieurs secondes passent sans lecture — c'est presque toujours la cause sur une étiquette brillante.</p>
+<p><b>Données fabriquées, déclarées.</b> Le bon de livraison BL-2026-118 et son modèle, les 12 objets attendus en salle serveurs, et le code non reconnu 4H7K-92-BX. <i>L'ensemble du scanner est une proposition : l'application sait scanner une facture (écran Finances), rien d'autre. Symbologies acceptées, format des QR d'emplacement et de livraison, et lecture à la chaîne restent à spécifier avant implémentation.</i></p>
+</div>
+
+<div class="wrap" style="margin-bottom:32px">
+<div class="col">
+<p class="collab">État — à l'ouverture du scanner</p>
+<p class="colnote" style="--colnote-h:104px">Forme neutre, ni bandeau ni carré. Une phrase, l'éclairage à portée de pouce, la saisie manuelle en repli. <b>Rien à choisir</b> : pas d'onglet « Code-barres / QR ».</p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret ret-idle"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw"><p class="say">Cadrez l'étiquette collée sur l'objet.<br>Code-barres ou QR, le viseur s'ajuste seul.</p></div>
+</div>
+<div class="foot">
+<span class="alt"><i class="ic s18 ph ph-keyboard"></i>Saisir le code à la main</span>
+<p class="prov">Proposition — mécanisme nouveau, à spécifier.</p>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<p class="collab">État — code-barres reconnu</p>
+<p class="colnote" style="--colnote-h:104px">Le viseur <b>s'aplatit</b> en bandeau et la ligne balaie : la main tourne le téléphone sans qu'on le lui dise. L'<b>éclairage se propose de lui-même</b> après quelques secondes sans lecture — cause n°1 sur une étiquette brillante.</p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret ret-1d"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw"><span class="sym">Code-barres</span><p class="say">Tenez le téléphone à l'horizontale.<br>La fiche s'ouvre dès que le code est lu.</p></div>
+</div>
+<div class="foot">
+<span class="alt"><i class="ic s18 ph ph-lightning"></i>Activer l'éclairage</span>
+<span class="alt"><i class="ic s18 ph ph-keyboard"></i>Saisir le code à la main</span>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<p class="collab">État — QR reconnu</p>
+<p class="colnote" style="--colnote-h:104px">Le viseur devient <b>carré</b> et la ligne de balayage disparaît : un code 2D se lit de loin, à toute rotation, et une ligne n'y veut plus rien dire. La phrase change de conseil, pas de ton.</p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret ret-2d"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw"><span class="sym">QR</span><p class="say">Ne bougez plus, la distance suffit.<br>Ce code peut porter plus qu'un identifiant.</p></div>
+</div>
+<div class="foot">
+<span class="alt"><i class="ic s18 ph ph-keyboard"></i>Saisir le code à la main</span>
+<p class="prov">Symbologies acceptées à spécifier.</p>
+</div>
+</div></div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="col">
+<p class="collab">État — le code créerait quelque chose, il demande</p>
+<p class="colnote" style="--colnote-h:104px">QR d'un <b>bon de livraison</b>. Aucune fiche ne s'ouvre, aucune n'est écrite : la caméra reste derrière, le contenu lu est posé à plat, et l'accord est explicite. <b>Identifier passe, créer demande.</b></p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view" style="opacity:.38">
+<div class="ret ret-2d"><i></i><i></i><i></i><i></i><b></b></div>
+</div>
+<div class="verdict">
+<div class="vh"><i class="ic s18 ph ph-package"></i>Bon de livraison lu</div>
+<h4>BL-2026-118</h4>
+<div class="vl"><span>Ordinateur portable — Latitude 5440</span><span class="tnum">10 unités</span></div>
+<div class="vl"><span>Emplacement d'arrivée</span><span>Bureau Paris</span></div>
+<p class="vn">Rien n'est encore créé. Les dix fiches s'ouvriront en brouillon, numéros de série à compléter.</p>
+<div class="vb"><span class="btn btn-ghost">Annuler</span><span class="btn btn-d">Importer les 10 actifs</span></div>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<p class="collab">État — le scanner reste ouvert et compte</p>
+<p class="colnote" style="--colnote-h:104px">QR d'<b>emplacement</b> : il n'ouvre pas de fiche, il ouvre le <b>récolement</b> du lieu. La caméra ne se referme plus entre deux objets — trente machines, c'est trente ouvertures de caméra économisées. Le compteur dit l'écart avec l'attendu.</p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Récolement — Salle serveurs</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret ret-1d"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw"><span class="sym">Lecture à la chaîne</span><p class="say">Enchaînez les étiquettes.<br>La caméra reste ouverte.</p></div>
+</div>
+<div class="tally">
+<div class="th"><b class="tnum">3</b><span>objets lus sur 12 attendus ici</span></div>
+<div class="tl"><i class="ic s18 ph ph-check"></i>Dernier lu <b>SRV-DK-01</b> — Serveur</div>
+<div class="tl"><i class="ic s18 ph ph-map-pin"></i>Deux lectures venaient d'un <b>autre emplacement</b></div>
+<span class="btn btn-d">Terminer le récolement</span>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<p class="collab">État — lu, non reconnu</p>
+<p class="colnote" style="--colnote-h:104px">Étiquette abîmée, code d'un autre système : ce qui a été lu est montré <b>en clair</b>, et deux issues restent ouvertes. Un scan qui échoue ne renvoie jamais à une caméra muette.</p>
+<div class="sframe"><div class="scan">
+<div class="sbar"><span class="lbl">Scanner une étiquette</span><span class="tb" aria-label="Éclairage"><i class="ic ph ph-lightning"></i></span><span class="tb" aria-label="Fermer"><i class="ic ph ph-x"></i></span></div>
+<div class="view">
+<div class="ret ret-idle"><i></i><i></i><i></i><i></i><b></b></div>
+<div class="sw"><span class="sym">Lu, non reconnu</span><p class="say">Aucun actif du parc ne porte ce code.<br><em>4H7K-92-BX</em></p></div>
+</div>
+<div class="foot">
+<span class="alt"><i class="ic s18 ph ph-magnifying-glass"></i>Chercher ce texte dans le parc</span>
+<span class="alt"><i class="ic s18 ph ph-keyboard"></i>Saisir le code à la main</span>
+<p class="prov">La caméra reste ouverte derrière : on peut réessayer sans rien fermer.</p>
+</div>
+</div></div>
+</div>
+</div>
+<div id="tw-root"></div>
+<script>
+document.addEventListener('click',function(e){
+  var s=e.target.closest('.scrim,.tb svg,.sttl .tb,.sbar .tb');
+  if(s){var d=s.closest('details.ovl');if(d&&d.open){d.open=false;e.preventDefault();return}}
+  document.querySelectorAll('details.ovl[open]').forEach(function(d){if(!d.contains(e.target))d.open=false});
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('details.ovl[open]').forEach(function(d){d.open=false})});
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="image-slot.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "vol": "14 actifs (démonstration)",
+  "sym": "Un code-barres",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action",
+  "vie": "Sobre"
+}/*EDITMODE-END*/;
+const VOL = {"14 actifs (démonstration)":"14","120 actifs":"120","800 actifs":"800"};
+const SYM = {"Rien encore":"idle","Un code-barres":"1d","Un QR":"2d"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+const VIE = {"Sobre":"sobre","Assumée":"assumee"};
+function ListeTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.vol = VOL[t.vol] || '14';
+    b.dataset.sym = SYM[t.sym] || 'idle';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+    b.dataset.vie = VIE[t.vie] || 'sobre';
+  },[t.vol,t.sym,t.tone,t.densite,t.accent,t.vie]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="Volume du parc (colonne gestionnaire)" />
+      <TweakRadio label="Actifs" value={t.vol} options={Object.keys(VOL)} onChange={(v)=>setTweak('vol',v)} />
+      <TweakSection label="Scanner — ce que la caméra voit" />
+      <TweakRadio label="Viseur" value={t.sym} options={Object.keys(SYM)} onChange={(v)=>setTweak('sym',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+      <TweakSection label="Intensité de vie" />
+      <TweakRadio label="Traitement" value={t.vie} options={Object.keys(VIE)} onChange={(v)=>setTweak('vie',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<ListeTweaks />);
+</script>
+</body>
+</html>

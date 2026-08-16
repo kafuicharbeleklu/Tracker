@@ -1,0 +1,228 @@
+<!-- @dsCard group="02. Connexion" viewport="1400x1430" name="02.1 Connexion — piste retenue" subtitle="Piste B validée · bandeau de marque, e-mail + mot de passe" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Login — piste B, bandeau de marque (retenue)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+  :root{--phone-h:760px;
+    --canvas:#F2F0EA; --surface:#FFFFFF; --inset:#F7F5F0;
+    --ink:#1A1917; --ink2:#726E66; --ink3:#8A847A;
+    --line:#EAE6DF; --line-strong:#8E877E; --brand:#FDC910;
+    --dark:#0A191D;
+    --btn-y-bg:var(--brand); --btn-y-fg:var(--ink);
+    --pad:16px; --btnh:48px; --mot:.10;
+  }
+b{font-weight:500}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;display:flex;justify-content:center;
+       padding:24px 12px;color:var(--ink)}
+  .phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  
+  
+  /* Prose de planche — rôle `.intro` du canon, restreint à la largeur du téléphone :
+     cette planche n'a qu'une colonne. Aligné le 06/08 (écart n°2 de l'audit). */
+  .intro{max-width:1180px;margin:0 auto 24px}.intro.solo{max-width:393px}
+  .intro p{font-size:13px;line-height:20px;color:#4A453E}
+  .intro p+p{margin-top:8px}
+  .intro b{font-weight:500;color:#1A1917}
+
+  /* BANDEAU DE MARQUE — rôle nommé au registre §2.22, distinct du héro inversé de §2.10 :
+     plein cadre, avant authentification. Il prend désormais l'encre LIVE --dark #0A191D et
+     non plus le noir chaud : le motif posé dessus vient d'une identité dont le fond EST ce
+     bleu-noir, et mêler les deux noirs mêlerait deux systèmes. Voir la note de planche. */
+  .brand{background:var(--ink);color:#fff;padding:56px 20px 36px}.brand.art{background:var(--dark);position:relative;overflow:hidden}
+  /* MOTIF DE MARQUE — les quatre marques de valeurs LIVE en semis, blanc à var(--mot).
+     Monochrome sans exception : le vert, l'orange, le bleu et le jaune LIVE disent un état
+     et ne décorent pas. Admis ici parce que la connexion est le seul écran d'avant-
+     authentification : aucun état à contredire. Le formulaire reste un aplat. */
+  .motif{position:absolute;inset:0;width:100%;height:100%;color:#fff;opacity:var(--mot);pointer-events:none}
+  .motif.fil{display:none}
+  .brand>span,.brand>h1,.brand>p{position:relative}
+  /* Accent de marque du bandeau — et emplacement réservé au futur logo : le jour où il
+     existe, il se pose ici sans rien déplacer. Ce n'est pas un faux logo. */
+  .brand .accent{display:block;width:40px;height:3px;background:var(--brand);margin-bottom:24px}
+  .brand h1{font-size:28px;line-height:34px;font-weight:500;margin-bottom:10px}
+  /* Promesse en blanc cassé, sans accent de couleur : le jaune est déjà pris par le filet
+     et le bouton — deux usages, le maximum de l'écran. Corps 15 px (§2.6). */
+  .brand p{font-size:15px;line-height:21px;color:#B8B2A9;max-width:290px}
+
+  .panel{flex:1;background:var(--canvas);padding:28px 20px 20px;display:flex;flex-direction:column}
+
+  .lab{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+  .fgrp{display:flex;flex-direction:column;margin-bottom:18px}
+  .field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;
+         border:1px solid var(--line-strong);border-radius:4px;font-size:15px}.field.oncv{background:var(--surface)}
+  .field .phold{color:var(--ink3)}
+  .field .gl{flex:0 0 15px;color:var(--ink3)}
+
+  .forgot{display:block;font-size:14px;font-weight:500;color:var(--ink);margin:2px 0 28px;
+          text-decoration:underline;text-underline-offset:3px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;height:var(--btnh);
+       padding:0 16px;border:0;border-radius:4px;font-family:inherit;font-size:14px;
+       font-weight:500;color:var(--ink);cursor:pointer}
+  .btn-full{width:100%}
+  .btn-y{background:var(--btn-y-bg);color:var(--btn-y-fg)}
+
+  .spacer{flex:1;min-height:20px}
+  .demorow{border-top:1px solid var(--line);padding-top:16px}
+  .demorow-t{font-size:12px;color:var(--ink2);margin-bottom:12px}
+  .avatars{display:flex;gap:12px}
+  .foot{margin-top:18px;font-size:12px;color:var(--ink2)}
+
+/* ============ RÉGLAGES (Tweaks) ============ */
+.motif.semis,.motif.fil{display:none}
+body[data-motif="semis"] .motif.cart,body[data-motif="filigrane"] .motif.cart{display:none}
+body[data-motif="semis"] .motif.semis{display:block}
+body[data-motif="filigrane"] .motif.fil{display:block}
+body[data-motif="aucun"] .motif{display:none}
+body[data-encre="chaud"] .brand{background:var(--ink)}
+
+.vig{width:40px;height:40px;flex:0 0 40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:15px;background:var(--inset);color:var(--ink2)}
+.hint{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px}
+.hint b{font-weight:500;color:var(--ink)}
+.hint.bad{color:var(--danger)}
+body[data-echec="reussi"] .gko{display:none}
+body[data-echec="echoue"] .gok{display:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<!-- Les quatre marques de valeurs LIVE, relevées sur le logotype officiel (04/08) :
+     leadership = trois équerres imbriquées, bras gauche et descente à droite · innovation =
+     losange évidé + losange plein · vivacité = cible à deux anneaux et un point ·
+     exemplarité = quatre demi-carrés identiques en 2 × 2. Monochromes (currentColor) :
+     c'est ce qui les autorise en fond. -->
+<g id="v-lead" fill="none" stroke="currentColor" stroke-width="2.66" stroke-linecap="butt" stroke-linejoin="miter"><path d="M2 3.33H20V21.6"/><path d="M2 9.63H13.9V21.6"/><path d="M2 15.93H8.1V21.6"/></g>
+<g id="v-innov"><path d="M12 2L22 12L12 22L2 12Z" fill="none" stroke="currentColor" stroke-width="2.8"/><path d="M12 8.9L15.1 12L12 15.1L8.9 12Z" fill="currentColor"/></g>
+<g id="v-viva" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.45" stroke-width="3.1"/><circle cx="12" cy="12" r="2.87" stroke-width="2.65"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></g>
+<g id="v-exem" fill="currentColor"><path d="M11.6 2L11.6 11.6L2 11.6Z"/><path d="M22 2L22 11.6L12.4 11.6Z"/><path d="M11.6 12.4L11.6 22L2 22Z"/><path d="M22 12.4L22 22L12.4 22Z"/></g>
+</defs></svg>
+<div>
+  <div class="intro solo">
+  <p><b>Piste B — bandeau de marque. PISTE RETENUE.</b> Le tiers haut porte
+  l'identité (encre LIVE, une phrase). Le formulaire vit en dessous, sur le canvas.</p>
+  <p><b>Motif de marque (04/08).</b> Les quatre marques de valeurs LIVE —
+  leadership, innovation, vivacité, exemplarité — <b>redessinées sur le logotype officiel</b> :
+  trois équerres imbriquées à bras gauche, losange évidé à losange plein, cible à deux anneaux
+  et un point, quatre demi-carrés identiques en 2 × 2. Le fond retenu est le <b>cartouche</b> :
+  la composition de votre propre carte de marque — marques <b>grandes, en filet, rognées par les
+  bords</b>, une par coin — et non un semis de petites icônes. <b>Monochromes</b> : les teintes
+  LIVE disent un état et ne décorent pas. Le fond est admis ici parce que la connexion est le
+  seul écran d'<b>avant-authentification</b> : aucune donnée, aucun état à contredire. Le bandeau
+  passe du noir chaud à l'<b>encre LIVE #0A191D</b>, fond de l'identité d'où vient le motif. Le
+  formulaire reste un aplat : sous les champs, un motif abîme la lecture de la bordure. Trois
+  réglages au panneau <b>Tweaks</b> : la forme (cartouche, semis, filigrane, aucun), la présence
+  en pourcent, l'encre du bandeau. À porter au registre §2.22 une fois arrêté.</p>
+  <p>
+  Le carré « TR » a été retiré : ce n'est pas le logo de l'application, et la place reste
+  libre pour le vrai — le filet jaune en tient l'emplacement. La promesse reprend celle du
+  desktop, volontairement sans nom de pays : Neemba est présent dans plusieurs. Le jaune ne
+  sert que deux fois : le filet et le bouton. Rayons 4 px, deux graisses, aucune majuscule.</p>
+  </div>
+  <div class="phone">
+    <div class="brand art">
+      <svg class="motif cart" viewBox="0 0 393 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M-70 16H116V212"/><path d="M-70 46H86V212"/><path d="M-70 76H56V212"/>
+          <path d="M388-62L458 8L388 78L318 8Z"/><path d="M388-32L428 8L388 48L348 8Z"/>
+          <circle cx="22" cy="254" r="58"/><circle cx="22" cy="254" r="88"/><circle cx="22" cy="254" r="118"/>
+          <path d="M300 226V118L408 226Z"/><path d="M352 226V174L404 226Z"/>
+        </g>
+      </svg>
+      <svg class="motif semis" viewBox="0 0 393 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g transform="translate(10 14) scale(1.45)"><use href="#v-lead" transform="rotate(-12 12 12)"/></g>
+        <g transform="translate(120 6) scale(1.3)"><use href="#v-exem"/></g>
+        <g transform="translate(150 64) scale(1.1)"><use href="#v-viva"/></g>
+        <g transform="translate(250 30) scale(1.25)"><use href="#v-viva"/></g>
+        <g transform="translate(344 2) scale(1.35)"><use href="#v-innov" transform="rotate(10 12 12)"/></g>
+        <g transform="translate(58 116) scale(1.2)"><use href="#v-innov" transform="rotate(-8 12 12)"/></g>
+        <g transform="translate(198 96) scale(1.3)"><use href="#v-lead" transform="rotate(95 12 12)"/></g>
+        <g transform="translate(302 126) scale(1.35)"><use href="#v-exem" transform="rotate(180 12 12)"/></g>
+        <g transform="translate(6 166) scale(1.4)"><use href="#v-viva"/></g>
+        <g transform="translate(126 176) scale(1.3)"><use href="#v-lead" transform="rotate(190 12 12)"/></g>
+        <g transform="translate(238 182) scale(1.1)"><use href="#v-innov" transform="rotate(-6 12 12)"/></g>
+        <g transform="translate(350 180) scale(1.15)"><use href="#v-exem" transform="rotate(12 12 12)"/></g>
+      </svg>
+      <svg class="motif fil" viewBox="0 0 393 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g transform="translate(206 8) scale(10.5)"><use href="#v-lead"/></g>
+      </svg>
+      <span class="accent"></span>
+      <h1>Tracker</h1>
+      <p>Pilotez vos actifs avec une expérience unifiée.</p>
+    </div>
+
+    <div class="panel">
+      <div class="fgrp">
+        <span class="lab">Adresse e-mail</span>
+        <div class="field oncv"><i class="ic s18 gl ph ph-envelope-simple"></i><span class="phold">nom@neemba.com</span></div>
+      </div>
+
+      <div class="fgrp">
+        <span class="lab">Mot de passe</span>
+        <div class="field oncv"><i class="ic s18 gl ph ph-lock-simple"></i><span class="phold">••••••••</span></div>
+      </div>
+
+      <a class="forgot">Mot de passe oublié</a>
+      <p class="hint bad gko">Connexion impossible — le serveur n'a pas répondu. <b>Votre adresse est conservée</b>, le mot de passe est à ressaisir.</p>
+      <button class="btn btn-y btn-full gok">Se connecter</button>
+      <button class="btn btn-y btn-full gko">Réessayer</button>
+
+      <div class="spacer"></div>
+
+      <div class="demorow">
+        <p class="demo-t">Comptes de démonstration — développement uniquement</p>
+        <div class="avatars">
+          <div class="vig" title="Clara Admin · informatique">CA</div><div class="vig" title="Karim Diallo · support">KD</div><div class="vig" title="Ethan Employé · utilisateur final">EE</div><div class="vig" title="Alice Bertrand · manager">AB</div>
+        </div>
+      </div>
+      <p class="foot">© 2026 Neemba · Application interne</p>
+    </div>
+  </div>
+</div>
+<div id="tw-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "echec": "Réussi",
+  "motif": "Aucun",
+  "presence": 10,
+  "encre": "Encre LIVE #0A191D"
+}/*EDITMODE-END*/;
+const ECHEC = {"Réussi":"reussi","Échoué":"echoue"};
+const MOTIF = {"Cartouche LIVE":"cartouche","Semis LIVE":"semis","Filigrane":"filigrane","Aucun":"aucun"};
+const ENCRE = {"Encre LIVE #0A191D":"live","Noir chaud #1A1917":"chaud"};
+function LoginTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.echec = ECHEC[t.echec] || 'reussi';
+    b.dataset.motif = MOTIF[t.motif] || 'cartouche';
+    b.dataset.encre = ENCRE[t.encre] || 'live';
+    b.style.setProperty('--mot', (Number(t.presence)/100).toFixed(3));
+  },[t.echec,t.motif,t.presence,t.encre]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="L'acte qui échoue" />
+      <TweakRadio label="Connexion" value={t.echec} options={Object.keys(ECHEC)} onChange={(v)=>setTweak('echec',v)} />
+      <TweakSection label="Motif de marque" />
+      <TweakRadio label="Forme" value={t.motif} options={Object.keys(MOTIF)} onChange={(v)=>setTweak('motif',v)} />
+      <TweakSlider label="Présence" value={t.presence} min={0} max={20} step={1} unit=" %" onChange={(v)=>setTweak('presence',v)} />
+      <TweakSection label="Encre du bandeau" />
+      <TweakRadio label="Noir" value={t.encre} options={Object.keys(ENCRE)} onChange={(v)=>setTweak('encre',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<LoginTweaks />);
+</script>
+</body>
+</html>

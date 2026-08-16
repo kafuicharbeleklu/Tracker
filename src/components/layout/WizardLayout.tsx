@@ -1,154 +1,175 @@
-import { MEDIA } from '../../constants/breakpoints';
 import React from 'react';
-import MaterialIcon from '../ui/MaterialIcon';
-import { FullScreenLayout } from './FullScreenLayout';
+import { ArrowLeft, Check, X } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
+import Button from '../ui/Button';
 
 interface Step {
-  id: number;
-  title: string;
+    id: number;
+    title: string;
 }
 
 interface WizardLayoutProps {
-  title: string;
-  currentStep: number;
-  steps: Step[];
-  onClose: () => void;
-  onBack?: () => void;
-  children: React.ReactNode;
-  actions?: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    currentStep: number;
+    steps: Step[];
+    onClose: () => void;
+    onBack?: () => void;
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+    className?: string;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
-  title,
-  currentStep,
-  steps,
-  onClose,
-  onBack,
-  children,
-  actions,
+    title,
+    subtitle,
+    currentStep,
+    steps,
+    onClose,
+    onBack,
+    children,
+    actions,
+    className,
 }) => {
-  const isCompactLandscape = useMediaQuery(MEDIA.belowExpandedLandscape);
-  const isCompact = useMediaQuery(MEDIA.compact);
-  const isLandscape = useMediaQuery(MEDIA.landscape);
-  const isCompactPortrait = isCompact && !isLandscape;
+    const isCompact = useMediaQuery(MEDIA.compact);
+    const isLandscape = useMediaQuery(MEDIA.landscape);
+    const isCompactPortrait = isCompact && !isLandscape;
 
-  const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep));
-  const currentTitle = steps[currentIndex]?.title ?? '';
+    const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep));
+    const currentTitle = steps[currentIndex]?.title ?? '';
 
-  // Téléphone portrait : le stepper complet déborde du viewport — variante
-  // « Étape N sur M » + barre de progression (audit W-2).
-  const compactStepsIndicator = (
-    <div className="py-1">
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <span className="text-label-large text-on-surface truncate">{currentTitle}</span>
-        <span className="text-label-small text-on-surface-variant shrink-0">
-          Étape {currentIndex + 1} sur {steps.length}
-        </span>
-      </div>
-      <div
-        className="h-1.5 rounded-full bg-surface-container-highest overflow-hidden"
-        role="progressbar"
-        aria-valuemin={1}
-        aria-valuemax={steps.length}
-        aria-valuenow={currentIndex + 1}
-        aria-label="Progression de l'assistant"
-      >
+    return (
         <div
-          className="h-full rounded-full bg-primary transition-all duration-medium2 ease-emphasized"
-          style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
-        />
-      </div>
-    </div>
-  );
-
-  const stepsIndicator = (
-    <div className={cn(isCompactLandscape ? 'py-0.5' : 'py-1')}>
-      <div className={cn('mx-auto w-full', !isCompactLandscape && 'max-w-3xl')}>
-        <ol className={cn('flex items-start', isCompactLandscape ? 'gap-1.5' : 'gap-2')} aria-label="Progression de l'assistant">
-          {steps.map((step, index) => {
-            const isCompleted = step.id < currentStep;
-            const isCurrent = step.id === currentStep;
-            const isConnectorCompleted =
-              index < steps.length - 1 ? steps[index + 1].id <= currentStep : false;
-
-            return (
-              <React.Fragment key={step.id}>
-                <li
-                  className={cn(
-                    'flex flex-col items-center text-center',
-                    isCompactLandscape ? 'w-6 shrink-0' : 'min-w-10 flex-1'
-                  )}
-                  aria-current={isCurrent ? 'step' : undefined}
-                >
-                  <div
-                    className={cn(
-                      'w-6 h-6 shrink-0 rounded-full border inline-flex items-center justify-center transition-all duration-short4 ease-emphasized',
-                      isCompleted
-                        ? 'bg-primary border-primary text-on-primary'
-                        : isCurrent
-                          ? 'bg-primary-container border-primary text-on-primary-container'
-                          : 'bg-surface border-outline-variant text-on-surface-variant'
-                    )}
-                  >
-                    {isCompleted ? (
-                      <MaterialIcon name="check" size={14} />
-                    ) : (
-                      <span className="text-label-small font-semibold leading-none">{step.id}</span>
-                    )}
-                  </div>
-
-                  {!isCompactLandscape && (
-                    <span
-                      className={cn(
-                        'mt-1 w-full px-1 text-label-small truncate transition-colors duration-short4',
-                        isCurrent
-                          ? 'text-on-surface font-semibold'
-                          : isCompleted
-                            ? 'text-on-surface-variant'
-                            : 'text-on-surface-variant/80'
-                      )}
+            className={cn(
+                'fixed inset-0 z-50 bg-[var(--tk-color-app-bg)] flex flex-col h-full overflow-hidden select-none animate-in fade-in duration-150',
+                className
+            )}
+        >
+            {/* Top Bar — planche 00.5 (.topbar) */}
+            <header className="flex items-center gap-3 px-4 sm:px-6 min-h-[56px] sm:min-h-[64px] bg-surface border-b border-[var(--tk-color-border-default)] shrink-0 z-20">
+                {onBack ? (
+                    <Button
+                        variant="text"
+                        onClick={onBack}
+                        aria-label="Retour à l'étape précédente"
+                        className="w-10 h-10 min-w-0 p-0 text-[var(--tk-color-text-primary)] hover:bg-[var(--tk-color-surface-muted)]"
                     >
-                      {step.title}
-                    </span>
-                  )}
-                </li>
-
-                {index < steps.length - 1 && (
-                  <div
-                    aria-hidden="true"
-                    className={cn(
-                      'mt-3 mx-0.5 flex-1 rounded-full transition-colors duration-medium2 ease-emphasized',
-                      isCompactLandscape ? 'h-1' : 'h-1.5',
-                      isConnectorCompleted ? 'bg-primary' : 'bg-surface-container-highest'
-                    )}
-                  />
+                        <ArrowLeft size={20} />
+                    </Button>
+                ) : (
+                    <div className="w-2" />
                 )}
-              </React.Fragment>
-            );
-          })}
-        </ol>
-      </div>
-    </div>
-  );
 
-  return (
-    <FullScreenLayout
-      title={title}
-      onClose={onClose}
-      onBack={onBack}
-      headerContent={isCompactPortrait ? compactStepsIndicator : stepsIndicator}
-      footerActions={actions}
-    >
-      {children}
-    </FullScreenLayout>
-  );
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-[17px] sm:text-[19px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] tracking-[-0.01em] truncate">
+                        {title}
+                    </h1>
+                    {subtitle && (
+                        <p className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
+                            {subtitle}
+                        </p>
+                    )}
+                </div>
+
+                <Button
+                    variant="text"
+                    onClick={onClose}
+                    aria-label="Fermer l'assistant"
+                    className="w-10 h-10 min-w-0 p-0 text-[var(--tk-color-text-primary)] hover:bg-[var(--tk-color-surface-muted)]"
+                >
+                    <X size={20} />
+                </Button>
+            </header>
+
+            {/* Stepper Indicator — planche 00.5 (.pas / .pcount) */}
+            {isCompactPortrait ? (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-surface border-b border-[var(--tk-color-border-default)] shrink-0">
+                    <div className="flex-1 h-1 bg-[var(--tk-color-surface-muted)] rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-[var(--tk-color-inverse-surface)] transition-all duration-200"
+                            style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+                        />
+                    </div>
+                    <span className="text-[12px] text-[var(--tk-color-text-secondary)] tabular-nums font-medium shrink-0">
+                        Étape {currentIndex + 1} sur {steps.length} · {currentTitle}
+                    </span>
+                </div>
+            ) : (
+                <div className="flex items-center justify-between px-6 py-3 bg-surface border-b border-[var(--tk-color-border-default)] shrink-0">
+                    <div className="max-w-[560px] mx-auto w-full flex items-center">
+                        {steps.map((step, index) => {
+                            const isCompleted = step.id < currentStep;
+                            const isCurrent = step.id === currentStep;
+                            return (
+                                <React.Fragment key={step.id}>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span
+                                            className={cn(
+                                                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-semibold font-['Archivo'] tabular-nums",
+                                                isCompleted
+                                                    ? 'bg-[var(--tk-color-success)] text-white'
+                                                    : isCurrent
+                                                      ? 'bg-[var(--tk-color-inverse-surface)] text-white'
+                                                      : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
+                                            )}
+                                        >
+                                            {isCompleted ? <Check size={14} weight="bold" /> : step.id}
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                'text-[13px] whitespace-nowrap',
+                                                isCurrent
+                                                    ? 'text-[var(--tk-color-text-primary)] font-medium'
+                                                    : 'text-[var(--tk-color-text-secondary)]'
+                                            )}
+                                        >
+                                            {step.title}
+                                        </span>
+                                    </div>
+                                    {index < steps.length - 1 && (
+                                        <div
+                                            className={cn(
+                                                'flex-1 min-w-3 h-[1px] mx-3 transition-colors',
+                                                step.id < currentStep
+                                                    ? 'bg-[var(--tk-color-success)]'
+                                                    : 'bg-[var(--tk-color-border-default)]'
+                                            )}
+                                        />
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Scrollable Content Container — max 560px mesure */}
+            <main className="flex-1 overflow-y-auto w-full p-4 sm:p-6 pb-24">
+                <div className="max-w-[560px] mx-auto w-full flex flex-col gap-4">
+                    {children}
+                </div>
+            </main>
+
+            {/* Sticky Action Footer — planche 00.5 (.pied .in) */}
+            {actions && (
+                <footer className="shrink-0 bg-surface border-t border-[var(--tk-color-border-default)] px-4 sm:px-6 py-3.5 z-20">
+                    <div className="max-w-[560px] mx-auto w-full flex items-center justify-between gap-3">
+                        {actions}
+                    </div>
+                </footer>
+            )}
+        </div>
+    );
 };
 
-export const WizardStep: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={cn('animate-in fade-in slide-in-from-right-8 duration-medium2', className)}>
-    {children}
-  </div>
+export const WizardStep: React.FC<{ children: React.ReactNode; className?: string }> = ({
+    children,
+    className,
+}) => (
+    <div className={cn('flex flex-col gap-4 animate-in fade-in duration-150', className)}>
+        {children}
+    </div>
 );
 

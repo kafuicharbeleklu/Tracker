@@ -51,8 +51,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         className={cn(
-          "bg-surface border border-outline-variant rounded-xl p-3 shadow-elevation-1 flex flex-col gap-1.5 transition-all duration-short4 ease-emphasized group",
-          onClick && "cursor-pointer hover:shadow-elevation-2 hover:border-outline active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
+          "bg-surface rounded-card p-3 flex flex-col gap-1.5 transition-all duration-short4 ease-emphasized group",
+          onClick && "cursor-pointer hover:bg-surface-container active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
           className
         )}
       >
@@ -77,8 +77,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       className={cn(
-        "bg-surface border border-outline-variant rounded-xl p-5 min-h-[128px] shadow-elevation-1 flex flex-col transition-all duration-short4 ease-emphasized group",
-        onClick && "cursor-pointer hover:shadow-elevation-2 hover:border-outline active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
+        "bg-surface rounded-card p-4 min-h-[120px] flex flex-col transition-all duration-short4 ease-emphasized group",
+        onClick && "cursor-pointer hover:bg-surface-container active:scale-[0.99] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
         className
       )}
     >
@@ -94,7 +94,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Value */}
       <div className="flex-1">
-        <p className={cn("text-stat-value text-on-surface mb-1", valueClassName)}>{value}</p>
+        <p className={cn("text-stat-value-mobile text-on-surface mb-1", valueClassName)}>{value}</p>
         {subtitle && (
           <p className="text-body-small text-on-surface-variant mt-2">{subtitle}</p>
         )}

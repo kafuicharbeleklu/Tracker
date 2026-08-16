@@ -1,0 +1,382 @@
+<!-- @dsCard group="10. Emplacements" viewport="1320x2100" name="10.1 Emplacements" subtitle="Le référentiel géographique — pays → site → local (A2 + B1) · fil d'Ariane et porte-voix à 28 px sur le niveau courant · la fiche d'un site qui porte son état et renvoie (C2)" -->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Emplacements — piste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/light/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+.ic{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;flex:none;color:currentColor}.ic.s18{font-size:18px}.ic.s20{font-size:20px}.ic.s32{font-size:32px}
+
+:root{--colnote-h:126px;--canvas:#F2F0EA;--surface:#FFFFFF;--inset:#F7F5F0;
+--ink:#1A1917;--ink2:#726E66;--ink3:#8A847A;--line:#EAE6DF;--line-strong:#8E877E;
+--brand:#FDC910;--danger:#B3261E;--nav-on:#8A6508;
+--dark:#0A191D;--on-dark:#FFFFFF;--dark-line:rgba(255,255,255,.14);
+--st-vert:#5B913C;--st-ambre:#A97C00;
+--data:var(--ink);--btn-y-bg:var(--brand);--btn-y-fg:var(--ink);
+--gap:20px;--pad:16px;--rowy:10px;--btnh:48px}
+b{font-weight:500}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#E4E1DA;color:var(--ink);padding:28px 24px 48px;font-feature-settings:"tnum" 0}
+svg{display:block}
+.sprite{display:none}
+.intro{max-width:1180px;margin:0 auto 24px}
+.intro h1{font-size:20px;font-weight:500;margin-bottom:8px}
+.intro p{font-size:13px;line-height:20px;color:#4A453E;max-width:900px}
+.intro p+p{margin-top:8px}
+.intro b{font-weight:500;color:#1A1917}
+.wrap{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:28px;width:max-content;margin:0 auto 40px;padding-bottom:8px}
+.col{flex:0 0 393px;width:393px}
+.collab{font-size:13px;font-weight:500;margin:0 0 4px}
+.colnote{font-size:12px;line-height:18px;color:#4A453E;margin:0 0 10px;min-height:var(--colnote-h,0)}
+.colnote b{font-weight:500;color:#1A1917}
+.phone{width:393px;min-height:var(--phone-h,0);background:var(--canvas);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.14);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.page{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:16px 20px 20px}
+.card{background:var(--surface);border-radius:8px;padding:var(--pad)}
+.tnum{font-variant-numeric:tabular-nums}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--ink2)}
+.phone h2.h1,.phone .cnt b,.phone .chip b{font-family:Archivo,Inter,sans-serif;font-weight:600;letter-spacing:-.01em}
+.tbar{display:flex;align-items:center;gap:4px;padding:4px 8px;min-height:56px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tbar h2.h1{flex:1;min-width:0;font-size:22px;line-height:28px}
+.tb{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;color:var(--ink);text-decoration:none;border:0;background:none;cursor:pointer;border-radius:4px}
+.tb:hover{background:var(--inset)}
+.seek{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-direction:column;gap:10px}
+.field{display:flex;align-items:center;gap:10px;min-height:var(--btnh);padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px}
+.field .phold{color:var(--ink3)}
+.field svg{flex:0 0 18px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-right:20px;margin-right:-20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 12px;border-radius:4px;background:var(--inset);color:var(--ink);font-size:13px;white-space:nowrap}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--dark);color:var(--on-dark)}
+.st{display:inline-block;width:7px;height:7px;border-radius:2px;flex:0 0 7px}
+.st-v{background:var(--st-vert)}
+.st-a{background:var(--st-ambre)}
+.cnt{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-size:13px;color:var(--ink2)}
+.cnt>span{flex:0 0 auto;white-space:nowrap}
+.cnt b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.sort{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;margin-right:-8px;border:0;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;border-radius:4px}
+.sort:hover{background:var(--inset)}
+.sort svg{flex:0 0 14px;color:var(--ink2)}
+.fh{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:var(--ink);padding:0 2px 8px}
+.fh>span:last-child{margin-left:auto;font-weight:400;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fh .g{color:var(--ink2)}
+/* fil d'Ariane — la barre du haut dit où l'on est dans l'arbre */
+.crumb{flex:1;min-width:0;display:flex;align-items:center;gap:5px;font-size:12px;line-height:16px;color:var(--ink2);padding:0 4px}
+.crumb a{color:var(--ink2)}
+.crumb a:hover{color:var(--ink)}
+.crumb i{color:var(--ink3)}
+.crumb .here{color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* porte-voix — le nom du niveau courant, Archivo 28 */
+.pv{padding:0 2px 2px;display:flex;align-items:flex-start;gap:11px}
+.pv .g{color:var(--ink3);margin-top:3px}
+.pv .n{font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:28px;line-height:32px;letter-spacing:-.02em;color:var(--ink);text-wrap:pretty}
+.pv .q{display:block;font-size:13px;line-height:19px;color:var(--ink2);margin-top:3px;font-weight:400;font-family:Inter,system-ui,sans-serif;letter-spacing:0}
+.fh span{font-weight:400;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.lrow{display:flex;align-items:center;gap:12px;min-height:72px;padding:var(--rowy) 0}
+.lrow+.lrow{border-top:1px solid var(--line)}
+.lth{width:40px;height:40px;flex:0 0 40px;border-radius:6px;overflow:hidden;background:var(--inset);display:flex;align-items:center;justify-content:center;color:var(--ink3)}
+.ltt{flex:1;min-width:0}
+.l1{display:flex;align-items:baseline;gap:10px}
+.l1 .c{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l1 .ty{margin-left:auto;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.l1 .ty.q{font-weight:400;color:var(--ink3)}
+.l2{display:flex;align-items:center;gap:7px;margin-top:3px;font-size:13px;color:var(--ink2);min-width:0}
+.l2 .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l2 .aid{margin-left:auto;font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap}
+.l2 .aid.todo{letter-spacing:0;border-bottom:1px dotted var(--ink3)}
+.lrow.mute .l1 .c{color:var(--ink2)}
+body[data-locaux="masques"] .lc{display:none}
+.svcs{display:none}
+body[data-service="lecture"] .svcs{display:block}
+.more{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:8px;border-top:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink);text-decoration:none}
+.more.center{justify-content:center;gap:8px}
+.more svg{flex:0 0 15px;color:var(--ink2)}
+.lfoot{font-size:12px;line-height:17px;color:var(--ink3);text-align:center;margin-top:6px;font-variant-numeric:tabular-nums}
+.note.page{padding:12px 20px 0;margin-top:10px}
+.note{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px;padding:0 2px}
+.note b{font-weight:500;color:var(--ink)}
+.ch{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
+.ch h3{font-size:13px;font-weight:500}
+.ch .n{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.arow{display:flex;align-items:center;gap:12px;min-height:56px;padding:var(--rowy) 0;font-size:14px;color:inherit;text-decoration:none}
+.arow+.arow{border-top:1px solid var(--line)}
+.at2{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.at2 .t{font-size:14px}
+.at2 .s{font-size:12px;line-height:17px;color:var(--ink2)}
+.arow .v{font-size:14px;font-weight:500;text-align:right;white-space:nowrap}
+.arow .v s{display:block;font-weight:400;font-size:11px;color:var(--ink3);text-decoration:none}
+.arow>svg.chev{flex:0 0 auto;color:var(--ink3)}
+.warn{display:flex;gap:10px;padding:11px 12px;background:var(--inset);border-radius:4px;font-size:12px;line-height:17px;color:#4A453E}
+.warn svg{flex:0 0 16px;margin-top:1px;color:var(--ink2)}
+.warn b{font-weight:500;color:var(--ink)}
+.phone:has(.fab) .page{padding-bottom:92px}
+.ovl>summary.fab{list-style:none}
+.fab{position:absolute;right:20px;bottom:76px;width:56px;height:56px;border-radius:8px;border:0;background:var(--btn-y-bg);color:var(--btn-y-fg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,25,29,.22);cursor:pointer}
+.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);margin-top:auto}
+.nav>a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--ink2);text-decoration:none}
+.nav>a.on{color:var(--nav-on)}
+body[data-tone="neutre"]{background:#E1E0DE}
+body[data-tone="neutre"] .phone{--canvas:#F0EFEE;--surface:#FFFFFF;--inset:#F6F5F4;--line:#E6E5E3;--ink:#191918;--ink2:#6E6E6B;--ink3:#878783}
+body[data-tone="franc"]{background:#D9D5CC}
+body[data-tone="franc"] .phone{--canvas:#FFFFFF;--surface:#FFFFFF;--inset:#F4F2EC;--line:#E2DED6}
+body[data-tone="franc"] .phone .card{border:1px solid var(--line)}
+body[data-densite="aeree"] .phone{--gap:26px;--pad:20px;--rowy:14px;--btnh:52px}
+body[data-densite="compacte"] .phone{--gap:14px;--pad:12px;--rowy:7px;--btnh:44px}
+body[data-accent="donnees"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff}
+body[data-accent="sans"] .phone{--btn-y-bg:var(--dark);--btn-y-fg:#fff;--nav-on:var(--ink)}
+.ovl{position:static;flex:0 0 var(--btnh)}
+.ovl>summary{list-style:none;cursor:pointer}
+.ovl>summary::-webkit-details-marker{display:none}
+.scrim{position:absolute;inset:0;background:rgba(10,25,29,.42);z-index:4}
+.scrim.above-nav{bottom:56px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px rgba(10,25,29,.22);padding:0 0 12px;z-index:5;display:flex;flex-direction:column;max-height:97%;text-align:left}
+.sheet.above{bottom:56px}
+.grip{width:36px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:0 0 4px}
+.sh{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 20px 6px}
+.sttl{display:flex;align-items:center;gap:8px;padding:4px 12px 0 20px;flex:0 0 auto}
+.sttl h3{flex:1;min-width:0;font-family:Archivo,Inter,sans-serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.sgrp{padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+.sgrp .chip{min-height:44px}
+.sfoot{display:flex;gap:12px;align-items:center;padding:14px 20px 2px;margin-top:12px;border-top:1px solid var(--line);flex:0 0 auto}
+.sfoot>.btn:not(.btn-ghost){flex:1}
+.btn{height:var(--btnh);border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;color:var(--ink);cursor:pointer}
+.btn-ghost{background:none;color:var(--ink);padding:0 4px}
+.btn-d{background:var(--dark);color:var(--on-dark)}
+.btn-o{background:var(--inset);color:var(--ink)}
+.cact{display:flex;flex-direction:column;gap:10px}
+.cact>.btn{width:100%}
+.cact.tied{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+#tw-root:empty{display:none}
+.hint{font-size:12px;line-height:17px;color:var(--ink2);margin-top:7px}
+.hint b{font-weight:500;color:var(--ink)}
+.hint.bad{color:var(--danger)}
+body[data-echec="reussi"] .gko{display:none}
+body[data-echec="echoue"] .gok{display:none}
+.stg{flex:0 0 auto}.stg-v{color:var(--st-vert,#5B913C)}.stg-b{color:var(--st-bleu,#288AC5)}.stg-a{color:var(--st-ambre,#A97C00)}.stg-o{color:var(--st-orange,#E45329)}.stg-m{color:var(--ink3,#8B8580)}
+</style>
+</head>
+<body data-tone="chaud" data-densite="standard" data-accent="action" data-locaux="montres" data-service="retire">
+<div class="intro">
+<h1>Emplacements — le référentiel géographique, arbitrage du 05/08 appliqué</h1>
+<p><b>Trois décisions, déléguées et rendues.</b> <b>A2</b> — l'arbre ne garde que la géographie : <b>pays → site → local</b>. Le <b>service</b> en sort, parce que ce n'est pas un lieu : les fiches utilisateur l'écrivent déjà comme un couple (<i>« Finance · Bureau Paris »</i>), deux axes et non une descente. <b>B1</b> — un quatrième niveau <b>facultatif</b>, le local, parce que <i>Salle serveurs</i> circule déjà dans trois planches livrées, dont la feuille de filtre de 04.1. <b>C2</b> — la fiche d'un site porte son <b>état</b> et <b>renvoie</b> vers 04.1 : elle ne recopie aucun inventaire.</p>
+<p><b>Ce que le service emportait, et où il va.</b> L'écran actuel avoue lui-même que ce niveau ne porte rien : ses deux compteurs sont suffixés <i>« au site — service non renseigné »</i>. Un axe se juge à ce qu'il porte — pays et site portent des actifs, des utilisateurs et une campagne d'audit ; le service, rien. Il reste un attribut de la <b>personne</b>, tenu là où on tient les personnes (05.x), et le Tweak <b>« Le service »</b> montre l'option A3 : la carte revient, en <b>lecture seule</b>, comme conséquence des utilisateurs du site et non comme niveau de l'arbre.</p>
+<p><b>La cascade est supprimée, et c'est le gain de hauteur.</b> Le produit actuel empile trois listes à choisir dans l'ordre puis un récapitulatif — <b>2 142 px, trois écrans</b>. Ici, <b>une</b> liste de sites, groupée par pays par l'en-tête de famille <code>.fh</code> de 09.1, et le récapitulatif descend <b>sur la fiche du site</b>, où il a un sujet. Rien ne se choisit pour lire : on ouvre.</p>
+<p><b>Un niveau par écran, mais pas un écran par niveau — et le fil d'Ariane porte la différence.</b> Le chantier demandait un niveau par écran avec fil d'Ariane. Le second écran est bien un niveau — le site, qui ouvre ses locaux — et il porte désormais son <b>fil d'Ariane</b> dans la barre du haut, à la place du titre, plus son <b>nom à 28 px</b> en porte-voix. En revanche <b>l'écran de pays n'est pas dessiné</b>, et c'est une décision, pas un oubli : trois pays, quatre sites. Un écran qui n'offre que <i>France · Sénégal · Togo</i> fait payer une frappe pour n'apprendre rien, et c'est exactement la cascade qu'on retire. Le pays reste un <b>groupe</b>, avec son glyphe et son décompte — visible sans être un passage obligé. Il deviendra un écran le jour où les pays se compteront par dizaines ; le fil d'Ariane est déjà en place pour ce jour-là.</p>
+<p><b>Ce qui n'est pas relevé n'est pas inventé.</b> La capture du produit donne <b>Bureau Paris : 8 équipements, 8 utilisateurs</b> — mesuré, pas supposé. Le parc en compte <b>14</b> (04.1) : les six autres se répartissent sur les sites hors France, et <b>cette ventilation n'est relevée nulle part</b>. Elle porte donc la forme de 09.1, <code>.aid.todo</code> — la valeur dit qu'elle n'est pas connue. Le site du Togo est dans le même cas : les codes d'actifs portent <code>TOG</code>, aucun nom de site ne l'accompagne.</p>
+<p><b>Une correction de méthode, au passage.</b> Cette planche devait ouvrir sur une divergence <i>Bureau Lyon</i> / <i>Bureau Dakar</i> : Lyon dans le produit, Dakar dans les planches. Il n'y en a aucune. Les trois cartes du produit sont <b>en cascade</b> : la carte <i>Sites</i> ne liste pas les sites du parc, elle liste <b>ceux de France</b>. Dakar est sous Sénégal, non déplié. <b>Un écran en cascade ne s'inventorie pas sur une seule capture</b> — c'est la carte bornée du tableau de bord, sous une autre forme.</p>
+</div>
+
+<div class="wrap">
+
+<div class="col">
+<p class="collab">État — au repos, groupés par pays</p>
+<p class="colnote">Une liste, pas trois cascades. Le <b>porte-voix</b> dit le niveau courant à 28 px, chaque pays porte son <b>glyphe</b>, et le <b>décompte d'actifs</b> est à droite de chaque rangée en chiffres tabulaires — c'est le nombre qui fait qu'un site compte. Les <b>locaux</b> apparaissent sous leur site, en retrait, et seulement là où il y en a : <b>Bureau Paris</b> en a un.</p>
+<div class="phone">
+<div class="tbar">
+<a class="tb" href="#" aria-label="Retour"><i class="ic ph ph-arrow-left"></i></a>
+<h2 class="h1">Emplacements</h2>
+</div>
+<div class="seek">
+<div class="field"><i class="ic s18 ph ph-magnifying-glass"></i><span class="phold">Site, local, pays</span></div>
+<div class="chips">
+<span class="chip on">Tous <b>4</b></span>
+<span class="chip">France <b>2</b></span>
+<span class="chip">Sénégal <b>1</b></span>
+<span class="chip">Togo <b>1</b></span>
+</div>
+</div>
+<div class="page">
+<div>
+<div class="pv"><i class="ic s20 ph ph-globe-hemisphere-west g"></i><span><span class="n">4 sites</span><span class="q">dans 3 pays, portant 14 actifs — le niveau courant est le référentiel entier.</span></span></div>
+<div class="cnt">
+<span><b>1</b> local déclaré</span>
+<button class="sort"><i class="ic s18 ph ph-sort-ascending"></i>Par pays</button>
+</div>
+<div class="fh"><i class="ic s20 ph ph-flag g"></i>France<span>2 sites</span></div>
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><i class="ic s20 ph ph-map-pin"></i></span><span class="ltt"><span class="l1"><span class="c">Bureau Paris</span><span class="ty">8 actifs</span></span><span class="l2"><span class="who">8 utilisateurs · 1 local</span><span class="aid">HQ</span></span></span></a>
+<a class="lrow lc" href="#" style="padding-left:52px"><span class="lth"><i class="ic s20 ph ph-door-open"></i></span><span class="ltt"><span class="l1"><span class="c">Salle serveurs</span><span class="ty">1 actif</span></span><span class="l2"><span class="who">Local du Bureau Paris · aucun poste</span></span></span></a>
+<a class="lrow mute" href="#"><span class="lth"><i class="ic s20 ph ph-map-pin"></i></span><span class="ltt"><span class="l1"><span class="c">Bureau Lyon</span><span class="ty q">0 actif</span></span><span class="l2"><i class="ic s18 ph ph-clock stg stg-a"></i><span class="who">Jamais servi · aucun utilisateur</span></span></span></a>
+</section>
+<div class="fh" style="margin-top:20px"><i class="ic s20 ph ph-flag g"></i>Sénégal<span>1 site</span></div>
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><i class="ic s20 ph ph-map-pin"></i></span><span class="ltt"><span class="l1"><span class="c">Bureau Dakar</span><span class="ty q">à relever</span></span><span class="l2"><span class="who">Actifs et utilisateurs non relevés</span><span class="aid todo">à relever</span></span></span></a>
+</section>
+<div class="fh" style="margin-top:20px"><i class="ic s20 ph ph-flag g"></i>Togo<span>1 site</span></div>
+<section class="card">
+<a class="lrow" href="#"><span class="lth"><i class="ic s20 ph ph-map-pin"></i></span><span class="ltt"><span class="l1"><span class="c">Site du Togo</span><span class="ty q">à relever</span></span><span class="l2"><span class="who">Nom inconnu · les codes portent TOG</span><span class="aid todo">à relever</span></span></span></a>
+</section>
+<p class="note"><b>Bureau Lyon ne porte rien</b> — ni actif, ni utilisateur, ni local. Ce n'est pas une panne : un site s'ouvre avant d'être équipé. La pastille ambre dit seulement qu'il n'a <b>jamais</b> servi, et le geste qui la lève est ailleurs — on y crée un équipement, ou on ferme le site.</p>
+<p class="lfoot">8 actifs sur 14 sont localisés au Bureau Paris. La ventilation des 6 autres n'est pas relevée.</p>
+</div>
+</div>
+<details class="ovl"><summary class="fab" aria-label="Ajouter un emplacement"><i class="ic ph ph-plus"></i></summary>
+<div class="scrim above-nav"></div>
+<div class="sheet above">
+<div class="grip"></div>
+<div class="sttl"><h3>Ajouter un emplacement</h3><span class="tb"><i class="ic s20 ph ph-x"></i></span></div>
+<div class="sh">Ce qu'on ajoute</div>
+<div class="sgrp">
+<span class="chip on">Un site</span>
+<span class="chip">Un local</span>
+<span class="chip">Un pays</span>
+</div>
+<p class="note page">Un <b>site</b> est une adresse : c'est lui qui décide si une remise demande un transport. Un <b>local</b> précise un site sans en être un — la salle serveurs est <i>dans</i> le Bureau Paris. Un <b>pays</b> ne sert qu'à grouper, et il n'en existe que trois.</p>
+<div class="sfoot">
+<button class="btn btn-ghost">Annuler</button>
+<button class="btn btn-d">Continuer</button>
+</div>
+</div>
+</details>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#" class="on"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">Vue — la fiche d'un site</p>
+<p class="colnote">C2 appliqué, avec le <b>fil d'Ariane</b> à la place du titre et le nom du site en <b>porte-voix à 28 px</b> — le pays quitte la carte, il est déjà dans le fil. La fiche porte <b>ce que le site est</b> (code, correspondant), <b>ce qu'il contient</b> — en deux rangées de <b>renvoi</b> vers 04.1 et 05.1 filtrés, jamais en liste recopiée — et <b>ses locaux</b>. La <b>dernière campagne d'audit</b> est le troisième nombre qui décide d'un site : il n'y en a aucune ici, et c'est dit en toutes lettres.</p>
+<div class="phone">
+<div class="tbar">
+<a class="tb" href="#" aria-label="Retour"><i class="ic ph ph-arrow-left"></i></a>
+<span class="crumb"><a href="#">Emplacements</a><i class="ic s18 ph ph-caret-right"></i><a href="#">France</a><i class="ic s18 ph ph-caret-right"></i><span class="here">Bureau Paris</span></span>
+</div>
+<div class="page">
+<div class="pv"><i class="ic s20 ph ph-map-pin g"></i><span><span class="n">Bureau Paris</span><span class="q">Un site est une adresse : c'est lui qui décide si une remise demande un transport.</span></span></div>
+<section class="card">
+<div class="arow"><span class="at2"><span class="t">Code</span><span class="s">porté par les codes d'actifs — LPT-<b>HQ</b>-01</span></span><span class="v">HQ</span></div>
+<div class="arow"><span class="at2"><span class="t">Correspondant</span><span class="s">aucun — personne à prévenir pour un transport ou un audit</span></span><span class="v" style="color:var(--ink3);font-weight:400">à désigner</span></div>
+</section>
+<section class="card">
+<div class="ch"><h3>Ce que le site contient</h3></div>
+<a class="arow" href="#"><span class="at2"><span class="t">Actifs</span><span class="s">ouvre la liste des équipements, filtrée sur ce site</span></span><span class="v tnum">8</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="arow" href="#"><span class="at2"><span class="t">Utilisateurs</span><span class="s">ouvre l'annuaire, filtré sur ce site</span></span><span class="v tnum">8</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<a class="arow" href="#"><span class="at2"><span class="t">Dernière campagne d'audit</span><span class="s">aucune campagne n'a couvert ce site</span></span><span class="v" style="color:var(--ink3);font-weight:400">—</span><i class="ic s20 ph ph-caret-right chev"></i></a>
+<p class="note">Trois <b>renvois</b>, pas trois listes. Le seul inventaire du parc est celui de 04.1 : un second, même filtré, serait une seconde vérité — et c'est la faute que le récapitulatif du produit actuel commet à moitié en affichant ses nombres sans y mener.</p>
+</section>
+<section class="card">
+<div class="ch"><h3>Locaux</h3><span class="n">1</span></div>
+<a class="lrow" href="#"><span class="lth"><i class="ic s20 ph ph-door-open"></i></span><span class="ltt"><span class="l1"><span class="c">Salle serveurs</span><span class="ty">1 actif</span></span><span class="l2"><span class="who">SVR-HQ-01 — ne sort pas du local</span></span></span></a>
+<a class="more center" href="#"><i class="ic s18 ph ph-plus"></i>Ajouter un local</a>
+</section>
+<section class="card svcs">
+<div class="ch"><h3>Services présents</h3><span class="n">3</span></div>
+<div class="arow"><span class="at2"><span class="t">IT</span></span></div>
+<div class="arow"><span class="at2"><span class="t">Marketing Europe</span></span></div>
+<div class="arow"><span class="at2"><span class="t">Finance</span></span></div>
+<p class="note">Option <b>A3</b>, pour la peser : la carte revient, mais <b>en lecture seule et sans chevron</b> — elle est la <b>conséquence</b> des utilisateurs rattachés au site, pas un niveau de l'arbre. Rien ne s'y crée, rien ne s'y ouvre, et aucun nombre ne s'y affiche : ce serait la seconde vérité que les deux renvois ci-dessus évitent.</p>
+</section>
+<section class="card">
+<div class="warn"><i class="ic s18 ph ph-info"></i><span>Le site est ce qui décide qu'une remise <b>demande un transport</b> : renommer celui-ci est sans effet, le <b>supprimer</b> laisserait 8 actifs sans lieu.</span></div>
+<div class="cact tied">
+<button class="btn btn-o">Modifier le site</button>
+</div>
+</section>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#" class="on"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+<div class="col">
+<p class="collab">État — un site qui n'a jamais servi</p>
+<p class="colnote"><b>Bureau Lyon</b> : ouvert, vide. Aucun actif, aucun utilisateur, aucun local. La fiche <b>ne s'excuse pas</b> — elle dit la conséquence (<i>rien n'y est localisé</i>) et met à portée les deux seuls gestes qui la lèvent : y créer un équipement, ou fermer le site. La <b>suppression</b> est ici sans danger, et c'est la seule fiche de site où elle l'est.</p>
+<div class="phone">
+<div class="tbar">
+<a class="tb" href="#" aria-label="Retour"><i class="ic ph ph-arrow-left"></i></a>
+<span class="crumb"><a href="#">Emplacements</a><i class="ic s18 ph ph-caret-right"></i><a href="#">France</a><i class="ic s18 ph ph-caret-right"></i><span class="here">Bureau Lyon</span></span>
+</div>
+<div class="page">
+<div class="pv"><i class="ic s20 ph ph-map-pin g"></i><span><span class="n">Bureau Lyon</span><span class="q">Ouvert, jamais équipé. Il figure pourtant dans tous les sélecteurs d'emplacement.</span></span></div>
+<section class="card">
+<div class="arow"><span class="at2"><span class="t">Code</span><span class="s">aucun code relevé — aucun actif ne le porte</span></span><span class="v" style="color:var(--ink3);font-weight:400">à relever</span></div>
+<div class="arow"><span class="at2"><span class="t">Correspondant</span><span class="s">aucun</span></span><span class="v" style="color:var(--ink3);font-weight:400">à désigner</span></div>
+</section>
+<section class="card">
+<div class="ch"><h3>Ce que le site contient</h3></div>
+<div class="warn"><i class="ic s18 ph ph-warning"></i><span><b>Rien n'y est localisé.</b> Aucun actif, aucun utilisateur — on peut pourtant y créer un équipement dès aujourd'hui.</span></div>
+<p class="hint bad gko">Le site n'a pas pu être fermé — un local y a été rattaché entre-temps. <b>Rien n'a changé</b> ; ouvrez le local pour le déplacer d'abord.</p>
+<div class="cact tied gok">
+<button class="btn btn-d">Créer un équipement ici</button>
+<button class="btn btn-o">Fermer le site</button>
+</div>
+<div class="cact tied gko">
+<button class="btn btn-d">Créer un équipement ici</button>
+<button class="btn btn-o">Réessayer</button>
+</div>
+</section>
+<section class="card">
+<div class="warn"><i class="ic s18 ph ph-info"></i><span><b>Fermer un site vide n'efface rien</b> — il sort des sélecteurs, son nom reste dans l'historique. C'est le seul cas où la suppression ne laisse aucun actif sans lieu.</span></div>
+</section>
+<p class="lfoot">Un site sur quatre est dans ce cas.</p>
+</div>
+<div class="nav"><a href="#"><i class="ic s20 ph ph-squares-four"></i>Accueil</a><a href="#"><i class="ic s20 ph ph-laptop"></i>Actifs</a><a href="#"><i class="ic s20 ph ph-check-circle"></i>Tâches</a><a href="#"><i class="ic s20 ph ph-users-three"></i>Équipe</a><a href="#" class="on"><i class="ic s20 ph ph-list"></i>Plus</a></div>
+</div>
+</div>
+
+</div>
+<div id="tw-root"></div>
+<script>
+document.addEventListener('click',function(e){
+  var s=e.target.closest('.scrim,.tb svg,.sttl .tb');
+  if(s){var d=s.closest('details.ovl');if(d&&d.open){d.open=false;e.preventDefault();return}}
+  document.querySelectorAll('details.ovl[open]').forEach(function(d){if(!d.contains(e.target))d.open=false});
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('details.ovl[open]').forEach(function(d){d.open=false})});
+</script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "echec": "Réussi",
+  "locaux": "Masqués",
+  "service": "Retiré (A2)",
+  "tone": "Papier chaud",
+  "densite": "Standard",
+  "accent": "Sur l'action"
+}/*EDITMODE-END*/;
+const ECHEC = {"Réussi":"reussi","Échoué":"echoue"};
+const LOCAUX = {"Montrés":"montres","Masqués":"masques"};
+const SERVICE = {"Retiré (A2)":"retire","En lecture seule (A3)":"lecture"};
+const TONE = {"Papier chaud":"chaud","Neutre":"neutre","Blanc franc":"franc"};
+const DENSITE = {"Aérée":"aeree","Standard":"standard","Compacte":"compacte"};
+const ACCENT = {"Sur l'action":"action","Sur la donnée":"donnees","Nulle part":"sans"};
+function EmplacementsTweaks(){
+  const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(()=>{
+    const b = document.body;
+    b.dataset.echec = ECHEC[t.echec] || 'reussi';
+    b.dataset.locaux = LOCAUX[t.locaux] || 'montres';
+    b.dataset.service = SERVICE[t.service] || 'retire';
+    b.dataset.tone = TONE[t.tone] || 'chaud';
+    b.dataset.densite = DENSITE[t.densite] || 'standard';
+    b.dataset.accent = ACCENT[t.accent] || 'action';
+  },[t.echec,t.locaux,t.service,t.tone,t.densite,t.accent]);
+  return (
+    <TweaksPanel>
+      <TweakSection label="L'acte qui échoue (fermer un site vide)" />
+      <TweakRadio label="Fermeture" value={t.echec} options={Object.keys(ECHEC)} onChange={(v)=>setTweak('echec',v)} />
+      <TweakSection label="Locaux dans la liste (colonne 1)" />
+      <TweakRadio label="Affichage" value={t.locaux} options={Object.keys(LOCAUX)} onChange={(v)=>setTweak('locaux',v)} />
+      <TweakSection label="Le service (colonne 2)" />
+      <TweakRadio label="Traitement" value={t.service} options={Object.keys(SERVICE)} onChange={(v)=>setTweak('service',v)} />
+      <TweakSection label="Échelle tonale" />
+      <TweakRadio label="Surfaces" value={t.tone} options={Object.keys(TONE)} onChange={(v)=>setTweak('tone',v)} />
+      <TweakSection label="Densité" />
+      <TweakRadio label="Rythme" value={t.densite} options={Object.keys(DENSITE)} onChange={(v)=>setTweak('densite',v)} />
+      <TweakSection label="Place du jaune" />
+      <TweakRadio label="Accent" value={t.accent} options={Object.keys(ACCENT)} onChange={(v)=>setTweak('accent',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tw-root')).render(<EmplacementsTweaks />);
+</script>
+</body>
+</html>

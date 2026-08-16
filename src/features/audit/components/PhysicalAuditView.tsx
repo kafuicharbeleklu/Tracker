@@ -1,9 +1,16 @@
-import { MEDIA } from '../../../constants/breakpoints';
 import React, { useEffect, useMemo, useState } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import {
+    CheckCircle,
+    CircleDashed,
+    CircleHalf,
+    ClockCountdown,
+} from '@phosphor-icons/react';
+import { MEDIA } from '../../../constants/breakpoints';
 import { ViewType } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useData } from '../../../context/DataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
@@ -29,7 +36,7 @@ const STATUS_OPTIONS = [
     { value: 'A lancer', label: 'À lancer' },
     { value: 'En cours', label: 'En cours' },
     { value: 'Complet', label: 'Complet' },
-    { value: 'A planifier', label: 'À planifier' },
+    { value: 'A planifier', label: 'Rien à auditer' },
 ];
 
 const normalize = (value?: string): string => (value || '').trim().toLowerCase();
@@ -41,17 +48,47 @@ const readMetadata = (value: unknown): Record<string, unknown> | null => {
 
 const readString = (value: unknown): string => (typeof value === 'string' ? value : '');
 
-const statusPill = (status: ServiceAuditRow['status']) => {
-    if (status === 'Complet') {
-        return <span className="inline-flex items-center rounded-sm bg-tertiary-container px-2 py-1 text-label-small font-semibold text-on-tertiary-container">Complet</span>;
+const statusPresentation = (status: ServiceAuditRow['status']) => {
+    switch (status) {
+        case 'Complet':
+            return {
+                label: 'Complet',
+                glyph: CheckCircle,
+                colorClass: 'text-[var(--tk-color-st-vert)]',
+                bgClass: 'bg-[var(--tk-color-st-vert)]/10 text-[var(--tk-color-st-vert)]',
+            };
+        case 'En cours':
+            return {
+                label: 'En cours',
+                glyph: CircleHalf,
+                colorClass: 'text-[var(--tk-color-st-bleu)]',
+                bgClass: 'bg-[var(--tk-color-st-bleu)]/10 text-[var(--tk-color-st-bleu)]',
+            };
+        case 'A lancer':
+            return {
+                label: 'À lancer',
+                glyph: ClockCountdown,
+                colorClass: 'text-[var(--tk-color-st-ambre)]',
+                bgClass: 'bg-[var(--tk-color-st-ambre)]/10 text-[var(--tk-color-st-ambre)]',
+            };
+        default:
+            return {
+                label: 'Rien à auditer',
+                glyph: CircleDashed,
+                colorClass: 'text-on-surface-variant',
+                bgClass: 'bg-surface-container-high text-on-surface-variant',
+            };
     }
-    if (status === 'En cours') {
-        return <span className="inline-flex items-center rounded-sm bg-primary-container px-2 py-1 text-label-small font-semibold text-on-primary-container">En cours</span>;
-    }
-    if (status === 'A lancer') {
-        return <span className="inline-flex items-center rounded-sm bg-secondary-container px-2 py-1 text-label-small font-semibold text-on-secondary-container">À lancer</span>;
-    }
-    return <span className="inline-flex items-center rounded-sm bg-surface-container-high px-2 py-1 text-label-small font-semibold text-on-surface-variant">À planifier</span>;
+};
+
+const StatusPill: React.FC<{ status: ServiceAuditRow['status'] }> = ({ status }) => {
+    const config = statusPresentation(status);
+    return (
+        <span className={cn('inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-label-small font-semibold', config.bgClass)}>
+            <Icon glyph={config.glyph} size={14} />
+            {config.label}
+        </span>
+    );
 };
 
 export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChange }) => {
@@ -65,7 +102,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
 
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [selectedCountry, setSelectedCountry] = useState<string>(locationData.countries[0] || ALL_VALUE);
+    const [selectedCountry, setSelectedCountry] = useState<string>(ALL_VALUE);
     const [selectedSite, setSelectedSite] = useState<string>(ALL_VALUE);
     const [selectedService, setSelectedService] = useState<string>(ALL_VALUE);
     const [selectedStatus, setSelectedStatus] = useState<string>(ALL_VALUE);
@@ -76,7 +113,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
     useEffect(() => {
         if (selectedCountry === ALL_VALUE) return;
         if (!locationData.countries.includes(selectedCountry)) {
-            setSelectedCountry(locationData.countries[0] || ALL_VALUE);
+            setSelectedCountry(ALL_VALUE);
         }
     }, [locationData.countries, selectedCountry]);
 
@@ -387,15 +424,25 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                         : 'Sélectionnez un service dans la liste pour activer les actions.'}
                 </p>
 
-                {/* Rangée de stats X9 : tuiles MetricCard compactes (§9.1/§9.4) */}
-                <div className="mt-4 grid grid-cols-2 large:grid-cols-6 gap-3">
-                    <MetricCard compact title="Attendus" value={totals.expected} />
-                    <MetricCard compact title="Scannés" value={totals.found} />
-                    <MetricCard compact title="Manquants" value={totals.missing} valueClassName="text-error" />
-                    <MetricCard compact title="Écarts" value={totals.exceptions} />
-                    <MetricCard compact title="Campagnes actives" value={totals.activeCampaigns} />
-                    <MetricCard compact title="Couverture" value={`${totals.coverage}%`} />
-                </div>
+                {/* **Les quatre chiffres n'apparaissent qu'en campagne** (planche 16.1).
+                    Hors campagne, la vue globale répond à une seule question — *qu'est-ce qui
+                    n'a pas été vérifié, et depuis combien de temps* — et six tuiles à zéro n'y
+                    répondent pas : elles occupent la place de la réponse. */}
+                {totals.activeCampaigns > 0 ? (
+                    <div className="mt-4 grid grid-cols-2 large:grid-cols-6 gap-3">
+                        <MetricCard compact title="Attendus" value={totals.expected} />
+                        <MetricCard compact title="Scannés" value={totals.found} />
+                        <MetricCard compact title="Manquants" value={totals.missing} valueClassName="text-error" />
+                        <MetricCard compact title="Écarts" value={totals.exceptions} />
+                        <MetricCard compact title="Campagnes actives" value={totals.activeCampaigns} />
+                        <MetricCard compact title="Couverture" value={`${totals.coverage}%`} />
+                    </div>
+                ) : (
+                    <p className="mt-4 rounded-md bg-surface-container px-3 py-2.5 text-body-small text-on-surface-variant">
+                        Aucune campagne en cours. Les chiffres d'une campagne — attendus, scannés,
+                        manquants, écarts — apparaissent quand elle tourne.
+                    </p>
+                )}
 
                 <div className="mt-4 rounded-md border border-outline-variant bg-surface-container-low p-3">
                     <div className="mb-2 flex items-center justify-between gap-3">
@@ -540,7 +587,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between gap-2">
-                                    {statusPill(row.status)}
+                                    <StatusPill status={row.status} />
                                     <span className="text-body-small text-on-surface-variant">{formatLastScan(row.lastScanAt)}</span>
                                 </div>
                                 {/* Action en pied de carte — cible ≥ 44 px via le touch-target du Button */}
@@ -564,7 +611,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                             <span className="hidden medium:block text-body-small text-error text-right">{row.missing}</span>
                             <span className="hidden medium:block text-body-small text-on-surface text-right">{row.exceptions}</span>
                             <span className="hidden medium:block text-body-small text-on-surface-variant text-right">{formatLastScan(row.lastScanAt)}</span>
-                            <div className="hidden medium:flex justify-end">{statusPill(row.status)}</div>
+                            <div className="hidden medium:flex justify-end"><StatusPill status={row.status} /></div>
                             <div className="hidden medium:flex justify-end">
                                 <Button
                                     variant="text"

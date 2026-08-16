@@ -81,7 +81,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center font-bold uppercase tracking-wider rounded-md whitespace-nowrap transition-all duration-short4",
+        "inline-flex items-center justify-center font-medium rounded-md whitespace-nowrap transition-all duration-short4",
         TONE_CLASSES[tone],
         SIZE_CLASSES[size],
         className
@@ -93,4 +93,3 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
 };
 
 export default StatusBadge;
-

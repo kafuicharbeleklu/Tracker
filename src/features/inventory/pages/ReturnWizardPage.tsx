@@ -1,5 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import {
+    Check,
+    Fingerprint,
+    Key,
+    Package,
+    PenNib,
+    User as UserIcon,
+    Warning,
+    Wrench,
+} from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
@@ -8,81 +17,162 @@ import { WizardLayout, WizardStep } from '../../../components/layout/WizardLayou
 import Button from '../../../components/ui/Button';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { TextArea } from '../../../components/ui/TextArea';
-import InputField from '../../../components/ui/InputField';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { formatDate } from '../../../lib/financial';
-import IconButton from '../../../components/ui/IconButton';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import Chip from '../../../components/ui/Chip';
 import { cn } from '../../../lib/utils';
-import DemoBadge from '../../../components/ui/DemoBadge';
-import { EntityRow } from '../../../components/ui/EntityRow';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { getEquipmentUpdatesForReturnWorkflow } from '../../../lib/businessRules';
-
-const ITEMS_PER_PAGE = 5;
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
+import InputField from '../../../components/ui/InputField';
 
 type ReturnCondition = 'Excellent' | 'Bon' | 'Moyen' | 'Mauvais';
-type ValidationMethod = 'fingerprint' | 'pin' | 'face' | 'signature';
+type ValidationMethod = 'signature' | 'pin' | 'fingerprint';
 
-const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void }> = ({ onCancel, onComplete }) => {
+const ReturnWizardPage: React.FC<{
+    initialEquipmentId?: string;
+    onCancel: () => void;
+    onComplete: () => void;
+}> = ({ initialEquipmentId, onCancel, onComplete }) => {
     const [accessories, setAccessories] = useState<string[]>([]);
     const { equipment, updateEquipment } = useData();
     const { user: actor } = useAccessControl();
     const { showToast } = useToast();
 
-    // Planche 12.1, règle 3 : jusqu'ici l'écran annonçait « Restitution initiée »
-    // même quand la règle de rôle refusait l'écriture — `updateEquipment` rendait
-    // la main sans rien dire. Le refus se lit maintenant sous le geste.
     const [refus, setRefus] = useState<string | null>(null);
-
     const [step, setStep] = useState(1);
     const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-    const [condition, setCondition] = useState<ReturnCondition>('Excellent');
+    const [condition, setCondition] = useState<ReturnCondition>('Bon');
     const [comment, setComment] = useState('');
-    const [validationMethod, setValidationMethod] = useState<ValidationMethod | null>(null);
+    const [validationMethod, setValidationMethod] = useState<ValidationMethod>('signature');
     const [isValidated, setIsValidated] = useState(false);
-    const [validatedBy, setValidatedBy] = useState<ValidationMethod | null>(null);
-    const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+    const [signatureCaptured, setSignatureCaptured] = useState(false);
 
-    // X4 : navigation aux flèches du radiogroup « état du retour » (même ordre que les cartes rendues)
-    const conditionOrder: ReturnCondition[] = ['Excellent', 'Bon', 'Moyen', 'Mauvais'];
-    const handleConditionKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
-        e.preventDefault();
-        const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
-        const nextIndex = (conditionOrder.indexOf(condition) + delta + conditionOrder.length) % conditionOrder.length;
-        setCondition(conditionOrder[nextIndex]);
-        e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]?.focus();
-    };
+    useEffect(() => {
+        const hash = window.location.hash;
+        const hashQuery = hash.includes('?') ? hash.split('?')[1] : '';
+        const searchQuery = window.location.search.replace(/^\?/, '');
+        const queryString = hashQuery || searchQuery;
+        const urlParams = queryString ? new URLSearchParams(queryString) : null;
+        const pEquipmentId = initialEquipmentId || urlParams?.get('equipmentId');
+
+        if (pEquipmentId) {
+            const found = equipment.find((e) => e.id === pEquipmentId);
+            if (found) {
+                setSelectedEquipment(found);
+                setStep(2);
+            }
+        }
+    }, [initialEquipmentId, equipment]);
 
     const [equipmentSearch, setEquipmentSearch] = useState('');
     const [equipmentPage, setEquipmentPage] = useState(1);
-    const [pin, setPin] = useState(['', '', '', '', '', '']);
+    const [pin, setPin] = useState(['', '', '', '']);
     const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const autoAdvanceTimerRef = useRef<number | null>(null);
+
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+
+    const isCompactViewport = useMediaQuery(MEDIA.compact);
+    const isMediumViewport = useMediaQuery(MEDIA.medium);
+    const itemsPerPage = isCompactViewport ? 5 : isMediumViewport ? 8 : 10;
 
     const filteredEquipment = equipment
-        .filter(e => e.status === 'Attribué' || e.assignmentStatus === 'PENDING_RETURN')
-        .filter(e => e.name.toLowerCase().includes(equipmentSearch.toLowerCase()) || e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase()));
+        .filter((e) => e.status === 'Attribué' || e.assignmentStatus === 'PENDING_RETURN')
+        .filter(
+            (e) =>
+                e.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
+                e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase())
+        );
 
-    const totalPages = Math.ceil(filteredEquipment.length / ITEMS_PER_PAGE);
-    const paginatedEquipment = filteredEquipment.slice((equipmentPage - 1) * ITEMS_PER_PAGE, equipmentPage * ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredEquipment.length / itemsPerPage);
+    const safePage = Math.min(equipmentPage, Math.max(1, totalPages));
+    const paginatedEquipment = filteredEquipment.slice(
+        (safePage - 1) * itemsPerPage,
+        safePage * itemsPerPage
+    );
 
     useEffect(() => {
         setEquipmentPage(1);
     }, [equipmentSearch]);
 
-    useEffect(() => {
-        return () => {
-            if (autoAdvanceTimerRef.current) {
-                window.clearTimeout(autoAdvanceTimerRef.current);
-            }
-        };
-    }, []);
+    const isInspectionFlow = selectedEquipment?.assignmentStatus === 'PENDING_RETURN';
+
+    const handlePinDigitChange = (index: number, value: string) => {
+        if (!/^\d?$/.test(value)) return;
+        const newPin = [...pin];
+        newPin[index] = value;
+        setPin(newPin);
+
+        if (value !== '' && index < 3) {
+            pinRefs.current[index + 1]?.focus();
+        }
+
+        if (newPin.every((d) => d !== '')) {
+            setIsValidated(true);
+        }
+    };
+
+    const handleClearSignature = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        setSignatureCaptured(false);
+        setIsValidated(false);
+    };
+
+    const handleCanvasMouseDown = (
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+    ) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+        ctx.strokeStyle = 'rgb(26, 25, 23)';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(clientX - rect.left, clientY - rect.top);
+        setIsDrawing(true);
+        setSignatureCaptured(true);
+        setIsValidated(true);
+    };
+
+    const handleCanvasMouseMove = (
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+    ) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+        ctx.lineTo(clientX - rect.left, clientY - rect.top);
+        ctx.stroke();
+    };
+
+    const handleCanvasMouseUp = () => {
+        setIsDrawing(false);
+    };
+
+    const handleFingerprintConfirm = () => {
+        setIsValidated(true);
+    };
 
     const handleNext = () => {
-
         setRefus(null);
         if (step < 4) {
             setStep(step + 1);
@@ -97,15 +187,19 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                     nowISO,
                 });
 
-                const decision = updateEquipment(selectedEquipment.id, {
-                    ...initiationUpdates,
-                    notes: `${selectedEquipment.notes || ''}\n[DEMANDE RETOUR ${formatDate()}] ${comment.trim() || 'Aucun commentaire'}`,
-                }, {
-                    source: 'return_wizard',
-                    stage: 'initiation',
-                    comment: comment.trim() || undefined,
-                    requestedBy: actor?.id || 'system',
-                });
+                const decision = updateEquipment(
+                    selectedEquipment.id,
+                    {
+                        ...initiationUpdates,
+                        notes: `${selectedEquipment.notes || ''}\n[DEMANDE RETOUR ${formatDate()}] ${comment.trim() || 'Aucun commentaire'}`,
+                    },
+                    {
+                        source: 'return_wizard',
+                        stage: 'initiation',
+                        comment: comment.trim() || undefined,
+                        requestedBy: actor?.id || 'system',
+                    }
+                );
 
                 if (!decision.allowed) {
                     setRefus(decision.reason || "Vous n'avez pas le droit de modifier cet équipement.");
@@ -124,18 +218,22 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
                 nowISO,
             });
 
-            const decision = updateEquipment(selectedEquipment.id, {
-                ...inspectionUpdates,
-                operationalStatus: 'Actif',
-                notes: `${selectedEquipment.notes || ''}\n[INSPECTION RETOUR ${formatDate()}] État: ${condition}${comment ? ` - ${comment}` : ''}`,
-            }, {
-                condition,
-                accessories: accessories.join(', '),
-                comment: comment.trim() || undefined,
-                previousUser: selectedEquipment.user?.name || null,
-                source: 'return_wizard',
-                stage: 'inspection',
-            });
+            const decision = updateEquipment(
+                selectedEquipment.id,
+                {
+                    ...inspectionUpdates,
+                    operationalStatus: 'Actif',
+                    notes: `${selectedEquipment.notes || ''}\n[INSPECTION RETOUR ${formatDate()}] État: ${condition}${comment ? ` - ${comment}` : ''}`,
+                },
+                {
+                    condition,
+                    accessories: accessories.join(', '),
+                    comment: comment.trim() || undefined,
+                    previousUser: selectedEquipment.user?.name || null,
+                    source: 'return_wizard',
+                    stage: 'inspection',
+                }
+            );
 
             if (!decision.allowed) {
                 setRefus(decision.reason || "Vous n'avez pas le droit de modifier cet équipement.");
@@ -148,43 +246,9 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
     };
 
     const toggleAccessory = (acc: string) => {
-        setAccessories(prev =>
-            prev.includes(acc) ? prev.filter(a => a !== acc) : [...prev, acc]
+        setAccessories((prev) =>
+            prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc]
         );
-    };
-
-    const validationMethodLabels: Record<ValidationMethod, string> = {
-        face: 'Face ID',
-        signature: 'Signature',
-        fingerprint: 'Empreinte',
-        pin: 'Code PIN',
-    };
-
-    const completeValidation = (method: ValidationMethod) => {
-        setValidatedBy(method);
-        setValidationMethod(null);
-        setIsValidated(true);
-        setIsAutoAdvancing(true);
-
-        if (autoAdvanceTimerRef.current) {
-            window.clearTimeout(autoAdvanceTimerRef.current);
-        }
-
-        autoAdvanceTimerRef.current = window.setTimeout(() => {
-            setIsAutoAdvancing(false);
-            setStep(4);
-        }, 900);
-    };
-
-    const handlePinChange = (index: number, value: string) => {
-        if (!/^\d?$/.test(value)) return;
-        const newPin = [...pin];
-        newPin[index] = value;
-        setPin(newPin);
-        if (value !== '' && index < 5) pinRefs.current[index + 1]?.focus();
-        if (index === 5 && value !== '') {
-            window.setTimeout(() => completeValidation('pin'), 250);
-        }
     };
 
     const handleEquipmentSelect = (item: Equipment) => {
@@ -193,559 +257,536 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
     };
 
     const wizardSteps = [
-        { id: 1, title: 'Sélection' },
+        { id: 1, title: 'Équipement' },
         { id: 2, title: 'État' },
-        { id: 3, title: 'Validation' },
+        { id: 3, title: 'Attestation' },
         { id: 4, title: 'Synthèse' },
     ];
 
-    const conditionMetadata: Record<ReturnCondition, {
-        description: string;
-        recommendation: string;
-        destination: string;
-        finalStatus: string;
-    }> = {
-        Excellent: {
-            description: 'Équipement comme neuf, sans anomalie visible.',
-            recommendation: 'Retour direct au stock IT.',
-            destination: 'Stock IT',
-            finalStatus: 'Disponible',
-        },
-        Bon: {
-            description: 'Usure normale, matériel pleinement exploitable.',
-            recommendation: 'Retour stock avec contrôle standard.',
-            destination: 'Stock IT',
-            finalStatus: 'Disponible',
-        },
-        Moyen: {
-            description: 'Usure marquée ou défaut mineur constaté.',
-            recommendation: 'Contrôle technique recommandé avant réattribution.',
-            destination: 'Stock IT',
-            finalStatus: 'Disponible',
-        },
-        Mauvais: {
-            description: 'Dommage important ou panne fonctionnelle.',
-            recommendation: 'Description détaillée requise pour ouvrir la maintenance.',
-            destination: 'Maintenance',
-            finalStatus: 'En réparation',
-        },
-    };
-
-    const activeCondition = conditionMetadata[condition];
-    const trimmedComment = comment.trim();
-    const commentMinLength = 8;
-    const requiresDetailedComment = condition === 'Mauvais';
-    const canProceedFromStateStep = !requiresDetailedComment || trimmedComment.length >= commentMinLength;
-    const isInspectionFlow = selectedEquipment?.assignmentStatus === 'PENDING_RETURN';
-
-    const conditionBadgeClass =
-        condition === 'Excellent'
-            ? 'bg-tertiary-container text-on-tertiary-container border-tertiary/30'
-            : condition === 'Bon'
-                ? 'bg-secondary-container text-on-secondary-container border-secondary/30'
-                : condition === 'Moyen'
-                    ? 'bg-primary-container text-on-primary-container border-primary/30'
-                    : 'bg-error-container text-on-error-container border-error/30';
-
     return (
         <WizardLayout
-            title="Retourner un équipement"
+            title={isInspectionFlow ? 'Réceptionner le retour' : 'Restituer un équipement'}
+            subtitle={
+                isInspectionFlow
+                    ? `Rendu par ${selectedEquipment?.user?.name || 'Karim Diallo'}, hier à 17:20.`
+                    : "Vous attestez rendre. L'informatique attestera recevoir."
+            }
             currentStep={step}
             steps={wizardSteps}
             onClose={onCancel}
             onBack={step > 1 ? () => setStep(step - 1) : undefined}
             actions={
-                <div className="flex flex-col gap-2 items-stretch medium:items-end">
-                    {refus && (
-                        <p className="text-body-small text-error max-w-md">
-                            <strong className="font-medium">Le retour n'a pas été enregistré.</strong>{' '}
-                            {refus} L'équipement n'a pas changé d'état.
-                        </p>
-                    )}
-                    <div className="flex gap-3">
-                        {(step === 2 || step === 4) && (
-                            <Button onClick={handleNext} disabled={(step === 2 && !canProceedFromStateStep) || (step === 3 && !isValidated)}>
-                                {refus
-                                    ? 'Réessayer'
-                                    : step === 4
-                                        ? (isInspectionFlow ? 'Clôturer le retour' : 'Initier la restitution')
-                                        : 'Suivant'}
+                <>
+                    <Button
+                        variant="text"
+                        onClick={onCancel}
+                        className="text-[14px] text-[var(--tk-color-text-primary)]"
+                    >
+                        {isInspectionFlow && step === 4 ? 'Plus tard' : 'Annuler'}
+                    </Button>
+                    <div className="flex items-center gap-3">
+                        {step === 2 && (
+                            <Button variant="primary" onClick={() => setStep(3)}>
+                                Continuer vers l'attestation
+                            </Button>
+                        )}
+                        {step === 3 && (
+                            <Button variant="primary" onClick={() => setStep(4)}>
+                                Continuer vers la synthèse
+                            </Button>
+                        )}
+                        {step === 4 && (
+                            <Button variant="primary" onClick={handleNext}>
+                                {isInspectionFlow ? 'Réceptionner' : 'Je rends cet équipement'}
                             </Button>
                         )}
                     </div>
-                </div>
+                </>
             }
         >
+            {refus && (
+                <div className="flex items-start gap-2.5 p-3 rounded-md bg-[var(--tk-color-surface-muted)] border border-[var(--tk-color-danger)]/30 text-[13px] text-[var(--tk-color-danger)]">
+                    <Warning size={18} className="shrink-0 mt-0.5" />
+                    <span>{refus}</span>
+                </div>
+            )}
+
+            {/* Étape 1 : Sélection de l'équipement à restituer */}
             {step === 1 && (
                 <WizardStep>
-                    <div className="mb-6">
-                        <SearchFilterBar
-                            searchValue={equipmentSearch}
-                            onSearchChange={setEquipmentSearch}
-                            placeholder="Rechercher l'équipement à retourner..."
-                            resultCount={filteredEquipment.length}
-                        />
-                    </div>
-                    <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden min-h-[400px]">
+                    <SearchFilterBar
+                        searchValue={equipmentSearch}
+                        onSearchChange={setEquipmentSearch}
+                        placeholder="Rechercher par numéro de série, code ou modèle..."
+                        resultCount={filteredEquipment.length}
+                    />
+
+                    <div className="bg-surface rounded-lg border border-[var(--tk-color-border-default)] divide-y divide-[var(--tk-color-border-default)] overflow-hidden">
                         {paginatedEquipment.length > 0 ? (
-                        paginatedEquipment.map(item => (
-                            <EntityRow
-                                key={item.id}
-                                image={item.image}
-                                title={item.name}
-                                subtitle={
-                                    <div className="flex min-w-0 items-center gap-2">
-                                        <span className="shrink-0 font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-xs border border-outline-variant text-label-small">
-                                            {item.assetId}
-                                        </span>
-                                        <span className="min-w-0 truncate text-on-surface-variant text-label-small">
-                                            {item.user ? `• ${item.user.name}` : ''}
-                                        </span>
-                                    </div>
-                                }
-                                status={<StatusBadge status={item.assignmentStatus === 'PENDING_RETURN' ? 'PENDING_RETURN' : item.status} size="sm" />}
-                                selected={selectedEquipment?.id === item.id}
-                                onClick={() => handleEquipmentSelect(item)}
-                            />
-                        ))
-                    ) : (
-                        <div className="p-8">
-                            <EmptyState
-                                icon="inventory_2"
-                                title="Aucun équipement à retourner"
-                                description={equipmentSearch
-                                    ? "Aucun équipement ne correspond à votre recherche."
-                                    : "Aucun équipement attribué ou en cours de restitution."}
-                            />
-                        </div>
-                    )}
-                    </div>
-                    {filteredEquipment.length > 0 && <Pagination currentPage={equipmentPage} totalPages={totalPages} onPageChange={setEquipmentPage} className="mt-6" />}
-                </WizardStep>
-            )}
-
-            {step === 2 && (
-                <WizardStep>
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 p-5">
-                            <h3 className="text-headline-small text-on-surface tracking-tight">Vérification de l'état</h3>
-                            <p className="text-on-surface-variant text-body-medium mt-1">
-                                Qualifiez précisément l'état du matériel avant validation du retour.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 expanded:grid-cols-12 gap-6 items-start">
-                            <div className="expanded:col-span-8 space-y-4">
-                                <div
-                                    role="radiogroup"
-                                    aria-label="État du retour"
-                                    onKeyDown={handleConditionKeyDown}
-                                    className="grid grid-cols-1 medium:grid-cols-2 gap-3"
-                                >
-                                    {[
-                                        {
-                                            value: 'Excellent' as ReturnCondition,
-                                            icon: 'star',
-                                            description: 'Comme neuf',
-                                            selectedState: 'border-tertiary bg-tertiary-container shadow-elevation-2',
-                                            hoverState: 'hover:border-tertiary',
-                                            selectedIconState: 'bg-tertiary text-on-tertiary',
-                                            hoverIconState: 'group-hover:text-tertiary'
-                                        },
-                                        {
-                                            value: 'Bon' as ReturnCondition,
-                                            icon: 'thumb_up',
-                                            description: 'Usure normale',
-                                            selectedState: 'border-secondary bg-secondary-container shadow-elevation-2',
-                                            hoverState: 'hover:border-secondary',
-                                            selectedIconState: 'bg-secondary text-on-secondary',
-                                            hoverIconState: 'group-hover:text-secondary'
-                                        },
-                                        {
-                                            value: 'Moyen' as ReturnCondition,
-                                            icon: 'error',
-                                            description: 'Rayures / Usé',
-                                            selectedState: 'border-primary bg-primary-container shadow-elevation-2',
-                                            hoverState: 'hover:border-primary',
-                                            selectedIconState: 'bg-primary text-on-primary',
-                                            hoverIconState: 'group-hover:text-primary'
-                                        },
-                                        {
-                                            value: 'Mauvais' as ReturnCondition,
-                                            icon: 'cancel',
-                                            description: 'Endommagé / HS',
-                                            selectedState: 'border-error bg-error-container shadow-elevation-2',
-                                            hoverState: 'hover:border-error',
-                                            selectedIconState: 'bg-error text-on-error',
-                                            hoverIconState: 'group-hover:text-error'
-                                        }
-                                    ].map(option => {
-                                        const isSelected = condition === option.value;
-                                        return (
-                                            <Button
-                                                key={option.value}
-                                                type="button"
-                                                variant="outlined"
-                                                layout="card"
-                                                role="radio"
-                                                aria-checked={isSelected}
-                                                tabIndex={isSelected ? 0 : -1}
-                                                onClick={() => setCondition(option.value)}
-                                                className={cn(
-                                                    'w-full rounded-md border-2 px-4 py-4 text-on-surface transition-all items-center group',
-                                                    isSelected
-                                                        ? option.selectedState
-                                                        : `border-outline-variant bg-surface ${option.hoverState}`
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    'w-11 h-11 rounded-full flex items-center justify-center transition-all duration-short4 shrink-0',
-                                                    isSelected
-                                                        ? option.selectedIconState
-                                                        : `bg-surface-container-highest text-on-surface-variant ${option.hoverIconState}`
-                                                )}>
-                                                    <MaterialIcon name={option.icon} size={22} className={option.value === 'Excellent' && isSelected ? 'fill-current' : ''} />
-                                                </div>
-                                                <div className="ml-3 flex-1 min-w-0">
-                                                    <h4 className="text-label-large text-on-surface leading-tight">{option.value}</h4>
-                                                    <p className="text-body-small text-on-surface-variant mt-0.5">{option.description}</p>
-                                                </div>
-                                                {isSelected && <MaterialIcon name="check_circle" size={18} className="text-primary shrink-0" />}
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 p-4 space-y-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-2 text-on-surface text-label-large">
-                                            <MaterialIcon name="chat" size={16} className="text-primary" />
-                                            <span>Commentaires / Observations</span>
-                                        </div>
-                                        {requiresDetailedComment && (
-                                            <span className="px-2 py-0.5 rounded-md text-label-small bg-error-container text-on-error-container border border-error/30">
-                                                Requis
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <TextArea
-                                        label=""
-                                        value={comment}
-                                        onChange={(e) => setComment(e.target.value)}
-                                        placeholder="Précisez les dommages éventuels ou les pièces manquantes..."
-                                        className={cn(
-                                            'bg-surface-container-lowest',
-                                            requiresDetailedComment && !canProceedFromStateStep && 'border-error focus:border-error'
-                                        )}
-                                        rows={4}
-                                    />
-
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="text-body-small text-on-surface-variant">
-                                            {requiresDetailedComment
-                                                ? `Décrivez le dommage (minimum ${commentMinLength} caractères).`
-                                                : 'Ajoutez un commentaire si nécessaire (optionnel).'}
-                                        </p>
-                                        <span className={cn(
-                                            'text-label-small',
-                                            requiresDetailedComment && !canProceedFromStateStep ? 'text-error' : 'text-on-surface-variant'
-                                        )}>
-                                            {trimmedComment.length}{requiresDetailedComment ? `/${commentMinLength}` : ''}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-surface-container-low rounded-card p-4 border border-outline-variant">
-                                    <h4 className="text-label-large text-on-surface mb-3 flex items-center gap-2">
-                                        <MaterialIcon name="category" size={18} className="text-secondary" />
-                                        Accessoires restitués
-                                    </h4>
-                                    <div className="flex flex-wrap gap-3">
-                                        {['Câble d\'alimentation', 'Chargeur', 'Sacoche', 'Souris', 'Clavier', 'Autre'].map(acc => (
-                                            <Chip
-                                                key={acc}
-                                                label={acc}
-                                                variant="filter"
-                                                selected={accessories.includes(acc)}
-                                                onClick={() => toggleAccessory(acc)}
-                                                className="h-9"
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="expanded:col-span-4">
-                                <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 p-4 space-y-4 expanded:sticky expanded:top-4">
-                                    <h4 className="text-title-medium text-on-surface">Impact du retour</h4>
-
-                                    <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-label-small uppercase', conditionBadgeClass)}>
-                                        <MaterialIcon name="verified" size={14} />
-                                        État: {condition}
-                                    </div>
-
-                                    <p className="text-body-small text-on-surface-variant leading-relaxed">{activeCondition.description}</p>
-
-                                    <div className="space-y-2 pt-1">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-body-small text-on-surface-variant">Destination</span>
-                                            <span className="text-label-large text-on-surface">{activeCondition.destination}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-body-small text-on-surface-variant">Statut final</span>
-                                            <span className="text-label-large text-on-surface">{activeCondition.finalStatus}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-body-small text-on-surface-variant">Accessoires</span>
-                                            <span className="text-label-large text-on-surface">{accessories.length}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-surface-container-low rounded-md border border-outline-variant p-3">
-                                        <p className="text-label-small text-on-surface-variant uppercase mb-1">Recommandation</p>
-                                        <p className="text-body-small text-on-surface">{activeCondition.recommendation}</p>
-                                    </div>
-
-                                    {requiresDetailedComment && !canProceedFromStateStep && (
-                                        <div className="bg-error-container rounded-md border border-error/30 p-3">
-                                            <p className="text-label-small text-on-error-container">
-                                                Ajoutez un commentaire détaillé pour continuer.
-                                            </p>
-                                        </div>
+                            paginatedEquipment.map((item) => (
+                                <Button
+                                    key={item.id}
+                                    variant="text"
+                                    layout="card"
+                                    onClick={() => handleEquipmentSelect(item)}
+                                    className={cn(
+                                        'w-full text-left p-3.5 flex items-center gap-3.5 justify-start font-normal rounded-none hover:bg-[var(--tk-color-surface-muted)]',
+                                        selectedEquipment?.id === item.id && 'bg-[var(--tk-color-surface-muted)]'
                                     )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </WizardStep>
-            )}
-            {step === 3 && (
-                <WizardStep>
-                    <div className="min-h-[450px] flex flex-col items-center justify-center">
-                        <div className="w-full max-w-2xl mb-6 rounded-md border border-outline-variant bg-surface-container-low p-4">
-                            <div className="flex items-center gap-2">
-                                <p className="text-title-medium text-on-surface">Validation d'identité administrateur</p>
-                                <DemoBadge
-                                    label="Simulation"
-                                    className="ml-auto"
-                                    title="Étape de démonstration — aucune vérification biométrique ou PIN réelle n'est effectuée"
+                                >
+                                    <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center shrink-0">
+                                        <Package size={20} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-baseline justify-between gap-2">
+                                            <span className="text-[15px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
+                                                {item.assetId}
+                                            </span>
+                                            <span className="text-[12px] text-[var(--tk-color-text-secondary)] whitespace-nowrap">
+                                                {item.type}
+                                            </span>
+                                        </div>
+                                        <div className="text-[13px] text-[var(--tk-color-text-secondary)] truncate mt-0.5">
+                                            {item.name} {item.user ? `· ${item.user.name}` : ''}
+                                        </div>
+                                    </div>
+                                    <StatusBadge
+                                        status={
+                                            item.assignmentStatus === 'PENDING_RETURN'
+                                                ? 'PENDING_RETURN'
+                                                : item.status
+                                        }
+                                        size="sm"
+                                    />
+                                </Button>
+                            ))
+                        ) : (
+                            <div className="p-8">
+                                <EmptyState
+                                    icon="inventory_2"
+                                    title="Aucun équipement à restituer"
+                                    description={
+                                        equipmentSearch
+                                            ? 'Aucun équipement ne correspond à votre recherche.'
+                                            : 'Aucun équipement attribué disponible pour un retour.'
+                                    }
                                 />
                             </div>
-                            <p className="text-body-small text-on-surface-variant mt-1">
-                                Vérifiez l'identité avant de confirmer le retour du matériel.
+                        )}
+                    </div>
+
+                    {filteredEquipment.length > 0 && (
+                        <Pagination
+                            currentPage={safePage}
+                            totalPages={totalPages}
+                            onPageChange={setEquipmentPage}
+                        />
+                    )}
+                </WizardStep>
+            )}
+
+            {/* Étape 2 : Constat de l'état (Planche 06.1 Restituer & Réceptionner) */}
+            {step === 2 && selectedEquipment && (
+                <WizardStep>
+                    {/* Matériel sélectionné (.fixed) */}
+                    <div className="flex items-center gap-3 py-2 border-b border-[var(--tk-color-border-default)]">
+                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-['Archivo'] font-semibold text-[15px] shrink-0">
+                            <Package size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[15px] font-medium font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums truncate">
+                                {selectedEquipment.assetId}
+                            </div>
+                            <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
+                                {selectedEquipment.name} · {selectedEquipment.user?.name || 'Non attribué'}
+                            </div>
+                        </div>
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => setStep(1)}
+                            className="text-[13px] font-medium text-[var(--tk-color-text-primary)] px-2"
+                        >
+                            Changer
+                        </Button>
+                    </div>
+
+                    {/* Destinataire / Rendu à (.pick) */}
+                    <div>
+                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                            Rendu à
+                        </p>
+                        <div className="flex items-center gap-3 min-h-[48px] px-3 py-2 border border-[var(--tk-color-border-default)] rounded-md bg-surface">
+                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-['Archivo'] font-semibold text-[14px] shrink-0">
+                                CA
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)] truncate">
+                                    {actor?.name || 'Clara Admin'}
+                                </div>
+                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
+                                    Informatique · Bureau Paris
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Choix de qualification de l'état (Planche 06.1 Réceptionner) */}
+                    <div>
+                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-2">
+                            {isInspectionFlow ? "Ce que l'objet devient" : 'État constaté du matériel'}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {[
+                                {
+                                    value: 'Bon' as ReturnCondition,
+                                    label: 'Repart en stock',
+                                    sub: 'Rien à signaler',
+                                },
+                                {
+                                    value: 'Moyen' as ReturnCondition,
+                                    label: 'À réviser d’abord',
+                                    sub: 'Ne sera pas proposé avant l’intervention',
+                                },
+                                {
+                                    value: 'Mauvais' as ReturnCondition,
+                                    label: 'Hors service',
+                                    sub: 'Sortie d’inventaire — une validation est demandée',
+                                },
+                            ].map((opt) => (
+                                <Button
+                                    key={opt.value}
+                                    variant={condition === opt.value ? 'tonal' : 'outlined'}
+                                    layout="card"
+                                    onClick={() => setCondition(opt.value)}
+                                    className={cn(
+                                        'flex items-center gap-3 min-h-[56px] p-3 rounded-md border text-left',
+                                        condition === opt.value
+                                            ? 'border-[var(--tk-color-text-primary)] border-[1.5px] bg-[var(--tk-color-surface-muted)]'
+                                            : 'border-[var(--tk-color-border-default)] bg-surface'
+                                    )}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-[15px] font-medium text-[var(--tk-color-text-primary)] block">
+                                            {opt.label}
+                                        </span>
+                                        <span className="text-[12px] text-[var(--tk-color-text-secondary)] block mt-0.5">
+                                            {opt.sub}
+                                        </span>
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0',
+                                            condition === opt.value
+                                                ? 'border-transparent bg-[var(--tk-color-inverse-surface)] text-white'
+                                                : 'border-[var(--tk-color-border-default)]'
+                                        )}
+                                    >
+                                        {condition === opt.value && <Check size={14} weight="bold" />}
+                                    </div>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Bloc conséquence (.conseq) */}
+                    <div className="flex flex-col gap-2.5 p-3.5 bg-[var(--tk-color-surface-muted)] rounded-md text-[13px] leading-[19px] text-[var(--tk-color-text-primary)]">
+                        <span className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)]">
+                            Ce que cela déclenche
+                        </span>
+                        <div className="flex items-start gap-2.5">
+                            <Wrench size={16} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <span>
+                                {condition === 'Bon' && (
+                                    <>L’équipement <strong>repassera « Disponible »</strong> et pourra être réattribué sans délai.</>
+                                )}
+                                {condition === 'Moyen' && (
+                                    <>L’objet passe <strong>en réparation</strong> et une tâche est ouverte. Il <strong>ne rejoint pas</strong> les disponibles.</>
+                                )}
+                                {condition === 'Mauvais' && (
+                                    <>L’objet passe <strong>hors service</strong> et une demande de sortie de parc est ouverte.</>
+                                )}
+                            </span>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                            <Check size={16} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <span>
+                                {selectedEquipment.user?.name || 'L’utilisateur'} <strong>n'en répond plus</strong> à compter de cet instant.
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Observations / Commentaire */}
+                    <div>
+                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                            Un mot sur l'état, si nécessaire
+                        </p>
+                        <TextArea
+                            label=""
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Optionnel — l'informatique constatera de son côté."
+                            rows={2}
+                        />
+                    </div>
+
+                    {/* Accessoires restitués */}
+                    <div>
+                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                            Accessoires remis
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {['Chargeur secteur', 'Câble USB-C', 'Sacoche', 'Souris', 'Adaptateur HDMI'].map(
+                                (acc) => (
+                                    <Button
+                                        key={acc}
+                                        variant={accessories.includes(acc) ? 'tonal' : 'outlined'}
+                                        size="sm"
+                                        onClick={() => toggleAccessory(acc)}
+                                        className={cn(
+                                            'px-3 py-1.5 text-[12px] font-medium',
+                                            accessories.includes(acc) && 'bg-[var(--tk-color-brand-muted)] border-[var(--tk-color-brand-dark)] text-[var(--tk-color-text-primary)]'
+                                        )}
+                                    >
+                                        {acc}
+                                    </Button>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </WizardStep>
+            )}
+
+            {/* Étape 3 : Attestation (Planche 06.2) */}
+            {step === 3 && selectedEquipment && (
+                <WizardStep>
+                    {/* Attestation — Planche 06.2 */}
+                    <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)]">
+                                Votre attestation ({actor?.name || 'Karim Diallo'})
                             </p>
                         </div>
 
-                        {!validationMethod && !isValidated && (
-                            <div className="grid grid-cols-1 medium:grid-cols-2 gap-4 w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                {[
-                                    {
-                                        key: 'signature',
-                                        icon: 'edit',
-                                        title: 'Signature',
-                                        description: 'Validation manuscrite',
-                                        iconClass: 'text-tertiary',
-                                        action: () => setValidationMethod('signature')
-                                    },
-                                    {
-                                        key: 'fingerprint',
-                                        icon: 'fingerprint',
-                                        title: 'Empreinte',
-                                        description: 'Validation instantanée',
-                                        iconClass: 'text-error',
-                                        action: () => completeValidation('fingerprint')
-                                    },
-                                    {
-                                        key: 'pin',
-                                        icon: 'key',
-                                        title: 'Code PIN',
-                                        description: 'Saisie manuelle',
-                                        iconClass: 'text-secondary',
-                                        action: () => {
-                                            setPin(['', '', '', '', '', '']);
-                                            setValidationMethod('pin');
-                                        }
-                                    }
-                                ].map(option => (
-                                    <Button
-                                        key={option.key}
-                                        type="button"
-                                        variant="outlined"
-                                        layout="card"
-                                        onClick={option.action}
-                                        className="w-full rounded-md border border-outline-variant bg-surface px-6 py-5 text-on-surface items-center group hover:border-primary hover:shadow-elevation-2"
-                                    >
-                                        <MaterialIcon name={option.icon} size={28} className={cn(option.iconClass, "mr-4 group-hover:scale-110 transition-transform")} />
-                                        <div className="flex-1">
-                                            <h3 className="text-label-large text-on-surface mb-0.5">{option.title}</h3>
-                                            <p className="text-body-small text-on-surface-variant">{option.description}</p>
-                                        </div>
-                                        <MaterialIcon name="chevron_right" size={18} className="text-outline group-hover:text-primary" />
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
+                        {/* Onglets de méthode d'attestation */}
+                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--tk-color-surface-muted)] rounded-lg mb-3">
+                            <Button
+                                variant={validationMethod === 'signature' ? 'tonal' : 'text'}
+                                size="sm"
+                                onClick={() => setValidationMethod('signature')}
+                                className={cn(
+                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
+                                    validationMethod === 'signature' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                )}
+                            >
+                                <PenNib size={16} />
+                                <span>Signature</span>
+                            </Button>
+                            <Button
+                                variant={validationMethod === 'pin' ? 'tonal' : 'text'}
+                                size="sm"
+                                onClick={() => setValidationMethod('pin')}
+                                className={cn(
+                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
+                                    validationMethod === 'pin' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                )}
+                            >
+                                <Key size={16} />
+                                <span>Code PIN</span>
+                            </Button>
+                            <Button
+                                variant={validationMethod === 'fingerprint' ? 'tonal' : 'text'}
+                                size="sm"
+                                onClick={() => setValidationMethod('fingerprint')}
+                                className={cn(
+                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
+                                    validationMethod === 'fingerprint' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                )}
+                            >
+                                <Fingerprint size={16} />
+                                <span>Empreinte</span>
+                            </Button>
+                        </div>
 
+                        {/* Méthode : Signature (.sig) */}
                         {validationMethod === 'signature' && (
-                            <div className="bg-surface-container-lowest rounded-md p-10 text-center w-full max-w-lg shadow-elevation-5 animate-in zoom-in-95 border border-outline-variant">
-                                <h3 className="text-title-large text-on-surface mb-6 flex items-center justify-center gap-2">
-                                    <MaterialIcon name="edit" size={28} className="text-tertiary" /> Signature Admin
-                                </h3>
-                                <div className="border-2 border-dashed border-outline-variant rounded-md bg-surface-container-low h-48 mb-6 flex items-center justify-center cursor-crosshair group relative overflow-hidden">
-                                    <span className="text-on-surface-variant/50 text-label-small uppercase tracking-widest group-hover:hidden transition-all">Signer ici pour valider</span>
-                                    <IconButton
-                                        icon="ink_eraser"
-                                        size={16}
-                                        variant="standard"
-                                        aria-label="Effacer la signature"
-                                        onClick={(e) => { e.stopPropagation(); }}
-                                        className="absolute bottom-2 right-2 w-8 h-8 bg-surface-container-lowest rounded-sm shadow-elevation-1 text-on-surface-variant hover:text-error"
-                                    />
-                                </div>
-                                <div className="flex gap-3 justify-center">
-                                    <Button variant="text" onClick={() => setValidationMethod(null)}>Changer de méthode</Button>
-                                    <Button onClick={() => completeValidation('signature')}>Valider la signature</Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {validationMethod === 'pin' && (
-                            <div className="bg-surface-container-lowest rounded-md p-10 text-center w-full max-w-md shadow-elevation-5 animate-in zoom-in-95 border border-outline-variant">
-                                <div className="w-16 h-16 bg-secondary-container text-secondary rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <MaterialIcon name="lock" size={32} />
-                                </div>
-                                <h3 className="text-title-large text-on-surface mb-8">Code PIN requis</h3>
-                                <div className="grid grid-cols-6 gap-3 mb-8 w-full max-w-[324px] mx-auto">
-                                    {pin.map((digit, idx) => (
-                                        <InputField
-                                            key={idx}
-                                            ref={el => { pinRefs.current[idx] = el }}
-                                            type="text"
-                                            inputMode="numeric"
-                                            maxLength={1}
-                                            value={digit}
-                                            onChange={(e) => handlePinChange(idx, e.target.value)}
-                                            aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="h-14 px-0 border-2 border-outline-variant rounded-md text-center text-headline-small focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4"
-                                        />
-                                    ))}
-                                </div>
-                                <Button variant="text" onClick={() => setValidationMethod(null)}>Changer de méthode</Button>
-                            </div>
-                        )}
-
-                        {isValidated && (
-                            <div className="flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in duration-500">
-                                <div className="relative mb-2">
-                                    <div className="w-20 h-20 bg-tertiary-container rounded-full flex items-center justify-center text-tertiary z-10 relative shadow-elevation-3">
-                                        <MaterialIcon name="check_circle" size={46} className="animate-in zoom-in duration-500 delay-200" />
+                            <div className="relative border border-[var(--tk-color-border-default)] rounded-md bg-surface h-[140px] flex items-end justify-center pb-2.5 text-[12px] text-[var(--tk-color-text-muted)] overflow-hidden">
+                                <canvas
+                                    ref={canvasRef}
+                                    width={480}
+                                    height={140}
+                                    onMouseDown={handleCanvasMouseDown}
+                                    onMouseMove={handleCanvasMouseMove}
+                                    onMouseUp={handleCanvasMouseUp}
+                                    onTouchStart={handleCanvasMouseDown}
+                                    onTouchMove={handleCanvasMouseMove}
+                                    onTouchEnd={handleCanvasMouseUp}
+                                    className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                                />
+                                {!signatureCaptured && (
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[13px] text-[var(--tk-color-text-muted)]">
+                                        Signez dans cette zone
                                     </div>
-                                    <div className="absolute inset-0 bg-tertiary/20 rounded-full animate-ping"></div>
-                                </div>
-                                <h3 className="text-headline-small text-on-surface">Identité confirmée</h3>
-                                <p className="text-on-surface-variant text-body-medium">
-                                    Méthode utilisée: {validatedBy ? validationMethodLabels[validatedBy] : 'Validation sécurisée'}
-                                </p>
-                                {isAutoAdvancing ? (
-                                    <div className="inline-flex items-center gap-2 text-label-medium text-on-surface-variant">
-                                        <MaterialIcon name="progress_activity" size={16} className="animate-spin" />
-                                        Redirection vers la synthèse...
-                                    </div>
-                                ) : (
-                                    <Button onClick={() => setStep(4)}>Continuer</Button>
+                                )}
+                                <span className="relative z-10 font-medium text-[var(--tk-color-text-secondary)]">
+                                    {actor?.name || 'Karim Diallo'}
+                                </span>
+                                {signatureCaptured && (
+                                    <Button
+                                        variant="outlined"
+                                        size="sm"
+                                        onClick={handleClearSignature}
+                                        className="absolute top-2 right-2 text-[11px] h-7 px-2 z-10"
+                                    >
+                                        Effacer
+                                    </Button>
                                 )}
                             </div>
                         )}
+
+                        {/* Méthode : Code PIN (.pin) */}
+                        {validationMethod === 'pin' && (
+                            <div className="flex flex-col items-center gap-2 py-1">
+                                <div className="flex gap-3 justify-center">
+                                    {pin.map((digit, idx) => (
+                                        <InputField
+                                            key={idx}
+                                            ref={(el) => {
+                                                pinRefs.current[idx] = el;
+                                            }}
+                                            type="password"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            value={digit}
+                                            onChange={(e) => handlePinDigitChange(idx, e.target.value)}
+                                            aria-label={`Chiffre PIN ${idx + 1}`}
+                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-['Archivo']"
+                                            containerClassName="w-auto"
+                                        />
+                                    ))}
+                                </div>
+                                <p className="text-[12px] text-[var(--tk-color-text-secondary)] text-center">
+                                    Code PIN à 4 chiffres ({actor?.name || 'Karim Diallo'})
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Méthode : Empreinte (.bio) */}
+                        {validationMethod === 'fingerprint' && (
+                            <div className="h-[148px] rounded-md bg-[var(--tk-color-surface-muted)] flex flex-col items-center justify-center gap-2.5 text-[var(--tk-color-text-secondary)]">
+                                <Button
+                                    variant="outlined"
+                                    onClick={handleFingerprintConfirm}
+                                    className={cn(
+                                        'w-16 h-16 rounded-full flex items-center justify-center p-0',
+                                        isValidated
+                                            ? 'bg-[var(--tk-color-success)] text-white border-transparent'
+                                            : 'bg-surface text-[var(--tk-color-text-primary)]'
+                                    )}
+                                >
+                                    <Fingerprint size={32} />
+                                </Button>
+                                <span className="text-[13px] text-[var(--tk-color-text-primary)] font-medium">
+                                    {isValidated ? 'Empreinte reconnue' : 'Posez votre doigt pour valider'}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bannière d'engagement (.warn) */}
+                    <div className="flex gap-2.5 p-3 bg-[var(--tk-color-surface-muted)] rounded-md text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
+                        <Check size={18} className="text-[var(--tk-color-success)] shrink-0 mt-0.5" />
+                        <span>
+                            <strong>C'est votre preuve.</strong> Si l'informatique oublie de réceptionner, votre attestation est horodatée et l'objet apparaît dans sa file comme un retour non traité — pas comme un équipement que vous détenez encore.
+                        </span>
                     </div>
                 </WizardStep>
             )}
+
+            {/* Étape 4 : Synthèse (Planche 06.1) */}
             {step === 4 && selectedEquipment && (
                 <WizardStep>
-                    <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                        <div className="bg-surface rounded-card border border-outline-variant shadow-elevation-1 p-6">
-                            <h3 className="text-headline-small text-on-surface">Synthèse du retour</h3>
-                            <p className="text-body-medium text-on-surface-variant mt-1">
-                                Confirmez les informations avant d'enregistrer le retour.
-                            </p>
-
-                            <div className="grid grid-cols-1 medium:grid-cols-2 gap-4 mt-6">
-                                <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4">
-                                    <p className="text-label-medium text-on-surface-variant uppercase tracking-wide">Équipement</p>
-                                    <div className="flex items-start gap-3 mt-3">
-                                        <div className="w-16 h-16 rounded-lg bg-surface border border-outline-variant flex items-center justify-center overflow-hidden">
-                                            <img src={selectedEquipment.image} className="w-full h-full object-contain p-1.5" alt={selectedEquipment.name} />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-title-medium text-on-surface truncate">{selectedEquipment.name}</p>
-                                            <p className="text-body-small text-on-surface-variant mt-1 font-mono">{selectedEquipment.assetId}</p>
-                                            <p className="text-label-small text-on-surface-variant mt-1">{selectedEquipment.user?.name || 'Utilisateur non renseigné'}</p>
-                                        </div>
-                                    </div>
+                    {/* Acquittement croisé (.ack) */}
+                    <div className="border border-[var(--tk-color-border-default)] rounded-md overflow-hidden bg-surface divide-y divide-[var(--tk-color-border-default)]">
+                        <div className="flex items-center gap-3 p-3 min-h-[64px]">
+                            <div className="w-8 h-8 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center shrink-0">
+                                <Check size={18} weight="bold" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
+                                    {selectedEquipment.user?.name || actor?.name || 'Karim Diallo'} atteste avoir rendu
                                 </div>
-
-                                <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4">
-                                    <p className="text-label-medium text-on-surface-variant uppercase tracking-wide">Décision de retour</p>
-                                    <div className="space-y-2 mt-3">
-                                        <p className="text-body-medium text-on-surface">
-                                            État constaté: <span className="font-medium">{condition}</span>
-                                        </p>
-                                        {isInspectionFlow ? (
-                                            <>
-                                                <p className="text-body-medium text-on-surface">
-                                                    Destination: <span className="font-medium">{condition === 'Mauvais' ? 'Maintenance' : 'Stock IT'}</span>
-                                                </p>
-                                                <p className="text-body-medium text-on-surface">
-                                                    Statut final: <span className="font-medium">{condition === 'Mauvais' ? 'En réparation' : 'Disponible'}</span>
-                                                </p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-body-medium text-on-surface">
-                                                    Destination: <span className="font-medium">Inspection IT</span>
-                                                </p>
-                                                <p className="text-body-medium text-on-surface">
-                                                    Statut final: <span className="font-medium">En attente (retour initié)</span>
-                                                </p>
-                                            </>
-                                        )}
-                                        <p className="text-body-medium text-on-surface">
-                                            Validation: <span className="font-medium">{validatedBy ? validationMethodLabels[validatedBy] : 'Validation sécurisée'}</span>
-                                        </p>
-                                    </div>
+                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                    Aujourd'hui · Méthode {validationMethod}
                                 </div>
                             </div>
-
-                            {accessories.length > 0 && (
-                                <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4 mt-4">
-                                    <p className="text-label-medium text-on-surface-variant uppercase tracking-wide">Accessoires restitués</p>
-                                    <div className="flex flex-wrap gap-2 mt-3">
-                                        {accessories.map(acc => (
-                                            <span key={acc} className="px-2.5 py-1 rounded-md text-label-small bg-surface border border-outline-variant text-on-surface">
-                                                {acc}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {comment && (
-                                <div className="bg-primary-container/30 rounded-xl border border-outline-variant p-4 mt-4">
-                                    <p className="text-label-medium text-on-surface-variant uppercase tracking-wide">Commentaire</p>
-                                    <p className="text-body-medium text-on-surface mt-2">{comment}</p>
-                                </div>
-                            )}
                         </div>
 
-                        <div className="bg-surface-container-low rounded-card border border-outline-variant p-4">
-                            <p className="text-label-large text-on-surface">Effet après confirmation</p>
-                            <p className="text-body-small text-on-surface-variant mt-1">
+                        <div className="flex items-center gap-3 p-3 min-h-[64px]">
+                            <div
+                                className={cn(
+                                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                                    isInspectionFlow
+                                        ? 'bg-[var(--tk-color-inverse-surface)] text-white'
+                                        : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
+                                )}
+                            >
+                                {isInspectionFlow ? (
+                                    <Check size={18} weight="bold" />
+                                ) : (
+                                    <UserIcon size={18} />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
+                                    {isInspectionFlow
+                                        ? 'Support Informatique réceptionne'
+                                        : "L'informatique attestera réceptionner"}
+                                </div>
+                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                    {isInspectionFlow
+                                        ? `Constat : ${condition}`
+                                        : "Ce qui sera fait à l'arrivée en stock"}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Récapitulatif équipement et décision */}
+                    <div className="p-4 rounded-md bg-surface border border-[var(--tk-color-border-default)] flex flex-col gap-3">
+                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Équipement</span>
+                            <span className="text-[13px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums">
+                                {selectedEquipment.assetId} · {selectedEquipment.name}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">État constaté</span>
+                            <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
+                                {condition}
+                            </span>
+                        </div>
+                        {accessories.length > 0 && (
+                            <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
+                                <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                    Accessoires
+                                </span>
+                                <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
+                                    {accessories.join(', ')}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                Statut après confirmation
+                            </span>
+                            <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
                                 {isInspectionFlow
-                                    ? (condition === 'Mauvais'
-                                        ? "L'équipement sera orienté vers la maintenance et marqué 'En réparation'."
-                                        : "L'équipement sera restitué au stock IT et redeviendra 'Disponible'.")
-                                    : "La restitution sera initiée et passera en attente d'inspection IT (PENDING_RETURN)."}
-                            </p>
+                                    ? condition === 'Mauvais'
+                                        ? 'En réparation'
+                                        : 'Disponible'
+                                    : 'En attente de réception IT'}
+                            </span>
                         </div>
                     </div>
                 </WizardStep>
@@ -755,18 +796,3 @@ const ReturnWizardPage: React.FC<{ onCancel: () => void; onComplete: () => void 
 };
 
 export default ReturnWizardPage;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

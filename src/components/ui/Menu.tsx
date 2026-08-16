@@ -6,6 +6,7 @@ import Divider from './Divider';
 export interface MenuItem {
   id: string;
   label: string;
+  description?: string;
   onSelect: () => void;
   icon?: string;
   trailingText?: string;
@@ -19,6 +20,7 @@ interface MenuProps {
   items: MenuItem[];
   title?: string;
   align?: 'start' | 'end';
+  placement?: 'bottom' | 'top';
   widthClassName?: string;
   className?: string;
 }
@@ -33,6 +35,7 @@ const Menu: React.FC<MenuProps> = ({
   items,
   title,
   align = 'end',
+  placement = 'bottom',
   widthClassName = 'min-w-[112px] max-w-[280px]',
   className,
 }) => {
@@ -208,10 +211,13 @@ const Menu: React.FC<MenuProps> = ({
           aria-labelledby={triggerId}
           onKeyDown={onMenuKeyDown}
           className={cn(
-            'absolute z-50 mt-2 py-1 rounded-md border border-outline-variant bg-surface-container shadow-elevation-3',
+            'absolute z-50 py-1 rounded-md border border-outline-variant bg-surface-container shadow-elevation-3',
             'animate-in fade-in zoom-in-95 duration-short4',
+            placement === 'top' ? 'bottom-full mb-2' : 'mt-2',
             widthClassName,
-            align === 'end' ? 'right-0 origin-top-right' : 'left-0 origin-top-left',
+            align === 'end'
+              ? placement === 'top' ? 'right-0 origin-bottom-right' : 'right-0 origin-top-right'
+              : placement === 'top' ? 'left-0 origin-bottom-left' : 'left-0 origin-top-left',
             className
           )}
         >
@@ -247,7 +253,8 @@ const Menu: React.FC<MenuProps> = ({
                   closeMenu();
                 }}
                 className={cn(
-                  'group w-full h-12 px-3 flex items-center gap-3 text-left text-body-medium outline-none transition-[color,background-color,opacity] duration-short3 ease-emphasized state-layer',
+                  'group w-full px-3 flex items-center gap-3 text-left text-body-medium outline-none transition-[color,background-color,opacity] duration-short3 ease-emphasized state-layer',
+                  item.description ? 'min-h-[52px] py-2' : 'h-12',
                   'focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset',
                   item.destructive && !item.disabled ? 'text-error' : 'text-on-surface',
                   highlightedIndex === index && !item.disabled
@@ -259,9 +266,16 @@ const Menu: React.FC<MenuProps> = ({
                 )}
               >
                 {item.icon && <MaterialIcon name={item.icon} size={20} />}
-                <span className="flex-1 truncate">{item.label}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="block truncate">{item.label}</span>
+                  {item.description && (
+                    <span className="block text-[11px] leading-tight text-on-surface-variant truncate mt-0.5 font-normal">
+                      {item.description}
+                    </span>
+                  )}
+                </div>
                 {item.trailingText && (
-                  <span className={cn('text-label-small', item.destructive && !item.disabled ? 'text-error/80' : 'text-on-surface-variant')}>
+                  <span className={cn('text-label-small shrink-0', item.destructive && !item.disabled ? 'text-error/80' : 'text-on-surface-variant')}>
                     {item.trailingText}
                   </span>
                 )}

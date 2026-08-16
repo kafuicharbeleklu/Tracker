@@ -64,7 +64,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         <label
           htmlFor={textAreaId}
           className={cn(
-            'block text-body-small ml-1 transition-colors duration-short4',
+            'block text-[11px] font-medium tracking-[0.02em] mb-1.5 transition-colors duration-short4',
             error ? 'text-error' : 'text-on-surface-variant',
             isDisabled && 'text-on-surface/[0.38]'
           )}
@@ -82,7 +82,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         aria-required={resolvedAriaRequired}
         aria-describedby={resolvedAriaDescribedBy}
         className={cn(
-          'w-full min-h-24 px-3 py-2',
+          'w-full min-h-24 px-4 py-3',
           'focus:outline-none',
           'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized resize-none',
           'text-on-surface text-body-medium',
@@ -90,17 +90,17 @@ export const TextArea: React.FC<TextAreaProps> = ({
           'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
           variant === 'filled'
             ? cn(
-              'bg-surface border rounded-lg',
+              'bg-surface border rounded-md',
               error
                 ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
+                : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
               'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
             )
             : cn(
-              'bg-surface border rounded-lg',
+              'bg-surface border rounded-md',
               error
                 ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                : 'border-outline-variant hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
+                : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
               'disabled:border-on-surface/[0.12] disabled:bg-surface'
             ),
           className

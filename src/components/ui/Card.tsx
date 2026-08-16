@@ -51,14 +51,14 @@ const Card: React.FC<CardProps> = ({
 }) => {
   const isInteractive = Boolean(onClick) && !disabled;
   const variantStyles = {
-    elevated: 'bg-surface border border-outline-variant shadow-sm',
-    filled: 'bg-surface-container border border-outline-variant shadow-none',
-    outlined: 'bg-surface border border-outline-variant shadow-none',
+    elevated: 'bg-surface',
+    filled: 'bg-surface-container',
+    outlined: 'bg-surface border border-outline',
   };
   const interactiveVariantStyles = {
-    elevated: 'hover:bg-background hover:border-outline',
-    filled: 'hover:bg-surface hover:border-outline',
-    outlined: 'hover:bg-background hover:border-outline',
+    elevated: 'hover:bg-surface-container',
+    filled: 'hover:bg-surface-variant',
+    outlined: 'hover:bg-surface-container hover:border-outline',
   };
 
   const resolvedAriaLabel = isInteractive
@@ -81,7 +81,7 @@ const Card: React.FC<CardProps> = ({
       aria-label={resolvedAriaLabel}
       aria-disabled={disabled || undefined}
       className={cn(
-        'rounded-xl flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized overflow-hidden',
+        'rounded-card flex flex-col min-h-[80px] transition-all duration-short4 ease-emphasized overflow-hidden',
         variantStyles[variant],
         isInteractive && interactiveVariantStyles[variant],
         // `active:scale` : état pressé annoncé par la doc du composant mais jamais
@@ -93,7 +93,7 @@ const Card: React.FC<CardProps> = ({
     >
       {/* Media slot */}
       {media && (
-        <div className="rounded-t-xl overflow-hidden">
+        <div className="rounded-t-card overflow-hidden">
           {media}
         </div>
       )}
@@ -107,14 +107,14 @@ const Card: React.FC<CardProps> = ({
                   {icon}
                 </div>
               )}
-              {title && <h3 className="text-title-medium text-on-surface">{title}</h3>}
+              {title && <h3 className="text-title-medium-plain text-on-surface">{title}</h3>}
             </div>
 
             {actionIcon && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onActionClick?.(); }}
-                className="text-on-surface-variant cursor-pointer hover:text-on-surface hover:bg-surface-container h-10 w-10 inline-flex items-center justify-center rounded-lg transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
+                className="text-on-surface-variant cursor-pointer hover:text-on-surface hover:bg-surface-container h-10 w-10 inline-flex items-center justify-center rounded-md transition-colors duration-short4 ease-emphasized focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface shrink-0 -mr-1 disabled:opacity-[0.38] disabled:cursor-not-allowed"
                 aria-label={actionLabel || "Action"}
                 disabled={!onActionClick}
               >
@@ -132,4 +132,3 @@ const Card: React.FC<CardProps> = ({
 };
 
 export default React.memo(Card);
-

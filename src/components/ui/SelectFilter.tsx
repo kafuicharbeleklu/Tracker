@@ -162,10 +162,10 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
         aria-controls={isOpen ? listboxId : undefined}
         aria-activedescendant={isOpen ? activeDescendantId : undefined}
         className={cn(
-          "inline-flex items-center gap-2 px-3 min-h-10 rounded-lg border text-label-large transition-all duration-short4 outline-none max-w-full bg-surface",
+          "inline-flex items-center gap-2 px-3 min-h-10 rounded-md border text-label-large transition-all duration-short4 outline-none max-w-full bg-surface",
           isOpen
-            ? "border-primary text-on-surface ring-2 ring-primary"
-            : "border-outline-variant text-on-surface hover:bg-surface-container",
+            ? "border-focus-ring text-on-surface ring-2 ring-focus-ring"
+            : "border-outline text-on-surface hover:bg-surface-container",
           "focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1"
         )}
       >
@@ -181,7 +181,7 @@ export const SelectFilter: React.FC<SelectFilterProps> = ({
       {(isOpen || closing) && (
         <div
           className={cn(
-            "absolute z-50 mt-1 min-w-[160px] max-w-[300px] bg-surface rounded-lg border border-outline-variant shadow-elevation-2 py-1 origin-top-left overflow-hidden",
+            "absolute z-50 mt-1 min-w-[160px] max-w-[300px] bg-surface rounded-md border border-outline shadow-elevation-2 py-1 origin-top-left overflow-hidden",
             closing
               ? "animate-out fade-out zoom-out-95 duration-150"
               : "animate-in fade-in zoom-in-95 duration-200"

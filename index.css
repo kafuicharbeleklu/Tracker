@@ -1,6 +1,7 @@
-@config "./tailwind.config.js";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-@import "tailwindcss";
+@config './tailwind.config.js';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap');
+@import 'tailwindcss';
 
 /* ============================================================
    NEEMBA TRACKER — TRACKER DS, couche de tokens
@@ -39,10 +40,10 @@
     --tk-motion-duration-medium4: 400ms;
     --tk-motion-duration-long1: 450ms;
     --tk-motion-duration-long2: 500ms;
-    --tk-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
-    --tk-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15);
-    --tk-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0);
-    --tk-motion-easing-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+    --tk-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --tk-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+    --tk-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --tk-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
     --tk-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
     --tk-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
 
@@ -103,7 +104,6 @@
     transition-timing-function: var(--tk-motion-easing-standard);
 }
 
-
 /* ---- MD3 STATE LAYER UTILITY ---- */
 /* Apply `.state-layer` to interactive elements for MD3-compliant hover/focus/press feedback.
    The layer uses currentColor so it automatically adapts to the element's text color. */
@@ -134,7 +134,6 @@
 .state-layer:active::after {
     opacity: var(--tk-state-pressed-opacity);
 }
-
 
 /* ---- CIBLE TACTILE ≥ 48px (AUDIT_MOBILE #6/#7 — plancher WCAG 2.5.5 / Material) ---- */
 /* Étend la ZONE DE FRAPPE à 48×48px minimum sur pointeurs grossiers (tactile),
@@ -171,7 +170,6 @@
         /* zone de frappe transparente : n'intercepte rien de plus que le bouton lui-même */
     }
 }
-
 
 /* ---- MD3 TYPOGRAPHY UTILITY CLASSES ---- */
 
@@ -307,24 +305,37 @@
 
 html {
     font-size: 16px;
+    max-width: 100%;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
 }
 
+html {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 body {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
     font-family: var(--tk-type-font-plain);
     font-size: var(--tk-type-body-medium-size);
     line-height: var(--tk-type-body-medium-line-height);
     letter-spacing: var(--tk-type-body-medium-tracking);
     color: var(--tk-color-on-surface);
-    background-color: var(--tk-color-surface);
+    background-color: var(--tk-color-background);
     transition:
         color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard),
         background-color var(--tk-motion-duration-short4) var(--tk-motion-easing-standard);
 }
 
 #root {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
     color: inherit;
     background-color: inherit;
     transition:
@@ -349,7 +360,6 @@ body {
         'opsz' 24;
 }
 
-
 /* ---- SCROLLBAR ---- */
 
 ::-webkit-scrollbar {
@@ -370,7 +380,6 @@ body {
     background: var(--tk-color-outline);
 }
 
-
 /* ---- UTILITIES ---- */
 
 .input-pin {
@@ -387,18 +396,20 @@ body {
     scrollbar-width: none;
 }
 
-
 /* ---- ANIMATION SHIMS (tailwindcss-animate compat) ---- */
 
 @keyframes enter {
     from {
         opacity: var(--tw-enter-opacity, 1);
-        transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), 1) rotate(var(--tw-enter-rotate, 0));
+        transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+            scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), 1)
+            rotate(var(--tw-enter-rotate, 0));
     }
 }
 
 .animate-in {
-    animation: enter var(--tk-motion-duration-medium2) var(--tk-motion-easing-emphasized-decelerate) backwards;
+    animation: enter var(--tk-motion-duration-medium2) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
     --tw-enter-opacity: 1;
     --tw-enter-scale: 1;
     --tw-enter-rotate: 0;
@@ -409,12 +420,15 @@ body {
 @keyframes exit {
     to {
         opacity: var(--tw-exit-opacity, 1);
-        transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), 1) rotate(var(--tw-exit-rotate, 0));
+        transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+            scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), 1)
+            rotate(var(--tw-exit-rotate, 0));
     }
 }
 
 .animate-out {
-    animation: exit var(--tk-motion-duration-short4) var(--tk-motion-easing-emphasized-accelerate) forwards;
+    animation: exit var(--tk-motion-duration-short4) var(--tk-motion-easing-emphasized-accelerate)
+        forwards;
     --tw-exit-opacity: 1;
     --tw-exit-scale: 1;
     --tw-exit-rotate: 0;
@@ -431,7 +445,7 @@ body {
 }
 
 .zoom-out-90 {
-    --tw-exit-scale: 0.90;
+    --tw-exit-scale: 0.9;
 }
 
 .slide-out-to-bottom-4 {
@@ -459,7 +473,7 @@ body {
 }
 
 .zoom-in-90 {
-    --tw-enter-scale: 0.90;
+    --tw-enter-scale: 0.9;
 }
 
 .slide-in-from-top-1 {
@@ -557,7 +571,8 @@ body {
 }
 
 .animate-linear-indeterminate {
-    animation: linear-indeterminate 1.8s var(--tk-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) infinite;
+    animation: linear-indeterminate 1.8s
+        var(--tk-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) infinite;
 }
 
 /* Responsive Typography — Compact viewport (<600dp) */
@@ -601,7 +616,6 @@ body {
 
 /* Respect user reduced-motion preference across the app. */
 @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {
@@ -629,7 +643,9 @@ body {
    ============================================================ */
 :root {
     /* ---- Fontes ---- */
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    /* Fonte d'affichage des planches : titres, codes, chiffres de tête. */
+    --font-display: 'Archivo', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* ---- Références marque Caterpillar (Neemba — concessionnaire CAT) ----
@@ -637,41 +653,40 @@ body {
        couleur de texte/glyphe sur fond clair (#FDC910 sur blanc ≈ 1,55:1).
        Jaune = fond à texte noir (11,2:1) ; icône jaune sur clair uniquement
        doublée d'un second indice sombre. */
-    --cat-yellow: #FDC910;   /* logo Neemba / CAT machine yellow */
-    --cat-black: #2E2725;    /* CAT warm black (officiel) */
-    --color-anthracite: #2E2725;
-    --color-anthracite-strong: #1C1917;
+    --cat-yellow: #fdc910; /* logo Neemba / CAT machine yellow */
+    --cat-black: #2e2725; /* CAT warm black (officiel) */
+    --color-anthracite: #2e2725;
+    --color-anthracite-strong: #1c1917;
 
     /* Échelle de référence marque (spec §2.1) — courte à dessein (Q-V5) :
        50/100/200 pour fonds/bordures d'accent ; 500/600/700 ci-dessous
        (= brand / brand-hover / brand-dark). Tout palier de plus doit être justifié. */
-    --ref-brand-50: #FFF9E6;
-    --ref-brand-100: #FFF1C2;
-    --ref-brand-200: #FEE491;
+    --ref-brand-50: #fff9e6;
+    --ref-brand-100: #fff1c2;
+    --ref-brand-200: #fee491;
 
     /* ---- Rampe de neutres chauds ---- */
-    --color-neutral-50: #FAF9F7;
-    --color-neutral-100: #F4F2EF;
-    --color-neutral-200: #E8E4DF;
-    --color-neutral-300: #D6D0C8;
+    --color-neutral-50: #faf9f7;
+    --color-neutral-100: #f4f2ef;
+    --color-neutral-200: #e8e4df;
+    --color-neutral-300: #d6d0c8;
     /* Palier RÉSERVÉ aux surfaces sombres (sidebar/rail) : 6,85:1 sur
        --color-sidebar-bg (#1C1917) et 7,17:1 sur le dégradé du tiroir,
        mais seulement 2,55:1 sur blanc (AUDIT_MOBILE #14).
        Sur fond clair il ne peut porter que du décoratif/désactivé — pour du texte
        informatif, descendre à neutral-500 (4,69:1) ou plus foncé.
        Rôle sémantique correspondant : --tk-color-on-nav-surface-variant. */
-    --color-neutral-400: #A8A199;
-    --color-neutral-500: #79736B;
-    --color-neutral-600: #57514A;
-    --color-neutral-700: #3D3833;
-    --color-neutral-800: #2E2725;
-    --color-neutral-900: #1C1917;
+    --color-neutral-400: #a8a199;
+    --color-neutral-500: #79736b;
+    --color-neutral-600: #57514a;
+    --color-neutral-700: #3d3833;
+    --color-neutral-800: #2e2725;
+    --color-neutral-900: #1c1917;
 
     /* Blanc de surface : valeur brute, sans rôle propre — le rôle est
        --tk-color-surface (et ses déclinaisons container-*). */
     --color-surface: #ffffff;
 }
-
 
 /* ============================================================
    TRACKER DS — TIER 2 : COUCHE SÉMANTIQUE (`--tk-*`)
@@ -684,16 +699,23 @@ body {
 :root {
     /* ---- Couleur — marque ---- */
     --tk-color-brand: var(--cat-yellow);
-    --tk-color-brand-hover: #E3B40C;
-    --tk-color-brand-dark: #B88E09;
-    --tk-color-brand-text: #1A1A1A;
+    --tk-color-brand-hover: #e3b40c;
+    --tk-color-brand-dark: #b88e09;
+    --tk-color-brand-text: #1a1a1a;
 
     /* ---- Couleur — fonds et textes du contenu ---- */
-    --tk-color-app-bg: #FAF9F7;
-    --tk-color-surface-muted: #F4F2EF;
-    --tk-color-text-primary: #1C1917;
-    --tk-color-text-secondary: #57514A;
-    --tk-color-text-muted: #6E675F;
+    /* BASCULE DE PEAU 2026-08-15 — valeurs des planches (04.1/04.2/00.4). */
+    --tk-color-app-bg: #f2f0ea; /* papier chaud du dessin (avant : #FAF9F7) */
+    --tk-color-login-desktop-canvas: #e4e1da;
+    --tk-color-surface-muted: #f7f5f0; /* le creux d'une carte (avant : #F4F2EF) */
+    --tk-color-text-primary: #1a1917; /* 15,42:1 sur le canevas (avant : #1C1917) */
+    --tk-color-text-secondary: #57514a;
+    --tk-color-text-muted: #6e675f;
+    /* Nuance d'attente — planche 17.3, règle A3 : le squelette porte UNE nuance,
+       sans pulsation ni vague brillante. Rôle neuf (aucun équivalent canonique),
+       donc déjà à son nom définitif. Il ne crée aucune valeur : la planche demande
+       #E7E3DB, le neutre 200 du produit est #E8E4DF — un cran de la même rampe. */
+    --tk-color-skeleton: var(--color-neutral-200);
 
     /* ---- Couleur — statuts ---- */
     --tk-color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */
@@ -707,19 +729,19 @@ body {
        (#9A3412 : 6,60:1 sur le fond `bg-warning/10`, 7,31:1 sur blanc). C'est déjà la
        règle appliquée par Badge (`bg-warning-light text-warning-strong`) et
        ConfirmationDialog — ne pas réintroduire `text-warning`. */
-    --tk-color-warning: #E8710A;
-    --tk-color-warning-light: #FDEBD9;
-    --tk-color-warning-strong: #9A3412;
-    --tk-color-danger: #DC2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
+    --tk-color-warning: #e8710a;
+    --tk-color-warning-light: #fdebd9;
+    --tk-color-warning-strong: #9a3412;
+    --tk-color-danger: #dc2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
     --tk-color-danger-light: #fee2e2;
-    --tk-color-danger-strong: #991B1B;
-    --tk-color-info: #2563EB; /* AA texte et rempli : 5,17:1 (Q-V1) */
+    --tk-color-danger-strong: #991b1b;
+    --tk-color-info: #2563eb; /* AA texte et rempli : 5,17:1 (Q-V1) */
     --tk-color-info-light: #dbeafe;
-    --tk-color-info-strong: #1E40AF;
+    --tk-color-info-strong: #1e40af;
 
     /* ---- Couleur — bordures ---- */
-    --tk-color-border-default: var(--color-neutral-200);
-    --tk-color-border-strong: #8E877E; /* AA 3:1 — bordures de contrôles (inputs, outline) */
+    --tk-color-border-default: #eae6df; /* filet des planches (avant : neutre 200) */
+    --tk-color-border-strong: #8e877e; /* AA 3:1 — bordures de contrôles (inputs, outline) */
 
     /* Q-V2 : indicateur de focus clavier unifié — opaque (≥13:1 sur surface claire).
        Sur surface sombre (sidebar/rail), l'indicateur est le jaune opaque.
@@ -764,8 +786,14 @@ body {
     --tk-color-surface-container-highest: var(--color-neutral-100);
     --tk-color-on-surface: var(--tk-color-text-primary);
     --tk-color-on-surface-variant: var(--tk-color-text-muted);
-    --tk-color-inverse-surface: var(--color-neutral-900);
+    /* Le bleu-noir des planches, §2.10 : une seule famille pour le héro, la barre
+       de sélection et le canevas de scan. Blanc dessus : 17,95:1. */
+    --tk-color-inverse-surface: #0a191d;
     --tk-color-inverse-on-surface: #ffffff;
+    /* Texte estompé sur surface inversée — rôle absent jusqu'au 08/08, découvert en portant
+       la connexion : le bandeau de marque porte une accroche, et rien ne la nommait. Valeur
+       prise à l'échelle neutre du DS, donc chaude comme la surface qu'elle habille. */
+    --tk-color-text-on-inverse-muted: var(--color-neutral-400);
     --tk-color-outline: var(--tk-color-border-strong);
     --tk-color-outline-variant: var(--tk-color-border-default);
     --tk-color-background: var(--tk-color-app-bg);
@@ -785,6 +813,22 @@ body {
     --tk-color-on-nav-surface: #ffffff;
     --tk-color-on-nav-surface-variant: var(--color-neutral-400);
 
+    /* ---- Couleurs live sur fond sombre (§2.10) ---- */
+    --tk-color-live-vert: #7ab955;
+    --tk-color-live-bleu: #54a9dc;
+    --tk-color-live-ambre: #e9c46a;
+    --tk-color-live-orange: #e45329;
+    --tk-color-on-dark-2: #a9c0c4;
+    --tk-color-avatar-text: #cbe6f5;
+
+    /* ---- Couleurs d'état / statuts des listes (§2.10) ---- */
+    --tk-color-st-vert: #5b913c;
+    --tk-color-st-bleu: #288ac5;
+    --tk-color-st-ambre: #a97c00;
+    --tk-color-st-orange: #e45329;
+    --tk-color-st-rouge: #b3261e;
+    --tk-color-st-gris: #8a847a;
+
     /* ---- Forme — 4 crans carrés/industriels (CAT) : 2 / 4 / 8 px + full ----
        `--tk-radius-none` est déclaré dans le bloc de tête. */
     --tk-radius-xs: 2px;
@@ -794,11 +838,11 @@ body {
     --tk-radius-xl: 8px;
     --tk-radius-full: 9999px;
 
-    /* ---- Élévation — `--tk-elevation-0` est déclaré dans le bloc de tête. ---- */
-    --tk-elevation-1: 0 1px 2px rgb(15 23 42 / 0.04);
-    --tk-elevation-2: 0 4px 12px rgb(15 23 42 / 0.08);
-    --tk-elevation-3: 0 10px 24px rgb(15 23 42 / 0.10);
-    --tk-elevation-4: 0 18px 42px rgb(15 23 42 / 0.14);
+    /* ---- Élévation — MD3 shadows tokenisés ---- */
+    --tk-elevation-1: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.05);
+    --tk-elevation-2: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+    --tk-elevation-3: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.04);
+    --tk-elevation-4: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.04);
     --tk-elevation-5: 0 24px 60px rgb(15 23 42 / 0.16);
 
     /* ---- Espacement — crans nommés du DS (pont Tailwind : p-page, p-card…) ----
@@ -810,7 +854,7 @@ body {
     --tk-space-card-compact: 1rem;
 
     /* ---- Typographie — fontes de rôle ---- */
-    --tk-type-font-brand: var(--font-sans);
+    --tk-type-font-brand: var(--font-display);
     --tk-type-font-plain: var(--font-sans);
 
     /* ---- Typographie — crans hérités encore consommés par les classes
@@ -842,16 +886,21 @@ body {
     --tk-type-title-medium-weight: 700;
     --tk-type-title-medium-tracking: 0;
     --tk-type-title-small-tracking: 0;
-    --tk-type-body-large-size: 14px;
-    --tk-type-body-large-line-height: 20px;
+    /* Rang 2 du registre §2.6 — « la donnée qu'on est venu lire ». */
+    --tk-type-body-large-size: 15px;
+    --tk-type-body-large-line-height: 21px;
     --tk-type-body-large-tracking: 0;
-    --tk-type-body-medium-size: 14px;
-    --tk-type-body-medium-line-height: 20px;
+    /* Rang 5 — mention, date, provenance. */
+    --tk-type-body-medium-size: 13px;
+    --tk-type-body-medium-line-height: 19px;
     --tk-type-body-medium-tracking: 0;
     --tk-type-body-small-tracking: 0;
     --tk-type-label-large-size: 14px;
     --tk-type-label-large-line-height: 20px;
-    --tk-type-label-large-weight: 600;
+    /* 500, et non 600 : le registre fixe le geste à 14 px / 500 (§2.14, §2.6 rang contrôle).
+       Relevé le 08/08 en portant la connexion — la primitive rendait tous les boutons du
+       produit plus lourds que le dessin. */
+    --tk-type-label-large-weight: 500;
     --tk-type-label-large-tracking: 0;
     --tk-type-label-medium-tracking: 0;
     --tk-type-label-small-tracking: 0.075em;
@@ -859,11 +908,22 @@ body {
     /* ============================================================
        ADN MOBILE v1 — VALEURS CIBLES (voir DESIGN_BRIEF.md)
        ------------------------------------------------------------
-       Contrat de design mobile arrêté le 2026-07-25. Ces rôles portent les
-       valeurs du brief mais ne sont PAS ENCORE CONSOMMÉS : la bascule est
-       progressive, écran par écran (DESIGN_BRIEF.md §9). Tant qu'un écran n'a
-       pas basculé, il rend avec les rôles canoniques ci-dessus — d'où l'absence
-       de diff visuel à ce stade (baselines inchangées).
+       Contrat de design mobile arrêté le 2026-07-25.
+
+       ⚠️ LA BASCULE A EU LIEU — 2026-08-15. Elle devait être progressive, écran
+       par écran (DESIGN_BRIEF.md §9) ; la peau du produit a finalement été portée
+       EN UNE FOIS sur les valeurs des PLANCHES : canevas, creux, filet, encre,
+       noir inversé, fonte d'affichage (Archivo) et deux crans de l'échelle. Motif :
+       porter des écrans sous l'ancienne peau obligeait à les revérifier tous plus
+       tard, et un produit à deux peaux pendant vingt-six écrans se lit moins bien
+       qu'une re-baseline. Les 39 points de contrôle ont été mis à jour dans le même
+       mouvement. Détail et mesures : DESIGN_SYSTEM_CHANGELOG.md [2.0.0].
+
+       Ce qui N'A PAS basculé, et c'est mesuré, pas oublié : les deux gris de texte
+       et les quatre teintes de statut des planches sont SOUS AA en texte
+       (encre 2 : 4,45 — encre 3 : 3,25 — statuts : 3,3 à 3,8 sur le canevas). Elles
+       restent réservées aux GLYPHES ; les rôles textuels gardent leurs valeurs AA.
+       C'est la confirmation, au rendu, des questions Q-B1 et Q-B2 du brief.
 
        Convention de nommage :
          `<rôle>-next`  le rôle canonique existe DÉJÀ et est consommé ; le
@@ -878,31 +938,31 @@ body {
        ============================================================ */
 
     /* ---- §1 Couleur — neutres chauds (rampe affinée par le brief) ---- */
-    --tk-color-text-primary-next: #1A1917; /* 16,70:1 sur canvas — AAA */
-    --tk-color-text-secondary-next: #78746C; /* 4,42:1 canvas / 4,65:1 carte — Q-B2 */
-    --tk-color-text-muted-next: #A29D93; /* 2,57:1 — décoratif SEULEMENT, Q-B1 */
-    --tk-color-border-default-next: #F0EEE9; /* filets — non-texte */
-    --tk-color-surface-muted-next: #EFEDE8; /* fonds neutres (segmented, pressed) */
+    --tk-color-text-primary-next: #1a1917; /* 16,70:1 sur canvas — AAA */
+    --tk-color-text-secondary-next: #78746c; /* 4,42:1 canvas / 4,65:1 carte — Q-B2 */
+    --tk-color-text-muted-next: #a29d93; /* 2,57:1 — décoratif SEULEMENT, Q-B1 */
+    --tk-color-border-default-next: #f0eee9; /* filets — non-texte */
+    --tk-color-surface-muted-next: #efede8; /* fonds neutres (segmented, pressed) */
 
     /* ---- §1 Couleur — texte sur le jaune de marque ---- */
-    --tk-color-brand-text-next: #1A1917; /* 11,33:1 sur --cat-yellow */
+    --tk-color-brand-text-next: #1a1917; /* 11,33:1 sur --cat-yellow */
 
     /* ---- §1 Couleur — sémantiques ----
        Le brief ne redéfinit ni le ton médian d'avertissement (--tk-color-warning,
        bordures/icônes) ni les variantes `-light` de danger/succès : conservés. */
-    --tk-color-danger-next: #B3261E; /* 6,21:1 sur canvas (actuel #DC2626 : 4,83:1) */
-    --tk-color-success-next: #1B7F4D; /* 4,76:1 sur canvas (actuel #047857 : 5,48:1) */
-    --tk-color-warning-light-next: #FEF3D6; /* fond ambre */
-    --tk-color-warning-strong-next: #7A5A00; /* 5,78:1 sur le fond ambre ci-dessus */
+    --tk-color-danger-next: #b3261e; /* 6,21:1 sur canvas (actuel #DC2626 : 4,83:1) */
+    --tk-color-success-next: #1b7f4d; /* 4,76:1 sur canvas (actuel #047857 : 5,48:1) */
+    --tk-color-warning-light-next: #fef3d6; /* fond ambre */
+    --tk-color-warning-strong-next: #7a5a00; /* 5,78:1 sur le fond ambre ci-dessus */
 
     /* ---- §5 Couleur — destination ACTIVE de la barre du bas ----
        Rôle nouveau : aujourd'hui l'icône active est peinte en jaune plein
        (`text-primary`, ≈1,55:1 sur clair — écart X12). L'or foncé du brief est
        une amélioration nette, mais reste sous AA pour le libellé 11px (Q-B3). */
-    --tk-color-nav-active: #B8860B; /* 3,09:1 sur canvas */
+    --tk-color-nav-active: #b8860b; /* 3,09:1 sur canvas */
 
     /* ---- §6 Couleur — retour tactile (pressed) ---- */
-    --tk-color-pressed-surface: #EFEDE8; /* = surface neutre §1, 100 ms */
+    --tk-color-pressed-surface: #efede8; /* = surface neutre §1, 100 ms */
 
     /* ---- §3 Forme — RÔLES adossés à l'échelle canonique ----
        Q-B5 TRANCHÉE le 2026-07-26 : l'échelle 10/14/16 du brief est ABANDONNÉE.
@@ -950,7 +1010,6 @@ body {
     --tk-type-weight-strong-next: 500;
 }
 
-
 /* ============================================================
    TRACKER DS — TIER 3 : TOKENS DE COMPOSANT
    ------------------------------------------------------------
@@ -961,28 +1020,32 @@ body {
     /* Menu latéral / rail — Q-V3 (révisé) : dégradé tokenisé, valeurs d'origine
        conservées — le rendu sombre froid est une préférence retenue, identité
        volontairement distincte des neutres chauds du contenu. */
-    --color-sidebar-bg: #1C1917;
-    --color-sidebar-border: #2E2725;
+    --color-sidebar-bg: #1c1917;
+    --color-sidebar-border: #2e2725;
     --color-sidebar-gradient-from: #131517;
     --color-sidebar-gradient-to: #111315;
-    --color-sidebar-active-text: #1A1A1A;
+    --color-sidebar-active-text: #1a1a1a;
     --color-sidebar-logo-bg: #262320;
 
     /* Connexion — univers chromatique local des panneaux (hors neutres chauds
        du contenu, identité volontairement distincte comme le menu latéral).
        Valeurs conservées à l'identique : tokenisées pour retirer les hex bruts
        du composant sans dérive de rendu (constat #18). */
-    --color-login-page-bg: #F8FAFC;   /* backdrop racine (couvert par les panneaux) */
-    --color-login-surface: #FBFBFA;   /* panneau du formulaire */
-    --color-login-hero-bg: #090A0B;   /* panneau héro de marque (≥ expanded) */
+    /* Portage de la planche 02.1 (08/08). Les trois valeurs étaient FROIDES — un bleu-gris
+       #F8FAFC, un noir neutre #090A0B — et l'écran jurait avec le reste du produit sans
+       qu'aucune règle ne l'attrape : ce sont des tokens de composant, personne ne les
+       compare. Elles pointent désormais sur la couche sémantique. */
+    --color-login-page-bg: var(--tk-color-app-bg); /* papier chaud du produit */
+    --color-login-surface: var(--tk-color-surface); /* panneau du formulaire */
+    --color-login-hero-bg: var(--tk-color-inverse-surface); /* encre LIVE du bandeau de marque */
     /* Textes du héro sombre. Valeurs reprises TELLES QUELLES de la palette Tailwind
        (slate-200 / slate-400) que le composant utilisait en classes brutes, en
        oklch et non en hex pour rester au pixel près : la conversion vers sRGB de
        Tailwind v4 ne repasse pas exactement par #E2E8F0 / #94A3B8.
        Tokenisés le 2026-07-25 (Tracker DS v1, tâche 5a — extension du périmètre
        de `ds:check` à `src/**`). */
-    --color-login-hero-text: oklch(92.9% 0.013 255.508);        /* intitulés de la liste */
-    --color-login-hero-text-muted: oklch(70.4% 0.04 256.788);   /* accroche + pied de page */
+    --color-login-hero-text: var(--tk-color-inverse-on-surface); /* sur l'encre */
+    --color-login-hero-text-muted: var(--tk-color-text-on-inverse-muted); /* accroche */
 }
 
 html,
@@ -990,6 +1053,34 @@ body,
 #root {
     background: var(--tk-color-app-bg);
     color: var(--tk-color-text-primary);
+}
+
+/* ---- Masquage des barres de défilement sur mobile et tactile (feeling app native) ---- */
+@media (max-width: 1024px), (pointer: coarse) {
+    html,
+    body,
+    #root,
+    * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+}
+
+.no-scrollbar,
+.hide-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 body {
@@ -1103,7 +1194,6 @@ h6,
     background: rgba(253, 201, 16, 0.3);
     color: var(--tk-color-brand-text);
 }
-
 
 /* ============================================================
    ALIAS @deprecated 2026-07-25 — NE PAS UTILISER DANS DU CODE NEUF
@@ -1305,7 +1395,7 @@ h6,
        non promus dans l'espace `--tk-*` pour ne pas y importer du code mort. */
     --color-border-subtle: var(--color-neutral-100);
     --color-primary-default: var(--tk-color-brand);
-    --color-primary-light: #FFF4B8;
+    --color-primary-light: #fff4b8;
     --color-primary-dark: var(--tk-color-brand-dark);
     --text-title-2: 1.375rem;
     --text-caption: 0.75rem;

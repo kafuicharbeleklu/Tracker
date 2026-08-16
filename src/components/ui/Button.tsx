@@ -61,7 +61,7 @@ const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
 
 const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
   sm: "min-h-8 px-3 py-1.5 text-label-medium gap-1.5",
-  md: "min-h-10 px-4 py-2 text-label-large gap-2",
+  md: "min-h-12 px-4 py-2 text-label-large gap-2",
   lg: "min-h-11 px-5 py-2.5 text-label-large gap-2",
 };
 
@@ -137,12 +137,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const baseStyles = cn(
       // `touch-target` : hit-box ≥ 48px sur tactile (pointer:coarse), rendu visuel inchangé — voir index.css.
-      "touch-target inline-flex items-center justify-center rounded-lg min-w-10 leading-none",
+      "touch-target inline-flex items-center justify-center rounded-md font-medium min-w-10 leading-none",
       "transition-[color,background-color,box-shadow,opacity,transform,filter] duration-short4 ease-emphasized",
       "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
       "disabled:cursor-not-allowed disabled:pointer-events-none",
-      "active:scale-[0.98] select-none whitespace-nowrap",
-      "font-bold"
+      "active:scale-[0.98] select-none whitespace-nowrap"
     );
 
     return (
@@ -171,4 +170,3 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = 'Button';
 export default Button;
-

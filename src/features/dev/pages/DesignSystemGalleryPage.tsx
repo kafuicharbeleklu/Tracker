@@ -1,12 +1,34 @@
 import React, { useState } from 'react';
+import {
+  ArrowCircleRight,
+  ArrowUUpLeft,
+  ArrowsClockwise,
+  CheckCircle,
+  Laptop,
+  ClockCounterClockwise,
+  DotsThreeVertical,
+  MagnifyingGlass,
+  MapPin,
+  Monitor,
+  Package,
+  Pause,
+  Plus,
+  ShieldWarning,
+  Trash,
+  User,
+  Wallet,
+  Wrench,
+} from '@phosphor-icons/react';
 
 import Badge from '../../../components/ui/Badge';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import BulkActionBar from '../../../components/ui/BulkActionBar';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Chip from '../../../components/ui/Chip';
 import CloseButton from '../../../components/ui/CloseButton';
-import ConfirmationDialog from '../../../components/ui/ConfirmationDialog';
+import ConfirmationSheet from '../../../components/ui/ConfirmationSheet';
+import { ContextBanner } from '../../../components/ui/ContextBanner';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import Divider from '../../../components/ui/Divider';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -15,7 +37,15 @@ import ErrorBoundary from '../../../components/ui/ErrorBoundary';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
 import FloatingActionButton from '../../../components/ui/FloatingActionButton';
+import Icon from '../../../components/ui/Icon';
 import IconButton from '../../../components/ui/IconButton';
+import DetailHero from '../../../components/ui/DetailHero';
+import DetailTemplate from '../../../components/layout/DetailTemplate';
+import ListRow from '../../../components/ui/ListRow';
+import ProportionRow from '../../../components/ui/ProportionRow';
+import ReferenceRow from '../../../components/ui/ReferenceRow';
+import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
+import InlineError from '../../../components/ui/InlineError';
 import InputField from '../../../components/ui/InputField';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import LoadingSpinner from '../../../components/ui/LoadingSpinner';
@@ -27,11 +57,15 @@ import MovementTimeline from '../../../components/ui/MovementTimeline';
 import NavButton from '../../../components/ui/NavButton';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import Pagination from '../../../components/ui/Pagination';
+import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
+import ScreenState from '../../../components/ui/ScreenState';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import SegmentedButton from '../../../components/ui/SegmentedButton';
 import SelectField from '../../../components/ui/SelectField';
 import { SelectFilter } from '../../../components/ui/SelectFilter';
+import SelectionTopBar from '../../../components/ui/SelectionTopBar';
 import SideSheet from '../../../components/ui/SideSheet';
+import { SkeletonDetail, SkeletonList, SkeletonQueue } from '../../../components/ui/Skeleton';
 import Snackbar, { type SnackbarMessage } from '../../../components/ui/Snackbar';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import TableScrollArea from '../../../components/ui/TableScrollArea';
@@ -39,6 +73,7 @@ import { TextArea } from '../../../components/ui/TextArea';
 import Toggle from '../../../components/ui/Toggle';
 import Tooltip from '../../../components/ui/Tooltip';
 import { UserAvatar } from '../../../components/ui/UserAvatar';
+import useSelection from '../../../hooks/useSelection';
 
 /**
  * Vitrine vivante du TRACKER DS — route interne `#/dev/design-system`, montée
@@ -167,6 +202,38 @@ const TABLE_ROWS = [
   { serial: 'NB-2293', model: 'ProBook 450', category: 'Ordinateur portable', site: 'Lomé — Entrepôt', owner: '—', status: 'En réparation' },
 ];
 
+/** Liste de démonstration du gabarit — planches 04.1 et 00.4. */
+const LIST_FACETS: ListFacet[] = [
+  { id: 'tous', label: 'Tous', count: 14 },
+  { id: 'dispo', label: 'Disponibles', count: 5, icon: CheckCircle, tone: 'positive' },
+  { id: 'attr', label: 'Attribués', count: 7, icon: ArrowCircleRight, tone: 'info' },
+  { id: 'repar', label: 'En réparation', count: 2, icon: Wrench, tone: 'attention' },
+];
+
+const LIST_ROWS = [
+  { id: 'r1', code: 'LPT-HQ-01', model: 'Latitude 5540', glyph: Laptop, holder: 'Bureau Paris', date: 'il y a 40 min',
+    status: { icon: CheckCircle, label: 'disponible', tone: 'positive' as const } },
+  { id: 'r2', code: 'MBP-SALES-01', model: 'MacBook Pro 14', glyph: Laptop, holder: 'Claire Martin · Bureau Paris', date: 'il y a 2 h',
+    status: { icon: ArrowCircleRight, label: 'attribué', tone: 'info' as const } },
+  { id: 'r3', code: 'SCR-DK-01', model: 'Dell U2722DE', glyph: Monitor, holder: 'atelier · Campus Dakar', date: 'hier',
+    status: { icon: Wrench, label: 'en réparation', tone: 'attention' as const } },
+];
+
+/** File de démonstration du mode sélection — planche 17.2. */
+const QUEUE_ROWS = [
+  { id: 'q1', initials: 'KA', title: 'Kossi Adjovi — Latitude 7420', subtitle: 'Validation du manager', age: '6 j' },
+  { id: 'q2', initials: 'AS', title: 'Amina Sow — Souris MX', subtitle: 'Retour à réceptionner', age: '3 j' },
+  { id: 'q3', initials: 'YT', title: 'Yao Tetteh — EliteDisplay E243', subtitle: 'Dotation à valider', age: '2 j' },
+  { id: 'q4', initials: 'MB', title: 'Mariam Bah — ThinkPad T14', subtitle: 'Confirmation utilisateur', age: '1 j' },
+];
+
+/** Lectures de démonstration du canevas de scan — planche 17.3. */
+const SCAN_HITS: ScanHit[] = [
+  { id: 's1', code: 'ASSET-30117', detail: 'Écran Dell U2722 · local B2', kind: 'expected' },
+  { id: 's2', code: 'ASSET-29840', detail: 'Hors campagne — à rattacher', kind: 'exception' },
+  { id: 's3', code: 'ASSET-30044', detail: 'Latitude 5540 · local B2', kind: 'expected' },
+];
+
 const DesignSystemGalleryPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('fondations');
 
@@ -188,7 +255,15 @@ const DesignSystemGalleryPage: React.FC = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sideSheetOpen, setSideSheetOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTone, setConfirmTone] = useState<'destructive' | 'neutral'>('destructive');
   const [snacks, setSnacks] = useState<SnackbarMessage[]>([]);
+
+  // Étape 1 du portage — les trois composants transverses (planches 17.1/17.2/17.3).
+  const selection = useSelection();
+  const [scanMode, setScanMode] = useState<'simple' | 'batch'>('simple');
+  const [scanOpen, setScanOpen] = useState(false);
+  const [listSearch, setListSearch] = useState('');
+  const [listFacet, setListFacet] = useState('tous');
 
   const pushSnack = (message: SnackbarMessage) => setSnacks((queue) => [...queue, message]);
   const dismissSnack = (id: string) => setSnacks((queue) => queue.filter((item) => item.id !== id));
@@ -242,6 +317,24 @@ const DesignSystemGalleryPage: React.FC = () => {
           title="Fondations"
           description="Rôles de couleur, rayons et élévations résolus par le pont Tailwind sur la couche sémantique --tk-*."
         >
+          <Specimen name="Icon" note="Phosphor — I1/I2/I3 du registre §0">
+            <StateRow>
+              <StateCell label="32 — état vide, une fois par écran"><Icon glyph={Package} size={32} /></StateCell>
+              <StateCell label="24 — barres du haut et du bas"><Icon glyph={MagnifyingGlass} /></StateCell>
+              <StateCell label="20 — rangée, geste, chevron"><Icon glyph={Laptop} size={20} /></StateCell>
+              <StateCell label="18 — en ligne dans un texte de 13"><Icon glyph={User} size={18} /></StateCell>
+              <StateCell label="fill — actif ou acquis, et rien d’autre">
+                <Icon glyph={CheckCircle} size={24} emphasis="fill" />
+              </StateCell>
+            </StateRow>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              Quatre tailles, deux graisses : <code>thin</code>, <code>bold</code>, <code>duotone</code> et les
+              tailles 26/28/40/56 relevées dans le code sont hors d’atteinte par le type. L’icône est toujours
+              <code> aria-hidden</code> — I3 veut le mot à côté, et le nom accessible appartient au contrôle qui
+              la porte. Les 72 fichiers en <code>MaterialIcon</code> migrent à l’étape 4.
+            </p>
+          </Specimen>
+
           <Specimen name="Rôles de couleur" note="tier 2 — sémantique">
             <div className="grid grid-cols-2 gap-3 medium:grid-cols-4 expanded:grid-cols-6">
               {[
@@ -587,6 +680,68 @@ const DesignSystemGalleryPage: React.FC = () => {
           title="Sélection & navigation"
           description="Deux familles distinctes : PageTabs change de VUE (ARIA tablist), SegmentedButton change un PARAMÈTRE de la vue courante (group + aria-pressed)."
         >
+          <Specimen
+            name="SelectionTopBar + ListRow (sélection) + BulkActionBar"
+            note="planche 17.2 — 20 emplois, 4 écrans"
+            interactive
+          >
+            <div className="overflow-hidden rounded-lg border border-outline-variant">
+              {selection.isActive ? (
+                <SelectionTopBar
+                  count={selection.count}
+                  total={QUEUE_ROWS.length}
+                  onExit={selection.exit}
+                  onSelectAll={() => selection.selectAll(QUEUE_ROWS.map((row) => row.id))}
+                  onClearAll={selection.clear}
+                />
+              ) : (
+                <div className="flex min-h-14 items-center gap-2 border-b border-outline-variant bg-surface px-2">
+                  <span className="flex-1 px-2 text-title-small text-on-surface">Tâches</span>
+                  <Button variant="text" size="sm" onClick={() => selection.enter()}>
+                    Sélectionner
+                  </Button>
+                </div>
+              )}
+
+              <div className="bg-surface px-4">
+                {QUEUE_ROWS.map((row) => (
+                  <ListRow
+                    key={row.id}
+                    vignette={<span className="font-brand text-body-large font-semibold">{row.initials}</span>}
+                    title={row.title}
+                    holder={row.subtitle}
+                    reference={row.age}
+                    selectionActive={selection.isActive}
+                    selected={selection.isSelected(row.id)}
+                    onToggle={() => selection.toggle(row.id)}
+                    onLongPress={() => selection.enter(row.id)}
+                    onOpen={() => undefined}
+                  />
+                ))}
+              </div>
+
+              <BulkActionBar
+                count={selection.count}
+                overflow={
+                  <Button variant="tonal" iconOnly aria-label="Autres actes sur la sélection">
+                    <Icon glyph={ArrowsClockwise} size={20} />
+                  </Button>
+                }
+              >
+                <Button variant="filled" icon={<Icon glyph={CheckCircle} size={18} />}>
+                  {selection.count > 1 ? `Valider les ${selection.count}` : 'Valider'}
+                </Button>
+              </BulkActionBar>
+            </div>
+
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              Deux entrées, dont une écrite (S2) : l’appui long sur une rangée, et le bouton
+              « Sélectionner ». <strong className="font-medium text-on-surface">S1 est portée par le
+              composant</strong> — à sélection vide, le pied d’actions n’existe pas ; il n’est pas grisé.
+              La case prend la place de la vignette au pixel : le texte ne bouge pas d’un point.
+            </p>
+          </Specimen>
+
           <Specimen name="PageTabs" note="tablist ARIA, flèches ←/→, feuille « toutes les vues » en cas de débordement" interactive>
             <PageTabs
               activeId={tab}
@@ -737,6 +892,153 @@ const DesignSystemGalleryPage: React.FC = () => {
           title="Surfaces & données"
           description="Le continuum Card / MetricCard / EntityRow : surface générique, tuile de stat, rangée d'entité."
         >
+          <Specimen
+            name="DetailTemplate + DetailHero + ReferenceRow + ProportionRow"
+            note="gabarit fiche — planche 04.2, régime §2.43"
+            interactive
+          >
+            <div className="overflow-hidden rounded-lg border border-outline-variant bg-background">
+              <DetailTemplate
+                code="LPT-HQ-01"
+                reference="ASSET-10001"
+                onBack={() => undefined}
+                menu={
+                  <Button variant="text" iconOnly aria-label="Autres actions">
+                    <Icon glyph={DotsThreeVertical} />
+                  </Button>
+                }
+                hero={
+                  <DetailHero
+                    status={{ icon: ArrowCircleRight, label: 'Attribué', tone: 'info' }}
+                    label="Ordinateur portable"
+                    subject="Dell Latitude 7420"
+                    metrics={[
+                      { value: '2,4 ans', label: 'au parc' },
+                      { value: '18 mois', label: 'de garantie' },
+                      { value: '1 250', label: "XOF à l'achat" },
+                    ]}
+                    facts={[{ icon: MapPin, children: <>Bureau Paris — <b className="font-normal text-inverse-on-surface">2ᵉ étage</b></> }]}
+                    relation={{
+                      vignette: 'AS',
+                      title: 'Alice SuperAdmin',
+                      detail: 'porteuse depuis le 25 juillet · réception confirmée',
+                      onOpen: () => undefined,
+                    }}
+                    actions={
+                      <Button variant="filled" icon={<Icon glyph={ArrowUUpLeft} size={20} />}>
+                        Restituer
+                      </Button>
+                    }
+                  />
+                }
+              >
+                <section className="rounded-card bg-surface p-4">
+                  <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                    <Icon glyph={Laptop} size={18} className="text-on-surface-variant" />
+                    Référence technique
+                  </p>
+                  <div className="mt-3">
+                    <ReferenceRow label="Numéro de série" value="SN-ASSET10001" copyable />
+                    <ReferenceRow label="Mémoire" value="16 Go" />
+                    <ReferenceRow label="Stockage" value="512 Go SSD" />
+                    <ReferenceRow label="Système" value="Windows 11 Pro" />
+                    <ReferenceRow label="Réserve d’usage" value="Webcam hors service — notée le 29 juillet" />
+                  </div>
+                </section>
+
+                <section className="rounded-card bg-surface p-4">
+                  <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                    <Icon glyph={ShieldWarning} size={18} className="text-on-surface-variant" />
+                    Garantie et valeur
+                  </p>
+                  <ProportionRow
+                    value="50 %"
+                    label="de la garantie écoulée — 3 ans à compter de l’achat"
+                    percent={50}
+                    tone="positive"
+                    note={<>Toute réparation est <b className="font-medium text-on-surface">prise en charge par le fournisseur</b> jusqu’au <b className="font-medium text-on-surface">5 janvier 2028</b>.</>}
+                  />
+                  <ProportionRow
+                    className="mt-4 border-t border-outline-variant pt-1"
+                    value="92 %"
+                    label="de la valeur amortie — 100 XOF restent à amortir"
+                    percent={92}
+                    tone="attention"
+                    note={<><b className="font-medium text-on-surface">À renouveler cette année.</b> Son remplacement s’impute sur « Matériel IT ».</>}
+                    source="Amortissement issu du paramétrage par catégorie, pas d’une réévaluation."
+                  />
+                </section>
+
+                <section className="rounded-card bg-surface p-4">
+                  <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                    <Icon glyph={ClockCounterClockwise} size={18} className="text-on-surface-variant" />
+                    Historique
+                  </p>
+                  <div className="mt-3">
+                    <ReferenceRow label="Réception confirmée" value="25 juillet, 02:19" quiet />
+                    <ReferenceRow label="Attribué puis restitué, 2 fois" value="du 14 janvier au 25 juillet" quiet />
+                    <ReferenceRow label="Ajouté à l’inventaire" value="5 janvier 2025" quiet />
+                  </div>
+                  <Button variant="text" className="mt-2 px-0">Les 6 événements — dans Audit</Button>
+                </section>
+              </DetailTemplate>
+            </div>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              <strong className="font-medium text-on-surface">Trois métriques au plus, et le type le
+              tient</strong> : une quatrième cellule ne compile pas (R3). Ce que le héro porte, les cartes
+              ne le reprennent pas. Au-delà de <strong className="font-medium text-on-surface">1280 px</strong>
+              — et là seulement (§2.43) — la fiche passe à deux colonnes : le sujet et ce qui appelle un
+              geste à gauche, la référence bornée à droite.
+            </p>
+          </Specimen>
+
+          <Specimen            name="ListTemplate + ListRow"
+            note="gabarit liste / file — planches 04.1 · 03.3, régime 00.4"
+            interactive
+          >
+            <div className="overflow-hidden rounded-lg border border-outline-variant bg-background">
+              <ListTemplate
+                title="Équipements"
+                subtitle="14 au parc"
+                search={{ value: listSearch, onChange: setListSearch, placeholder: 'Code, identifiant, modèle' }}
+                facets={LIST_FACETS}
+                activeFacetId={listFacet}
+                onFacetSelect={setListFacet}
+                count={{ total: 14, noun: 'actifs' }}
+                sort={{ label: 'Ajout récent', onClick: () => undefined }}
+                footer="Fin de liste — 14 sur 14."
+                fab={
+                  <div className="flex justify-end p-4">
+                    <Button variant="filled" icon={<Icon glyph={Plus} size={20} />}>
+                      Ajouter
+                    </Button>
+                  </div>
+                }
+              >
+                {LIST_ROWS.map((row) => (
+                  <ListRow
+                    key={row.id}
+                    vignette={<Icon glyph={row.glyph} size={20} />}
+                    title={row.code}
+                    type={row.model}
+                    status={row.status}
+                    holder={row.holder}
+                    date={row.date}
+                    onOpen={() => undefined}
+                  />
+                ))}
+              </ListTemplate>
+            </div>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              <strong className="font-medium text-on-surface">Une rangée fait 72 px à toutes les
+              largeurs.</strong> Réduisez la fenêtre sous 600 px : les pastilles se mettent à défiler, le
+              modèle et la date quittent la rangée, l’en-tête reprend son filet — <em>ce qui change se
+              compte sur les doigts d’une main</em>. Ni hauteur de rangée, ni vignette, ni rayon, ni place du jaune. Le gabarit branche
+              aussi l’attente (17.3), le vide (17.1), le hors-ligne (17.1) et la sélection (17.2) : un écran qui
+              l’adopte les reçoit sans les réécrire.
+            </p>
+          </Specimen>
+
           <Specimen name="Card" note="état pressé ajouté en v1 sur la carte cliquable" interactive>
             <div className="grid gap-4 medium:grid-cols-3">
               <Card title="Elevated" icon={<MaterialIcon name="layers" size={20} />}>
@@ -895,7 +1197,104 @@ const DesignSystemGalleryPage: React.FC = () => {
           title="Rétroaction & états d'interface"
           description="Vide, chargement, erreur : trois écrans distincts, trois composants distincts."
         >
-          <Specimen name="EmptyState">
+          <Specimen name="Skeleton — liste · file · fiche" note="planche 17.3 — 28 écrans, rien avant 300 ms">
+            <div className="grid gap-5 expanded:grid-cols-3">
+              <div>
+                <p className="mb-2 text-label-small uppercase tracking-wide text-on-surface-variant">
+                  liste — 4 écrans
+                </p>
+                <div className="rounded-lg bg-surface px-4"><SkeletonList /></div>
+              </div>
+              <div>
+                <p className="mb-2 text-label-small uppercase tracking-wide text-on-surface-variant">
+                  file — 3 écrans
+                </p>
+                <div className="rounded-lg bg-surface px-4"><SkeletonQueue /></div>
+              </div>
+              <div>
+                <p className="mb-2 text-label-small uppercase tracking-wide text-on-surface-variant">
+                  fiche — 5 écrans
+                </p>
+                <div className="overflow-hidden rounded-lg bg-background"><SkeletonDetail /></div>
+              </div>
+            </div>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              <strong className="font-medium text-on-surface">Cinq rangées, jamais une</strong> : un squelette à
+              une rangée annonce une liste vide. Une seule nuance, aucune animation — le balayage lumineux
+              attire l’œil <em>sur</em> l’attente au lieu de l’en détourner (A3). La barre du haut, elle, est
+              déjà vraie : on ne met en squelette que ce qui est réellement en attente (A4).
+            </p>
+          </Specimen>
+
+          <Specimen name="ScreenState" note="planche 17.1 — une forme pour vide, introuvable et refusé">
+            <div className="grid gap-4 expanded:grid-cols-3">
+              <div className="rounded-lg bg-surface">
+                <ScreenState
+                  icon={Package}
+                  title="Aucun équipement ici"
+                  description="Ce site n’a encore aucun actif rattaché."
+                  actions={<Button variant="filled">Ajouter un équipement</Button>}
+                />
+              </div>
+              <div className="rounded-lg bg-surface">
+                <ScreenState
+                  icon={MagnifyingGlass}
+                  title="Cette page n’existe plus"
+                  description="L’équipement ou la personne que vous cherchiez a peut-être été sorti du parc. Son historique, lui, est conservé dans l’audit."
+                  actions={
+                    <>
+                      <Button variant="filled">Revenir à l’accueil</Button>
+                      <Button variant="tonal">Chercher dans les équipements</Button>
+                    </>
+                  }
+                />
+              </div>
+              <div className="rounded-lg bg-surface">
+                <ScreenState
+                  icon={Wallet}
+                  title="Votre compte attend son activation"
+                  description="Il a été créé le 03/08 et n’a pas encore été ouvert. Vous n’avez rien à faire de plus : c’est une validation, pas une inscription."
+                  actions={
+                    <>
+                      <Button variant="filled">Écrire à Clara Admin France</Button>
+                      <Button variant="tonal">Se déconnecter</Button>
+                    </>
+                  }
+                  footnote="Les deux autres cas — suspendu, hors liste — disent la même chose avec leur propre phrase. L’écran n’énumère jamais les trois."
+                />
+              </div>
+            </div>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              Pas de <code>404</code> : c’est un mot d’un autre métier, adressé à personne. Pas de
+              « vérifiez le lien » : sur un téléphone, personne n’a tapé de lien. Et un accès refusé
+              <strong className="font-medium text-on-surface"> nomme sa cause et qui peut ouvrir la porte</strong> —
+              un nom, jamais « l’administrateur ».
+            </p>
+          </Specimen>
+
+          <Specimen name="ContextBanner / OfflineBanner + InlineError" note="planche 17.1 — règles 1 et 2">
+            <div className="space-y-4">
+              <div className="overflow-hidden rounded-lg border border-outline-variant">
+                <ContextBanner>
+                  <strong className="font-medium text-on-surface">Hors ligne.</strong> Vous pouvez consulter le
+                  parc ; créer, attribuer et déclarer reviendront avec le réseau.
+                </ContextBanner>
+              </div>
+              <InlineError>
+                <strong className="font-medium">La demande n’est pas partie.</strong> Le serveur n’a pas
+                répondu — ce que vous avez écrit est gardé.
+              </InlineError>
+            </div>
+            <p className="mt-4 text-body-small text-on-surface-variant">
+              <code>OfflineBanner</code> ne se montre que hors ligne (il lit <code>navigator.onLine</code>,
+              dette D9) ; c’est <code>ContextBanner</code> qui est instancié ici pour qu’il soit visible.
+              L’erreur d’acte vit <strong className="font-medium text-on-surface">là où le geste a été
+              engagé</strong> : la feuille reste ouverte, la saisie reste écrite, et le geste primaire devient
+              « Réessayer » — voir <code>ConfirmationSheet</code>.
+            </p>
+          </Specimen>
+
+          <Specimen name="EmptyState" note="déprécié → ScreenState (12 appels à porter)">
             <div className="grid gap-4 medium:grid-cols-2">
               <EmptyState icon="inventory_2" title="Aucun équipement" description="Aucun équipement ne correspond à ces filtres." />
               <EmptyState
@@ -988,7 +1387,7 @@ const DesignSystemGalleryPage: React.FC = () => {
           title="Superpositions"
           description="Toutes portent un piège de focus, la fermeture par Échap et la restauration du focus au déclencheur."
         >
-          <Specimen name="Modal / BottomSheet / SideSheet / ConfirmationDialog / Menu / Tooltip" interactive>
+          <Specimen name="Modal / BottomSheet / SideSheet / ConfirmationSheet / ScanView / Menu / Tooltip" interactive>
             <StateRow>
               <StateCell label="Modal">
                 <Button variant="outlined" onClick={() => setModalOpen(true)}>Ouvrir la boîte de dialogue</Button>
@@ -999,8 +1398,37 @@ const DesignSystemGalleryPage: React.FC = () => {
               <StateCell label="SideSheet">
                 <Button variant="outlined" onClick={() => setSideSheetOpen(true)}>Ouvrir le panneau latéral</Button>
               </StateCell>
-              <StateCell label="ConfirmationDialog">
-                <Button variant="outlined" onClick={() => setConfirmOpen(true)}>Demander confirmation</Button>
+              <StateCell label="ConfirmationSheet — irréversible">
+                <Button
+                  variant="outlined"
+                  onClick={() => { setConfirmTone('destructive'); setConfirmOpen(true); }}
+                >
+                  Supprimer un équipement
+                </Button>
+              </StateCell>
+              <StateCell label="ConfirmationSheet — réversible">
+                <Button
+                  variant="outlined"
+                  onClick={() => { setConfirmTone('neutral'); setConfirmOpen(true); }}
+                >
+                  Suspendre un compte
+                </Button>
+              </StateCell>
+              <StateCell label="ScanView — simple">
+                <Button
+                  variant="outlined"
+                  onClick={() => { setScanMode('simple'); setScanOpen(true); }}
+                >
+                  Ouvrir le scan
+                </Button>
+              </StateCell>
+              <StateCell label="ScanView — lot">
+                <Button
+                  variant="outlined"
+                  onClick={() => { setScanMode('batch'); setScanOpen(true); }}
+                >
+                  Ouvrir le scan par lot
+                </Button>
               </StateCell>
               <StateCell label="Menu">
                 <Menu
@@ -1088,16 +1516,67 @@ const DesignSystemGalleryPage: React.FC = () => {
         </p>
       </SideSheet>
 
-      <ConfirmationDialog
+      {/* Feuille sous 840 px, dialogue de 440 px au-delà (§2.43) : la même vue posée
+          autrement, jamais une seconde. Les deux tons montrent la règle C3 — le rouge
+          est réservé à l'irréversible, le réversible est sombre. */}
+      <ConfirmationSheet
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => setConfirmOpen(false)}
-        variant="danger"
-        title="Supprimer l’équipement"
-        message="Cette action est irréversible. Tapez le mot-clé pour confirmer."
-        confirmKeyword="SUPPRIMER"
-        confirmText="Supprimer"
+        tone={confirmTone}
+        irreversible={confirmTone === 'destructive'}
+        icon={confirmTone === 'destructive' ? Trash : Pause}
+        title={
+          confirmTone === 'destructive'
+            ? 'Supprimer Latitude 5540 du parc ?'
+            : 'Suspendre le compte de Kossi Adjovi ?'
+        }
+        message={
+          confirmTone === 'destructive' ? (
+            <>
+              L’équipement disparaît de l’inventaire et des rapports.{' '}
+              <strong className="font-medium text-on-surface">
+                Ses 9 mouvements d’historique sont conservés
+              </strong>{' '}
+              et resteront consultables depuis le journal d’audit.
+            </>
+          ) : (
+            <>
+              Il ne pourra plus se connecter.{' '}
+              <strong className="font-medium text-on-surface">
+                Ses 3 équipements restent à son nom
+              </strong>{' '}
+              — la suspension ne restitue rien. Vous pourrez rétablir le compte à tout moment.
+            </>
+          )
+        }
+        details={
+          confirmTone === 'destructive'
+            ? [
+                { icon: User, label: 'Détenu par', value: 'Amina Sow' },
+                { icon: Wallet, label: 'Valeur résiduelle', value: '168 000 XOF' },
+              ]
+            : undefined
+        }
+        confirmText={confirmTone === 'destructive' ? 'Supprimer' : 'Suspendre'}
       />
+
+      {scanOpen && (
+        <div className="fixed inset-0 z-[110]">
+          <ScanView
+            mode={scanMode}
+            onModeChange={setScanMode}
+            onClose={() => setScanOpen(false)}
+            hit={SCAN_HITS[0]}
+            onRetry={() => undefined}
+            onAccept={() => setScanOpen(false)}
+            onManualEntry={() => undefined}
+            hits={SCAN_HITS}
+            expected={41}
+            onFinish={() => setScanOpen(false)}
+          />
+        </div>
+      )}
 
       <Snackbar messages={snacks} onDismiss={dismissSnack} />
 

@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import React, { useMemo, useState } from 'react';
+import {
+    CaretRight,
+    DotsThreeVertical,
+    PencilSimple,
+    Plus,
+} from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
-import Badge from '../../../components/ui/Badge';
+import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { useToast } from '../../../context/ToastContext';
+import DetailTemplate from '../../../components/layout/DetailTemplate';
 import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import Menu from '../../../components/ui/Menu';
+import ScreenState from '../../../components/ui/ScreenState';
 import AddModelPage from './AddModelPage';
-import { DetailHeader } from '../../../components/layout/DetailHeader';
+import { buildCsvLine } from '../../../lib/csv';
 
 interface ModelDetailsPageProps {
     modelId: string;
@@ -13,234 +23,326 @@ interface ModelDetailsPageProps {
 
 const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) => {
     const { equipment, models } = useData();
+    const { navigateToItem, navigateToView } = useAppNavigation();
+    const { showToast } = useToast();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    const model = models.find(m => m.id === modelId);
-
-    if (!model) return <div className="p-page-sm medium:p-page text-center text-on-surface-variant py-10">Modèle introuvable</div>;
+    const model = models.find((m) => m.id === modelId);
 
     // Filter equipment by model name
-    const modelEquipment = equipment.filter(e => e.model === model.name);
+    const modelEquipment = useMemo(() => {
+        if (!model) return [];
+        return equipment.filter((e) => e.model === model.name);
+    }, [equipment, model]);
 
-    const availableCount = modelEquipment.filter(e => e.status === 'Disponible').length;
-    const assignedCount = modelEquipment.filter(e => e.status === 'Attribué').length;
+    const availableCount = useMemo(
+        () => modelEquipment.filter((e) => e.status === 'Disponible').length,
+        [modelEquipment]
+    );
+    const assignedCount = useMemo(
+        () => modelEquipment.filter((e) => e.status === 'Attribué').length,
+        [modelEquipment]
+    );
+    const repairCount = useMemo(
+        () => modelEquipment.filter((e) => e.status === 'En réparation').length,
+        [modelEquipment]
+    );
+
+    // Distinct sites where this model is located
+    const sitesSummary = useMemo(() => {
+        const set = new Set<string>();
+        modelEquipment.forEach((item) => {
+            if (item.site) set.add(item.site);
+        });
+        const arr = Array.from(set);
+        if (arr.length === 0) return '';
+        if (arr.length === 1) return `au ${arr[0]}`;
+        if (arr.length === 2) return `au ${arr[0]} et à ${arr[1]}`;
+        return `au ${arr[0]}, ${arr[1]} et ${arr.length - 2} autre(s) site(s)`;
+    }, [modelEquipment]);
+
+    const handleExportUnits = () => {
+        if (modelEquipment.length === 0) {
+            showToast('Aucune unité à exporter.', 'info');
+            return;
+        }
+        const headers = ['Asset ID', 'Nom', 'Numéro de série', 'Statut', 'Utilisateur', 'Site', 'Type'];
+        const rows = modelEquipment.map((item) => [
+            item.assetId,
+            item.name,
+            item.serialNumber || '',
+            item.status,
+            item.user?.name || '',
+            item.site || '',
+            item.type,
+        ]);
+        const csvContent = [buildCsvLine(headers), ...rows.map(buildCsvLine)].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `unites-${model?.name || 'modele'}.csv`;
+        link.click();
+        showToast('Export CSV des unités téléchargé.', 'success');
+    };
+
+    if (!model) {
+        return (
+            <ScreenState
+                title="Modèle introuvable"
+                description="Le modèle demandé a peut-être été supprimé du catalogue."
+                actions={
+                    <Button variant="filled" onClick={onBack}>
+                        Revenir au catalogue
+                    </Button>
+                }
+            />
+        );
+    }
+
+    const totalUnits = modelEquipment.length;
+    const availablePercent = totalUnits > 0 ? (availableCount / totalUnits) * 100 : 0;
+    const assignedPercent = totalUnits > 0 ? (assignedCount / totalUnits) * 100 : 0;
+    const repairPercent = totalUnits > 0 ? (repairCount / totalUnits) * 100 : 0;
+
+    const brandInitials = (model.brand || model.name)
+        .split(' ')
+        .map((p) => p[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+
+    const menuItems = [
+        {
+            id: 'edit',
+            label: 'Modifier le modèle',
+            description: 'nom, type, marque, spécifications',
+            onSelect: () => setIsEditModalOpen(true),
+        },
+        {
+            id: 'export',
+            label: 'Exporter les unités',
+            description: `${totalUnits} unité(s) au format CSV`,
+            dividerBefore: true,
+            onSelect: handleExportUnits,
+        },
+    ];
+
+    const firstThreeUnits = modelEquipment.slice(0, 3);
 
     return (
-        <div className="flex flex-col h-full bg-surface-container-low">
+        <>
             <AddModelPage
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 modelToEdit={model}
             />
 
-            {/* Standardized Header */}
-            <DetailHeader
+            <DetailTemplate
+                code={model.name}
+                reference={`${model.brand ? `${model.brand} · ` : ''}${model.type}`}
                 onBack={onBack}
-                title={(
-                    <span className="flex flex-wrap items-center gap-3">
-                        <span>{model.name}</span>
-                        <span className="inline-flex px-2.5 py-0.5 bg-surface-container rounded-md text-label-medium font-bold text-on-surface-variant uppercase tracking-wide border border-outline-variant">
-                            {model.type}
-                        </span>
-                    </span>
-                )}
-                subtitle={`${modelEquipment.length} unités totales • ${availableCount} disponibles`}
-                leadingVisual={(
-                    <div className="w-16 h-16 bg-surface-container rounded-card flex items-center justify-center border border-outline-variant">
-                        <img
-                            src={model.image}
-                            alt={model.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-contain mix-blend-multiply p-2"
-                        />
-                    </div>
-                )}
-                actions={(
-                    <Button
-                        className="rounded-lg shadow-elevation-1"
-                        icon={<MaterialIcon name="edit" size={18} />}
-                        onClick={() => setIsEditModalOpen(true)}
-                    >
-                        Modifier le modèle
-                    </Button>
-                )}
-                contentClassName="expanded:items-center"
-            />
-
-            {/* Content Grid */}
-            <div className="p-page-sm medium:p-page overflow-y-auto">
-                <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-8">
-                    {/* Left Column: Product Info */}
-                    <div className="expanded:col-span-1 space-y-6">
-                        <div className="bg-surface rounded-card p-card border border-outline-variant shadow-elevation-1">
-                            <h3 className="font-bold text-on-surface mb-4 text-label-large uppercase tracking-wide">Stock</h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-on-surface-variant text-body-medium">Total</span>
-                                    <span className="font-bold text-on-surface">{modelEquipment.length}</span>
+                menu={
+                    <Menu
+                        align="end"
+                        className="w-[262px]"
+                        items={menuItems}
+                        trigger={
+                            <Button
+                                variant="text"
+                                iconOnly
+                                size="sm"
+                                aria-label="Autres actions"
+                                className="flex h-12 w-12 items-center justify-center rounded-md text-on-surface transition-colors hover:bg-surface-container p-0"
+                            >
+                                <Icon glyph={DotsThreeVertical} size={20} />
+                            </Button>
+                        }
+                    />
+                }
+                hero={
+                    <section className="flex flex-col gap-3 rounded-lg bg-inverse-surface p-4 text-inverse-on-surface">
+                        <div className="flex items-start gap-3.5">
+                            {model.image ? (
+                                <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-md bg-white/10 p-1">
+                                    <img
+                                        src={model.image}
+                                        alt={model.name}
+                                        className="h-full w-full object-contain"
+                                    />
                                 </div>
-                                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden flex">
-                                    <div className="bg-tertiary h-full" style={{ width: `${(availableCount / Math.max(modelEquipment.length, 1)) * 100}%` }}></div>
-                                    <div className="bg-secondary h-full" style={{ width: `${(assignedCount / Math.max(modelEquipment.length, 1)) * 100}%` }}></div>
-                                </div>
-                                <div className="flex gap-4 text-label-medium font-medium">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-tertiary"></div>
-                                        <span className="text-on-surface-variant">{availableCount} Disponibles</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-secondary"></div>
-                                        <span className="text-on-surface-variant">{assignedCount} Attribués</span>
-                                    </div>
-                                </div>
+                            ) : (
+                                <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-md bg-white/12 font-['Archivo',sans-serif] text-[19px] font-semibold text-inverse-on-surface">
+                                    {brandInitials}
+                                </span>
+                            )}
+                            <div className="min-w-0 flex-1 pt-0.5">
+                                <h1 className="truncate font-['Archivo',sans-serif] text-[20px] font-semibold tracking-[-0.01em] text-white">
+                                    {model.name}
+                                </h1>
+                                <p className="mt-0.5 text-[13px] text-text-secondary">
+                                    {model.brand ? `${model.brand} · ` : ''}{model.type}
+                                </p>
                             </div>
                         </div>
 
-                        <div className="bg-surface rounded-card p-card border border-outline-variant shadow-elevation-1">
-                            <h3 className="font-bold text-on-surface mb-4 text-label-large uppercase tracking-wide">Spécifications</h3>
-                            <div className="space-y-3">
-                                {model.specs ? (
-                                    <p className="text-body-medium text-on-surface whitespace-pre-wrap leading-relaxed">{model.specs}</p>
-                                ) : (
+                        <div className="flex items-baseline gap-2.5 border-t border-white/14 pt-3.5">
+                            <b className="font-['Archivo',sans-serif] text-[32px] font-semibold tracking-[-0.01em] tabular-nums text-white">
+                                {availableCount}
+                            </b>
+                            <span className="text-[13px] leading-[19px] text-text-secondary">
+                                disponible{availableCount > 1 ? 's' : ''} sur {totalUnits} unité{totalUnits > 1 ? 's' : ''}
+                                {sitesSummary ? (
                                     <>
-                                        <div className="flex items-center gap-3 text-body-medium">
-                                            <MaterialIcon name="memory" size={16} className="text-on-surface-variant" />
-                                            <span className="text-on-surface">Processeur standard</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-body-medium">
-                                            <MaterialIcon name="layers" size={16} className="text-on-surface-variant" />
-                                            <span className="text-on-surface">Configuration mémoire par défaut</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-body-medium">
-                                            <MaterialIcon name="hard_drive" size={16} className="text-on-surface-variant" />
-                                            <span className="text-on-surface">Stockage standard</span>
-                                        </div>
-                                        <p className="text-body-small text-on-surface-variant italic mt-2">Éditez le modèle pour ajouter des spécifications précises.</p>
+                                        <br />
+                                        {sitesSummary}
                                     </>
-                                )}
-                                {model.brand && (
-                                    <div className="pt-2 mt-2 border-t border-outline-variant/30 text-body-medium">
-                                        <span className="text-on-surface-variant">Marque :</span> <span className="font-bold text-on-surface">{model.brand}</span>
-                                    </div>
-                                )}
-                            </div>
+                                ) : null}
+                            </span>
                         </div>
+                    </section>
+                }
+            >
+                {/* Carte 1 : Le parc de ce modèle */}
+                <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+                    <div className="mb-1 flex items-baseline justify-between gap-3">
+                        <h3 className="text-[13px] font-medium text-on-surface">Le parc de ce modèle</h3>
+                        <span className="font-['Archivo',sans-serif] text-[13px] font-semibold tabular-nums text-text-secondary">
+                            {totalUnits}
+                        </span>
                     </div>
 
-                    {/* Right Column: Assets List */}
-                    <div className="expanded:col-span-2">
-                        <div className="bg-surface rounded-card shadow-elevation-1 border border-outline-variant overflow-hidden">
-                            <div className="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
-                                <h2 className="text-title-medium font-bold text-on-surface">Unités en inventaire</h2>
-                                <Button variant="outlined" size="sm" className="text-primary hover:text-primary-hover p-0 h-auto hover:bg-transparent border-none">
-                                    Tout exporter
-                                </Button>
-                            </div>
-                            <div className="hidden medium:block overflow-x-auto">
-                                <table className="w-full text-body-medium text-left">
-                                    <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
-                                        <tr>
-                                            <th className="px-6 py-4">Asset ID</th>
-                                            <th className="px-6 py-4">Numéro de Série</th>
-                                            <th className="px-6 py-4">Statut</th>
-                                            <th className="px-6 py-4">Utilisateur</th>
-                                            <th className="px-6 py-4">Garantie</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-outline-variant">
-                                        {modelEquipment.length > 0 ? (
-                                            modelEquipment.map(item => (
-                                                <tr key={item.id} className="hover:bg-surface-container/50 transition-colors">
-                                                    <td className="px-6 py-4 font-mono font-medium text-on-surface">{item.assetId}</td>
-                                                    <td className="px-6 py-4 text-on-surface-variant">
-                                                        {item.serialNumber || `SN-${item.id.padStart(5, '0')}`}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : 'warning'}>
-                                                            {item.status}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        {item.user ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-6 h-6 rounded-full bg-outline-variant flex items-center justify-center text-label-small font-bold text-on-surface-variant overflow-hidden">
-                                                                    {item.user.avatar ? (
-                                                                        <img src={item.user.avatar} alt={item.user.name} className="w-full h-full object-cover" />
-                                                                    ) : item.user.name?.[0]}
-                                                                </div>
-                                                                <span className="text-on-surface truncate max-w-[120px]">{item.user.name}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-outline italic">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-tertiary text-label-medium font-bold flex items-center gap-1">
-                                                        <MaterialIcon name="check" size={12} /> Active
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-12 text-center text-on-surface-variant">
-                                                    <MaterialIcon name="inventory_2" size={32} className="mx-auto mb-3 opacity-50" />
-                                                    Aucune unité de ce modèle trouvée.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Vue cartes (compact) — unités du modèle */}
-                            <div className="medium:hidden divide-y divide-outline-variant">
-                                {modelEquipment.length > 0 ? (
-                                    modelEquipment.map(item => (
-                                        <div key={item.id} className="p-4 space-y-2 hover:bg-surface-container/50 transition-colors">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <span className="font-mono font-medium text-on-surface truncate">{item.assetId}</span>
-                                                <Badge variant={item.status === 'Disponible' ? 'success' : item.status === 'Attribué' ? 'info' : 'warning'}>
-                                                    {item.status}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-body-small text-on-surface-variant truncate">
-                                                <span className="text-on-surface-variant/70">N° série : </span>
-                                                {item.serialNumber || `SN-${item.id.padStart(5, '0')}`}
-                                            </p>
-                                            <div className="flex items-center justify-between gap-3">
-                                                {item.user ? (
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <div className="w-6 h-6 rounded-full bg-outline-variant flex items-center justify-center text-label-small font-bold text-on-surface-variant overflow-hidden shrink-0">
-                                                            {item.user.avatar ? (
-                                                                <img src={item.user.avatar} alt={item.user.name} className="w-full h-full object-cover" />
-                                                            ) : item.user.name?.[0]}
-                                                        </div>
-                                                        <span className="text-on-surface truncate">{item.user.name}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-outline italic">Non assigné</span>
-                                                )}
-                                                <span className="inline-flex items-center gap-1 text-tertiary text-label-medium font-bold shrink-0">
-                                                    <MaterialIcon name="check" size={12} /> Active
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="px-6 py-12 text-center text-on-surface-variant">
-                                        <MaterialIcon name="inventory_2" size={32} className="mx-auto mb-3 opacity-50" />
-                                        Aucune unité de ce modèle trouvée.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                    <div className="my-2.5 flex h-1.5 overflow-hidden rounded-[2px] bg-surface-container">
+                        {availablePercent > 0 && (
+                            <i
+                                className="block h-full bg-[var(--tk-color-st-vert)]"
+                                style={{ width: `${availablePercent}%` }}
+                            />
+                        )}
+                        {assignedPercent > 0 && (
+                            <i
+                                className="block h-full bg-[var(--tk-color-st-bleu)]"
+                                style={{ width: `${assignedPercent}%` }}
+                            />
+                        )}
+                        {repairPercent > 0 && (
+                            <i
+                                className="block h-full bg-[var(--tk-color-st-orange)]"
+                                style={{ width: `${repairPercent}%` }}
+                            />
+                        )}
                     </div>
-                </div>
-            </div>
-        </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] text-text-secondary">
+                        <span className="inline-flex items-center gap-1.5">
+                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-vert)]" />
+                            Disponibles <b className="font-medium tabular-nums text-on-surface">{availableCount}</b>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-bleu)]" />
+                            Attribués <b className="font-medium tabular-nums text-on-surface">{assignedCount}</b>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-orange)]" />
+                            En réparation <b className="font-medium tabular-nums text-on-surface">{repairCount}</b>
+                        </span>
+                    </div>
+
+                    <p className="mt-2 text-[12px] leading-[17px] text-text-secondary">
+                        La barre porte les trois états décisionnels du parc (disponible, attribué, en réparation).
+                    </p>
+                </section>
+
+                {/* Carte 2 : Les unités */}
+                <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+                    <div className="mb-1 flex items-baseline justify-between gap-3">
+                        <h3 className="text-[13px] font-medium text-on-surface">Les unités</h3>
+                        <span className="text-[13px] tabular-nums text-text-secondary">
+                            {firstThreeUnits.length} sur {totalUnits}
+                        </span>
+                    </div>
+
+                    <div className="mt-1 divide-y divide-outline-variant">
+                        {firstThreeUnits.length > 0 ? (
+                            firstThreeUnits.map((item) => (
+                                <div
+                                    key={item.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => navigateToItem('equipment', item.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            navigateToItem('equipment', item.id);
+                                        }
+                                    }}
+                                    className="flex min-h-14 w-full items-center gap-3 py-2 text-left transition-colors hover:bg-surface-container cursor-pointer px-1 rounded-md"
+                                >
+                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span className="font-['Archivo',sans-serif] text-[14px] font-semibold text-on-surface">
+                                            {item.assetId}
+                                        </span>
+                                        <span className="truncate text-[12px] leading-[17px] text-text-secondary">
+                                            {item.user?.name ? `${item.user.name} · ` : ''}
+                                            {item.status}
+                                            {item.site ? ` · ${item.site}` : ''}
+                                        </span>
+                                    </div>
+                                    <Icon glyph={CaretRight} size={18} className="shrink-0 text-text-secondary" />
+                                </div>
+                            ))
+                        ) : (
+                            <p className="py-3 text-[13px] text-text-secondary">
+                                Aucune unité enregistrée pour ce modèle.
+                            </p>
+                        )}
+                    </div>
+
+                    {totalUnits > 0 && (
+                        <Button
+                            variant="text"
+                            onClick={() => navigateToView('equipment')}
+                            className="mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 border-t border-outline-variant pt-2 text-left text-[14px] font-medium text-on-surface transition-colors hover:text-text-secondary rounded-none px-1"
+                        >
+                            <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
+                            <span>Voir les {totalUnits} unités dans l'inventaire</span>
+                        </Button>
+                    )}
+                </section>
+
+                {/* Carte 3 : Spécifications honnêtes (Planche 09.2) */}
+                <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+                    <div className="mb-1 flex items-baseline justify-between gap-3">
+                        <h3 className="text-[13px] font-medium text-on-surface">Spécifications</h3>
+                    </div>
+
+                    {model.specs ? (
+                        <p className="mt-1 whitespace-pre-wrap text-[13px] leading-[19px] text-on-surface">
+                            {model.specs}
+                        </p>
+                    ) : (
+                        <p className="mt-1 text-[12px] leading-[17px] text-text-secondary">
+                            Aucune spécification n'a été saisie pour ce modèle.
+                        </p>
+                    )}
+
+                    <div className="mt-3 border-t border-outline-variant pt-3">
+                        <Button
+                            variant="tonal"
+                            className="w-full justify-center"
+                            icon={<Icon glyph={model.specs ? PencilSimple : Plus} size={18} />}
+                            onClick={() => setIsEditModalOpen(true)}
+                        >
+                            {model.specs ? 'Modifier les spécifications' : 'Ajouter les spécifications'}
+                        </Button>
+                    </div>
+                </section>
+            </DetailTemplate>
+        </>
     );
 };
 
 export default ModelDetailsPage;
+
 
 

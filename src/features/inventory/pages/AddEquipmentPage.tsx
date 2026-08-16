@@ -15,7 +15,7 @@ import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { GLOSSARY } from '../../../constants/glossary';
 import { APP_CONFIG } from '../../../config';
-import { Equipment } from '../../../types';
+import { AppSettings, Equipment } from '../../../types';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 interface AddEquipmentPageProps {
@@ -24,11 +24,19 @@ interface AddEquipmentPageProps {
     onSave: () => void;
 }
 
-const GLOBAL_FINANCIAL_SETTINGS = {
-    method: 'linear' as const,
-    years: 3,
-    salvagePercent: 0
-};
+/**
+ * Le troisième palier de la cascade — **fiche → type → défaut global**.
+ *
+ * Il était écrit en dur ici, si bien que le réglage « Amortissement par défaut » de
+ * Paramètres **n'avait aucun consommateur** : on pouvait le changer sans que rien ne
+ * bouge. Relevé au portage de 14.1, qui exige qu'un réglage dise ce qu'il change —
+ * encore faut-il qu'il change quelque chose.
+ */
+const globalDepreciationConfig = (settings: AppSettings) => ({
+    method: settings.defaultDepreciationMethod,
+    years: settings.defaultDepreciationYears,
+    salvagePercent: settings.salvageValuePercent,
+});
 
 const EQUIPMENT_STATUS_OPTIONS = [
     { value: 'Disponible', label: 'Disponible' },
@@ -148,9 +156,9 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 years: selectedCategory.defaultDepreciation.years,
                 salvageValuePercent: selectedCategory.defaultDepreciation.salvageValuePercent
             } : null,
-            GLOBAL_FINANCIAL_SETTINGS
+            globalDepreciationConfig(settings)
         );
-    }, [useCustomDepreciation, formData.manualMethod, formData.manualYears, formData.manualSalvagePercent, selectedCategory]);
+    }, [useCustomDepreciation, formData.manualMethod, formData.manualYears, formData.manualSalvagePercent, selectedCategory, settings]);
 
     const financialEstimates = useMemo(() => {
         const price = parseFloat(formData.purchasePrice) || 0;

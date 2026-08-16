@@ -62,20 +62,20 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
         );
 
         const variants = {
-            primary: "bg-primary-container text-on-primary-container",
+            primary: "bg-primary text-on-primary",
             secondary: "bg-secondary-container text-on-secondary-container",
             tertiary: "bg-tertiary-container text-on-tertiary-container",
             surface: "bg-surface-container-high text-on-surface",
         };
 
         const sizes = {
-            small: "w-10 h-10 rounded-md", // 40dp, shape-medium (12dp)
-            medium: "w-14 h-14 rounded-lg", // 56dp, shape-large (16dp)
-            large: "w-24 h-24 rounded-xl", // 96dp, shape-extra-large (28dp)
+            small: "w-10 h-10 rounded-md", // 40dp, 4px
+            medium: "w-14 h-14 rounded-xl", // 56dp, 8px (--tk-radius-sheet / .fab)
+            large: "w-24 h-24 rounded-xl", // 96dp, 8px
         };
 
         const extendedStyles = isExtended ? cn(
-            "h-14 px-4 rounded-lg w-auto gap-2", // Height 56dp, shape-large (16dp)
+            "h-14 px-4 rounded-xl w-auto gap-2", // Height 56dp, shape-large (8px)
             // Typography for Extended FAB (Label Large)
             "text-label-large font-medium"
         ) : "";

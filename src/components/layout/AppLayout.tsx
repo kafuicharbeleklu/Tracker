@@ -5,7 +5,6 @@ import Sidebar from './Sidebar';
 import { NavigationBar } from './NavigationBar';
 import { NavigationRail } from './NavigationRail';
 import TopAppBar from './TopAppBar';
-import BottomAppBar from './BottomAppBar';
 import { ViewType } from '../../types';
 import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
@@ -14,6 +13,7 @@ import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { EmptyState } from '../ui/EmptyState';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { SkeletonList } from '../ui/Skeleton';
 
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
@@ -45,8 +45,6 @@ const AuditDetailsPage = lazy(() => import('../../features/audit/pages/AuditDeta
 interface AppLayoutProps {
     onLogout: () => void;
 }
-
-import { SkeletonList } from '../ui/Skeleton';
 
 /**
  * Attente d'une vue — planche 12.1, registre §2.39 : on montre **la forme de ce qui
@@ -99,14 +97,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const bottomNavViews: ViewType[] = [
         'dashboard',
         'equipment',
+        'equipment_details',
         'tasks',
         'approvals',
         'users',
+        'user_details',
         'finance',
         'management',
         'rbac',
+        'category_details',
+        'model_details',
         'locations',
         'audit',
+        'audit_details',
         'reports',
         'settings',
     ];
@@ -115,12 +118,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
     /**
      * Vues passées à l'ADN mobile (DESIGN_BRIEF.md §5) : elles portent elles-mêmes
-     * l'en-tête « titre 22 + sous-titre contextuel ». La barre d'application ne
-     * rendrait qu'un DOUBLON du titre — sur ces vues, la barre du bas assure déjà
-     * la navigation, donc la barre du haut n'a plus de contenu propre.
-     * La liste s'allonge à chaque écran basculé, et disparaît quand la coque bascule.
+     * l'en-tête « titre 22 + sous-titre contextuel » ou leur propre barre de détail.
      */
-    const adnMobileViews: ViewType[] = ['audit'];
+    const adnMobileViews: ViewType[] = [
+        'audit',
+        'audit_details',
+        'equipment',
+        'equipment_details',
+        'users',
+        'user_details',
+        'dashboard',
+        'tasks',
+        'model_details',
+        'category_details',
+        'settings',
+        'rbac',
+    ];
     const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
     const getTopAppBarTitle = (view: ViewType): string => {
@@ -217,7 +230,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
         switch (currentView) {
             case 'dashboard':
-                return <DashboardPage onViewChange={handleViewChange} onNavigate={handleNavigate} />;
+                return (
+                    <DashboardPage
+                        onViewChange={handleViewChange}
+                        onNavigate={handleNavigate}
+                    />
+                );
             case 'equipment':
                 return (
                     <InventoryPage
@@ -262,7 +280,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onViewChange={handleViewChange}
                         onEquipmentClick={(id) => handleItemClick('equipment_details', id)}
                     />
-                ) : <UsersPage onViewChange={handleViewChange} />;
+                ) : (
+                    <UsersPage
+                        onViewChange={handleViewChange}
+                        onUserClick={(id) => handleItemClick('user_details', id)}
+                    />
+                );
             case 'add_user':
                 return <AddUserPage onCancel={() => goBack()} onSave={() => goBack()} />;
             case 'edit_user':
@@ -272,7 +295,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onCancel={() => handleItemClick('user_details', selectedItemId)}
                         onSave={() => handleItemClick('user_details', selectedItemId)}
                     />
-                ) : <UsersPage onViewChange={handleViewChange} />;
+                ) : (
+                    <UsersPage
+                        onViewChange={handleViewChange}
+                        onUserClick={(id) => handleItemClick('user_details', id)}
+                    />
+                );
             case 'import_users':
                 return <ImportUsersPage onViewChange={handleViewChange} />;
 
@@ -293,8 +321,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
             case 'add_category':
             case 'add_model':
-                // AddCategoryPage/AddModelPage sont des modales de ManagementPage, pas des
-                // pages routées : le lien profond rend la liste parente, modale déjà ouverte.
                 return (
                     <ManagementPage
                         onViewChange={handleViewChange}
@@ -339,12 +365,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'reports':
                 return <ReportsPage />;
             case 'settings':
-                return <SettingsPage onLogout={onLogout} />;
+                return <SettingsPage onLogout={onLogout} onNavigate={handleViewChange} />;
 
             // Wizards & Forms
             case 'assignment_wizard':
                 return (
                     <AssignmentWizardPage
+                        initialEquipmentId={selectedItemId || undefined}
                         onCancel={() => handleViewChange('equipment')}
                         onComplete={() => handleViewChange('equipment')}
                     />
@@ -352,6 +379,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'return_wizard':
                 return (
                     <ReturnWizardPage
+                        initialEquipmentId={selectedItemId || undefined}
                         onCancel={() => handleViewChange('equipment')}
                         onComplete={() => handleViewChange('equipment')}
                     />
@@ -385,7 +413,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
 
             default:
-                // Fallback for views not yet implemented or imported
                 return (
                     <div className="p-8 text-center">
                         <h2 className="text-display-small mb-4">Vue non trouvée ({currentView})</h2>
@@ -399,84 +426,55 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     return (
-        <div className="flex h-dvh bg-[var(--tk-color-app-bg)] overflow-hidden">
-            {/* Sidebar */}
-            <Sidebar
-                isCollapsed={isSidebarCollapsed}
-                setIsCollapsed={setIsSidebarCollapsed}
-                currentView={currentView}
-                onViewChange={handleViewChange}
-                onSettingsClick={() => handleViewChange('settings')}
-                onLogout={onLogout}
-                subtractPrimaryDestinations={useRailNavigation || usesBottomNavShortcuts}
-                isModalMode={!isExpandedUp}
-                isMobileOpen={isMobileMenuOpen}
-                closeMobileMenu={() => setIsMobileMenuOpen(false)}
-            />
-
-            {/* MD3 Navigation Rail: medium + compact landscape */}
-            {useRailNavigation && !isMobileMenuOpen && (
-                <NavigationRail
-                    currentView={currentView}
-                    onViewChange={handleViewChange}
+        <div className="min-h-screen bg-background flex flex-col font-sans">
+            {/* Top App Bar — Mobile Only when active */}
+            {showTopAppBar && (
+                <TopAppBar
+                    title={getTopAppBarTitle(currentView)}
                     onMenuClick={() => setIsMobileMenuOpen(true)}
-                    compact={isCompactLandscape}
-                    className="shrink-0"
                 />
             )}
 
-            {/* Main Content Area */}
-            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-                {/* Mobile Top App Bar */}
-                {showTopAppBar && (
-                    <TopAppBar
-                        title={getTopAppBarTitle(currentView)}
-                        leadingAction={showBottomNav ? undefined : {
-                            icon: 'menu',
-                            label: 'Ouvrir le menu',
-                            onClick: () => setIsMobileMenuOpen(true),
-                        }}
-                        className="shrink-0"
-                        titleClassName="text-title-medium"
+            <div className="flex flex-1 relative min-h-0">
+                {/* Desktop Sidebar */}
+                {isExpandedUp && (
+                    <Sidebar
+                        currentView={currentView}
+                        onViewChange={handleViewChange}
+                        isCollapsed={isSidebarCollapsed}
+                        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                        onLogout={onLogout}
                     />
                 )}
 
-                {/* Page Content */}
-                <div className="flex-1 overflow-y-auto bg-[var(--tk-color-app-bg)] relative">
-                    {/* Filet par vue (#17) : la `key` remonte le boundary à chaque navigation,
-                        donc la coque de nav suffit à sortir d'une page cassée — sans recharger. */}
-                    <ErrorBoundary key={currentView} context={`vue: ${currentView}`}>
+                {/* Tablet Navigation Rail */}
+                {useRailNavigation && (
+                    <NavigationRail
+                        currentView={currentView}
+                        onViewChange={handleViewChange}
+                    />
+                )}
+
+                {/* Main Content Area */}
+                <main className={`flex-1 flex flex-col min-w-0 bg-background relative ${usesBottomNavShortcuts ? 'pb-16' : ''}`}>
+                    <ErrorBoundary>
                         <Suspense fallback={<PageLoadingFallback />}>
                             {renderContent()}
                         </Suspense>
                     </ErrorBoundary>
-                </div>
+                </main>
+            </div>
 
-                {showBottomNav && (
-                    <BottomAppBar className="shrink-0">
-                        <NavigationBar
-                            currentView={currentView}
-                            onViewChange={handleViewChange}
-                            onMoreClick={() => setIsMobileMenuOpen(true)}
-                            embedded
-                        />
-                    </BottomAppBar>
-                )}
-            </main>
+            {/* Mobile Bottom Navigation Bar */}
+            {showBottomNav && (
+                <NavigationBar
+                    currentView={currentView}
+                    onViewChange={handleViewChange}
+                    onLogout={onLogout}
+                />
+            )}
         </div>
     );
 };
 
 export default AppLayout;
-
-
-
-
-
-
-
-
-
-
-
-

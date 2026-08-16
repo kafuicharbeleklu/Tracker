@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Dashboard — administrateur / IT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--canvas:#FAF9F7;--surface:#FFFFFF;--ink:#1A1917;--ink-2:#78746C;--line:#F0EEE9;
+        --line-strong:#8E877E;--muted-bg:#EFEDE8;--brand:#FDC910;--on-brand:#1A1917;
+        --danger:#B3261E;--warn-bg:#FEF3D6;--warn-fg:#7A5A00}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:#EDEBE7;display:flex;justify-content:center;
+       padding:24px 12px;color:var(--ink)}
+  .note{width:393px;margin:0 auto 12px;font-size:12px;color:#57514A;line-height:1.5}
+  .note b{font-weight:600}
+  .phone{width:393px;background:var(--canvas);border-radius:8px;overflow:hidden;
+         box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .page{padding:20px 20px 24px;display:flex;flex-direction:column;gap:24px}
+  svg{display:block}
+
+  h1{font-size:22px;line-height:28px;font-weight:500}
+  .sub{margin-top:4px;font-size:14px;color:var(--ink-2)}
+
+  .card{background:var(--surface);border-radius:8px;padding:16px}
+  /* En-tête de carte : icône + titre. Systématique — une icône sur une carte et pas sur
+     l'autre, c'est le genre d'irrégularité qu'on remarque sans savoir pourquoi. */
+  .h2row{display:flex;align-items:center;gap:10px}
+  .h2row .i{color:var(--ink-2);flex:0 0 18px}
+  .h2row h2{font-size:16px;font-weight:500}
+  .h2sub{font-size:12px;color:var(--ink-2);margin-top:2px;margin-left:28px}
+
+  /* ---- bloc à traiter : rangées à filets DANS une carte, pas une carte par rangée ---- */
+  .todo-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .todo-row:first-of-type{border-top:0;padding-top:14px}
+  .av{width:32px;height:32px;border-radius:50%;background:var(--muted-bg);flex:0 0 32px;
+      display:flex;align-items:center;justify-content:center;font-size:14px}
+  .todo-txt{flex:1;min-width:0}
+  .todo-txt .t{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .todo-txt .s{font-size:12px;color:var(--ink-2);margin-top:1px}
+  .btn-sm{flex:0 0 auto;height:36px;padding:0 14px;border:0;border-radius:4px;background:var(--muted-bg);
+          color:var(--ink);font-size:14px;font-weight:500;font-family:inherit}
+
+  /* ---- actions ---- */
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{height:48px;border-radius:4px;font-size:14px;font-weight:500;font-family:inherit;border:0;
+       display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary{background:var(--brand);color:var(--on-brand)}
+  .btn-second{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+
+  /* ---- KPI : 2×2 dans UNE carte. À 393 px, quatre cellules sur une ligne font 80 px
+         chacune : trop serré dès qu'on y ajoute une icône. Les séparateurs restent. ---- */
+  .kpis{display:grid;grid-template-columns:1fr 1fr}
+  .kpi{padding:14px 0 14px 14px}
+  .kpi:nth-child(odd){padding-left:0;padding-right:14px}
+  .kpi:nth-child(even){border-left:1px solid var(--line)}
+  .kpi:nth-child(1),.kpi:nth-child(2){padding-top:0}
+  .kpi:nth-child(3),.kpi:nth-child(4){border-top:1px solid var(--line);padding-bottom:0}
+  .kpi .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .kpi .l{font-size:12px;color:var(--ink-2)}
+  /* Icône en NEUTRE : peinte en jaune/vert/rouge comme aujourd'hui, elle ferait exploser
+     le budget de deux jaunes et remettrait des sémantiques décoratives. Le rouge subsiste,
+     mais sur le CHIFFRE, là où il veut dire quelque chose. */
+  .kpi .i{color:var(--ink-2);flex:0 0 18px}
+  .kpi .v{font-size:20px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:4px}
+  .kpi .v.bad{color:var(--danger)}
+
+  /* ---- valeur du parc ---- */
+  .money{display:flex;margin-top:14px}
+  .money > div{flex:1;min-width:0}
+  .money > div + div{border-left:1px solid var(--line);padding-left:14px}
+  .money .top{display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+  .money .l{font-size:12px}
+  .money .v{font-size:20px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:4px}
+
+  /* ---- répartition : barres. Aucune couleur sémantique décorative. ---- */
+  .bar-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px}
+  .bar-row .n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{flex:0 0 96px;height:4px;background:var(--muted-bg)}
+  .bar i{display:block;height:100%;background:var(--ink)}
+  .bar-row .c{flex:0 0 34px;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+
+  /* ---- jauge d'une SEULE proportion : l'anneau reste le bon outil ---- */
+  .ring{width:136px;height:136px;border-radius:50%;margin:16px auto 0;
+        display:flex;align-items:center;justify-content:center}
+  .ring .hole{width:100px;height:100px;border-radius:50%;background:var(--surface);
+              display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .pc{font-size:20px;line-height:24px;font-weight:500;font-variant-numeric:tabular-nums}
+  .ring .cap{font-size:12px;color:var(--ink-2);margin-top:2px}
+  .legend{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px}
+  .legend .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .legend .n{flex:1;min-width:0}
+  .legend .c{font-weight:500;font-variant-numeric:tabular-nums}
+
+  /* ---- activité ---- */
+  .ev{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .ev:first-of-type{border-top:0;padding-top:14px}
+  .ev .t{font-size:14px;line-height:20px}
+  .ev .d{font-size:12px;color:var(--ink-2);margin-top:2px}
+  .more{margin-top:14px;font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+
+  .nav{display:flex;border-top:1px solid var(--line);background:var(--surface);padding:10px 0 14px}
+  .nav div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+           font-size:11px;color:var(--ink-2)}
+  .nav div.on{color:#8A6508}
+</style>
+</head>
+<body>
+<div>
+  <p class="note"><b>Dashboard — administrateur / IT.</b> Le bloc « à traiter » passe en tête :
+  c'est la seule partie qui demande une action, elle était enterrée sous cinq cartes de chiffres.
+  Les KPI reviennent en <b>2×2</b> avec leurs icônes, dans une seule carte à séparateurs — plus de
+  carte orpheline. « En attente » migre dans « à traiter », qui est sa vraie place. L'anneau est
+  conservé pour la garantie (une seule proportion), mais « Répartition par type » passe en barres :
+  un anneau à quatre parts ne se compare pas au pouce, et c'est lui qui imposait le rouge pour
+  « Headphones » et le vert pour « Mouse ». Icônes partout, mais en neutre. Jaune : deux fois
+  (bouton Attribuer + nav). Environ 1,8 écran au lieu de 3,3.</p>
+
+  <div class="phone">
+    <div class="page">
+
+      <header>
+        <h1>Tableau de bord</h1>
+        <p class="sub">3 choses à traiter · 247 actifs</p>
+      </header>
+
+      <section class="card">
+        <div class="h2row">
+          <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 6l1.3 1.3L7.8 4.8M4 12l1.3 1.3L7.8 10.8M4 18l1.3 1.3L7.8 16.8"/></svg></span>
+          <h2>À traiter</h2>
+        </div>
+        <p class="h2sub">Validations et réceptions qui vous attendent</p>
+
+        <div class="todo-row">
+          <div class="av">🙂</div>
+          <div class="todo-txt">
+            <div class="t">Kossi Adjovi — Dell Latitude 7420</div>
+            <div class="s">Validation manager</div>
+          </div>
+          <button class="btn-sm">Valider</button>
+        </div>
+        <div class="todo-row">
+          <div class="av">😌</div>
+          <div class="todo-txt">
+            <div class="t">Direction des Systèmes d'Information — HP EliteBook</div>
+            <div class="s">Validation dotation</div>
+          </div>
+          <button class="btn-sm">Valider</button>
+        </div>
+        <div class="todo-row">
+          <div class="av">📦</div>
+          <div class="todo-txt">
+            <div class="t">Écran Dell U2722 (ASSET-30117)</div>
+            <div class="s">Réception à confirmer</div>
+          </div>
+          <button class="btn-sm">Confirmer</button>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="btn btn-second">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10L4 15l5 5"/><path d="M4 15h11a5 5 0 0 0 5-5V4"/></svg>
+          Retourner
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.2 2.5-5 5.5-5s5.5 1.8 5.5 5"/><path d="M18.5 8v6M15.5 11h6"/></svg>
+          Attribuer
+        </button>
+      </div>
+
+      <section class="card">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="top"><span class="l">Actifs</span>
+              <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5l9-4 9 4v9l-9 4-9-4v-9z"/><path d="M3 7.5l9 4 9-4M12 11.5v9"/></svg></span></div>
+            <div class="v">247</div>
+          </div>
+          <div class="kpi">
+            <div class="top"><span class="l">Attribués</span>
+              <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.2 2.5-5 5.5-5"/><path d="M14.5 17l2 2 4-4"/></svg></span></div>
+            <div class="v">183</div>
+          </div>
+          <div class="kpi">
+            <div class="top"><span class="l">Disponibles</span>
+              <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.4 12.4l2.5 2.5 4.7-5.2"/></svg></span></div>
+            <div class="v">52</div>
+          </div>
+          <div class="kpi">
+            <div class="top"><span class="l">Réparation</span>
+              <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.8 3.9a4.6 4.6 0 0 0-5.9 5.9L3.6 15a1.6 1.6 0 0 0 0 2.3l3.1 3.1a1.6 1.6 0 0 0 2.3 0l5.2-5.3a4.6 4.6 0 0 0 5.9-5.9l-3.1 3.1-2.9-2.9 3.1-3.1z"/></svg></span></div>
+            <div class="v bad">12</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <!-- Pas d'icône d'en-tête ici : les deux chiffres portent déjà la leur, une
+             troisième au-dessus ferait doublon. -->
+        <div class="h2row"><h2>Valeur du parc</h2></div>
+        <div class="money">
+          <div>
+            <div class="top">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg>
+              <span class="l">Dépenses (XOF)</span>
+            </div>
+            <div class="v">17 615 000</div>
+          </div>
+          <div>
+            <div class="top">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 6 4-4 8 8"/><path d="M21 11v6h-6"/></svg>
+              <span class="l">Après amortissement</span>
+            </div>
+            <div class="v">8 276 400</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="h2row">
+          <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6.5 20v-6M11.5 20V8M16.5 20v-9"/></svg></span>
+          <h2>Répartition par type</h2>
+        </div>
+        <div class="bar-row"><span class="n">Ordinateur portable</span>
+          <span class="bar"><i style="width:100%"></i></span><span class="c">118</span></div>
+        <div class="bar-row"><span class="n">Écran</span>
+          <span class="bar"><i style="width:56%"></i></span><span class="c">66</span></div>
+        <div class="bar-row"><span class="n">Téléphone</span>
+          <span class="bar"><i style="width:32%"></i></span><span class="c">38</span></div>
+        <div class="bar-row"><span class="n">Périphérique</span>
+          <span class="bar"><i style="width:21%"></i></span><span class="c">25</span></div>
+      </section>
+
+      <section class="card">
+        <div class="h2row">
+          <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v6c0 4.2-3.2 7.4-7.5 9-4.3-1.6-7.5-4.8-7.5-9V6L12 3z"/></svg></span>
+          <h2>Garantie</h2>
+        </div>
+        <div class="ring" style="background:conic-gradient(var(--ink) 0 64%, var(--muted-bg) 64% 100%)">
+          <div class="hole"><div class="pc">64 %</div><div class="cap">sous garantie</div></div>
+        </div>
+        <div class="legend"><span class="dot" style="background:var(--ink)"></span>
+          <span class="n">Sous garantie</span><span class="c">158</span></div>
+        <div class="legend"><span class="dot" style="background:var(--muted-bg)"></span>
+          <span class="n">Hors garantie</span><span class="c">89</span></div>
+      </section>
+
+      <section class="card">
+        <div class="h2row">
+          <span class="i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2"/><path d="M3 4.5v4h4"/><path d="M12 8v4.4l3 1.8"/></svg></span>
+          <h2>Derniers événements</h2>
+        </div>
+        <div class="ev">
+          <div class="av">🙂</div>
+          <div><div class="t">Attribution de Dell Latitude 7420 (ASSET-12345) initiée</div>
+               <div class="d">Aujourd'hui, 15:01</div></div>
+        </div>
+        <div class="ev">
+          <div class="av">😌</div>
+          <div><div class="t">Retour de Clavier Logitech MX (ASSET-30002)</div>
+               <div class="d">Hier, 09:30</div></div>
+        </div>
+        <div class="ev">
+          <div class="av">😮</div>
+          <div><div class="t">Ajout de 12 actifs par import</div>
+               <div class="d">12/07/2026, 11:20</div></div>
+        </div>
+        <a class="more">Voir tout l'historique</a>
+      </section>
+
+    </div>
+    <div class="nav">
+      <div class="on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="10" rx="1.5"/><rect x="3" y="16" width="8" height="5" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/></svg><span>Accueil</span></div>
+      <div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12.6" height="11" rx="1.3"/><path d="M1.2 19h14.2"/><rect x="16.8" y="8" width="6" height="11" rx="1.3"/><path d="M18.9 16.6h1.8"/></svg><span>Actifs</span></div>
+      <div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.4l2.6 2.6L16 9.4"/></svg><span>Tâches</span></div>
+      <div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.4 6.2-5.4s6.2 2 6.2 5.4"/><circle cx="18" cy="8.6" r="2.4"/><path d="M17.4 14.4c2.5 0 4.3 1.7 4.3 3.9"/></svg><span>Équipe</span></div>
+      <div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Plus</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

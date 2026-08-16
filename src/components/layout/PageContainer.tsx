@@ -29,7 +29,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
       padding === 'page' && "p-page-sm medium:p-page pb-10",
       "space-y-5",
       "animate-in fade-in slide-in-from-bottom-4 duration-500",
-      "max-w-[1600px] mx-auto",
+      "w-full min-w-0 max-w-[1600px] mx-auto",
       className
     )}>
       {children}
