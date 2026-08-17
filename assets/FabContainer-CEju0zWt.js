@@ -1,0 +1,1 @@
+import{j as r}from"./vendor-react-jI2MVmRP.js";import{c as a}from"./app-data-SLkYqqr3.js";const l=({children:e,className:o,description:t,style:n})=>r.jsx("div",{className:a("fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4","pointer-events-none [&>*]:pointer-events-auto",o),style:n,role:"group","aria-label":t||"Floating Actions",children:e});export{l as F};

@@ -1,0 +1,1 @@
+import{r as s}from"./vendor-react-jI2MVmRP.js";const a=300,f=(e,t=a)=>{const[o,r]=s.useState(!1);return s.useEffect(()=>{if(!e){r(!1);return}const u=setTimeout(()=>r(!0),t);return()=>clearTimeout(u)},[e,t]),e&&o};export{f as u};

@@ -1,0 +1,1 @@
+import{j as i}from"./vendor-react-jI2MVmRP.js";import{c as n}from"./app-data-SLkYqqr3.js";const t=({children:a,className:m,padding:e="page"})=>i.jsx("main",{className:n(e==="page"&&"p-page-sm medium:p-page pb-10","space-y-5","animate-in fade-in slide-in-from-bottom-4 duration-500","w-full min-w-0 max-w-[1600px] mx-auto",m),children:a});export{t as P};
