@@ -2,16 +2,18 @@
 import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useMemo, useEffect } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
-import DemoBadge from '../../../components/ui/DemoBadge';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
-import { formatCurrency, calculateLinearDepreciation } from '../../../lib/financial';
+import IconButton from '../../../components/ui/IconButton';
+import { formatCurrency } from '../../../lib/financial';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
+import Icon from '../../../components/ui/Icon';
+import { CaretRight } from '@phosphor-icons/react';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -28,13 +30,6 @@ import { parseAmountString } from '../../../lib/expenseExtraction';
 import { getExpenseSourceFile } from '../../../lib/financeFileStorage';
 import { FinanceBudgetItem, FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../../types';
 
-// --- MOCK DATA ---
-
-const MOCK_LOCATION_VALUE = [
-    { country: 'France', value: 85000, percent: 55, color: 'var(--tk-color-primary)' },
-    { country: 'Sénégal', value: 42000, percent: 28, color: 'var(--tk-color-secondary)' },
-    { country: 'Togo', value: 25000, percent: 17, color: 'var(--tk-color-tertiary)' },
-];
 type FinanceView = 'overview' | 'expenses' | 'budget';
 const FINANCE_TABS_ID_BASE = 'finance-main-tabs';
 
@@ -139,7 +134,7 @@ type ResolvedExpenseSource = {
 };
 
 const FinanceManagementPage = () => {
-    const { equipment, settings } = useData();
+    const { settings } = useData();
     const {
         financeExpenses,
         financeBudgets,
@@ -163,9 +158,6 @@ const FinanceManagementPage = () => {
         invoiceNumber: '',
     });
     const isCompact = useMediaQuery(MEDIA.compact);
-    // Sur tactile (pas de survol), les valeurs des points de la courbe de projection
-    // sont affichées en permanence — sinon opacity-0 group-hover/dot les rend illisibles.
-    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
 
     // Budget State
     const [selectedYear, setSelectedYear] = useState<number>(() => {
@@ -178,34 +170,6 @@ const FinanceManagementPage = () => {
             setSelectedYear(financeBudgets[0].year);
         }
     }, [financeBudgets, selectedYear]);
-
-    // --- ANALYSE FINANCIÈRE ---
-    const stats = useMemo(() => {
-        let purchase = 0;
-        let current = 0;
-        let monthlyDep = 0;
-        let criticalRenew = 0;
-
-        equipment.forEach(item => {
-            if (item.financial) {
-                const dep = calculateLinearDepreciation(
-                    item.financial.purchasePrice,
-                    item.financial.purchaseDate,
-                    item.financial.depreciationYears,
-                    item.financial.purchasePrice > 0 ? ((item.financial.salvageValue || 0) / item.financial.purchasePrice) * 100 : 0
-                );
-                purchase += item.financial.purchasePrice;
-                current += dep.currentValue;
-                monthlyDep += dep.monthlyDepreciation;
-                if (dep.progressPercent >= 85) criticalRenew++;
-            }
-        });
-
-        return {
-            purchase, current, monthlyDep, criticalRenew,
-            efficiency: purchase > 0 ? (current / purchase) * 100 : 0
-        };
-    }, [equipment]);
 
     // Budget Logic
     const currentBudget = useMemo(() => {
@@ -256,28 +220,6 @@ const FinanceManagementPage = () => {
             label: `${selectedYear} (${currentBudget.status})`,
         }];
     }, [financeBudgets, selectedYear, currentBudget.status]);
-
-    // Données pour le graphique d'aire (Projection) — X5 : ancrée sur le mois courant, plus de « Jan–Juin » figé
-    const projectionMonthLabel = (offset: number, format: 'short' | 'long' = 'short') => {
-        const d = new Date();
-        d.setDate(1); // évite le débordement de fin de mois (31 + 1 mois)
-        d.setMonth(d.getMonth() + offset);
-        const sameYear = d.getFullYear() === new Date().getFullYear();
-        const label = d.toLocaleDateString('fr-FR', {
-            month: format,
-            year: format === 'long' && !sameYear ? 'numeric' : undefined,
-        }).replace('.', '');
-        return format === 'short' ? label.charAt(0).toUpperCase() + label.slice(1) : label;
-    };
-    const projectionSteps = Array.from({ length: 6 }, (_, i) => ({
-        m: projectionMonthLabel(i),
-        val: stats.current - stats.monthlyDep * i,
-    }));
-    const maxProj = Math.max(...projectionSteps.map(s => s.val));
-    // X5 : mois du point d'équilibre dérivé des données (valeur projetée ≤ 50 % du parc), plus de « Mai » codé en dur
-    const breakEvenMonth = stats.monthlyDep > 0 && stats.current > 0
-        ? projectionMonthLabel(Math.ceil(stats.current / 2 / stats.monthlyDep), 'long')
-        : null;
 
     const tabs: TabItem[] = [
         { id: 'overview', label: 'Synthèse Globale', shortLabel: 'Synthèse', icon: <MaterialIcon name="dashboard" size={20} /> },
@@ -750,7 +692,7 @@ const FinanceManagementPage = () => {
                                 role="tabpanel"
                                 id={getTabPanelId(FINANCE_TABS_ID_BASE, 'overview')}
                                 aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'overview')}
-                                className="space-y-6"
+                                className="space-y-6 max-w-4xl"
                             >
                                 {/* HERO PLANCHE 15.1 */}
                                 <section className="rounded-lg bg-surface-inverse p-5 text-white shadow-elevation-2 flex flex-col gap-3">
@@ -768,126 +710,96 @@ const FinanceManagementPage = () => {
                                     </p>
                                 </section>
 
-                                {/* SECTION 1: TOP KPIS */}
-                                <div className="grid grid-cols-1 expanded:grid-cols-12 gap-4">
-                                    <div className="expanded:col-span-5 bg-primary-container/35 rounded-card p-6 border border-primary/25 shadow-elevation-2">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <p className="text-label-small uppercase tracking-widest text-on-primary-container/90">Valeur du Parc</p>
-                                            <MaterialIcon name="attach_money" size={22} className="text-primary" />
-                                        </div>
-                                        <p className="text-display-small text-on-surface leading-none">
-                                            {formatCurrency(stats.current, settings.currency, settings.compactNotation)}
-                                        </p>
-                                        <p className="mt-4 text-label-small text-on-primary-container/80">
-                                            Valeur nette comptable après amortissement
-                                        </p>
+                                {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
+                                <section className="bg-surface rounded-card p-4 medium:p-6 border border-outline-variant shadow-elevation-1">
+                                    <div className="flex items-baseline justify-between gap-3 mb-4">
+                                        <h3 className="text-title-medium font-bold text-on-surface">Les postes</h3>
+                                        <span className="text-body-medium text-text-secondary tabular-nums">{currentBudget.items.length}</span>
                                     </div>
-
-                                    <div className="expanded:col-span-7 grid grid-cols-1 medium:grid-cols-3 gap-4">
-                                        <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
-                                            <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Amortissement mensuel</p>
-                                            <p className="text-headline-small text-on-surface mt-2">{formatCurrency(stats.monthlyDep, settings.currency, settings.compactNotation)}</p>
-                                            <p className="text-label-small text-on-surface-variant mt-2">Charge mensuelle calculée</p>
-                                        </div>
-                                        <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
-                                            <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Efficacité des actifs</p>
-                                            <p className="text-headline-small text-on-surface mt-2">{stats.efficiency.toFixed(1)}%</p>
-                                            <p className="text-label-small text-on-surface-variant mt-2">Valeur résiduelle du parc</p>
-                                        </div>
-                                        <div className="bg-surface-container-low rounded-card p-5 border border-outline-variant">
-                                            <p className="text-label-small uppercase tracking-widest text-on-surface-variant">Risque fin de vie</p>
-                                            <p className="text-headline-small text-on-surface mt-2">{stats.criticalRenew}</p>
-                                            <p className="text-label-small text-error mt-2">Amortis à plus de 85 %</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-8">
-                                    {/* CHART: EVOLUTION DE LA VALEUR (AIRE) */}
-                                    <Card title="Projection de Dépréciation (6 mois)" className="expanded:col-span-2">
-                                        <div className="h-[300px] w-full relative mt-8">
-                                            <svg viewBox="0 0 600 200" className="w-full h-full overflow-visible">
-                                                <defs>
-                                                    <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                        <stop offset="0%" style={{ stopColor: 'var(--tk-color-primary)', stopOpacity: 0.2 }} />
-                                                        <stop offset="100%" style={{ stopColor: 'var(--tk-color-primary)', stopOpacity: 0 }} />
-                                                    </linearGradient>
-                                                </defs>
-                                                {[0, 50, 100, 150, 200].map(y => (
-                                                    <line key={y} x1="0" y1={y} x2="600" y2={y} stroke="var(--tk-color-outline-variant)" strokeWidth="1" />
-                                                ))}
-                                                <path
-                                                    d={`M 0 200 ${projectionSteps.map((s, i) => `L ${i * 120} ${200 - (s.val / maxProj * 150)}`).join(' ')} L 600 200 Z`}
-                                                    fill="url(#grad)"
-                                                />
-                                                <path
-                                                    d={`M 0 ${200 - (projectionSteps[0].val / maxProj * 150)} ${projectionSteps.map((s, i) => `L ${i * 120} ${200 - (s.val / maxProj * 150)}`).join(' ')}`}
-                                                    fill="none"
-                                                    stroke="var(--tk-color-primary)"
-                                                    strokeWidth="3"
-                                                    strokeLinecap="round"
-                                                    className="animate-draw"
-                                                />
-                                                {projectionSteps.map((s, i) => (
-                                                    <g key={i} className="group/dot">
-                                                        <circle
-                                                            cx={i * 120}
-                                                            cy={200 - (s.val / maxProj * 150)}
-                                                            r="4"
-                                                            fill="var(--tk-color-surface)"
-                                                            stroke="var(--tk-color-primary)"
-                                                            strokeWidth="2"
-                                                        />
-                                                        <text x={i * 120} y="195" textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className="text-label-small fill-on-surface-variant font-bold uppercase">{s.m}</text>
-                                                        <text x={i * 120} y={200 - (s.val / maxProj * 150) - 10} textAnchor={i === 0 ? 'start' : i === projectionSteps.length - 1 ? 'end' : 'middle'} className={cn('text-label-small fill-on-surface font-bold transition-opacity', isHoverCapable ? 'opacity-0 group-hover/dot:opacity-100' : 'opacity-100')}>
-                                                            {formatCurrency(s.val, settings.currency, settings.compactNotation)}
-                                                        </text>
-                                                    </g>
-                                                ))}
-                                            </svg>
-                                        </div>
-                                        <div className="mt-4 p-4 bg-secondary-container rounded-xl border border-secondary/20 flex items-start gap-3">
-                                            <MaterialIcon name="auto_awesome" size={18} className="text-secondary shrink-0 mt-0.5" />
-                                            <p className="text-body-small text-on-secondary-container leading-relaxed">
-                                                <strong>IA Note :</strong>{' '}
-                                                <DemoBadge className="align-middle mr-1" title="Analyse illustrative de démonstration — non générée par un moteur d'analyse" />
-                                                {breakEvenMonth
-                                                    ? <>La valeur du parc passera sous 50 % de sa valeur actuelle en <strong>{breakEvenMonth}</strong>. Prévoyez une injection de capital pour maintenir la santé technologique.</>
-                                                    : <>Aucune dépréciation mensuelle détectée sur le parc — pas de point d'équilibre à projeter.</>}
-                                            </p>
-                                        </div>
-                                    </Card>
-
-                                    {/* DISTRIBUTION PAR PAYS */}
-                                    <Card title="Valeur par Entité">
-                                        <div className="flex justify-end pt-2">
-                                            <DemoBadge title="Répartition d'exemple — la ventilation réelle par entité n'est pas encore calculée" />
-                                        </div>
-                                        <div className="space-y-6 pt-4">
-                                            {MOCK_LOCATION_VALUE.map((loc, i) => (
-                                                <div key={i} className="group cursor-pointer">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-container border border-outline-variant group-hover:border-primary/30 transition-colors">
-                                                                <MaterialIcon name="language" size={14} className="text-on-surface-variant" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-label-large font-bold text-on-surface">{loc.country}</p>
-                                                                <p className="text-label-small text-on-surface-variant font-bold uppercase">{formatCurrency(loc.value, settings.currency, settings.compactNotation)}</p>
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-body-medium font-black text-on-surface">{loc.percent}%</span>
+                                    <div className="divide-y divide-outline-variant">
+                                        {currentBudget.items.map((item, idx) => {
+                                            const itemPercent = item.allocated > 0 ? (item.spent / item.allocated) * 100 : 0;
+                                            const itemRemaining = item.allocated - item.spent;
+                                            const isOver = itemRemaining < 0 || itemPercent >= 100;
+                                            const classification = budgetCapitalization(item) ?? classifyBudgetLine(item.category, item.allocated);
+                                            return (
+                                                <div key={idx} className="py-3.5 space-y-1.5 first:pt-0 last:pb-0">
+                                                    <div className="flex items-baseline justify-between gap-3">
+                                                        <span className="text-body-medium font-bold text-on-surface">{item.category}</span>
+                                                        <span className="text-body-medium font-semibold text-on-surface tabular-nums">
+                                                            {formatCurrency(item.spent, settings.currency, settings.compactNotation)}{' '}
+                                                            <span className="text-text-muted font-normal text-body-small">/ {formatCurrency(item.allocated, settings.currency, settings.compactNotation)}</span>
+                                                        </span>
                                                     </div>
-                                                    <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                                                    <div className="h-1.5 rounded-sm bg-surface-container overflow-hidden">
                                                         <div
-                                                            className="h-full transition-all duration-1000 ease-standard-decelerate rounded-full"
-                                                            style={{ width: `${loc.percent}%`, backgroundColor: loc.color }}
+                                                            className={cn("h-full rounded-sm transition-all duration-300", isOver ? "bg-[var(--tk-color-st-orange)]" : "bg-[var(--tk-color-st-bleu)]")}
+                                                            style={{ width: `${Math.min(itemPercent, 100)}%` }}
                                                         />
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-body-small text-text-secondary">
+                                                        <span className="text-label-small font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
+                                                            {classification}
+                                                        </span>
+                                                        <span>
+                                                            {isOver ? "enveloppe épuisée" : `${formatCurrency(itemRemaining, settings.currency, settings.compactNotation)} restants`}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </Card>
-                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+
+                                {/* SECTION 2 : DERNIÈRES DÉPENSES (PLANCHE 15.1) */}
+                                <section className="bg-surface rounded-card p-4 medium:p-6 border border-outline-variant shadow-elevation-1">
+                                    <div className="flex items-baseline justify-between gap-3 mb-4">
+                                        <h3 className="text-title-medium font-bold text-on-surface">Dernières dépenses</h3>
+                                        <span className="text-body-medium text-text-secondary tabular-nums">
+                                            {Math.min(3, financeExpenses.length)} sur {financeExpenses.length}
+                                        </span>
+                                    </div>
+                                    <div className="divide-y divide-outline-variant">
+                                        {financeExpenses.slice(0, 3).map((exp) => (
+                                            <div
+                                                key={exp.id}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => setSelectedExpense(exp)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        setSelectedExpense(exp);
+                                                    }
+                                                }}
+                                                className="py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-container/40 rounded-lg px-2 -mx-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                            >
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-body-medium font-bold text-on-surface truncate">{exp.supplier}</span>
+                                                    <span className="text-body-small text-text-secondary truncate">
+                                                        {formatExpenseDate(exp.date)} · {exp.invoiceNumber || exp.description || 'Facture'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <span className="text-body-medium font-bold text-on-surface tabular-nums">
+                                                        {formatCurrency(exp.amount, exp.currencyCode || settings.currency, settings.compactNotation)}
+                                                    </span>
+                                                    <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {financeExpenses.length > 0 && (
+                                        <Button
+                                            variant="text"
+                                            onClick={() => setActiveView('expenses')}
+                                            className="w-full mt-3 pt-3 border-t border-outline-variant justify-start text-on-surface font-semibold gap-2"
+                                            icon={<Icon glyph={CaretRight} size={18} />}
+                                        >
+                                            Voir les {financeExpenses.length} dépenses de l'exercice
+                                        </Button>
+                                    )}
+                                </section>
                             </section>
                         )}
 
@@ -1314,17 +1226,6 @@ const FinanceManagementPage = () => {
                 </PageContainer>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-        .animate-draw {
-          stroke-dasharray: 1000;
-          stroke-dashoffset: 1000;
-          animation: draw 2s var(--tk-motion-easing-emphasized-decelerate) forwards;
-        }
-        @keyframes draw {
-          to { stroke-dashoffset: 0; }
-        }
-      `}} />
         </div>
     );
 };
