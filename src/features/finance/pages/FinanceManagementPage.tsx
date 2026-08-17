@@ -695,26 +695,26 @@ const FinanceManagementPage = () => {
                                 className="space-y-6 max-w-4xl"
                             >
                                 {/* HERO PLANCHE 15.1 */}
-                                <section className="rounded-lg bg-surface-inverse p-5 text-white shadow-elevation-2 flex flex-col gap-3">
-                                    <p className="text-body-small text-[var(--tk-color-on-dark-2)]">Exercice {selectedYear} · en cours</p>
-                                    <div className="flex items-baseline gap-3 border-t border-white/10 pt-3">
-                                        <b className="font-brand text-[32px] font-semibold text-white tracking-tight tabular-nums">
+                                <section className="rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)] shadow-elevation-2 flex flex-col gap-3">
+                                    <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">Exercice {selectedYear} · en cours</p>
+                                    <div className="flex items-baseline gap-2.5 border-t border-[var(--tk-color-dark-line)] pt-3.5">
+                                        <b className="font-brand text-[32px] font-semibold text-[var(--tk-color-on-dark)] tracking-tight tabular-nums">
                                             {formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}
                                         </b>
-                                        <span className="text-body-small text-[var(--tk-color-on-dark-2)]">
+                                        <span className="text-[13px] leading-[19px] text-[var(--tk-color-on-dark-2)]">
                                             restants sur<br />une enveloppe de {formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)}
                                         </span>
                                     </div>
-                                    <p className="text-body-small text-[var(--tk-color-on-dark-2)] border-t border-white/10 pt-2.5 mt-0.5">
-                                        {spentPercent.toFixed(0)} % consommés sur l'exercice en cours.
+                                    <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)] border-t border-[var(--tk-color-dark-line)] pt-2.5 mt-1">
+                                        {spentPercent.toFixed(0)} % consommés au {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} sur l'exercice en cours.
                                     </p>
                                 </section>
 
                                 {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
-                                <section className="bg-surface rounded-card p-4 medium:p-6 border border-outline-variant shadow-elevation-1">
-                                    <div className="flex items-baseline justify-between gap-3 mb-4">
-                                        <h3 className="text-title-medium font-bold text-on-surface">Les postes</h3>
-                                        <span className="text-body-medium text-text-secondary tabular-nums">{currentBudget.items.length}</span>
+                                <section className="bg-surface rounded-card p-4 border border-outline-variant shadow-elevation-1">
+                                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                                        <h3 className="text-[13px] font-medium text-on-surface">Les postes</h3>
+                                        <span className="text-[13px] text-text-secondary tabular-nums">{currentBudget.items.length}</span>
                                     </div>
                                     <div className="divide-y divide-outline-variant">
                                         {currentBudget.items.map((item, idx) => {
@@ -723,12 +723,12 @@ const FinanceManagementPage = () => {
                                             const isOver = itemRemaining < 0 || itemPercent >= 100;
                                             const classification = budgetCapitalization(item) ?? (item.type === 'Purchase' ? 'CAPEX' : 'OPEX');
                                             return (
-                                                <div key={idx} className="py-3.5 space-y-1.5 first:pt-0 last:pb-0">
+                                                <div key={idx} className="py-2.5 space-y-1.5 first:pt-2 last:pb-1">
                                                     <div className="flex items-baseline justify-between gap-3">
-                                                        <span className="text-body-medium font-bold text-on-surface">{item.category}</span>
-                                                        <span className="text-body-medium font-semibold text-on-surface tabular-nums">
+                                                        <span className="text-[14px] text-on-surface">{item.category}</span>
+                                                        <span className="text-[14px] font-medium text-on-surface tabular-nums">
                                                             {formatCurrency(item.spent, settings.currency, settings.compactNotation)}{' '}
-                                                            <span className="text-text-muted font-normal text-body-small">/ {formatCurrency(item.allocated, settings.currency, settings.compactNotation)}</span>
+                                                            <span className="text-[var(--tk-color-ink3)] font-normal text-[12px]">/ {formatCurrency(item.allocated, settings.currency, settings.compactNotation)}</span>
                                                         </span>
                                                     </div>
                                                     <div className="h-1.5 rounded-sm bg-surface-container overflow-hidden">
@@ -737,8 +737,8 @@ const FinanceManagementPage = () => {
                                                             style={{ width: `${Math.min(itemPercent, 100)}%` }}
                                                         />
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-body-small text-text-secondary">
-                                                        <span className="text-label-small font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
+                                                    <div className="flex items-center gap-2 text-[12px] text-text-secondary">
+                                                        <span className="text-[11px] font-medium tracking-wider px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
                                                             {classification}
                                                         </span>
                                                         <span>
