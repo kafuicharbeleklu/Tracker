@@ -721,7 +721,7 @@ const FinanceManagementPage = () => {
                                             const itemPercent = item.allocated > 0 ? (item.spent / item.allocated) * 100 : 0;
                                             const itemRemaining = item.allocated - item.spent;
                                             const isOver = itemRemaining < 0 || itemPercent >= 100;
-                                            const classification = budgetCapitalization(item) ?? classifyBudgetLine(item.category, item.allocated);
+                                            const classification = budgetCapitalization(item) ?? (item.type === 'Purchase' ? 'CAPEX' : 'OPEX');
                                             return (
                                                 <div key={idx} className="py-3.5 space-y-1.5 first:pt-0 last:pb-0">
                                                     <div className="flex items-baseline justify-between gap-3">
