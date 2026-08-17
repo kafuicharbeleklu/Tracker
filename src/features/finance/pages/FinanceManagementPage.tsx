@@ -211,17 +211,6 @@ const FinanceManagementPage = () => {
     const spentPercent = Math.min(Math.max(budgetStats.percent, 0), 100);
     const remainingPercent = Math.max(0, 100 - spentPercent);
 
-    const currentYear = new Date().getFullYear();
-    const q1Expenses = useMemo(() => {
-        return financeExpenses
-            .filter((expense) => {
-                const expenseDate = new Date(expense.date);
-                const month = expenseDate.getMonth();
-                return expenseDate.getFullYear() === currentYear && month >= 0 && month <= 2;
-            })
-            .reduce((acc, expense) => acc + expense.amount, 0);
-    }, [financeExpenses, currentYear]);
-
     const budgetYearOptions = useMemo(() => {
         if (financeBudgets.length > 0) {
             return financeBudgets.map((budget) => ({
@@ -832,33 +821,33 @@ const FinanceManagementPage = () => {
                                 aria-labelledby={getTabElementId(FINANCE_TABS_ID_BASE, 'expenses')}
                                 className="space-y-8"
                             >
-                                <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6">
-                                    <div className="bg-gradient-to-br from-primary to-primary/80 rounded-card p-6 text-on-primary shadow-elevation-3">
-                                        <p className="text-label-small uppercase font-bold opacity-70 mb-2">Total Dépenses Q1</p>
-                                        <div className="text-headline-medium font-black mb-1">{formatCurrency(q1Expenses, settings.currency, settings.compactNotation)}</div>
-                                        <div className="flex items-center gap-2 text-label-medium font-medium bg-on-primary/20 w-fit px-2 py-1 rounded-lg">
-                                            <Icon glyph={Clock} size={14} /> Exercice {currentYear}
+                                <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-4">
+                                    <div className="bg-surface rounded-card p-5 border border-outline-variant shadow-elevation-1">
+                                        <p className="text-label-small text-on-surface-variant uppercase font-bold tracking-wider mb-2">Total Dépenses</p>
+                                        <div className="text-headline-medium font-bold text-on-surface mb-1">{formatCurrency(totalExpenses, settings.currency, settings.compactNotation)}</div>
+                                        <div className="flex items-center gap-1.5 text-label-small text-on-surface-variant mt-2">
+                                            <Icon glyph={Clock} size={14} /> Exercice {selectedYear}
                                         </div>
                                     </div>
-                                    <div className="bg-surface rounded-card p-6 border border-outline-variant shadow-elevation-1">
-                                        <p className="text-label-small text-on-surface-variant uppercase font-bold mb-2">Budget Restant (Annuel)</p>
-                                        <div className="text-headline-medium font-black text-on-surface mb-1">{formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}</div>
+                                    <div className="bg-surface rounded-card p-5 border border-outline-variant shadow-elevation-1">
+                                        <p className="text-label-small text-on-surface-variant uppercase font-bold tracking-wider mb-2">Budget Restant (Annuel)</p>
+                                        <div className="text-headline-medium font-bold text-on-surface mb-1">{formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}</div>
                                         <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden mt-3">
-                                            <div className="bg-tertiary h-full" style={{ width: `${spentPercent}%` }} />
+                                            <div className="bg-tertiary h-full rounded-full" style={{ width: `${Math.min(spentPercent, 100)}%` }} />
                                         </div>
-                                        <p className="text-body-small text-on-surface-variant mt-2 text-right">{spentPercent.toFixed(1)}% consommé</p>
+                                        <p className="text-label-small text-on-surface-variant mt-2 text-right">{spentPercent.toFixed(0)}% consommé</p>
                                     </div>
-                                    <div
+                                    <button
+                                        type="button"
                                         onClick={() => setIsAddExpenseModalOpen(true)}
-                                        className="bg-surface rounded-card p-6 border-2 border-dashed border-outline-variant hover:border-primary hover:bg-primary-container/10 cursor-pointer transition-all flex flex-col items-center justify-center text-center group relative overflow-hidden"
+                                        className="bg-surface rounded-card p-5 border-2 border-dashed border-outline-variant hover:border-primary hover:bg-surface-container/50 cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
                                     >
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/20 transition-all duration-700 ease-emphasized"></div>
-                                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
+                                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-on-surface mb-2 group-hover:scale-105 transition-transform">
                                             <Icon glyph={Plus} size={20} />
                                         </div>
-                                        <p className="font-bold text-on-surface text-label-large">Nouvelle Dépense</p>
+                                        <p className="font-bold text-on-surface text-label-large">Nouvelle dépense</p>
                                         <p className="text-label-small text-on-surface-variant">Scanner facture ou saisie manuelle</p>
-                                    </div>
+                                    </button>
                                 </div>
 
                                 <Card title="Historique des Transactions">
