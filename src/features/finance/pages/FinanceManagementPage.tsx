@@ -630,28 +630,38 @@ const FinanceManagementPage = () => {
                         subtitle="Budget, dépenses et rapports de l'exercice en cours."
                         breadcrumb="Finances"
                         actions={
-                            !isCompact && activeView === 'budget' && (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-52">
-                                        <SelectField
-                                            name="finance-year"
-                                            value={selectedYear.toString()}
-                                            onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                            options={budgetYearOptions}
-                                            placeholder="Choisir un exercice"
-                                            className="space-y-0"
-                                        />
-                                    </div>
-                                    <Button
-                                        variant="filled"
-                                        icon={<Icon glyph={Plus} size={18} />}
-                                        onClick={() => setIsAddBudgetModalOpen(true)}
-                                        className="whitespace-nowrap"
-                                    >
-                                        Définir le budget
-                                    </Button>
-                                </div>
-                            )
+                            <div className="flex items-center gap-3">
+                                {!isCompact && activeView === 'budget' && (
+                                    <>
+                                        <div className="w-48">
+                                            <SelectField
+                                                name="finance-year"
+                                                value={selectedYear.toString()}
+                                                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                                options={budgetYearOptions}
+                                                placeholder="Choisir un exercice"
+                                                className="space-y-0"
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="outlined"
+                                            icon={<Icon glyph={Plus} size={18} />}
+                                            onClick={() => setIsAddBudgetModalOpen(true)}
+                                            className="whitespace-nowrap"
+                                        >
+                                            Définir le budget
+                                        </Button>
+                                    </>
+                                )}
+                                <Button
+                                    variant="filled"
+                                    icon={<Icon glyph={Plus} size={18} />}
+                                    onClick={() => setIsAddExpenseModalOpen(true)}
+                                    className="whitespace-nowrap"
+                                >
+                                    Enregistrer une dépense
+                                </Button>
+                            </div>
                         }
                     />
                 </div>
@@ -707,7 +717,7 @@ const FinanceManagementPage = () => {
                                 className="space-y-6 max-w-4xl"
                             >
                                 {/* HERO PLANCHE 15.1 */}
-                                <section className="rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)] shadow-elevation-2 flex flex-col gap-3">
+                                <section className="rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)] shadow-elevation-1 flex flex-col gap-3">
                                     <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">Exercice {selectedYear} · en cours</p>
                                     <div className="flex items-baseline gap-2.5 border-t border-[var(--tk-color-dark-line)] pt-3.5">
                                         <b className="font-brand text-[32px] font-semibold text-[var(--tk-color-on-dark)] tracking-tight tabular-nums">
@@ -724,7 +734,7 @@ const FinanceManagementPage = () => {
 
                                 {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
                                 <section className="bg-surface rounded-card p-4 border border-outline-variant shadow-elevation-1">
-                                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                                    <div className="flex items-baseline justify-between gap-3 mb-2">
                                         <h3 className="text-[13px] font-medium text-on-surface">Les postes</h3>
                                         <span className="text-[13px] text-text-secondary tabular-nums">{currentBudget.items.length}</span>
                                     </div>
@@ -735,7 +745,7 @@ const FinanceManagementPage = () => {
                                             const isOver = itemRemaining < 0 || itemPercent >= 100;
                                             const classification = budgetCapitalization(item) ?? (item.type === 'Purchase' ? 'CAPEX' : 'OPEX');
                                             return (
-                                                <div key={idx} className="py-2.5 space-y-1.5 first:pt-2 last:pb-1">
+                                                <div key={idx} className="py-2.5 space-y-1.5 first:pt-1 last:pb-1">
                                                     <div className="flex items-baseline justify-between gap-3">
                                                         <span className="text-[14px] text-on-surface">{item.category}</span>
                                                         <span className="text-[14px] font-medium text-on-surface tabular-nums">
@@ -764,10 +774,10 @@ const FinanceManagementPage = () => {
                                 </section>
 
                                 {/* SECTION 2 : DERNIÈRES DÉPENSES (PLANCHE 15.1) */}
-                                <section className="bg-surface rounded-card p-4 medium:p-6 border border-outline-variant shadow-elevation-1">
-                                    <div className="flex items-baseline justify-between gap-3 mb-4">
-                                        <h3 className="text-title-medium font-bold text-on-surface">Dernières dépenses</h3>
-                                        <span className="text-body-medium text-text-secondary tabular-nums">
+                                <section className="bg-surface rounded-card p-4 border border-outline-variant shadow-elevation-1">
+                                    <div className="flex items-baseline justify-between gap-3 mb-2">
+                                        <h3 className="text-[13px] font-medium text-on-surface">Dernières dépenses</h3>
+                                        <span className="text-[13px] text-text-secondary tabular-nums">
                                             {Math.min(3, financeExpenses.length)} sur {financeExpenses.length}
                                         </span>
                                     </div>
@@ -784,16 +794,16 @@ const FinanceManagementPage = () => {
                                                         setSelectedExpense(exp);
                                                     }
                                                 }}
-                                                className="py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-container/40 rounded-lg px-2 -mx-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                                className="py-2.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-container/40 rounded-lg px-2 -mx-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[56px]"
                                             >
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-body-medium font-bold text-on-surface truncate">{exp.supplier}</span>
-                                                    <span className="text-body-small text-text-secondary truncate">
+                                                    <span className="text-[14px] text-on-surface truncate">{exp.supplier}</span>
+                                                    <span className="text-[12px] text-text-secondary truncate">
                                                         {formatExpenseDate(exp.date)} · {exp.invoiceNumber || exp.description || 'Facture'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    <span className="text-body-medium font-bold text-on-surface tabular-nums">
+                                                    <span className="text-[14px] font-medium text-on-surface tabular-nums">
                                                         {formatCurrency(exp.amount, exp.currencyCode || settings.currency, settings.compactNotation)}
                                                     </span>
                                                     <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
@@ -802,14 +812,14 @@ const FinanceManagementPage = () => {
                                         ))}
                                     </div>
                                     {financeExpenses.length > 0 && (
-                                        <Button
-                                            variant="text"
+                                        <button
+                                            type="button"
                                             onClick={() => setActiveView('expenses')}
-                                            className="w-full mt-3 pt-3 border-t border-outline-variant justify-start text-on-surface font-semibold gap-2"
-                                            icon={<Icon glyph={CaretRight} size={18} />}
+                                            className="w-full mt-2 pt-3 border-t border-outline-variant flex items-center gap-2.5 text-[14px] font-medium text-on-surface hover:text-text-secondary transition-colors text-left cursor-pointer bg-transparent border-0"
                                         >
+                                            <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
                                             Voir les {financeExpenses.length} dépenses de l'exercice
-                                        </Button>
+                                        </button>
                                     )}
                                 </section>
                             </section>
