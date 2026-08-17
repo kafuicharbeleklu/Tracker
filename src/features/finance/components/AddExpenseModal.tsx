@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import Icon from '../../../components/ui/Icon';
+import {
+    ArrowsClockwise,
+    FileText,
+    MagnifyingGlass,
+    Check,
+    SpinnerGap,
+    Sparkle,
+    WarningCircle,
+    Sliders,
+} from '@phosphor-icons/react';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
@@ -35,8 +45,8 @@ const EXPENSE_TYPE_OPTIONS = [
 ];
 
 const MODE_OPTIONS = [
-    { value: 'scan', label: 'Scan IA', icon: 'auto_awesome' },
-    { value: 'manual', label: 'Saisie', icon: 'description' },
+    { value: 'scan', label: 'Scan automatique' },
+    { value: 'manual', label: 'Saisie manuelle' },
 ];
 
 const getObjectUrlForFile = (file?: File | null): string | undefined => {
@@ -414,7 +424,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         >
             <div className="mb-6 rounded-md border border-outline-variant bg-gradient-to-r from-surface-container-low to-surface-container p-3">
                 <div className="mb-2 flex items-center gap-2 text-label-small text-on-surface-variant uppercase tracking-widest">
-                    <MaterialIcon name="sync_alt" size={14} />
+                    <Icon glyph={ArrowsClockwise} size={14} />
                     Mode de saisie
                 </div>
                 <SegmentedButton
@@ -441,28 +451,28 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         <div className="flex flex-col items-center">
                             <div className="relative">
                                 <div className="w-24 h-24 rounded-full border-4 border-outline-variant flex items-center justify-center relative overflow-hidden">
-                                    <MaterialIcon name="description" size={40} className="text-on-surface-variant" />
+                                    <Icon glyph={FileText} size={40} className="text-on-surface-variant" />
                                     <div
                                         className="absolute inset-0 bg-primary/20 animate-[spin_3s_linear_infinite]"
                                         style={{ clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)' }}
                                     />
                                 </div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <MaterialIcon name="document_scanner" size={48} className="text-primary animate-pulse" />
+                                    <Icon glyph={MagnifyingGlass} size={48} className="text-primary animate-pulse" />
                                 </div>
                             </div>
                             <h3 className="text-title-medium font-bold text-on-surface mt-6">Analyse en cours...</h3>
                             <div className="flex flex-col gap-1 mt-2 text-body-medium text-on-surface-variant">
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-100 flex items-center gap-2">
-                                    <MaterialIcon name="check" size={12} className="text-tertiary" />
+                                    <Icon glyph={Check} size={12} className="text-tertiary" />
                                     Détection du fournisseur
                                 </span>
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-500 flex items-center gap-2">
-                                    <MaterialIcon name="check" size={12} className="text-tertiary" />
+                                    <Icon glyph={Check} size={12} className="text-tertiary" />
                                     Lecture des montants HT/TTC
                                 </span>
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-1000 flex items-center gap-2">
-                                    <MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" />
+                                    <Icon glyph={SpinnerGap} size={12} className="animate-spin text-primary" />
                                     Catégorisation...
                                 </span>
                             </div>
@@ -477,7 +487,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         <div className="bg-tertiary-container border border-tertiary/20 rounded-xl p-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container">
-                                    <MaterialIcon name="auto_awesome" size={16} />
+                                    <Icon glyph={Sparkle} size={16} />
                                 </div>
                                 <div>
                                     <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données extraites par IA</p>
@@ -544,7 +554,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
                     <div className="border border-primary/25 bg-primary-container/10 p-4">
                         <div className="mb-3 flex items-center gap-2">
-                            <MaterialIcon name="priority_high" size={16} className="text-primary" />
+                            <Icon glyph={WarningCircle} size={16} className="text-primary" />
                             <p className="text-label-medium uppercase tracking-widest text-on-surface">Champs critiques</p>
                         </div>
                         <div className="grid grid-cols-1 expanded:grid-cols-3 gap-4">
@@ -575,7 +585,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
                     <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4 border border-outline-variant bg-surface-container-low p-4">
                         <div className="expanded:col-span-2 mb-1 flex items-center gap-2">
-                            <MaterialIcon name="tune" size={16} className="text-on-surface-variant" />
+                            <Icon glyph={Sliders} size={16} className="text-on-surface-variant" />
                             <p className="text-label-medium uppercase tracking-widest text-on-surface-variant">Détails complémentaires</p>
                         </div>
                         <InputField

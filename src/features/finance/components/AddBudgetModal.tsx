@@ -1,5 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import Icon from '../../../components/ui/Icon';
+import {
+    Stack,
+    ShoppingBag,
+    Key,
+    Cloud,
+    FileCsv,
+    Check,
+    SpinnerGap,
+    Sparkle,
+    Calendar,
+    Plus,
+} from '@phosphor-icons/react';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
@@ -23,44 +35,23 @@ interface AddBudgetModalProps {
 }
 
 interface BudgetLine {
-    id: string;
     category: string;
     amount: string;
-    /**
-     * Investissement ou frais courant — **saisi**. Le modal le devinait de la
-     * catégorie, puis du montant au-delà de 5 000 (planche 15.1). Vide tant que la
-     * personne n'a pas répondu : c'est le seul moyen de distinguer « OPEX » de
-     * « on a supposé OPEX ».
-     */
-    capitalization: '' | 'CAPEX' | 'OPEX';
+    type: FinanceExpenseType;
+    capitalization?: 'CAPEX' | 'OPEX';
 }
 
 type AddBudgetMode = 'import' | 'manual';
 
-/**
- * Les deux réponses possibles, et **aucune par défaut**. Un défaut ici serait la
- * devinette sous un autre nom : la moitié des lignes le garderaient sans l'avoir lu.
- */
-const CAPITALIZATION_OPTIONS = [
-    { value: 'CAPEX', label: 'CAPEX — investissement' },
-    { value: 'OPEX', label: 'OPEX — frais courant' },
-];
-
 const MODE_OPTIONS = [
-    { value: 'import', label: 'Import Excel', icon: 'table_chart' },
-    { value: 'manual', label: 'Saisie', icon: 'pie_chart' },
+    { value: 'import', label: 'Import fichier' },
+    { value: 'manual', label: 'Saisie manuelle' },
 ];
 
 export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose }) => {
     const { showToast } = useToast();
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
-    // Sans vrai survol (tactile), l'action supprimer-ligne reste visible en permanence
-    // (sinon opacity-0 group-hover la cache au tap). Pattern repris de LocationsPage.
-    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
-    // Le tableau de saisie à 4 colonnes est recomposé en cartes empilées sous 600px (#12) :
-    // bascule JS et non `hidden`/`medium:hidden`, pour ne pas dupliquer des CHAMPS de
-    // formulaire (deux instances contrôlées du même `name` dans le DOM).
     const isCompact = useMediaQuery(MEDIA.compact);
 
     const [mode, setMode] = useState<AddBudgetMode>('import');
@@ -72,36 +63,35 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const [year, setYear] = useState(new Date().getFullYear().toString());
     const requiresLowConfidenceReview = Boolean(importedFile && importMeta?.confidence === 'low');
 
-    // Dynamic Rows State
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
-        { id: '1', category: 'Matériel IT', amount: '', capitalization: '' },
-        { id: '2', category: 'Licences Logiciel', amount: '', capitalization: '' }
+        { category: 'Matériel IT', amount: '25000', type: 'Purchase', capitalization: 'CAPEX' },
+        { category: 'Licences & Logiciels', amount: '12000', type: 'License', capitalization: 'OPEX' },
+        { category: 'Infrastructure Cloud', amount: '8000', type: 'Cloud', capitalization: 'OPEX' },
     ]);
 
     const totalBudget = useMemo(() => {
         return budgetLines.reduce((acc, line) => acc + (parseFloat(line.amount) || 0), 0);
     }, [budgetLines]);
 
-    // Helper pour déterminer le type (CAPEX/OPEX) et l'icône dynamiquement
     /** L'icône d'une catégorie — une aide à la lecture, pas un classement comptable. */
     const getCategoryDetails = (category: string) => {
         const lower = category.toLowerCase();
 
-        let icon = <MaterialIcon name="layers" size={16} />;
+        let icon = <Icon glyph={Stack} size={16} />;
         let iconBg = 'bg-surface-container text-on-surface-variant';
 
         // Détection Icône & Style
         if (lower.includes('matériel') || lower.includes('capex') || lower.includes('hardware') || lower.includes('serveur')) {
-            icon = <MaterialIcon name="work" size={16} />;
+            icon = <Icon glyph={ShoppingBag} size={16} />;
             iconBg = 'bg-secondary-container text-secondary';
         } else if (lower.includes('licence') || lower.includes('software')) {
-            icon = <MaterialIcon name="vpn_key" size={16} />;
+            icon = <Icon glyph={Key} size={16} />;
             iconBg = 'bg-secondary-container text-on-secondary-container';
         } else if (lower.includes('cloud') || lower.includes('hosting') || lower.includes('infrastructure')) {
-            icon = <MaterialIcon name="cloud_upload" size={16} />;
+            icon = <Icon glyph={Cloud} size={16} />;
             iconBg = 'bg-tertiary-container text-tertiary';
         } else if (lower.includes('maintenance') || lower.includes('service')) {
-            icon = <MaterialIcon name="layers" size={16} />;
+            icon = <Icon glyph={Stack} size={16} />;
             iconBg = 'bg-surface-container text-on-surface-variant';
         }
 
@@ -311,7 +301,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                         <div className="flex flex-col items-center w-full max-w-sm">
                             <div className="flex items-center gap-4 mb-6 w-full">
                                 <div className="w-12 h-12 bg-surface border border-outline-variant rounded-lg flex items-center justify-center shadow-elevation-1">
-                                    <MaterialIcon name="table_chart" size={24} className="text-tertiary" />
+                                    <Icon glyph={FileCsv} size={24} className="text-tertiary" />
                                 </div>
                                 <div className="flex-1 space-y-2">
                                     <div className="h-2 bg-surface-container rounded-full overflow-hidden">
@@ -326,9 +316,9 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
                             <div className="w-full bg-surface-container rounded-xl p-4 border border-outline-variant text-left space-y-2">
                                 <p className="text-label-medium font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="check" size={12} className="text-tertiary" /> Détection de l'exercice fiscal</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><MaterialIcon name="progress_activity" size={12} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={12} className="text-tertiary" /> Détection de l'exercice fiscal</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={SpinnerGap} size={12} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
                             </div>
                         </div>
                     )}
@@ -340,7 +330,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                     {importedFile && (
                         <div className="bg-tertiary-container border border-tertiary/20 rounded-xl p-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><MaterialIcon name="auto_awesome" size={16} /></div>
+                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><Icon glyph={Sparkle} size={16} /></div>
                                 <div>
                                     <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données pré-remplies par IA</p>
                                     <p className="text-body-small text-tertiary">Vérifiez les montants ci-dessous.</p>
@@ -391,7 +381,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 type="number"
                                 value={year}
                                 onChange={(e) => setYear(e.target.value)}
-                                icon={<MaterialIcon name="calendar_today" size={16} />}
+                                icon={<Icon glyph={Calendar} size={16} />}
                                 className="font-bold"
                                 required
                             />
@@ -561,7 +551,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 size="sm"
                                 onClick={addLine}
                                 className="w-full border-dashed"
-                                icon={<MaterialIcon name="add" size={16} />}
+                                icon={<Icon glyph={Plus} size={16} />}
                             >
                                 Ajouter une ligne
                             </Button>

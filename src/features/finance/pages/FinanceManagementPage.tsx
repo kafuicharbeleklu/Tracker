@@ -1,7 +1,6 @@
 
 import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useMemo, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import { PageHeader } from '../../../components/layout/PageHeader';
 import Card from '../../../components/ui/Card';
@@ -13,7 +12,23 @@ import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import Icon from '../../../components/ui/Icon';
-import { CaretRight } from '@phosphor-icons/react';
+import {
+    CaretRight,
+    Plus,
+    Receipt,
+    Calculator,
+    ChartPie,
+    Clock,
+    Trash,
+    Info,
+    DownloadSimple,
+    ShoppingBag,
+    Key,
+    Cloud,
+    Wrench,
+    Stack,
+    FileCsv,
+} from '@phosphor-icons/react';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -82,12 +97,12 @@ const getExpenseStatusVariant = (status: FinanceExpenseStatus): 'success' | 'war
     return 'info';
 };
 
-const getExpenseTypeIcon = (type: FinanceExpenseType): string => {
-    if (type === 'Purchase') return 'work';
-    if (type === 'Cloud') return 'cloud_upload';
-    if (type === 'License') return 'vpn_key';
-    if (type === 'Maintenance') return 'build';
-    return 'layers';
+const getExpenseTypeGlyph = (type: FinanceExpenseType) => {
+    if (type === 'Purchase') return ShoppingBag;
+    if (type === 'Cloud') return Cloud;
+    if (type === 'License') return Key;
+    if (type === 'Maintenance') return Wrench;
+    return Stack;
 };
 
 const formatExpenseDate = (value: string): string => {
@@ -222,9 +237,9 @@ const FinanceManagementPage = () => {
     }, [financeBudgets, selectedYear, currentBudget.status]);
 
     const tabs: TabItem[] = [
-        { id: 'overview', label: 'Synthèse Globale', shortLabel: 'Synthèse', icon: <MaterialIcon name="dashboard" size={20} /> },
-        { id: 'expenses', label: 'Journal Dépenses', shortLabel: 'Journal', icon: <MaterialIcon name="receipt_long" size={20} /> },
-        { id: 'budget', label: 'Pilotage Budget', shortLabel: 'Pilotage', icon: <MaterialIcon name="calculate" size={20} /> }
+        { id: 'overview', label: "Vue d'ensemble", shortLabel: 'Synthèse', icon: <Icon glyph={ChartPie} size={20} /> },
+        { id: 'expenses', label: 'Dépenses', shortLabel: 'Journal', icon: <Icon glyph={Receipt} size={20} /> },
+        { id: 'budget', label: 'Budget', shortLabel: 'Budget', icon: <Icon glyph={Calculator} size={20} /> },
     ];
 
     const handleTabChange = (id: string) => {
@@ -611,12 +626,9 @@ const FinanceManagementPage = () => {
                 <div className="px-page-sm medium:px-page mb-6">
                     <PageHeader
                         sticky={false}
-                        title={
-                            activeView === 'overview' ? "Tableau de Bord Financier" :
-                                activeView === 'expenses' ? "Suivi des Dépenses" : "Budget & Prévisions"
-                        }
-                        subtitle="Optimisation du ROI et pilotage des coûts."
-                        breadcrumb="FINANCE"
+                        title="Finances"
+                        subtitle="Budget, dépenses et rapports de l'exercice en cours."
+                        breadcrumb="Finances"
                         actions={
                             !isCompact && activeView === 'budget' && (
                                 <div className="flex items-center gap-3">
@@ -632,11 +644,11 @@ const FinanceManagementPage = () => {
                                     </div>
                                     <Button
                                         variant="filled"
-                                        icon={<MaterialIcon name="add" size={18} />}
+                                        icon={<Icon glyph={Plus} size={18} />}
                                         onClick={() => setIsAddBudgetModalOpen(true)}
                                         className="whitespace-nowrap"
                                     >
-                                        Définir Budget
+                                        Définir le budget
                                     </Button>
                                 </div>
                             )
@@ -674,11 +686,11 @@ const FinanceManagementPage = () => {
                                     />
                                     <Button
                                         variant="filled"
-                                        icon={<MaterialIcon name="add" size={18} />}
+                                        icon={<Icon glyph={Plus} size={18} />}
                                         onClick={() => setIsAddBudgetModalOpen(true)}
                                         className="w-full h-12 rounded-md px-4 justify-center whitespace-nowrap"
                                     >
-                                        Définir budget
+                                        Définir le budget
                                     </Button>
                                 </div>
                                 <p className="mt-2 text-label-small text-on-surface-variant">
@@ -815,7 +827,7 @@ const FinanceManagementPage = () => {
                                         <p className="text-label-small uppercase font-bold opacity-70 mb-2">Total Dépenses Q1</p>
                                         <div className="text-headline-medium font-black mb-1">{formatCurrency(q1Expenses, settings.currency, settings.compactNotation)}</div>
                                         <div className="flex items-center gap-2 text-label-medium font-medium bg-on-primary/20 w-fit px-2 py-1 rounded-lg">
-                                            <MaterialIcon name="schedule" size={14} /> Exercice {currentYear}
+                                            <Icon glyph={Clock} size={14} /> Exercice {currentYear}
                                         </div>
                                     </div>
                                     <div className="bg-surface rounded-card p-6 border border-outline-variant shadow-elevation-1">
@@ -832,7 +844,7 @@ const FinanceManagementPage = () => {
                                     >
                                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/20 transition-all duration-700 ease-emphasized"></div>
                                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
-                                            <MaterialIcon name="add" size={20} />
+                                            <Icon glyph={Plus} size={20} />
                                         </div>
                                         <p className="font-bold text-on-surface text-label-large">Nouvelle Dépense</p>
                                         <p className="text-label-small text-on-surface-variant">Scanner facture ou saisie manuelle</p>
@@ -874,7 +886,7 @@ const FinanceManagementPage = () => {
                                                             </td>
                                                             <td className="px-6 py-4">
                                                                 <div className="flex items-center gap-2">
-                                                                    <MaterialIcon name={getExpenseTypeIcon(exp.type)} size={14} className="text-on-surface-variant" />
+                                                                    <Icon glyph={getExpenseTypeGlyph(exp.type)} size={14} className="text-on-surface-variant" />
                                                                     <span className="text-label-medium font-medium whitespace-nowrap">{EXPENSE_TYPE_LABELS[exp.type]}</span>
                                                                 </div>
                                                             </td>
@@ -897,7 +909,7 @@ const FinanceManagementPage = () => {
                                                                         handleDeleteExpense(exp);
                                                                     }}
                                                                 >
-                                                                    <MaterialIcon name="delete" size={16} />
+                                                                    <Icon glyph={Trash} size={16} />
                                                                 </Button>
                                                             </td>
                                                         </tr>
@@ -945,7 +957,7 @@ const FinanceManagementPage = () => {
                                                         <div className="flex items-center gap-2 text-label-small text-on-surface-variant min-w-0">
                                                             <span className="font-mono whitespace-nowrap">{formatExpenseDate(exp.date)}</span>
                                                             <span className="inline-flex items-center gap-1 truncate">
-                                                                <MaterialIcon name={getExpenseTypeIcon(exp.type)} size={14} />
+                                                                <Icon glyph={getExpenseTypeGlyph(exp.type)} size={14} />
                                                                 {EXPENSE_TYPE_LABELS[exp.type]}
                                                             </span>
                                                         </div>
@@ -963,7 +975,7 @@ const FinanceManagementPage = () => {
                                                                 event.stopPropagation();
                                                                 handleDeleteExpense(exp);
                                                             }}
-                                                            icon={<MaterialIcon name="delete" size={16} />}
+                                                            icon={<Icon glyph={Trash} size={16} />}
                                                         >
                                                             Supprimer
                                                         </Button>
@@ -1031,7 +1043,7 @@ const FinanceManagementPage = () => {
                                                 <div className="flex items-center gap-2 text-label-small text-on-surface-variant">
                                                     {/* Règle X12 : texte sombre sur fond teinté primaire */}
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-on-primary-container font-semibold">
-                                                        <MaterialIcon name="psychology" size={12} /> Analyse IA CAPEX/OPEX
+                                                        <Icon glyph={Calculator} size={12} /> Analyse CAPEX/OPEX
                                                     </span>
                                                     <Tooltip
                                                         variant="rich"
@@ -1039,7 +1051,7 @@ const FinanceManagementPage = () => {
                                                         content={(
                                                             <div className="space-y-3">
                                                                 <p className="text-body-small text-on-surface-variant">
-                                                                    La classification IA CAPEX/OPEX est dérivée du type et du montant de chaque ligne.
+                                                                    La classification CAPEX/OPEX est demandée ou qualifiée à la saisie du budget.
                                                                 </p>
                                                                 <Button
                                                                     variant="text"
@@ -1053,16 +1065,16 @@ const FinanceManagementPage = () => {
                                                         )}
                                                     >
                                                         <IconButton
-                                                            icon={<MaterialIcon name="info" size={14} />}
+                                                            icon={<Icon glyph={Info} size={14} />}
                                                             size="sm"
                                                             variant="standard"
-                                                            aria-label="Aide analyse IA"
+                                                            aria-label="Aide analyse"
                                                             className="w-6 h-6 p-0 hover:bg-surface-container-high"
                                                         />
                                                     </Tooltip>
                                                 </div>
                                             </div>
-                                            <Button variant="outlined" size="sm" icon={<MaterialIcon name="download" size={16} />} className="w-full medium:w-auto whitespace-nowrap">
+                                            <Button variant="outlined" size="sm" icon={<Icon glyph={DownloadSimple} size={16} />} className="w-full medium:w-auto whitespace-nowrap">
                                                 Exporter le tableau
                                             </Button>
                                         </div>
@@ -1095,11 +1107,7 @@ const FinanceManagementPage = () => {
                                                                             item.type === 'License' ? "bg-secondary-container text-on-secondary-container" :
                                                                                 item.type === 'Cloud' ? "bg-tertiary-container text-tertiary" : "bg-surface-container text-on-surface-variant"
                                                                     )}>
-                                                                        {item.type === 'Purchase' && <MaterialIcon name="work" size={16} />}
-                                                                        {item.type === 'License' && <MaterialIcon name="vpn_key" size={16} />}
-                                                                        {item.type === 'Cloud' && <MaterialIcon name="cloud_upload" size={16} />}
-                                                                        {item.type === 'Maintenance' && <MaterialIcon name="build" size={16} />}
-                                                                        {item.type === 'Service' && <MaterialIcon name="layers" size={16} />}
+                                                                        <Icon glyph={getExpenseTypeGlyph(item.type)} size={16} />
                                                                     </div>
                                                                     <span className="font-bold text-on-surface">{item.category}</span>
                                                                 </div>
@@ -1160,11 +1168,7 @@ const FinanceManagementPage = () => {
                                                                     item.type === 'License' ? "bg-secondary-container text-on-secondary-container" :
                                                                         item.type === 'Cloud' ? "bg-tertiary-container text-tertiary" : "bg-surface-container text-on-surface-variant"
                                                             )}>
-                                                                {item.type === 'Purchase' && <MaterialIcon name="work" size={16} />}
-                                                                {item.type === 'License' && <MaterialIcon name="vpn_key" size={16} />}
-                                                                {item.type === 'Cloud' && <MaterialIcon name="cloud_upload" size={16} />}
-                                                                {item.type === 'Maintenance' && <MaterialIcon name="build" size={16} />}
-                                                                {item.type === 'Service' && <MaterialIcon name="layers" size={16} />}
+                                                                <Icon glyph={getExpenseTypeGlyph(item.type)} size={16} />
                                                             </div>
                                                             <span className="font-bold text-on-surface truncate">{item.category}</span>
                                                         </div>
@@ -1213,7 +1217,7 @@ const FinanceManagementPage = () => {
                                     className="border-2 border-dashed border-outline-variant rounded-card p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary hover:bg-primary-container/10 transition-all group"
                                 >
                                     <div className="w-12 h-12 bg-surface-container rounded-full flex items-center justify-center mb-3 text-on-surface-variant group-hover:text-primary transition-colors">
-                                        <MaterialIcon name="table_chart" size={24} />
+                                        <Icon glyph={FileCsv} size={24} />
                                     </div>
                                     <h3 className="font-bold text-on-surface">Importer un nouveau budget</h3>
                                     <p className="text-body-medium text-on-surface-variant mt-1">
