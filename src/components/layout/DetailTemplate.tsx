@@ -117,11 +117,11 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                     </Button>
                 )}
                 <div className="min-w-0 flex-1 px-1">
-                    <p className="truncate font-brand text-base font-semibold leading-5 tracking-tight text-on-surface">
+                    <p className="truncate font-brand text-[15px] font-semibold leading-5 tracking-[-0.015em] text-on-surface">
                         {code}
                     </p>
                     {reference && (
-                        <p className="truncate text-label-small tabular-nums tracking-wide text-text-secondary">
+                        <p className="truncate text-label-small tabular-nums tracking-[0.03em] text-text-secondary">
                             {reference}
                         </p>
                     )}
@@ -134,7 +134,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
             {showSkeleton ? (
                 <SkeletonDetail />
             ) : (
-                <div className="flex flex-1 flex-col gap-5 px-5 py-4 medium:px-page">
+                <div className="flex flex-1 flex-col gap-5 px-5 pt-4 pb-5 medium:px-page">
                     <div
                         className={cn(
                             'mx-auto flex w-full gap-5',

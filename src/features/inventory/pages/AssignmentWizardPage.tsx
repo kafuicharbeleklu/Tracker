@@ -27,6 +27,34 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import InputField from '../../../components/ui/InputField';
+import Icon from '../../../components/ui/Icon';
+
+/**
+ * Remettre l'équipement — porté sur la planche **06.1**, colonne « l'informatique
+ * remet et atteste ».
+ *
+ * ## Chaque partie atteste son propre acte
+ *
+ * C'est le principe qui commande tout l'écran, et il est déjà dans le produit :
+ * le tableau de bord utilisateur porte un compteur « Réceptions à confirmer », celui
+ * de l'administrateur un statut « En attente ». Les deux disent la même chose —
+ * **une remise faite par l'informatique n'est pas une remise reçue**.
+ *
+ * L'attestation d'ici ne dit donc pas « Karim a reçu », elle dit « j'ai remis ». À sa
+ * validation l'objet **ne devient pas attribué** : il passe en attente jusqu'au second
+ * acquittement. Tant que les deux ne sont pas là, l'objet est dans un état
+ * intermédiaire **qui n'accuse personne** — ce n'est plus une parole contre une autre,
+ * ce sont deux traces horodatées, ou une seule et un objet qui n'est passé nulle part.
+ *
+ * ## Ce qui n'est pas porté, et pourquoi
+ *
+ * - **« L'application propose la méthode que la situation permet. »** La planche
+ *   nomme les trois boutons équivalents comme le défaut de l'écran actuel, et elle a
+ *   raison — mais la donnée qui trancherait n'existe pas : le modèle `User` ne porte
+ *   **aucun code PIN**, donc rien ne dit si le bénéficiaire en a un. La planche laisse
+ *   d'ailleurs la question ouverte (« quel code : celui de la fiche, ou un code à
+ *   usage unique ? »). Trancher ici reviendrait à inventer la donnée.
+ */
 
 type ValidationMethod = 'signature' | 'pin' | 'fingerprint';
 type WizardContextMode = 'generic' | 'fromEquipment' | 'fromUser';
@@ -369,7 +397,7 @@ const AssignmentWizardPage: React.FC<{
                     showToast('Attribution effectuée et confirmée.', 'success');
                 } else {
                     showToast(
-                        'Attribution enregistrée. En attente de confirmation par le destinataire.',
+                        'Remise attestée. En attente de confirmation.',
                         'success'
                     );
                 }
@@ -432,7 +460,7 @@ const AssignmentWizardPage: React.FC<{
         >
             {refus && (
                 <div className="flex items-start gap-2.5 p-3 rounded-md bg-[var(--tk-color-surface-muted)] border border-[var(--tk-color-danger)]/30 text-[13px] text-[var(--tk-color-danger)]">
-                    <Warning size={18} className="shrink-0 mt-0.5" />
+                    <Icon glyph={Warning} size={18} className="shrink-0 mt-0.5" />
                     <span>{refus}</span>
                 </div>
             )}
@@ -442,7 +470,7 @@ const AssignmentWizardPage: React.FC<{
                 <WizardStep>
                     {suggestedCategory && (
                         <div className="p-3 bg-[var(--tk-color-surface-muted)] rounded-md border border-[var(--tk-color-border-default)] flex items-center gap-2.5 text-[13px] text-[var(--tk-color-text-primary)]">
-                            <Info size={18} className="text-[var(--tk-color-brand-dark)] shrink-0" />
+                            <Icon glyph={Info} size={18} className="text-[var(--tk-color-brand-dark)] shrink-0" />
                             <span>
                                 Matériel suggéré pour cette demande : <strong>{suggestedCategory}</strong>
                             </span>
@@ -473,11 +501,11 @@ const AssignmentWizardPage: React.FC<{
                                     )}
                                 >
                                     <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center shrink-0">
-                                        <Package size={20} />
+                                        <Icon glyph={Package} size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-baseline justify-between gap-2">
-                                            <span className="text-[15px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
+                                            <span className="text-[15px] font-semibold font-brand text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
                                                 {item.assetId}
                                             </span>
                                             <span className="text-[12px] text-[var(--tk-color-text-secondary)] whitespace-nowrap">
@@ -550,7 +578,7 @@ const AssignmentWizardPage: React.FC<{
                                             selectedUser?.id === user.id && 'bg-[var(--tk-color-surface-muted)]'
                                         )}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center font-['Archivo'] font-semibold text-[14px] shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
                                             {initials}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -595,11 +623,11 @@ const AssignmentWizardPage: React.FC<{
                 <WizardStep>
                     {/* Équipement sélectionné (.fixed) */}
                     <div className="flex items-center gap-3 py-2 border-b border-[var(--tk-color-border-default)]">
-                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-['Archivo'] font-semibold text-[15px] shrink-0">
-                            <Package size={20} />
+                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-brand font-semibold text-[15px] shrink-0">
+                            <Icon glyph={Package} size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-medium font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums truncate">
+                            <div className="text-[15px] font-medium font-brand text-[var(--tk-color-text-primary)] tabular-nums truncate">
                                 {selectedEquipment.assetId}
                             </div>
                             <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
@@ -622,7 +650,7 @@ const AssignmentWizardPage: React.FC<{
                             Remis à
                         </p>
                         <div className="flex items-center gap-3 min-h-[48px] px-3 py-2 border border-[var(--tk-color-border-default)] rounded-md bg-surface">
-                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-['Archivo'] font-semibold text-[14px] shrink-0">
+                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
                                 {userInitials}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -650,7 +678,7 @@ const AssignmentWizardPage: React.FC<{
                             À partir du
                         </p>
                         <div className="flex items-center gap-2.5 min-h-[48px] px-3 border border-[var(--tk-color-border-default)] rounded-md bg-surface text-[15px] text-[var(--tk-color-text-primary)]">
-                            <CalendarBlank size={18} className="text-[var(--tk-color-text-secondary)] shrink-0" />
+                            <Icon glyph={CalendarBlank} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0" />
                             <span>
                                 aujourd'hui ({new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })})
                             </span>
@@ -676,7 +704,7 @@ const AssignmentWizardPage: React.FC<{
                                     validationMethod === 'signature' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <PenNib size={16} />
+                                <Icon glyph={PenNib} size={18} />
                                 <span>Signature</span>
                             </Button>
                             <Button
@@ -688,7 +716,7 @@ const AssignmentWizardPage: React.FC<{
                                     validationMethod === 'pin' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <Key size={16} />
+                                <Icon glyph={Key} size={18} />
                                 <span>Code PIN</span>
                             </Button>
                             <Button
@@ -700,7 +728,7 @@ const AssignmentWizardPage: React.FC<{
                                     validationMethod === 'fingerprint' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <Fingerprint size={16} />
+                                <Icon glyph={Fingerprint} size={18} />
                                 <span>Empreinte</span>
                             </Button>
                         </div>
@@ -757,7 +785,7 @@ const AssignmentWizardPage: React.FC<{
                                             value={digit}
                                             onChange={(e) => handlePinDigitChange(idx, e.target.value)}
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-['Archivo']"
+                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-brand"
                                             containerClassName="w-auto"
                                         />
                                     ))}
@@ -781,7 +809,7 @@ const AssignmentWizardPage: React.FC<{
                                             : 'bg-surface text-[var(--tk-color-text-primary)]'
                                     )}
                                 >
-                                    <Fingerprint size={32} />
+                                    <Icon glyph={Fingerprint} size={32} />
                                 </Button>
                                 <span className="text-[13px] text-[var(--tk-color-text-primary)] font-medium">
                                     {isValidated && validatedBy === 'fingerprint'
@@ -794,7 +822,7 @@ const AssignmentWizardPage: React.FC<{
 
                     {/* Bannière explicative (.warn) */}
                     <div className="flex gap-2.5 p-3 bg-[var(--tk-color-surface-muted)] rounded-md text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
-                        <Info size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                        <Icon glyph={Info} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
                         <span>
                             Enregistré au nom de <strong>{adminUser?.name || 'Clara Admin'}</strong>, horodaté.{' '}
                             <strong>L'objet ne devient pas « attribué »</strong> : il passe{' '}
@@ -817,7 +845,7 @@ const AssignmentWizardPage: React.FC<{
                                     : 'border-[var(--tk-color-border-default)]'
                             )}
                         >
-                            {isImmediateHandover && <Check size={12} weight="bold" />}
+                            {isImmediateHandover && <Icon glyph={Check} size={18} />}
                         </div>
                         <div className="flex-1 text-[13px]">
                             <span className="font-medium text-[var(--tk-color-text-primary)] block">
@@ -838,7 +866,7 @@ const AssignmentWizardPage: React.FC<{
                     <div className="border border-[var(--tk-color-border-default)] rounded-md overflow-hidden bg-surface divide-y divide-[var(--tk-color-border-default)]">
                         <div className="flex items-center gap-3 p-3.5 bg-surface">
                             <div className="w-8 h-8 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center shrink-0">
-                                <Check size={16} weight="bold" />
+                                <Icon glyph={Check} size={18} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
@@ -859,7 +887,7 @@ const AssignmentWizardPage: React.FC<{
                                         : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
                                 )}
                             >
-                                {isImmediateHandover ? <Check size={16} weight="bold" /> : <UserIcon size={16} />}
+                                {isImmediateHandover ? <Icon glyph={Check} size={18} /> : <Icon glyph={UserIcon} size={18} />}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
@@ -880,7 +908,7 @@ const AssignmentWizardPage: React.FC<{
                     <div className="p-4 rounded-lg bg-surface border border-[var(--tk-color-border-default)] flex flex-col gap-3">
                         <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
                             <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Équipement</span>
-                            <span className="text-[13px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums">
+                            <span className="text-[13px] font-semibold font-brand text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId} · {selectedEquipment.name}
                             </span>
                         </div>

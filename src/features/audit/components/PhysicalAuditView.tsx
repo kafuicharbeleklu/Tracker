@@ -19,7 +19,6 @@ import SelectField from '../../../components/ui/SelectField';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import { cn } from '../../../lib/utils';
-import { MetricCard } from '../../../components/ui/MetricCard';
 import { ALL_VALUE, buildRowKey, formatLastScan, ServiceAuditRow } from '../serviceAudit';
 import { AuditOverviewMobile } from './AuditOverviewMobile';
 
@@ -263,11 +262,10 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
         });
     }, [debouncedSearch, scopedRows, selectedStatus]);
 
-    const selectedRow = useMemo(
-        () => displayedRows.find((row) => buildRowKey(row) === selectedRowKey) || null,
-        [displayedRows, selectedRowKey],
-    );
-
+    // `selectedRow` — la rangée résolue depuis la clé — a disparu avec les deux gestes
+    // de tête qu'elle armait (V5). La sélection ne conditionne plus aucun acte : elle
+    // marque la rangée sur laquelle on vient d'agir, et c'est `selectedRowKey` seul qui
+    // le dit. Résoudre l'objet entier n'avait plus de lecteur.
     useEffect(() => {
         if (!selectedRowKey) return;
         if (!displayedRows.some((row) => buildRowKey(row) === selectedRowKey)) {
@@ -282,8 +280,30 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
         const exceptions = scopedRows.reduce((sum, row) => sum + row.exceptions, 0);
         const coverage = expected > 0 ? Math.round((found / expected) * 100) : 0;
         const activeCampaigns = scopedRows.filter((row) => row.status === 'En cours').length;
-        return { expected, found, missing, exceptions, coverage, activeCampaigns };
+        /**
+         * **La date décide s'il faut lancer** — planche 16.1. Un nombre d'actifs sans
+         * date de dernier inventaire ne se juge pas : c'est ce repère, et non le total,
+         * que le porte-voix porte au repos.
+         */
+        const lastScanAt = scopedRows.reduce<string | null>((latest, row) => {
+            if (!row.lastScanAt) return latest;
+            if (!latest) return row.lastScanAt;
+            return new Date(row.lastScanAt).getTime() > new Date(latest).getTime()
+                ? row.lastScanAt
+                : latest;
+        }, null);
+        return { expected, found, missing, exceptions, coverage, activeCampaigns, lastScanAt };
     }, [scopedRows]);
+
+    /**
+     * Les actifs rattachés à aucun service du référentiel : ils n'entrent dans aucune
+     * campagne, et le porte-voix le dit plutôt que de laisser croire que le parc entier
+     * est couvert (16.1, dette V3).
+     */
+    const unscopedAssets = useMemo(
+        () => Math.max(equipment.length - allRows.reduce((sum, row) => sum + row.expected, 0), 0),
+        [allRows, equipment.length]
+    );
 
     const persistScopePreference = (row?: ServiceAuditRow) => {
         try {
@@ -309,23 +329,18 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
         navigateToView('audit_details');
     };
 
-    const handleStartAudit = () => {
-        const targetRow = selectedRow;
-        if (!targetRow) {
-            showToast('Sélectionnez un service avant de lancer un audit.', 'warning');
-            return;
-        }
-
-        showToast(`Audit prêt pour ${targetRow.service} (${targetRow.site}).`, 'success');
-        openAuditDetails(targetRow);
-    };
-
-    const handleOpenSelectedAuditDetails = () => {
-        if (!selectedRow) {
-            showToast('Sélectionnez un service avant d’ouvrir le détail.', 'warning');
-            return;
-        }
-        openAuditDetails(selectedRow);
+    /**
+     * Lancer l'audit du service porté par une rangée — planche 16.1, relevé V5.
+     *
+     * Prend la rangée en argument au lieu de la lire dans `selectedRow` : le geste
+     * est sur la rangée, donc son objet ne peut pas manquer et il n'y a plus de
+     * garde « sélectionnez d'abord » à écrire. Le toast reste, parce qu'il annonce
+     * un fait — la session est prête — et non l'échec d'une condition.
+     */
+    const startAuditForRow = (row: ServiceAuditRow) => {
+        setSelectedRowKey(buildRowKey(row));
+        showToast(`Audit prêt pour ${row.service} (${row.site}).`, 'success');
+        openAuditDetails(row);
     };
 
     /**
@@ -387,79 +402,131 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
         // rangées du tableau (colonne Statut/Action, §9.4) — pattern du détail d'audit.
         <div className={cn('space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500', isMobile && 'pb-28')}>
             <section className="rounded-card border border-outline-variant bg-surface p-4 medium:p-5 shadow-elevation-1">
-                <div className="flex flex-col gap-4 medium:flex-row medium:items-start medium:justify-between">
-                    <div>
-                        {/* Règle X12 : libellé sombre, pas de jaune en texte sur fond clair */}
-                        <p className="mb-1 inline-flex items-center gap-2 text-label-small font-semibold uppercase tracking-wider text-on-surface-variant">
-                            <MaterialIcon name="fact_check" size={16} />
-                            Audit physique
-                        </p>
-                        <h3 className="text-title-large font-semibold text-on-surface">Pilotage des services à auditer</h3>
-                        <p className="mt-1 text-body-small text-on-surface-variant">
-                            Utilisez les filtres de périmètre puis ouvrez un service pour lancer ou reprendre une session.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2 self-start">
-                        <Button
-                            variant="outlined"
-                            icon={<MaterialIcon name="visibility" size={16} />}
-                            onClick={handleOpenSelectedAuditDetails}
-                            disabled={!selectedRow}
-                        >
-                            Ouvrir le détail
-                        </Button>
-                        <Button
-                            variant="filled"
-                            icon={<MaterialIcon name="play_arrow" size={16} />}
-                            onClick={handleStartAudit}
-                            disabled={!selectedRow}
-                        >
-                            Démarrer
-                        </Button>
-                    </div>
-                </div>
-                <p className="mt-3 text-body-small text-on-surface-variant">
-                    {selectedRow
-                        ? `Service sélectionné: ${selectedRow.service} • ${selectedRow.site} • ${selectedRow.country}`
-                        : 'Sélectionnez un service dans la liste pour activer les actions.'}
-                </p>
-
-                {/* **Les quatre chiffres n'apparaissent qu'en campagne** (planche 16.1).
-                    Hors campagne, la vue globale répond à une seule question — *qu'est-ce qui
-                    n'a pas été vérifié, et depuis combien de temps* — et six tuiles à zéro n'y
-                    répondent pas : elles occupent la place de la réponse. */}
-                {totals.activeCampaigns > 0 ? (
-                    <div className="mt-4 grid grid-cols-2 large:grid-cols-6 gap-3">
-                        <MetricCard compact title="Attendus" value={totals.expected} />
-                        <MetricCard compact title="Scannés" value={totals.found} />
-                        <MetricCard compact title="Manquants" value={totals.missing} valueClassName="text-error" />
-                        <MetricCard compact title="Écarts" value={totals.exceptions} />
-                        <MetricCard compact title="Campagnes actives" value={totals.activeCampaigns} />
-                        <MetricCard compact title="Couverture" value={`${totals.coverage}%`} />
-                    </div>
-                ) : (
-                    <p className="mt-4 rounded-md bg-surface-container px-3 py-2.5 text-body-small text-on-surface-variant">
-                        Aucune campagne en cours. Les chiffres d'une campagne — attendus, scannés,
-                        manquants, écarts — apparaissent quand elle tourne.
+                {/* **Le geste vit sur la rangée** — planche 16.1, relevé V5.
+                    Deux boutons de tête, « Ouvrir le détail » et « Démarrer », restaient
+                    `disabled` tant qu'aucune rangée n'était prise, avec sous eux la phrase
+                    qui expliquait comment les réveiller. Le compact les avait déjà retirés ;
+                    au-delà de 600 px ils étaient encore là. Un geste désactivé accompagné
+                    d'une phrase d'instruction est un interdit du brief (§4) : il occupe la
+                    place de l'acte sans jamais être l'acte. « Ouvrir » et « Lancer » sont
+                    donc portés par chaque rangée, où le service est nommé — on ne désigne
+                    plus un objet à un endroit pour agir dessus à un autre. */}
+                <div>
+                    {/* Règle X12 : libellé sombre, pas de jaune en texte sur fond clair */}
+                    <p className="mb-1 inline-flex items-center gap-2 text-label-small font-semibold uppercase tracking-wider text-on-surface-variant">
+                        <MaterialIcon name="fact_check" size={16} />
+                        Audit physique
                     </p>
-                )}
-
-                <div className="mt-4 rounded-md border border-outline-variant bg-surface-container-low p-3">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-label-small uppercase tracking-wide text-on-surface-variant">
-                            Progression globale
-                        </span>
-                        <span className="text-title-small font-semibold text-on-surface">
-                            {totals.found}/{totals.expected} • {totals.coverage}%
-                        </span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-container-high">
-                        <div className="h-full bg-primary transition-all duration-300" style={{ width: `${totals.coverage}%` }} />
-                    </div>
+                    <h3 className="text-title-large font-semibold text-on-surface">Pilotage des services à auditer</h3>
+                    <p className="mt-1 text-body-small text-on-surface-variant">
+                        Posez le périmètre avec les filtres, puis lancez ou reprenez une session depuis la rangée du service.
+                    </p>
                 </div>
+
+                {/* ── Le porte-voix ────────────────────────────────────────────────
+                    **Au repos, un seul nombre — les attendus — et une date** (16.1).
+                    Un nombre d'actifs sans date de dernier inventaire ne se juge pas :
+                    c'est la date qui décide s'il faut lancer, et elle manquait.
+
+                    **Dès qu'un scan a eu lieu, c'est l'écart qui décide**, pas le total :
+                    le total ne demande aucune action, le manquant en demande une. */}
+                <div className="mt-4">
+                    {totals.activeCampaigns === 0 ? (
+                        <>
+                            <p className="flex items-baseline gap-2 font-brand text-[30px] font-semibold leading-[34px] tracking-[-0.02em] tabular-nums text-on-surface">
+                                {totals.expected}
+                                <span className="text-[15px] font-medium leading-normal tracking-normal text-text-secondary">
+                                    {totals.expected > 1 ? 'actifs attendus' : 'actif attendu'}, aucun vérifié
+                                </span>
+                            </p>
+                            <p className="mt-1.5 text-body-small leading-[19px] text-text-secondary">
+                                <strong className="font-medium text-on-surface">
+                                    Dernier inventaire : {totals.lastScanAt ? formatLastScan(totals.lastScanAt) : 'jamais'}.
+                                </strong>
+                                {unscopedAssets > 0 && (
+                                    <>
+                                        {' '}Le parc compte {equipment.length} actifs ; {unscopedAssets} ne sont rattachés à
+                                        aucun service du référentiel et n'entrent donc dans aucune campagne.
+                                    </>
+                                )}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="flex items-baseline gap-2 font-brand text-[30px] font-semibold leading-[34px] tracking-[-0.02em] tabular-nums text-on-surface">
+                                {totals.missing > 0 || totals.exceptions > 0 ? totals.missing : totals.found}
+                                <span className="text-[15px] font-medium leading-normal tracking-normal text-text-secondary">
+                                    {totals.missing > 0 || totals.exceptions > 0
+                                        ? `manquants, et ${totals.exceptions} écart${totals.exceptions > 1 ? 's' : ''}`
+                                        : `retrouvés sur ${totals.expected}`}
+                                </span>
+                            </p>
+                            <p className="mt-1.5 text-body-small leading-[19px] text-text-secondary">
+                                {totals.missing > 0 || totals.exceptions > 0 ? (
+                                    <>
+                                        Sur <strong className="font-medium text-on-surface">{totals.expected} attendus</strong>,{' '}
+                                        {totals.found} retrouvés. Les {totals.missing} manquants et les {totals.exceptions} objets
+                                        trouvés hors campagne sont les{' '}
+                                        <strong className="font-medium text-on-surface">seules lignes qui demandent une décision</strong>{' '}
+                                        — le reste est déjà vérifié.
+                                    </>
+                                ) : (
+                                    <>
+                                        <strong className="font-medium text-on-surface">Aucun écart.</strong> La campagne peut être
+                                        clôturée telle quelle : c'est le seul cas où la clôture ne retire aucun actif d'un service.
+                                    </>
+                                )}
+                            </p>
+                        </>
+                    )}
+                </div>
+
+                {/* Les quatre chiffres **n'apparaissent qu'en campagne** : hors campagne,
+                    trois d'entre eux vaudraient zéro par construction (relevé V2).
+                    **Tabulaires, alignés, sans carte par chiffre** — six tuiles, dont deux
+                    que la planche ne porte pas, étaient la forme qu'elle écarte. */}
+                {totals.activeCampaigns > 0 && (
+                    <div className="mt-4">
+                        <div className="flex">
+                            {[
+                                { key: 'attendus', value: totals.expected, tone: '' },
+                                { key: 'retrouvés', value: totals.found, tone: '' },
+                                { key: 'manquants', value: totals.missing, tone: totals.missing > 0 ? 'text-error' : '' },
+                                {
+                                    key: 'écarts',
+                                    value: totals.exceptions,
+                                    tone: totals.exceptions > 0 ? 'text-[var(--tk-color-st-orange)]' : '',
+                                },
+                            ].map((cell, index) => (
+                                <div
+                                    key={cell.key}
+                                    className={cn(
+                                        'min-w-0 flex-1 pr-2',
+                                        index > 0 && 'border-l border-outline-variant pl-3'
+                                    )}
+                                >
+                                    <p className={cn('font-brand text-[20px] font-semibold leading-6 tabular-nums text-on-surface', cell.tone)}>
+                                        {cell.value}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] leading-[15px] text-text-secondary">{cell.key}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-3.5 h-1 overflow-hidden bg-surface-container-high">
+                            <div
+                                className="h-full bg-on-surface transition-all duration-300"
+                                style={{ width: `${totals.coverage}%` }}
+                            />
+                        </div>
+                        <p className="mt-2 text-[12px] tabular-nums text-text-secondary">
+                            {totals.found} sur {totals.expected} · {totals.coverage} % · dernier scan{' '}
+                            {formatLastScan(totals.lastScanAt)}
+                        </p>
+                    </div>
+                )}
             </section>
 
-            <section className="grid grid-cols-1 medium:grid-cols-3 gap-3">
+            <section className="grid grid-cols-1 expanded:grid-cols-3 gap-3">
                 <SelectField
                     label="Pays"
                     name="auditCountry"
@@ -500,7 +567,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                     role="region"
                     aria-label="Filtres audit global"
                 >
-                    <div className="grid grid-cols-1 medium:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 expanded:grid-cols-3 gap-3">
                         <SelectField
                             label="Statut campagne"
                             name="auditCampaignStatus"
@@ -516,7 +583,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                 <div className="hidden medium:grid grid-cols-[minmax(0,_2.2fr)_90px_90px_90px_90px_130px_130px_auto] gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3 text-label-small uppercase tracking-wide text-on-surface-variant">
                     <span>Service</span>
                     <span className="text-right">Attendus</span>
-                    <span className="text-right">Scannés</span>
+                    <span className="text-right">Retrouvés</span>
                     <span className="text-right">Manquants</span>
                     <span className="text-right">Écarts</span>
                     <span className="text-right">Dernier scan</span>
@@ -561,8 +628,8 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
 
                             {/*
                                 Compact (< 600 px) : la rangée devient une carte (constat #4). Chaque valeur
-                                regagne son libellé — grille 2×2 aux libellés cohérents avec les MetricCard
-                                compactes (§9.1). Les cellules « desktop » ci-dessous sont masquées ici via
+                                regagne son libellé — grille 2×2 aux libellés cohérents avec les quatre
+                                chiffres du porte-voix (§9.1). Les cellules « desktop » ci-dessous sont masquées ici via
                                 hidden medium:*, donc le tableau medium/expanded reste inchangé (aucune de
                                 ces cellules ne prend de piste de grille tant qu'elle est display:none).
                             */}
@@ -573,7 +640,7 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                                         <p className="text-title-small font-semibold text-on-surface">{row.expected}</p>
                                     </div>
                                     <div>
-                                        <p className="text-label-small text-on-surface-variant">Scannés</p>
+                                        <p className="text-label-small text-on-surface-variant">Retrouvés</p>
                                         <p className="text-title-small font-semibold text-on-surface">{row.found}</p>
                                     </div>
                                     <div>
@@ -612,7 +679,26 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                             <span className="hidden medium:block text-body-small text-on-surface text-right">{row.exceptions}</span>
                             <span className="hidden medium:block text-body-small text-on-surface-variant text-right">{formatLastScan(row.lastScanAt)}</span>
                             <div className="hidden medium:flex justify-end"><StatusPill status={row.status} /></div>
-                            <div className="hidden medium:flex justify-end">
+                            {/* Les deux gestes de l'écran, sur la rangée qui nomme leur objet
+                                (planche 16.1, V5). « Lancer » n'apparaît **que** sur un service
+                                à lancer : une campagne en cours se reprend par « Ouvrir » — le
+                                relevé C3 de 16.2 dit qu'un démarrage posé sur une session vivante
+                                efface le relevé — et « Complet » comme « Rien à auditer » n'ont
+                                rien à démarrer. */}
+                            <div className="hidden medium:flex items-center justify-end gap-1">
+                                {row.status === 'A lancer' && (
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        icon={<MaterialIcon name="play_arrow" size={16} />}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            startAuditForRow(row);
+                                        }}
+                                    >
+                                        Lancer
+                                    </Button>
+                                )}
                                 <Button
                                     variant="text"
                                     size="sm"
@@ -631,26 +717,22 @@ export const PhysicalAuditView: React.FC<PhysicalAuditViewProps> = ({ onViewChan
                 )}
             </section>
 
+            {/* Régime tablette (600–839) : le FAB portait les deux mêmes gestes désactivés
+                que la tête d'écran, avec la même dépendance à une sélection. Il ne garde
+                que l'acte du périmètre courant — celui qui n'est jamais impossible, donc
+                jamais à désactiver (planche 16.1 V5, interdit du brief §4). Le geste par
+                service, lui, est sur sa rangée. */}
             {isMobile && (
                 <ListActionFab
                     label="Audit"
                     sheetTitle="Actions Audit"
                     actions={[
                         {
-                            id: 'scan-audit-mobile',
-                            label: 'Ouvrir détail audit',
-                            icon: 'visibility',
-                            variant: 'filled' as const,
-                            onSelect: handleOpenSelectedAuditDetails,
-                            disabled: !selectedRow,
-                        },
-                        {
-                            id: 'start-audit-mobile',
-                            label: 'Démarrer un audit',
+                            id: 'start-scoped-audit',
+                            label: 'Lancer sur le périmètre affiché',
                             icon: 'play_arrow',
-                            variant: 'outlined' as const,
-                            onSelect: handleStartAudit,
-                            disabled: !selectedRow,
+                            variant: 'filled' as const,
+                            onSelect: handleStartScopedAudit,
                         },
                     ]}
                 />

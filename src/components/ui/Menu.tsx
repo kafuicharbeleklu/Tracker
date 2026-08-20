@@ -13,6 +13,13 @@ export interface MenuItem {
   disabled?: boolean;
   destructive?: boolean;
   dividerBefore?: boolean;
+  /**
+   * La rangée en cours, quand le menu porte une **partition** et non des actes : elle
+   * prend le creux `--inset` et l'encre de l'onglet actif, exactement comme la rangée
+   * courante de la feuille « Plus » (17.7). Un menu qui change de vue doit dire dans
+   * laquelle on est — sinon il faut l'ouvrir pour le savoir, puis le refermer.
+   */
+  selected?: boolean;
 }
 
 interface MenuProps {
@@ -36,7 +43,14 @@ const Menu: React.FC<MenuProps> = ({
   title,
   align = 'end',
   placement = 'bottom',
-  widthClassName = 'min-w-[112px] max-w-[280px]',
+  /*
+     §2.13 — un seul composant, une seule largeur : **262 px**. La valeur était une
+     fourchette (`min-w-[112px] max-w-[280px]`), donc la largeur suivait le contenu :
+     cinq écrans ouvraient le même menu à cinq largeurs, et son bord se déplaçait
+     selon l'endroit d'où on l'ouvrait. Un seul appelant posait 262 en dur ; les
+     quatre autres dérivaient. Corrigé le 20/08.
+  */
+  widthClassName = 'w-[262px] max-w-[calc(100vw-32px)]',
   className,
 }) => {
   const [open, setOpen] = useState(false);
@@ -211,7 +225,8 @@ const Menu: React.FC<MenuProps> = ({
           aria-labelledby={triggerId}
           onKeyDown={onMenuKeyDown}
           className={cn(
-            'absolute z-50 py-1 rounded-md border border-outline-variant bg-surface-container shadow-elevation-3',
+            // Surface flottante : elle prend le cran de surface (R11), comme la carte et la feuille.
+            'absolute z-50 py-1 rounded-lg border border-outline-variant bg-surface-container shadow-elevation-3',
             'animate-in fade-in zoom-in-95 duration-short4',
             placement === 'top' ? 'bottom-full mb-2' : 'mt-2',
             widthClassName,
@@ -255,6 +270,7 @@ const Menu: React.FC<MenuProps> = ({
                 className={cn(
                   'group w-full px-3 flex items-center gap-3 text-left text-body-medium outline-none transition-[color,background-color,opacity] duration-short3 ease-emphasized state-layer',
                   item.description ? 'min-h-[52px] py-2' : 'h-12',
+                  item.selected && 'bg-surface-container text-[var(--tk-color-nav-active)] font-medium',
                   'focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset',
                   item.destructive && !item.disabled ? 'text-error' : 'text-on-surface',
                   highlightedIndex === index && !item.disabled

@@ -237,7 +237,14 @@ module.exports = {
             /* ---- TYPOGRAPHIE ---- */
             fontFamily: {
                 sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                brand: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                /* La fonte d'affichage du système — Archivo, chargée par `index.css` et
+                   déclarée en `--font-display` / `--tk-type-font-brand`. L'entrée valait
+                   « Inter » : l'utilitaire `font-brand` rendait donc la fonte de texte,
+                   et l'échelle « Archivo 600 au-dessus de 20 px » du socle n'était
+                   appliquée nulle part — sauf par les classes `.text-display-*` /
+                   `.text-headline-*`, qui lisent le jeton en direct. Deux fontes pour un
+                   rôle. Relevé le 20/08 en portant 03.1. */
+                brand: ['Archivo', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
         },
     },

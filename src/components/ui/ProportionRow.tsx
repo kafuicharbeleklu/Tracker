@@ -60,7 +60,9 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
     return (
         <div className={className}>
             <p className="mt-3 flex items-baseline gap-2.5">
-                <span className="text-[24px] leading-none tabular-nums text-on-surface">{value}</span>
+                {/* Le chiffre est au rang du sujet — 20 px. Il valait 24, qui n'est sur aucune
+                    marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre). */}
+                <span className="font-brand text-[20px] leading-none font-semibold tabular-nums text-on-surface">{value}</span>
                 <span className="min-w-0 flex-1 text-body-large leading-[19px] text-text-secondary">
                     {label}
                 </span>

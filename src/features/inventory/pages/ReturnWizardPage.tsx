@@ -26,8 +26,29 @@ import { getEquipmentUpdatesForReturnWorkflow } from '../../../lib/businessRules
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import InputField from '../../../components/ui/InputField';
+import Icon from '../../../components/ui/Icon';
 
 type ReturnCondition = 'Excellent' | 'Bon' | 'Moyen' | 'Mauvais';
+/**
+ * Restituer l'équipement — porté sur la planche **06.1**, colonnes « la personne rend
+ * et atteste » et « l'informatique réceptionne et constate ».
+ *
+ * ## Le retour est le même mécanisme, dans l'autre sens
+ *
+ * La personne atteste, et l'objet **quitte immédiatement sa responsabilité** : il
+ * passe en « retour à confirmer ». Il ne redevient pas disponible pour autant —
+ * personne ne peut se le voir attribuer tant que l'informatique ne l'a pas dans les
+ * mains.
+ *
+ * ## La réception est le seul écran du parcours qui ne soit pas symétrique
+ *
+ * On est devant l'objet, donc l'attestation seule ne suffit pas : il faut dire **dans
+ * quel état il revient**, parce que c'est ce qui décide s'il repart en stock. Les
+ * crans sont nommés **par leur conséquence** et non par une appréciation — « Repart
+ * en stock », « À réviser d'abord », « Hors service » — et la photo passe avant le
+ * texte : une rayure se photographie en une seconde et se décrit mal en trois phrases.
+ */
+
 type ValidationMethod = 'signature' | 'pin' | 'fingerprint';
 
 const ReturnWizardPage: React.FC<{
@@ -306,7 +327,7 @@ const ReturnWizardPage: React.FC<{
         >
             {refus && (
                 <div className="flex items-start gap-2.5 p-3 rounded-md bg-[var(--tk-color-surface-muted)] border border-[var(--tk-color-danger)]/30 text-[13px] text-[var(--tk-color-danger)]">
-                    <Warning size={18} className="shrink-0 mt-0.5" />
+                    <Icon glyph={Warning} size={18} className="shrink-0 mt-0.5" />
                     <span>{refus}</span>
                 </div>
             )}
@@ -335,11 +356,11 @@ const ReturnWizardPage: React.FC<{
                                     )}
                                 >
                                     <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center shrink-0">
-                                        <Package size={20} />
+                                        <Icon glyph={Package} size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-baseline justify-between gap-2">
-                                            <span className="text-[15px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
+                                            <span className="text-[15px] font-semibold font-brand text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
                                                 {item.assetId}
                                             </span>
                                             <span className="text-[12px] text-[var(--tk-color-text-secondary)] whitespace-nowrap">
@@ -390,11 +411,11 @@ const ReturnWizardPage: React.FC<{
                 <WizardStep>
                     {/* Matériel sélectionné (.fixed) */}
                     <div className="flex items-center gap-3 py-2 border-b border-[var(--tk-color-border-default)]">
-                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-['Archivo'] font-semibold text-[15px] shrink-0">
-                            <Package size={20} />
+                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-brand font-semibold text-[15px] shrink-0">
+                            <Icon glyph={Package} size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-medium font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums truncate">
+                            <div className="text-[15px] font-medium font-brand text-[var(--tk-color-text-primary)] tabular-nums truncate">
                                 {selectedEquipment.assetId}
                             </div>
                             <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
@@ -417,7 +438,7 @@ const ReturnWizardPage: React.FC<{
                             Rendu à
                         </p>
                         <div className="flex items-center gap-3 min-h-[48px] px-3 py-2 border border-[var(--tk-color-border-default)] rounded-md bg-surface">
-                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-['Archivo'] font-semibold text-[14px] shrink-0">
+                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
                                 CA
                             </div>
                             <div className="flex-1 min-w-0">
@@ -482,7 +503,7 @@ const ReturnWizardPage: React.FC<{
                                                 : 'border-[var(--tk-color-border-default)]'
                                         )}
                                     >
-                                        {condition === opt.value && <Check size={14} weight="bold" />}
+                                        {condition === opt.value && <Icon glyph={Check} size={18} />}
                                     </div>
                                 </Button>
                             ))}
@@ -495,7 +516,7 @@ const ReturnWizardPage: React.FC<{
                             Ce que cela déclenche
                         </span>
                         <div className="flex items-start gap-2.5">
-                            <Wrench size={16} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <Icon glyph={Wrench} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
                             <span>
                                 {condition === 'Bon' && (
                                     <>L’équipement <strong>repassera « Disponible »</strong> et pourra être réattribué sans délai.</>
@@ -509,7 +530,7 @@ const ReturnWizardPage: React.FC<{
                             </span>
                         </div>
                         <div className="flex items-start gap-2.5">
-                            <Check size={16} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <Icon glyph={Check} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
                             <span>
                                 {selectedEquipment.user?.name || 'L’utilisateur'} <strong>n'en répond plus</strong> à compter de cet instant.
                             </span>
@@ -579,7 +600,7 @@ const ReturnWizardPage: React.FC<{
                                     validationMethod === 'signature' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <PenNib size={16} />
+                                <Icon glyph={PenNib} size={18} />
                                 <span>Signature</span>
                             </Button>
                             <Button
@@ -591,7 +612,7 @@ const ReturnWizardPage: React.FC<{
                                     validationMethod === 'pin' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <Key size={16} />
+                                <Icon glyph={Key} size={18} />
                                 <span>Code PIN</span>
                             </Button>
                             <Button
@@ -603,7 +624,7 @@ const ReturnWizardPage: React.FC<{
                                     validationMethod === 'fingerprint' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
                                 )}
                             >
-                                <Fingerprint size={16} />
+                                <Icon glyph={Fingerprint} size={18} />
                                 <span>Empreinte</span>
                             </Button>
                         </div>
@@ -660,7 +681,7 @@ const ReturnWizardPage: React.FC<{
                                             value={digit}
                                             onChange={(e) => handlePinDigitChange(idx, e.target.value)}
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-['Archivo']"
+                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-brand"
                                             containerClassName="w-auto"
                                         />
                                     ))}
@@ -684,7 +705,7 @@ const ReturnWizardPage: React.FC<{
                                             : 'bg-surface text-[var(--tk-color-text-primary)]'
                                     )}
                                 >
-                                    <Fingerprint size={32} />
+                                    <Icon glyph={Fingerprint} size={32} />
                                 </Button>
                                 <span className="text-[13px] text-[var(--tk-color-text-primary)] font-medium">
                                     {isValidated ? 'Empreinte reconnue' : 'Posez votre doigt pour valider'}
@@ -695,9 +716,10 @@ const ReturnWizardPage: React.FC<{
 
                     {/* Bannière d'engagement (.warn) */}
                     <div className="flex gap-2.5 p-3 bg-[var(--tk-color-surface-muted)] rounded-md text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
-                        <Check size={18} className="text-[var(--tk-color-success)] shrink-0 mt-0.5" />
+                        <Icon glyph={Check} size={18} className="text-[var(--tk-color-success)] shrink-0 mt-0.5" />
                         <span>
-                            <strong>C'est votre preuve.</strong> Si l'informatique oublie de réceptionner, votre attestation est horodatée et l'objet apparaît dans sa file comme un retour non traité — pas comme un équipement que vous détenez encore.
+                            <strong>C'est votre preuve.</strong> L'objet quitte votre
+                            responsabilité, horodaté.
                         </span>
                     </div>
                 </WizardStep>
@@ -710,7 +732,7 @@ const ReturnWizardPage: React.FC<{
                     <div className="border border-[var(--tk-color-border-default)] rounded-md overflow-hidden bg-surface divide-y divide-[var(--tk-color-border-default)]">
                         <div className="flex items-center gap-3 p-3 min-h-[64px]">
                             <div className="w-8 h-8 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center shrink-0">
-                                <Check size={18} weight="bold" />
+                                <Icon glyph={Check} size={18} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
@@ -732,9 +754,9 @@ const ReturnWizardPage: React.FC<{
                                 )}
                             >
                                 {isInspectionFlow ? (
-                                    <Check size={18} weight="bold" />
+                                    <Icon glyph={Check} size={18} />
                                 ) : (
-                                    <UserIcon size={18} />
+                                    <Icon glyph={UserIcon} size={18} />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -756,7 +778,7 @@ const ReturnWizardPage: React.FC<{
                     <div className="p-4 rounded-md bg-surface border border-[var(--tk-color-border-default)] flex flex-col gap-3">
                         <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
                             <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Équipement</span>
-                            <span className="text-[13px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] tabular-nums">
+                            <span className="text-[13px] font-semibold font-brand text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId} · {selectedEquipment.name}
                             </span>
                         </div>

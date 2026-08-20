@@ -93,7 +93,7 @@ const screens: Screen[] = [
         kind: 'screen',
         next: ['new-request', 'assignment'],
         actions: [{ label: 'Nouvelle demande / FAB', to: 'new-request' }, { label: 'Action assign', to: 'assignment' }],
-        source: 'ApprovalsPage.tsx',
+        source: 'TasksPage.tsx',
     },
     { id: 'management', name: 'Gestion', kind: 'screen', next: ['category-details', 'model-details', 'import-models'], actions: [{ label: 'Catégorie', to: 'category-details' }, { label: 'Modèle', to: 'model-details' }, { label: 'Importer modèles', to: 'import-models' }], source: 'ManagementPage.tsx' },
     { id: 'category-details', name: 'Détail catégorie', kind: 'detail', next: ['model-details', 'management'], actions: [{ label: 'Modèle', to: 'model-details' }, { label: 'Retour', to: 'management' }], source: 'CategoryDetailsPage.tsx' },
@@ -108,7 +108,8 @@ const screens: Screen[] = [
     { id: 'return', name: 'Assistant de retour', kind: 'wizard', next: ['inventory'], actions: [{ label: 'Annuler', to: 'inventory' }, { label: 'Terminer', to: 'inventory' }], source: 'ReturnWizardPage.tsx' },
     { id: 'audit', name: 'Audit', kind: 'screen', next: ['audit-details'], actions: [{ label: 'Démarrer audit / FAB', to: 'audit-details' }], source: 'AuditPage.tsx' },
     { id: 'audit-details', name: "Détail audit", kind: 'detail', next: ['audit'], actions: [{ label: 'Retour', to: 'audit' }], source: 'AuditDetailsPage.tsx' },
-    { id: 'finance', name: 'Finances', kind: 'screen', next: [], actions: [], source: 'FinanceManagementPage.tsx' },
+    { id: 'finance', name: 'Finances', kind: 'screen', next: ['finance-expenses'], actions: [{ label: "Voir les dépenses de l'exercice", to: 'finance-expenses' }], source: 'FinanceManagementPage.tsx' },
+    { id: 'finance-expenses', name: 'Journal des dépenses', kind: 'screen', next: ['finance'], actions: [{ label: 'Retour', to: 'finance' }], source: 'ExpenseJournalPage.tsx' },
     { id: 'add-equipment', name: 'Ajouter un équipement', kind: 'wizard', next: ['inventory', 'equipment-details'], actions: [{ label: 'Enregistrer (création)', to: 'inventory' }, { label: 'Enregistrer (édition)', to: 'equipment-details' }], source: 'AddEquipmentPage.tsx' },
     { id: 'add-user', name: 'Ajouter un utilisateur', kind: 'wizard', next: ['users', 'user-details'], actions: [{ label: 'Enregistrer (création)', to: 'users' }, { label: 'Enregistrer (édition)', to: 'user-details' }], source: 'AddUserPage.tsx' },
     { id: 'import-equipment', name: 'Importer équipements', kind: 'wizard', next: ['inventory'], actions: [{ label: 'Valider', to: 'inventory' }], source: 'ImportEquipmentPage.tsx', issues: ['Callbacks onCancel/onSave absents au montage'] },
@@ -132,6 +133,7 @@ const graphPositions: Record<string, { x: number; y: number }> = {
     approvals: { x: 560, y: 312 },
     audit: { x: 560, y: 444 },
     finance: { x: 560, y: 576 },
+    'finance-expenses': { x: 880, y: 596 },
     'equipment-details': { x: 880, y: 20 },
     'add-equipment': { x: 1180, y: 20 },
     'import-equipment': { x: 880, y: 116 },
@@ -262,7 +264,7 @@ const FlowCanvas: React.FC<{
         equipment: new Set(['dashboard', 'inventory', 'equipment-details', 'add-equipment', 'import-equipment', 'assignment', 'return', 'new-request']),
         users: new Set(['dashboard', 'users', 'user-details', 'add-user', 'import-users', 'assignment']),
         management: new Set(['dashboard', 'management', 'category-details', 'model-details', 'import-models', 'locations', 'import-locations', 'rbac', 'settings']),
-        operations: new Set(['dashboard', 'approvals', 'audit', 'audit-details', 'finance', 'reports']),
+        operations: new Set(['dashboard', 'approvals', 'audit', 'audit-details', 'finance', 'finance-expenses', 'reports']),
     };
     const edgeColor: Record<string, string> = { navigation: '#8aa6a0', workflow: '#f7c948', import: '#4cc9c0', return: '#ef8f72', standard: '#79b8ff' };
     const edgeLabel: Record<string, string> = { navigation: 'Navigation globale', workflow: 'Workflow', import: 'Import', return: 'Retour / sortie', standard: 'Navigation' };

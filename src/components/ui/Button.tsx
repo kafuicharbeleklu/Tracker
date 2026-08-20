@@ -70,10 +70,20 @@ const LAYOUT_STYLES: Record<NonNullable<ButtonProps['layout']>, string> = {
   card: "h-auto justify-start text-left",
 };
 
-/** Boîte carrée d'une action d'icône, par `size` (cf. prop `iconOnly`). */
+/**
+ * Boîte carrée d'une action d'icône, par `size` (cf. prop `iconOnly`).
+ *
+ * **`md` fait 48 × 48**, et c'est la seule mesure que §2.14 déclare pour un bouton
+ * d'icône : `.tb` (barre du haut) et `.fbtn` (filtre) y sont tous deux. Elle valait
+ * 40 — une valeur que le registre ne connaît pas, et que les **21 emplois** du
+ * produit prenaient tous, puisque aucun ne précise sa taille. La cible tactile était
+ * déjà à 48 par la couronne `touch-target` ; c'est la **boîte dessinée** qui manquait,
+ * et avec elle la coïncidence entre ce qu'on voit et ce qu'on peut viser.
+ * Corrigé le 20/08.
+ */
 const ICON_ONLY_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
   sm: "w-10 h-10 min-h-10 min-w-10 p-0",
-  md: "w-10 h-10 min-h-10 min-w-10 p-0",
+  md: "w-12 h-12 min-h-12 min-w-12 p-0",
   lg: "w-11 h-11 min-h-11 min-w-11 p-0",
 };
 

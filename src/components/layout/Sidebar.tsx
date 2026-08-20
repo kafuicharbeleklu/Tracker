@@ -86,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     ]);
 
     const pendingCount = relevantApprovals.filter((a) => ACTIVE_APPROVAL_STATUSES.has(a.status)).length;
-    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'tasks' | 'approvals' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
+    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'tasks' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
         switch (section) {
             case 'dashboard':
                 return currentView === 'dashboard';
@@ -95,11 +95,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             case 'users':
                 return ['users', 'user_details', 'add_user', 'edit_user', 'import_users'].includes(currentView);
             case 'tasks':
-                return currentView === 'tasks';
-            case 'approvals':
-                return ['approvals', 'new_request'].includes(currentView);
+                // La file absorbe « nouvelle demande » : c'est un geste de la file,
+                // plus une section à part (17.7).
+                return ['tasks', 'new_request'].includes(currentView);
             case 'finance':
-                return currentView === 'finance';
+                return ['finance', 'finance_expenses'].includes(currentView);
             case 'management':
                 return ['management', 'category_details', 'model_details', 'import_models', 'add_category', 'add_model'].includes(currentView);
             case 'rbac':
@@ -321,15 +321,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         )}
 
-                        {!hidePrimary && permissions.canViewApprovals && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.approvals.icon}
-                                label={DESTINATIONS.approvals.label}
-                                active={isNavSectionActive('approvals')}
-                                onClick={() => handleItemClick('approvals')}
-                            />
-                        )}
+                        {/*
+                          « Approbations » n'est plus une destination — planche 17.7.
+                          Sa matrice des douze destinations la marque en divergence :
+                          « Elle est un onglet de Tâches ; la barre latérale en fait
+                          pourtant une douzième entrée — deux portes vers la même file,
+                          à fermer côté latéral. » La barre du bas les avait déjà
+                          fusionnées, la feuille « Plus » ne l'a jamais portée. Fermée
+                          ici le 20/08, au rail avec elle, puis la page elle-même : ce
+                          n'était pas un détail d'arbitrage mais **une seconde liste** —
+                          `ApprovalsPage` ne prenait aucune prop et paginait la même
+                          donnée avec les mêmes règles. « Nouvelle demande » a rejoint la
+                          file, dont elle est un geste.
+                        */}
 
                         {(permissions.canViewFinance || permissions.canManageFinance) && (
                             <SidebarItem

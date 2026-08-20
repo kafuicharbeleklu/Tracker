@@ -993,7 +993,7 @@ const DesignSystemGalleryPage: React.FC = () => {
           </Specimen>
 
           <Specimen            name="ListTemplate + ListRow"
-            note="gabarit liste / file — planches 04.1 · 03.3, régime 00.4"
+            note="gabarit liste / file — planches 04.1 · 08.1, régime 00.4"
             interactive
           >
             <div className="overflow-hidden rounded-lg border border-outline-variant bg-background">

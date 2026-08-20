@@ -41,6 +41,14 @@ interface ScreenStateProps {
     actions?: React.ReactNode;
     /** Une précision de pied — ce que l'écran ne dit pas, et pourquoi. */
     footnote?: React.ReactNode;
+    /**
+     * `.vnext` — le panneau que 03.3 pose **sous** l'état vide : « ce qui arrivera
+     * ici ». Une carte pleine largeur, alignée à gauche, qui dit ce qui remplira la
+     * file. C'est ce qui distingue un vide **rassurant** d'un vide muet : la phrase
+     * en 12 px ne peut porter ni titre ni liste, et trois lignes à glyphe s'y
+     * écrasaient en une phrase de 130 signes.
+     */
+    after?: React.ReactNode;
     className?: string;
 }
 
@@ -50,6 +58,7 @@ const ScreenState: React.FC<ScreenStateProps> = ({
     description,
     actions,
     footnote,
+    after,
     className,
 }) => (
     <div
@@ -63,11 +72,11 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         </span>
 
         <div>
-            <p className="font-brand text-2xl font-semibold leading-7 tracking-tight text-on-surface">
+            <p className="font-brand text-[20px] font-semibold leading-7 tracking-[-0.01em] text-on-surface">
                 {title}
             </p>
             {description && (
-                <p className="mx-auto mt-2 max-w-[280px] text-body-medium leading-5 text-text-secondary">
+                <p className="text-body-medium mx-auto mt-2 max-w-[280px] leading-5 text-on-surface-variant">
                     {description}
                 </p>
             )}
@@ -80,6 +89,8 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         {footnote && (
             <p className="mx-auto max-w-[280px] text-body-small text-on-surface-variant">{footnote}</p>
         )}
+
+        {after && <div className="rounded-card bg-surface mt-1 w-full p-4 text-left">{after}</div>}
     </div>
 );
 

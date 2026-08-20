@@ -15,7 +15,7 @@ interface AuthContextType {
   needsPasswordChange: boolean;
   accessDenied: boolean;
   /** Motif du refus, tel que la vérification l'a renvoyé — l'écran le dit au lieu
-      de faire trier trois hypothèses à la personne (planche 12.1). */
+      de faire trier trois hypothèses à la personne (planche 17.1). */
   accessDeniedReason: string | null;
   isLoading: boolean;
 
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(null);
         setAccessDenied(true);
         // Le motif vit sur l'écran de refus, pas dans un message qui disparaît
-        // (planche 12.1 : une erreur se lit là où elle a une conséquence).
+        // (planche 17.1 : une erreur se lit là où elle a une conséquence).
         setAccessDeniedReason(result.error ?? null);
       }
 

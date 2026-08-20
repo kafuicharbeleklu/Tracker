@@ -17,6 +17,7 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import type { RuleRowTone } from '../../../components/ui/RuleGroup';
 import Notice from '../../../components/ui/Notice';
+import Reading from '../../../components/layout/Reading';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -27,7 +28,6 @@ import { authService } from '../../../services/authService';
 import { parseAgentBatchContent } from '../../../lib/agentCheckin';
 import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
 import { APP_CONFIG } from '../../../config';
-import { cn } from '../../../lib/utils';
 import type { AgentCheckInPayload, AppSettings, AutoCollectionSource, ViewType } from '../../../types';
 
 /**
@@ -193,11 +193,6 @@ const SettingsBar: React.FC<{
         </div>
     );
 };
-
-/** La mesure de lecture du système — 960 px, une seule valeur (§2.43). */
-const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-    <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>
-);
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate }) => {
     const { showToast } = useToast();
@@ -387,10 +382,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate }) => 
                 <Reading className="flex flex-col gap-5 pb-16">
                     {view === 'index' && (
                         <>
-                            <RuleGroup header="Ce qui est à vous">
+                            <RuleGroup
+                                header="Ce qui est à vous"
+                                note="Une seule vue pour ces réglages, atteinte aussi depuis votre avatar. Cette ligne ne les refait pas, elle y mène."
+                            >
                                 <RuleGroup.Row
                                     title="Compte et sécurité"
-                                    subtitle="Mot de passe, double authentification, session"
+                                    /* Le sous-titre **ne répète pas le contenu** : il dit la
+                                       conséquence. « Mot de passe, double authentification,
+                                       session » énumérait ce qu'il y a derrière la porte —
+                                       ce que le chevron dit déjà. */
+                                    subtitle={
+                                        isTwoFactorEnabled
+                                            ? 'Un second facteur protège chaque connexion'
+                                            : 'Le mot de passe seul ouvre votre session'
+                                    }
                                     status={{ icon: twoFactor.icon, tone: twoFactor.tone }}
                                     value={twoFactor.label}
                                     valueTone={twoFactor.tone}
@@ -573,6 +579,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate }) => 
                                         {typesWithOwnPlan === categories.length && categories.length > 0
                                             ? ` Les ${categories.length} types portent déjà le leur : ce plan ne sert donc qu'aux types créés sans lui.`
                                             : ` ${categories.length - typesWithOwnPlan} type(s) n'en portent pas : ce plan est le leur.`}
+                                        {' '}Les changer{' '}
+                                        <strong className="font-medium text-text-secondary">ne touche pas au passé</strong> : les
+                                        objets déjà amortis gardent leur plan, les prochains prennent le nouveau.
                                     </>
                                 }
                             >

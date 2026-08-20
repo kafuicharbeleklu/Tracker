@@ -11,9 +11,18 @@ import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { renderCategoryIcon } from '../../../data/mockData';
+import { CATEGORY_LABELS, getCategoryLabel } from '../../../constants/glossary';
+import AddModelPage from './AddModelPage';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useToast } from '../../../context/ToastContext';
 import AddCategoryPage from './AddCategoryPage';
+
+/**
+ * « on ne peut pas créer **de serveur** », « **d'écran** » — la conséquence se dit
+ * avec le nom du type, pas avec « un équipement de ce type » (09.1, colonne 3).
+ */
+const indefiniteArticle = (label: string): string =>
+    /^[aeiouyéèêàâîïôûh]/i.test(label) ? `d'${label}` : `de ${label}`;
 
 interface CategoryDetailsPageProps {
     categoryId: string;
@@ -27,6 +36,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
     const { requestConfirmation } = useConfirmation();
     const { showToast } = useToast();
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isAddModelOpen, setIsAddModelOpen] = useState(false);
 
     const category = categories.find((c) => c.id === categoryId);
 
@@ -59,7 +69,17 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
     // lignes, qui se trompait sur tout type créé après lui.
     const family = category.family || 'Mobilier et divers';
     const dataKey = category.name;
-    const isDataKeyReleve = true;
+    /**
+     * Une clé est **relevée** quand le nom du type est l'une des clés techniques que
+     * la logique métier et les imports savent lire — celles de `CATEGORY_LABELS`.
+     * Un type créé par un administrateur porte son libellé français en guise de nom :
+     * il n'a alors **aucune clé**, et un import ne sait pas le nommer.
+     *
+     * C'est le second manque de la colonne 3 de 09.1, dit à part du premier. Il valait
+     * `true` en dur, ce qui rendait l'état inatteignable.
+     */
+    const isDataKeyReleve = Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, category.name);
+    const typeLabel = getCategoryLabel(category.name).toLowerCase();
     const isAssignable = category.assignable !== false;
     const depreciationYears = category.defaultDepreciation?.years ?? 3;
     const depreciationMethod = category.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire';
@@ -126,10 +146,10 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                     </div>
                     <span
                         className={`text-body-medium shrink-0 ${
-                            isDataKeyReleve ? 'font-medium text-on-surface' : 'text-text-secondary italic'
+                            isDataKeyReleve ? 'font-medium text-on-surface' : 'font-normal text-text-muted'
                         }`}
                     >
-                        {dataKey}
+                        {isDataKeyReleve ? dataKey : 'à relever'}
                     </span>
                 </div>
                 <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
@@ -188,14 +208,50 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                         ))}
                     </div>
                 ) : (
-                    <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-on-surface">
-                        <Icon glyph={Warning} size={18} className="text-[var(--tk-color-st-ambre)] shrink-0 mt-0.5" />
-                        <span>
-                            <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type n'apparaît pas dans la création d'équipement.
-                        </span>
+                    /* Un type inutilisable **ne s'excuse pas et ne clignote pas** (09.1,
+                       colonne 3) : il dit la conséquence exacte, nommée sur ce type-ci,
+                       et met à portée le geste qui la lève. L'avertissement seul laissait
+                       la situation entière au lecteur. */
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-on-surface">
+                            <Icon glyph={Warning} size={18} className="text-[var(--tk-color-st-ambre)] shrink-0 mt-0.5" />
+                            <span>
+                                <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type n'apparaît pas dans la
+                                création d'équipement : on ne peut pas créer {indefiniteArticle(typeLabel)}.
+                            </span>
+                        </div>
+                        <Button variant="filled" onClick={() => setIsAddModelOpen(true)}>
+                            Ajouter le premier modèle
+                        </Button>
                     </div>
                 )}
             </section>
+
+            {/* L'actif orphelin — la carte que 09.1 pose sous « Modèles » quand un type
+                sans modèle porte pourtant des actifs. Ils ont été créés avant leur modèle,
+                ou hors du catalogue : **leur fiche reste valide, c'est le référentiel qui
+                est en retard sur elle**. Sans cette carte, le vide de la liste des modèles
+                laisse croire que le type ne sert à rien. */}
+            {categoryModels.length === 0 && categoryEquipment.length > 0 && (
+                <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+                    <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-text-secondary">
+                        <Icon glyph={Info} size={18} className="shrink-0 text-text-secondary mt-0.5" />
+                        <span>
+                            <strong className="font-medium text-on-surface">
+                                {categoryEquipment.length === 1
+                                    ? 'Un actif porte pourtant ce type'
+                                    : `${categoryEquipment.length} actifs portent pourtant ce type`}
+                            </strong>{' '}
+                            — {categoryEquipment.slice(0, 2).map((item) => item.assetId).join(', ')}
+                            {categoryEquipment.length > 2 && `, et ${categoryEquipment.length - 2} autre${categoryEquipment.length - 2 > 1 ? 's' : ''}`}.
+                            {categoryEquipment.length === 1 ? ' Il a été créé' : ' Ils ont été créés'} avant{' '}
+                            {categoryEquipment.length === 1 ? 'son modèle' : 'leur modèle'}, ou hors du catalogue.{' '}
+                            {categoryEquipment.length === 1 ? 'Sa fiche reste valide' : 'Leurs fiches restent valides'} ;
+                            c'est le référentiel qui est en retard sur {categoryEquipment.length === 1 ? 'elle' : 'elles'}.
+                        </span>
+                    </div>
+                </section>
+            )}
 
             {/* Section 3 : Note d'amortissement et actions */}
             <section className="rounded-lg bg-surface p-4 shadow-elevation-1 flex flex-col gap-3">
@@ -254,6 +310,12 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                 isOpen={isEditOpen}
                 onClose={() => setIsEditOpen(false)}
                 categoryToEdit={category}
+            />
+
+            <AddModelPage
+                isOpen={isAddModelOpen}
+                onClose={() => setIsAddModelOpen(false)}
+                initialType={category.name}
             />
         </DetailTemplate>
     );

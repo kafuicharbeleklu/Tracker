@@ -249,10 +249,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     ? `Supprimer ${ids.length} comptes ?`
                     : 'Supprimer ce compte ?',
             message: (
-                <p>
-                    Les accès associés seront révoqués. Cette opération ne peut pas être
-                    annulée.
-                </p>
+                <p>Les accès seront révoqués. Opération irréversible.</p>
             ),
             confirmText: 'Supprimer',
             onConfirm: () => {
@@ -320,7 +317,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     >
                         <Icon glyph={Funnel} size={20} />
                         {activeSheetFiltersCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-[10px] font-semibold tabular-nums text-inverse-on-surface">
+                            <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
                                 {activeSheetFiltersCount}
                             </span>
                         )}
@@ -408,7 +405,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     return (
                         <ListRow
                             key={user.id}
-                            vignette={<span className="font-brand text-[15px] font-semibold">{initials(user.name)}</span>}
+                            vignette={<span className="font-brand text-body-large font-semibold">{initials(user.name)}</span>}
                             title={user.name}
                             type={getStatusLabel(user.role)}
                             holder={user.department || user.site || '—'}
@@ -433,7 +430,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 <div className="space-y-4 px-1 pb-2">
                     {/* Département */}
                     <div>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
                             Département
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -442,7 +439,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={dept}
                                     type="button"
                                     onClick={() => setDepartmentFilter(dept)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
                                         departmentFilter === dept
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -456,7 +453,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
                     {/* Site */}
                     <div>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
                             Site
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -465,7 +462,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={s}
                                     type="button"
                                     onClick={() => setSiteFilter(s)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
                                         siteFilter === s
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -479,7 +476,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
                     {/* État du compte */}
                     <div>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -488,7 +485,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={st}
                                     type="button"
                                     onClick={() => setStatusFilter(st)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-[13px] transition-colors cursor-pointer ${
+                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
                                         statusFilter === st
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -509,22 +506,19 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                 setSiteFilter('Tous');
                                 setStatusFilter('Tous');
                             }}
-                            className="text-[14px] font-medium text-on-surface hover:text-text-secondary cursor-pointer"
+                            className="text-label-large font-medium text-on-surface hover:text-text-secondary cursor-pointer"
                         >
                             Tout effacer
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="flex-1 max-w-[240px] flex h-12 items-center justify-center rounded-md bg-inverse-surface text-inverse-on-surface text-[14px] font-medium transition-colors hover:bg-inverse-surface/90 cursor-pointer"
+                            className="flex-1 max-w-[240px] flex h-12 items-center justify-center rounded-md bg-inverse-surface text-inverse-on-surface text-label-large font-medium transition-colors hover:bg-inverse-surface/90 cursor-pointer"
                         >
                             Voir les {filteredUsers.length} personnes
                         </button>
                     </div>
 
-                    <p className="text-center text-[11px] text-text-muted">
-                        Le rôle n’est pas repris ici : il est déjà en tête d’écran sous forme de pastilles.
-                    </p>
                 </div>
             </BottomSheet>
 
@@ -547,8 +541,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-medium text-on-surface">Inviter par e-mail</p>
-                            <p className="text-[11px] text-text-muted leading-4">
+                            <p className="text-body-large font-medium text-on-surface">Inviter par e-mail</p>
+                            <p className="text-label-small text-text-muted">
                                 La personne choisit son mot de passe à la première connexion.
                             </p>
                         </div>
@@ -567,17 +561,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                             <Icon glyph={UsersThree} size={20} />
                         </span>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-medium text-on-surface">Importer depuis l’annuaire</p>
-                            <p className="text-[11px] text-text-muted leading-4">
+                            <p className="text-body-large font-medium text-on-surface">Importer depuis l’annuaire</p>
+                            <p className="text-label-small text-text-muted">
                                 Le compte existe déjà côté entreprise : rien à saisir.
                             </p>
                         </div>
                         <Icon glyph={CaretDown} size={18} className="shrink-0 -rotate-90 text-text-muted" />
                     </button>
 
-                    <p className="mt-2 border-t border-outline-variant pt-2 text-center text-[11px] text-text-muted">
-                        Proposition — le compte peut être invité ou synchronisé depuis l’annuaire.
-                    </p>
                 </div>
             </BottomSheet>
         </>

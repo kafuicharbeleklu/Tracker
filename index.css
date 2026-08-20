@@ -708,6 +708,10 @@ body {
     --tk-color-app-bg: #f2f0ea; /* papier chaud du dessin (avant : #FAF9F7) */
     --tk-color-login-desktop-canvas: #e4e1da;
     --tk-color-surface-muted: #f7f5f0; /* le creux d'une carte (avant : #F4F2EF) */
+    /* Le second cran du creux — `--inset-2` du socle, porté le 20/08 avec la connexion :
+       le survol d'une vignette de compte de démo l'exige et rien ne le nommait. Même
+       famille chaude que `--tk-color-surface-muted`, un cran plus appuyé. */
+    --tk-color-surface-muted-strong: #edeae3;
     --tk-color-text-primary: #1a1917; /* 15,42:1 sur le canevas (avant : #1C1917) */
     --tk-color-text-secondary: #57514a;
     --tk-color-text-muted: #6e675f;
@@ -792,8 +796,9 @@ body {
     --tk-color-inverse-on-surface: #ffffff;
     /* Texte estompé sur surface inversée — rôle absent jusqu'au 08/08, découvert en portant
        la connexion : le bandeau de marque porte une accroche, et rien ne la nommait. Valeur
-       prise à l'échelle neutre du DS, donc chaude comme la surface qu'elle habille. */
-    --tk-color-text-on-inverse-muted: var(--color-neutral-400);
+       alignée sur la planche 02.1 le 20/08 — #B8B2A9, la valeur que §2.22 déclare pour
+       `.brand p`. Elle valait le neutre 400 (#A8A199), un cran plus froid et plus sourd. */
+    --tk-color-text-on-inverse-muted: #b8b2a9;
     --tk-color-outline: var(--tk-color-border-strong);
     --tk-color-outline-variant: var(--tk-color-border-default);
     --tk-color-background: var(--tk-color-app-bg);
@@ -814,12 +819,33 @@ body {
     --tk-color-on-nav-surface-variant: var(--color-neutral-400);
 
     /* ---- Couleurs live sur fond sombre (§2.10) ---- */
+    --tk-color-dark: #0a191d;
+    --tk-color-dark-2: #1b3238;
+    --tk-color-on-dark: #ffffff;
+    --tk-color-dark-line: rgba(255, 255, 255, 0.14);
     --tk-color-live-vert: #7ab955;
     --tk-color-live-bleu: #54a9dc;
     --tk-color-live-ambre: #e9c46a;
     --tk-color-live-orange: #e45329;
     --tk-color-on-dark-2: #a9c0c4;
     --tk-color-avatar-text: #cbe6f5;
+
+    /* ---- Statuts : le fond teinté et son encre ----
+       Les six **paires teintées** du socle, portées le 20/08 avec la planche 03.3 :
+       « la nature de chaque tâche en **paire teintée**, et non en texte ». Une paire,
+       c'est un fond et l'encre qui tient dessus — les déclarer séparément est ce qui
+       fait dériver l'un sans l'autre. Le socle note qu'avant elles, les planches
+       inventaient **79 hex distincts pour 18 rôles**. ---- */
+    --tk-color-tint-vert: #e7f0e2;
+    --tk-color-on-tint-vert: #3d5a34;
+    --tk-color-tint-bleu: #e6f1f8;
+    --tk-color-on-tint-bleu: #2a6a8e;
+    --tk-color-tint-orange: #fbeae2;
+    --tk-color-on-tint-orange: #b03a16;
+    --tk-color-tint-ambre: #fef3d6;
+    --tk-color-on-tint-ambre: #7a5a00;
+    --tk-color-tint-danger: #fbedec;
+    --tk-color-on-tint-danger: #8c2f26;
 
     /* ---- Couleurs d'état / statuts des listes (§2.10) ---- */
     --tk-color-st-vert: #5b913c;
@@ -959,7 +985,12 @@ body {
        Rôle nouveau : aujourd'hui l'icône active est peinte en jaune plein
        (`text-primary`, ≈1,55:1 sur clair — écart X12). L'or foncé du brief est
        une amélioration nette, mais reste sous AA pour le libellé 11px (Q-B3). */
-    --tk-color-nav-active: #b8860b; /* 3,09:1 sur canvas */
+    /* L'encre de l'onglet actif — `--nav-on` du socle. Elle valait #B8860B, soit
+       3,09:1 sur la surface de la barre : sous le plancher AA de 4,5:1 pour un
+       libellé de 11 px, et c'est exactement la taille qu'elle habille. #8A6508
+       tient 5,0:1 et c'est la valeur que les planches déclarent. Corrigé le 20/08
+       en portant 17.7. */
+    --tk-color-nav-active: #8a6508;
 
     /* ---- §6 Couleur — retour tactile (pressed) ---- */
     --tk-color-pressed-surface: #efede8; /* = surface neutre §1, 100 ms */
@@ -992,6 +1023,12 @@ body {
     /* ---- §4/§5 Dimensions de contrôles ---- */
     --tk-size-control-height: 48px; /* hauteur du bouton primaire */
     --tk-size-touch-target: 48px; /* cible tactile minimale (.touch-target) */
+    /* Hauteur de la barre du bas, quand il y en a une. Vaut 0 par défaut, et c'est le cas
+       qui compte : les écrans hors session (connexion, première connexion) sont montés
+       HORS d'`AppLayout` et n'ont donc aucune barre. `AppLayout` la relève à 56 px quand
+       il affiche `NavigationBar`. Le retour transitoire 17.5 s'en sert pour se poser
+       au-dessus de la barre — jamais dessus, et jamais au-dessus d'une barre absente. */
+    --tk-size-bottom-bar: 0px;
     --tk-size-fab: 52px;
 
     /* ---- §2 Typographie — cibles du brief ----
@@ -1027,25 +1064,17 @@ body {
     --color-sidebar-active-text: #1a1a1a;
     --color-sidebar-logo-bg: #262320;
 
-    /* Connexion — univers chromatique local des panneaux (hors neutres chauds
-       du contenu, identité volontairement distincte comme le menu latéral).
-       Valeurs conservées à l'identique : tokenisées pour retirer les hex bruts
-       du composant sans dérive de rendu (constat #18). */
-    /* Portage de la planche 02.1 (08/08). Les trois valeurs étaient FROIDES — un bleu-gris
-       #F8FAFC, un noir neutre #090A0B — et l'écran jurait avec le reste du produit sans
-       qu'aucune règle ne l'attrape : ce sont des tokens de composant, personne ne les
-       compare. Elles pointent désormais sur la couche sémantique. */
-    --color-login-page-bg: var(--tk-color-app-bg); /* papier chaud du produit */
-    --color-login-surface: var(--tk-color-surface); /* panneau du formulaire */
-    --color-login-hero-bg: var(--tk-color-inverse-surface); /* encre LIVE du bandeau de marque */
-    /* Textes du héro sombre. Valeurs reprises TELLES QUELLES de la palette Tailwind
-       (slate-200 / slate-400) que le composant utilisait en classes brutes, en
-       oklch et non en hex pour rester au pixel près : la conversion vers sRGB de
-       Tailwind v4 ne repasse pas exactement par #E2E8F0 / #94A3B8.
-       Tokenisés le 2026-07-25 (Tracker DS v1, tâche 5a — extension du périmètre
-       de `ds:check` à `src/**`). */
-    --color-login-hero-text: var(--tk-color-inverse-on-surface); /* sur l'encre */
-    --color-login-hero-text-muted: var(--tk-color-text-on-inverse-muted); /* accroche */
+    /* Connexion — il n'en reste qu'un.
+       Quatre jetons accompagnaient celui-ci : `--color-login-page-bg`, `--color-login-surface`,
+       `--color-login-hero-bg` et `--color-login-hero-text`. Ils avaient été créés pour retirer
+       des hex bruts du composant, puis rebranchés sur la couche sémantique — après quoi la page
+       a consommé les jetons sémantiques en direct et les quatre alias n'ont plus jamais été lus.
+       Zéro consommateur vérifié sur `src/**`, `*.css`, `*.html` : retirés le 20/08. */
+    /* L'accroche du bandeau de marque, seul rescapé du lot : c'est le seul que la page
+       consomme encore. Son commentaire d'origine décrivait des valeurs Tailwind (slate-200
+       / slate-400) qu'il ne porte plus depuis le portage de 02.1 — il pointe la couche
+       sémantique, qui vaut #B8B2A9, la valeur que §2.22 déclare pour `.brand p`. */
+    --color-login-hero-text-muted: var(--tk-color-text-on-inverse-muted);
 }
 
 html,

@@ -40,7 +40,7 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import { DESTINATIONS } from '../../../constants/destinations';
-import { RBAC_PERMISSIONS } from '../../../config/rbacDefaults';
+import { RBAC_PERMISSIONS, SYSTEM_ROLE_ID_BY_USER_ROLE } from '../../../config/rbacDefaults';
 import type {
     AppViewKey,
     PermissionAccessLevel,
@@ -137,7 +137,10 @@ const VIEW_LABEL: Record<AppViewKey, string> = {
     dashboard: DESTINATIONS.dashboard.label,
     inventory: DESTINATIONS.equipment.label,
     finance: DESTINATIONS.finance.label,
-    approvals: DESTINATIONS.approvals.label,
+    // `view.approvals` est une **clé de permission**, stockée dans les rôles : elle ne se
+    // renomme pas sans migrer la donnée RBAC. Ce qu'elle garde, en revanche, est
+    // désormais la file — la destination « Approbations » a été retirée le 20/08.
+    approvals: DESTINATIONS.tasks.label,
     audit: DESTINATIONS.audit.label,
     reports: DESTINATIONS.reports.label,
     management: DESTINATIONS.management.label,
@@ -218,6 +221,59 @@ const inheritanceFact = (
     });
 
     return { baseName: base.name, addsNothing };
+};
+
+/**
+ * La note d'un groupe de portée — **c'est elle qui porte le fait central de 11.1**.
+ *
+ * Ranger les rôles par portée déclarée rend l'écart visible ; la note dit *en quoi* il
+ * consiste, groupe par groupe. Sans elle, la liste montre un classement sans dire que
+ * ce sur quoi elle classe n'est lu par personne.
+ *
+ * Chaque note est **déduite de ce que le groupe contient réellement** — jamais posée en
+ * dur sur un nom de rôle, qui changerait sans que la phrase change.
+ */
+const scopeNote = (
+    level: ScopeLevel,
+    roles: RbacRole[],
+    byId: Map<string, RbacRole>
+): string | null => {
+    const parts: string[] = [];
+
+    if (level === 'global') {
+        parts.push(
+            "Une portée globale reçoit le parc entier — mais l'Admin le reçoit aussi dès qu'aucun pays ne lui est affecté : c'est le repli de filterEquipment. Ce qui les sépare tient à managedCountries, une donnée de la personne, pas au rôle."
+        );
+    }
+
+    if (level === 'custom') {
+        parts.push(
+            "Une portée sur mesure est une expression nommée qu'aucun code ne sait résoudre. Les autres portées sont au moins exprimables ; celle-ci n'a même pas de forme — elle est ignorée deux fois."
+        );
+    }
+
+    const inheritsNothing = roles.filter((role) => inheritanceFact(role, byId)?.addsNothing);
+    if (inheritsNothing.length > 0) {
+        parts.push(
+            `Le décompte d'un rôle qui hérite ne dit pas ce qu'il porte : ${inheritsNothing
+                .map((role) => role.name)
+                .join(', ')} n'ajoute${inheritsNothing.length > 1 ? 'nt' : ''} aucun droit à sa base. La rangée le dit ; la colonne de droite ne peut pas.`
+        );
+    }
+
+    const inheritsOtherScope = roles.filter((role) => {
+        if (!role.baseRoleId) return false;
+        const base = byId.get(role.baseRoleId);
+        if (!base) return false;
+        return declaredScope(base) !== level;
+    });
+    if (inheritsOtherScope.length > 0) {
+        parts.push(
+            'Un rôle qui hérite empile sa portée sur celle de sa base : gatherDataScopes garde les deux sans les départager, et rien ne dit laquelle gagnerait — puisque rien ne les lit.'
+        );
+    }
+
+    return parts.length > 0 ? parts.join(' ') : null;
 };
 
 const RbacPage: React.FC = () => {
@@ -712,6 +768,7 @@ const RbacPage: React.FC = () => {
                                             </span>
                                         }
                                         headerTrailing={`${roles.length} rôle${roles.length > 1 ? 's' : ''}`}
+                                        note={scopeNote(level, roles, rolesById)}
                                     >
                                         {roles.map((role) => {
                                             const inheritance = inheritanceFact(role, rolesById);
@@ -736,6 +793,21 @@ const RbacPage: React.FC = () => {
                                     </RuleGroup>
                                 ))
                             )}
+
+                            {/* Le pied de la liste — 11.1. Le classement par portée montre
+                                l'écart ; cette note dit **ce que le produit lit à la place**.
+                                Sans elle, on croit que ranger sur la portée veut dire qu'elle
+                                s'applique. */}
+                            <Notice glyph={Crosshair}>
+                                <strong className="font-medium text-on-surface">
+                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} rôles ont une branche dans le filtrage
+                                    ligne à ligne
+                                </strong>{' '}
+                                — les valeurs de <code>UserRole</code>, testées en dur. Leur portée déclarée et ce que le filtre
+                                applique coïncident <strong className="font-medium text-on-surface">par construction</strong>,
+                                jamais parce que la portée est lue. Les {customRoles.length} rôles personnalisés n'ont aucune
+                                branche : ils déclarent un périmètre que rien ne borne.
+                            </Notice>
 
                             <div className="flex flex-col gap-3">
                                 <Button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Icon from '../../../components/ui/Icon';
 import {
     ArrowsClockwise,
@@ -6,10 +6,11 @@ import {
     MagnifyingGlass,
     Check,
     SpinnerGap,
-    Sparkle,
+    Warning,
     WarningCircle,
     Sliders,
 } from '@phosphor-icons/react';
+import { formatCurrency } from '../../../lib/financial';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
@@ -49,6 +50,12 @@ const MODE_OPTIONS = [
     { value: 'manual', label: 'Saisie manuelle' },
 ];
 
+/** « 6 août 2026 » — la date d'une lecture se lit, elle ne se décode pas. */
+const formatReadDate = (date: Date): string => {
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+};
+
 const getObjectUrlForFile = (file?: File | null): string | undefined => {
     if (!file) return undefined;
     try {
@@ -67,7 +74,7 @@ type PreparedSourceFile = {
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) => {
     const { showToast } = useToast();
     const { settings } = useData();
-    const { addFinanceExpense } = useFinanceData();
+    const { addFinanceExpense, financeBudgets } = useFinanceData();
 
     const [mode, setMode] = useState<AddExpenseMode>('scan');
     const [isScanning, setIsScanning] = useState(false);
@@ -90,16 +97,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
     const currencySymbol = settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€';
     const requiresLowConfidenceReview = Boolean(scannedFile && extractionMeta?.confidence === 'low');
 
-    const confidenceLabel = (value: 'high' | 'medium' | 'low') => (
-        value === 'high' ? 'élevée' : value === 'medium' ? 'moyenne' : 'faible'
-    );
-
-    const textSourceLabel = (source: ExtractedExpenseDraft['textSource']) => {
-        if (source === 'native') return 'Texte natif';
-        if (source === 'ocr') return 'OCR';
-        if (source === 'hybrid') return 'Natif + OCR';
-        return 'Indéterminée';
-    };
+    /* `confidenceLabel` et `textSourceLabel` sont tombés avec le bandeau « Données
+       extraites par IA » : la confiance et la source de lecture ne s'affichent plus,
+       elles décident de ce qui arrive rempli et de ce qui arrive vide (15.1). */
 
     const prepareSourceFile = async (file?: File | null): Promise<PreparedSourceFile> => {
         if (!file) {
@@ -146,6 +146,27 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
      */
     const keepIfRead = (value: string, confidence: ExtractionConfidence): string =>
         confidence === 'low' ? '' : value;
+
+    /**
+     * **Sur quel poste cette dépense s'impute, et ce qu'il en restera après** — planche
+     * 15.1, colonne 2. Le bloc existait dans la feuille de détail, au présent (« il
+     * reste ») : il disait l'état avant l'acte, pas la conséquence de l'acte. C'est
+     * pourtant ici, avant d'enregistrer, que le chiffre décide.
+     */
+    const budgetImpact = useMemo(() => {
+        if (!formData.type) return null;
+        const amount = parseAmountString(formData.amount);
+        if (amount === null || amount <= 0) return null;
+
+        const year = new Date(formData.date || Date.now()).getFullYear();
+        const budget =
+            financeBudgets.find((entry) => entry.year === year) ?? financeBudgets[0];
+        const line = budget?.items.find((item) => item.type === formData.type);
+        if (!line || line.allocated <= 0) return null;
+
+        const consumed = Math.round((line.spent / line.allocated) * 100);
+        return { category: line.category, consumed, after: line.allocated - line.spent - amount };
+    }, [financeBudgets, formData.amount, formData.date, formData.type]);
 
     /** Les champs laissés vides parce que la lecture n'était pas franche. */
     const unreadFields = extractionMeta?.fieldConfidence
@@ -424,7 +445,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         >
             <div className="mb-6 rounded-md border border-outline-variant bg-gradient-to-r from-surface-container-low to-surface-container p-3">
                 <div className="mb-2 flex items-center gap-2 text-label-small text-on-surface-variant uppercase tracking-widest">
-                    <Icon glyph={ArrowsClockwise} size={14} />
+                    <Icon glyph={ArrowsClockwise} size={18} />
                     Mode de saisie
                 </div>
                 <SegmentedButton
@@ -451,28 +472,28 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         <div className="flex flex-col items-center">
                             <div className="relative">
                                 <div className="w-24 h-24 rounded-full border-4 border-outline-variant flex items-center justify-center relative overflow-hidden">
-                                    <Icon glyph={FileText} size={40} className="text-on-surface-variant" />
+                                    <Icon glyph={FileText} size={32} className="text-on-surface-variant" />
                                     <div
                                         className="absolute inset-0 bg-primary/20 animate-[spin_3s_linear_infinite]"
                                         style={{ clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)' }}
                                     />
                                 </div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Icon glyph={MagnifyingGlass} size={48} className="text-primary animate-pulse" />
+                                    <Icon glyph={MagnifyingGlass} size={32} className="text-primary animate-pulse" />
                                 </div>
                             </div>
                             <h3 className="text-title-medium font-bold text-on-surface mt-6">Analyse en cours...</h3>
                             <div className="flex flex-col gap-1 mt-2 text-body-medium text-on-surface-variant">
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-100 flex items-center gap-2">
-                                    <Icon glyph={Check} size={12} className="text-tertiary" />
+                                    <Icon glyph={Check} size={18} className="text-tertiary" />
                                     Détection du fournisseur
                                 </span>
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-500 flex items-center gap-2">
-                                    <Icon glyph={Check} size={12} className="text-tertiary" />
+                                    <Icon glyph={Check} size={18} className="text-tertiary" />
                                     Lecture des montants HT/TTC
                                 </span>
                                 <span className="animate-in fade-in slide-in-from-bottom-2 delay-1000 flex items-center gap-2">
-                                    <Icon glyph={SpinnerGap} size={12} className="animate-spin text-primary" />
+                                    <Icon glyph={SpinnerGap} size={18} className="animate-spin text-primary" />
                                     Catégorisation...
                                 </span>
                             </div>
@@ -483,42 +504,36 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
             {mode === 'manual' && (
                 <div className="animate-in slide-in-from-right-8 duration-300 space-y-4">
+                    {/* Le fichier lu — `.fread` de 15.1. Une surface neutre : icône, nom,
+                        date de lecture, et de quoi le retirer. Le bandeau teinté « Données
+                        extraites par IA » disait la machine plutôt que le document, et
+                        empilait trois lignes de métadonnées que la planche ne porte pas —
+                        la confiance ne se dit pas, elle décide (voir `keepIfRead`). */}
                     {scannedFile && (
-                        <div className="bg-tertiary-container border border-tertiary/20 rounded-xl p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container">
-                                    <Icon glyph={Sparkle} size={16} />
-                                </div>
-                                <div>
-                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données extraites par IA</p>
-                                    <p className="text-body-small text-tertiary truncate max-w-[260px]">{scannedFile.name}</p>
-                                    {extractionMeta && (
-                                        <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
-                                            Confiance: {confidenceLabel(extractionMeta.confidence)}
-                                        </p>
-                                    )}
-                                    {extractionMeta?.currencyCode ? (
-                                        <p className="text-label-small text-on-tertiary-container/80">
-                                            Devise détectée: {extractionMeta.currencyCode}
-                                        </p>
-                                    ) : null}
-                                    {extractionMeta ? (
-                                        <p className="text-label-small text-on-tertiary-container/80">
-                                            Source lecture: {textSourceLabel(extractionMeta.textSource)}
-                                        </p>
-                                    ) : null}
-                                </div>
+                        <div className="rounded-lg border border-outline-variant bg-surface p-4 shadow-elevation-1">
+                            <div className="flex min-h-[56px] items-center gap-3">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] bg-surface-container text-on-surface-variant">
+                                    <Icon glyph={FileText} size={20} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <b className="block truncate text-[14px] font-medium text-on-surface">
+                                        {scannedFile.name}
+                                    </b>
+                                    <span className="block text-[12px] text-on-surface-variant">
+                                        lue le {formatReadDate(new Date())}
+                                    </span>
+                                </span>
+                                <IconButton
+                                    icon="close"
+                                    variant="standard"
+                                    aria-label="Retirer le fichier scanné"
+                                    onClick={() => {
+                                        setScannedFile(null);
+                                        setExtractionMeta(null);
+                                        setIsLowConfidenceReviewed(false);
+                                    }}
+                                />
                             </div>
-                            <IconButton
-                                icon="close"
-                                variant="standard"
-                                aria-label="Retirer le fichier scanné"
-                                onClick={() => {
-                                    setScannedFile(null);
-                                    setExtractionMeta(null);
-                                    setIsLowConfidenceReviewed(false);
-                                }}
-                            />
                         </div>
                     )}
 
@@ -528,15 +543,70 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         </div>
                     ) : null}
 
-                    {/* Ce que la machine n'a pas su lire — nommé, parce que c'est le seul
-                        endroit où l'œil doit se poser. Le reste est acquis (planche 15.1). */}
-                    {unreadFields.length > 0 ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-label-small text-on-surface-variant">
-                            {unreadFields.length === 1
-                                ? `${unreadFields[0]} n’a pas été lu sur le document : le champ est resté vide.`
-                                : `${unreadFields.join(', ')} n’ont pas été lus sur le document : ces champs sont restés vides.`}
+                    {/* ── Ce que la machine a lu — `.xrow` de 15.1 ─────────────────────
+                        Le second bloc de la colonne 2, qui n'existait qu'en **lecture**,
+                        dans la feuille de détail — donc à l'endroit où il ne sert plus à
+                        décider. Ce qui a été lu franchement est **acquis** et se relit d'un
+                        coup d'œil ; ce qui ne l'a pas été porte « non lu · à saisir », et
+                        c'est le seul endroit où l'œil doit se poser. */}
+                    {scannedFile && extractionMeta && (
+                        <div className="rounded-lg border border-outline-variant bg-surface p-4 shadow-elevation-1">
+                            <div className="mb-2 flex items-baseline justify-between gap-3">
+                                <h3 className="text-[13px] font-medium text-on-surface">Ce que la machine a lu</h3>
+                            </div>
+                            <div className="divide-y divide-outline-variant">
+                                {[
+                                    { label: 'Fournisseur', value: formData.supplier, confidence: extractionMeta.fieldConfidence?.supplier },
+                                    {
+                                        label: 'Montant',
+                                        value: formData.amount ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}` : '',
+                                        confidence: extractionMeta.fieldConfidence?.amount,
+                                    },
+                                    {
+                                        label: 'Date',
+                                        value: formData.date ? formatReadDate(new Date(formData.date)) : '',
+                                        confidence: extractionMeta.fieldConfidence?.date,
+                                    },
+                                    {
+                                        label: 'N° de facture',
+                                        value: formData.invoiceNumber,
+                                        confidence: extractionMeta.fieldConfidence?.invoiceNumber,
+                                    },
+                                ].map((row) => {
+                                    const unread = !row.value || row.confidence === 'low';
+                                    return (
+                                        <div key={row.label} className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                            <span className="w-[106px] shrink-0 text-on-surface-variant">{row.label}</span>
+                                            <span
+                                                className={
+                                                    unread
+                                                        ? 'min-w-0 flex-1 font-normal text-text-muted'
+                                                        : 'min-w-0 flex-1 truncate font-medium tabular-nums text-on-surface'
+                                                }
+                                            >
+                                                {unread ? 'non lu' : row.value}
+                                            </span>
+                                            {unread && (
+                                                <span className="shrink-0 text-[11px] text-text-muted">à saisir</span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <p className="mt-1.5 px-0.5 text-[12px] leading-[17px] text-on-surface-variant">
+                                {unreadFields.length === 0 ? (
+                                    <>Les quatre champs sont acquis. Rien à relire.</>
+                                ) : (
+                                    <>
+                                        {4 - unreadFields.length} champ{4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
+                                        {4 - unreadFields.length > 1 ? 'sont acquis' : 'est acquis'}. Le
+                                        {unreadFields.length > 1 ? 's autres arrivent vides' : ' quatrième arrive vide'} : c'est le
+                                        seul endroit où l'œil doit se poser.
+                                    </>
+                                )}
+                            </p>
                         </div>
-                    ) : null}
+                    )}
 
                     {requiresLowConfidenceReview ? (
                         <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
@@ -554,7 +624,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
                     <div className="border border-primary/25 bg-primary-container/10 p-4">
                         <div className="mb-3 flex items-center gap-2">
-                            <Icon glyph={WarningCircle} size={16} className="text-primary" />
+                            <Icon glyph={WarningCircle} size={18} className="text-primary" />
                             <p className="text-label-medium uppercase tracking-widest text-on-surface">Champs critiques</p>
                         </div>
                         <div className="grid grid-cols-1 expanded:grid-cols-3 gap-4">
@@ -585,7 +655,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
                     <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4 border border-outline-variant bg-surface-container-low p-4">
                         <div className="expanded:col-span-2 mb-1 flex items-center gap-2">
-                            <Icon glyph={Sliders} size={16} className="text-on-surface-variant" />
+                            <Icon glyph={Sliders} size={18} className="text-on-surface-variant" />
                             <p className="text-label-medium uppercase tracking-widest text-on-surface-variant">Détails complémentaires</p>
                         </div>
                         <InputField
@@ -613,6 +683,30 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                             />
                         </div>
                     </div>
+
+                    {/* L'imputation budgétaire — `.warn` de 15.1. **Ce que l'acte laisse
+                        derrière lui**, pas l'état d'avant : le poste, ce qu'il a déjà
+                        consommé, et ce qu'il en restera une fois cette dépense enregistrée.
+                        Un solde qui passe sous zéro se voit ici, pas à la clôture. */}
+                    {budgetImpact && (
+                        <div className="flex gap-2.5 rounded-md border border-outline-variant bg-surface-container p-[11px_12px] text-[12px] leading-[17px] text-on-surface-variant">
+                            <Icon glyph={Warning} size={18} className="mt-px shrink-0 text-on-surface-variant" />
+                            <span>
+                                <b className="font-medium text-on-surface">
+                                    Cette dépense s'impute sur «&nbsp;{budgetImpact.category}&nbsp;»
+                                </b>
+                                , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après enregistrement, il restera{' '}
+                                <b
+                                    className={
+                                        budgetImpact.after < 0 ? 'font-medium text-error' : 'font-medium text-on-surface'
+                                    }
+                                >
+                                    {formatCurrency(budgetImpact.after, settings.currency, settings.compactNotation)}
+                                </b>{' '}
+                                sur le poste.
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
         </Modal>

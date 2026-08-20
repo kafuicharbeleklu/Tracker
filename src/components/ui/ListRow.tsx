@@ -100,6 +100,21 @@ interface ListRowProps {
     referenceClassName?: string;
     /** Quatrième fait, dès `medium` : la date du dernier mouvement. */
     date?: React.ReactNode;
+    /**
+     * **Variante déclarée (§2.27) — la marque à droite de la rangée entière**, demandée
+     * par la campagne d'audit (planche 16.2).
+     *
+     * La rangée canonique de 04.1 met l'état sur la **seconde ligne**, devant le porteur :
+     * dans une liste de parc, l'état qualifie l'objet. Dans une campagne, il ne qualifie
+     * pas l'objet mais **le relevé** — *à scanner*, *retrouvé il y a 12 min*, *manquant* —
+     * et c'est le seul axe qu'on parcourt du regard, colonne par colonne, en tenant un
+     * téléphone. D'où la marque à droite, alignée d'une rangée à l'autre.
+     *
+     * `status` reste disponible en parallèle : la campagne ne l'emploie pas, parce qu'elle
+     * n'a rien à dire de l'état de l'objet — c'est justement l'objet de l'audit de le dire.
+     * Optionnelle : les rangées de 04.1 et 05.1 ne la passent pas et ne changent pas.
+     */
+    mark?: ListRowStatus;
     /** Ouvre la fiche. */
     onOpen?: () => void;
     /** Le régime de sélection est-il engagé sur cet écran ? (17.2) */
@@ -120,6 +135,7 @@ const ListRow: React.FC<ListRowProps> = ({
     reference,
     referenceClassName,
     date,
+    mark,
     onOpen,
     selectionActive = false,
     selected = false,
@@ -183,6 +199,15 @@ const ListRow: React.FC<ListRowProps> = ({
             {date && (
                 <span className="hidden whitespace-nowrap text-body-small tabular-nums text-on-surface-variant medium:block">
                     {date}
+                </span>
+            )}
+
+            {/* La marque, à toutes les largeurs : c'est l'axe de lecture de la campagne,
+                pas un quatrième fait qu'on peut se permettre de cacher en compact. */}
+            {mark && (
+                <span className="flex shrink-0 items-center gap-[5px] whitespace-nowrap text-[12px] text-text-secondary">
+                    <Icon glyph={mark.icon} size={18} className={cn('shrink-0', TONE_CLASS[mark.tone])} />
+                    {mark.label}
                 </span>
             )}
         </>

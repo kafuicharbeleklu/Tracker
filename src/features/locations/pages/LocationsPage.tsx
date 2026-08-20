@@ -16,6 +16,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import Modal from '../../../components/ui/Modal';
 import { buildCsvLine } from '../../../lib/csv';
+import { rowActivation } from '../../../lib/a11y';
 
 type EntityType = 'country' | 'site' | 'service';
 
@@ -527,7 +528,7 @@ const LocationsPage = () => {
                                         </div>
                                     </div>
                                     <div className="expanded:col-span-3 grid grid-cols-1 medium:grid-cols-3 gap-6">
-                                        <div onClick={() => navigate('/inventory')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-secondary/30 cursor-pointer transition-all">
+                                        <div {...rowActivation(() => navigate('/inventory'))} aria-label="Voir les équipements" className="bg-surface p-card rounded-card focus-visible:ring-focus-ring outline-none focus-visible:ring-2 border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-secondary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="desktop_windows" size={16} className="text-secondary" /> {GLOSSARY.EQUIPMENT_PLURAL}</div>
                                             <div className="text-display-small font-black text-on-surface group-hover:text-secondary transition-colors">{stats.equipmentCount}</div>
                                             <div className={cn("text-label-small font-bold mt-2 flex items-center gap-1 uppercase tracking-wider", stats.usesSiteFallback ? "text-on-surface-variant" : stats.isAllFunctional ? "text-tertiary" : "text-secondary")}>
@@ -536,14 +537,14 @@ const LocationsPage = () => {
                                                     : stats.isAllFunctional ? <><MaterialIcon name="check" size={12} /> Tous fonctionnels</> : <span>Attention requise</span>}
                                             </div>
                                         </div>
-                                        <div onClick={() => navigate('/users')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-tertiary/30 cursor-pointer transition-all">
+                                        <div {...rowActivation(() => navigate('/users'))} aria-label="Voir les utilisateurs" className="bg-surface p-card rounded-card focus-visible:ring-focus-ring outline-none focus-visible:ring-2 border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-tertiary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="group" size={16} className="text-tertiary" /> {GLOSSARY.USER_PLURAL}</div>
                                             <div className="text-display-small font-black text-on-surface group-hover:text-tertiary transition-colors">{stats.userCount}</div>
                                             <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold">
                                                 {stats.usesSiteFallback ? 'Au site — service non renseigné' : 'Actifs rattachés'}
                                             </div>
                                         </div>
-                                        <div onClick={() => navigate('/audit/details')} className="bg-surface p-card rounded-card border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-primary/30 cursor-pointer transition-all">
+                                        <div {...rowActivation(() => navigate('/audit/details'))} aria-label="Voir l'audit" className="bg-surface p-card rounded-card focus-visible:ring-focus-ring outline-none focus-visible:ring-2 border border-outline-variant shadow-elevation-1 flex flex-col justify-between group hover:border-primary/30 cursor-pointer transition-all">
                                             <div className="flex items-center gap-2 text-on-surface-variant font-black text-label-small uppercase tracking-widest mb-2"><MaterialIcon name="info" size={16} className="text-secondary" /> Dernier Audit</div>
                                             <div className="text-title-large font-black text-on-surface group-hover:text-primary transition-colors">—</div>
                                             <div className="text-label-small text-on-surface-variant mt-2 uppercase tracking-wider font-bold italic">Voir les campagnes d'audit</div>

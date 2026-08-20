@@ -423,7 +423,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 if (seeded > 0) showToast(DEMO_RESEED_NOTICE, 'info');
                 if (blocked > 0) {
                     showToast(
-                        `${blocked} équipement(s) n’ont pas pu être sortis (statut non compatible).`,
+                        `${blocked} équipement(s) au statut non compatible.`,
                         'warning'
                     );
                 }
@@ -504,7 +504,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         >
                             <Icon glyph={Funnel} size={20} />
                             {activeSheetFiltersCount > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-[10px] font-semibold tabular-nums text-inverse-on-surface">
+                                <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
                                     {activeSheetFiltersCount}
                                 </span>
                             )}
@@ -733,7 +733,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 >
                     <div className="flex flex-col gap-4 px-5 py-3">
                         <div>
-                            <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Famille</p>
+                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Famille</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {FAMILIES.map((family) => (
                                     <button
@@ -757,7 +757,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
 
                         {familyFilter !== 'Toutes' && availableTypesForFamily.length > 0 && (
                             <div>
-                                <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Type</p>
+                                <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Type</p>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     <button
                                         type="button"
@@ -789,7 +789,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         )}
 
                         <div>
-                            <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Emplacement</p>
+                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Emplacement</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {availableLocations.map((loc) => (
                                     <button
@@ -809,7 +809,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         </div>
 
                         <div>
-                            <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Ajouté</p>
+                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Ajouté</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {PERIODS.map((period) => (
                                     <button
@@ -863,7 +863,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 <Icon glyph={Scan} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-[15px] font-medium text-on-surface">Scanner l’étiquette</p>
+                                <p className="text-body-large font-medium text-on-surface">Scanner l’étiquette</p>
                                 <p className="text-body-small text-on-surface-variant">le code et le type sont lus sur l’objet</p>
                             </div>
                             <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
@@ -881,7 +881,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 <Icon glyph={Keyboard} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-[15px] font-medium text-on-surface">Saisir la fiche</p>
+                                <p className="text-body-large font-medium text-on-surface">Saisir la fiche</p>
                                 <p className="text-body-small text-on-surface-variant">type, code, emplacement, numéro de série</p>
                             </div>
                             <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
@@ -899,15 +899,12 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 <Icon glyph={Package} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-[15px] font-medium text-on-surface">Importer une livraison</p>
+                                <p className="text-body-large font-medium text-on-surface">Importer une livraison</p>
                                 <p className="text-body-small text-on-surface-variant">plusieurs actifs identiques d’un coup</p>
                             </div>
                             <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
                         </button>
 
-                        <p className="mt-2 border-t border-outline-variant px-5 pt-3 text-body-small text-on-surface-variant">
-                            Proposition — le formulaire de création est un écran à part.
-                        </p>
                     </div>
                 </BottomSheet>
 

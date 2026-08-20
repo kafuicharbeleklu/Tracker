@@ -1699,11 +1699,22 @@ rien ; il porte désormais sa table de lecture en tête.
 | planche 10 | **05.3** | `utilisateur-3-creation-piste.html` |
 | planche 11 | **05.4** | `utilisateur-4-compte-piste.html` |
 | planche 12 | **03.2** | `dashboard-2-atraiter-piste.html` |
-| planche 13 | **08** | `lexique-piste.html` |
+| planche 13 | **00.2** | `lexique-piste.html` |
 | planche 14 | **06.2** | `attribution-2-preuve-piste.html` |
 | planche 15 | **06.3** | `attribution-3-fins-de-flux-piste.html` |
-| planche 16 | **03.3** | `dashboard-3-taches-piste.html` |
+| planche 16 | **08.1** | `dashboard-3-taches-piste.html` |
 | planche 17 | **07.1** | `mon-compte-piste.html` |
+
+**Deux lignes de cette table avaient vieilli, corrigées le 18/08.** Le lexique y portait
+encore **08** : il est passé en **00.2** avec la création du groupe `00. Références du
+système`, ce qui a libéré le numéro. C'est Tâches qui l'a pris — la carte déclare
+`08. Tâches` / **08.1**, et 06.5 la désigne par `entry="08.1 Tâches"`. Les cartes sont donc
+d'accord entre elles, et elles sont l'artefact qui est livré.
+
+**Conséquence de lecture, et elle vaut pour tout ce registre :** les mentions de `03.3`
+dans les sections antérieures désignent **08.1**. Elles ne sont pas réécrites — ce sont des
+constats datés (« le tracé de 03.3 *était*… »), et un constat réécrit ne prouve plus rien.
+Le numéro à employer dans un texte neuf est **08.1**.
 
 ### 5.2 · Ce qui reste, et qui n'est pas une divergence
 

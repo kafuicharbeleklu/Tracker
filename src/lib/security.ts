@@ -9,7 +9,13 @@
 // PIN de step-up administrateur.
 // Configurable via VITE_ADMIN_PIN ; fallback dev uniquement.
 // Cible : vérification côté backend (hash) — cf. docs/AUDIT_MECANISMES_SIMULES.md (E-A1).
-const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
+//
+// **Quatre chiffres** depuis l'alignement sur REGLES-TRANSVERSES.md §2.1 : le pavé de
+// SecurityGate est passé de six cases à quatre, et un code de six ne pouvait plus s'y
+// saisir. La valeur reste volontairement triviale — c'est un contrôle de démonstration,
+// vérifié côté client et écrit en clair dans la source livrée : la faire ressembler à un
+// secret ferait croire qu'elle en est un. Le risque est consigné, pas masqué.
+const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '1234').toString();
 
 export function validateAdminPIN(pin: string): boolean {
   return pin === ADMIN_PIN;

@@ -1,5 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
+import { XCircle } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
+import Icon from './Icon';
 import MaterialIcon from './MaterialIcon';
 
 interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -269,12 +271,27 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     )}
                 </div>
 
+                {/* 6 px sous le champ — la métrique de `.ferr` / `.fok` sur 17.5. Portée par le bloc
+                    lui-même et non par le `space-y-1` du conteneur : les formulaires qui règlent leur
+                    propre rythme neutralisent ce dernier, et le message se retrouvait collé au bord. */}
                 {(error || supportingText || showCounter) && (
-                    <div className="ml-4 flex items-start justify-between gap-2">
+                    <div className="mt-1.5 ml-4 flex items-start justify-between gap-2">
                         <div className="min-h-[16px]">
+                            {/*
+                              I3 (§0.3) — l'état porte une icône ET une couleur. `--tk-color-error`
+                              seul disparaît pour qui ne distingue pas la teinte, et à l'impression.
+                              Le glyphe est fixé par la table du registre : `ph-x-circle`.
+                              Forme du message : pattern 17.5, deuxième réponse de la règle de tri —
+                              sous CE champ, 40 signes au plus, sans phrase complète.
+                            */}
                             {error && (
-                                <p id={errorId} className="text-body-small text-error" role="alert">
-                                    {error}
+                                <p
+                                    id={errorId}
+                                    className="text-body-small text-error flex items-start gap-1.5"
+                                    role="alert"
+                                >
+                                    <Icon glyph={XCircle} size={18} className="mt-px" />
+                                    <span>{error}</span>
                                 </p>
                             )}
 

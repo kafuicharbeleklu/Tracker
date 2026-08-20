@@ -43,7 +43,7 @@ Huit gabarits couvrent les 30 écrans. Construisez **le gabarit**, puis instanci
 
 | Gabarit | Planche de référence | Régime tablette |
 | --- | --- | --- |
-| Liste / file | 04.1, 03.3 | 00.3, 00.4 |
+| Liste / file | 04.1, 08.1 | 00.3, 00.4 |
 | Fiche (détail) | 04.2 | 00.3 |
 | Formulaire plein écran | 04.3 | 00.5 |
 | Assistant (flux à étapes) | 06.1 | 00.5 |
@@ -55,8 +55,12 @@ Huit gabarits couvrent les 30 écrans. Construisez **le gabarit**, puis instanci
 ### Étape 3 — les écrans, par domaine
 
 Dans l'ordre des groupes : 02 Connexion · 03 Tableau de bord · 04 Équipement · 05 Utilisateur ·
-06 Attribuer et restituer · 07 Mon compte · 09 Catalogue · 10 Emplacements · 11 Rôles ·
-14 Paramètres · 15 Finances · 16 Audit.
+06 Attribuer et restituer · 07 Mon compte · **08 Tâches** · 09 Catalogue · 10 Emplacements ·
+11 Rôles · 14 Paramètres · 15 Finances · 16 Audit.
+
+« Tâches » manquait à cette liste alors qu'elle est une destination de plein droit — c'est
+l'oubli qui avait laissé la planche s'appeler `03.3` dans ce dossier et `08.1` sur sa carte.
+Le numéro qui fait foi est **08.1** ; voir `REGLES-TRANSVERSES.md` §5.1.
 
 ---
 
@@ -73,7 +77,7 @@ Dans l'ordre des groupes : 02 Connexion · 03 Tableau de bord · 04 Équipement 
 | 02.2 | Première connexion | `login-2-premiere-connexion-piste.html` |
 | 03.1 | Tableau de bord | `dashboard-1-tableau-piste.html` |
 | 03.2 | « À traiter » — la ligne, le bouton, le seuil | `dashboard-2-atraiter-piste.html` |
-| 03.3 | Tâches — la file | `dashboard-3-taches-piste.html` |
+| 08.1 | Tâches — la boîte de travail | `dashboard-3-taches-piste.html` |
 | 04.1 | Liste équipements | `equipement-1-liste-piste.html` |
 | 04.2 | Détail équipement | `equipement-2-detail-piste.html` |
 | 04.3 | Créer, corriger, sortir un équipement | `equipement-3-creation-piste.html` |

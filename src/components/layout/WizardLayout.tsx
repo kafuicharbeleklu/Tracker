@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { MEDIA } from '../../constants/breakpoints';
 import Button from '../ui/Button';
+import Icon from '../ui/Icon';
 
 interface Step {
     id: number;
@@ -56,14 +57,22 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                         aria-label="Retour à l'étape précédente"
                         className="w-10 h-10 min-w-0 p-0 text-[var(--tk-color-text-primary)] hover:bg-[var(--tk-color-surface-muted)]"
                     >
-                        <ArrowLeft size={20} />
+                        <Icon glyph={ArrowLeft} size={20} />
                     </Button>
                 ) : (
                     <div className="w-2" />
                 )}
 
                 <div className="flex-1 min-w-0">
-                    <h1 className="text-[17px] sm:text-[19px] font-semibold font-['Archivo'] text-[var(--tk-color-text-primary)] tracking-[-0.01em] truncate">
+                    {/*
+                      Le titre d'un gabarit est au rang du titre de page — 20 px / 28,
+                      Archivo 600, `-0.015em` (§2.15, métrique de `.tbar h2.h1`). Il
+                      valait 17 puis 19 selon la largeur : 17 n'est admis que pour un
+                      titre de héro inversé et 19 pour les initiales d'un héro
+                      d'identité (§2.6). Un titre qui change de rang avec la fenêtre
+                      n'a pas de rang.
+                    */}
+                    <h1 className="font-brand text-[20px] leading-7 font-semibold tracking-[-0.015em] text-[var(--tk-color-text-primary)] truncate">
                         {title}
                     </h1>
                     {subtitle && (
@@ -79,7 +88,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                     aria-label="Fermer l'assistant"
                     className="w-10 h-10 min-w-0 p-0 text-[var(--tk-color-text-primary)] hover:bg-[var(--tk-color-surface-muted)]"
                 >
-                    <X size={20} />
+                    <Icon glyph={X} size={20} />
                 </Button>
             </header>
 
@@ -107,7 +116,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                                     <div className="flex items-center gap-2 shrink-0">
                                         <span
                                             className={cn(
-                                                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-semibold font-['Archivo'] tabular-nums",
+                                                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-semibold font-brand tabular-nums",
                                                 isCompleted
                                                     ? 'bg-[var(--tk-color-success)] text-white'
                                                     : isCurrent
@@ -115,7 +124,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
                                                       : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
                                             )}
                                         >
-                                            {isCompleted ? <Check size={14} weight="bold" /> : step.id}
+                                            {isCompleted ? <Icon glyph={Check} size={18} /> : step.id}
                                         </span>
                                         <span
                                             className={cn(

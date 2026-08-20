@@ -33,6 +33,25 @@ interface SecurityGateProps {
 }
 
 /**
+ * Longueur du code PIN — **quatre, sans exception** (REGLES-TRANSVERSES.md §2.1,
+ * référence dessinée planche 06.2).
+ *
+ * Cette garde en déclarait **six**, seule dans le produit : les deux assistants
+ * d'attribution et de retour étaient déjà à quatre. Le registre avait pourtant
+ * prévu le cas de figure — « un autre code (application d'authentification, code
+ * de secours, code à usage unique) **n'emprunte pas ce composant** : il se saisit
+ * dans un champ ordinaire ». Or ceci *est* un code PIN, celui de l'administrateur :
+ * il tombe donc sous la règle, et non sous l'exception.
+ *
+ * La longueur est nommée une fois et tout en dérive — le pavé, la remise à zéro et
+ * le déclenchement de la vérification. Six était écrit à cinq endroits, ce qui est
+ * exactement pourquoi la valeur avait pu diverger sans que personne le voie.
+ */
+const PIN_LENGTH = 4;
+
+const emptyPin = (): string[] => Array<string>(PIN_LENGTH).fill('');
+
+/**
  * Portail de validation (step-up) pour actions sensibles.
  * Facteur unique : code PIN administrateur (vérif. réelle via validateAdminPIN).
  * Les anciennes méthodes « Face / Signature / Empreinte » ont été retirées :
@@ -55,7 +74,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
   const [isValidated, setIsValidated] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const [pin, setPin] = useState(['', '', '', '', '', '']);
+  const [pin, setPin] = useState(emptyPin);
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [reason, setReason] = useState('');
@@ -68,7 +87,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
     setTimeout(() => {
       setIsValidated(false);
       setIsVerifying(false);
-      setPin(['', '', '', '', '', '']);
+      setPin(emptyPin());
       setAttempts(0);
       setReason('');
     }, 300);
@@ -114,7 +133,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
 
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
-      setPin(['', '', '', '', '', '']);
+      setPin(emptyPin());
       pinRefs.current[0]?.focus();
       showToast(`Code incorrect. Tentative ${newAttempts}/3`, 'error');
       logSecurityAction(title, actorId, entityId, 'PIN', newAttempts >= 3 ? 'BLOCKED' : 'FAILED', 'NOT_RUN');
@@ -127,8 +146,8 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
     const newPin = [...pin];
     newPin[index] = value;
     setPin(newPin);
-    if (value !== '' && index < 5) pinRefs.current[index + 1]?.focus();
-    if (index === 5 && value !== '') {
+    if (value !== '' && index < PIN_LENGTH - 1) pinRefs.current[index + 1]?.focus();
+    if (index === PIN_LENGTH - 1 && value !== '') {
       verifyPin(newPin.join(''));
     }
   };
@@ -176,7 +195,12 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                   />
                 </div>
               )}
-              <div className="grid grid-cols-6 gap-1.5 w-full max-w-[300px] mx-auto">
+              {/* Pavé §2.1 : quatre cases de 64 × 76, écart de 12 px, chiffre à 34 px en
+                  Archivo. Mêmes valeurs que les pavés des assistants d'attribution et de
+                  retour — « un seul composant `.pin` » veut dire une seule géométrie, pas
+                  seulement un même nombre de cases. Le pavé faisait ici 6 cases de 48 px
+                  de haut, à 6 px d'écart. */}
+              <div className="flex gap-3 justify-center">
                 {pin.map((digit, idx) => (
                   <InputField
                     key={idx}
@@ -188,7 +212,8 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                     disabled={isVerifying || reasonMissing}
                     onChange={(e) => handlePinChange(idx, e.target.value)}
                     aria-label={`Chiffre PIN ${idx + 1}`}
-                    className="h-12 px-0 border-2 border-outline-variant rounded-md text-center text-title-medium focus:border-focus-ring focus:ring-2 focus:ring-focus-ring input-pin transition-all duration-short4 ease-emphasized"
+                    className="w-[64px] h-[76px] px-0 text-center text-[34px] font-semibold font-['Archivo'] input-pin transition-all duration-short4 ease-emphasized"
+                    containerClassName="w-auto"
                   />
                 ))}
               </div>

@@ -87,15 +87,13 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
             label: getDestinationShortLabel('equipment'),
         }] : []),
         ...(permissions.canViewApprovals ? [{
-            // La file d'abord — c'est la destination des liens du produit (planche 03.3) ;
-            // la liste des demandes en est l'archive, et elle garde sa place au rail.
+            // La file, et elle seule. Le commentaire d'origine gardait « Approbations »
+            // au rail comme « l'archive » de la file — mais l'archive est l'onglet
+            // Historique de Tâches, pas un second écran. 17.7 tranche : une seule
+            // porte, la file. Fermée le 20/08, comme côté barre latérale.
             id: 'tasks' as ViewType,
             icon: DESTINATIONS.tasks.icon,
             label: getDestinationShortLabel('tasks'),
-        }, {
-            id: 'approvals' as ViewType,
-            icon: DESTINATIONS.approvals.icon,
-            label: getDestinationShortLabel('approvals'),
         }] : []),
         ...(permissions.canViewUsers ? [{
             id: 'users' as ViewType,

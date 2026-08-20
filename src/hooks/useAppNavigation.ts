@@ -16,7 +16,6 @@ const VIEW_TITLES: Record<ViewType, string> = {
   add_user: 'Ajouter un utilisateur',
   edit_user: 'Modifier utilisateur',
   import_users: 'Importer utilisateurs',
-  approvals: DESTINATIONS.approvals.label,
   new_request: 'Nouvelle demande',
   tasks: 'Tâches',
   management: DESTINATIONS.management.label,
@@ -34,6 +33,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
   assignment_wizard: "Assistant d'attribution",
   return_wizard: 'Assistant de retour',
   finance: DESTINATIONS.finance.label,
+  finance_expenses: 'Journal des dépenses',
   settings: DESTINATIONS.settings.label,
   not_found: 'Page introuvable',
 };
@@ -71,10 +71,10 @@ export const useAppNavigation = () => {
       else if (action) { computedView = 'user_details'; id = action; }
       else computedView = 'users';
     } else if (section === 'tasks') {
-      computedView = 'tasks';
-    } else if (section === 'approvals') {
+      // « Nouvelle demande » est un geste de la file, et son adresse le dit : elle
+      // vivait sous /approvals/new, la section qui n'existe plus.
       if (action === 'new') computedView = 'new_request';
-      else computedView = 'approvals';
+      else computedView = 'tasks';
     } else if (section === 'management') {
       if (action === 'categories') {
         if (param === 'add') computedView = 'add_category';
@@ -98,7 +98,11 @@ export const useAppNavigation = () => {
     } else if (section === 'reports') {
       computedView = 'reports';
     } else if (section === 'finance') {
-      computedView = 'finance';
+      // Le journal complet est une destination, pas un onglet (planche 15.1) :
+      // « Voir les N dépenses de l'exercice » mène ici, et le retour ramène
+      // à la page Finances.
+      if (action === 'expenses') computedView = 'finance_expenses';
+      else computedView = 'finance';
     } else if (section === 'settings') {
       computedView = 'settings';
     } else if (section === 'wizards') {
@@ -130,8 +134,7 @@ export const useAppNavigation = () => {
       'add_user': '/users/add',
       'import_users': '/users/import',
       'tasks': '/tasks',
-      'approvals': '/approvals',
-      'new_request': '/approvals/new',
+        'new_request': '/tasks/new',
       'management': '/management',
       'rbac': '/rbac/roles',
       'add_category': '/management/categories/add',
@@ -143,6 +146,7 @@ export const useAppNavigation = () => {
       'audit_details': '/audit/details',
       'reports': '/reports',
       'finance': '/finance',
+      'finance_expenses': '/finance/expenses',
       'settings': '/settings',
       'assignment_wizard': '/wizards/assignment',
       'return_wizard': '/wizards/return'
@@ -175,7 +179,8 @@ export const useAppNavigation = () => {
     else if (section === 'users') navigate('/users');
     else if (section === 'management') navigate('/management');
     else if (section === 'audit') navigate('/audit/overview');
-    else if (section === 'approvals' && routeSegments[1] === 'new') navigate('/approvals');
+    else if (section === 'tasks' && routeSegments[1] === 'new') navigate('/tasks');
+    else if (section === 'finance') navigate('/finance');
     else navigate('/');
   }, [routeSegments, navigate]);
 

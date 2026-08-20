@@ -2,8 +2,8 @@ import { MEDIA } from '../../../constants/breakpoints';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { Warning } from '@phosphor-icons/react';
-import RuleGroup from '../../../components/ui/RuleGroup';
-import { CATEGORY_ICONS } from '../../../data/mockData';
+import ListRow from '../../../components/ui/ListRow';
+import { CATEGORY_ICONS, renderCategoryIcon } from '../../../data/mockData';
 import { useData } from '../../../context/DataContext';
 import Pagination from '../../../components/ui/Pagination';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
@@ -19,10 +19,12 @@ import AddCategoryPage from './AddCategoryPage';
 import AddModelPage from './AddModelPage';
 import { PageTabs, TabItem } from '../../../components/ui/PageTabs';
 import { PageContainer } from '../../../components/layout/PageContainer';
+import Reading from '../../../components/layout/Reading';
 import IconButton from '../../../components/ui/IconButton';
 import { SelectFilter } from '../../../components/ui/SelectFilter';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ListActionFab from '../../../components/ui/ListActionFab';
+import { rowActivation } from '../../../lib/a11y';
 
 const CATEGORIES_PER_PAGE = 9;
 const MODELS_PER_PAGE = 10;
@@ -708,7 +710,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-y-auto">
                 <PageContainer>
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-medium2 pb-12">
+                    {/* Le referentiel se lit dans la mesure unique du systeme — 960 px
+                        (§2.43). Un referentiel etire sur 1600 px perd la ligne entre le nom
+                        du type et sa cle, qui est justement ce qu'on vient y chercher. */}
+                    <Reading className="animate-in fade-in slide-in-from-bottom-4 duration-medium2 pb-12">
                         {activeTab === 'categories' ? (
                             <div className="space-y-6">
                                 {/* PORTE-VOIX PLANCHE 09.1 */}
@@ -835,56 +840,65 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                             équipements montre `ASSET-10001`. C'est le seul écran qui en a
                                             besoin : un intégrateur qui branche un import cherche `Laptop`,
                                             pas « Ordinateur portable ». */}
+                                        {/* La rangée du référentiel est une **rangée de liste**
+                                            (`ListRow`, 72 px, vignette 40), pas une rangée de
+                                            réglage : c'est ce que 09.1 dessine, et c'est elle qui
+                                            porte les **huit pictogrammes de catégorie arrêtés par
+                                            la planche**. Le décompte de modèles revient à droite de
+                                            la ligne 1 — c'est lui qui décide de ce qu'on peut créer
+                                            — et la clé de la donnée à droite de la ligne 2, là où
+                                            la liste des équipements met le code d'actif (B1).
+
+                                            L'en-tête de famille **coiffe** la carte sans être
+                                            dedans (`.fh`, §2.36) : posé à l'intérieur, un nom de
+                                            famille se lirait comme une rangée de plus. */}
                                         <div className="flex flex-col gap-5">
                                             {categoriesByFamily.map(({ family, items }) => (
-                                                <RuleGroup
-                                                    key={family}
-                                                    header={family}
-                                                    headerTrailing={`${items.length} type${items.length > 1 ? 's' : ''}`}
-                                                >
-                                                    {items.map((cat) => {
-                                                        const modelCount = models.filter((model) => model.type === cat.name).length;
-                                                        const assetCount = equipment.filter((item) => item.type === cat.name).length;
-                                                        const unusable = modelCount === 0;
-                                                        const selected = selectedCategorySet.has(cat.id);
+                                                <section key={family}>
+                                                    <div className="flex items-baseline justify-between gap-3 px-0.5 pb-2 text-body-medium font-medium text-on-surface">
+                                                        <span className="min-w-0 truncate">{family}</span>
+                                                        <span className="shrink-0 text-body-small font-normal tabular-nums text-text-secondary">
+                                                            {items.length} type{items.length > 1 ? 's' : ''}
+                                                        </span>
+                                                    </div>
+                                                    <div className="rounded-card bg-surface px-4">
+                                                        {items.map((cat) => {
+                                                            const modelCount = models.filter((model) => model.type === cat.name).length;
+                                                            const assetCount = equipment.filter((item) => item.type === cat.name).length;
+                                                            const unusable = modelCount === 0;
+                                                            const selected = selectedCategorySet.has(cat.id);
 
-                                                        return (
-                                                            <RuleGroup.Row
-                                                                key={cat.id}
-                                                                title={getCategoryLabel(cat.name)}
-                                                                subtitle={
-                                                                    unusable
-                                                                        ? `Aucun modèle — ${assetCount} actif${assetCount > 1 ? 's' : ''} au parc, rien pour en créer`
-                                                                        : `${modelCount} modèle${modelCount > 1 ? 's' : ''} · ${assetCount} actif${assetCount > 1 ? 's' : ''} au parc`
-                                                                }
-                                                                status={unusable ? { icon: Warning, tone: 'pending' } : undefined}
-                                                                value={
-                                                                    selectionMode ? undefined : (
-                                                                        <span className="font-mono text-[11px] tracking-wide text-text-muted">
-                                                                            {cat.name}
-                                                                        </span>
-                                                                    )
-                                                                }
-                                                                trailing={
-                                                                    selectionMode ? (
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={selected}
-                                                                            onChange={(event) => toggleCategorySelection(cat.id, event.target.checked)}
-                                                                            className="h-4 w-4 accent-[var(--tk-color-primary)]"
-                                                                            aria-label={`Sélectionner ${getCategoryLabel(cat.name)}`}
-                                                                        />
-                                                                    ) : undefined
-                                                                }
-                                                                onOpen={
-                                                                    selectionMode
-                                                                        ? () => toggleCategorySelection(cat.id, !selected)
-                                                                        : () => onCategoryClick?.(cat.id)
-                                                                }
-                                                            />
-                                                        );
-                                                    })}
-                                                </RuleGroup>
+                                                            return (
+                                                                <ListRow
+                                                                    key={cat.id}
+                                                                    vignette={renderCategoryIcon(cat, 20)}
+                                                                    title={getCategoryLabel(cat.name)}
+                                                                    type={
+                                                                        unusable
+                                                                            ? 'aucun modèle'
+                                                                            : `${modelCount} modèle${modelCount > 1 ? 's' : ''}`
+                                                                    }
+                                                                    status={
+                                                                        unusable
+                                                                            ? { icon: Warning, label: 'aucun modèle', tone: 'pending' }
+                                                                            : undefined
+                                                                    }
+                                                                    holder={
+                                                                        unusable
+                                                                            ? `${assetCount} actif${assetCount > 1 ? 's' : ''}, rien pour en créer`
+                                                                            : `${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`
+                                                                    }
+                                                                    reference={cat.name}
+                                                                    selectionActive={selectionMode}
+                                                                    selected={selected}
+                                                                    onToggle={() => toggleCategorySelection(cat.id, !selected)}
+                                                                    onLongPress={() => setSelectionMode(true)}
+                                                                    onOpen={() => onCategoryClick?.(cat.id)}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </section>
                                             ))}
                                         </div>
                                     </>
@@ -996,20 +1010,18 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                         paginatedModels.map((model) => (
                                             <div
                                                 key={model.id}
-                                                onClick={() => {
+                                                {...rowActivation(() => {
                                                     if (selectionMode) {
                                                         toggleModelSelection(model.id, !selectedModelSet.has(model.id));
                                                         return;
                                                     }
                                                     onModelClick?.(model.id);
-                                                }}
+                                                })}
                                                 className={`group flex items-center gap-4 p-4 h-24 border-b border-outline-variant last:border-0 transition-all cursor-pointer relative outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${
                                                     selectionMode && selectedModelSet.has(model.id)
                                                         ? 'bg-primary-container/30'
                                                         : 'hover:bg-surface-container'
                                                 }`}
-                                                role="button"
-                                                tabIndex={0}
                                             >
                                                 {selectionMode && (
                                                     <input
@@ -1094,7 +1106,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 {filteredModels.length > 0 && <Pagination currentPage={currentPage} totalPages={totalModelPages} onPageChange={setCurrentPage} />}
                             </div>
                         )}
-                    </div>
+                    </Reading>
                     {isCompact && (
                         <ListActionFab
                             label={activeTab === 'categories' ? 'Catégorie' : 'Modèle'}

@@ -1,15 +1,15 @@
+import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     CaretRight,
+    Check,
     CheckCircle,
     ClipboardText,
-    DeviceMobile,
+    ClockCounterClockwise,
+    DotsThreeVertical,
     Funnel,
-    Headphones,
-    Key,
+    Info,
     Laptop,
-    Monitor,
-    Mouse,
     Package,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
@@ -17,6 +17,8 @@ import {
 import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
+import Menu from '../../../components/ui/Menu';
+import { rowActivation } from '../../../lib/a11y';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import SecurityGate from '../../../components/security/SecurityGate';
@@ -33,7 +35,7 @@ import { getCategoryLabel } from '../../../constants/glossary';
 import { ApprovalStatus, ViewType } from '../../../types';
 import { cn } from '../../../lib/utils';
 
-/** La boîte de travail unique de la planche 03.3. */
+/** La boîte de travail unique de la planche 08.1. */
 export type TaskNature = 'validation' | 'collecte' | 'reception' | 'retour' | 'remise';
 type TaskScope = 'todo' | 'following' | 'history';
 type TaskOrder = 'oldest' | 'newest';
@@ -50,7 +52,14 @@ interface Task {
     since: string | null;
     /** Le verbe n'apparaît que si la transition est réellement disponible ici. */
     action?: string;
-    target: ViewType;
+    /**
+     * Ce que la rangée ouvre. **Facultatif** : une tâche dont l'objet n'existe pas
+     * encore — une demande sans équipement affecté — n'ouvre rien, elle porte son
+     * geste sur place. Elle valait obligatoirement `'approvals'`, ce qui envoyait
+     * vers un **second inventaire de la même file** (17.7 : « deux portes vers la
+     * même file »). Corrigé le 20/08.
+     */
+    target?: ViewType;
     targetId?: string;
     /**
      * La machine remontée par la collecte. Elle **s'examine ici** : la planche 14.1
@@ -71,6 +80,46 @@ const NATURE_LABEL: Record<TaskNature, string> = {
     reception: 'Réceptions',
     retour: 'Retours',
 };
+
+/**
+ * La nature d'une tâche se lit à une **paire teintée**, pas à un mot dans le contexte
+ * — c'est le sous-titre même de la planche 03.3. Une paire = un fond et l'encre qui
+ * tient dessus ; le socle les déclare ensemble pour qu'aucune ne dérive sans l'autre.
+ * Métrique de `.np` : hauteur 22, rayon 4 (R11 : une étiquette de **mots** n'est pas
+ * une pilule), 11 px / 500.
+ */
+const NATURE_TINT: Record<TaskNature, string> = {
+    validation: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
+    remise: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
+    reception: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
+    retour: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
+    collecte: 'bg-[var(--tk-color-surface-muted-strong)] text-on-surface-variant',
+};
+
+/** Le mot que porte la pastille : au singulier, il qualifie UNE tâche. Les libellés
+ *  de `NATURE_LABEL` sont au pluriel parce qu'ils comptent une facette. */
+const NATURE_BADGE: Record<TaskNature, string> = {
+    validation: 'Validation',
+    collecte: 'Collecte',
+    remise: 'Remise',
+    reception: 'Réception',
+    retour: 'Retour',
+};
+
+/**
+ * `.rbtn` — le geste d'une rangée, déclaré **une seule fois**. Métrique du registre
+ * (§2.14) et de la planche 03.3 : **44 px**, `padding: 0 14px`, rayon 4, **13 px / 500**.
+ *
+ * Le remplissage suit la **surface**, jamais l'écran (§2.7) : ces rangées sont sur une
+ * carte claire, donc `--inset` et l'encre. Le tableau de bord emploie le même rôle sur
+ * son héro inversé, où c'est le voile blanc qui s'applique — deux surfaces, deux
+ * remplissages, un seul rôle.
+ *
+ * Il y en avait **deux ici**, et l'un des deux prenait la surface inversée `--dark` :
+ * l'encre du héro et de la barre de sélection, jamais celle d'un geste de rangée.
+ */
+const ROW_ACTION =
+    'h-11 shrink-0 px-3.5 text-[13px] bg-surface-container text-on-surface hover:bg-[var(--tk-color-surface-muted-strong)] hover:text-on-surface';
 
 const SCOPE_LABEL: Record<TaskScope, string> = {
     todo: 'À faire',
@@ -95,28 +144,7 @@ const ageLabel = (iso: string | null): string => {
     return `${days} j`;
 };
 
-const getCategoryGlyph = (category?: string): PhosphorGlyph => {
-    switch (category?.toUpperCase()) {
-        case 'LAPTOP':
-            return Laptop;
-        case 'MONITOR':
-        case 'SCREEN':
-            return Monitor;
-        case 'MOUSE':
-            return Mouse;
-        case 'PHONE':
-        case 'MOBILE':
-            return DeviceMobile;
-        case 'HEADSET':
-        case 'HEADPHONES':
-            return Headphones;
-        case 'KEYBOARD':
-        case 'ACCESSORY':
-            return Key;
-        default:
-            return Package;
-    }
-};
+
 
 const extractInitials = (name?: string): string | undefined => {
     if (!name) return undefined;
@@ -124,6 +152,17 @@ const extractInitials = (name?: string): string | undefined => {
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return parts[0]?.slice(0, 2).toUpperCase();
 };
+
+/**
+ * Ce qu'ouvre une rangée d'approbation : **l'équipement dont elle parle**, comme une
+ * rangée d'équipement ouvre le sien. Tant qu'aucun objet n'est affecté — une demande
+ * encore à arbitrer — il n'y a rien à ouvrir : la rangée porte son geste sur place et
+ * ne navigue pas. C'est ce qui remplace le renvoi vers l'ancienne liste des demandes.
+ */
+const approvalTarget = (approval: { assignedEquipmentId?: string }) =>
+    approval.assignedEquipmentId
+        ? { target: 'equipment_details' as ViewType, targetId: approval.assignedEquipmentId }
+        : {};
 
 const getApprovalContext = (status: ApprovalStatus): string => {
     switch (status) {
@@ -190,6 +229,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     const [nature, setNature] = useState<TaskNature | 'toutes'>('toutes');
     const [scope, setScope] = useState<TaskScope>('todo');
+    /* La recherche que `.srch` dessine sur la planche — « Personne, objet, code » —
+       et que la bande n'avait pas, alors que les cinq autres listes la portent. */
+    const [query, setQuery] = useState('');
     const [order, setOrder] = useState<TaskOrder>('oldest');
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [reviewDeviceId, setReviewDeviceId] = useState<string | null>(null);
@@ -240,7 +282,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         title,
                         context: getApprovalContext(approval.status),
                         since: approval.updatedAt || approval.createdAt,
-                        target: 'approvals',
+                        ...approvalTarget(approval),
                         initials: extractInitials(beneficiary),
                         icon: ClipboardText,
                     });
@@ -271,7 +313,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     since: approval.createdAt ?? null,
                     action: transition ? getApprovalActionLabel(approval.status) : undefined,
                     transition,
-                    target: 'approvals',
+                    ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
                 });
@@ -283,7 +325,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     title,
                     context: `${getApprovalContext(approval.status)} · en attente d’un autre intervenant`,
                     since: approval.createdAt ?? null,
-                    target: 'approvals',
+                    ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
                 });
@@ -427,17 +469,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     );
 
     const filteredTasks = useMemo(() => {
-        const selected = nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
+        const byNature = nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
+        // La recherche porte sur ce que la rangée montre : le sujet et son contexte.
+        const needle = query.trim().toLowerCase();
+        const selected = needle
+            ? byNature.filter(
+                  (task) =>
+                      task.title.toLowerCase().includes(needle) ||
+                      task.context.toLowerCase().includes(needle)
+              )
+            : byNature;
         return [...selected].sort((left, right) => {
             const leftDate = left.since ? new Date(left.since).getTime() : Number.POSITIVE_INFINITY;
             const rightDate = right.since ? new Date(right.since).getTime() : Number.POSITIVE_INFINITY;
             return order === 'oldest' ? leftDate - rightDate : rightDate - leftDate;
         });
-    }, [nature, order, scopeTasks]);
+    }, [nature, order, query, scopeTasks]);
 
     useEffect(() => {
         setVisibleCount(TASKS_PAGE_SIZE);
-    }, [nature, order, scope]);
+    }, [nature, order, query, scope]);
 
     const visibleTasks = useMemo(
         () => filteredTasks.slice(0, visibleCount),
@@ -458,9 +509,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const openTask = (task: Task) => {
         if (task.deviceId) {
             setReviewDeviceId(task.deviceId);
-        } else if (task.targetId) {
+        } else if (task.target && task.targetId) {
             onItemClick(task.target, task.targetId);
-        } else {
+        } else if (task.target) {
             onNavigate(task.target);
         }
     };
@@ -500,12 +551,47 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 >
                     <Icon glyph={Funnel} size={20} />
                     {activeFilterCount > 0 && (
-                        <span className="absolute -right-1.5 -top-1.5 flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-[10px] font-semibold tabular-nums text-inverse-on-surface">
+                        <span className="absolute -right-1.5 -top-1.5 flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
                             {activeFilterCount}
                         </span>
                     )}
                 </Button>
             }
+            /*
+              LES TROIS PORTÉES — dans le menu de l'en-tête, pas dans la bande.
+              La planche 03.3 les dessine en contrôle segmenté ; le produit les met
+              au ⋮. La raison est la cohérence entre listes : Tâches était **la seule**
+              des six à porter une couche de contrôle que les autres n'ont pas, et P2
+              autorise une action de page à cet emplacement. Le coût est réel et il est
+              assumé : une partition dans un menu ne dit plus d'un coup d'œil où l'on
+              est — c'est le sous-titre qui le porte, et la rangée en cours est marquée
+              du creux de l'onglet actif. Arbitré le 20/08.
+            */
+            actions={
+                <Menu
+                    align="end"
+                    items={(Object.keys(SCOPE_LABEL) as TaskScope[]).map((key) => ({
+                        id: key,
+                        label: SCOPE_LABEL[key],
+                        trailingText:
+                            key === 'history' || scopeCounts[key] === 0
+                                ? undefined
+                                : String(scopeCounts[key]),
+                        selected: scope === key,
+                        onSelect: () => setScope(key),
+                    }))}
+                    trigger={
+                        <Button variant="text" iconOnly aria-label="Changer de vue">
+                            <Icon glyph={DotsThreeVertical} />
+                        </Button>
+                    }
+                />
+            }
+            search={{
+                value: query,
+                onChange: setQuery,
+                placeholder: 'Personne, objet, code',
+            }}
             facets={facets}
             activeFacetId={nature}
             onFacetSelect={(id) => {
@@ -530,10 +616,49 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             ? 'Rien n’attend votre geste. La file se remplira d’elle-même — vous n’avez pas à revenir la surveiller.'
                             : 'Changez de vue ou de nature pour consulter une autre partie de votre boîte de travail.'
                     }
-                    footnote={
-                        scope === 'todo'
-                            ? 'Les validations, remises, réceptions, retours et appareils détectés arriveront ici lorsqu’ils demanderont votre intervention.'
-                            : undefined
+                    after={
+                        scope === 'todo' ? (
+                            <>
+                                <p className="text-body-medium text-on-surface mb-2.5 font-medium">
+                                    Ce qui arrivera ici
+                                </p>
+                                {[
+                                    {
+                                        glyph: Check,
+                                        text: (
+                                            <>
+                                                Une demande <b className="text-on-surface font-medium">validée par un manager</b> — vous aurez la remise à faire.
+                                            </>
+                                        ),
+                                    },
+                                    {
+                                        glyph: ClockCounterClockwise,
+                                        text: (
+                                            <>
+                                                Une restitution attestée — vous aurez la{' '}
+                                                <b className="text-on-surface font-medium">réception</b> à faire.
+                                            </>
+                                        ),
+                                    },
+                                    {
+                                        glyph: Info,
+                                        text: (
+                                            <>
+                                                Un retour qui <b className="text-on-surface font-medium">dépasse 7 jours</b> — il remontera seul, en tête.
+                                            </>
+                                        ),
+                                    },
+                                ].map((line, index) => (
+                                    <p
+                                        key={index}
+                                        className="border-outline-variant text-body-medium text-on-surface-variant flex gap-2.5 border-t py-2.5 leading-[19px] first-of-type:border-t-0 first-of-type:pt-0"
+                                    >
+                                        <Icon glyph={line.glyph} size={18} className="mt-0.5 shrink-0" />
+                                        <span>{line.text}</span>
+                                    </p>
+                                ))}
+                            </>
+                        ) : undefined
                     }
                 />
             }
@@ -542,20 +667,39 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 const IconGlyph = task.icon || Package;
 
                 return (
+                    /*
+                      `.trow` de la planche 03.3 : rangée à plat, séparée par un filet,
+                      12 px de gouttière, 10 px de padding vertical. Le creux du survol
+                      déborde de 8 px — la mesure que 05.1 déclare pour une rangée en creux.
+                    */
                     <div
                         key={task.id}
-                        onClick={() => openTask(task)}
-                        className="flex min-h-[72px] items-center gap-3 border-t border-outline-variant py-2.5 px-3 rounded-md first:border-t-0 hover:bg-surface-container/50 transition-colors cursor-pointer"
+                        {...rowActivation(() => openTask(task))}
+                        className="border-outline-variant hover:bg-surface-container/50 -mx-2 flex cursor-pointer items-center gap-3 rounded-md border-t px-2 py-2.5 transition-colors first:border-t-0"
                     >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-body-large font-brand font-semibold text-on-surface-variant">
+                        <div className="rounded-vignette bg-surface-container text-body-large font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center font-semibold">
                             {task.initials ? <span>{task.initials}</span> : <Icon glyph={IconGlyph} size={20} />}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                            <p className="truncate text-body-large font-medium text-on-surface">{task.title}</p>
-                            <p className="truncate text-body-small text-text-secondary">
-                                {task.context} · <strong className="font-semibold text-on-surface">{ageLabel(task.since)}</strong>
-                            </p>
+                            <p className="text-label-large text-on-surface truncate font-medium">{task.title}</p>
+                            {/*
+                              La nature passe en **paire teintée** et quitte le texte :
+                              « Validation du manager · 9 j » disait deux fois la même chose,
+                              une fois en gris. La pastille nomme, l'âge décide — c'est lui
+                              qui porte l'encre pleine, puisqu'une file se traite par le haut.
+                            */}
+                            <span className="text-body-small text-on-surface-variant mt-1 flex items-center gap-2">
+                                <span
+                                    className={cn(
+                                        'text-label-small inline-flex h-[22px] shrink-0 items-center gap-[5px] rounded-md px-2 font-medium',
+                                        NATURE_TINT[task.nature]
+                                    )}
+                                >
+                                    {NATURE_BADGE[task.nature]}
+                                </span>
+                                <span className="text-on-surface shrink-0 font-medium">{ageLabel(task.since)}</span>
+                            </span>
                         </div>
 
                         {task.action && task.transition ? (
@@ -567,11 +711,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     entityId={task.transition.approvalId}
                                     entityName={task.title}
                                     trigger={
-                                        <Button
-                                            variant="tonal"
-                                            size="sm"
-                                            className="h-10 shrink-0 bg-inverse-surface px-3.5 text-inverse-on-surface hover:bg-inverse-surface/90"
-                                        >
+                                        <Button variant="tonal" size="sm" className={ROW_ACTION}>
                                             {task.action}
                                         </Button>
                                     }
@@ -585,7 +725,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     e.stopPropagation();
                                     openTask(task);
                                 }}
-                                className="h-10 shrink-0 bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] hover:bg-[var(--tk-color-surface-container-high)] px-3.5"
+                                className={ROW_ACTION}
                             >
                                 {task.action}
                             </Button>
@@ -612,9 +752,23 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 <Button
                     variant="text"
                     onClick={() => setVisibleCount((count) => count + TASKS_PAGE_SIZE)}
-                    className="w-full justify-center rounded-none border-t border-outline-variant px-0 text-on-surface"
+                    className="border-outline-variant text-on-surface w-full justify-center gap-2.5 rounded-none border-t px-0"
                 >
-                    Voir les {Math.min(TASKS_PAGE_SIZE, filteredTasks.length - visibleTasks.length)} suivantes · {visibleTasks.length} sur {filteredTasks.length}
+                    {/*
+                      `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3).
+                      Le geste et le repère ne sont pas au même rang : « Voir les 11
+                      suivantes » se vise, « 6 sur 17 » se lit. Ils étaient sur une seule
+                      ligne, au même poids — le repère se lisait alors comme une partie
+                      du geste.
+                    */}
+                    <span>
+                        Voir les{' '}
+                        {Math.min(TASKS_PAGE_SIZE, filteredTasks.length - visibleTasks.length)}{' '}
+                        suivantes
+                    </span>
+                    <span className="text-body-small text-on-surface-variant font-normal tabular-nums">
+                        {visibleTasks.length} sur {filteredTasks.length}
+                    </span>
                 </Button>
             )}
 
@@ -656,7 +810,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </dl>
 
                         {reviewDevice.status === 'ambiguous_match' && (
-                            <p className="rounded-md bg-surface-container px-3 py-2.5 text-[12px] leading-[17px] text-text-secondary">
+                            <p className="rounded-md bg-surface-container px-3 py-2.5 text-body-small text-text-secondary">
                                 Plusieurs actifs du parc lui ressemblent. L'importer en créerait un de plus —
                                 vérifiez d'abord lequel elle est.
                             </p>
@@ -692,14 +846,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             <BottomSheet open={isFilterSheetOpen} onClose={() => setIsFilterSheetOpen(false)} title="Filtrer">
                 <div className="flex flex-col gap-4 px-5 py-3">
                     <div>
-                        <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Nature</p>
+                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Nature</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             <Button
                                 variant={nature === 'toutes' ? 'tonal' : 'text'}
                                 size="sm"
                                 onClick={() => setNature('toutes')}
                                 className={cn(
-                                    'min-h-10 px-3 text-body-medium font-medium',
+                                    // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
+                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                    'min-h-11 px-3 text-body-medium font-medium',
                                     nature === 'toutes'
                                         ? 'bg-inverse-surface text-inverse-on-surface'
                                         : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -714,7 +870,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     size="sm"
                                     onClick={() => setNature(taskNature)}
                                     className={cn(
-                                        'min-h-10 px-3 text-body-medium font-medium',
+                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
+                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                    'min-h-11 px-3 text-body-medium font-medium',
                                         nature === taskNature
                                             ? 'bg-inverse-surface text-inverse-on-surface'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -727,7 +885,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </div>
 
                     <div>
-                        <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Ordre</p>
+                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Ordre</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(
                                 [
@@ -741,7 +899,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     size="sm"
                                     onClick={() => setOrder(value)}
                                     className={cn(
-                                        'min-h-10 px-3 text-body-medium font-medium',
+                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
+                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                    'min-h-11 px-3 text-body-medium font-medium',
                                         order === value
                                             ? 'bg-inverse-surface text-inverse-on-surface'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -754,7 +914,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </div>
 
                     <div>
-                        <p className="text-[11px] font-medium tracking-wider text-text-secondary uppercase">Vue</p>
+                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Vue</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => (
                                 <Button
@@ -763,7 +923,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     size="sm"
                                     onClick={() => setScope(taskScope)}
                                     className={cn(
-                                        'min-h-10 px-3 text-body-medium font-medium',
+                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
+                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                    'min-h-11 px-3 text-body-medium font-medium',
                                         scope === taskScope
                                             ? 'bg-inverse-surface text-inverse-on-surface'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'

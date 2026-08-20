@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowBendDownLeft, ArrowLeft, List, SortAscending, X } from '@phosphor-icons/react';
+import React, { useMemo } from 'react';
+import { ArrowBendDownLeft, ArrowLeft, Funnel, List, SortAscending, X } from '@phosphor-icons/react';
 
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
@@ -16,7 +16,7 @@ import { cn } from '../../lib/utils';
 import type { FacetTone } from '../ui/FacetChip';
 
 /**
- * Gabarit **liste / file** — planches **04.1** (liste) et **03.3** (file), régime
+ * Gabarit **liste / file** — planches **04.1** (liste) et **08.1** (file), régime
  * tablette **00.4**. Il porte quatre écrans : Inventaire, Utilisateurs, Catalogue,
  * Emplacements — plus la file de Tâches.
  *
@@ -189,6 +189,21 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     const showSkeleton = useDelayedPending(loading);
     const hasRows = hasRowsOverride ?? React.Children.count(children) > 0;
 
+    /** Le bandeau ne s'affiche que si une facette autre que la partition est posée. */
+    const activeFilterNotice = useMemo(() => {
+        if (!facets || facets.length < 2 || !activeFacetId || !onFacetSelect) return null;
+        const whole = facets[0];
+        const active = facets.find((facet) => facet.id === activeFacetId);
+        if (!active || active.id === whole.id) return null;
+        if (typeof active.count !== 'number' || typeof whole.count !== 'number') return null;
+        return {
+            label: active.label,
+            shown: active.count,
+            total: whole.count,
+            onClear: () => onFacetSelect(whole.id),
+        };
+    }, [facets, activeFacetId, onFacetSelect]);
+
     return (
         <div className={cn('relative flex min-h-0 min-w-0 w-full flex-1 flex-col', className)}>
             {selection?.active ? (
@@ -214,7 +229,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             <Icon glyph={ArrowLeft} size={24} />
                         </button>
                     )}
-                    <h1 className="min-w-0 flex-1 font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                    <h1 className="min-w-0 flex-1 font-brand text-[20px] font-semibold leading-7 tracking-[-0.015em] text-on-surface">
                         {title}
                     </h1>
                     {actions}
@@ -223,7 +238,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 /* Au rail, la barre ne redit pas la destination : le rail la porte
                    déjà. Titre, compteur, gestes — sans filet (00.4). */
                 <div className="flex items-center gap-3 px-page pt-5">
-                    <h1 className="shrink-0 font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                    <h1 className="shrink-0 font-brand text-[20px] font-semibold leading-7 tracking-[-0.015em] text-on-surface">
                         {title}
                     </h1>
                     {subtitle && (
@@ -294,7 +309,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 </div>
             )}
 
-            <div className="flex flex-1 flex-col gap-5 px-5 py-4 medium:px-page">
+            <div className="flex flex-1 flex-col gap-5 px-5 pt-4 pb-5 medium:px-page">
                 {origin && (
                     <Reading>
                         <div className="flex flex-wrap items-center gap-2 text-body-small text-text-secondary">
@@ -326,6 +341,36 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     {origin.inlineClearLabel}
                                 </button>
                             )}
+                        </div>
+                    </Reading>
+                )}
+
+                {/*
+                  LE BANDEAU DE FILTRE ACTIF — `.filt` de la planche 03.3, rendu
+                  **obligatoire** par la section C du correctif du 18/08 : « le compteur
+                  de chip devient explicitement relatif ». « Validations 6 » sous l'onglet
+                  « À faire 17 » doit se lire « **6 des 17** » — sans quoi deux compteurs
+                  voisins semblent compter la même chose et ne le font pas.
+                  La première facette est la partition entière (« Tout ») : c'est elle qui
+                  donne le dénominateur, et c'est vers elle que « Tout voir » ramène.
+                */}
+                {activeFilterNotice && !selection?.active && (
+                    <Reading>
+                        <div className="bg-surface-muted-strong text-body-medium flex items-center gap-2.5 rounded-vignette px-3.5 py-[11px] leading-[18px] text-on-surface-variant">
+                            <Icon glyph={Funnel} size={18} className="text-on-surface-variant shrink-0" />
+                            <span className="min-w-0 flex-1">
+                                <b className="text-on-surface font-medium tabular-nums">
+                                    {activeFilterNotice.shown} des {activeFilterNotice.total}
+                                </b>{' '}
+                                — {activeFilterNotice.label.toLowerCase()}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={activeFilterNotice.onClear}
+                                className="text-on-surface shrink-0 cursor-pointer text-body-small font-medium underline underline-offset-[3px]"
+                            >
+                                Tout voir
+                            </button>
                         </div>
                     </Reading>
                 )}

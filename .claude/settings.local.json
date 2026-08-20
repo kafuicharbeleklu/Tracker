@@ -186,7 +186,9 @@
       "Bash(npm --version)",
       "Bash(timeout 20 npm view @phosphor-icons/react version)",
       "Bash(tar xzf *)",
-      "Bash(echo \"=== EXIT $? ===\")"
+      "Bash(echo \"=== EXIT $? ===\")",
+      "Artifact",
+      "Bash(perl *)"
     ]
   }
 }

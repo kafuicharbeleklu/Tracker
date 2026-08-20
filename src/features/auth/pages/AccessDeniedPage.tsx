@@ -5,7 +5,7 @@ import Button from '../../../components/ui/Button';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 
 /**
- * Accès refusé — planche 12.1.
+ * Accès refusé — planche 17.1, quatrième état.
  *
  * L'écran précédent listait **trois causes possibles** et laissait la personne trier.
  * Le produit sait laquelle est la sienne : la vérification renvoie un motif, et c'est

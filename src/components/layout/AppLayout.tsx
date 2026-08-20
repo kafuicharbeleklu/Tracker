@@ -19,9 +19,9 @@ const DashboardPage = lazy(() => import('../../features/dashboard/pages/Dashboar
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
 const UsersPage = lazy(() => import('../../features/users/pages/UsersPage'));
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'));
-const ApprovalsPage = lazy(() => import('../../features/approvals/pages/ApprovalsPage'));
-const NewRequestPage = lazy(() => import('../../features/approvals/pages/NewRequestPage'));
+const NewRequestPage = lazy(() => import('../../features/tasks/pages/NewRequestPage'));
 const FinanceManagementPage = lazy(() => import('../../features/finance/pages/FinanceManagementPage'));
+const ExpenseJournalPage = lazy(() => import('../../features/finance/pages/ExpenseJournalPage'));
 const ManagementPage = lazy(() => import('../../features/management/pages/ManagementPage'));
 const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
@@ -47,7 +47,7 @@ interface AppLayoutProps {
 }
 
 /**
- * Attente d'une vue — planche 12.1, registre §2.39 : on montre **la forme de ce qui
+ * Attente d'une vue — planche 17.3, registre §2.39 : on montre **la forme de ce qui
  * arrive**, pas un tourniquet. La place est tenue, donc l'écran ne saute pas à
  * l'arrivée de la donnée ; et « Chargement de la vue » nommait la mécanique, pas ce
  * que la personne attend.
@@ -99,10 +99,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'equipment',
         'equipment_details',
         'tasks',
-        'approvals',
         'users',
         'user_details',
         'finance',
+        'finance_expenses',
         'management',
         'rbac',
         'category_details',
@@ -115,6 +115,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     ];
     const usesBottomNavShortcuts = isCompact && !isCompactLandscape && bottomNavViews.includes(currentView);
     const showBottomNav = usesBottomNavShortcuts && !isMobileMenuOpen;
+
+    /* La barre du bas publie sa hauteur à la racine du document. Le retour transitoire
+       (17.5) est monté par `ToastProvider`, en dehors de cet arbre : il ne peut pas hériter
+       d'une variable posée ici, et il doit pourtant se poser au-dessus de la barre sans
+       jamais la recouvrir. Hors session — la connexion est montée hors d'`AppLayout` — la
+       variable retombe à 0 et le snackbar reprend ses 12 px de bord. */
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty('--tk-size-bottom-bar', showBottomNav ? '56px' : '0px');
+        return () => root.style.setProperty('--tk-size-bottom-bar', '0px');
+    }, [showBottomNav]);
 
     /**
      * Vues passées à l'ADN mobile (DESIGN_BRIEF.md §5) : elles portent elles-mêmes
@@ -133,6 +144,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'category_details',
         'settings',
         'rbac',
+        'finance_expenses',
     ];
     const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
@@ -151,9 +163,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'add_user':
             case 'edit_user': return 'Utilisateur';
             case 'import_users': return 'Import utilisateurs';
-            case 'approvals': return DESTINATIONS.approvals.label;
             case 'new_request': return 'Nouvelle demande';
             case 'finance': return DESTINATIONS.finance.label;
+            case 'finance_expenses': return 'Journal des dépenses';
             case 'management': return DESTINATIONS.management.label;
             case 'add_category':
             case 'add_model': return DESTINATIONS.management.label;
@@ -192,7 +204,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             if (view === 'add_user' || view === 'edit_user' || view === 'import_users') {
                 return permissions.canManageUsers;
             }
-            if (view === 'finance') return permissions.canViewFinance || permissions.canManageFinance;
+            if (view === 'finance' || view === 'finance_expenses') {
+                return permissions.canViewFinance || permissions.canManageFinance;
+            }
             if (
                 view === 'management'
                 || view === 'rbac'
@@ -304,12 +318,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'import_users':
                 return <ImportUsersPage onViewChange={handleViewChange} />;
 
-            case 'approvals':
-                return <ApprovalsPage />;
             case 'new_request':
                 return <NewRequestPage onViewChange={handleViewChange} />;
             case 'finance':
-                return <FinanceManagementPage />;
+                return <FinanceManagementPage onViewChange={handleViewChange} />;
+            case 'finance_expenses':
+                return <ExpenseJournalPage onBack={() => handleViewChange('finance')} />;
 
             case 'management':
                 return (
@@ -386,11 +400,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
 
             case 'tasks':
-                // Planche 03.3 : la destination unique des liens du tableau de bord.
+                // Planche 08.1 : la destination unique des liens du tableau de bord.
                 return <TasksPage onNavigate={handleViewChange} onItemClick={handleItemClick} />;
 
             case 'not_found':
-                // Planche 12.1 : le « 404 » est un code d'un autre métier, adressé à
+                // Planche 17.1 : le « 404 » est un code d'un autre métier, adressé à
                 // personne, et « vérifiez le lien » suppose une adresse que personne n'a
                 // tapée sur un téléphone. Reste ce qui est vrai — et les deux portes qui servent.
                 return (
@@ -467,11 +481,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
             {/* Mobile Bottom Navigation Bar */}
             {showBottomNav && (
-                <NavigationBar
-                    currentView={currentView}
-                    onViewChange={handleViewChange}
-                    onLogout={onLogout}
-                />
+                <NavigationBar currentView={currentView} onViewChange={handleViewChange} />
             )}
         </div>
     );

@@ -43,6 +43,21 @@ interface BudgetLine {
 
 type AddBudgetMode = 'import' | 'manual';
 
+/**
+ * Le classement d'une ligne de budget — **demandé, jamais deviné**. C'est l'arbitrage
+ * central de la planche 15.1 : *« un chiffre deviné ne se présente pas comme un chiffre
+ * su »*. Le produit le déduisait autrefois du montant (au-dessus de 5 000, investissement),
+ * et rien ne distinguait ce classement d'un classement saisi.
+ *
+ * La liste **n'existait pas** : `CAPITALIZATION_OPTIONS` était référencée deux fois et
+ * définie nulle part, si bien que le sélecteur recevait `undefined` et n'offrait aucun
+ * choix. L'arbitrage était écrit dans le balisage et inerte à l'écran. Relevé le 20/08.
+ */
+const CAPITALIZATION_OPTIONS = [
+    { value: 'CAPEX', label: 'CAPEX — investissement' },
+    { value: 'OPEX', label: 'OPEX — frais courant' },
+];
+
 const MODE_OPTIONS = [
     { value: 'import', label: 'Import fichier' },
     { value: 'manual', label: 'Saisie manuelle' },
@@ -53,6 +68,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
     const isCompact = useMediaQuery(MEDIA.compact);
+    /* La corbeille d'une ligne ne s'efface au survol que là où le survol existe : sans
+       ce test elle restait invisible au doigt. `isHoverCapable` était employée sans
+       jamais être déclarée dans ce fichier. */
+    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
 
     const [mode, setMode] = useState<AddBudgetMode>('import');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -77,21 +96,21 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const getCategoryDetails = (category: string) => {
         const lower = category.toLowerCase();
 
-        let icon = <Icon glyph={Stack} size={16} />;
+        let icon = <Icon glyph={Stack} size={18} />;
         let iconBg = 'bg-surface-container text-on-surface-variant';
 
         // Détection Icône & Style
         if (lower.includes('matériel') || lower.includes('capex') || lower.includes('hardware') || lower.includes('serveur')) {
-            icon = <Icon glyph={ShoppingBag} size={16} />;
+            icon = <Icon glyph={ShoppingBag} size={18} />;
             iconBg = 'bg-secondary-container text-secondary';
         } else if (lower.includes('licence') || lower.includes('software')) {
-            icon = <Icon glyph={Key} size={16} />;
+            icon = <Icon glyph={Key} size={18} />;
             iconBg = 'bg-secondary-container text-on-secondary-container';
         } else if (lower.includes('cloud') || lower.includes('hosting') || lower.includes('infrastructure')) {
-            icon = <Icon glyph={Cloud} size={16} />;
+            icon = <Icon glyph={Cloud} size={18} />;
             iconBg = 'bg-tertiary-container text-tertiary';
         } else if (lower.includes('maintenance') || lower.includes('service')) {
-            icon = <Icon glyph={Stack} size={16} />;
+            icon = <Icon glyph={Stack} size={18} />;
             iconBg = 'bg-surface-container text-on-surface-variant';
         }
 
@@ -316,9 +335,9 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
                             <div className="w-full bg-surface-container rounded-xl p-4 border border-outline-variant text-left space-y-2">
                                 <p className="text-label-medium font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={12} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={12} className="text-tertiary" /> Détection de l'exercice fiscal</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={SpinnerGap} size={12} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={18} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={18} className="text-tertiary" /> Détection de l'exercice fiscal</span>
+                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={SpinnerGap} size={18} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
                             </div>
                         </div>
                     )}
@@ -330,7 +349,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                     {importedFile && (
                         <div className="bg-tertiary-container border border-tertiary/20 rounded-xl p-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><Icon glyph={Sparkle} size={16} /></div>
+                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><Icon glyph={Sparkle} size={18} /></div>
                                 <div>
                                     <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données pré-remplies par IA</p>
                                     <p className="text-body-small text-tertiary">Vérifiez les montants ci-dessous.</p>
@@ -381,7 +400,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 type="number"
                                 value={year}
                                 onChange={(e) => setYear(e.target.value)}
-                                icon={<Icon glyph={Calendar} size={16} />}
+                                icon={<Icon glyph={Calendar} size={18} />}
                                 className="font-bold"
                                 required
                             />
@@ -551,7 +570,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 size="sm"
                                 onClick={addLine}
                                 className="w-full border-dashed"
-                                icon={<Icon glyph={Plus} size={16} />}
+                                icon={<Icon glyph={Plus} size={18} />}
                             >
                                 Ajouter une ligne
                             </Button>

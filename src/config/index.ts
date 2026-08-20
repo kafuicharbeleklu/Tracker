@@ -1,7 +1,7 @@
 // App configuration
 export const APP_CONFIG = {
     appName: 'Tracker',
-    companyName: 'Tracker',
+    companyName: 'Neemba', // l'entreprise, distincte de `appName` — mention de pied de la planche 02.1
     description: 'Plateforme centralisee de gestion des actifs informatiques',
     version: '1.2.0',
     /**

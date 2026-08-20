@@ -31,11 +31,16 @@ const generateTempPassword = (): string => {
     return `Tmp#${Math.random().toString(36).slice(2, 10)}!`;
 };
 
+/**
+ * Code PIN remis à une nouvelle personne — **quatre chiffres** (REGLES-TRANSVERSES.md
+ * §2.1). Il en produisait six, alors que tous les pavés du produit en acceptent quatre :
+ * un PIN attribué était donc insaisissable là où on le demande.
+ */
 const generateTempPin = (): string => {
     const fromEnv = import.meta.env.VITE_DEMO_TEMP_PIN?.trim();
     if (fromEnv) return fromEnv;
-    if (import.meta.env.DEV) return '123456';
-    return String(Math.floor(100000 + Math.random() * 900000));
+    if (import.meta.env.DEV) return '1234';
+    return String(Math.floor(1000 + Math.random() * 9000));
 };
 
 // MOCK DATABASE (Simulating SharePoint List "AppUsers")
@@ -176,7 +181,7 @@ export const authService = {
         const user = mockAppUsers.find(u => u.MicrosoftEmail.toLowerCase() === email.toLowerCase());
 
         if (!user) {
-            // Le motif est ce que l'écran d'accès refusé affiche (planche 12.1) : il dit
+            // Le motif est ce que l'écran d'accès refusé affiche (planche 17.1) : il dit
             // la cause de cette personne, au lieu de lui faire trier trois hypothèses.
             return {
                 success: false,

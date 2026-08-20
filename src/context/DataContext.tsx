@@ -80,7 +80,7 @@ interface DataContextType {
     deleteUser: (id: string) => BusinessRuleDecision;
     addEquipment: (item: Equipment) => void;
     /** Retourne la décision : un refus de rôle était jusqu'ici un `return` muet, et
-        l'appelant annonçait son succès sans savoir (planche 12.1, règle 3). */
+        l'appelant annonçait son succès sans savoir (planche 17.1, registre §2.39, règle 3). */
     updateEquipment: (id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => BusinessRuleDecision;
     deleteEquipment: (id: string) => boolean;
     upsertEquipmentFromAuditScan: (

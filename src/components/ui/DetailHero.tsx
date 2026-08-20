@@ -140,7 +140,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                             {label}
                         </p>
                     )}
-                    <p className="mt-0.5 font-brand text-[28px] font-semibold leading-8 tracking-tight text-inverse-on-surface">
+                    <p className="mt-0.5 font-brand text-[28px] font-semibold leading-8 tracking-[-0.02em] text-inverse-on-surface">
                         {subject}
                     </p>
                 </div>
@@ -160,7 +160,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     </p>
                 )}
 
-                <p className="mt-1 font-brand text-[28px] font-semibold leading-8 tracking-tight text-inverse-on-surface">
+                <p className="mt-1 font-brand text-[28px] font-semibold leading-8 tracking-[-0.02em] text-inverse-on-surface">
                     {subject}
                 </p>
             </>
@@ -179,7 +179,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             <div className="mt-3.5 flex gap-[18px] border-t border-white/[0.14] pt-3">
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
-                        <span className="whitespace-nowrap font-brand text-[19px] font-semibold leading-6 tracking-tight tabular-nums">
+                        <span className="whitespace-nowrap font-brand text-[19px] font-semibold leading-[23px] tracking-[-0.015em] tabular-nums">
                             {metric.value}
                         </span>
                         <span className="mt-0.5 block text-label-small text-on-nav-surface-variant">

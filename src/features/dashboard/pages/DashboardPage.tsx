@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowCircleRight,
     ArrowUUpLeft,
@@ -33,7 +33,7 @@ import Icon from '../../../components/ui/Icon';
 import ProportionRow from '../../../components/ui/ProportionRow';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import SecurityGate from '../../../components/security/SecurityGate';
-import dashboardHeroImage from '../../../../Desing_System/uploads/footer-cartouche-bas-nl.webp';
+import dashboardHeroImage from '../../../assets/dashboard-hero.webp';
 
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate } from '../../../lib/financial';
@@ -82,14 +82,31 @@ import { cn } from '../../../lib/utils';
  * - **le sous-titre « Vue d'ensemble de votre parc informatique »**, qui ne dit rien
  *   qu'on ne sache déjà : il devient **le volume de travail qui attend**.
  *
+ * ## Ce que le portage a ajouté depuis
+ *
+ * - **Le menu de compte sous l'avatar** est en place (R12 : un déclencheur sans surface
+ *   dessinée est un défaut). Il porte Mon profil, Mon compte, Aide et support et la
+ *   déconnexion — le découpage de Paramètres (14.1) que la planche demande. Cette note
+ *   annonçait le contraire jusqu'au 20/08 : elle décrivait un état dépassé.
+ * - **Les valeurs de l'échelle**, que le code prenait hors barème : 23 px sur l'accueil,
+ *   24 px sur les KPI et le chiffre de budget, 30 px sur le compteur saturé — aucune
+ *   n'est une marche du socle. Ramenées à 20 / 20 / 28, en Archivo 600.
+ *
+ * ## L'intensité de vie : **sobre**, et c'est un choix
+ *
+ * Le panneau de réglages de la planche ouvre sur « assumée » — tuiles de KPI teintées,
+ * titres de carte en Archivo 600, glyphes de motif, voile du héro à 76 %. **Le produit
+ * retient « sobre »** : séparateurs plutôt que tuiles, titres en Inter 500, glyphes
+ * génériques, voile à 90 %. Arbitré le 20/08 ; ce n'est pas un portage incomplet.
+ *
  * ## Ce qui n'est pas porté, et pourquoi
  *
  * - **Le filtrage déjà appliqué dans Tâches** : le régime saturé en présente les
  *   natures d'action, puis ouvre la file unique. La définition précise du filtre
  *   appartient au travail de cette file, pas au tableau de bord.
- * - **Le menu de compte sous l'avatar** : la planche l'y déplace en même temps qu'elle
- *   redécoupe Paramètres (14.1). Tant que ce découpage n'est pas fait, l'accès au
- *   compte reste là où il est — « Plus » au téléphone, la barre latérale au-delà.
+ * - **L'attente la plus longue** que la planche affiche au régime saturé
+ *   (« la plus ancienne depuis 14 jours ») : la donnée n'existe pas côté modèle, et
+ *   l'inventer serait un ajout fonctionnel, pas un portage de forme.
  */
 
 interface DashboardPageProps {
@@ -114,7 +131,7 @@ type DashboardTask =
 
 const TODO_SATURATION_THRESHOLD = 250;
 const HERO_BACKGROUND_STYLE: React.CSSProperties = {
-    backgroundImage: `linear-gradient(180deg, rgb(10 25 29 / 0.62) 0%, rgb(10 25 29 / 0.78) 62%), url(${dashboardHeroImage})`,
+    backgroundImage: `linear-gradient(180deg, rgb(10 25 29 / 0.76) 0%, rgb(10 25 29 / 0.9) 62%), url(${dashboardHeroImage})`,
     backgroundPosition: 'center 42%',
     backgroundSize: 'cover',
     backgroundRepeat: 'no-repeat',
@@ -165,7 +182,7 @@ const DashboardMoreAction: React.FC<{
             <span
                 className={cn(
                     'ml-auto min-w-0 flex-1 truncate text-right text-body-medium font-normal',
-                    isInverse ? 'text-on-nav-surface-variant' : 'text-text-secondary'
+                    isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant'
                 )}
             >
                 {destination}
@@ -186,6 +203,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const { getRecentActivity } = useHistory();
     const { showToast } = useToast();
     const [isAccountOpen, setIsAccountOpen] = useState(false);
+
+    /*
+      Échap referme le menu de compte. Son voile se ferme au clic, ce qui ne vaut que
+      pour une souris : au clavier, le menu restait ouvert sans aucun moyen d'en sortir.
+      Un voile est décoratif — c'est Échap qui en est le pendant clavier, et les six
+      autres surfaces flottantes du produit l'ont déjà.
+    */
+    useEffect(() => {
+        if (!isAccountOpen) return;
+        const onEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsAccountOpen(false);
+        };
+        document.addEventListener('keydown', onEscape);
+        return () => document.removeEventListener('keydown', onEscape);
+    }, [isAccountOpen]);
 
     const userInitials = useMemo(() => {
         return (
@@ -344,18 +376,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const totalSpent = currentBudget.items.reduce((acc, item) => acc + (item.spent || 0), 0);
         const percentSpent = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
         const remaining = totalAllocated - totalSpent;
-        const overPacedCount = currentBudget.items.filter(
-            (item) => item.allocated > 0 && item.spent / item.allocated > 0.25
-        ).length;
-
         return {
             year: currentBudget.year,
             totalAllocated,
             totalSpent,
             percentSpent,
             remaining,
-            itemCount: currentBudget.items.length,
-            overPacedCount,
         };
     }, [financeBudgets]);
 
@@ -456,17 +482,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const rest = todo.length - shown.length;
 
     return (
-        <div className="flex min-w-0 flex-1 flex-col bg-background pb-8">
+        <div className="flex min-w-0 flex-1 flex-col bg-background">
             <OfflineBanner />
 
-            <div className="flex flex-1 flex-col gap-5 px-5 py-4 medium:px-page">
+            <div className="flex flex-1 flex-col gap-5 px-5 pt-4 pb-5 medium:px-page">
                 <Reading>
                     <header className="flex items-start justify-between gap-3">
                         <div>
-                            <h1 className="font-brand text-[23px] font-semibold leading-7 tracking-tight text-on-surface">
+                            <h1 className="font-brand text-[20px] leading-7 font-semibold tracking-[-0.015em] text-on-surface">
                                 Bonjour {firstName}
                             </h1>
-                            <p className="mt-1 text-body-large text-text-secondary">{subtitle}</p>
+                            <p className="mt-1 text-[14px] leading-5 text-on-surface-variant">{subtitle}</p>
                         </div>
 
                         <div className="relative shrink-0">
@@ -487,8 +513,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     <div
                                         className="fixed inset-0 z-40"
                                         onClick={() => setIsAccountOpen(false)}
+                                        aria-hidden="true"
                                     />
-                                    <div className="absolute right-0 top-[52px] z-50 w-[240px] rounded-lg border border-outline-variant bg-surface p-1.5 shadow-elevation-3">
+                                    <div className="absolute right-0 top-[52px] z-50 w-[238px] rounded-lg border border-outline-variant bg-surface p-1.5 shadow-elevation-3">
                                         <div className="flex items-center gap-2.5 p-2 pb-3">
                                             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] font-brand text-sm font-semibold text-white">
                                                 {userInitials}
@@ -497,7 +524,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 <p className="truncate text-sm font-medium text-on-surface">
                                                     {currentUser?.name || 'Utilisateur'}
                                                 </p>
-                                                <p className="truncate text-xs text-text-secondary">
+                                                <p className="truncate text-xs text-on-surface-variant">
                                                     {currentUser?.role === 'ADMIN'
                                                         ? 'Super-administrateur'
                                                         : currentUser?.jobTitle || currentUser?.department || 'Utilisateur'}
@@ -513,10 +540,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 setIsAccountOpen(false);
                                                 if (currentUser?.id) onNavigate?.(`/users/${currentUser.id}`);
                                             }}
-                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
+                                            className="flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
                                         >
                                             <span className="font-medium">Mon profil</span>
-                                            <span className="text-[11px] text-text-secondary">
+                                            <span className="text-[11px] text-on-surface-variant">
                                                 Mes équipements, mon historique
                                             </span>
                                         </Button>
@@ -529,10 +556,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 setIsAccountOpen(false);
                                                 onViewChange('settings');
                                             }}
-                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
+                                            className="flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
                                         >
                                             <span className="font-medium">Mon compte</span>
-                                            <span className="text-[11px] text-text-secondary">
+                                            <span className="text-[11px] text-on-surface-variant">
                                                 Mot de passe, code PIN, sessions
                                             </span>
                                         </Button>
@@ -545,10 +572,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 setIsAccountOpen(false);
                                                 onNavigate?.('/documentation/ui-flow-map');
                                             }}
-                                            className="flex w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
+                                            className="flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t border-outline-variant px-2.5 py-2 text-left text-sm text-on-surface hover:bg-surface-container"
                                         >
                                             <span className="font-medium">Aide et support</span>
-                                            <span className="text-[11px] text-text-secondary">
+                                            <span className="text-[11px] text-on-surface-variant">
                                                 Documentation, tutoriels, FAQ
                                             </span>
                                         </Button>
@@ -568,9 +595,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             Se déconnecter
                                         </Button>
 
-                                        <div className="border-t border-outline-variant px-2.5 pt-2 pb-0.5 text-[11px] tabular-nums text-text-secondary">
-                                            Tracker v1.2.0
-                                        </div>
                                     </div>
                                 </>
                             )}
@@ -584,7 +608,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         <div className="grid grid-cols-2 gap-3">
                             <Button
                                 variant="tonal"
-                                className="!rounded-[4px] !shadow-none bg-[var(--tk-color-inverse-surface)] text-white hover:bg-[var(--tk-color-inverse-surface)]/90"
+                                className="!rounded-[4px] !shadow-none bg-[var(--tk-color-inverse-surface)] text-[15px] text-white hover:bg-[var(--tk-color-inverse-surface)]/90"
                                 icon={<Icon glyph={ArrowUUpLeft} size={18} />}
                                 onClick={() => onViewChange('return_wizard')}
                             >
@@ -592,7 +616,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             </Button>
                             <Button
                                 variant="filled"
-                                className="!rounded-[4px] !shadow-none bg-primary text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
+                                className="!rounded-[4px] !shadow-none bg-primary text-[15px] text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
                                 icon={<Icon glyph={ArrowCircleRight} size={18} />}
                                 onClick={() => onViewChange('assignment_wizard')}
                             >
@@ -602,7 +626,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     ) : (
                         <Button
                             variant="filled"
-                            className="w-full !rounded-[4px] !shadow-none bg-primary text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
+                            className="w-full !rounded-[4px] !shadow-none bg-primary text-[15px] text-[var(--tk-color-brand-text)] hover:bg-primary-hover"
                             icon={<Icon glyph={Plus} size={18} />}
                             onClick={() => onViewChange('new_request')}
                         >
@@ -626,7 +650,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <div className="flex items-center gap-3.5 py-4">
                                 <Icon glyph={Tray} size={32} className="text-on-nav-surface-variant" />
                                 <div>
-                                    <p className="font-brand text-base font-semibold">Rien à traiter</p>
+                                    <p className="font-brand text-[20px] font-semibold">Rien à traiter</p>
                                     <p className="mt-0.5 text-body-medium text-on-nav-surface-variant">
                                         Aucune demande en attente. Le parc est à jour.
                                     </p>
@@ -634,13 +658,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             </div>
                         ) : isTodoSaturated ? (
                             <div className="mt-3">
-                                <p className="font-brand text-[30px] font-semibold leading-[34px] tracking-tight tabular-nums">
+                                <p className="font-brand text-[28px] font-semibold leading-[34px] tracking-[-0.02em] tabular-nums">
                                     {todo.length}
                                 </p>
                                 <p className="mt-0.5 text-body-medium text-on-nav-surface-variant">
-                                    demandes en attente : ouvrez Tâches pour traiter la file.
+                                    demandes en attente
                                 </p>
-                                <div className="mt-2 border-t border-white/[0.14]">
+                                <p className="mt-3 text-body-medium text-on-nav-surface-variant">
+                                    Ouvrir la file (Tâches), filtrée sur :
+                                </p>
+                                <div className="mt-1.5 border-t border-white/[0.14]">
                                     {todoBreakdown.map((item) => (
                                         <Button
                                             key={item.label}
@@ -651,7 +678,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             <span className="w-11 font-brand text-base font-semibold tabular-nums">
                                                 {item.count}
                                             </span>
-                                            <span className="text-body-large text-on-nav-surface-variant">{item.label}</span>
+                                            <span className="text-[14px] text-on-nav-surface-variant">{item.label}</span>
                                             <Icon glyph={CaretDown} size={18} className="ml-auto -rotate-90 text-on-nav-surface-variant" />
                                         </Button>
                                     ))}
@@ -702,7 +729,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     <Button
                                                         variant="text"
                                                         size="sm"
-                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
                                                     >
                                                         Confirmer la réception
                                                     </Button>
@@ -713,7 +740,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 variant="text"
                                                 size="sm"
                                                 onClick={() => onViewChange('return_wizard')}
-                                                className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                                className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
                                             >
                                                 Réceptionner
                                             </Button>
@@ -728,7 +755,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     <Button
                                                         variant="text"
                                                         size="sm"
-                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
+                                                        className="h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] text-inverse-on-surface hover:bg-white/20 hover:text-inverse-on-surface focus-visible:ring-primary"
                                                     >
                                                         Valider la demande
                                                     </Button>
@@ -758,15 +785,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         <div className="grid grid-cols-2">
                             {(isManager
                                 ? [
-                                      { label: 'Total actifs', value: counts.total, icon: Package, iconTint: 'text-on-surface-variant', onClick: () => openFleet('') },
-                                      { label: 'Attribués', value: counts.assigned, icon: UserCheck, iconTint: 'text-info', onClick: () => openFleet('Attribué') },
-                                      { label: 'Disponibles', value: counts.available, icon: Check, iconTint: 'text-success', onClick: () => openFleet('Disponible') },
-                                      { label: 'En réparation', value: counts.repair, icon: Wrench, iconTint: 'text-warning-strong', alert: true, onClick: () => openFleet('En réparation') },
+                                      { label: 'Total actifs', value: counts.total, icon: Package, onClick: () => openFleet('') },
+                                      { label: 'Attribués', value: counts.assigned, icon: UserCheck, onClick: () => openFleet('Attribué') },
+                                      { label: 'Disponibles', value: counts.available, icon: Check, onClick: () => openFleet('Disponible') },
+                                      { label: 'En réparation', value: counts.repair, icon: Wrench, alert: true, onClick: () => openFleet('En réparation') },
                                   ]
                                 : [
-                                      { label: 'Mes équipements', value: mine.equipment, icon: Laptop, iconTint: 'text-on-surface-variant', onClick: () => openFleet('') },
-                                      { label: 'Demandes en cours', value: mine.requests, icon: Clock, iconTint: 'text-info', onClick: () => onViewChange('approvals') },
-                                      { label: 'Réceptions à confirmer', value: mine.receipts, icon: Truck, iconTint: 'text-warning-strong', onClick: () => onViewChange('approvals') },
+                                      { label: 'Mes équipements', value: mine.equipment, icon: Laptop, onClick: () => openFleet('') },
+                                      { label: 'Demandes en cours', value: mine.requests, icon: Clock, onClick: () => onViewChange('tasks') },
+                                      { label: 'Réceptions à confirmer', value: mine.receipts, icon: Truck, onClick: () => onViewChange('tasks') },
                                   ]
                             ).map((kpi, index, all) => (
                                 <Button
@@ -784,13 +811,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     )}
                                 >
                                     <span className="flex items-center justify-between gap-2">
-                                        <span className="text-body-medium text-text-secondary">{kpi.label}</span>
-                                        <Icon glyph={kpi.icon} size={18} className={kpi.iconTint} />
+                                        <span className="text-body-medium text-on-surface-variant">{kpi.label}</span>
+                                        {/* Le glyphe reste sourd : c'est la tuile qui porte la teinte. */}
+                                        <Icon glyph={kpi.icon} size={18} className="text-on-surface-variant" />
                                     </span>
                                     <span
                                         className={cn(
-                                            'mt-1.5 block font-brand text-2xl font-semibold tabular-nums',
-                                            kpi.alert ? 'text-danger' : 'text-on-surface'
+                                            'font-brand mt-1.5 block text-[20px] leading-[1.25] font-semibold tabular-nums',
+                                            kpi.alert ? 'text-warning-strong' : 'text-on-surface'
                                         )}
                                     >
                                         {kpi.value}
@@ -808,20 +836,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <Card icon={ChartBar} title="Types en tension">
                                 {tension.stressed.length > 0 ? (
                                     <>
-                                        <p className="mt-1 text-body-medium leading-4 text-text-secondary">
+                                        <p className="mt-1 text-body-medium leading-4 text-on-surface-variant">
                                             Aucune unité disponible — les plus nombreux d’abord.
                                         </p>
                                         {tension.stressed.map(([type, entry]) => (
                                             <p key={type} className="mt-3 flex items-center gap-2.5 text-body-large">
                                                 <Icon glyph={Warning} size={18} className="text-warning-strong" />
                                                 <span className="min-w-0 flex-1 truncate text-on-surface">{entry.label}</span>
-                                                <span className="tabular-nums text-text-secondary">
+                                                <span className="tabular-nums text-on-surface-variant">
                                                     0 sur {entry.total}
                                                 </span>
                                             </p>
                                         ))}
                                         {tension.calm > 0 && (
-                                            <p className="mt-3 border-t border-outline-variant pt-3 text-body-medium text-text-secondary">
+                                            <p className="mt-3 border-t border-outline-variant pt-3 text-body-medium text-on-surface-variant">
                                                 {tension.calm === 1
                                                     ? 'L’autre type a au moins une unité disponible.'
                                                     : `Les ${tension.calm} autres types ont au moins une unité disponible.`}
@@ -829,7 +857,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         )}
                                     </>
                                 ) : (
-                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                    <p className="mt-2 text-body-medium text-on-surface-variant">
                                         Chaque type a au moins une unité disponible.
                                     </p>
                                 )}
@@ -853,7 +881,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     tone={fleet.uncovered > 0 ? 'attention' : 'neutral'}
                                     note={
                                         fleet.unknownWarranty > 0
-                                            ? `${fleet.unknownWarranty} sans date de fin connue. Leur remise en état n’est provisionnée nulle part.`
+                                            ? `${fleet.unknownWarranty} sans date de fin connue. Remise en état non provisionnée.`
                                             : 'Aucun sans date de fin. Leur remise en état n’est provisionnée nulle part.'
                                     }
                                 />
@@ -870,13 +898,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 {budgetStats ? (
                                     <>
                                         <div className="mt-3 flex items-baseline gap-2.5">
-                                            <span className="font-brand text-[24px] font-semibold leading-none tabular-nums text-on-surface">
+                                            <span className="font-brand text-[20px] font-semibold leading-none tabular-nums text-on-surface">
                                                 {new Intl.NumberFormat('fr-FR').format(budgetStats.totalSpent)}
                                             </span>
-                                            <span className="min-w-0 flex-1 text-body-large leading-[19px] text-text-secondary">
+                                            <span className="min-w-0 flex-1 text-body-large leading-[19px] text-on-surface-variant">
                                                 XOF engagés sur les {new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)} de l’exercice
                                             </span>
-                                            <span className="text-body-medium font-medium tabular-nums text-text-secondary">
+                                            <span className="text-body-medium font-medium tabular-nums text-on-surface-variant">
                                                 {budgetStats.percentSpent.toFixed(1).replace('.', ',')} %
                                             </span>
                                         </div>
@@ -897,16 +925,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             />
                                         </div>
 
-                                        <p className="mt-2 text-body-medium leading-[18px] text-text-secondary">
-                                            Le repère marque le quart d’exercice écoulé : l’engagement est{' '}
+                                        {/*
+                                          R13 — sous un chiffre, une ligne au plus. Cette note
+                                          disait trois choses en 165 signes, dont une que le
+                                          dessin porte déjà : « le repère marque le quart
+                                          d'exercice écoulé » — le repère EST ce dessin, et
+                                          l'étiquette accessible de la barre le nomme. Le
+                                          rythme des enveloppes appartient à Finances, où le
+                                          renvoi mène.
+                                        */}
+                                        <p className="mt-2 text-body-medium leading-[18px] text-on-surface-variant">
                                             <strong className="font-semibold text-on-surface">
                                                 {Math.abs(Math.round(25 - budgetStats.percentSpent))} points {budgetStats.percentSpent <= 25 ? 'sous le rythme' : 'au-dessus du rythme'}
                                             </strong>
-                                            .{' '}
-                                            {budgetStats.overPacedCount === 0
-                                                ? `Aucune des ${budgetStats.itemCount > 0 ? budgetStats.itemCount : 'quatre'} enveloppes ne dépasse son rythme.`
-                                                : `${budgetStats.overPacedCount} enveloppe${budgetStats.overPacedCount > 1 ? 's dépassent' : ' dépasse'} son rythme.`}{' '}
-                                            {new Intl.NumberFormat('fr-FR').format(budgetStats.remaining)} XOF restent disponibles.
+                                            . {new Intl.NumberFormat('fr-FR').format(budgetStats.remaining)} XOF disponibles.
                                         </p>
 
                                         <DashboardMoreAction
@@ -916,7 +948,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         />
                                     </>
                                 ) : (
-                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                    <p className="mt-2 text-body-medium text-on-surface-variant">
                                         Aucun budget configuré pour cet exercice.
                                     </p>
                                 )}
@@ -939,14 +971,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                         style={{ width: `${item.percent}%` }}
                                                     />
                                                 </div>
-                                                <span className="w-8 text-right font-medium tabular-nums text-text-secondary">
+                                                <span className="w-8 text-right font-medium tabular-nums text-on-surface-variant">
                                                     {item.count}
                                                 </span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="mt-2 text-body-medium text-text-secondary">
+                                    <p className="mt-2 text-body-medium text-on-surface-variant">
                                         Aucun équipement ne vous est actuellement attribué.
                                     </p>
                                 )}
@@ -983,14 +1015,34 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             key={event.id}
                                             className="flex min-h-14 items-center gap-3 border-t border-outline-variant py-2.5 first-of-type:border-t-0"
                                         >
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
-                                                <Icon glyph={ClockCounterClockwise} size={18} />
-                                            </span>
+                                            {/*
+                                              Marque d'événement — §2.5 : 32 px, ronde, et elle
+                                              dit QUI ou QUOI. La planche distingue les deux —
+                                              initiales sur teinte bleue pour une personne,
+                                              glyphe sur le creux pour un acte du système. Le
+                                              code posait la même horloge sur les trois rangées,
+                                              donc ne disait rien.
+                                            */}
+                                            {!event.isSystem && event.actorName ? (
+                                                <span className="bg-info/[0.16] text-info-strong font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
+                                                    {event.actorName
+                                                        .split(' ')
+                                                        .map((part) => part[0])
+                                                        .filter(Boolean)
+                                                        .slice(0, 2)
+                                                        .join('')
+                                                        .toUpperCase()}
+                                                </span>
+                                            ) : (
+                                                <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                                                    <Icon glyph={ClockCounterClockwise} size={18} />
+                                                </span>
+                                            )}
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-body-large leading-5 text-on-surface">
                                                     {getHistoryEventSentence({ event, perspectiveActorId: currentUser?.id })}
                                                 </p>
-                                                <p className="mt-0.5 text-body-medium tabular-nums text-text-secondary">
+                                                <p className="mt-0.5 text-body-medium tabular-nums text-on-surface-variant">
                                                     {formatDate(new Date(event.timestamp))}
                                                 </p>
                                             </div>
@@ -1010,7 +1062,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 />
                             </>
                         ) : (
-                            <p className="mt-2 text-body-medium text-text-secondary">
+                            <p className="mt-2 text-body-medium text-on-surface-variant">
                                 Aucun événement enregistré pour l’instant.
                             </p>
                         )}

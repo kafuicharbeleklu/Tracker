@@ -13,9 +13,15 @@ interface AddModelPageProps {
     isOpen: boolean;
     onClose: () => void;
     modelToEdit?: Model | null;
+    /**
+     * Le type déjà posé à l'ouverture. Sert au geste « Ajouter le premier modèle » de
+     * la fiche d'un type sans modèle (09.1, colonne 3) : le geste qui lève la situation
+     * doit atterrir **sur ce type**, pas sur un sélecteur vide.
+     */
+    initialType?: string;
 }
 
-const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdit }) => {
+const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdit, initialType }) => {
     const { showToast } = useToast();
     const { addModel, updateModel, categories } = useData();
 
@@ -38,10 +44,10 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                     image: modelToEdit.image || ''
                 });
             } else {
-                setFormData({ name: '', brand: '', category: '', specs: '', image: '' });
+                setFormData({ name: '', brand: '', category: initialType || '', specs: '', image: '' });
             }
         }
-    }, [isOpen, modelToEdit]);
+    }, [isOpen, modelToEdit, initialType]);
 
     const handleSave = () => {
         if (!formData.name || !formData.category) {

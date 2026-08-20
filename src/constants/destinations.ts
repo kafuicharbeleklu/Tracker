@@ -25,7 +25,6 @@ export type DestinationId = Extract<
     | 'dashboard'
     | 'tasks'
     | 'equipment'
-    | 'approvals'
     | 'users'
     | 'finance'
     | 'management'
@@ -44,15 +43,13 @@ export const DESTINATIONS: Record<DestinationId, AppDestination> = {
         icon: 'devices',
         route: '/inventory',
     },
-    // La file de travail (planche 03.3) : c'est elle que la barre du bas désignait
-    // déjà sous le nom « Tâches », alors qu'elle ouvrait la liste des approbations.
+    /*
+      La file de travail, et **la seule**. Le registre déclarait aussi une destination
+      « Approbations » : même donnée, mêmes règles métier, une liste de plus. La matrice
+      de la planche 17.7 la marquait en divergence — « elle est un onglet de Tâches ;
+      deux portes vers la même file ». Retirée le 20/08, avec la page qui la servait.
+    */
     tasks: { label: 'Tâches', shortLabel: 'Tâches', icon: 'task_alt', route: '/tasks' },
-    approvals: {
-        label: GLOSSARY.APPROVALS,
-        shortLabel: 'Demandes',
-        icon: 'inbox',
-        route: '/approvals',
-    },
     users: { label: GLOSSARY.USER_PLURAL, shortLabel: 'Équipe', icon: 'group', route: '/users' },
     finance: { label: 'Finances', icon: 'payments', route: '/finance' },
     management: { label: GLOSSARY.MANAGEMENT, icon: 'tune', route: '/management' },

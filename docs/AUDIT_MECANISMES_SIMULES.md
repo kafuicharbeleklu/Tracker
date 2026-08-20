@@ -8,8 +8,9 @@
 ## 🔴 A. Sécurité (théâtre de sécurité — priorité)
 
 ### A1. PIN administrateur codé en dur
-- **État** : `validateAdminPIN(pin)` renvoie `pin === '123456'` (`lib/security.ts:11`). Utilisé par `SecurityGate` pour valider les actions sensibles (attribution, retour, ligne d'approbation).
-- **Risque** : **quiconque connaît « 123456 » valide n'importe quelle action sensible.** Le PIN est en clair dans le code source livré.
+- **État** : `validateAdminPIN(pin)` compare à `ADMIN_PIN`, soit `VITE_ADMIN_PIN` si la variable est posée, soit **`1234`** par défaut (`lib/security.ts`). Utilisé par `SecurityGate` pour valider les actions sensibles (attribution, retour, ligne d'approbation).
+- **Risque** : **quiconque connaît le code valide n'importe quelle action sensible.** Le PIN est en clair dans le code source livré.
+- **Note du 18/08/2026** : la valeur est passée de `123456` à `1234` avec l'alignement du pavé sur `REGLES-TRANSVERSES.md` §2.1 — quatre caractères, sans exception. Le pavé de `SecurityGate` déclarait six cases, seul dans le produit ; un code de six chiffres n'y est plus saisissable. La valeur reste volontairement triviale : c'est un contrôle de démonstration vérifié côté client, et lui donner l'allure d'un secret ferait croire qu'il en est un.
 - **Recommandation** : a minima **sortir le PIN du code** (variable d'env / config) ; cible réelle = vérification côté **backend** (hash), avec le Chantier A. Si c'est juste une **démo**, l'assumer explicitement.
 
 ### A2. Reconnaissance faciale « toujours OK »

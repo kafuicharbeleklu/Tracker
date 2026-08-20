@@ -133,7 +133,7 @@ Gating applicatif (`App.tsx`) : `accessDenied` → `AccessDeniedPage` ; `needsPa
 ### 4.3 Sécurité « step-up » (simulée)
 
 - `SecurityGate` + `FacialRecognitionScan` + `validateAdminPIN` protègent les actions sensibles (attribution, retour, ligne d'approbation). Utilisés dans `AssignmentWizardPage`, `ReturnWizardPage`, `ApprovalRow`.
-- ⚠️ **PIN admin codé en dur à `123456`** (`src/lib/security.ts:11`) et reconnaissance faciale = **animation simulée** (`FacialRecognitionScan.tsx`). `logSecurityAction` n'écrit que dans la console. → **Maquette de démo, pas de vraie sécurité.**
+- ⚠️ **PIN admin codé en dur à `1234`** (`src/lib/security.ts`, surchargeable par `VITE_ADMIN_PIN` ; quatre chiffres depuis l'alignement sur `REGLES-TRANSVERSES.md` §2.1) et reconnaissance faciale = **animation simulée** (`FacialRecognitionScan.tsx`). `logSecurityAction` n'écrit que dans la console. → **Maquette de démo, pas de vraie sécurité.**
 
 ---
 
@@ -199,7 +199,7 @@ Statut : ✅ Implémenté (sur données mock) · 🟡 Partiel/simulé · 🔵 R�
 - **Backend / persistance : non finalisé** — tout repose sur des **mocks en mémoire + `localStorage`** (avec migration de clés legacy, `lib/persistence.ts`). Les hooks d'intégration réelle existent (variables `VITE_AUTH_API_BASE_URL`, backend agents) mais ne sont pas la voie par défaut.
 
 ### Dette technique identifiée (citée)
-- **Sécurité de démo** : PIN admin `123456` en dur (`security.ts:11`), reconnaissance faciale simulée (`FacialRecognitionScan.tsx`), `logSecurityAction` → console uniquement.
+- **Sécurité de démo** : PIN admin `1234` en dur (`security.ts`), reconnaissance faciale simulée (`FacialRecognitionScan.tsx`), `logSecurityAction` → console uniquement.
 - **Auth simulée** : `authService.ts` = fausse liste SharePoint en mémoire, délais artificiels, « email envoyé » simulé (`authService.ts:286`).
 - **« IA » marketing = heuristiques** : classification finance (`FinanceManagementPage.tsx:39`, `AddBudgetModal.tsx:85`) — règles simples, pas de modèle.
 - **Statuts d'approbation dupliqués** (legacy vs modernes) maintenus en parallèle dans `types/index.ts` et `businessRules.ts` → complexité, unification à prévoir.
@@ -230,7 +230,7 @@ Pas de runner de test unitaire ni de commande « test unique ».
 ## 8. Questions ouvertes (pour validation de ta part)
 
 1. **Backend cible** : quelle est la vraie source de données prévue ? SharePoint (suggéré par `AppUser`) ? Une API REST custom (les `VITE_AUTH_API_BASE_URL` / backend agents) ? Les deux ? → conditionne tout remplacement des mocks.
-2. **Périmètre « démo vs prod »** : les éléments simulés (PIN 123456, reconnaissance faciale, classification IA, login démo) sont-ils destinés à être remplacés par du réel, ou resteront-ils en l'état pour une démo ?
+2. **Périmètre « démo vs prod »** : les éléments simulés (PIN `1234`, reconnaissance faciale, classification IA, login démo) sont-ils destinés à être remplacés par du réel, ou resteront-ils en l'état pour une démo ?
 3. **Statuts d'approbation** : faut-il finaliser la migration legacy → moderne et supprimer les statuts/ champs legacy, ou la rétro-compatibilité doit-elle être maintenue ?
 4. **TypeScript `strict`** : volontairement désactivé, ou à activer progressivement ?
 5. **Tests** : souhaites-tu introduire un runner (Vitest) ? Y a-t-il une politique de couverture attendue ?

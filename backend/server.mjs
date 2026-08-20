@@ -93,7 +93,9 @@ const toPublicAuthUser = (user) => {
 };
 
 const generateTempPassword = () => `Tmp#${Math.random().toString(36).slice(2, 10)}!`;
-const generateTempPin = () => String(Math.floor(100000 + Math.random() * 900000));
+// Quatre chiffres — REGLES-TRANSVERSES.md §2.1. Le PIN remis ici est saisi dans les
+// pavés du client, qui n'ont que quatre cases : en émettre six le rendait inutilisable.
+const generateTempPin = () => String(Math.floor(1000 + Math.random() * 9000));
 
 const createDefaultAuthUsers = () => {
     const now = new Date().toISOString();

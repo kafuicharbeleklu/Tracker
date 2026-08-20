@@ -9,7 +9,7 @@ import type {
 
 // Navigation
 // Added 'settings' to ViewType to resolve navigation and title mapping errors
-export type ViewType = 'dashboard' | 'tasks' | 'equipment' | 'equipment_details' | 'add_equipment' | 'edit_equipment' | 'import_equipment' | 'users' | 'user_details' | 'add_user' | 'edit_user' | 'import_users' | 'approvals' | 'new_request' | 'management' | 'rbac' | 'add_category' | 'add_model' | 'import_models' | 'category_details' | 'model_details' | 'locations' | 'import_locations' | 'audit' | 'audit_details' | 'reports' | 'assignment_wizard' | 'return_wizard' | 'finance' | 'settings' | 'not_found';
+export type ViewType = 'dashboard' | 'tasks' | 'equipment' | 'equipment_details' | 'add_equipment' | 'edit_equipment' | 'import_equipment' | 'users' | 'user_details' | 'add_user' | 'edit_user' | 'import_users' | 'new_request' | 'management' | 'rbac' | 'add_category' | 'add_model' | 'import_models' | 'category_details' | 'model_details' | 'locations' | 'import_locations' | 'audit' | 'audit_details' | 'reports' | 'assignment_wizard' | 'return_wizard' | 'finance' | 'finance_expenses' | 'settings' | 'not_found';
 
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 

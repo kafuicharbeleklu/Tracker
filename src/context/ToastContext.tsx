@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import Snackbar, { SnackbarMessage } from '../components/ui/Snackbar';
 
-type ToastType = 'success' | 'error' | 'info';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface Toast {
   id: string;
@@ -34,10 +34,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         id: toast.id,
         message: toast.message,
         action: toast.action,
-        variant: toast.type === 'error' ? 'error' : toast.type === 'success' ? 'success' : 'default',
-        // MD3 guidance: keep snackbars visible long enough to read and act.
-        duration: toast.action ? 8000 : 4000,
-        showClose: true,
+        variant: toast.type,
+        // 17.5 : un retour transitoire s'efface au bout de 4 secondes, avec ou
+        // sans action. La durée n'est pas négociable par message — au-delà, ce
+        // n'est plus un retour transitoire, c'est que le tri a été mal fait.
+        duration: 4000,
       })),
     [toasts]
   );

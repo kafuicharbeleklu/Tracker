@@ -45,6 +45,7 @@ const AUTH_CHECKPOINTS = [
   { id: 'user_details', label: 'User details', hash: '/users/1' },
   { id: 'audit_details', label: 'Audit details', hash: '/audit/details' },
   { id: 'finance', label: 'Finance', hash: '/finance' },
+  { id: 'finance-expenses', label: 'Journal des dépenses', hash: '/finance/expenses' },
 ];
 
 const DEVICE_FILTER = process.env.VISUAL_DEVICE_IDS

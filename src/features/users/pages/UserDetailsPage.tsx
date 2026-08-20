@@ -26,6 +26,7 @@ import { useAccessControl } from '../../../hooks/useAccessControl';
 import { ViewType } from '../../../types';
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
+import RuleGroup from '../../../components/ui/RuleGroup';
 import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -168,8 +169,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             title: `Supprimer le compte de ${user.name} ?`,
             message: (
                 <p>
-                    L'accès sera immédiatement coupé. Aucun matériel n'étant actuellement attribué,
-                    cette suppression peut être exécutée.
+                    L'accès sera coupé immédiatement. Aucun matériel n'est attribué.
                 </p>
             ),
             confirmText: 'Supprimer',
@@ -327,7 +327,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={handleToggleAccountStatus}
-                className="!rounded-[4px] !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
             >
                 <Icon glyph={ArrowCounterClockwise} size={18} />
                 Réactiver le compte
@@ -337,7 +337,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={() => onViewChange?.('return_wizard')}
-                className="!rounded-[4px] !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
             >
                 <Icon glyph={SignOut} size={18} />
                 Organiser la restitution
@@ -347,7 +347,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={() => onViewChange?.('assignment_wizard')}
-                className="!rounded-[4px] !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
             >
                 <Icon glyph={Plus} size={18} />
                 Attribuer un équipement
@@ -357,11 +357,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     // Note explicative sous le bouton d'action dans le héro (planche 05.2 lignes 263-264)
     const heroNote =
         user.status === 'inactive' ? (
-            <p className="text-[12px] leading-[17px] text-on-nav-surface-variant">
+            <p className="text-body-small text-on-nav-surface-variant">
                 Suspendu par l'administrateur. <strong className="font-medium text-inverse-on-surface">Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} restent à son nom</strong> : une suspension coupe l'accès, elle ne rend pas le matériel.
             </p>
         ) : user.status === 'pending' ? (
-            <p className="text-[12px] leading-[17px] text-on-nav-surface-variant">
+            <p className="text-body-small text-on-nav-surface-variant">
                 Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} doivent être récupérés avant son dernier jour, sinon ils resteront attribués à un compte fermé.
             </p>
         ) : undefined;
@@ -374,11 +374,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             menu={
                 <Menu
                     align="end"
-                    widthClassName="w-[262px]"
                     items={menuItems}
                     trigger={
                         <Button variant="text" iconOnly aria-label="Options de la personne">
-                            <Icon glyph={DotsThreeVertical} size={20} />
+                            <Icon glyph={DotsThreeVertical} />
                         </Button>
                     }
                 />
@@ -401,10 +400,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             aside={
                 <>
                     {/* Groupe 1 : Équipements détenus (planche 05.2 — .grp lignes 268-275) */}
-                    <div className="overflow-hidden rounded-card bg-surface">
-                        <div className="px-4 pt-3.5 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
-                            Équipements détenus
-                        </div>
+                    <RuleGroup header="Équipements détenus">
 
                         {userEquipment.length > 0 ? (
                             <div>
@@ -417,19 +413,19 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                             onClick={() => onEquipmentClick?.(item.id)}
                                             className="flex w-full min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left hover:bg-surface-container transition-colors cursor-pointer"
                                         >
-                                            {/* Vignette 40×40 rounded-[6px] — planche 05.2 .vig */}
+                                            {/* Vignette 40×40, rayon 6 — §2.2 / R11, cran « bloc groupé en creux ». */}
                                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-surface-container text-text-secondary">
                                                 <Icon glyph={EqIcon} size={20} />
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[14px] font-medium text-on-surface truncate">
+                                                <p className="text-label-large font-medium text-on-surface truncate">
                                                     {item.code || item.name}
                                                 </p>
-                                                <p className="text-[12px] leading-[17px] text-text-secondary mt-px truncate">
+                                                <p className="text-body-small text-text-secondary mt-px truncate">
                                                     {item.model || item.category || 'Équipement'}
                                                 </p>
                                             </div>
-                                            <span className="text-[13px] font-medium tabular-nums text-on-surface shrink-0">
+                                            <span className="text-body-medium font-medium tabular-nums text-on-surface shrink-0">
                                                 {item.assignmentDate || '12/03/2026'}
                                             </span>
                                             <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
@@ -438,7 +434,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 })}
                             </div>
                         ) : (
-                            <div className="px-4 py-3 text-[13px] text-text-muted">
+                            <div className="px-4 py-3 text-body-medium text-text-muted">
                                 Aucun équipement attribué pour le moment.
                             </div>
                         )}
@@ -452,97 +448,58 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             >
                                 <Icon glyph={Bell} size={20} className="text-[var(--tk-color-st-ambre)] shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[14px] font-medium text-on-surface truncate">
+                                    <p className="text-label-large font-medium text-on-surface truncate">
                                         Sa demande de matériel attend
                                     </p>
-                                    <p className="text-[12px] leading-[17px] text-text-secondary mt-px truncate">
+                                    <p className="text-body-small text-text-secondary mt-px truncate">
                                         Déposée récemment · à arbitrer
                                     </p>
                                 </div>
                                 <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                             </button>
                         )}
-
-                        {/* gnote — planche 05.2 ligne 274 */}
-                        <p className="border-t border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] leading-4 text-text-muted">
-                            La demande est un lien vers la file des tâches filtrée sur {firstName}, pas un compteur : un statut qui appelle une action ne se compte pas, il s'ouvre.
-                        </p>
-                    </div>
+                    </RuleGroup>
 
                     {/* Note Manager (si présente — planche 05.2 lines 341-345) */}
                     {managerNote && (
-                        <div className="overflow-hidden rounded-card bg-surface">
-                            <div className="flex items-baseline justify-between px-4 pt-3.5 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
-                                <span>Note</span>
-                                <span className="text-[12px] font-normal tracking-normal text-text-muted">
-                                    {currentUser?.name || 'Gestionnaire'} · Aujourd'hui
-                                </span>
-                            </div>
-                            <div className="px-4 py-2.5 text-[14px] leading-5 text-on-surface">
+                        <RuleGroup
+                            header="Note"
+                            headerTrailing={`${currentUser?.name || 'Gestionnaire'} · Aujourd'hui`}
+                            note="Visible par les gestionnaires uniquement."
+                        >
+                            <div className="px-4 py-2.5 text-label-large text-on-surface">
                                 {managerNote}
                             </div>
-                            <p className="border-t border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] leading-4 text-text-muted">
-                                Visible par les gestionnaires uniquement. <strong className="font-medium text-text-secondary">La carte n'existe que s'il y a une note</strong> — sinon « Ajouter une note » est une entrée du menu.
-                            </p>
-                        </div>
+                        </RuleGroup>
                     )}
                 </>
             }
         >
             {/* Groupe 2 : Coordonnées (planche 05.2 — .grp lignes 277-282) */}
-            <div className="overflow-hidden rounded-card bg-surface">
-                <div className="px-4 pt-3.5 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
-                    Coordonnées
-                </div>
-                <div className="flex min-h-[56px] items-center px-4 py-2.5">
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-on-surface">{user.email}</p>
-                        <p className="text-[12px] leading-[17px] text-text-secondary mt-px">Adresse de l'annuaire</p>
-                    </div>
-                </div>
-                <div className="flex min-h-[56px] items-center border-t border-outline-variant px-4 py-2.5">
-                    <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-on-surface">{user.phone || '+33 6 00 00 00 01'}</p>
-                        <p className="text-[12px] leading-[17px] text-text-secondary mt-px">Mobile professionnel</p>
-                    </div>
-                </div>
-                <p className="border-t border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] leading-4 text-text-muted">
-                    Ces deux lignes étaient en tête d'écran. Le cadrage de la planche les dit <strong className="font-medium text-text-secondary">référence bornée</strong> : utiles quand on les cherche, jamais au-dessus de ce que la personne détient.
-                </p>
-            </div>
+            <RuleGroup header="Coordonnées">
+                <RuleGroup.Row title={user.email} subtitle="Adresse de l'annuaire" />
+                <RuleGroup.Row
+                    title={user.phone || '+33 6 00 00 00 01'}
+                    subtitle="Mobile professionnel"
+                />
+            </RuleGroup>
 
             {/* Groupe 3 : Compte (planche 05.2 — .grp lignes 284-289) */}
-            <div className="overflow-hidden rounded-card bg-surface">
-                <div className="px-4 pt-3.5 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
-                    Compte
-                </div>
-                <div className="flex min-h-[56px] items-center justify-between gap-3 px-4 py-2.5">
-                    <div className="min-w-0">
-                        <p className="text-[14px] font-medium text-on-surface">Connexion</p>
-                        <p className="text-[12px] leading-[17px] text-text-secondary mt-px">Mot de passe géré dans l'annuaire</p>
-                    </div>
-                    <span className="text-[13px] font-medium text-on-surface shrink-0 whitespace-nowrap text-right">Annuaire d'entreprise</span>
-                </div>
-                <div className="flex min-h-[56px] items-center justify-between gap-3 border-t border-outline-variant px-4 py-2.5">
-                    <div className="min-w-0">
-                        <p className="text-[14px] font-medium text-on-surface">Code PIN</p>
-                        <p className="text-[12px] leading-[17px] text-text-secondary mt-px">Sert à signer une réception sans e-mail</p>
-                    </div>
-                    <span className="text-[13px] font-medium text-on-surface shrink-0">Défini</span>
-                </div>
-                <p className="border-t border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] leading-4 text-text-muted">
-                    Ce sont les deux badges « ENTRA ID : ACTIF » et « PIN : ACTIF » de la carte DÉMO, redescendus en référence. Les actions qui les accompagnaient sont dans le menu.
-                </p>
-            </div>
+            <RuleGroup header="Compte">
+                <RuleGroup.Row
+                    title="Connexion"
+                    subtitle="Mot de passe géré dans l'annuaire"
+                    value="Annuaire d'entreprise"
+                />
+                <RuleGroup.Row
+                    title="Code PIN"
+                    subtitle="Sert à signer une réception sans e-mail"
+                    value="Défini"
+                />
+            </RuleGroup>
 
             {/* Groupe 4 : Historique (planche 05.2 — .grp lignes 291-297) */}
-            <div className="overflow-hidden rounded-card bg-surface">
-                <div className="flex items-baseline justify-between px-4 pt-3.5 pb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
-                    <span>Historique</span>
-                    <span className="text-[12px] font-normal tracking-normal lowercase text-text-muted">
-                        3 derniers
-                    </span>
-                </div>
+            <RuleGroup header="Historique" headerTrailing="3 derniers">
                 <div>
                     {userEvents.length > 0 ? (
                         userEvents.map((evt) => (
@@ -552,10 +509,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     <Icon glyph={Package} size={18} />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[14px] text-on-surface truncate">
+                                    <p className="text-label-large text-on-surface truncate">
                                         {evt.description || evt.action}
                                     </p>
-                                    <p className="text-[12px] leading-[17px] text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
                                         {evt.timestamp ? evt.timestamp.slice(0, 10) : '12/03/2026'}
                                     </p>
                                 </div>
@@ -568,10 +525,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     <Icon glyph={Package} size={18} />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[14px] text-on-surface">
+                                    <p className="text-label-large text-on-surface">
                                         LPT-HQ-01 attribué
                                     </p>
-                                    <p className="text-[12px] leading-[17px] text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
                                         12/03/2026 · par Clara Admin France
                                     </p>
                                 </div>
@@ -581,10 +538,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     <Icon glyph={ArrowUUpLeft} size={18} />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[14px] text-on-surface">
+                                    <p className="text-label-large text-on-surface">
                                         KEY-SALES-02 rendu, remis en stock
                                     </p>
-                                    <p className="text-[12px] leading-[17px] text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
                                         12/01/2026 · état : repart en stock
                                     </p>
                                 </div>
@@ -594,10 +551,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     <Icon glyph={UserPlus} size={18} />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[14px] text-on-surface">
+                                    <p className="text-label-large text-on-surface">
                                         Compte créé
                                     </p>
-                                    <p className="text-[12px] leading-[17px] text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
                                         08/01/2026 · import depuis l'annuaire
                                     </p>
                                 </div>
@@ -613,15 +570,15 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     >
                         <Icon glyph={ClockCounterClockwise} size={20} className="text-text-secondary shrink-0" />
                         <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-medium text-on-surface">
+                            <p className="text-label-large font-medium text-on-surface">
                                 Tout l'historique de {firstName}
                             </p>
                         </div>
-                        <span className="text-[12px] text-text-muted shrink-0">dans l'Audit</span>
+                        <span className="text-body-small text-text-muted shrink-0">dans l'Audit</span>
                         <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                     </button>
                 </div>
-            </div>
+            </RuleGroup>
 
             {/* Feuille de note */}
             <BottomSheet
@@ -630,15 +587,15 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 title={managerNote ? 'Modifier la note' : 'Ajouter une note'}
             >
                 <div className="space-y-4 px-1 pb-4">
-                    <p className="text-[13px] text-text-secondary">
-                        Cette note est confidentielle et visible uniquement par les gestionnaires de parc.
+                    <p className="text-body-medium text-text-secondary">
+                        Confidentielle : visible par les gestionnaires.
                     </p>
                     <textarea
                         value={managerNote}
                         onChange={(e) => setManagerNote(e.target.value)}
                         placeholder="Ex : En attente d'un poste fixe..."
                         rows={4}
-                        className="w-full rounded-md border border-outline bg-surface p-3 text-[14px] text-on-surface focus:border-primary focus:outline-hidden"
+                        className="w-full rounded-md border border-outline bg-surface p-3 text-label-large text-on-surface focus:border-primary focus:outline-hidden"
                     />
                     <div className="flex justify-end gap-2">
                         <Button variant="text" onClick={() => setIsNoteSheetOpen(false)}>
