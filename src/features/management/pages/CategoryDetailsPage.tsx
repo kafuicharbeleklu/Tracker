@@ -1,16 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import {
-    CaretRight,
-    Info,
-    Warning,
-} from '@phosphor-icons/react';
+import { CaretRight, Info, Plus, Warning } from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import { renderCategoryIcon } from '../../../data/mockData';
+import ListRow from '../../../components/ui/ListRow';
 import { CATEGORY_LABELS, getCategoryLabel } from '../../../constants/glossary';
 import AddModelPage from './AddModelPage';
 import { useConfirmation } from '../../../context/ConfirmationContext';
@@ -30,7 +26,11 @@ interface CategoryDetailsPageProps {
     onModelClick: (id: string) => void;
 }
 
-const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, onBack, onModelClick }) => {
+const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
+    categoryId,
+    onBack,
+    onModelClick,
+}) => {
     const { equipment, categories, models, deleteCategory } = useData();
     const { navigateToView } = useAppNavigation();
     const { requestConfirmation } = useConfirmation();
@@ -42,11 +42,11 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
 
     const categoryModels = useMemo(
         () => (category ? models.filter((m) => m.type === category.name) : []),
-        [category, models]
+        [category, models],
     );
     const categoryEquipment = useMemo(
         () => (category ? equipment.filter((e) => e.type === category.name) : []),
-        [equipment, category]
+        [equipment, category],
     );
 
     if (!category) {
@@ -67,7 +67,11 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
     // libellé. Cet écran la montre, les autres ne la montrent jamais (09.1). La famille
     // se lit sur le type (A2) : elle était déduite du nom par un `switch` de trente
     // lignes, qui se trompait sur tout type créé après lui.
-    const family = category.family || 'Mobilier et divers';
+    /* La famille ne se **replie** pas sur une famille réelle : un type persisté avant
+       l'ajout du champ se retrouvait affiché « Mobilier et divers » sans que rien ne
+       le distingue d'un type effectivement rangé là. Le manque se dit, comme la clé
+       manquante juste en dessous. */
+    const family = category.family;
     const dataKey = category.name;
     /**
      * Une clé est **relevée** quand le nom du type est l'une des clés techniques que
@@ -79,59 +83,63 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
      * `true` en dur, ce qui rendait l'état inatteignable.
      */
     const isDataKeyReleve = Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, category.name);
-    const typeLabel = getCategoryLabel(category.name).toLowerCase();
+    /* B1 — la clé se lit **une fois**, à sa ligne. Le titre portait `category.name`,
+       donc « Laptop » : la clé deux fois et le libellé français nulle part, sur l'écran
+       même qui titre « Ordinateur portable » dans la planche. */
+    const displayName = getCategoryLabel(category.name);
+    const typeLabel = displayName.toLowerCase();
     const isAssignable = category.assignable !== false;
+    const assignedEquipmentCount = categoryEquipment.filter((item) =>
+        Boolean(item.user?.name),
+    ).length;
     const depreciationYears = category.defaultDepreciation?.years ?? 3;
-    const depreciationMethod = category.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire';
+    const depreciationMethod =
+        category.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire';
 
     return (
         <DetailTemplate
-            code={category.name}
-            reference={`${categoryEquipment.length} actif(s) · ${categoryModels.length} modèle(s)`}
+            /* 09.1 ne dessine pas de héro sur la fiche d'un type : la barre d'identité,
+               puis les cartes. Le produit ouvrait sur un héro inversé dont le porte-voix
+               était **le nombre d'actifs** — le seul chiffre que la planche renvoie
+               ailleurs : *« les actifs ne sont pas listés ici : ils sont dans 04.1, et un
+               second inventaire est une seconde vérité »*. Ce que la fiche a à dire tient
+               dans ses trois cartes : ce que le type est, ce qu'il coûte dans le temps,
+               et ses modèles. */
+            code={displayName}
             onBack={onBack}
-            hero={
-                <section className="flex flex-col gap-3 rounded-lg bg-inverse-surface p-4 text-inverse-on-surface">
-                    <div className="flex items-start gap-3.5">
-                        <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-md bg-white/12 text-white">
-                            {renderCategoryIcon(category, 28)}
-                        </div>
-                        <div className="min-w-0 flex-1 pt-0.5">
-                            <h1 className="truncate font-brand text-[20px] font-semibold tracking-[-0.01em] text-white">
-                                {category.name}
-                            </h1>
-                            <p className="mt-0.5 text-[13px] text-text-secondary">
-                                {family} · {isAssignable ? 'Attribuable' : 'Non attribuable'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-baseline gap-2.5 border-t border-white/14 pt-3.5">
-                        <b className="font-brand text-[32px] font-semibold tracking-[-0.01em] tabular-nums text-white">
-                            {categoryEquipment.length}
-                        </b>
-                        <span className="text-[13px] leading-[19px] text-text-secondary">
-                            actif{categoryEquipment.length > 1 ? 's' : ''} au parc sur {categoryModels.length} modèle{categoryModels.length > 1 ? 's' : ''}
-                        </span>
-                    </div>
-                </section>
-            }
         >
             {/* Section 1 : Caractéristiques du type (Planche 09.1) */}
-            <section className="rounded-lg bg-surface p-4 shadow-elevation-1 divide-y divide-outline-variant">
-                <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <span className="text-body-medium text-on-surface">Famille</span>
-                    <span className="text-body-medium font-medium text-on-surface">{family}</span>
+            <section className="bg-surface shadow-elevation-1 divide-outline-variant divide-y rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-body-medium text-on-surface">Famille</span>
+                        {!family && (
+                            <span className="text-body-small text-text-secondary">
+                                aucune famille renseignée — le type ne remonte sous aucun filtre du
+                                catalogue
+                            </span>
+                        )}
+                    </div>
+                    <span
+                        className={`text-body-medium shrink-0 ${
+                            family ? 'text-on-surface font-medium' : 'text-text-muted font-normal'
+                        }`}
+                    >
+                        {family || 'à renseigner'}
+                    </span>
                 </div>
                 <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-body-medium text-on-surface">Attribuable à une personne</span>
+                        <span className="text-body-medium text-on-surface">
+                            Attribuable à une personne
+                        </span>
                         <span className="text-body-small text-text-secondary">
                             {isAssignable
                                 ? "décide si le type entre dans le sélecteur d'attribution"
                                 : 'ne se remet pas en main propre'}
                         </span>
                     </div>
-                    <span className="text-body-medium font-medium text-on-surface shrink-0">
+                    <span className="text-body-medium text-on-surface shrink-0 font-medium">
                         {isAssignable ? 'Oui' : 'Non'}
                     </span>
                 </div>
@@ -146,7 +154,9 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                     </div>
                     <span
                         className={`text-body-medium shrink-0 ${
-                            isDataKeyReleve ? 'font-medium text-on-surface' : 'font-normal text-text-muted'
+                            isDataKeyReleve
+                                ? 'text-on-surface font-medium'
+                                : 'text-text-muted font-normal'
                         }`}
                     >
                         {isDataKeyReleve ? dataKey : 'à relever'}
@@ -159,65 +169,87 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                             décide de la valeur actuelle affichée en Finances
                         </span>
                     </div>
-                    <span className="text-body-medium font-medium text-on-surface shrink-0 text-right">
-                        {depreciationMethod} <span className="block text-body-small font-normal text-text-secondary">{depreciationYears} ans</span>
+                    <span className="text-body-medium text-on-surface shrink-0 text-right font-medium">
+                        {depreciationMethod}{' '}
+                        <span className="text-body-small text-text-secondary block font-normal">
+                            {depreciationYears} ans
+                        </span>
                     </span>
                 </div>
             </section>
 
             {/* Section 2 : Modèles référencés */}
-            <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
+            <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
                 <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <h3 className="text-body-medium font-semibold text-on-surface">Modèles</h3>
-                    <span className="font-brand text-body-medium font-semibold tabular-nums text-text-secondary">
+                    <h3 className="text-body-medium text-on-surface font-semibold">Modèles</h3>
+                    <span className="font-brand text-body-medium text-text-secondary font-semibold tabular-nums">
                         {categoryModels.length}
                     </span>
                 </div>
 
                 {categoryModels.length > 0 ? (
-                    <div className="divide-y divide-outline-variant">
-                        {categoryModels.map((model) => (
-                            <div
-                                key={model.id}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => onModelClick(model.id)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        onModelClick(model.id);
+                    /* La rangée du système (`ListRow`, 72 px, vignette 40) — c'est ce que
+                       09.1 dessine sous « Modèles » : **la photo du modèle** à gauche, la
+                       marque à droite de la ligne 1, le nombre d'unités en dessous. La
+                       liste était une rangée maison de 56 px, sans vignette : un modèle se
+                       reconnaît d'abord à sa photo, c'est ce qui le distingue de son voisin
+                       de même marque (09.2). Sans photo, la rangée porte **l'initiale de la
+                       marque** — jamais un cadre vide. */
+                    <>
+                        <div>
+                            {categoryModels.map((model) => (
+                                <ListRow
+                                    key={model.id}
+                                    vignette={
+                                        model.image ? (
+                                            <img
+                                                src={model.image}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-[15px] font-medium">
+                                                {(model.brand || model.name)
+                                                    .trim()
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </span>
+                                        )
                                     }
-                                }}
-                                className="flex min-h-14 w-full items-center gap-3 py-2 text-left transition-colors hover:bg-surface-container cursor-pointer px-1 rounded-md"
-                            >
-                                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                    <div className="flex items-baseline justify-between gap-2">
-                                        <span className="font-brand text-body-medium font-semibold text-on-surface truncate">
-                                            {model.name}
-                                        </span>
-                                        <span className="text-body-small font-medium text-on-surface shrink-0">
-                                            {model.brand || ''}
-                                        </span>
-                                    </div>
-                                    <span className="truncate text-body-small text-text-secondary">
-                                        {model.count} actif{model.count > 1 ? 's' : ''} dans le parc
-                                    </span>
-                                </div>
-                                <Icon glyph={CaretRight} size={18} className="shrink-0 text-text-secondary" />
-                            </div>
-                        ))}
-                    </div>
+                                    title={model.name}
+                                    type={model.brand || undefined}
+                                    holder={`${model.count} actif${model.count > 1 ? 's' : ''} dans le parc`}
+                                    onOpen={() => onModelClick(model.id)}
+                                />
+                            ))}
+                        </div>
+                        {/* `.more.center` — le geste d'ajout ne vit pas qu'à l'état vide :
+                            la planche le pose sous les quatre modèles du type ouvert. */}
+                        <button
+                            type="button"
+                            onClick={() => setIsAddModelOpen(true)}
+                            className="border-outline-variant text-on-surface hover:text-text-secondary mt-2 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-0 border-t bg-transparent pt-2 text-[14px] font-medium transition-colors"
+                        >
+                            <Icon glyph={Plus} size={18} className="text-text-secondary" />
+                            Ajouter un modèle
+                        </button>
+                    </>
                 ) : (
                     /* Un type inutilisable **ne s'excuse pas et ne clignote pas** (09.1,
                        colonne 3) : il dit la conséquence exacte, nommée sur ce type-ci,
                        et met à portée le geste qui la lève. L'avertissement seul laissait
                        la situation entière au lecteur. */
                     <div className="flex flex-col gap-3">
-                        <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-on-surface">
-                            <Icon glyph={Warning} size={18} className="text-[var(--tk-color-st-ambre)] shrink-0 mt-0.5" />
+                        <div className="bg-surface-container text-body-small text-on-surface flex items-start gap-2.5 rounded-md p-3">
+                            <Icon
+                                glyph={Warning}
+                                size={18}
+                                className="mt-0.5 shrink-0 text-[var(--tk-color-st-ambre)]"
+                            />
                             <span>
-                                <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type n'apparaît pas dans la
-                                création d'équipement : on ne peut pas créer {indefiniteArticle(typeLabel)}.
+                                <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type
+                                n'apparaît pas dans la création d'équipement : on ne peut pas créer{' '}
+                                {indefiniteArticle(typeLabel)}.
                             </span>
                         </div>
                         <Button variant="filled" onClick={() => setIsAddModelOpen(true)}>
@@ -233,40 +265,83 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                 est en retard sur elle**. Sans cette carte, le vide de la liste des modèles
                 laisse croire que le type ne sert à rien. */}
             {categoryModels.length === 0 && categoryEquipment.length > 0 && (
-                <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
-                    <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-text-secondary">
-                        <Icon glyph={Info} size={18} className="shrink-0 text-text-secondary mt-0.5" />
+                <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
+                    <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
+                        <Icon
+                            glyph={Info}
+                            size={18}
+                            className="text-text-secondary mt-0.5 shrink-0"
+                        />
                         <span>
-                            <strong className="font-medium text-on-surface">
+                            <strong className="text-on-surface font-medium">
                                 {categoryEquipment.length === 1
                                     ? 'Un actif porte pourtant ce type'
                                     : `${categoryEquipment.length} actifs portent pourtant ce type`}
                             </strong>{' '}
-                            — {categoryEquipment.slice(0, 2).map((item) => item.assetId).join(', ')}
-                            {categoryEquipment.length > 2 && `, et ${categoryEquipment.length - 2} autre${categoryEquipment.length - 2 > 1 ? 's' : ''}`}.
-                            {categoryEquipment.length === 1 ? ' Il a été créé' : ' Ils ont été créés'} avant{' '}
-                            {categoryEquipment.length === 1 ? 'son modèle' : 'leur modèle'}, ou hors du catalogue.{' '}
-                            {categoryEquipment.length === 1 ? 'Sa fiche reste valide' : 'Leurs fiches restent valides'} ;
-                            c'est le référentiel qui est en retard sur {categoryEquipment.length === 1 ? 'elle' : 'elles'}.
+                            —{' '}
+                            {categoryEquipment
+                                .slice(0, 2)
+                                .map((item) => item.assetId)
+                                .join(', ')}
+                            {categoryEquipment.length > 2 &&
+                                `, et ${categoryEquipment.length - 2} autre${categoryEquipment.length - 2 > 1 ? 's' : ''}`}
+                            .
+                            {categoryEquipment.length === 1
+                                ? ' Il a été créé'
+                                : ' Ils ont été créés'}{' '}
+                            avant {categoryEquipment.length === 1 ? 'son modèle' : 'leur modèle'},
+                            ou hors du catalogue.{' '}
+                            {categoryEquipment.length === 1
+                                ? 'Sa fiche reste valide'
+                                : 'Leurs fiches restent valides'}{' '}
+                            ; c'est le référentiel qui est en retard sur{' '}
+                            {categoryEquipment.length === 1 ? 'elle' : 'elles'}.
                         </span>
                     </div>
                 </section>
             )}
 
             {/* Section 3 : Note d'amortissement et actions */}
-            <section className="rounded-lg bg-surface p-4 shadow-elevation-1 flex flex-col gap-3">
-                <div className="flex items-start gap-2.5 rounded-md bg-surface-container p-3 text-body-small text-text-secondary">
-                    <Icon glyph={Info} size={18} className="shrink-0 text-text-secondary mt-0.5" />
+            <section className="bg-surface shadow-elevation-1 flex flex-col gap-3 rounded-lg p-4">
+                <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
+                    <Icon glyph={Info} size={18} className="text-text-secondary mt-0.5 shrink-0" />
                     <span>
-                        Changer l'amortissement <strong>ne recalcule pas le passé</strong> : la valeur des {categoryEquipment.length} actifs déjà créés suit le paramètre en vigueur à leur acquisition.
+                        Changer l'amortissement <strong>ne recalcule pas le passé</strong> : la
+                        valeur des {categoryEquipment.length} actifs déjà créés suit le paramètre en
+                        vigueur à leur acquisition.
                     </span>
                 </div>
+
+                {/* La même règle, sur l'autre paramètre du type — **un paramètre de type ne
+                    réécrit pas le passé** (09.1, colonne 3). Le retrait du sélecteur ne
+                    défait aucune attribution déjà faite ; sans cette phrase, un
+                    gestionnaire qui bascule le type croit avoir repris les objets. */}
+                {!isAssignable && assignedEquipmentCount > 0 && (
+                    <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
+                        <Icon
+                            glyph={Warning}
+                            size={18}
+                            className="mt-0.5 shrink-0 text-[var(--tk-color-st-ambre)]"
+                        />
+                        <span>
+                            <strong className="text-on-surface font-medium">
+                                Le retrait du sélecteur ne défait pas les attributions faites.
+                            </strong>{' '}
+                            {assignedEquipmentCount === 1
+                                ? 'Un actif de ce type reste attribué'
+                                : `${assignedEquipmentCount} actifs de ce type restent attribués`}{' '}
+                            ; seules les{' '}
+                            <strong className="text-on-surface font-medium">prochaines</strong>{' '}
+                            attributions ne le proposeront plus.
+                        </span>
+                    </div>
+                )}
 
                 {categoryEquipment.length > 0 && (
                     <Button
                         variant="text"
                         onClick={() => navigateToView('equipment')}
-                        className="flex min-h-12 w-full items-center justify-start gap-2.5 border-t border-outline-variant pt-2 text-left text-body-medium font-medium text-on-surface transition-colors hover:text-text-secondary rounded-none px-1"
+                        className="border-outline-variant text-body-medium text-on-surface hover:text-text-secondary flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium transition-colors"
                     >
                         <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
                         <span>Voir les {categoryEquipment.length} actifs dans l'inventaire</span>
@@ -286,7 +361,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                     className="text-error"
                     onClick={() =>
                         requestConfirmation({
-                            title: `Supprimer « ${category.name} » du catalogue ?`,
+                            title: `Supprimer « ${displayName} » du catalogue ?`,
                             message:
                                 categoryEquipment.length > 0
                                     ? `${categoryEquipment.length} actif(s) portent ce type. Ils ne sont pas supprimés, mais plus rien ne définira ce qu'ils sont.`
@@ -296,7 +371,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
                             irreversible: true,
                             onConfirm: () => {
                                 deleteCategory(category.id);
-                                showToast(`« ${category.name} » supprimé du catalogue.`, 'success');
+                                showToast(`« ${displayName} » supprimé du catalogue.`, 'success');
                                 onBack();
                             },
                         })
@@ -322,6 +397,3 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({ categoryId, o
 };
 
 export default CategoryDetailsPage;
-
-
-

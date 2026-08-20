@@ -66,8 +66,15 @@ const AssignmentWizardPage: React.FC<{
     onCancel: () => void;
     onComplete: () => void;
 }> = ({ initialEquipmentId, initialUserId, onCancel, onComplete }) => {
-    const { equipment, users, updateEquipment, updateApproval, addApproval, approvals, categories } =
-        useData();
+    const {
+        equipment,
+        users,
+        updateEquipment,
+        updateApproval,
+        addApproval,
+        approvals,
+        categories,
+    } = useData();
     const { showToast } = useToast();
     const { user: adminUser } = useAccessControl();
 
@@ -120,7 +127,10 @@ const AssignmentWizardPage: React.FC<{
         }
         if (pEquipmentId) {
             const foundEquipment = equipment.find((item) => item.id === pEquipmentId);
-            if (foundEquipment?.status === 'Disponible' || foundEquipment?.assignmentStatus === 'PENDING_DELIVERY') {
+            if (
+                foundEquipment?.status === 'Disponible' ||
+                foundEquipment?.assignmentStatus === 'PENDING_DELIVERY'
+            ) {
                 setSelectedEquipment(foundEquipment);
             }
         }
@@ -162,7 +172,7 @@ const AssignmentWizardPage: React.FC<{
 
     const nonAssignableTypes = useMemo(
         () => new Set(categories.filter((c) => !c.assignable).map((c) => c.name)),
-        [categories]
+        [categories],
     );
 
     const filteredEquipment = equipment
@@ -172,27 +182,27 @@ const AssignmentWizardPage: React.FC<{
             (e) =>
                 e.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
                 e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                e.type.toLowerCase().includes(equipmentSearch.toLowerCase())
+                e.type.toLowerCase().includes(equipmentSearch.toLowerCase()),
         );
 
     const totalEquipmentPages = Math.ceil(filteredEquipment.length / itemsPerPage);
     const safeEquipmentPage = Math.min(equipmentPage, Math.max(1, totalEquipmentPages));
     const paginatedEquipment = filteredEquipment.slice(
         (safeEquipmentPage - 1) * itemsPerPage,
-        safeEquipmentPage * itemsPerPage
+        safeEquipmentPage * itemsPerPage,
     );
 
     const filteredUsers = users.filter(
         (u) =>
             u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            u.department.toLowerCase().includes(userSearch.toLowerCase())
+            u.department.toLowerCase().includes(userSearch.toLowerCase()),
     );
 
     const totalUserPages = Math.ceil(filteredUsers.length / itemsPerPage);
     const safeUserPage = Math.min(userPage, Math.max(1, totalUserPages));
     const paginatedUsers = filteredUsers.slice(
         (safeUserPage - 1) * itemsPerPage,
-        safeUserPage * itemsPerPage
+        safeUserPage * itemsPerPage,
     );
 
     const userInitials = useMemo(() => {
@@ -230,7 +240,9 @@ const AssignmentWizardPage: React.FC<{
         setIsValidated(false);
     };
 
-    const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const handleCanvasMouseDown = (
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+    ) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -252,7 +264,9 @@ const AssignmentWizardPage: React.FC<{
         setIsValidated(true);
     };
 
-    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const handleCanvasMouseMove = (
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+    ) => {
         if (!isDrawing) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -293,7 +307,9 @@ const AssignmentWizardPage: React.FC<{
                         assignedEquipmentName: selectedEquipment.name,
                     });
                     if (!transitionDecision.allowed) {
-                        setRefus(transitionDecision.reason || 'Action non autorisée pour cette demande.');
+                        setRefus(
+                            transitionDecision.reason || 'Action non autorisée pour cette demande.',
+                        );
                         return;
                     }
 
@@ -315,7 +331,7 @@ const AssignmentWizardPage: React.FC<{
                         nextStatus === 'WAITING_DOTATION_APPROVAL'
                             ? 'Matériel sélectionné. En attente de validation par le Manager.'
                             : 'Matériel affecté. En attente de confirmation par le bénéficiaire.',
-                        'success'
+                        'success',
                     );
                 } else {
                     const transitionDecision = updateApproval(approvalId, 'PENDING_DELIVERY', {
@@ -323,7 +339,9 @@ const AssignmentWizardPage: React.FC<{
                         assignedEquipmentName: selectedEquipment.name,
                     });
                     if (!transitionDecision.allowed) {
-                        setRefus(transitionDecision.reason || 'Action non autorisée pour cette demande.');
+                        setRefus(
+                            transitionDecision.reason || 'Action non autorisée pour cette demande.',
+                        );
                         return;
                     }
 
@@ -339,7 +357,10 @@ const AssignmentWizardPage: React.FC<{
                             email: selectedUser.email,
                         },
                     });
-                    showToast('Matériel affecté. En attente de confirmation utilisateur.', 'success');
+                    showToast(
+                        'Matériel affecté. En attente de confirmation utilisateur.',
+                        'success',
+                    );
                 }
             } else {
                 const finalAssignmentStatus: AssignmentStatus = isImmediateHandover
@@ -396,10 +417,7 @@ const AssignmentWizardPage: React.FC<{
                 if (isImmediateHandover) {
                     showToast('Attribution effectuée et confirmée.', 'success');
                 } else {
-                    showToast(
-                        'Remise attestée. En attente de confirmation.',
-                        'success'
-                    );
+                    showToast('Remise attestée. En attente de confirmation.', 'success');
                 }
             }
 
@@ -459,8 +477,8 @@ const AssignmentWizardPage: React.FC<{
             }
         >
             {refus && (
-                <div className="flex items-start gap-2.5 p-3 rounded-md bg-[var(--tk-color-surface-muted)] border border-[var(--tk-color-danger)]/30 text-[13px] text-[var(--tk-color-danger)]">
-                    <Icon glyph={Warning} size={18} className="shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 rounded-md border border-[var(--tk-color-danger)]/30 bg-[var(--tk-color-surface-muted)] p-3 text-[13px] text-[var(--tk-color-danger)]">
+                    <Icon glyph={Warning} size={18} className="mt-0.5 shrink-0" />
                     <span>{refus}</span>
                 </div>
             )}
@@ -469,10 +487,15 @@ const AssignmentWizardPage: React.FC<{
             {currentStage === 'equipment' && (
                 <WizardStep>
                     {suggestedCategory && (
-                        <div className="p-3 bg-[var(--tk-color-surface-muted)] rounded-md border border-[var(--tk-color-border-default)] flex items-center gap-2.5 text-[13px] text-[var(--tk-color-text-primary)]">
-                            <Icon glyph={Info} size={18} className="text-[var(--tk-color-brand-dark)] shrink-0" />
+                        <div className="flex items-center gap-2.5 rounded-md border border-[var(--tk-color-border-default)] bg-[var(--tk-color-surface-muted)] p-3 text-[13px] text-[var(--tk-color-text-primary)]">
+                            <Icon
+                                glyph={Info}
+                                size={18}
+                                className="shrink-0 text-[var(--tk-color-brand-dark)]"
+                            />
                             <span>
-                                Matériel suggéré pour cette demande : <strong>{suggestedCategory}</strong>
+                                Matériel suggéré pour cette demande :{' '}
+                                <strong>{suggestedCategory}</strong>
                             </span>
                         </div>
                     )}
@@ -484,7 +507,7 @@ const AssignmentWizardPage: React.FC<{
                         resultCount={filteredEquipment.length}
                     />
 
-                    <div className="bg-surface rounded-lg border border-[var(--tk-color-border-default)] divide-y divide-[var(--tk-color-border-default)] overflow-hidden">
+                    <div className="bg-surface divide-y divide-[var(--tk-color-border-default)] overflow-hidden rounded-lg border border-[var(--tk-color-border-default)]">
                         {paginatedEquipment.length > 0 ? (
                             paginatedEquipment.map((item) => (
                                 <Button
@@ -496,23 +519,24 @@ const AssignmentWizardPage: React.FC<{
                                         setStep((prev) => Math.min(prev + 1, stageSequence.length));
                                     }}
                                     className={cn(
-                                        'w-full text-left p-3.5 flex items-center gap-3.5 justify-start font-normal rounded-none hover:bg-[var(--tk-color-surface-muted)]',
-                                        selectedEquipment?.id === item.id && 'bg-[var(--tk-color-surface-muted)]'
+                                        'flex w-full items-center justify-start gap-3.5 rounded-none p-3.5 text-left font-normal hover:bg-[var(--tk-color-surface-muted)]',
+                                        selectedEquipment?.id === item.id &&
+                                            'bg-[var(--tk-color-surface-muted)]',
                                     )}
                                 >
-                                    <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center shrink-0">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]">
                                         <Icon glyph={Package} size={20} />
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <div className="flex items-baseline justify-between gap-2">
-                                            <span className="text-[15px] font-semibold font-brand text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
+                                            <span className="font-brand truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]">
                                                 {item.assetId}
                                             </span>
-                                            <span className="text-[12px] text-[var(--tk-color-text-secondary)] whitespace-nowrap">
+                                            <span className="text-[12px] whitespace-nowrap text-[var(--tk-color-text-secondary)]">
                                                 {item.type}
                                             </span>
                                         </div>
-                                        <div className="text-[13px] text-[var(--tk-color-text-secondary)] truncate mt-0.5">
+                                        <div className="mt-0.5 truncate text-[13px] text-[var(--tk-color-text-secondary)]">
                                             {item.name} · {item.location || 'Bureau Paris'}
                                         </div>
                                     </div>
@@ -554,7 +578,7 @@ const AssignmentWizardPage: React.FC<{
                         resultCount={filteredUsers.length}
                     />
 
-                    <div className="bg-surface rounded-lg border border-[var(--tk-color-border-default)] divide-y divide-[var(--tk-color-border-default)] overflow-hidden">
+                    <div className="bg-surface divide-y divide-[var(--tk-color-border-default)] overflow-hidden rounded-lg border border-[var(--tk-color-border-default)]">
                         {paginatedUsers.length > 0 ? (
                             paginatedUsers.map((user) => {
                                 const initials = user.name
@@ -571,21 +595,24 @@ const AssignmentWizardPage: React.FC<{
                                         layout="card"
                                         onClick={() => {
                                             setSelectedUser(user);
-                                            setStep((prev) => Math.min(prev + 1, stageSequence.length));
+                                            setStep((prev) =>
+                                                Math.min(prev + 1, stageSequence.length),
+                                            );
                                         }}
                                         className={cn(
-                                            'w-full text-left p-3.5 flex items-center gap-3.5 justify-start font-normal rounded-none hover:bg-[var(--tk-color-surface-muted)]',
-                                            selectedUser?.id === user.id && 'bg-[var(--tk-color-surface-muted)]'
+                                            'flex w-full items-center justify-start gap-3.5 rounded-none p-3.5 text-left font-normal hover:bg-[var(--tk-color-surface-muted)]',
+                                            selectedUser?.id === user.id &&
+                                                'bg-[var(--tk-color-surface-muted)]',
                                         )}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
+                                        <div className="font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[14px] font-semibold text-white">
                                             {initials}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)] truncate">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                                 {user.name}
                                             </div>
-                                            <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate mt-0.5">
+                                            <div className="mt-0.5 truncate text-[12px] text-[var(--tk-color-text-secondary)]">
                                                 {user.department} · {user.email}
                                             </div>
                                         </div>
@@ -622,15 +649,15 @@ const AssignmentWizardPage: React.FC<{
             {currentStage === 'validation' && selectedEquipment && selectedUser && (
                 <WizardStep>
                     {/* Équipement sélectionné (.fixed) */}
-                    <div className="flex items-center gap-3 py-2 border-b border-[var(--tk-color-border-default)]">
-                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-brand font-semibold text-[15px] shrink-0">
+                    <div className="flex items-center gap-3 border-b border-[var(--tk-color-border-default)] py-2">
+                        <div className="font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[15px] font-semibold text-[var(--tk-color-text-secondary)]">
                             <Icon glyph={Package} size={20} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-medium font-brand text-[var(--tk-color-text-primary)] tabular-nums truncate">
+                        <div className="min-w-0 flex-1">
+                            <div className="font-brand truncate text-[15px] font-medium text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId}
                             </div>
-                            <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
+                            <div className="truncate text-[12px] text-[var(--tk-color-text-secondary)]">
                                 {selectedEquipment.name} · {selectedEquipment.type}
                             </div>
                         </div>
@@ -638,7 +665,7 @@ const AssignmentWizardPage: React.FC<{
                             variant="text"
                             size="sm"
                             onClick={() => setStep(stageSequence.indexOf('equipment') + 1)}
-                            className="text-[13px] font-medium text-[var(--tk-color-text-primary)] px-2"
+                            className="px-2 text-[13px] font-medium text-[var(--tk-color-text-primary)]"
                         >
                             Changer
                         </Button>
@@ -646,26 +673,27 @@ const AssignmentWizardPage: React.FC<{
 
                     {/* Bénéficiaire sélectionné (.pick) */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             Remis à
                         </p>
-                        <div className="flex items-center gap-3 min-h-[48px] px-3 py-2 border border-[var(--tk-color-border-default)] rounded-md bg-surface">
-                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
+                        <div className="bg-surface flex min-h-[48px] items-center gap-3 rounded-md border border-[var(--tk-color-border-default)] px-3 py-2">
+                            <div className="font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[14px] font-semibold text-[var(--tk-color-text-primary)]">
                                 {userInitials}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)] truncate">
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                     {selectedUser.name}
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
-                                    {selectedUser.department} · {selectedUser.location || 'Bureau Paris'}
+                                <div className="truncate text-[12px] text-[var(--tk-color-text-secondary)]">
+                                    {selectedUser.department} ·{' '}
+                                    {selectedUser.location || 'Bureau Paris'}
                                 </div>
                             </div>
                             <Button
                                 variant="text"
                                 size="sm"
                                 onClick={() => setStep(stageSequence.indexOf('user') + 1)}
-                                className="text-[13px] font-medium text-[var(--tk-color-text-primary)] px-2"
+                                className="px-2 text-[13px] font-medium text-[var(--tk-color-text-primary)]"
                             >
                                 Changer
                             </Button>
@@ -674,34 +702,44 @@ const AssignmentWizardPage: React.FC<{
 
                     {/* Date d'effet (.val) */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             À partir du
                         </p>
-                        <div className="flex items-center gap-2.5 min-h-[48px] px-3 border border-[var(--tk-color-border-default)] rounded-md bg-surface text-[15px] text-[var(--tk-color-text-primary)]">
-                            <Icon glyph={CalendarBlank} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0" />
+                        <div className="bg-surface flex min-h-[48px] items-center gap-2.5 rounded-md border border-[var(--tk-color-border-default)] px-3 text-[15px] text-[var(--tk-color-text-primary)]">
+                            <Icon
+                                glyph={CalendarBlank}
+                                size={18}
+                                className="shrink-0 text-[var(--tk-color-text-secondary)]"
+                            />
                             <span>
-                                aujourd'hui ({new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })})
+                                aujourd'hui (
+                                {new Date().toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                })}
+                                )
                             </span>
                         </div>
                     </div>
 
                     {/* Attestation — Planche 06.2 */}
                     <div>
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)]">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <p className="text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                                 Votre attestation
                             </p>
                         </div>
 
                         {/* Onglets de méthode d'attestation */}
-                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--tk-color-surface-muted)] rounded-lg mb-3">
+                        <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-lg bg-[var(--tk-color-surface-muted)] p-1">
                             <Button
                                 variant={validationMethod === 'signature' ? 'tonal' : 'text'}
                                 size="sm"
                                 onClick={() => setValidationMethod('signature')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'signature' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'signature' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={PenNib} size={18} />
@@ -712,8 +750,9 @@ const AssignmentWizardPage: React.FC<{
                                 size="sm"
                                 onClick={() => setValidationMethod('pin')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'pin' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'pin' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={Key} size={18} />
@@ -724,8 +763,9 @@ const AssignmentWizardPage: React.FC<{
                                 size="sm"
                                 onClick={() => setValidationMethod('fingerprint')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'fingerprint' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'fingerprint' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={Fingerprint} size={18} />
@@ -735,7 +775,7 @@ const AssignmentWizardPage: React.FC<{
 
                         {/* Méthode : Signature (.sig) */}
                         {validationMethod === 'signature' && (
-                            <div className="relative border border-[var(--tk-color-border-default)] rounded-md bg-surface h-[140px] flex items-end justify-center pb-2.5 text-[12px] text-[var(--tk-color-text-muted)] overflow-hidden">
+                            <div className="bg-surface relative flex h-[140px] items-end justify-center overflow-hidden rounded-md border border-[var(--tk-color-border-default)] pb-2.5 text-[12px] text-[var(--tk-color-text-muted)]">
                                 <canvas
                                     ref={canvasRef}
                                     width={480}
@@ -746,10 +786,10 @@ const AssignmentWizardPage: React.FC<{
                                     onTouchStart={handleCanvasMouseDown}
                                     onTouchMove={handleCanvasMouseMove}
                                     onTouchEnd={handleCanvasMouseUp}
-                                    className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                                    className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
                                 />
                                 {!signatureCaptured && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[13px] text-[var(--tk-color-text-muted)]">
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-[var(--tk-color-text-muted)]">
                                         Signez dans cette zone
                                     </div>
                                 )}
@@ -761,7 +801,7 @@ const AssignmentWizardPage: React.FC<{
                                         variant="outlined"
                                         size="sm"
                                         onClick={handleClearSignature}
-                                        className="absolute top-2 right-2 text-[11px] h-7 px-2 z-10"
+                                        className="absolute top-2 right-2 z-10 h-7 px-2 text-[11px]"
                                     >
                                         Effacer
                                     </Button>
@@ -772,7 +812,7 @@ const AssignmentWizardPage: React.FC<{
                         {/* Méthode : Code PIN (.pin) */}
                         {validationMethod === 'pin' && (
                             <div className="flex flex-col items-center gap-2 py-1">
-                                <div className="flex gap-3 justify-center">
+                                <div className="flex justify-center gap-3">
                                     {pin.map((digit, idx) => (
                                         <InputField
                                             key={idx}
@@ -783,14 +823,16 @@ const AssignmentWizardPage: React.FC<{
                                             inputMode="numeric"
                                             maxLength={1}
                                             value={digit}
-                                            onChange={(e) => handlePinDigitChange(idx, e.target.value)}
+                                            onChange={(e) =>
+                                                handlePinDigitChange(idx, e.target.value)
+                                            }
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-brand"
+                                            className="font-brand h-[76px] w-[64px] text-center text-[34px] font-semibold"
                                             containerClassName="w-auto"
                                         />
                                     ))}
                                 </div>
-                                <p className="text-[12px] text-[var(--tk-color-text-secondary)] text-center">
+                                <p className="text-center text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Code PIN à 4 chiffres ({adminUser?.name || 'Clara Admin'})
                                 </p>
                             </div>
@@ -798,20 +840,20 @@ const AssignmentWizardPage: React.FC<{
 
                         {/* Méthode : Empreinte (.bio) */}
                         {validationMethod === 'fingerprint' && (
-                            <div className="h-[148px] rounded-md bg-[var(--tk-color-surface-muted)] flex flex-col items-center justify-center gap-2.5 text-[var(--tk-color-text-secondary)]">
+                            <div className="flex h-[148px] flex-col items-center justify-center gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]">
                                 <Button
                                     variant="outlined"
                                     onClick={handleFingerprintConfirm}
                                     className={cn(
-                                        'w-16 h-16 rounded-full flex items-center justify-center p-0',
+                                        'flex h-16 w-16 items-center justify-center rounded-full p-0',
                                         isValidated && validatedBy === 'fingerprint'
-                                            ? 'bg-[var(--tk-color-success)] text-white border-transparent'
-                                            : 'bg-surface text-[var(--tk-color-text-primary)]'
+                                            ? 'border-transparent bg-[var(--tk-color-success)] text-white'
+                                            : 'bg-surface text-[var(--tk-color-text-primary)]',
                                     )}
                                 >
                                     <Icon glyph={Fingerprint} size={32} />
                                 </Button>
-                                <span className="text-[13px] text-[var(--tk-color-text-primary)] font-medium">
+                                <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
                                     {isValidated && validatedBy === 'fingerprint'
                                         ? 'Empreinte reconnue'
                                         : 'Posez votre doigt pour valider'}
@@ -821,12 +863,17 @@ const AssignmentWizardPage: React.FC<{
                     </div>
 
                     {/* Bannière explicative (.warn) */}
-                    <div className="flex gap-2.5 p-3 bg-[var(--tk-color-surface-muted)] rounded-md text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
-                        <Icon glyph={Info} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                    <div className="flex gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] p-3 text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
+                        <Icon
+                            glyph={Info}
+                            size={18}
+                            className="mt-0.5 shrink-0 text-[var(--tk-color-text-secondary)]"
+                        />
                         <span>
-                            Enregistré au nom de <strong>{adminUser?.name || 'Clara Admin'}</strong>, horodaté.{' '}
-                            <strong>L'objet ne devient pas « attribué »</strong> : il passe{' '}
-                            <strong>en attente</strong> jusqu'à ce que {selectedUser.name} confirme la réception.
+                            Enregistré au nom de <strong>{adminUser?.name || 'Clara Admin'}</strong>
+                            , horodaté. <strong>L'objet ne devient pas « attribué »</strong> : il
+                            passe <strong>en attente</strong> jusqu'à ce que {selectedUser.name}{' '}
+                            confirme la réception.
                         </span>
                     </div>
 
@@ -835,23 +882,23 @@ const AssignmentWizardPage: React.FC<{
                         variant={isImmediateHandover ? 'tonal' : 'outlined'}
                         layout="card"
                         onClick={() => setIsImmediateHandover(!isImmediateHandover)}
-                        className="w-full text-left p-3 flex items-start gap-3 rounded-md"
+                        className="flex w-full items-start gap-3 rounded-md p-3 text-left"
                     >
                         <div
                             className={cn(
-                                'w-4 h-4 rounded-xs border mt-0.5 flex items-center justify-center shrink-0',
+                                'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-xs border',
                                 isImmediateHandover
-                                    ? 'bg-[var(--tk-color-brand)] border-[var(--tk-color-brand-dark)] text-[var(--tk-color-text-primary)]'
-                                    : 'border-[var(--tk-color-border-default)]'
+                                    ? 'border-[var(--tk-color-brand-dark)] bg-[var(--tk-color-brand)] text-[var(--tk-color-text-primary)]'
+                                    : 'border-[var(--tk-color-border-default)]',
                             )}
                         >
                             {isImmediateHandover && <Icon glyph={Check} size={18} />}
                         </div>
                         <div className="flex-1 text-[13px]">
-                            <span className="font-medium text-[var(--tk-color-text-primary)] block">
+                            <span className="block font-medium text-[var(--tk-color-text-primary)]">
                                 Remise en main propre immédiate
                             </span>
-                            <span className="text-[11px] text-[var(--tk-color-text-secondary)] block mt-0.5">
+                            <span className="mt-0.5 block text-[11px] text-[var(--tk-color-text-secondary)]">
                                 Le bénéficiaire est présent au comptoir et réceptionne maintenant.
                             </span>
                         </div>
@@ -863,39 +910,43 @@ const AssignmentWizardPage: React.FC<{
             {currentStage === 'summary' && selectedEquipment && selectedUser && (
                 <WizardStep>
                     {/* Acquittement croisé (.ack) */}
-                    <div className="border border-[var(--tk-color-border-default)] rounded-md overflow-hidden bg-surface divide-y divide-[var(--tk-color-border-default)]">
-                        <div className="flex items-center gap-3 p-3.5 bg-surface">
-                            <div className="w-8 h-8 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center shrink-0">
+                    <div className="bg-surface divide-y divide-[var(--tk-color-border-default)] overflow-hidden rounded-md border border-[var(--tk-color-border-default)]">
+                        <div className="bg-surface flex items-center gap-3 p-3.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-white">
                                 <Icon glyph={Check} size={18} />
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                     {adminUser?.name || 'Clara Admin'} atteste avoir remis
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Aujourd'hui · Méthode {validationMethod}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3.5 bg-surface">
+                        <div className="bg-surface flex items-center gap-3 p-3.5">
                             <div
                                 className={cn(
-                                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                                     isImmediateHandover
                                         ? 'bg-[var(--tk-color-inverse-surface)] text-white'
-                                        : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
+                                        : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]',
                                 )}
                             >
-                                {isImmediateHandover ? <Icon glyph={Check} size={18} /> : <Icon glyph={UserIcon} size={18} />}
+                                {isImmediateHandover ? (
+                                    <Icon glyph={Check} size={18} />
+                                ) : (
+                                    <Icon glyph={UserIcon} size={18} />
+                                )}
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                     {isImmediateHandover
                                         ? `${selectedUser.name} confirme la réception`
                                         : `${selectedUser.name} attestera avoir reçu`}
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
                                     {isImmediateHandover
                                         ? 'Confirmé en direct au comptoir'
                                         : "C'est ce qui reste à faire sur son appareil"}
@@ -905,23 +956,31 @@ const AssignmentWizardPage: React.FC<{
                     </div>
 
                     {/* Récapitulatif équipement et personne */}
-                    <div className="p-4 rounded-lg bg-surface border border-[var(--tk-color-border-default)] flex flex-col gap-3">
-                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
-                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Équipement</span>
-                            <span className="text-[13px] font-semibold font-brand text-[var(--tk-color-text-primary)] tabular-nums">
+                    <div className="bg-surface flex flex-col gap-3 rounded-lg border border-[var(--tk-color-border-default)] p-4">
+                        <div className="flex items-center justify-between border-b border-[var(--tk-color-border-default)] pb-2">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                Équipement
+                            </span>
+                            <span className="font-brand text-[13px] font-semibold text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId} · {selectedEquipment.name}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
-                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Bénéficiaire</span>
+                        <div className="flex items-center justify-between border-b border-[var(--tk-color-border-default)] pb-2">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                Bénéficiaire
+                            </span>
                             <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
                                 {selectedUser.name} ({selectedUser.department})
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Statut après validation</span>
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                Statut après validation
+                            </span>
                             <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
-                                {isImmediateHandover ? 'Attribué (confirmé)' : 'En attente de réception'}
+                                {isImmediateHandover
+                                    ? 'Attribué (confirmé)'
+                                    : 'En attente de réception'}
                             </span>
                         </div>
                     </div>

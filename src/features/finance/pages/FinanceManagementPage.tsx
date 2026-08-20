@@ -67,7 +67,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const isCompact = useMediaQuery(MEDIA.compact);
 
     const [selectedYear, setSelectedYear] = useState<number>(
-        () => financeBudgets[0]?.year || new Date().getFullYear()
+        () => financeBudgets[0]?.year || new Date().getFullYear(),
     );
 
     useEffect(() => {
@@ -81,14 +81,17 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const spentPercent = Math.min(Math.max(budgetStats.percent, 0), 100);
 
     const currentFrenchDate = useMemo(
-        () => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date()),
-        []
+        () =>
+            new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date()),
+        [],
     );
 
     const paceNote = useMemo(() => {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+        const dayOfYear = Math.floor(
+            (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
+        );
         const expectedPace = (dayOfYear / 365) * 100;
         const diff = spentPercent - expectedPace;
 
@@ -109,16 +112,24 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
             }));
         }
 
-        return [{
-            value: selectedYear.toString(),
-            label: `${selectedYear} (${currentBudget.status})`,
-        }];
+        return [
+            {
+                value: selectedYear.toString(),
+                label: `${selectedYear} (${currentBudget.status})`,
+            },
+        ];
     }, [financeBudgets, selectedYear, currentBudget.status]);
 
     return (
-        <div className="flex flex-col h-full bg-surface">
-            <AddExpenseModal isOpen={isAddExpenseModalOpen} onClose={() => setIsAddExpenseModalOpen(false)} />
-            <AddBudgetModal isOpen={isAddBudgetModalOpen} onClose={() => setIsAddBudgetModalOpen(false)} />
+        <div className="bg-surface flex h-full flex-col">
+            <AddExpenseModal
+                isOpen={isAddExpenseModalOpen}
+                onClose={() => setIsAddExpenseModalOpen(false)}
+            />
+            <AddBudgetModal
+                isOpen={isAddBudgetModalOpen}
+                onClose={() => setIsAddBudgetModalOpen(false)}
+            />
             <ExpenseDetailSheet
                 expenseId={selectedExpenseId}
                 onClose={() => setSelectedExpenseId(null)}
@@ -136,14 +147,14 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                            « ⋮ » de sa barre : trois contrôles empilés pleine largeur
                            repousseraient le héro — le seul chiffre pour lequel on
                            ouvre cette page — sous la ligne de flottaison. */
-                        <div className="flex w-full items-center gap-2 medium:w-auto medium:gap-3">
+                        <div className="medium:w-auto medium:gap-3 flex w-full items-center gap-2">
                             <SelectField
                                 name="finance-year"
                                 value={selectedYear.toString()}
                                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                                 options={budgetYearOptions}
                                 placeholder="Choisir un exercice"
-                                className="space-y-0 flex-1 medium:w-44 medium:flex-none"
+                                className="medium:w-44 medium:flex-none flex-1 space-y-0"
                             />
                             {isCompact ? (
                                 <Menu
@@ -163,7 +174,11 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         },
                                     ]}
                                     trigger={
-                                        <Button variant="text" iconOnly aria-label="Actions de l'exercice">
+                                        <Button
+                                            variant="text"
+                                            iconOnly
+                                            aria-label="Actions de l'exercice"
+                                        >
                                             <Icon glyph={DotsThreeVertical} />
                                         </Button>
                                     }
@@ -196,74 +211,113 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                 <Reading className="animate-in fade-in slide-in-from-bottom-4 duration-medium2">
                     <div className="space-y-5">
                         {/* HERO PLANCHE 15.1 */}
-                        <section className="rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)] shadow-elevation-1 flex flex-col gap-3">
+                        <section className="shadow-elevation-1 flex flex-col gap-3 rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)]">
                             <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">
                                 Exercice {selectedYear} · {currentBudget.status.toLowerCase()}
                             </p>
                             <div className="flex items-baseline gap-2.5 border-t border-[var(--tk-color-dark-line)] pt-3.5">
-                                <b className="font-brand text-[28px] font-semibold text-[var(--tk-color-on-dark)] tracking-tight tabular-nums">
-                                    {formatCurrency(budgetStats.remaining, settings.currency, settings.compactNotation)}
+                                <b className="font-brand text-[28px] font-semibold tracking-tight text-[var(--tk-color-on-dark)] tabular-nums">
+                                    {formatCurrency(
+                                        budgetStats.remaining,
+                                        settings.currency,
+                                        settings.compactNotation,
+                                    )}
                                 </b>
                                 <span className="text-[13px] leading-[19px] text-[var(--tk-color-on-dark-2)]">
-                                    restants sur<br />une enveloppe de {formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)}
+                                    restants sur
+                                    <br />
+                                    une enveloppe de{' '}
+                                    {formatCurrency(
+                                        budgetStats.totalAllocated,
+                                        settings.currency,
+                                        settings.compactNotation,
+                                    )}
                                 </span>
                             </div>
-                            <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)] border-t border-[var(--tk-color-dark-line)] pt-2.5 mt-1">
-                                {spentPercent.toFixed(0)} % consommés au {currentFrenchDate} — {paceNote}
+                            <p className="mt-1 border-t border-[var(--tk-color-dark-line)] pt-2.5 text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">
+                                {spentPercent.toFixed(0)} % consommés au {currentFrenchDate} —{' '}
+                                {paceNote}
                             </p>
                         </section>
 
                         {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
-                        <section className="bg-surface rounded-lg p-4 border border-outline-variant shadow-elevation-1">
-                            <div className="flex items-baseline justify-between gap-3 mb-2">
-                                <h3 className="text-[13px] font-medium text-on-surface">Les postes</h3>
-                                <span className="text-[13px] text-on-surface-variant tabular-nums">{currentBudget.items.length}</span>
+                        <section className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                            <div className="mb-2 flex items-baseline justify-between gap-3">
+                                <h3 className="text-on-surface text-[13px] font-medium">
+                                    Les postes
+                                </h3>
+                                <span className="text-on-surface-variant text-[13px] tabular-nums">
+                                    {currentBudget.items.length}
+                                </span>
                             </div>
-                            <div className="divide-y divide-outline-variant">
+                            <div className="divide-outline-variant divide-y">
                                 {currentBudget.items.length > 0 ? (
                                     currentBudget.items.map((item, idx) => {
-                                        const itemPercent = item.allocated > 0 ? (item.spent / item.allocated) * 100 : 0;
+                                        const itemPercent =
+                                            item.allocated > 0
+                                                ? (item.spent / item.allocated) * 100
+                                                : 0;
                                         const itemRemaining = item.allocated - item.spent;
                                         const isOver = itemRemaining < 0 || itemPercent >= 100;
                                         const classification = budgetCapitalization(item);
                                         return (
-                                            <div key={idx} className="py-2.5 space-y-1.5 first:pt-1 last:pb-1">
+                                            <div
+                                                key={idx}
+                                                className="space-y-1.5 py-2.5 first:pt-1 last:pb-1"
+                                            >
                                                 <div className="flex items-baseline justify-between gap-3">
-                                                    <span className="text-[14px] text-on-surface font-normal">{item.category}</span>
-                                                    <span className="text-[14px] font-medium text-on-surface tabular-nums whitespace-nowrap">
-                                                        {formatCurrency(item.spent, settings.currency, settings.compactNotation)}{' '}
-                                                        <s className="text-[var(--tk-color-text-muted)] font-normal text-[11px] no-underline">
-                                                            / {formatCurrency(item.allocated, settings.currency, settings.compactNotation)}
+                                                    <span className="text-on-surface text-[14px] font-normal">
+                                                        {item.category}
+                                                    </span>
+                                                    <span className="text-on-surface text-[14px] font-medium whitespace-nowrap tabular-nums">
+                                                        {formatCurrency(
+                                                            item.spent,
+                                                            settings.currency,
+                                                            settings.compactNotation,
+                                                        )}{' '}
+                                                        <s className="text-[11px] font-normal text-[var(--tk-color-text-muted)] no-underline">
+                                                            /{' '}
+                                                            {formatCurrency(
+                                                                item.allocated,
+                                                                settings.currency,
+                                                                settings.compactNotation,
+                                                            )}
                                                         </s>
                                                     </span>
                                                 </div>
-                                                <div className="h-1.5 rounded-xs bg-[var(--tk-color-surface-container)] overflow-hidden">
+                                                <div className="h-1.5 overflow-hidden rounded-xs bg-[var(--tk-color-surface-container)]">
                                                     <div
                                                         className={cn(
-                                                            "h-full rounded-xs transition-all duration-300",
-                                                            isOver ? "bg-[var(--tk-color-st-orange)]" : "bg-[var(--tk-color-st-bleu)]"
+                                                            'h-full rounded-xs transition-all duration-300',
+                                                            isOver
+                                                                ? 'bg-[var(--tk-color-st-orange)]'
+                                                                : 'bg-[var(--tk-color-st-bleu)]',
                                                         )}
-                                                        style={{ width: `${Math.min(itemPercent, 100)}%` }}
+                                                        style={{
+                                                            width: `${Math.min(itemPercent, 100)}%`,
+                                                        }}
                                                     />
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[12px] text-on-surface-variant">
+                                                <div className="text-on-surface-variant flex items-center gap-2 text-[12px]">
                                                     {/* Une ligne qui ne porte pas son classement **n'affiche rien** : un
                                                         blanc se remarque et se corrige, une supposition se recopie
                                                         dans le rapport de clôture (15.1). */}
                                                     {classification && (
-                                                        <span className="text-[11px] font-medium tracking-wide px-2 py-0.5 rounded-full bg-[var(--tk-color-surface-container)] text-on-surface-variant">
+                                                        <span className="text-on-surface-variant rounded-full bg-[var(--tk-color-surface-container)] px-2 py-0.5 text-[11px] font-medium tracking-wide">
                                                             {classification}
                                                         </span>
                                                     )}
                                                     <span>
-                                                        {isOver ? "enveloppe épuisée" : `${formatCurrency(itemRemaining, settings.currency, settings.compactNotation)} restants`}
+                                                        {isOver
+                                                            ? 'enveloppe épuisée'
+                                                            : `${formatCurrency(itemRemaining, settings.currency, settings.compactNotation)} restants`}
                                                     </span>
                                                 </div>
                                             </div>
                                         );
                                     })
                                 ) : (
-                                    <p className="py-4 text-center text-body-small text-text-muted">
+                                    <p className="text-body-small text-text-muted py-4 text-center">
                                         Aucun poste budgétaire défini pour cet exercice.
                                     </p>
                                 )}
@@ -271,14 +325,17 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                         </section>
 
                         {/* SECTION 2 : DERNIÈRES DÉPENSES (PLANCHE 15.1) */}
-                        <section className="bg-surface rounded-lg p-4 border border-outline-variant shadow-elevation-1">
-                            <div className="flex items-baseline justify-between gap-3 mb-2">
-                                <h3 className="text-[13px] font-medium text-on-surface">Dernières dépenses</h3>
-                                <span className="text-[13px] text-on-surface-variant tabular-nums">
-                                    {Math.min(3, financeExpenses.length)} sur {financeExpenses.length}
+                        <section className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                            <div className="mb-2 flex items-baseline justify-between gap-3">
+                                <h3 className="text-on-surface text-[13px] font-medium">
+                                    Dernières dépenses
+                                </h3>
+                                <span className="text-on-surface-variant text-[13px] tabular-nums">
+                                    {Math.min(3, financeExpenses.length)} sur{' '}
+                                    {financeExpenses.length}
                                 </span>
                             </div>
-                            <div className="divide-y divide-outline-variant">
+                            <div className="divide-outline-variant divide-y">
                                 {financeExpenses.length > 0 ? (
                                     financeExpenses.slice(0, 3).map((exp) => (
                                         <div
@@ -292,24 +349,37 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                     setSelectedExpenseId(exp.id);
                                                 }
                                             }}
-                                            className="py-2.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-surface-container/50 rounded-lg px-2 -mx-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[56px]"
+                                            className="hover:bg-surface-container/50 focus-visible:ring-primary -mx-2 flex min-h-[56px] cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors outline-none focus-visible:ring-2"
                                         >
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-[14px] text-on-surface font-normal truncate">{exp.supplier}</span>
-                                                <span className="text-[12px] leading-[17px] text-on-surface-variant truncate">
-                                                    {formatExpenseDate(exp.date)} · {exp.invoiceNumber || exp.description || 'Facture'}
+                                            <div className="flex min-w-0 flex-col">
+                                                <span className="text-on-surface truncate text-[14px] font-normal">
+                                                    {exp.supplier}
+                                                </span>
+                                                <span className="text-on-surface-variant truncate text-[12px] leading-[17px]">
+                                                    {formatExpenseDate(exp.date)} ·{' '}
+                                                    {exp.invoiceNumber ||
+                                                        exp.description ||
+                                                        'Facture'}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <span className="text-[14px] font-medium text-on-surface tabular-nums whitespace-nowrap">
-                                                    {formatCurrency(exp.amount, exp.currencyCode || settings.currency, settings.compactNotation)}
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                <span className="text-on-surface text-[14px] font-medium whitespace-nowrap tabular-nums">
+                                                    {formatCurrency(
+                                                        exp.amount,
+                                                        exp.currencyCode || settings.currency,
+                                                        settings.compactNotation,
+                                                    )}
                                                 </span>
-                                                <Icon glyph={CaretRight} size={18} className="text-on-surface-variant shrink-0" />
+                                                <Icon
+                                                    glyph={CaretRight}
+                                                    size={18}
+                                                    className="text-on-surface-variant shrink-0"
+                                                />
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="py-4 text-center text-body-small text-text-muted">
+                                    <p className="text-body-small text-text-muted py-4 text-center">
                                         Aucune dépense enregistrée sur cet exercice.
                                     </p>
                                 )}
@@ -318,9 +388,13 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 <button
                                     type="button"
                                     onClick={() => onViewChange('finance_expenses')}
-                                    className="w-full min-h-[48px] mt-2 pt-2 border-t border-outline-variant flex items-center gap-2.5 text-[14px] font-medium text-on-surface hover:text-on-surface-variant transition-colors text-left cursor-pointer bg-transparent border-0"
+                                    className="border-outline-variant text-on-surface hover:text-on-surface-variant mt-2 flex min-h-[48px] w-full cursor-pointer items-center gap-2.5 border-0 border-t bg-transparent pt-2 text-left text-[14px] font-medium transition-colors"
                                 >
-                                    <Icon glyph={CaretRight} size={18} className="text-on-surface-variant shrink-0" />
+                                    <Icon
+                                        glyph={CaretRight}
+                                        size={18}
+                                        className="text-on-surface-variant shrink-0"
+                                    />
                                     Voir les {financeExpenses.length} dépenses de l'exercice
                                 </button>
                             )}

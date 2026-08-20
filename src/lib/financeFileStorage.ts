@@ -100,12 +100,16 @@ export const saveExpenseSourceFile = async (file?: File | null): Promise<string 
         const request = store.put(payload);
 
         request.onsuccess = () => resolve(id);
-        request.onerror = () => reject(request.error || new Error('Enregistrement du fichier impossible'));
-        transaction.onabort = () => reject(transaction.error || new Error('Transaction IndexedDB annulee'));
+        request.onerror = () =>
+            reject(request.error || new Error('Enregistrement du fichier impossible'));
+        transaction.onabort = () =>
+            reject(transaction.error || new Error('Transaction IndexedDB annulee'));
     });
 };
 
-export const getExpenseSourceFile = async (id?: string): Promise<StoredExpenseSourceFile | null> => {
+export const getExpenseSourceFile = async (
+    id?: string,
+): Promise<StoredExpenseSourceFile | null> => {
     if (!id || !canUseIndexedDb()) {
         return null;
     }
@@ -145,8 +149,9 @@ export const deleteExpenseSourceFile = async (id?: string): Promise<void> => {
         const request = store.delete(id);
 
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error || new Error('Suppression du fichier impossible'));
-        transaction.onabort = () => reject(transaction.error || new Error('Transaction IndexedDB annulee'));
+        request.onerror = () =>
+            reject(request.error || new Error('Suppression du fichier impossible'));
+        transaction.onabort = () =>
+            reject(transaction.error || new Error('Transaction IndexedDB annulee'));
     });
 };
-

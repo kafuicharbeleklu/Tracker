@@ -110,7 +110,9 @@ const normalizeInlineWhitespace = (value: string): string => {
 const detectExpenseType = (input: string): FinanceExpenseType => {
     const value = input.toLowerCase();
 
-    for (const [type, keywords] of Object.entries(EXPENSE_TYPE_KEYWORDS) as Array<[FinanceExpenseType, string[]]>) {
+    for (const [type, keywords] of Object.entries(EXPENSE_TYPE_KEYWORDS) as Array<
+        [FinanceExpenseType, string[]]
+    >) {
         if (keywords.some((keyword) => value.includes(keyword))) {
             return type;
         }
@@ -152,7 +154,10 @@ const parseDateToken = (dateToken: string): string | null => {
 const isPdfBinaryNoise = (value: string): boolean => {
     const lower = value.toLowerCase();
     const markers = ['endobj', 'endstream', 'xref', 'trailer', 'startxref', '/type', '/length'];
-    const markerHits = markers.reduce((count, marker) => (lower.includes(marker) ? count + 1 : count), 0);
+    const markerHits = markers.reduce(
+        (count, marker) => (lower.includes(marker) ? count + 1 : count),
+        0,
+    );
     const slashTokens = (value.match(/\/[A-Za-z]{2,}/g) || []).length;
     const objectCount = (value.match(/\bobj\b/gi) || []).length;
     return markerHits >= 3 || slashTokens >= 12 || objectCount >= 8;
@@ -173,7 +178,12 @@ const extractPrintablePdfTextFallback = async (file: File): Promise<string> => {
 
 const readBestEffortText = async (
     file: File,
-): Promise<{ text: string; canReadText: boolean; source: DocumentExtractionSource; warnings: string[] }> => {
+): Promise<{
+    text: string;
+    canReadText: boolean;
+    source: DocumentExtractionSource;
+    warnings: string[];
+}> => {
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
 
     if (EXTENSIONS_WITH_DIRECT_TEXT.has(extension)) {
@@ -191,13 +201,17 @@ const readBestEffortText = async (
             maxPdfTextPages: 4,
             maxPdfOcrPages: 3,
         });
-        const warnings = extracted.warnings.filter((warning) => warning !== 'Impossible de traiter ce PDF.');
+        const warnings = extracted.warnings.filter(
+            (warning) => warning !== 'Impossible de traiter ce PDF.',
+        );
         let mergedText = extracted.text;
         let source: DocumentExtractionSource = extracted.source;
 
         if (extension === 'pdf') {
             const fallbackText = await extractPrintablePdfTextFallback(file);
-            mergedText = normalizeWhitespace([extracted.text, fallbackText].filter(Boolean).join('\n'));
+            mergedText = normalizeWhitespace(
+                [extracted.text, fallbackText].filter(Boolean).join('\n'),
+            );
 
             if (fallbackText && !extracted.canReadText) {
                 source = 'native';
@@ -228,7 +242,12 @@ const readBestEffortText = async (
                 defval: '',
             });
             const flattened = rows
-                .map((row) => row.map((cell) => String(cell || '').trim()).filter(Boolean).join(' '))
+                .map((row) =>
+                    row
+                        .map((cell) => String(cell || '').trim())
+                        .filter(Boolean)
+                        .join(' '),
+                )
                 .filter(Boolean)
                 .join('\n');
 
@@ -262,7 +281,9 @@ const readBestEffortText = async (
     }
 };
 
-const extractFromFilename = (normalizedName: string): {
+const extractFromFilename = (
+    normalizedName: string,
+): {
     supplier: string;
     amount: number | null;
     invoiceNumber: string;
@@ -273,13 +294,16 @@ const extractFromFilename = (normalizedName: string): {
         .filter((value): value is number => value !== null && value > 0);
 
     const amount = amountCandidates.length ? Math.max(...amountCandidates) : null;
-    const supplier = normalizeInlineWhitespace(
-        normalizedName
-            .replace(/\d[\d\s.,]*/g, ' ')
-            .replace(/\b(inv|invoice|facture|fact|bill|doc)\b/gi, ' '),
-    ) || 'Fournisseur non détecté';
+    const supplier =
+        normalizeInlineWhitespace(
+            normalizedName
+                .replace(/\d[\d\s.,]*/g, ' ')
+                .replace(/\b(inv|invoice|facture|fact|bill|doc)\b/gi, ' '),
+        ) || 'Fournisseur non détecté';
 
-    const invoicePattern = INVOICE_NUMBER_PATTERNS.map((pattern) => normalizedName.match(pattern)).find(Boolean);
+    const invoicePattern = INVOICE_NUMBER_PATTERNS.map((pattern) =>
+        normalizedName.match(pattern),
+    ).find(Boolean);
     const invoiceNumber = invoicePattern?.[1] || '';
 
     return {
@@ -317,10 +341,7 @@ const extractAmountFromText = (text: string): number | null => {
 
 const cleanSupplierCandidate = (value: string): string => {
     const cleaned = normalizeInlineWhitespace(
-        value
-            .replace(/[:|]/g, ' ')
-            .replace(/[0-9]/g, ' ')
-            .replace(/\s+/g, ' '),
+        value.replace(/[:|]/g, ' ').replace(/[0-9]/g, ' ').replace(/\s+/g, ' '),
     );
 
     if (!cleaned) return '';
@@ -437,11 +458,15 @@ export const extractExpenseDraftFromFile = async (file: File): Promise<Extracted
 
     if (!amount) warnings.push('Montant non détecté automatiquement.');
     if (!invoiceNumber) warnings.push('Numéro de facture non détecté.');
-    if (!supplier || supplier === 'Fournisseur non détecté') warnings.push('Fournisseur non détecté automatiquement.');
+    if (!supplier || supplier === 'Fournisseur non détecté')
+        warnings.push('Fournisseur non détecté automatiquement.');
 
-    const source: ExtractedExpenseDraft['source'] = canReadText && (amountFromText || supplierFromText || invoiceFromText)
-        ? (fromFilename.amount || fromFilename.invoiceNumber ? 'hybrid' : 'content')
-        : 'filename';
+    const source: ExtractedExpenseDraft['source'] =
+        canReadText && (amountFromText || supplierFromText || invoiceFromText)
+            ? fromFilename.amount || fromFilename.invoiceNumber
+                ? 'hybrid'
+                : 'content'
+            : 'filename';
 
     const descriptionParts = [
         invoiceNumber ? `Réf ${invoiceNumber}` : null,

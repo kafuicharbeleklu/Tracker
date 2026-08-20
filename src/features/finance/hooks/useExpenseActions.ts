@@ -48,7 +48,7 @@ export const useExpenseActions = () => {
                 },
             });
         },
-        [requestConfirmation, settings.currency, deleteFinanceExpense, showToast]
+        [requestConfirmation, settings.currency, deleteFinanceExpense, showToast],
     );
 
     const resolveExpenseSource = useCallback(
@@ -59,7 +59,10 @@ export const useExpenseActions = () => {
                     if (stored?.blob) {
                         return {
                             url: URL.createObjectURL(stored.blob),
-                            fileName: expense.sourceFileName || stored.name || `depense-${expense.id}.pdf`,
+                            fileName:
+                                expense.sourceFileName ||
+                                stored.name ||
+                                `depense-${expense.id}.pdf`,
                             revokeAfterUse: true,
                         };
                     }
@@ -78,14 +81,17 @@ export const useExpenseActions = () => {
 
             return null;
         },
-        []
+        [],
     );
 
     const previewSourceFile = useCallback(
         async (expense: FinanceExpense) => {
             const source = await resolveExpenseSource(expense);
             if (!source) {
-                showToast('Prévisualisation indisponible: aucun fichier source enregistré.', 'warning');
+                showToast(
+                    'Prévisualisation indisponible: aucun fichier source enregistré.',
+                    'warning',
+                );
                 return;
             }
 
@@ -102,14 +108,17 @@ export const useExpenseActions = () => {
                 window.setTimeout(() => URL.revokeObjectURL(source.url), 60_000);
             }
         },
-        [resolveExpenseSource, showToast]
+        [resolveExpenseSource, showToast],
     );
 
     const downloadSourceFile = useCallback(
         async (expense: FinanceExpense) => {
             const source = await resolveExpenseSource(expense);
             if (!source) {
-                showToast('Téléchargement indisponible: aucun fichier source enregistré.', 'warning');
+                showToast(
+                    'Téléchargement indisponible: aucun fichier source enregistré.',
+                    'warning',
+                );
                 return;
             }
 
@@ -124,7 +133,7 @@ export const useExpenseActions = () => {
                 window.setTimeout(() => URL.revokeObjectURL(source.url), 1_000);
             }
         },
-        [resolveExpenseSource, showToast]
+        [resolveExpenseSource, showToast],
     );
 
     return { requestExpenseDeletion, previewSourceFile, downloadSourceFile };

@@ -27,7 +27,10 @@ interface RailItemProps {
 }
 
 const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
-    ({ destinationId, icon, label, active, compact = false, onClick, onKeyDown, tabIndex }, ref) => (
+    (
+        { destinationId, icon, label, active, compact = false, onClick, onKeyDown, tabIndex },
+        ref,
+    ) => (
         <NavButton
             ref={ref}
             surface="rail"
@@ -43,20 +46,25 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
         >
             <span
                 className={cn(
-                    compact ? "w-full h-7 rounded-lg inline-flex items-center justify-center" : "w-full h-8 rounded-lg inline-flex items-center justify-center",
-                    active ? "bg-primary text-on-primary" : ""
+                    compact
+                        ? 'inline-flex h-7 w-full items-center justify-center rounded-lg'
+                        : 'inline-flex h-8 w-full items-center justify-center rounded-lg',
+                    active ? 'bg-primary text-on-primary' : '',
                 )}
             >
                 <MaterialIcon name={icon} size={24} filled={active} />
             </span>
             <span
                 id={`rail-label-${destinationId}`}
-                className={cn("text-label-small text-center leading-tight max-w-full", compact && "hidden")}
+                className={cn(
+                    'text-label-small max-w-full text-center leading-tight',
+                    compact && 'hidden',
+                )}
             >
                 {label}
             </span>
         </NavButton>
-    )
+    ),
 );
 
 RailItem.displayName = 'RailItem';
@@ -76,83 +84,116 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
     const destinationRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     const allRailItems = [
-        ...(permissions.canViewInventory ? [{
-            id: 'dashboard' as ViewType,
-            icon: DESTINATIONS.dashboard.icon,
-            label: getDestinationShortLabel('dashboard'),
-        }] : []),
-        ...(permissions.canViewInventory ? [{
-            id: 'equipment' as ViewType,
-            icon: DESTINATIONS.equipment.icon,
-            label: getDestinationShortLabel('equipment'),
-        }] : []),
-        ...(permissions.canViewApprovals ? [{
-            // La file, et elle seule. Le commentaire d'origine gardait « Approbations »
-            // au rail comme « l'archive » de la file — mais l'archive est l'onglet
-            // Historique de Tâches, pas un second écran. 17.7 tranche : une seule
-            // porte, la file. Fermée le 20/08, comme côté barre latérale.
-            id: 'tasks' as ViewType,
-            icon: DESTINATIONS.tasks.icon,
-            label: getDestinationShortLabel('tasks'),
-        }] : []),
-        ...(permissions.canViewUsers ? [{
-            id: 'users' as ViewType,
-            icon: DESTINATIONS.users.icon,
-            label: getDestinationShortLabel('users'),
-        }] : []),
+        ...(permissions.canViewInventory
+            ? [
+                  {
+                      id: 'dashboard' as ViewType,
+                      icon: DESTINATIONS.dashboard.icon,
+                      label: getDestinationShortLabel('dashboard'),
+                  },
+              ]
+            : []),
+        ...(permissions.canViewInventory
+            ? [
+                  {
+                      id: 'equipment' as ViewType,
+                      icon: DESTINATIONS.equipment.icon,
+                      label: getDestinationShortLabel('equipment'),
+                  },
+              ]
+            : []),
+        ...(permissions.canViewApprovals
+            ? [
+                  {
+                      // La file, et elle seule. Le commentaire d'origine gardait « Approbations »
+                      // au rail comme « l'archive » de la file — mais l'archive est l'onglet
+                      // Historique de Tâches, pas un second écran. 17.7 tranche : une seule
+                      // porte, la file. Fermée le 20/08, comme côté barre latérale.
+                      id: 'tasks' as ViewType,
+                      icon: DESTINATIONS.tasks.icon,
+                      label: getDestinationShortLabel('tasks'),
+                  },
+              ]
+            : []),
+        ...(permissions.canViewUsers
+            ? [
+                  {
+                      id: 'users' as ViewType,
+                      icon: DESTINATIONS.users.icon,
+                      label: getDestinationShortLabel('users'),
+                  },
+              ]
+            : []),
     ];
     const railItems = allRailItems;
 
-    const destinations = useMemo(() => railItems.map((item) => ({
-        ...item,
-        active: currentView === item.id,
-        onSelect: () => onViewChange(item.id),
-    })), [currentView, onViewChange, railItems]);
+    const destinations = useMemo(
+        () =>
+            railItems.map((item) => ({
+                ...item,
+                active: currentView === item.id,
+                onSelect: () => onViewChange(item.id),
+            })),
+        [currentView, onViewChange, railItems],
+    );
 
-    const activeIndex = Math.max(0, destinations.findIndex((item) => item.active));
+    const activeIndex = Math.max(
+        0,
+        destinations.findIndex((item) => item.active),
+    );
 
     const focusDestination = useCallback((index: number) => {
         destinationRefs.current[index]?.focus();
     }, []);
 
-    const handleRailKeyDown = useCallback((index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
-        if (destinations.length === 0) {
-            return;
-        }
+    const handleRailKeyDown = useCallback(
+        (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
+            if (destinations.length === 0) {
+                return;
+            }
 
-        switch (event.key) {
-            case 'ArrowDown':
-                event.preventDefault();
-                focusDestination((index + 1) % destinations.length);
-                break;
-            case 'ArrowUp':
-                event.preventDefault();
-                focusDestination((index - 1 + destinations.length) % destinations.length);
-                break;
-            case 'Home':
-                event.preventDefault();
-                focusDestination(0);
-                break;
-            case 'End':
-                event.preventDefault();
-                focusDestination(destinations.length - 1);
-                break;
-            default:
-                break;
-        }
-    }, [destinations.length, focusDestination]);
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    focusDestination((index + 1) % destinations.length);
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    focusDestination((index - 1 + destinations.length) % destinations.length);
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    focusDestination(0);
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    focusDestination(destinations.length - 1);
+                    break;
+                default:
+                    break;
+            }
+        },
+        [destinations.length, focusDestination],
+    );
 
     return (
         <aside
             aria-label="Navigation secondaire"
             className={cn(
-                compact ? "w-16 h-full bg-[var(--color-sidebar-bg)] border-r border-white/[0.03]" : "w-[76px] h-full bg-[var(--color-sidebar-bg)] border-r border-white/[0.03]",
-                compact ? "flex flex-col items-center justify-between py-2" : "flex flex-col items-center justify-between py-3",
-                className
+                compact
+                    ? 'h-full w-16 border-r border-white/[0.03] bg-[var(--color-sidebar-bg)]'
+                    : 'h-full w-[76px] border-r border-white/[0.03] bg-[var(--color-sidebar-bg)]',
+                compact
+                    ? 'flex flex-col items-center justify-between py-2'
+                    : 'flex flex-col items-center justify-between py-3',
+                className,
             )}
-            style={{ background: 'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)' }}
+            style={{
+                background:
+                    'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)',
+            }}
         >
-            <div className={cn("flex flex-col items-center gap-2", compact && "gap-2")}>
+            <div className={cn('flex flex-col items-center gap-2', compact && 'gap-2')}>
                 <IconButton
                     icon="menu"
                     variant="nav"
@@ -161,11 +202,16 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                     title="Menu"
                 />
 
-                <nav className={cn("flex flex-col items-center gap-2 mt-1", compact && "gap-2")} aria-label="Destinations principales">
+                <nav
+                    className={cn('mt-1 flex flex-col items-center gap-2', compact && 'gap-2')}
+                    aria-label="Destinations principales"
+                >
                     {destinations.map((item, index) => (
                         <RailItem
                             key={item.id}
-                            ref={(el) => { destinationRefs.current[index] = el; }}
+                            ref={(el) => {
+                                destinationRefs.current[index] = el;
+                            }}
                             destinationId={item.id}
                             icon={item.icon}
                             label={item.label}
@@ -178,10 +224,6 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                     ))}
                 </nav>
             </div>
-
         </aside>
     );
 };
-
-
-

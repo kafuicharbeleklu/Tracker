@@ -1,247 +1,147 @@
-import React, { useState, useMemo } from 'react';
-import { FileCsv } from '@phosphor-icons/react';
-import { useToast } from '../../../context/ToastContext';
-import Button from '../../../components/ui/Button';
-import Icon from '../../../components/ui/Icon';
-import { FileDropzone } from '../../../components/ui/FileDropzone';
-import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
+import React, { useMemo } from 'react';
+
+import ReferentialImportTemplate, {
+    type ImportCandidate,
+    type ImportColumn,
+} from '../../../components/layout/ReferentialImportTemplate';
+import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
+import { useToast } from '../../../context/ToastContext';
 
 interface ImportModelsPageProps {
     onCancel: () => void;
     onSave: () => void;
 }
 
-interface ParsedModelRow {
-    _id: number;
-    name?: string;
-    category?: string;
-    brand?: string;
-    _status: 'valid' | 'error';
-    _error: string;
+interface ModelDraft {
+    name: string;
+    type: string;
+    brand: string;
 }
 
-const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave }) => {
-    const { categories, addModel } = useData();
-    const { showToast } = useToast();
-    const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<ParsedModelRow[]>([]);
-    const [previewMode, setPreviewMode] = useState(false);
+/** Le contrat de 09.2, colonne 3 — trois colonnes, deux requises. */
+const COLUMNS: ImportColumn[] = [
+    {
+        key: 'Name',
+        description: "Le nom du modèle, tel qu'il s'affichera",
+        requirement: 'requis',
+        required: true,
+    },
+    {
+        key: 'Category',
+        description: 'Un type du catalogue — sinon la ligne est refusée',
+        requirement: 'requis',
+        required: true,
+    },
+    { key: 'Brand', description: 'La marque', requirement: 'facultatif' },
+];
 
-    const validCategoryKeys = useMemo(() => {
-        const set = new Set<string>();
-        categories.forEach((c) => {
-            set.add(c.name.toLowerCase());
-            if (c.name.toUpperCase() === 'ORDINATEUR PORTABLE') set.add('laptop');
-            if (c.name.toUpperCase() === 'MONITEUR') set.add('monitor');
-            if (c.name.toUpperCase() === 'SOURIS') set.add('mouse');
-            if (c.name.toUpperCase() === 'CASQUE') set.add('headphones');
-            if (c.name.toUpperCase() === 'CLAVIER') set.add('keyboard');
-            if (c.name.toUpperCase() === 'IMPRIMANTE') set.add('printer');
-            if (c.name.toUpperCase() === 'SERVEUR') set.add('server');
+const SAMPLE = {
+    fileName: 'modeles-exemple.csv',
+    content: [
+        'Name,Category,Brand',
+        'Latitude 7420,Laptop,Dell',
+        'U2722,Monitor,Dell',
+        'MX Keys,Keyboard,Logitech',
+    ].join('\n'),
+};
+
+/**
+ * **Importer des modèles** — planche 09.2, colonne 3.
+ *
+ * L'écran ne tient plus que ce qui lui est propre : son contrat de colonnes, la
+ * lecture d'une ligne, et l'écriture. Le reste — le contrat montré avant le dépôt,
+ * les deux totaux, les lignes refusées nommées, le pied qui n'oblige pas à choisir
+ * entre tout et rien — vient de `ReferentialImportTemplate`, qu'il partage avec
+ * l'import d'emplacements : *« c'est un seul composant, pas deux écrans qui se
+ * ressemblent »*.
+ */
+const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave }) => {
+    const { categories, models, addModel } = useData();
+    const { showToast } = useToast();
+
+    /**
+     * Un type se désigne par sa **clé** — c'est ce que lisent les imports (B1). Son
+     * libellé français est accepté aussi : un fichier monté à la main depuis l'écran
+     * du catalogue portera « Ordinateur portable », et le refuser serait pinailler.
+     */
+    const typeByKey = useMemo(() => {
+        const table = new Map<string, string>();
+        categories.forEach((category) => {
+            table.set(category.name.toLowerCase(), category.name);
+            table.set(getCategoryLabel(category.name).toLowerCase(), category.name);
         });
-        return set;
+        return table;
     }, [categories]);
 
-    const processFile = (uploadedFile: File) => {
-        if (uploadedFile.type !== 'text/csv' && !uploadedFile.name.endsWith('.csv')) {
-            showToast('Fichier CSV requis', 'error');
-            return;
-        }
-        setFile(uploadedFile);
+    const parse = (text: string): ImportCandidate<ModelDraft>[] => {
+        const lines = text.split(/\r?\n/).filter((line) => line.trim());
+        if (lines.length < 2) return [];
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target?.result as string;
-            if (!text) return;
+        const separator = lines[0].includes(';') ? ';' : ',';
+        /* Le référentiel grandit au fil du fichier : deux lignes qui portent le même
+           nom ne peuvent pas entrer toutes les deux, et la seconde doit le savoir
+           avant l'écriture plutôt que d'être perdue en silence. */
+        const knownNames = new Set(models.map((model) => model.name.toLowerCase()));
 
-            const lines = text.split(/\r?\n/).filter((l) => l.trim());
-            if (lines.length < 2) {
-                showToast('Le fichier doit contenir une ligne d’en-tête et au moins une ligne de données.', 'warning');
-                return;
-            }
+        return lines.slice(1).map((line, index) => {
+            const values = line
+                .split(separator)
+                .map((value) => value.replace(/^["']|["']$/g, '').trim());
+            const [name = '', rawType = '', brand = ''] = values;
+            const resolvedType = typeByKey.get(rawType.toLowerCase());
 
-            const separator = lines[0].includes(';') ? ';' : ',';
-            const data = lines.slice(1).map((line, idx) => {
-                const vals = line.split(separator).map((v) => v.replace(/^["']|["']$/g, '').trim());
-                const name = vals[0] || '';
-                const category = vals[1] || '';
-                const brand = vals[2] || '';
+            let error: string | undefined;
+            if (!name) error = 'Nom absent';
+            else if (!rawType) error = 'Type absent — la colonne Category est vide';
+            else if (!resolvedType) error = `Type « ${rawType} » inconnu au catalogue`;
+            else if (knownNames.has(name.toLowerCase()))
+                error = `« ${name} » existe déjà au catalogue`;
 
-                let error = '';
-                if (!name) {
-                    error = 'Nom de modèle manquant';
-                } else if (!category) {
-                    error = 'Catégorie de type manquante';
-                } else if (!validCategoryKeys.has(category.toLowerCase())) {
-                    error = `Catégorie « ${category} » non reconnue dans le catalogue`;
-                }
+            if (!error) knownNames.add(name.toLowerCase());
 
-                const row: ParsedModelRow = {
-                    _id: idx + 2, // 1-indexed including header
-                    name,
-                    category,
-                    brand,
-                    _status: error ? 'error' : 'valid',
-                    _error: error,
-                };
-                return row;
-            });
-            setParsedData(data);
-            setPreviewMode(true);
-        };
-        reader.readAsText(uploadedFile);
+            return {
+                line: index + 2,
+                label: name || '(sans nom)',
+                error,
+                value: error ? undefined : { name, type: resolvedType as string, brand },
+            };
+        });
     };
 
-    const stats = useMemo(
-        () => ({
-            valid: parsedData.filter((d) => d._status === 'valid').length,
-            invalid: parsedData.filter((d) => d._status === 'error').length,
-        }),
-        [parsedData]
-    );
-
-    const handleImport = () => {
-        if (!file || stats.valid === 0) return;
-        const validRows = parsedData.filter((d) => d._status === 'valid');
-        validRows.forEach((row) => {
-            if (row.name && row.category) {
-                addModel({
-                    name: row.name,
-                    type: row.category,
-                    brand: row.brand || '',
-                    specs: '',
-                });
-            }
+    const handleImport = (drafts: ModelDraft[]) => {
+        drafts.forEach((draft) => {
+            /* `count: 0` — **un modèle ne compte pas, il décrit** (09.2). L'import
+               précédent l'omettait : la fiche affichait « undefined actifs » jusqu'à
+               ce qu'une unité soit saisie. Et pas d'image : sans elle, la rangée porte
+               l'initiale de la marque. */
+            addModel({
+                name: draft.name,
+                type: draft.type,
+                brand: draft.brand,
+                specs: '',
+                image: '',
+                count: 0,
+            });
         });
-        showToast(`${stats.valid} modèle(s) ajouté(s) au catalogue.`, 'success');
+        showToast(
+            `${drafts.length} modèle${drafts.length > 1 ? 's' : ''} ajouté${drafts.length > 1 ? 's' : ''} au catalogue.`,
+            'success',
+        );
         onSave();
     };
 
-    const reset = () => {
-        setFile(null);
-        setParsedData([]);
-        setPreviewMode(false);
-    };
-
-    const rejectedRows = useMemo(() => parsedData.filter((d) => d._status === 'error'), [parsedData]);
-
     return (
-        <FullScreenFormLayout
+        <ReferentialImportTemplate<ModelDraft>
             title="Importer des modèles"
             onCancel={onCancel}
-            onSave={handleImport}
-            saveLabel={`Écrire les ${stats.valid} modèles`}
-            isSaving={!previewMode || stats.valid === 0}
-        >
-            {!previewMode ? (
-                <div className="flex flex-col gap-4">
-                    {/* Carte 1 : Contrat de colonnes (Planche 09.2) */}
-                    <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
-                        <h3 className="text-body-medium font-semibold text-on-surface mb-2">Colonnes attendues</h3>
-                        <div className="divide-y divide-outline-variant text-body-small">
-                            <div className="flex items-baseline justify-between py-2 first:pt-0 gap-3">
-                                <code className="rounded-xs bg-surface-container px-1.5 py-0.5 font-mono text-[12px] font-semibold text-on-surface">
-                                    name
-                                </code>
-                                <span className="flex-1 text-text-secondary">Nom complet du modèle (ex. Dell Latitude 7420)</span>
-                                <span className="font-medium text-on-surface">Obligatoire</span>
-                            </div>
-                            <div className="flex items-baseline justify-between py-2 gap-3">
-                                <code className="rounded-xs bg-surface-container px-1.5 py-0.5 font-mono text-[12px] font-semibold text-on-surface">
-                                    type
-                                </code>
-                                <span className="flex-1 text-text-secondary">Clé ou nom de la catégorie (ex. Laptop, Monitor)</span>
-                                <span className="font-medium text-on-surface">Obligatoire</span>
-                            </div>
-                            <div className="flex items-baseline justify-between py-2 last:pb-0 gap-3">
-                                <code className="rounded-xs bg-surface-container px-1.5 py-0.5 font-mono text-[12px] font-semibold text-on-surface">
-                                    brand
-                                </code>
-                                <span className="flex-1 text-text-secondary">Marque du constructeur (ex. Dell, Apple)</span>
-                                <span className="text-text-secondary">Facultatif</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Carte 2 : Zone de dépôt */}
-                    <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
-                        <FileDropzone
-                            onFileSelect={processFile}
-                            accept=".csv"
-                            label="Glisser un fichier CSV"
-                            subLabel="Séparateur virgule ou point-virgule, encodage UTF-8"
-                            className="p-8"
-                        />
-                    </section>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-4">
-                    {/* Carte 1 : Fichier lu et totaux */}
-                    <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface">
-                                <Icon glyph={FileCsv} size={24} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <b className="block truncate text-body-medium font-semibold text-on-surface">
-                                    {file?.name}
-                                </b>
-                                <span className="text-body-small text-text-secondary">
-                                    {parsedData.length} ligne{parsedData.length > 1 ? 's' : ''} analysée{parsedData.length > 1 ? 's' : ''}
-                                </span>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={reset}>
-                                Changer de fichier
-                            </Button>
-                        </div>
-
-                        <div className="mt-3 flex gap-3">
-                            <div className="flex-1 rounded-md bg-surface-container p-3">
-                                <b className="block font-brand text-[24px] font-semibold tracking-[-0.01em] tabular-nums text-[var(--tk-color-st-vert)]">
-                                    {stats.valid}
-                                </b>
-                                <span className="text-body-small text-text-secondary">
-                                    modèle{stats.valid > 1 ? 's' : ''} prêt{stats.valid > 1 ? 's' : ''} à entrer
-                                </span>
-                            </div>
-                            {stats.invalid > 0 && (
-                                <div className="flex-1 rounded-md bg-surface-container p-3">
-                                    <b className="block font-brand text-[24px] font-semibold tracking-[-0.01em] tabular-nums text-error">
-                                        {stats.invalid}
-                                    </b>
-                                    <span className="text-body-small text-text-secondary">
-                                        ligne{stats.invalid > 1 ? 's' : ''} refusée{stats.invalid > 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Carte 2 : Lignes refusées explicitées */}
-                    {rejectedRows.length > 0 && (
-                        <section className="rounded-lg bg-surface p-4 shadow-elevation-1">
-                            <h3 className="text-body-medium font-semibold text-error mb-2">
-                                Lignes non conformes (ne seront pas importées)
-                            </h3>
-                            <div className="divide-y divide-outline-variant text-body-small">
-                                {rejectedRows.map((row) => (
-                                    <div key={row._id} className="flex items-start gap-3 py-2">
-                                        <span className="font-mono text-text-secondary shrink-0">Ligne {row._id}</span>
-                                        <div className="min-w-0 flex-1">
-                                            <b className="text-on-surface">{row.name || 'Nom vide'}</b>
-                                            <span className="block text-error text-[12px]">{row._error}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
-                </div>
-            )}
-        </FullScreenFormLayout>
+            columns={COLUMNS}
+            sample={SAMPLE}
+            noun={{ one: 'modèle', many: 'modèles' }}
+            parse={parse}
+            onImport={handleImport}
+        />
     );
 };
 
 export default ImportModelsPage;
-

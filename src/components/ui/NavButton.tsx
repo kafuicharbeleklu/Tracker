@@ -36,7 +36,7 @@ const NAV_BASE = cn(
     'touch-target select-none whitespace-nowrap font-medium',
     'outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
     'active:scale-[0.98]',
-    'disabled:cursor-not-allowed disabled:pointer-events-none disabled:text-on-surface/[0.38]'
+    'disabled:cursor-not-allowed disabled:pointer-events-none disabled:text-on-surface/[0.38]',
 );
 
 /** Anneau de focus : `primary` sur les surfaces sombres, token `focus-ring` sinon. */
@@ -51,17 +51,17 @@ const SURFACE_STYLES: Record<NavSurface, string> = {
         'relative inline-flex flex-col items-center justify-center rounded-lg',
         'flex-1 h-full min-w-[64px] gap-1',
         'text-label-large bg-transparent hover:text-on-surface',
-        'transition-all duration-short4 ease-emphasized'
+        'transition-all duration-short4 ease-emphasized',
     ),
     rail: cn(
         'inline-flex flex-col items-center justify-center rounded-lg',
         'text-label-medium bg-transparent',
-        'transition-all duration-short4 ease-emphasized'
+        'transition-all duration-short4 ease-emphasized',
     ),
     drawer: cn(
         'relative flex items-center overflow-hidden rounded-lg cursor-pointer',
         'text-label-medium',
-        'transition-all duration-medium2 ease-emphasized'
+        'transition-all duration-medium2 ease-emphasized',
     ),
 };
 
@@ -99,7 +99,8 @@ const STATE_STYLES: Record<NavSurface, { active: string; inactive: string }> = {
     },
     drawer: {
         active: 'bg-primary text-on-primary ring-0 shadow-sm hover:bg-primary-hover',
-        inactive: 'bg-transparent text-on-nav-surface-variant hover:bg-white/5 hover:text-on-nav-surface',
+        inactive:
+            'bg-transparent text-on-nav-surface-variant hover:bg-white/5 hover:text-on-nav-surface',
     },
 };
 
@@ -114,13 +115,13 @@ const NavButton = React.forwardRef<HTMLButtonElement, NavButtonProps>(
                 SURFACE_STYLES[surface],
                 dense ? DENSITY_STYLES[surface].dense : DENSITY_STYLES[surface].regular,
                 active ? STATE_STYLES[surface].active : STATE_STYLES[surface].inactive,
-                className
+                className,
             )}
             {...props}
         >
             {children}
         </button>
-    )
+    ),
 );
 
 NavButton.displayName = 'NavButton';

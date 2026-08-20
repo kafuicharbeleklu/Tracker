@@ -115,9 +115,16 @@ interface InventoryPageProps {
     onEquipmentClick?: (id: string) => void;
     onUserClick?: (id: string) => void;
     initialStatus?: string | null;
+    /** Le site reçu d'un autre écran — la fiche d'un site renvoie ici, filtrée (10.1, C2). */
+    initialSite?: string | null;
 }
 
-const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipmentClick, initialStatus }) => {
+const InventoryPage: React.FC<InventoryPageProps> = ({
+    onViewChange,
+    onEquipmentClick,
+    initialStatus,
+    initialSite,
+}) => {
     const { equipment, users, deleteEquipment } = useData();
     const { currentUser } = useAuth();
     const { filterEquipment, permissions } = useAccessControl();
@@ -128,23 +135,27 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
 
     const accessibleEquipment = useMemo(
         () => filterEquipment(equipment, users),
-        [equipment, users, filterEquipment]
+        [equipment, users, filterEquipment],
     );
 
     // Équipements de l'utilisateur connecté (pour la vue « Mes équipements »)
     const userEquipment = useMemo(() => {
         if (!currentUser) return [];
         return accessibleEquipment.filter(
-            (item) => item.user?.id === currentUser.id || item.user?.name === currentUser.name
+            (item) => item.user?.id === currentUser.id || item.user?.name === currentUser.name,
         );
     }, [accessibleEquipment, currentUser]);
 
-    const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '');
+    const [searchQuery, setSearchQuery] = useState(
+        () => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '',
+    );
     const [statusFilter, setStatusFilter] = useState(
-        () => initialStatus || sessionStorage.getItem(STORAGE_KEY_STATUS) || ''
+        () => initialStatus || sessionStorage.getItem(STORAGE_KEY_STATUS) || '',
     );
     /** Vrai tant qu'on n'a pas quitté le filtre reçu d'un autre écran. */
-    const [arrivedFiltered, setArrivedFiltered] = useState(() => Boolean(initialStatus));
+    const [arrivedFiltered, setArrivedFiltered] = useState(() =>
+        Boolean(initialStatus || initialSite),
+    );
     const [isScanning, setIsScanning] = useState(false);
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
@@ -156,7 +167,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
     // Filtres de la feuille montante
     const [familyFilter, setFamilyFilter] = useState<string>('Toutes');
     const [typeFilter, setTypeFilter] = useState<string>('');
-    const [locationFilter, setLocationFilter] = useState<string>('Tous');
+    const [locationFilter, setLocationFilter] = useState<string>(() => initialSite || 'Tous');
     const [periodFilter, setPeriodFilter] = useState<string>('Toute période');
 
     const availableLocations = useMemo(() => {
@@ -175,9 +186,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             new Set(
                 accessibleEquipment
                     .filter((item) => familyTypes.includes(item.type))
-                    .map((item) => item.type)
-            )
-        ).sort((left, right) => getCategoryLabel(left).localeCompare(getCategoryLabel(right), 'fr'));
+                    .map((item) => item.type),
+            ),
+        ).sort((left, right) =>
+            getCategoryLabel(left).localeCompare(getCategoryLabel(right), 'fr'),
+        );
     }, [accessibleEquipment, familyFilter]);
 
     const activeSheetFiltersCount = useMemo(() => {
@@ -242,7 +255,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 const itemDate = new Date(item.financial?.purchaseDate || item.updatedAt).getTime();
                 matchesPeriod = itemDate >= thirtyDaysAgo;
             } else if (periodFilter === 'Cette année') {
-                const itemYear = new Date(item.financial?.purchaseDate || item.updatedAt).getFullYear();
+                const itemYear = new Date(
+                    item.financial?.purchaseDate || item.updatedAt,
+                ).getFullYear();
                 matchesPeriod = itemYear === currentYear;
             }
 
@@ -262,7 +277,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         }
         if (activeSort === 'type') {
             return [...list].sort((a, b) =>
-                getCategoryLabel(a.type).localeCompare(getCategoryLabel(b.type), 'fr')
+                getCategoryLabel(a.type).localeCompare(getCategoryLabel(b.type), 'fr'),
             );
         }
         if (activeSort === 'status') {
@@ -272,7 +287,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             return [...list].sort(
                 (a, b) =>
                     new Date(a.financial?.purchaseDate || a.updatedAt).getTime() -
-                    new Date(b.financial?.purchaseDate || b.updatedAt).getTime()
+                    new Date(b.financial?.purchaseDate || b.updatedAt).getTime(),
             );
         }
         // Par défaut / 'recent' : ordre naturel (ajout récent)
@@ -296,7 +311,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
 
     const visibleEquipment = useMemo(
         () => filteredEquipment.slice(0, visibleCount),
-        [filteredEquipment, visibleCount]
+        [filteredEquipment, visibleCount],
     );
 
     /**
@@ -331,12 +346,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
     const displayedFacets = useMemo(() => {
         if (!arrivedFiltered || !statusFilter) return facets;
         const activeFacet = facets.find((facet) => facet.id === statusFilter);
-        return activeFacet ? [activeFacet, ...facets.filter((facet) => facet.id !== statusFilter)] : facets;
+        return activeFacet
+            ? [activeFacet, ...facets.filter((facet) => facet.id !== statusFilter)]
+            : facets;
     }, [arrivedFiltered, facets, statusFilter]);
 
     const selectedEquipment = useMemo(
         () => filteredEquipment.filter((item) => selection.isSelected(item.id)),
-        [filteredEquipment, selection]
+        [filteredEquipment, selection],
     );
 
     const handleExport = (itemsToExport = filteredEquipment) => {
@@ -346,8 +363,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         }
 
         const headers = [
-            'Nom', 'Asset ID', 'Type', 'Modele', 'Statut', 'Utilisateur', 'Email utilisateur',
-            'Site', 'Pays', 'Date achat', 'Prix achat', 'Fin de garantie', 'Numero de serie', 'Hostname',
+            'Nom',
+            'Asset ID',
+            'Type',
+            'Modele',
+            'Statut',
+            'Utilisateur',
+            'Email utilisateur',
+            'Site',
+            'Pays',
+            'Date achat',
+            'Prix achat',
+            'Fin de garantie',
+            'Numero de serie',
+            'Hostname',
         ];
 
         const rows = itemsToExport.map((item) => [
@@ -367,7 +396,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             item.hostname || '',
         ]);
 
-        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join('\n');
+        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join(
+            '\n',
+        );
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const fileDate = new Date().toISOString().slice(0, 10);
         const link = document.createElement('a');
@@ -395,9 +426,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
             message: (
                 <>
                     Ils quittent l’inventaire et les rapports.{' '}
-                    <strong className="font-medium text-on-surface">Leur historique est conservé</strong> et
-                    reste consultable depuis le journal d’audit. Les équipements en cours d’attribution sont
-                    ignorés.
+                    <strong className="text-on-surface font-medium">
+                        Leur historique est conservé
+                    </strong>{' '}
+                    et reste consultable depuis le journal d’audit. Les équipements en cours
+                    d’attribution sont ignorés.
                 </>
             ),
             tone: 'destructive',
@@ -422,10 +455,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 if (deleted > 0) showToast(`${deleted} équipement(s) sorti(s) du parc.`, 'success');
                 if (seeded > 0) showToast(DEMO_RESEED_NOTICE, 'info');
                 if (blocked > 0) {
-                    showToast(
-                        `${blocked} équipement(s) au statut non compatible.`,
-                        'warning'
-                    );
+                    showToast(`${blocked} équipement(s) au statut non compatible.`, 'warning');
                 }
             },
         });
@@ -433,6 +463,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
 
     const clearArrivalFilter = () => {
         setStatusFilter('');
+        setLocationFilter('Tous');
         setArrivedFiltered(false);
         setSortIndex(DEFAULT_SORT_INDEX);
     };
@@ -450,19 +481,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
         handleClearAllSheetFilters();
     };
 
-
     const isFiltered = Boolean(
         statusFilter ||
         debouncedSearch ||
         familyFilter !== 'Toutes' ||
         typeFilter ||
         locationFilter !== 'Tous' ||
-        periodFilter !== 'Toute période'
+        periodFilter !== 'Toute période',
     );
 
     const hasPendingConfirmation = useMemo(
         () => userEquipment.some((item) => item.assignmentStatus === 'PENDING_CONFIRMATION'),
-        [userEquipment]
+        [userEquipment],
     );
 
     return (
@@ -479,7 +509,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 setIsScanning(true);
                                 setScanHit(null);
                             }}
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                            className="text-on-surface hover:bg-surface-container flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
                         >
                             <Icon glyph={Scan} size={24} />
                         </button>
@@ -500,11 +530,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                             type="button"
                             onClick={() => setIsFilterSheetOpen(true)}
                             aria-label="Filtrer"
-                            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-outline text-on-surface hover:bg-surface-container transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                            className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
                         >
                             <Icon glyph={Funnel} size={20} />
                             {activeSheetFiltersCount > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
+                                <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
                                     {activeSheetFiltersCount}
                                 </span>
                             )}
@@ -527,12 +557,17 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         : undefined
                 }
                 origin={
-                    arrivedFiltered && statusFilter
+                    /* **Une arrivée pré-filtrée se dit** (04.1) : le jeton, la provenance
+                       en toutes lettres, et une sortie qui **nomme sa destination**. La
+                       fiche d'un site renvoie ici filtrée sur lui — sans ce bandeau, on
+                       arriverait sur huit rangées là où le parc en compte quatorze, sans
+                       savoir pourquoi. */
+                    arrivedFiltered && initialSite && locationFilter !== 'Tous'
                         ? {
-                              token: getStatusLabel(statusFilter),
+                              token: locationFilter,
                               from: (
                                   <span>
-                                      Depuis <b>le tableau de bord</b> · carte « {getStatusLabel(statusFilter)} »
+                                      Depuis <b>{locationFilter}</b> · fiche du site
                                   </span>
                               ),
                               clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
@@ -540,12 +575,28 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                               displayToken: false,
                               clearPresentation: 'more',
                           }
-                        : undefined
+                        : arrivedFiltered && statusFilter
+                          ? {
+                                token: getStatusLabel(statusFilter),
+                                from: (
+                                    <span>
+                                        Depuis <b>le tableau de bord</b> · carte «{' '}
+                                        {getStatusLabel(statusFilter)} »
+                                    </span>
+                                ),
+                                clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
+                                onClear: clearArrivalFilter,
+                                displayToken: false,
+                                clearPresentation: 'more',
+                            }
+                          : undefined
                 }
                 count={
                     isManager
                         ? {
-                              total: statusFilter ? filteredEquipment.length : accessibleEquipment.length,
+                              total: statusFilter
+                                  ? filteredEquipment.length
+                                  : accessibleEquipment.length,
                               shown: visibleEquipment.length,
                               noun: statusFilter
                                   ? `actifs ${getStatusLabel(statusFilter).toLowerCase()} sur ${accessibleEquipment.length}`
@@ -557,7 +608,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                     isManager
                         ? {
                               label: SORT_OPTIONS[sortIndex].label,
-                              onClick: () => setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length),
+                              onClick: () =>
+                                  setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length),
                           }
                         : undefined
                 }
@@ -566,7 +618,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                     count: selection.count,
                     total: filteredEquipment.length,
                     onExit: selection.exit,
-                    onSelectAll: () => selection.selectAll(filteredEquipment.map((item) => item.id)),
+                    onSelectAll: () =>
+                        selection.selectAll(filteredEquipment.map((item) => item.id)),
                     onClearAll: selection.clear,
                     actions: (
                         <Button variant="filled" onClick={() => handleExport(selectedEquipment)}>
@@ -583,7 +636,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 empty={
                     <ScreenState
                         icon={Package}
-                        title={isFiltered ? 'Aucun équipement ne correspond' : 'Aucun équipement ici'}
+                        title={
+                            isFiltered ? 'Aucun équipement ne correspond' : 'Aucun équipement ici'
+                        }
                         description={
                             isFiltered
                                 ? 'Élargissez la recherche, ou revenez à la totalité du parc.'
@@ -595,7 +650,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                     {`Voir les ${accessibleEquipment.length} équipements`}
                                 </Button>
                             ) : isManager ? (
-                                <Button variant="filled" onClick={() => onViewChange('add_equipment')}>
+                                <Button
+                                    variant="filled"
+                                    onClick={() => onViewChange('add_equipment')}
+                                >
                                     Ajouter un équipement
                                 </Button>
                             ) : undefined
@@ -618,11 +676,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                    jamais dessus — la planche le place à 76 px du bas. */
                 fab={
                     isManager && !selection.isActive ? (
-                        <FabContainer description="Ajouter un équipement" className="bottom-[76px] right-5 compact:bottom-[76px]">
+                        <FabContainer
+                            description="Ajouter un équipement"
+                            className="compact:bottom-[76px] right-5 bottom-[76px]"
+                        >
                             <button
                                 type="button"
                                 aria-label="Ajouter un équipement"
-                                className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-on-primary shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95 cursor-pointer"
+                                className="bg-primary text-on-primary flex h-14 w-14 cursor-pointer items-center justify-center rounded-xl shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95"
                                 onClick={() => setIsAddSheetOpen(true)}
                             >
                                 <Icon glyph={Plus} size={24} />
@@ -660,7 +721,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 key={item.id}
                                 vignette={
                                     item.image ? (
-                                        <img src={item.image} alt="" className="h-full w-full object-cover" />
+                                        <img
+                                            src={item.image}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                        />
                                     ) : (
                                         <Icon glyph={Package} size={20} />
                                     )
@@ -680,7 +745,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         getDisplayedEquipmentStatus({
                             status: item.status,
                             assignmentStatus: item.assignmentStatus,
-                        })
+                        }),
                     );
 
                     const holderText =
@@ -695,7 +760,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                             key={item.id}
                             vignette={
                                 item.image ? (
-                                    <img src={item.image} alt="" className="h-full w-full object-cover" />
+                                    <img
+                                        src={item.image}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <Icon glyph={Package} size={20} />
                                 )
@@ -719,7 +788,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         variant="text"
                         icon={<Icon glyph={CaretDown} size={18} />}
                         onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                        className="w-full justify-center rounded-none border-t border-outline-variant px-0 text-on-surface"
+                        className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
                     >
                         Charger la suite
                     </Button>
@@ -733,7 +802,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                 >
                     <div className="flex flex-col gap-4 px-5 py-3">
                         <div>
-                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Famille</p>
+                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                                Famille
+                            </p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {FAMILIES.map((family) => (
                                     <button
@@ -743,7 +814,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                             setFamilyFilter(family);
                                             setTypeFilter('');
                                         }}
-                                        className={`flex min-h-10 items-center rounded-md px-3 text-body-medium font-medium transition-colors ${
+                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
                                             familyFilter === family
                                                 ? 'bg-inverse-surface text-inverse-on-surface'
                                                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -757,12 +828,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
 
                         {familyFilter !== 'Toutes' && availableTypesForFamily.length > 0 && (
                             <div>
-                                <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Type</p>
+                                <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                                    Type
+                                </p>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setTypeFilter('')}
-                                        className={`flex min-h-10 items-center rounded-md px-3 text-body-medium font-medium transition-colors ${
+                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
                                             !typeFilter
                                                 ? 'bg-inverse-surface text-inverse-on-surface'
                                                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -775,7 +848,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                             key={type}
                                             type="button"
                                             onClick={() => setTypeFilter(type)}
-                                            className={`flex min-h-10 items-center rounded-md px-3 text-body-medium font-medium transition-colors ${
+                                            className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
                                                 typeFilter === type
                                                     ? 'bg-inverse-surface text-inverse-on-surface'
                                                     : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -789,14 +862,16 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         )}
 
                         <div>
-                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Emplacement</p>
+                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                                Emplacement
+                            </p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {availableLocations.map((loc) => (
                                     <button
                                         key={loc}
                                         type="button"
                                         onClick={() => setLocationFilter(loc)}
-                                        className={`flex min-h-10 items-center rounded-md px-3 text-body-medium font-medium transition-colors ${
+                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
                                             locationFilter === loc
                                                 ? 'bg-inverse-surface text-inverse-on-surface'
                                                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -809,14 +884,16 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                         </div>
 
                         <div>
-                            <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Ajouté</p>
+                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                                Ajouté
+                            </p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {PERIODS.map((period) => (
                                     <button
                                         key={period}
                                         type="button"
                                         onClick={() => setPeriodFilter(period)}
-                                        className={`flex min-h-10 items-center rounded-md px-3 text-body-medium font-medium transition-colors ${
+                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
                                             periodFilter === period
                                                 ? 'bg-inverse-surface text-inverse-on-surface'
                                                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -828,13 +905,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                             </div>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-outline-variant pt-3">
+                        <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3">
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer
                             </Button>
                             <Button
                                 variant="tonal"
-                                className="flex-1 bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
+                                className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1"
                                 onClick={() => setIsFilterSheetOpen(false)}
                             >
                                 Voir les {filteredEquipment.length} équipements
@@ -852,59 +929,82 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                     <div className="flex flex-col gap-1 py-2">
                         <button
                             type="button"
-                            className="flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors hover:bg-surface-container"
+                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 setIsScanning(true);
                                 setScanHit(null);
                             }}
                         >
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant">
+                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                                 <Icon glyph={Scan} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-body-large font-medium text-on-surface">Scanner l’étiquette</p>
-                                <p className="text-body-small text-on-surface-variant">le code et le type sont lus sur l’objet</p>
+                                <p className="text-body-large text-on-surface font-medium">
+                                    Scanner l’étiquette
+                                </p>
+                                <p className="text-body-small text-on-surface-variant">
+                                    le code et le type sont lus sur l’objet
+                                </p>
                             </div>
-                            <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
+                            <Icon
+                                glyph={CaretDown}
+                                size={18}
+                                className="text-on-surface-variant -rotate-90"
+                            />
                         </button>
 
                         <button
                             type="button"
-                            className="flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors hover:bg-surface-container"
+                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 onViewChange('add_equipment');
                             }}
                         >
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant">
+                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                                 <Icon glyph={Keyboard} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-body-large font-medium text-on-surface">Saisir la fiche</p>
-                                <p className="text-body-small text-on-surface-variant">type, code, emplacement, numéro de série</p>
+                                <p className="text-body-large text-on-surface font-medium">
+                                    Saisir la fiche
+                                </p>
+                                <p className="text-body-small text-on-surface-variant">
+                                    type, code, emplacement, numéro de série
+                                </p>
                             </div>
-                            <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
+                            <Icon
+                                glyph={CaretDown}
+                                size={18}
+                                className="text-on-surface-variant -rotate-90"
+                            />
                         </button>
 
                         <button
                             type="button"
-                            className="flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors hover:bg-surface-container"
+                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 onViewChange('import_equipment');
                             }}
                         >
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface-variant">
+                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                                 <Icon glyph={Package} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="text-body-large font-medium text-on-surface">Importer une livraison</p>
-                                <p className="text-body-small text-on-surface-variant">plusieurs actifs identiques d’un coup</p>
+                                <p className="text-body-large text-on-surface font-medium">
+                                    Importer une livraison
+                                </p>
+                                <p className="text-body-small text-on-surface-variant">
+                                    plusieurs actifs identiques d’un coup
+                                </p>
                             </div>
-                            <Icon glyph={CaretDown} size={18} className="-rotate-90 text-on-surface-variant" />
+                            <Icon
+                                glyph={CaretDown}
+                                size={18}
+                                className="text-on-surface-variant -rotate-90"
+                            />
                         </button>
-
                     </div>
                 </BottomSheet>
 
@@ -921,7 +1021,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onViewChange, onEquipment
                                 const found = accessibleEquipment.find(
                                     (item) =>
                                         item.assetId.toLowerCase() === hit.code.toLowerCase() ||
-                                        item.serialNumber?.toLowerCase() === hit.code.toLowerCase()
+                                        item.serialNumber?.toLowerCase() === hit.code.toLowerCase(),
                                 );
                                 if (found) {
                                     onEquipmentClick?.(found.id);

@@ -88,7 +88,7 @@ export const useSelection = (): Selection => {
             selectAll,
             clear,
         }),
-        [isActive, selectedIds, isSelected, toggle, enter, exit, selectAll, clear]
+        [isActive, selectedIds, isSelected, toggle, enter, exit, selectAll, clear],
     );
 };
 

@@ -113,34 +113,39 @@ const DetailHero: React.FC<DetailHeroProps> = ({
 }) => (
     <section
         className={cn(
-            'relative isolate overflow-hidden rounded-xl bg-inverse-surface px-4 pb-4 pt-5 text-inverse-on-surface',
-            className
+            'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-4 pt-5 pb-4',
+            className,
         )}
     >
         {image && (
             <>
-                <img src={image} alt="" aria-hidden="true" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+                <img
+                    src={image}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 -z-20 h-full w-full object-cover"
+                />
                 {/* Le voile monte vers le bas : le sujet reste lisible sur n'importe
                     quelle photo, et le bas du héro porte le texte le plus dense. */}
                 <span
                     aria-hidden="true"
-                    className="absolute inset-0 -z-10 bg-gradient-to-b from-inverse-surface/60 via-inverse-surface/80 to-inverse-surface/95"
+                    className="from-inverse-surface/60 via-inverse-surface/80 to-inverse-surface/95 absolute inset-0 -z-10 bg-gradient-to-b"
                 />
             </>
         )}
 
         {avatar ? (
             <div className="flex items-start gap-3.5">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 font-brand text-[20px] font-semibold tracking-tight text-[var(--tk-color-avatar-text)]">
+                <span className="font-brand flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[20px] font-semibold tracking-tight text-[var(--tk-color-avatar-text)]">
                     {avatar}
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                     {label && (
-                        <p className="text-label-small font-medium uppercase tracking-[0.07em] text-on-nav-surface-variant">
+                        <p className="text-label-small text-on-nav-surface-variant font-medium tracking-[0.07em] uppercase">
                             {label}
                         </p>
                     )}
-                    <p className="mt-0.5 font-brand text-[28px] font-semibold leading-8 tracking-[-0.02em] text-inverse-on-surface">
+                    <p className="font-brand text-inverse-on-surface mt-0.5 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                         {subject}
                     </p>
                 </div>
@@ -148,19 +153,23 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         ) : (
             <>
                 {status && (
-                    <span className="inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5 text-body-small">
-                        <Icon glyph={status.icon} size={18} className={status.tone ? STATUS_TONE[status.tone] : undefined} />
+                    <span className="text-body-small inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5">
+                        <Icon
+                            glyph={status.icon}
+                            size={18}
+                            className={status.tone ? STATUS_TONE[status.tone] : undefined}
+                        />
                         {status.label}
                     </span>
                 )}
 
                 {label && (
-                    <p className="mt-3 text-label-small font-medium uppercase tracking-[0.07em] text-on-nav-surface-variant">
+                    <p className="text-label-small text-on-nav-surface-variant mt-3 font-medium tracking-[0.07em] uppercase">
                         {label}
                     </p>
                 )}
 
-                <p className="mt-1 font-brand text-[28px] font-semibold leading-8 tracking-[-0.02em] text-inverse-on-surface">
+                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                     {subject}
                 </p>
             </>
@@ -168,8 +177,12 @@ const DetailHero: React.FC<DetailHeroProps> = ({
 
         {avatar && status && (
             <div className="mt-3.5">
-                <span className="inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5 text-[12px] text-inverse-on-surface">
-                    <Icon glyph={status.icon} size={18} className={status.tone ? STATUS_TONE[status.tone] : undefined} />
+                <span className="text-inverse-on-surface inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5 text-[12px]">
+                    <Icon
+                        glyph={status.icon}
+                        size={18}
+                        className={status.tone ? STATUS_TONE[status.tone] : undefined}
+                    />
                     {status.label}
                 </span>
             </div>
@@ -179,10 +192,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             <div className="mt-3.5 flex gap-[18px] border-t border-white/[0.14] pt-3">
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
-                        <span className="whitespace-nowrap font-brand text-[19px] font-semibold leading-[23px] tracking-[-0.015em] tabular-nums">
+                        <span className="font-brand text-[19px] leading-[23px] font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                             {metric.value}
                         </span>
-                        <span className="mt-0.5 block text-label-small text-on-nav-surface-variant">
+                        <span className="text-label-small text-on-nav-surface-variant mt-0.5 block">
                             {metric.label}
                         </span>
                     </div>
@@ -193,7 +206,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         {facts && facts.length > 0 && (
             <div className="mt-3 flex flex-col gap-[7px] border-t border-white/[0.14] pt-3">
                 {facts.map((fact, index) => (
-                    <p key={index} className="flex items-center gap-2.5 text-body-medium text-on-nav-surface-variant">
+                    <p
+                        key={index}
+                        className="text-body-medium text-on-nav-surface-variant flex items-center gap-2.5"
+                    >
                         <Icon glyph={fact.icon} size={18} className="shrink-0" />
                         <span>{fact.children}</span>
                     </p>
@@ -201,9 +217,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             </div>
         )}
 
-        {relation && (
-            <RelationRow {...relation} />
-        )}
+        {relation && <RelationRow {...relation} />}
 
         {actions && (
             <div className="mt-3.5 flex flex-col gap-2.5 border-t border-white/[0.14] pt-3 [&>*]:w-full">
@@ -212,7 +226,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {note && (
-            <div className="mt-2.5 border-t border-white/[0.14] pt-2.5 text-[12px] leading-[17px] text-on-nav-surface-variant">
+            <div className="text-on-nav-surface-variant mt-2.5 border-t border-white/[0.14] pt-2.5 text-[12px] leading-[17px]">
                 {note}
             </div>
         )}
@@ -227,20 +241,25 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
 }) => {
     const content = (
         <>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-info/25 text-inverse-on-surface">
+            <span className="rounded-vignette bg-info/25 text-inverse-on-surface flex h-10 w-10 shrink-0 items-center justify-center">
                 {vignette}
             </span>
             <span className="min-w-0 flex-1">
-                <span className="block truncate text-body-large font-medium">{title}</span>
+                <span className="text-body-large block truncate font-medium">{title}</span>
                 {detail && (
-                    <span className="mt-px block text-body-small text-on-nav-surface-variant">{detail}</span>
+                    <span className="text-body-small text-on-nav-surface-variant mt-px block">
+                        {detail}
+                    </span>
                 )}
             </span>
-            {onOpen && <Icon glyph={CaretRight} size={20} className="text-on-nav-surface-variant" />}
+            {onOpen && (
+                <Icon glyph={CaretRight} size={20} className="text-on-nav-surface-variant" />
+            )}
         </>
     );
 
-    const shell = 'mt-2 flex min-h-14 w-full items-center gap-3 border-t border-white/[0.14] pt-2 text-left';
+    const shell =
+        'mt-2 flex min-h-14 w-full items-center gap-3 border-t border-white/[0.14] pt-2 text-left';
 
     if (!onOpen) return <div className={shell}>{content}</div>;
 
@@ -248,7 +267,7 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
         <button
             type="button"
             onClick={onOpen}
-            className={cn(shell, 'outline-none focus-visible:ring-2 focus-visible:ring-primary')}
+            className={cn(shell, 'focus-visible:ring-primary outline-none focus-visible:ring-2')}
         >
             {content}
         </button>

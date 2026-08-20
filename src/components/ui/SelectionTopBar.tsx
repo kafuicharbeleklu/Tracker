@@ -45,24 +45,24 @@ const SelectionTopBar: React.FC<SelectionTopBarProps> = ({
     return (
         <div
             className={cn(
-                'flex min-h-[72px] items-center gap-1 border-b border-white/[0.14] bg-inverse-surface px-2 py-1 text-inverse-on-surface',
-                className
+                'bg-inverse-surface text-inverse-on-surface flex min-h-[72px] items-center gap-1 border-b border-white/[0.14] px-2 py-1',
+                className,
             )}
         >
             <button
                 type="button"
                 onClick={onExit}
                 aria-label="Quitter la sélection"
-                className="touch-target flex h-12 w-12 shrink-0 items-center justify-center rounded-md outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-primary"
+                className="touch-target focus-visible:ring-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-md outline-none hover:bg-white/10 focus-visible:ring-2"
             >
                 <Icon glyph={X} />
             </button>
 
             <div className="min-w-0 flex-1 px-1" aria-live="polite">
-                <span className="block font-brand text-[28px] font-semibold leading-[31px] tracking-tight tabular-nums">
+                <span className="font-brand block text-[28px] leading-[31px] font-semibold tracking-tight tabular-nums">
                     {count} {count > 1 ? 'sélectionnés' : 'sélectionné'}
                 </span>
-                <span className="block text-label-small font-normal text-on-nav-surface-variant">
+                <span className="text-label-small text-on-nav-surface-variant block font-normal">
                     sur {total}
                     {toggleAll && (
                         <>
@@ -70,7 +70,7 @@ const SelectionTopBar: React.FC<SelectionTopBarProps> = ({
                             <button
                                 type="button"
                                 onClick={toggleAll}
-                                className="touch-target rounded-xs underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="touch-target focus-visible:ring-primary rounded-xs underline underline-offset-2 outline-none focus-visible:ring-2"
                             >
                                 {toggleAllLabel}
                             </button>

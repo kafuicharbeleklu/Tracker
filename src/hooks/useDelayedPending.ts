@@ -19,7 +19,10 @@ import { useEffect, useState } from 'react';
  */
 export const PENDING_DELAY_MS = 300;
 
-export const useDelayedPending = (pending: boolean, delayMs: number = PENDING_DELAY_MS): boolean => {
+export const useDelayedPending = (
+    pending: boolean,
+    delayMs: number = PENDING_DELAY_MS,
+): boolean => {
     const [elapsed, setElapsed] = useState(false);
 
     useEffect(() => {

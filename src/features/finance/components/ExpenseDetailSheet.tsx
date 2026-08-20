@@ -77,13 +77,16 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
     const [expenseForm, setExpenseForm] = useState(emptyForm);
 
     const expense = useMemo(
-        () => (expenseId ? financeExpenses.find((item) => item.id === expenseId) ?? null : null),
-        [financeExpenses, expenseId]
+        () => (expenseId ? (financeExpenses.find((item) => item.id === expenseId) ?? null) : null),
+        [financeExpenses, expenseId],
     );
 
     const editingExpense = useMemo(
-        () => (editingExpenseId ? financeExpenses.find((item) => item.id === editingExpenseId) ?? null : null),
-        [financeExpenses, editingExpenseId]
+        () =>
+            editingExpenseId
+                ? (financeExpenses.find((item) => item.id === editingExpenseId) ?? null)
+                : null,
+        [financeExpenses, editingExpenseId],
     );
 
     const openExpenseEditor = (target: FinanceExpense) => {
@@ -147,7 +150,9 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
             budgetItems.find(
                 (item) =>
                     item.type === expense.type ||
-                    item.category.toLowerCase().includes(EXPENSE_TYPE_LABELS[expense.type].toLowerCase())
+                    item.category
+                        .toLowerCase()
+                        .includes(EXPENSE_TYPE_LABELS[expense.type].toLowerCase()),
             ) ?? null
         );
     }, [budgetItems, expense]);
@@ -157,9 +162,13 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
             <Modal
                 isOpen={!!editingExpense}
                 onClose={closeExpenseEditor}
-                title={editingExpense ? `Modifier · ${toExpenseDisplayTitle(editingExpense)}` : 'Modifier la dépense'}
+                title={
+                    editingExpense
+                        ? `Modifier · ${toExpenseDisplayTitle(editingExpense)}`
+                        : 'Modifier la dépense'
+                }
                 maxWidth="max-w-2xl"
-                footer={(
+                footer={
                     <>
                         <Button variant="outlined" onClick={closeExpenseEditor}>
                             Annuler
@@ -168,13 +177,15 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                             Enregistrer
                         </Button>
                     </>
-                )}
+                }
             >
-                <div className="grid grid-cols-1 medium:grid-cols-2 gap-4">
+                <div className="medium:grid-cols-2 grid grid-cols-1 gap-4">
                     <InputField
                         label="Fournisseur"
                         value={expenseForm.supplier}
-                        onChange={(event) => handleExpenseFormChange('supplier', event.target.value)}
+                        onChange={(event) =>
+                            handleExpenseFormChange('supplier', event.target.value)
+                        }
                         required
                     />
                     <InputField
@@ -194,7 +205,9 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                     <InputField
                         label="Référence facture"
                         value={expenseForm.invoiceNumber}
-                        onChange={(event) => handleExpenseFormChange('invoiceNumber', event.target.value)}
+                        onChange={(event) =>
+                            handleExpenseFormChange('invoiceNumber', event.target.value)
+                        }
                     />
                     <SelectField
                         name="expense-type-edit"
@@ -215,7 +228,9 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                     <TextArea
                         label="Description"
                         value={expenseForm.description}
-                        onChange={(event) => handleExpenseFormChange('description', event.target.value)}
+                        onChange={(event) =>
+                            handleExpenseFormChange('description', event.target.value)
+                        }
                         rows={4}
                     />
                 </div>
@@ -227,41 +242,48 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                 title={expense ? `Détail · ${expense.supplier}` : 'Détail de la dépense'}
                 width="standard"
                 className="rounded-none"
-                footer={expense ? (
-                    <div className="flex items-center justify-end gap-3 w-full">
-                        <Button variant="outlined" onClick={() => openExpenseEditor(expense)}>
-                            Modifier
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={() => requestExpenseDeletion(expense, () => {
-                                closeExpenseEditor();
-                                onClose();
-                            })}
-                        >
-                            Supprimer
-                        </Button>
-                    </div>
-                ) : undefined}
+                footer={
+                    expense ? (
+                        <div className="flex w-full items-center justify-end gap-3">
+                            <Button variant="outlined" onClick={() => openExpenseEditor(expense)}>
+                                Modifier
+                            </Button>
+                            <Button
+                                variant="danger"
+                                onClick={() =>
+                                    requestExpenseDeletion(expense, () => {
+                                        closeExpenseEditor();
+                                        onClose();
+                                    })
+                                }
+                            >
+                                Supprimer
+                            </Button>
+                        </div>
+                    ) : undefined
+                }
             >
                 {expense && (
                     <div className="space-y-4">
                         {/* CARTE 1 : FICHIER SOURCE LU (PLANCHE 15.1 .fread) */}
-                        <div className="bg-surface rounded-lg p-4 border border-outline-variant shadow-elevation-1">
-                            <div className="flex items-center gap-3 min-h-[48px]">
-                                <div className="w-10 h-10 rounded-[6px] bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+                        <div className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                            <div className="flex min-h-[48px] items-center gap-3">
+                                <div className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px]">
                                     <Icon glyph={Receipt} size={20} />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <b className="block text-[14px] font-medium text-on-surface truncate">
-                                        {expense.sourceFileName || `facture-${expense.supplier.toLowerCase().replace(/\s+/g, '-')}.pdf`}
+                                <div className="min-w-0 flex-1">
+                                    <b className="text-on-surface block truncate text-[14px] font-medium">
+                                        {expense.sourceFileName ||
+                                            `facture-${expense.supplier.toLowerCase().replace(/\s+/g, '-')}.pdf`}
                                     </b>
-                                    <span className="block text-[12px] text-on-surface-variant">
+                                    <span className="text-on-surface-variant block text-[12px]">
                                         lue le {formatExpenseDate(expense.date)}
                                     </span>
                                 </div>
-                                {(expense.sourceFileName || expense.sourceFileId || expense.sourceFileUrl) && (
-                                    <div className="flex items-center gap-1.5 shrink-0">
+                                {(expense.sourceFileName ||
+                                    expense.sourceFileId ||
+                                    expense.sourceFileUrl) && (
+                                    <div className="flex shrink-0 items-center gap-1.5">
                                         <Button
                                             variant="text"
                                             size="sm"
@@ -288,42 +310,75 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                         </div>
 
                         {/* CARTE 2 : CE QUE LA MACHINE A LU (PLANCHE 15.1 .xrow) */}
-                        <div className="bg-surface rounded-lg p-4 border border-outline-variant shadow-elevation-1">
-                            <div className="flex items-baseline justify-between gap-3 mb-2">
-                                <h3 className="text-[13px] font-medium text-on-surface">Ce que la machine a lu</h3>
+                        <div className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                            <div className="mb-2 flex items-baseline justify-between gap-3">
+                                <h3 className="text-on-surface text-[13px] font-medium">
+                                    Ce que la machine a lu
+                                </h3>
                                 {expense.extractionConfidence && (
-                                    <span className="text-[11px] font-medium tracking-wide text-on-surface-variant">
-                                        Confiance {expense.extractionConfidence === 'high' ? 'élevée' : expense.extractionConfidence === 'medium' ? 'moyenne' : 'faible'}
+                                    <span className="text-on-surface-variant text-[11px] font-medium tracking-wide">
+                                        Confiance{' '}
+                                        {expense.extractionConfidence === 'high'
+                                            ? 'élevée'
+                                            : expense.extractionConfidence === 'medium'
+                                              ? 'moyenne'
+                                              : 'faible'}
                                     </span>
                                 )}
                             </div>
-                            <div className="divide-y divide-outline-variant">
+                            <div className="divide-outline-variant divide-y">
                                 <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">Fournisseur</span>
-                                    <span className="flex-1 font-medium text-on-surface truncate">{expense.supplier}</span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">Montant</span>
-                                    <span className="flex-1 font-medium text-on-surface tabular-nums">
-                                        {formatExpenseAmount(expense.amount, expense.currencyCode || settings.currency)}
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        Fournisseur
+                                    </span>
+                                    <span className="text-on-surface flex-1 truncate font-medium">
+                                        {expense.supplier}
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">Date</span>
-                                    <span className="flex-1 font-medium text-on-surface">{formatExpenseDate(expense.date)}</span>
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        Montant
+                                    </span>
+                                    <span className="text-on-surface flex-1 font-medium tabular-nums">
+                                        {formatExpenseAmount(
+                                            expense.amount,
+                                            expense.currencyCode || settings.currency,
+                                        )}
+                                    </span>
                                 </div>
                                 <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">N° de facture</span>
-                                    <span className={cn("flex-1 font-medium tabular-nums", !expense.invoiceNumber && "text-text-muted font-normal")}>
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        Date
+                                    </span>
+                                    <span className="text-on-surface flex-1 font-medium">
+                                        {formatExpenseDate(expense.date)}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        N° de facture
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'flex-1 font-medium tabular-nums',
+                                            !expense.invoiceNumber && 'text-text-muted font-normal',
+                                        )}
+                                    >
                                         {expense.invoiceNumber || 'non renseigné'}
                                     </span>
                                 </div>
                                 <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">Type</span>
-                                    <span className="flex-1 font-medium text-on-surface">{EXPENSE_TYPE_LABELS[expense.type]}</span>
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        Type
+                                    </span>
+                                    <span className="text-on-surface flex-1 font-medium">
+                                        {EXPENSE_TYPE_LABELS[expense.type]}
+                                    </span>
                                 </div>
                                 <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                    <span className="w-[106px] shrink-0 text-on-surface-variant">Statut</span>
+                                    <span className="text-on-surface-variant w-[106px] shrink-0">
+                                        Statut
+                                    </span>
                                     <div className="flex-1">
                                         <Badge variant={getExpenseStatusVariant(expense.status)}>
                                             {getExpenseStatusLabel(expense.status)}
@@ -332,29 +387,55 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                 </div>
                                 {expense.description && (
                                     <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                        <span className="w-[106px] shrink-0 text-on-surface-variant">Description</span>
-                                        <span className="flex-1 font-normal text-on-surface">{expense.description}</span>
+                                        <span className="text-on-surface-variant w-[106px] shrink-0">
+                                            Description
+                                        </span>
+                                        <span className="text-on-surface flex-1 font-normal">
+                                            {expense.description}
+                                        </span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* IMPUTATION BUDGETAIRE (PLANCHE 15.1 .warn) */}
-                        {matchingBudgetItem && (() => {
-                            const itemSpentPct = matchingBudgetItem.allocated > 0
-                                ? (matchingBudgetItem.spent / matchingBudgetItem.allocated) * 100
-                                : 0;
-                            const remaining = matchingBudgetItem.allocated - matchingBudgetItem.spent;
+                        {matchingBudgetItem &&
+                            (() => {
+                                const itemSpentPct =
+                                    matchingBudgetItem.allocated > 0
+                                        ? (matchingBudgetItem.spent /
+                                              matchingBudgetItem.allocated) *
+                                          100
+                                        : 0;
+                                const remaining =
+                                    matchingBudgetItem.allocated - matchingBudgetItem.spent;
 
-                            return (
-                                <div className="flex gap-2.5 p-[11px_12px] bg-surface-container rounded-md text-[12px] leading-[17px] text-on-surface-variant border border-outline-variant">
-                                    <Icon glyph={Warning} size={18} className="text-on-surface-variant shrink-0 mt-[1px]" />
-                                    <span>
-                                        <b className="font-medium text-on-surface">Cette dépense s'impute sur «&nbsp;{matchingBudgetItem.category}&nbsp;»</b>, qui est consommé à {itemSpentPct.toFixed(0)} %. Il reste <b className="font-medium text-on-surface">{formatCurrency(remaining, settings.currency, settings.compactNotation)}</b> sur le poste.
-                                    </span>
-                                </div>
-                            );
-                        })()}
+                                return (
+                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[12px] leading-[17px]">
+                                        <Icon
+                                            glyph={Warning}
+                                            size={18}
+                                            className="text-on-surface-variant mt-[1px] shrink-0"
+                                        />
+                                        <span>
+                                            <b className="text-on-surface font-medium">
+                                                Cette dépense s'impute sur «&nbsp;
+                                                {matchingBudgetItem.category}&nbsp;»
+                                            </b>
+                                            , qui est consommé à {itemSpentPct.toFixed(0)} %. Il
+                                            reste{' '}
+                                            <b className="text-on-surface font-medium">
+                                                {formatCurrency(
+                                                    remaining,
+                                                    settings.currency,
+                                                    settings.compactNotation,
+                                                )}
+                                            </b>{' '}
+                                            sur le poste.
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                     </div>
                 )}
             </SideSheet>

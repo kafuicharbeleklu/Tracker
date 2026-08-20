@@ -18,7 +18,7 @@
 const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '1234').toString();
 
 export function validateAdminPIN(pin: string): boolean {
-  return pin === ADMIN_PIN;
+    return pin === ADMIN_PIN;
 }
 
 /** Issue du facteur d'authentification (le PIN lui-même). */
@@ -32,22 +32,21 @@ export type SecurityActionOutcome = 'EXECUTED' | 'DENIED' | 'NOT_RUN';
  * un PIN valide suivi d'un refus métier donne SUCCESS + DENIED, pas un faux « SUCCESS ».
  */
 export function logSecurityAction(
-  action: string,
-  userId: string,
-  entityId: string,
-  validationMethod: 'PIN' | 'PIN_SIGNATURE',
-  factorOutcome: SecurityFactorOutcome,
-  actionOutcome: SecurityActionOutcome
+    action: string,
+    userId: string,
+    entityId: string,
+    validationMethod: 'PIN' | 'PIN_SIGNATURE',
+    factorOutcome: SecurityFactorOutcome,
+    actionOutcome: SecurityActionOutcome,
 ): void {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[SECURITY AUDIT][${timestamp}] User: ${userId} | Action: ${action} | Entity: ${entityId} | Method: ${validationMethod} | Factor: ${factorOutcome} | Outcome: ${actionOutcome}`;
+    const timestamp = new Date().toISOString();
+    const logMessage = `[SECURITY AUDIT][${timestamp}] User: ${userId} | Action: ${action} | Entity: ${entityId} | Method: ${validationMethod} | Factor: ${factorOutcome} | Outcome: ${actionOutcome}`;
 
-  if (factorOutcome === 'FAILED' || factorOutcome === 'BLOCKED' || actionOutcome === 'DENIED') {
-    console.warn(logMessage);
-  } else {
-    console.log(logMessage);
-  }
+    if (factorOutcome === 'FAILED' || factorOutcome === 'BLOCKED' || actionOutcome === 'DENIED') {
+        console.warn(logMessage);
+    } else {
+        console.log(logMessage);
+    }
 
-  // En production : appel API vers la table d'audit
+    // En production : appel API vers la table d'audit
 }
-

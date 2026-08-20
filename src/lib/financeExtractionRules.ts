@@ -29,7 +29,17 @@ export const CURRENCY_PATTERNS: Array<{ code: string; regex: RegExp }> = [
 ];
 
 export const EXPENSE_TYPE_KEYWORDS: Record<FinanceExpenseType, string[]> = {
-    Purchase: ['laptop', 'ordinateur', 'pc', 'monitor', 'materiel', 'hardware', 'equipment', 'device', 'serveur'],
+    Purchase: [
+        'laptop',
+        'ordinateur',
+        'pc',
+        'monitor',
+        'materiel',
+        'hardware',
+        'equipment',
+        'device',
+        'serveur',
+    ],
     License: ['license', 'licence', 'subscription', 'abonnement', 'saas', 'microsoft 365', 'adobe'],
     Maintenance: ['maintenance', 'support', 'warranty', 'garantie', 'repair', 'reparation'],
     Service: ['service', 'consulting', 'audit', 'installation', 'telecom', 'internet', 'fibre'],

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
@@ -7,6 +7,7 @@ import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
 import { TextArea } from '../../../components/ui/TextArea';
+import { getCategoryLabel } from '../../../constants/glossary';
 import { Model } from '../../../types';
 
 interface AddModelPageProps {
@@ -21,16 +22,32 @@ interface AddModelPageProps {
     initialType?: string;
 }
 
-const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdit, initialType }) => {
+const AddModelPage: React.FC<AddModelPageProps> = ({
+    isOpen,
+    onClose,
+    modelToEdit,
+    initialType,
+}) => {
     const { showToast } = useToast();
     const { addModel, updateModel, categories } = useData();
+
+    const typeOptions = useMemo(
+        () =>
+            categories
+                .map((category) => ({
+                    value: category.name,
+                    label: getCategoryLabel(category.name),
+                }))
+                .sort((a, b) => a.label.localeCompare(b.label, 'fr')),
+        [categories],
+    );
 
     const [formData, setFormData] = useState({
         name: '',
         brand: '',
         category: '',
         specs: '',
-        image: ''
+        image: '',
     });
 
     useEffect(() => {
@@ -41,10 +58,16 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                     brand: modelToEdit.brand || '',
                     category: modelToEdit.type,
                     specs: modelToEdit.specs || '',
-                    image: modelToEdit.image || ''
+                    image: modelToEdit.image || '',
                 });
             } else {
-                setFormData({ name: '', brand: '', category: initialType || '', specs: '', image: '' });
+                setFormData({
+                    name: '',
+                    brand: '',
+                    category: initialType || '',
+                    specs: '',
+                    image: '',
+                });
             }
         }
     }, [isOpen, modelToEdit, initialType]);
@@ -60,8 +83,15 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
             type: formData.category,
             brand: formData.brand,
             specs: formData.specs,
-            image: formData.image || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop', // Fallback image
-            count: modelToEdit ? modelToEdit.count : 0
+            /* **Pas de photo de repli.** Le formulaire posait d'office une photo
+               d'ordinateur Dell sur tout modèle créé — un modèle de mobilier ou une
+               imprimante la portaient aussi. C'est le défaut que 09.2 relève sur les
+               spécifications inventées, en plus visible : la photo est justement ce qui
+               distingue un modèle de son voisin de même marque. Sans photo, la rangée
+               porte **l'initiale de la marque** — jamais un cadre vide, jamais la photo
+               d'un autre objet. */
+            image: formData.image.trim(),
+            count: modelToEdit ? modelToEdit.count : 0,
         };
 
         if (modelToEdit) {
@@ -76,8 +106,14 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
 
     const footer = (
         <>
-            <Button variant="outlined" onClick={onClose}>Annuler</Button>
-            <Button variant="filled" icon={<MaterialIcon name="save" size={18} />} onClick={handleSave}>
+            <Button variant="outlined" onClick={onClose}>
+                Annuler
+            </Button>
+            <Button
+                variant="filled"
+                icon={<MaterialIcon name="save" size={18} />}
+                onClick={handleSave}
+            >
                 {modelToEdit ? 'Enregistrer les modifications' : 'Créer le modèle'}
             </Button>
         </>
@@ -87,7 +123,7 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={modelToEdit ? "Modifier le modèle" : "Nouveau modèle"}
+            title={modelToEdit ? 'Modifier le modèle' : 'Nouveau modèle'}
             footer={footer}
         >
             <div className="space-y-5">
@@ -100,7 +136,7 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                     required
                 />
 
-                <div className="grid grid-cols-1 expanded:grid-cols-2 gap-5">
+                <div className="expanded:grid-cols-2 grid grid-cols-1 gap-5">
                     <InputField
                         label="Marque"
                         name="brand"
@@ -108,10 +144,16 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                         onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                         placeholder="Ex: Dell"
                     />
+                    {/* B1 — *« La donnée garde sa clé anglaise, le français est un libellé.
+                        Aucun écran ne traduit ; celui-ci montre la clé […] c'est le seul
+                        écran qui en a besoin »* : le seul, c'est le référentiel. Ce
+                        sélecteur proposait « Laptop », « Furniture », « Server » — la clé
+                        technique en guise de choix. La valeur reste la clé, l'étiquette
+                        passe au libellé. */}
                     <SelectField
                         label="Catégorie"
                         name="category"
-                        options={categories.map(c => ({ value: c.name, label: c.name }))}
+                        options={typeOptions}
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         required
@@ -127,16 +169,22 @@ const AddModelPage: React.FC<AddModelPageProps> = ({ isOpen, onClose, modelToEdi
                     rows={3}
                 />
 
-                <div>
-                    <label className="block text-label-medium font-bold text-on-surface-variant mb-3 ml-1">Image du modèle</label>
-                    <div className="border-2 border-dashed border-outline-variant rounded-card p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low transition-all group">
-                        <div className="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mb-3 text-on-surface-variant group-hover:text-primary transition-colors">
-                            <MaterialIcon name="cloud_upload" size={24} />
-                        </div>
-                        {/* Règle X12 : libellé sombre, pas de jaune en texte sur fond clair */}
-                        <p className="text-title-small font-medium text-on-surface">Télécharger l'image</p>
-                    </div>
-                </div>
+                {/* La zone « Télécharger l'image » n'avait ni `input`, ni `onClick`, ni
+                    gestionnaire : elle prenait le curseur en main, l'état de survol, et ne
+                    faisait rien — d'où la photo posée d'office à l'enregistrement. Le
+                    modèle porte une **adresse** d'image dans la donnée : le champ la
+                    demande, ce qui marche aujourd'hui sans réserve de fichiers. Un vrai
+                    dépôt suppose un magasin comme celui des factures de dépense
+                    (`financeFileStorage`) ; il n'est pas simulé en attendant. */}
+                <InputField
+                    label="Image du modèle"
+                    name="image"
+                    type="url"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    placeholder="https://…"
+                    supportingText="Facultatif. Sans image, la rangée porte l'initiale de la marque — jamais un cadre vide."
+                />
             </div>
         </Modal>
     );

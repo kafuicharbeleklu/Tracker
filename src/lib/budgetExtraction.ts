@@ -84,11 +84,16 @@ const findBestHeaderRow = (matrix: string[][]): number => {
         const nonEmptyCount = normalized.filter(Boolean).length;
         if (nonEmptyCount < 2) continue;
 
-        const hasCategory = normalized.some((cell) => /categorie|category|poste|rubrique|designation/.test(cell));
-        const hasAmount = normalized.some((cell) => /total|montant|amount|budget|allocated|alloue|valeur|cout|prix/.test(cell));
+        const hasCategory = normalized.some((cell) =>
+            /categorie|category|poste|rubrique|designation/.test(cell),
+        );
+        const hasAmount = normalized.some((cell) =>
+            /total|montant|amount|budget|allocated|alloue|valeur|cout|prix/.test(cell),
+        );
         const hasYear = normalized.some((cell) => /annee|year|exercice/.test(cell));
 
-        const score = (hasCategory ? 3 : 0) + (hasAmount ? 3 : 0) + (hasYear ? 1 : 0) + nonEmptyCount * 0.1;
+        const score =
+            (hasCategory ? 3 : 0) + (hasAmount ? 3 : 0) + (hasYear ? 1 : 0) + nonEmptyCount * 0.1;
         if (score > bestScore) {
             bestScore = score;
             bestIndex = rowIndex;
@@ -98,7 +103,12 @@ const findBestHeaderRow = (matrix: string[][]): number => {
     return bestIndex;
 };
 
-const findBestAmountColumn = (matrix: string[][], startRow: number, categoryIndex: number, hintedIndex: number): number => {
+const findBestAmountColumn = (
+    matrix: string[][],
+    startRow: number,
+    categoryIndex: number,
+    hintedIndex: number,
+): number => {
     if (hintedIndex >= 0) return hintedIndex;
 
     const maxColumns = matrix.reduce((max, row) => Math.max(max, row.length), 0);
@@ -133,7 +143,10 @@ const findBestAmountColumn = (matrix: string[][], startRow: number, categoryInde
     return bestIndex;
 };
 
-const extractBudgetFromMatrix = (matrix: string[][], fallbackYearText: string): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
+const extractBudgetFromMatrix = (
+    matrix: string[][],
+    fallbackYearText: string,
+): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
     if (!matrix.length) {
         return { lines: [], year: extractYearFromText(fallbackYearText), parsed: false };
     }
@@ -164,7 +177,9 @@ const extractBudgetFromMatrix = (matrix: string[][], fallbackYearText: string): 
 
     let detectedYear = extractYearFromText(fallbackYearText);
     if (yearIndex >= 0) {
-        const yearToken = normalizeCell(matrix[startRow]?.[yearIndex] || matrix[headerRowIndex]?.[yearIndex] || '');
+        const yearToken = normalizeCell(
+            matrix[startRow]?.[yearIndex] || matrix[headerRowIndex]?.[yearIndex] || '',
+        );
         detectedYear = extractYearFromText(yearToken || fallbackYearText);
     }
 
@@ -175,7 +190,10 @@ const extractBudgetFromMatrix = (matrix: string[][], fallbackYearText: string): 
     };
 };
 
-const extractBudgetFromCsvLike = (text: string, fallbackYearText: string): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
+const extractBudgetFromCsvLike = (
+    text: string,
+    fallbackYearText: string,
+): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
     const rows = text
         .split(/\r?\n/)
         .map((row) => row.trim())
@@ -190,7 +208,11 @@ const extractBudgetFromCsvLike = (text: string, fallbackYearText: string): { lin
     return extractBudgetFromMatrix(matrix, fallbackYearText);
 };
 
-const extractBudgetFromWorkbook = (buffer: ArrayBuffer, xlsx: XlsxModule, fallbackYearText: string): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
+const extractBudgetFromWorkbook = (
+    buffer: ArrayBuffer,
+    xlsx: XlsxModule,
+    fallbackYearText: string,
+): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
     const workbook = xlsx.read(buffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
@@ -215,7 +237,10 @@ const extractBudgetFromWorkbook = (buffer: ArrayBuffer, xlsx: XlsxModule, fallba
 const isPdfBinaryNoise = (value: string): boolean => {
     const lower = value.toLowerCase();
     const markers = ['endobj', 'endstream', 'xref', 'trailer', 'startxref', '/type', '/length'];
-    const markerHits = markers.reduce((count, marker) => (lower.includes(marker) ? count + 1 : count), 0);
+    const markerHits = markers.reduce(
+        (count, marker) => (lower.includes(marker) ? count + 1 : count),
+        0,
+    );
     const slashTokens = (value.match(/\/[A-Za-z]{2,}/g) || []).length;
     const objectCount = (value.match(/\bobj\b/gi) || []).length;
     return markerHits >= 3 || slashTokens >= 12 || objectCount >= 8;
@@ -239,17 +264,12 @@ const extractPrintablePdfTextFallback = async (file: File): Promise<string> => {
 };
 
 const normalizeUnstructuredLine = (value: string): string => {
-    return value
-        .replace(/\s+/g, ' ')
-        .replace(/[|]/g, ' ')
-        .trim();
+    return value.replace(/\s+/g, ' ').replace(/[|]/g, ' ').trim();
 };
 
 const isNoiseCategory = (category: string): boolean => {
     const lower = category.toLowerCase();
-    const normalized = lower
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+    const normalized = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     if (!/[a-z]/i.test(normalized)) return true;
     if (normalized.length < 3) return true;
@@ -261,10 +281,7 @@ const extractBudgetFromUnstructuredText = (
     text: string,
     fallbackYearText: string,
 ): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
-    const lines = text
-        .split(/\r?\n/)
-        .map(normalizeUnstructuredLine)
-        .filter(Boolean);
+    const lines = text.split(/\r?\n/).map(normalizeUnstructuredLine).filter(Boolean);
     const year = extractYearFromText(`${fallbackYearText} ${text}`);
 
     if (!lines.length) {
@@ -283,7 +300,9 @@ const extractBudgetFromUnstructuredText = (
     const seen = new Set<string>();
 
     const pushCandidate = (categoryRaw: string, amountRaw: string): void => {
-        const category = normalizeCell(categoryRaw).replace(/[-:;]+$/g, '').trim();
+        const category = normalizeCell(categoryRaw)
+            .replace(/[-:;]+$/g, '')
+            .trim();
         const amount = parseNumericAmount(amountRaw);
         if (!category || !amount || isNoiseCategory(category)) return;
         const key = `${category.toLowerCase()}::${amount}`;
@@ -409,7 +428,9 @@ export const extractBudgetDraftFromFile = async (file: File): Promise<ExtractedB
 
         const mergedText = [extractedText.text, fallbackPdfText].filter(Boolean).join('\n').trim();
         const canRead = extractedText.canReadText || fallbackPdfText.length > 0;
-        const extractedWarnings = extractedText.warnings.filter((warning) => warning !== 'Impossible de traiter ce PDF.');
+        const extractedWarnings = extractedText.warnings.filter(
+            (warning) => warning !== 'Impossible de traiter ce PDF.',
+        );
         warnings.push(...extractedWarnings);
 
         if (fallbackPdfText && !extractedText.canReadText) {
@@ -429,7 +450,9 @@ export const extractBudgetDraftFromFile = async (file: File): Promise<ExtractedB
 
         const parsed = extractBudgetFromUnstructuredText(mergedText, `${defaultYear} ${file.name}`);
         if (!parsed.parsed) {
-            warnings.push('Le document est lisible mais aucune ligne budgétaire fiable n’a été détectée.');
+            warnings.push(
+                'Le document est lisible mais aucune ligne budgétaire fiable n’a été détectée.',
+            );
             return {
                 year: parsed.year || defaultYear,
                 lines: [],
@@ -439,14 +462,17 @@ export const extractBudgetDraftFromFile = async (file: File): Promise<ExtractedB
             };
         }
 
-        const confidence: ExtractionConfidence = parsed.lines.length >= 3
-            ? extractedText.source === 'native'
-                ? 'high'
-                : 'medium'
-            : 'low';
+        const confidence: ExtractionConfidence =
+            parsed.lines.length >= 3
+                ? extractedText.source === 'native'
+                    ? 'high'
+                    : 'medium'
+                : 'low';
 
         if (parsed.lines.length < 3) {
-            warnings.push('Extraction partielle: peu de lignes budgétaires détectées, vérifiez avant validation.');
+            warnings.push(
+                'Extraction partielle: peu de lignes budgétaires détectées, vérifiez avant validation.',
+            );
         }
 
         if (extractedText.source === 'ocr' || extractedText.source === 'hybrid') {

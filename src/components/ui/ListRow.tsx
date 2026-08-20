@@ -151,14 +151,17 @@ const ListRow: React.FC<ListRowProps> = ({
                 <span
                     className={cn(
                         'touch-target flex h-10 w-10 shrink-0 items-center justify-center',
-                        selected ? 'text-on-surface' : 'text-on-surface-variant'
+                        selected ? 'text-on-surface' : 'text-on-surface-variant',
                     )}
                 >
-                    <Icon glyph={selected ? CheckSquare : Square} emphasis={selected ? 'fill' : 'regular'} />
+                    <Icon
+                        glyph={selected ? CheckSquare : Square}
+                        emphasis={selected ? 'fill' : 'regular'}
+                    />
                 </span>
             ) : (
                 vignette && (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-vignette bg-surface-container text-on-surface-variant">
+                    <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden">
                         {vignette}
                     </span>
                 )
@@ -167,27 +170,31 @@ const ListRow: React.FC<ListRowProps> = ({
             <span className="min-w-0 flex-1">
                 {/* Ligne 1 : Nom/Code à gauche, Type à droite */}
                 <span className="flex items-baseline gap-2.5">
-                    <span className="truncate text-[15px] font-medium leading-5 text-on-surface">
+                    <span className="text-on-surface truncate text-[15px] leading-5 font-medium">
                         {title}
                     </span>
                     {type && (
-                        <span className="ml-auto shrink-0 whitespace-nowrap text-[12px] text-text-secondary">
+                        <span className="text-text-secondary ml-auto shrink-0 text-[12px] whitespace-nowrap">
                             {type}
                         </span>
                     )}
                 </span>
 
                 {/* Ligne 2 : Icône d'état + Porteur/État à gauche, Asset ID à droite */}
-                <span className="mt-[3px] flex min-w-0 items-center gap-[7px] text-[13px] text-text-secondary">
+                <span className="text-text-secondary mt-[3px] flex min-w-0 items-center gap-[7px] text-[13px]">
                     {status && (
-                        <Icon glyph={status.icon} size={18} className={cn('shrink-0', TONE_CLASS[status.tone])} />
+                        <Icon
+                            glyph={status.icon}
+                            size={18}
+                            className={cn('shrink-0', TONE_CLASS[status.tone])}
+                        />
                     )}
                     <span className="truncate">{holder || status?.label}</span>
                     {reference && (
                         <span
                             className={cn(
-                                'ml-auto shrink-0 whitespace-nowrap text-[11px] tabular-nums tracking-[0.02em]',
-                                referenceClassName || 'text-text-muted'
+                                'ml-auto shrink-0 text-[11px] tracking-[0.02em] whitespace-nowrap tabular-nums',
+                                referenceClassName || 'text-text-muted',
                             )}
                         >
                             {reference}
@@ -197,7 +204,7 @@ const ListRow: React.FC<ListRowProps> = ({
             </span>
 
             {date && (
-                <span className="hidden whitespace-nowrap text-body-small tabular-nums text-on-surface-variant medium:block">
+                <span className="text-body-small text-on-surface-variant medium:block hidden whitespace-nowrap tabular-nums">
                     {date}
                 </span>
             )}
@@ -205,8 +212,12 @@ const ListRow: React.FC<ListRowProps> = ({
             {/* La marque, à toutes les largeurs : c'est l'axe de lecture de la campagne,
                 pas un quatrième fait qu'on peut se permettre de cacher en compact. */}
             {mark && (
-                <span className="flex shrink-0 items-center gap-[5px] whitespace-nowrap text-[12px] text-text-secondary">
-                    <Icon glyph={mark.icon} size={18} className={cn('shrink-0', TONE_CLASS[mark.tone])} />
+                <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap">
+                    <Icon
+                        glyph={mark.icon}
+                        size={18}
+                        className={cn('shrink-0', TONE_CLASS[mark.tone])}
+                    />
                     {mark.label}
                 </span>
             )}
@@ -221,7 +232,7 @@ const ListRow: React.FC<ListRowProps> = ({
         // sinon la surbrillance s'arrête au texte et la rangée paraît coupée.
         selected &&
             'bg-surface-container shadow-[-16px_0_0_var(--tk-color-surface-container),16px_0_0_var(--tk-color-surface-container)]',
-        className
+        className,
     );
 
     if (selectionActive) {

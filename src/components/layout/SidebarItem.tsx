@@ -28,7 +28,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     onClick,
     className,
 }) => {
-    const badgeCount = typeof badge === 'number' ? badge : (badge ? parseInt(badge as string) : 0);
+    const badgeCount = typeof badge === 'number' ? badge : badge ? parseInt(badge as string) : 0;
 
     const item = (
         <NavButton
@@ -41,7 +41,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
             className={className}
         >
             {/* Icon — filled when active (MD3 spec) */}
-            <span className="flex-shrink-0 flex items-center justify-center w-6 h-6">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
                 <MaterialIcon
                     name={icon}
                     size={24}
@@ -52,22 +52,26 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
             {/* Label — MD3 Label Large */}
             {!isCollapsed && (
-                <span className={cn(
-                    "whitespace-nowrap overflow-hidden transition-all duration-medium2 ease-emphasized text-label-large w-auto opacity-100 ml-3",
-                    active ? "font-semibold" : "font-medium"
-                )}>
+                <span
+                    className={cn(
+                        'duration-medium2 ease-emphasized text-label-large ml-3 w-auto overflow-hidden whitespace-nowrap opacity-100 transition-all',
+                        active ? 'font-semibold' : 'font-medium',
+                    )}
+                >
                     {label}
                 </span>
             )}
 
             {/* Badge */}
             {badge && badgeCount > 0 && (
-                <span className={cn(
-                    "flex items-center justify-center bg-error text-on-error rounded-full shadow-elevation-1 transition-all duration-medium2",
-                    isCollapsed
-                        ? "absolute top-1 right-1 min-w-[18px] h-[18px] text-[9px] p-0.5 leading-none z-10 text-label-small"
-                        : "ml-auto w-auto min-w-[20px] h-5 px-1.5 text-label-small"
-                )}>
+                <span
+                    className={cn(
+                        'bg-error text-on-error shadow-elevation-1 duration-medium2 flex items-center justify-center rounded-full transition-all',
+                        isCollapsed
+                            ? 'text-label-small absolute top-1 right-1 z-10 h-[18px] min-w-[18px] p-0.5 text-[9px] leading-none'
+                            : 'text-label-small ml-auto h-5 w-auto min-w-[20px] px-1.5',
+                    )}
+                >
                     {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
             )}
@@ -89,4 +93,3 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 };
 
 export default SidebarItem;
-

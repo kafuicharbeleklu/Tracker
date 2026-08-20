@@ -14,7 +14,10 @@ const findScrollParent = (element: HTMLElement | null): HTMLElement | Window => 
     let node = element?.parentElement ?? null;
     while (node) {
         const { overflowY } = window.getComputedStyle(node);
-        if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight) {
+        if (
+            (overflowY === 'auto' || overflowY === 'scroll') &&
+            node.scrollHeight > node.clientHeight
+        ) {
             return node;
         }
         node = node.parentElement;
@@ -34,8 +37,7 @@ export const useHideOnScrollDown = (anchorRef: RefObject<HTMLElement | null>): b
 
     useEffect(() => {
         const target = findScrollParent(anchorRef.current);
-        const readTop = () =>
-            target instanceof Window ? window.scrollY : target.scrollTop;
+        const readTop = () => (target instanceof Window ? window.scrollY : target.scrollTop);
 
         let lastTop = readTop();
 

@@ -104,14 +104,14 @@ const ReturnWizardPage: React.FC<{
         .filter(
             (e) =>
                 e.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-                e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase())
+                e.assetId.toLowerCase().includes(equipmentSearch.toLowerCase()),
         );
 
     const totalPages = Math.ceil(filteredEquipment.length / itemsPerPage);
     const safePage = Math.min(equipmentPage, Math.max(1, totalPages));
     const paginatedEquipment = filteredEquipment.slice(
         (safePage - 1) * itemsPerPage,
-        safePage * itemsPerPage
+        safePage * itemsPerPage,
     );
 
     useEffect(() => {
@@ -146,7 +146,7 @@ const ReturnWizardPage: React.FC<{
     };
 
     const handleCanvasMouseDown = (
-        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
     ) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -169,7 +169,7 @@ const ReturnWizardPage: React.FC<{
     };
 
     const handleCanvasMouseMove = (
-        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
     ) => {
         if (!isDrawing) return;
         const canvas = canvasRef.current;
@@ -219,11 +219,13 @@ const ReturnWizardPage: React.FC<{
                         stage: 'initiation',
                         comment: comment.trim() || undefined,
                         requestedBy: actor?.id || 'system',
-                    }
+                    },
                 );
 
                 if (!decision.allowed) {
-                    setRefus(decision.reason || "Vous n'avez pas le droit de modifier cet équipement.");
+                    setRefus(
+                        decision.reason || "Vous n'avez pas le droit de modifier cet équipement.",
+                    );
                     return;
                 }
 
@@ -253,7 +255,7 @@ const ReturnWizardPage: React.FC<{
                     previousUser: selectedEquipment.user?.name || null,
                     source: 'return_wizard',
                     stage: 'inspection',
-                }
+                },
             );
 
             if (!decision.allowed) {
@@ -268,7 +270,7 @@ const ReturnWizardPage: React.FC<{
 
     const toggleAccessory = (acc: string) => {
         setAccessories((prev) =>
-            prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc]
+            prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc],
         );
     };
 
@@ -326,8 +328,8 @@ const ReturnWizardPage: React.FC<{
             }
         >
             {refus && (
-                <div className="flex items-start gap-2.5 p-3 rounded-md bg-[var(--tk-color-surface-muted)] border border-[var(--tk-color-danger)]/30 text-[13px] text-[var(--tk-color-danger)]">
-                    <Icon glyph={Warning} size={18} className="shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 rounded-md border border-[var(--tk-color-danger)]/30 bg-[var(--tk-color-surface-muted)] p-3 text-[13px] text-[var(--tk-color-danger)]">
+                    <Icon glyph={Warning} size={18} className="mt-0.5 shrink-0" />
                     <span>{refus}</span>
                 </div>
             )}
@@ -342,7 +344,7 @@ const ReturnWizardPage: React.FC<{
                         resultCount={filteredEquipment.length}
                     />
 
-                    <div className="bg-surface rounded-lg border border-[var(--tk-color-border-default)] divide-y divide-[var(--tk-color-border-default)] overflow-hidden">
+                    <div className="bg-surface divide-y divide-[var(--tk-color-border-default)] overflow-hidden rounded-lg border border-[var(--tk-color-border-default)]">
                         {paginatedEquipment.length > 0 ? (
                             paginatedEquipment.map((item) => (
                                 <Button
@@ -351,23 +353,24 @@ const ReturnWizardPage: React.FC<{
                                     layout="card"
                                     onClick={() => handleEquipmentSelect(item)}
                                     className={cn(
-                                        'w-full text-left p-3.5 flex items-center gap-3.5 justify-start font-normal rounded-none hover:bg-[var(--tk-color-surface-muted)]',
-                                        selectedEquipment?.id === item.id && 'bg-[var(--tk-color-surface-muted)]'
+                                        'flex w-full items-center justify-start gap-3.5 rounded-none p-3.5 text-left font-normal hover:bg-[var(--tk-color-surface-muted)]',
+                                        selectedEquipment?.id === item.id &&
+                                            'bg-[var(--tk-color-surface-muted)]',
                                     )}
                                 >
-                                    <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center shrink-0">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]">
                                         <Icon glyph={Package} size={20} />
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <div className="flex items-baseline justify-between gap-2">
-                                            <span className="text-[15px] font-semibold font-brand text-[var(--tk-color-text-primary)] truncate tracking-[-0.01em]">
+                                            <span className="font-brand truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]">
                                                 {item.assetId}
                                             </span>
-                                            <span className="text-[12px] text-[var(--tk-color-text-secondary)] whitespace-nowrap">
+                                            <span className="text-[12px] whitespace-nowrap text-[var(--tk-color-text-secondary)]">
                                                 {item.type}
                                             </span>
                                         </div>
-                                        <div className="text-[13px] text-[var(--tk-color-text-secondary)] truncate mt-0.5">
+                                        <div className="mt-0.5 truncate text-[13px] text-[var(--tk-color-text-secondary)]">
                                             {item.name} {item.user ? `· ${item.user.name}` : ''}
                                         </div>
                                     </div>
@@ -410,23 +413,24 @@ const ReturnWizardPage: React.FC<{
             {step === 2 && selectedEquipment && (
                 <WizardStep>
                     {/* Matériel sélectionné (.fixed) */}
-                    <div className="flex items-center gap-3 py-2 border-b border-[var(--tk-color-border-default)]">
-                        <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)] flex items-center justify-center font-brand font-semibold text-[15px] shrink-0">
+                    <div className="flex items-center gap-3 border-b border-[var(--tk-color-border-default)] py-2">
+                        <div className="font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[15px] font-semibold text-[var(--tk-color-text-secondary)]">
                             <Icon glyph={Package} size={20} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-medium font-brand text-[var(--tk-color-text-primary)] tabular-nums truncate">
+                        <div className="min-w-0 flex-1">
+                            <div className="font-brand truncate text-[15px] font-medium text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId}
                             </div>
-                            <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
-                                {selectedEquipment.name} · {selectedEquipment.user?.name || 'Non attribué'}
+                            <div className="truncate text-[12px] text-[var(--tk-color-text-secondary)]">
+                                {selectedEquipment.name} ·{' '}
+                                {selectedEquipment.user?.name || 'Non attribué'}
                             </div>
                         </div>
                         <Button
                             variant="text"
                             size="sm"
                             onClick={() => setStep(1)}
-                            className="text-[13px] font-medium text-[var(--tk-color-text-primary)] px-2"
+                            className="px-2 text-[13px] font-medium text-[var(--tk-color-text-primary)]"
                         >
                             Changer
                         </Button>
@@ -434,18 +438,18 @@ const ReturnWizardPage: React.FC<{
 
                     {/* Destinataire / Rendu à (.pick) */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             Rendu à
                         </p>
-                        <div className="flex items-center gap-3 min-h-[48px] px-3 py-2 border border-[var(--tk-color-border-default)] rounded-md bg-surface">
-                            <div className="w-10 h-10 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-primary)] flex items-center justify-center font-brand font-semibold text-[14px] shrink-0">
+                        <div className="bg-surface flex min-h-[48px] items-center gap-3 rounded-md border border-[var(--tk-color-border-default)] px-3 py-2">
+                            <div className="font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-surface-muted)] text-[14px] font-semibold text-[var(--tk-color-text-primary)]">
                                 CA
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)] truncate">
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                     {actor?.name || 'Clara Admin'}
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] truncate">
+                                <div className="truncate text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Informatique · Bureau Paris
                                 </div>
                             </div>
@@ -454,8 +458,10 @@ const ReturnWizardPage: React.FC<{
 
                     {/* Choix de qualification de l'état (Planche 06.1 Réceptionner) */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-2">
-                            {isInspectionFlow ? "Ce que l'objet devient" : 'État constaté du matériel'}
+                        <p className="mb-2 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
+                            {isInspectionFlow
+                                ? "Ce que l'objet devient"
+                                : 'État constaté du matériel'}
                         </p>
                         <div className="flex flex-col gap-2">
                             {[
@@ -481,29 +487,31 @@ const ReturnWizardPage: React.FC<{
                                     layout="card"
                                     onClick={() => setCondition(opt.value)}
                                     className={cn(
-                                        'flex items-center gap-3 min-h-[56px] p-3 rounded-md border text-left',
+                                        'flex min-h-[56px] items-center gap-3 rounded-md border p-3 text-left',
                                         condition === opt.value
-                                            ? 'border-[var(--tk-color-text-primary)] border-[1.5px] bg-[var(--tk-color-surface-muted)]'
-                                            : 'border-[var(--tk-color-border-default)] bg-surface'
+                                            ? 'border-[1.5px] border-[var(--tk-color-text-primary)] bg-[var(--tk-color-surface-muted)]'
+                                            : 'bg-surface border-[var(--tk-color-border-default)]',
                                     )}
                                 >
-                                    <div className="flex-1 min-w-0">
-                                        <span className="text-[15px] font-medium text-[var(--tk-color-text-primary)] block">
+                                    <div className="min-w-0 flex-1">
+                                        <span className="block text-[15px] font-medium text-[var(--tk-color-text-primary)]">
                                             {opt.label}
                                         </span>
-                                        <span className="text-[12px] text-[var(--tk-color-text-secondary)] block mt-0.5">
+                                        <span className="mt-0.5 block text-[12px] text-[var(--tk-color-text-secondary)]">
                                             {opt.sub}
                                         </span>
                                     </div>
                                     <div
                                         className={cn(
-                                            'w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0',
+                                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[1.5px]',
                                             condition === opt.value
                                                 ? 'border-transparent bg-[var(--tk-color-inverse-surface)] text-white'
-                                                : 'border-[var(--tk-color-border-default)]'
+                                                : 'border-[var(--tk-color-border-default)]',
                                         )}
                                     >
-                                        {condition === opt.value && <Icon glyph={Check} size={18} />}
+                                        {condition === opt.value && (
+                                            <Icon glyph={Check} size={18} />
+                                        )}
                                     </div>
                                 </Button>
                             ))}
@@ -511,35 +519,54 @@ const ReturnWizardPage: React.FC<{
                     </div>
 
                     {/* Bloc conséquence (.conseq) */}
-                    <div className="flex flex-col gap-2.5 p-3.5 bg-[var(--tk-color-surface-muted)] rounded-md text-[13px] leading-[19px] text-[var(--tk-color-text-primary)]">
-                        <span className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)]">
+                    <div className="flex flex-col gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] p-3.5 text-[13px] leading-[19px] text-[var(--tk-color-text-primary)]">
+                        <span className="text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             Ce que cela déclenche
                         </span>
                         <div className="flex items-start gap-2.5">
-                            <Icon glyph={Wrench} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <Icon
+                                glyph={Wrench}
+                                size={18}
+                                className="mt-0.5 shrink-0 text-[var(--tk-color-text-secondary)]"
+                            />
                             <span>
                                 {condition === 'Bon' && (
-                                    <>L’équipement <strong>repassera « Disponible »</strong> et pourra être réattribué sans délai.</>
+                                    <>
+                                        L’équipement <strong>repassera « Disponible »</strong> et
+                                        pourra être réattribué sans délai.
+                                    </>
                                 )}
                                 {condition === 'Moyen' && (
-                                    <>L’objet passe <strong>en réparation</strong> et une tâche est ouverte. Il <strong>ne rejoint pas</strong> les disponibles.</>
+                                    <>
+                                        L’objet passe <strong>en réparation</strong> et une tâche
+                                        est ouverte. Il <strong>ne rejoint pas</strong> les
+                                        disponibles.
+                                    </>
                                 )}
                                 {condition === 'Mauvais' && (
-                                    <>L’objet passe <strong>hors service</strong> et une demande de sortie de parc est ouverte.</>
+                                    <>
+                                        L’objet passe <strong>hors service</strong> et une demande
+                                        de sortie de parc est ouverte.
+                                    </>
                                 )}
                             </span>
                         </div>
                         <div className="flex items-start gap-2.5">
-                            <Icon glyph={Check} size={18} className="text-[var(--tk-color-text-secondary)] shrink-0 mt-0.5" />
+                            <Icon
+                                glyph={Check}
+                                size={18}
+                                className="mt-0.5 shrink-0 text-[var(--tk-color-text-secondary)]"
+                            />
                             <span>
-                                {selectedEquipment.user?.name || 'L’utilisateur'} <strong>n'en répond plus</strong> à compter de cet instant.
+                                {selectedEquipment.user?.name || 'L’utilisateur'}{' '}
+                                <strong>n'en répond plus</strong> à compter de cet instant.
                             </span>
                         </div>
                     </div>
 
                     {/* Observations / Commentaire */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             Un mot sur l'état, si nécessaire
                         </p>
                         <TextArea
@@ -553,26 +580,31 @@ const ReturnWizardPage: React.FC<{
 
                     {/* Accessoires restitués */}
                     <div>
-                        <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)] mb-1.5">
+                        <p className="mb-1.5 text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                             Accessoires remis
                         </p>
                         <div className="flex flex-wrap gap-2">
-                            {['Chargeur secteur', 'Câble USB-C', 'Sacoche', 'Souris', 'Adaptateur HDMI'].map(
-                                (acc) => (
-                                    <Button
-                                        key={acc}
-                                        variant={accessories.includes(acc) ? 'tonal' : 'outlined'}
-                                        size="sm"
-                                        onClick={() => toggleAccessory(acc)}
-                                        className={cn(
-                                            'px-3 py-1.5 text-[12px] font-medium',
-                                            accessories.includes(acc) && 'bg-[var(--tk-color-brand-muted)] border-[var(--tk-color-brand-dark)] text-[var(--tk-color-text-primary)]'
-                                        )}
-                                    >
-                                        {acc}
-                                    </Button>
-                                )
-                            )}
+                            {[
+                                'Chargeur secteur',
+                                'Câble USB-C',
+                                'Sacoche',
+                                'Souris',
+                                'Adaptateur HDMI',
+                            ].map((acc) => (
+                                <Button
+                                    key={acc}
+                                    variant={accessories.includes(acc) ? 'tonal' : 'outlined'}
+                                    size="sm"
+                                    onClick={() => toggleAccessory(acc)}
+                                    className={cn(
+                                        'px-3 py-1.5 text-[12px] font-medium',
+                                        accessories.includes(acc) &&
+                                            'border-[var(--tk-color-brand-dark)] bg-[var(--tk-color-brand-muted)] text-[var(--tk-color-text-primary)]',
+                                    )}
+                                >
+                                    {acc}
+                                </Button>
+                            ))}
                         </div>
                     </div>
                 </WizardStep>
@@ -583,21 +615,22 @@ const ReturnWizardPage: React.FC<{
                 <WizardStep>
                     {/* Attestation — Planche 06.2 */}
                     <div>
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-[var(--tk-color-text-muted)]">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <p className="text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
                                 Votre attestation ({actor?.name || 'Karim Diallo'})
                             </p>
                         </div>
 
                         {/* Onglets de méthode d'attestation */}
-                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--tk-color-surface-muted)] rounded-lg mb-3">
+                        <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-lg bg-[var(--tk-color-surface-muted)] p-1">
                             <Button
                                 variant={validationMethod === 'signature' ? 'tonal' : 'text'}
                                 size="sm"
                                 onClick={() => setValidationMethod('signature')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'signature' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'signature' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={PenNib} size={18} />
@@ -608,8 +641,9 @@ const ReturnWizardPage: React.FC<{
                                 size="sm"
                                 onClick={() => setValidationMethod('pin')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'pin' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'pin' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={Key} size={18} />
@@ -620,8 +654,9 @@ const ReturnWizardPage: React.FC<{
                                 size="sm"
                                 onClick={() => setValidationMethod('fingerprint')}
                                 className={cn(
-                                    'py-2 px-3 text-[13px] font-medium flex items-center justify-center gap-1.5',
-                                    validationMethod === 'fingerprint' && 'bg-surface shadow-xs text-[var(--tk-color-text-primary)]'
+                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
+                                    validationMethod === 'fingerprint' &&
+                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
                                 )}
                             >
                                 <Icon glyph={Fingerprint} size={18} />
@@ -631,7 +666,7 @@ const ReturnWizardPage: React.FC<{
 
                         {/* Méthode : Signature (.sig) */}
                         {validationMethod === 'signature' && (
-                            <div className="relative border border-[var(--tk-color-border-default)] rounded-md bg-surface h-[140px] flex items-end justify-center pb-2.5 text-[12px] text-[var(--tk-color-text-muted)] overflow-hidden">
+                            <div className="bg-surface relative flex h-[140px] items-end justify-center overflow-hidden rounded-md border border-[var(--tk-color-border-default)] pb-2.5 text-[12px] text-[var(--tk-color-text-muted)]">
                                 <canvas
                                     ref={canvasRef}
                                     width={480}
@@ -642,10 +677,10 @@ const ReturnWizardPage: React.FC<{
                                     onTouchStart={handleCanvasMouseDown}
                                     onTouchMove={handleCanvasMouseMove}
                                     onTouchEnd={handleCanvasMouseUp}
-                                    className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                                    className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
                                 />
                                 {!signatureCaptured && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[13px] text-[var(--tk-color-text-muted)]">
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-[var(--tk-color-text-muted)]">
                                         Signez dans cette zone
                                     </div>
                                 )}
@@ -657,7 +692,7 @@ const ReturnWizardPage: React.FC<{
                                         variant="outlined"
                                         size="sm"
                                         onClick={handleClearSignature}
-                                        className="absolute top-2 right-2 text-[11px] h-7 px-2 z-10"
+                                        className="absolute top-2 right-2 z-10 h-7 px-2 text-[11px]"
                                     >
                                         Effacer
                                     </Button>
@@ -668,7 +703,7 @@ const ReturnWizardPage: React.FC<{
                         {/* Méthode : Code PIN (.pin) */}
                         {validationMethod === 'pin' && (
                             <div className="flex flex-col items-center gap-2 py-1">
-                                <div className="flex gap-3 justify-center">
+                                <div className="flex justify-center gap-3">
                                     {pin.map((digit, idx) => (
                                         <InputField
                                             key={idx}
@@ -679,14 +714,16 @@ const ReturnWizardPage: React.FC<{
                                             inputMode="numeric"
                                             maxLength={1}
                                             value={digit}
-                                            onChange={(e) => handlePinDigitChange(idx, e.target.value)}
+                                            onChange={(e) =>
+                                                handlePinDigitChange(idx, e.target.value)
+                                            }
                                             aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="w-[64px] h-[76px] text-center text-[34px] font-semibold font-brand"
+                                            className="font-brand h-[76px] w-[64px] text-center text-[34px] font-semibold"
                                             containerClassName="w-auto"
                                         />
                                     ))}
                                 </div>
-                                <p className="text-[12px] text-[var(--tk-color-text-secondary)] text-center">
+                                <p className="text-center text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Code PIN à 4 chiffres ({actor?.name || 'Karim Diallo'})
                                 </p>
                             </div>
@@ -694,29 +731,35 @@ const ReturnWizardPage: React.FC<{
 
                         {/* Méthode : Empreinte (.bio) */}
                         {validationMethod === 'fingerprint' && (
-                            <div className="h-[148px] rounded-md bg-[var(--tk-color-surface-muted)] flex flex-col items-center justify-center gap-2.5 text-[var(--tk-color-text-secondary)]">
+                            <div className="flex h-[148px] flex-col items-center justify-center gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]">
                                 <Button
                                     variant="outlined"
                                     onClick={handleFingerprintConfirm}
                                     className={cn(
-                                        'w-16 h-16 rounded-full flex items-center justify-center p-0',
+                                        'flex h-16 w-16 items-center justify-center rounded-full p-0',
                                         isValidated
-                                            ? 'bg-[var(--tk-color-success)] text-white border-transparent'
-                                            : 'bg-surface text-[var(--tk-color-text-primary)]'
+                                            ? 'border-transparent bg-[var(--tk-color-success)] text-white'
+                                            : 'bg-surface text-[var(--tk-color-text-primary)]',
                                     )}
                                 >
                                     <Icon glyph={Fingerprint} size={32} />
                                 </Button>
-                                <span className="text-[13px] text-[var(--tk-color-text-primary)] font-medium">
-                                    {isValidated ? 'Empreinte reconnue' : 'Posez votre doigt pour valider'}
+                                <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
+                                    {isValidated
+                                        ? 'Empreinte reconnue'
+                                        : 'Posez votre doigt pour valider'}
                                 </span>
                             </div>
                         )}
                     </div>
 
                     {/* Bannière d'engagement (.warn) */}
-                    <div className="flex gap-2.5 p-3 bg-[var(--tk-color-surface-muted)] rounded-md text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
-                        <Icon glyph={Check} size={18} className="text-[var(--tk-color-success)] shrink-0 mt-0.5" />
+                    <div className="flex gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] p-3 text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
+                        <Icon
+                            glyph={Check}
+                            size={18}
+                            className="mt-0.5 shrink-0 text-[var(--tk-color-success)]"
+                        />
                         <span>
                             <strong>C'est votre preuve.</strong> L'objet quitte votre
                             responsabilité, horodaté.
@@ -729,28 +772,29 @@ const ReturnWizardPage: React.FC<{
             {step === 4 && selectedEquipment && (
                 <WizardStep>
                     {/* Acquittement croisé (.ack) */}
-                    <div className="border border-[var(--tk-color-border-default)] rounded-md overflow-hidden bg-surface divide-y divide-[var(--tk-color-border-default)]">
-                        <div className="flex items-center gap-3 p-3 min-h-[64px]">
-                            <div className="w-8 h-8 rounded-full bg-[var(--tk-color-inverse-surface)] text-white flex items-center justify-center shrink-0">
+                    <div className="bg-surface divide-y divide-[var(--tk-color-border-default)] overflow-hidden rounded-md border border-[var(--tk-color-border-default)]">
+                        <div className="flex min-h-[64px] items-center gap-3 p-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-white">
                                 <Icon glyph={Check} size={18} />
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
-                                    {selectedEquipment.user?.name || actor?.name || 'Karim Diallo'} atteste avoir rendu
+                                    {selectedEquipment.user?.name || actor?.name || 'Karim Diallo'}{' '}
+                                    atteste avoir rendu
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Aujourd'hui · Méthode {validationMethod}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 p-3 min-h-[64px]">
+                        <div className="flex min-h-[64px] items-center gap-3 p-3">
                             <div
                                 className={cn(
-                                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                                     isInspectionFlow
                                         ? 'bg-[var(--tk-color-inverse-surface)] text-white'
-                                        : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]'
+                                        : 'bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]',
                                 )}
                             >
                                 {isInspectionFlow ? (
@@ -759,13 +803,13 @@ const ReturnWizardPage: React.FC<{
                                     <Icon glyph={UserIcon} size={18} />
                                 )}
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
                                     {isInspectionFlow
                                         ? 'Support Informatique réceptionne'
                                         : "L'informatique attestera réceptionner"}
                                 </div>
-                                <div className="text-[12px] text-[var(--tk-color-text-secondary)] mt-0.5">
+                                <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
                                     {isInspectionFlow
                                         ? `Constat : ${condition}`
                                         : "Ce qui sera fait à l'arrivée en stock"}
@@ -775,21 +819,25 @@ const ReturnWizardPage: React.FC<{
                     </div>
 
                     {/* Récapitulatif équipement et décision */}
-                    <div className="p-4 rounded-md bg-surface border border-[var(--tk-color-border-default)] flex flex-col gap-3">
-                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
-                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">Équipement</span>
-                            <span className="text-[13px] font-semibold font-brand text-[var(--tk-color-text-primary)] tabular-nums">
+                    <div className="bg-surface flex flex-col gap-3 rounded-md border border-[var(--tk-color-border-default)] p-4">
+                        <div className="flex items-center justify-between border-b border-[var(--tk-color-border-default)] pb-2">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                Équipement
+                            </span>
+                            <span className="font-brand text-[13px] font-semibold text-[var(--tk-color-text-primary)] tabular-nums">
                                 {selectedEquipment.assetId} · {selectedEquipment.name}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
-                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">État constaté</span>
+                        <div className="flex items-center justify-between border-b border-[var(--tk-color-border-default)] pb-2">
+                            <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
+                                État constaté
+                            </span>
                             <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
                                 {condition}
                             </span>
                         </div>
                         {accessories.length > 0 && (
-                            <div className="flex items-center justify-between pb-2 border-b border-[var(--tk-color-border-default)]">
+                            <div className="flex items-center justify-between border-b border-[var(--tk-color-border-default)] pb-2">
                                 <span className="text-[12px] text-[var(--tk-color-text-secondary)]">
                                     Accessoires
                                 </span>

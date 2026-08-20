@@ -66,12 +66,12 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
     children,
     className,
 }) => (
-    <section className={cn('overflow-hidden rounded-card bg-surface', className)}>
+    <section className={cn('rounded-card bg-surface overflow-hidden', className)}>
         {header && (
-            <div className="flex items-baseline justify-between gap-3 px-4 pb-2 pt-3.5 text-[11px] font-medium uppercase tracking-[0.06em] text-text-secondary">
+            <div className="text-text-secondary flex items-baseline justify-between gap-3 px-4 pt-3.5 pb-2 text-[11px] font-medium tracking-[0.06em] uppercase">
                 <span className="min-w-0">{header}</span>
                 {headerTrailing && (
-                    <span className="shrink-0 text-[12px] font-normal normal-case tracking-normal text-text-muted">
+                    <span className="text-text-muted shrink-0 text-[12px] font-normal tracking-normal normal-case">
                         {headerTrailing}
                     </span>
                 )}
@@ -81,7 +81,7 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
             et non l'en-tête : `.grp>.gh+.row{border-top:0}` de 14.1. */}
         <div>{children}</div>
         {note && (
-            <p className="border-t border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] leading-4 text-text-muted">
+            <p className="border-outline-variant bg-surface-container text-text-muted border-t px-4 py-2.5 text-[11px] leading-4">
                 {note}
             </p>
         )}
@@ -128,23 +128,27 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     const content = (
         <>
             <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-medium text-on-surface">{title}</span>
+                <span className="text-on-surface block text-[14px] font-medium">{title}</span>
                 {subtitle && (
-                    <span className="mt-px block text-[12px] leading-[17px] text-text-secondary">
+                    <span className="text-text-secondary mt-px block text-[12px] leading-[17px]">
                         {subtitle}
                     </span>
                 )}
             </span>
 
             {status && (
-                <Icon glyph={status.icon} size={18} className={cn('shrink-0', TONE_CLASS[status.tone])} />
+                <Icon
+                    glyph={status.icon}
+                    size={18}
+                    className={cn('shrink-0', TONE_CLASS[status.tone])}
+                />
             )}
 
             {value !== undefined && value !== null && (
                 <span
                     className={cn(
-                        'shrink-0 whitespace-nowrap text-right text-[13px] font-medium',
-                        valueTone ? TONE_CLASS[valueTone] : 'text-on-surface'
+                        'shrink-0 text-right text-[13px] font-medium whitespace-nowrap',
+                        valueTone ? TONE_CLASS[valueTone] : 'text-on-surface',
                     )}
                 >
                     {value}
@@ -157,7 +161,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                 <Icon
                     glyph={external ? ArrowSquareOut : CaretRight}
                     size={20}
-                    className="shrink-0 text-text-muted"
+                    className="text-text-muted shrink-0"
                 />
             )}
         </>
@@ -165,7 +169,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
 
     const shell = cn(
         'flex min-h-14 w-full items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left first:border-t-0',
-        className
+        className,
     );
 
     if (!onOpen) {
@@ -178,7 +182,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             onClick={onOpen}
             className={cn(
                 shell,
-                'outline-none transition-colors hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus-ring'
+                'hover:bg-surface-container focus-visible:ring-focus-ring transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset',
             )}
         >
             {content}

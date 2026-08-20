@@ -6,9 +6,9 @@ export type SemanticTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral'
 type BadgeVariant = SemanticTone | 'default';
 
 interface BadgeProps {
-  children: React.ReactNode;
-  variant?: BadgeVariant;
-  className?: string;
+    children: React.ReactNode;
+    variant?: BadgeVariant;
+    className?: string;
 }
 
 /**
@@ -17,33 +17,31 @@ interface BadgeProps {
  * neutral → neutre chaud. Également consommée par StatusBadge — une seule source (C7).
  */
 export const TONE_CLASSES: Record<SemanticTone, string> = {
-  success: 'bg-success-light text-success-strong',
-  warning: 'bg-warning-light text-warning-strong',
-  danger: 'bg-danger-light text-danger-strong',
-  info: 'bg-info-light text-info-strong',
-  neutral: 'bg-surface-container text-on-surface',
+    success: 'bg-success-light text-success-strong',
+    warning: 'bg-warning-light text-warning-strong',
+    danger: 'bg-danger-light text-danger-strong',
+    info: 'bg-info-light text-info-strong',
+    neutral: 'bg-surface-container text-on-surface',
 };
 
 /** Status / category indicator badge. */
 const variants: Record<BadgeVariant, string> = {
-  ...TONE_CLASSES,
-  default: TONE_CLASSES.neutral,
+    ...TONE_CLASSES,
+    default: TONE_CLASSES.neutral,
 };
 
-const Badge: React.FC<BadgeProps> = ({
-  children,
-  variant = 'default',
-  className
-}) => {
-  return (
-    <span className={cn(
-      "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-label-small whitespace-nowrap",
-      variants[variant],
-      className
-    )}>
-      {children}
-    </span>
-  );
+const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', className }) => {
+    return (
+        <span
+            className={cn(
+                'text-label-small inline-flex items-center justify-center rounded-md px-2 py-0.5 whitespace-nowrap',
+                variants[variant],
+                className,
+            )}
+        >
+            {children}
+        </span>
+    );
 };
 
 export default Badge;

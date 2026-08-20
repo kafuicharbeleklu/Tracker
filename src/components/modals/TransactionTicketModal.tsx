@@ -13,13 +13,19 @@ interface TransactionTicketModalProps {
 }
 
 // Types avec une iconographie dédiée ; les autres retombent sur le rendu générique.
-const SIMPLE_ACTION_PRESETS: Partial<Record<HistoryEvent['type'], { icon: string; colorClass: string }>> = {
+const SIMPLE_ACTION_PRESETS: Partial<
+    Record<HistoryEvent['type'], { icon: string; colorClass: string }>
+> = {
     CREATE: { icon: 'add_box', colorClass: 'bg-tertiary-container text-tertiary' },
     DELETE: { icon: 'delete', colorClass: 'bg-error-container text-error' },
     UPDATE: { icon: 'edit', colorClass: 'bg-secondary-container text-secondary' },
 };
 
-const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen, onClose, event }) => {
+const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({
+    isOpen,
+    onClose,
+    event,
+}) => {
     if (!event) return null;
 
     const { equipmentSnapshot, userSnapshot, condition, previousUser } = event.metadata ?? {};
@@ -29,95 +35,134 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
     const sheetTitle = isAssignment
         ? 'Ticket d’attribution'
         : isReturn
-            ? 'Reçu de retour'
-            : 'Détail de l’activité';
+          ? 'Reçu de retour'
+          : 'Détail de l’activité';
 
     const renderAssignmentTicket = () => (
-        <div className="bg-surface-container-lowest rounded-xl shadow-elevation-1 overflow-hidden border border-outline-variant relative w-full">
-            <div className="absolute -left-3 top-1/2 w-6 h-6 bg-surface rounded-full z-10 border-r border-outline-variant" />
-            <div className="absolute -right-3 top-1/2 w-6 h-6 bg-surface rounded-full z-10 border-l border-outline-variant" />
+        <div className="bg-surface-container-lowest shadow-elevation-1 border-outline-variant relative w-full overflow-hidden rounded-xl border">
+            <div className="bg-surface border-outline-variant absolute top-1/2 -left-3 z-10 h-6 w-6 rounded-full border-r" />
+            <div className="bg-surface border-outline-variant absolute top-1/2 -right-3 z-10 h-6 w-6 rounded-full border-l" />
 
-            <div className="bg-primary p-5 text-on-primary relative overflow-hidden">
-                <div className="absolute -right-6 -top-6 w-20 h-20 bg-on-primary/20 rounded-full blur-xl pointer-events-none" />
-                <div className="flex justify-between items-center relative z-10 gap-3">
+            <div className="bg-primary text-on-primary relative overflow-hidden p-5">
+                <div className="bg-on-primary/20 pointer-events-none absolute -top-6 -right-6 h-20 w-20 rounded-full blur-xl" />
+                <div className="relative z-10 flex items-center justify-between gap-3">
                     <div>
-                        <p className="text-label-small uppercase tracking-widest opacity-60 mb-1">Bon de Mouvement</p>
+                        <p className="text-label-small mb-1 tracking-widest uppercase opacity-60">
+                            Bon de Mouvement
+                        </p>
                         <h3 className="text-title-large tracking-tight">Attribution Matériel</h3>
                     </div>
-                    <div className="bg-on-primary/20 p-2 rounded-sm backdrop-blur-sm">
-                        {equipmentSnapshot?.type === 'Laptop'
-                            ? <MaterialIcon name="laptop" size={24} />
-                            : equipmentSnapshot?.type === 'Phone'
-                                ? <MaterialIcon name="smartphone" size={24} />
-                                : <MaterialIcon name="monitor" size={24} />}
+                    <div className="bg-on-primary/20 rounded-sm p-2 backdrop-blur-sm">
+                        {equipmentSnapshot?.type === 'Laptop' ? (
+                            <MaterialIcon name="laptop" size={24} />
+                        ) : equipmentSnapshot?.type === 'Phone' ? (
+                            <MaterialIcon name="smartphone" size={24} />
+                        ) : (
+                            <MaterialIcon name="monitor" size={24} />
+                        )}
                     </div>
                 </div>
             </div>
 
             <div className="p-5">
-                <div className="flex gap-4 items-start mb-6">
-                    <div className="w-16 h-16 bg-surface-container-low rounded-md flex items-center justify-center border border-outline-variant shrink-0">
+                <div className="mb-6 flex items-start gap-4">
+                    <div className="bg-surface-container-low border-outline-variant flex h-16 w-16 shrink-0 items-center justify-center rounded-md border">
                         {equipmentSnapshot?.image ? (
-                            <img src={equipmentSnapshot.image} className="w-full h-full object-contain mix-blend-multiply p-2" alt="" />
+                            <img
+                                src={equipmentSnapshot.image}
+                                className="h-full w-full object-contain p-2 mix-blend-multiply"
+                                alt=""
+                            />
                         ) : (
-                            <MaterialIcon name="inventory_2" size={20} className="text-on-surface-variant" />
+                            <MaterialIcon
+                                name="inventory_2"
+                                size={20}
+                                className="text-on-surface-variant"
+                            />
                         )}
                     </div>
                     <div className="min-w-0">
-                        <h4 className="text-title-medium text-on-surface mb-1 truncate">{equipmentSnapshot?.name || event.targetName}</h4>
-                        <div className="flex flex-wrap gap-2 mb-2">
+                        <h4 className="text-title-medium text-on-surface mb-1 truncate">
+                            {equipmentSnapshot?.name || event.targetName}
+                        </h4>
+                        <div className="mb-2 flex flex-wrap gap-2">
                             {equipmentSnapshot?.assetId && (
-                                <span className="text-label-small font-mono bg-surface-container px-2 py-0.5 rounded-xs text-on-surface-variant border border-outline-variant">
+                                <span className="text-label-small bg-surface-container text-on-surface-variant border-outline-variant rounded-xs border px-2 py-0.5 font-mono">
                                     {equipmentSnapshot.assetId}
                                 </span>
                             )}
                             {equipmentSnapshot?.type && (
-                                <span className="text-label-small text-on-surface-variant bg-surface-container-low px-2 py-0.5 rounded-xs border border-outline-variant uppercase">
+                                <span className="text-label-small text-on-surface-variant bg-surface-container-low border-outline-variant rounded-xs border px-2 py-0.5 uppercase">
                                     {equipmentSnapshot.type}
                                 </span>
                             )}
                         </div>
                         {equipmentSnapshot?.model && (
-                            <p className="text-label-small text-on-surface-variant truncate">{equipmentSnapshot.model}</p>
+                            <p className="text-label-small text-on-surface-variant truncate">
+                                {equipmentSnapshot.model}
+                            </p>
                         )}
                     </div>
                 </div>
 
-                <div className="border-b-2 border-dashed border-outline-variant my-6 relative">
-                    <div className="absolute left-0 -top-1.5 text-on-surface-variant text-label-small bg-surface-container-lowest pr-2 font-mono">LINK</div>
+                <div className="border-outline-variant relative my-6 border-b-2 border-dashed">
+                    <div className="text-on-surface-variant text-label-small bg-surface-container-lowest absolute -top-1.5 left-0 pr-2 font-mono">
+                        LINK
+                    </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-4">
                     {userSnapshot?.avatar ? (
-                        <img src={userSnapshot.avatar} className="w-12 h-12 rounded-full border-2 border-surface-container-low shadow-elevation-1" alt="" />
+                        <img
+                            src={userSnapshot.avatar}
+                            className="border-surface-container-low shadow-elevation-1 h-12 w-12 rounded-full border-2"
+                            alt=""
+                        />
                     ) : (
-                        <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center border border-outline-variant">
-                            <MaterialIcon name="person" size={18} className="text-on-surface-variant" />
+                        <div className="bg-surface-container border-outline-variant flex h-12 w-12 items-center justify-center rounded-full border">
+                            <MaterialIcon
+                                name="person"
+                                size={18}
+                                className="text-on-surface-variant"
+                            />
                         </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                        <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Bénéficiaire</p>
-                        <h4 className="text-title-small text-on-surface truncate">{userSnapshot?.name || 'Utilisateur'}</h4>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-label-small text-on-surface-variant mb-1 tracking-widest uppercase">
+                            Bénéficiaire
+                        </p>
+                        <h4 className="text-title-small text-on-surface truncate">
+                            {userSnapshot?.name || 'Utilisateur'}
+                        </h4>
                         {userSnapshot?.email && (
-                            <div className="flex items-center gap-2 text-body-small text-on-surface-variant mt-1 truncate">
+                            <div className="text-body-small text-on-surface-variant mt-1 flex items-center gap-2 truncate">
                                 <MaterialIcon name="mail" size={12} /> {userSnapshot.email}
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="mt-6 pt-5 border-t border-outline-variant flex flex-col gap-4">
+                <div className="border-outline-variant mt-6 flex flex-col gap-4 border-t pt-5">
                     <div>
-                        <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Date d'effet</p>
-                        <div className="flex items-center gap-2 text-title-small text-on-surface">
-                            <MaterialIcon name="calendar_today" size={16} className="text-primary" />
+                        <p className="text-label-small text-on-surface-variant mb-1 tracking-widest uppercase">
+                            Date d'effet
+                        </p>
+                        <div className="text-title-small text-on-surface flex items-center gap-2">
+                            <MaterialIcon
+                                name="calendar_today"
+                                size={16}
+                                className="text-primary"
+                            />
                             {formatDate(event.timestamp)}
                         </div>
                     </div>
                     <div>
-                        <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Validé par</p>
-                        <div className="flex items-center gap-2 text-title-small text-on-surface">
-                            {event.actorName} <MaterialIcon name="check_circle" size={16} className="text-tertiary" />
+                        <p className="text-label-small text-on-surface-variant mb-1 tracking-widest uppercase">
+                            Validé par
+                        </p>
+                        <div className="text-title-small text-on-surface flex items-center gap-2">
+                            {event.actorName}{' '}
+                            <MaterialIcon name="check_circle" size={16} className="text-tertiary" />
                         </div>
                     </div>
                 </div>
@@ -126,42 +171,52 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
     );
 
     const renderReturnReceipt = () => (
-        <div className="bg-surface-container-lowest p-0 rounded-xl shadow-elevation-1 border border-outline-variant relative overflow-hidden flex flex-col w-full">
+        <div className="bg-surface-container-lowest shadow-elevation-1 border-outline-variant relative flex w-full flex-col overflow-hidden rounded-xl border p-0">
             <div
                 className={cn(
                     'h-3 w-full',
                     condition === 'Excellent'
                         ? 'bg-tertiary'
                         : condition === 'Bon'
-                            ? 'bg-secondary'
-                            : condition === 'Moyen'
-                                ? 'bg-primary'
-                                : 'bg-error'
+                          ? 'bg-secondary'
+                          : condition === 'Moyen'
+                            ? 'bg-primary'
+                            : 'bg-error',
                 )}
             />
 
-            <div className="p-5 pb-6 flex-1">
-                <div className="flex justify-between items-start mb-6 gap-4">
+            <div className="flex-1 p-5 pb-6">
+                <div className="mb-6 flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Type de transaction</p>
+                        <p className="text-label-small text-on-surface-variant mb-1 tracking-widest uppercase">
+                            Type de transaction
+                        </p>
                         <h3 className="text-title-large text-on-surface flex items-center gap-2">
                             <MaterialIcon name="task" className="text-primary" /> Reçu de retour
                         </h3>
                     </div>
-                    <div className="text-right shrink-0">
-                        <p className="text-label-small text-on-surface-variant uppercase tracking-widest mb-1">Date</p>
-                        <p className="text-title-small text-on-surface">{formatDate(event.timestamp)}</p>
+                    <div className="shrink-0 text-right">
+                        <p className="text-label-small text-on-surface-variant mb-1 tracking-widest uppercase">
+                            Date
+                        </p>
+                        <p className="text-title-small text-on-surface">
+                            {formatDate(event.timestamp)}
+                        </p>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4 mb-6 bg-surface-container-low p-4 rounded-md border border-outline-variant">
+                <div className="bg-surface-container-low border-outline-variant mb-6 flex flex-col gap-4 rounded-md border p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full border border-outline-variant bg-surface-container-highest flex items-center justify-center text-title-small text-on-surface-variant">
+                        <div className="border-outline-variant bg-surface-container-highest text-title-small text-on-surface-variant flex h-9 w-9 items-center justify-center rounded-full border">
                             {previousUser ? previousUser[0] : '?'}
                         </div>
                         <div className="leading-tight">
-                            <p className="text-label-small text-on-surface-variant uppercase">Origine</p>
-                            <p className="text-label-large text-on-surface">{previousUser || 'Utilisateur'}</p>
+                            <p className="text-label-small text-on-surface-variant uppercase">
+                                Origine
+                            </p>
+                            <p className="text-label-large text-on-surface">
+                                {previousUser || 'Utilisateur'}
+                            </p>
                         </div>
                     </div>
 
@@ -172,44 +227,64 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                     <div className="flex items-center gap-3">
                         <div
                             className={cn(
-                                'w-9 h-9 rounded-full flex items-center justify-center shadow-elevation-1',
+                                'shadow-elevation-1 flex h-9 w-9 items-center justify-center rounded-full',
                                 condition === 'Mauvais'
                                     ? 'bg-primary-container text-on-primary-container'
-                                    : 'bg-tertiary-container text-on-tertiary-container'
+                                    : 'bg-tertiary-container text-on-tertiary-container',
                             )}
                         >
-                            {condition === 'Mauvais' ? <MaterialIcon name="build" size={16} /> : <MaterialIcon name="check_circle" size={16} />}
+                            {condition === 'Mauvais' ? (
+                                <MaterialIcon name="build" size={16} />
+                            ) : (
+                                <MaterialIcon name="check_circle" size={16} />
+                            )}
                         </div>
                         <div className="leading-tight">
-                            <p className="text-label-small text-on-surface-variant uppercase">Destination</p>
-                            <p className="text-label-large text-on-surface">{condition === 'Mauvais' ? 'Maintenance' : 'Stock IT'}</p>
+                            <p className="text-label-small text-on-surface-variant uppercase">
+                                Destination
+                            </p>
+                            <p className="text-label-large text-on-surface">
+                                {condition === 'Mauvais' ? 'Maintenance' : 'Stock IT'}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-4 mb-6 pb-6 border-b border-dashed border-outline-variant">
-                    <div className="w-16 h-16 bg-surface-container-lowest border border-outline-variant rounded-md flex items-center justify-center p-2 shrink-0">
+                <div className="border-outline-variant mb-6 flex gap-4 border-b border-dashed pb-6">
+                    <div className="bg-surface-container-lowest border-outline-variant flex h-16 w-16 shrink-0 items-center justify-center rounded-md border p-2">
                         {equipmentSnapshot?.image ? (
-                            <img src={equipmentSnapshot.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
+                            <img
+                                src={equipmentSnapshot.image}
+                                className="h-full w-full object-contain mix-blend-multiply"
+                                alt=""
+                            />
                         ) : (
-                            <MaterialIcon name="inventory_2" size={20} className="text-on-surface-variant" />
+                            <MaterialIcon
+                                name="inventory_2"
+                                size={20}
+                                className="text-on-surface-variant"
+                            />
                         )}
                     </div>
                     <div className="min-w-0">
-                        <h4 className="text-title-small text-on-surface mb-1 truncate">{equipmentSnapshot?.name || event.targetName}</h4>
+                        <h4 className="text-title-small text-on-surface mb-1 truncate">
+                            {equipmentSnapshot?.name || event.targetName}
+                        </h4>
                         {equipmentSnapshot?.assetId && (
-                            <p className="text-label-small text-on-surface-variant mb-2 font-mono">#{equipmentSnapshot.assetId}</p>
+                            <p className="text-label-small text-on-surface-variant mb-2 font-mono">
+                                #{equipmentSnapshot.assetId}
+                            </p>
                         )}
                         <div
                             className={cn(
-                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-small uppercase',
+                                'text-label-small inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 uppercase',
                                 condition === 'Excellent'
                                     ? 'bg-tertiary-container text-on-tertiary-container'
                                     : condition === 'Bon'
-                                        ? 'bg-secondary-container text-on-secondary-container'
-                                        : condition === 'Moyen'
-                                            ? 'bg-primary-container text-on-primary-container'
-                                            : 'bg-error-container text-on-error-container'
+                                      ? 'bg-secondary-container text-on-secondary-container'
+                                      : condition === 'Moyen'
+                                        ? 'bg-primary-container text-on-primary-container'
+                                        : 'bg-error-container text-on-error-container',
                             )}
                         >
                             <span>État : {condition || 'Non spécifié'}</span>
@@ -217,7 +292,7 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                     </div>
                 </div>
 
-                <p className="text-center text-label-small text-on-surface-variant uppercase tracking-widest">
+                <p className="text-label-small text-on-surface-variant text-center tracking-widest uppercase">
                     Reçu généré par {event.actorName}
                 </p>
             </div>
@@ -225,21 +300,30 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
     );
 
     const renderSimpleAction = (icon: React.ReactNode, title: string, colorClass: string) => (
-        <div className="w-full text-center py-4">
-            <div className={cn('w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5', colorClass)}>
+        <div className="w-full py-4 text-center">
+            <div
+                className={cn(
+                    'mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full',
+                    colorClass,
+                )}
+            >
                 {icon}
             </div>
             <h3 className="text-title-large text-on-surface mb-2">{title}</h3>
             <p className="text-body-medium text-on-surface-variant mb-5">{event.description}</p>
 
-            <div className="bg-surface-container-low p-4 rounded-md text-left border border-outline-variant">
-                <div className="flex justify-between text-body-small mb-2 gap-4">
+            <div className="bg-surface-container-low border-outline-variant rounded-md border p-4 text-left">
+                <div className="text-body-small mb-2 flex justify-between gap-4">
                     <span className="text-on-surface-variant">Cible</span>
-                    <span className="text-label-large text-on-surface text-right">{event.targetName}</span>
+                    <span className="text-label-large text-on-surface text-right">
+                        {event.targetName}
+                    </span>
                 </div>
-                <div className="flex justify-between text-body-small gap-4">
+                <div className="text-body-small flex justify-between gap-4">
                     <span className="text-on-surface-variant">Date</span>
-                    <span className="text-label-large text-on-surface text-right">{formatDateTime(event.timestamp)}</span>
+                    <span className="text-label-large text-on-surface text-right">
+                        {formatDateTime(event.timestamp)}
+                    </span>
                 </div>
             </div>
         </div>
@@ -258,15 +342,18 @@ const TransactionTicketModal: React.FC<TransactionTicketModalProps> = ({ isOpen,
                 {isAssignment
                     ? renderAssignmentTicket()
                     : isReturn
-                        ? renderReturnReceipt()
-                        : renderSimpleAction(
+                      ? renderReturnReceipt()
+                      : renderSimpleAction(
                             <MaterialIcon
-                                name={SIMPLE_ACTION_PRESETS[event.type]?.icon ?? getHistoryEventIcon(event.type)}
+                                name={
+                                    SIMPLE_ACTION_PRESETS[event.type]?.icon ??
+                                    getHistoryEventIcon(event.type)
+                                }
                                 size={32}
                             />,
                             getHistoryEventTitle(event.type),
-                            SIMPLE_ACTION_PRESETS[event.type]?.colorClass
-                                ?? 'bg-surface-container text-on-surface-variant',
+                            SIMPLE_ACTION_PRESETS[event.type]?.colorClass ??
+                                'bg-surface-container text-on-surface-variant',
                         )}
             </div>
         </SideSheet>

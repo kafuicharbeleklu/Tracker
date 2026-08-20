@@ -46,6 +46,7 @@ const AUTH_CHECKPOINTS = [
   { id: 'audit_details', label: 'Audit details', hash: '/audit/details' },
   { id: 'finance', label: 'Finance', hash: '/finance' },
   { id: 'finance-expenses', label: 'Journal des dépenses', hash: '/finance/expenses' },
+  { id: 'site-details', label: 'Détail site', hash: '/locations/site/Bureau%20Paris' },
 ];
 
 const DEVICE_FILTER = process.env.VISUAL_DEVICE_IDS

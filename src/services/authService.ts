@@ -1,12 +1,12 @@
-
 import { AppUser } from '../types';
 
 const MOCK_AUTH_BACKEND_ENABLED =
     import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH_BACKEND === 'true';
 const AUTH_API_BASE_URL = (
-    import.meta.env.VITE_AUTH_API_BASE_URL
-    || (import.meta.env.DEV ? 'http://localhost:8787' : '')
-).trim().replace(/\/+$/, '');
+    import.meta.env.VITE_AUTH_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8787' : '')
+)
+    .trim()
+    .replace(/\/+$/, '');
 const AUTH_ADMIN_API_KEY = (import.meta.env.VITE_AUTH_ADMIN_API_KEY || 'NEEMBA_ADMIN_KEY').trim();
 const ALLOWED_EMAIL_DOMAINS = (import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS || '')
     .split(',')
@@ -55,7 +55,7 @@ let mockAppUsers: AppUser[] = [
         MustChangePassword: false,
         CreatedDate: new Date().toISOString(),
         CreatedBy: 'System',
-        LastLoginDate: new Date().toISOString()
+        LastLoginDate: new Date().toISOString(),
     },
     {
         id: '2',
@@ -66,7 +66,7 @@ let mockAppUsers: AppUser[] = [
         PinStatus: 'active',
         MustChangePassword: false,
         CreatedDate: new Date().toISOString(),
-        CreatedBy: 'System'
+        CreatedBy: 'System',
     },
     {
         id: '3',
@@ -77,7 +77,7 @@ let mockAppUsers: AppUser[] = [
         PinStatus: 'pending',
         MustChangePassword: true,
         CreatedDate: new Date().toISOString(),
-        CreatedBy: 'Alice Admin'
+        CreatedBy: 'Alice Admin',
     },
     {
         id: '4',
@@ -88,8 +88,8 @@ let mockAppUsers: AppUser[] = [
         PinStatus: 'not_set',
         MustChangePassword: false,
         CreatedDate: new Date().toISOString(),
-        CreatedBy: 'Alice Admin'
-    }
+        CreatedBy: 'Alice Admin',
+    },
 ];
 
 interface AuthResult {
@@ -136,13 +136,9 @@ interface SetStatusApiResponse {
 }
 
 // SIMULATED BACKEND DELAY
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const mockTempPasswords = new Map<string, string>([
-    ['3', generateTempPassword()],
-]);
-const mockTempPins = new Map<string, string>([
-    ['3', generateTempPin()],
-]);
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const mockTempPasswords = new Map<string, string>([['3', generateTempPassword()]]);
+const mockTempPins = new Map<string, string>([['3', generateTempPin()]]);
 
 const canUseAuthApi = (): boolean => Boolean(AUTH_API_BASE_URL);
 
@@ -178,7 +174,9 @@ export const authService = {
             };
         }
 
-        const user = mockAppUsers.find(u => u.MicrosoftEmail.toLowerCase() === email.toLowerCase());
+        const user = mockAppUsers.find(
+            (u) => u.MicrosoftEmail.toLowerCase() === email.toLowerCase(),
+        );
 
         if (!user) {
             // Le motif est ce que l'écran d'accès refusé affiche (planche 17.1) : il dit
@@ -213,16 +211,17 @@ export const authService = {
 
         if (!MOCK_AUTH_BACKEND_ENABLED) throw new Error('Mode mock auth désactivé.');
 
-        const user = mockAppUsers.find(u => u.id === userId);
+        const user = mockAppUsers.find((u) => u.id === userId);
 
-        if (!user) throw new Error("User not found");
-        if (newPass.length < 8) throw new Error("New password too short");
+        if (!user) throw new Error('User not found');
+        if (newPass.length < 8) throw new Error('New password too short');
 
         const expectedTempPassword = mockTempPasswords.get(userId);
         if (user.MustChangePassword) {
-            if (!expectedTempPassword) throw new Error("Temporary password unavailable for this account");
+            if (!expectedTempPassword)
+                throw new Error('Temporary password unavailable for this account');
             if (expectedTempPassword !== tempPass) {
-                throw new Error("Invalid temporary password");
+                throw new Error('Invalid temporary password');
             }
         }
 
@@ -248,7 +247,9 @@ export const authService = {
 
                 const payload = (await response.json()) as AuthUsersApiResponse;
                 if (!response.ok || !payload.ok) {
-                    throw new Error(payload.message || "Impossible de lire les utilisateurs via l'API.");
+                    throw new Error(
+                        payload.message || "Impossible de lire les utilisateurs via l'API.",
+                    );
                 }
 
                 return Array.isArray(payload.users) ? payload.users : [];
@@ -274,11 +275,11 @@ export const authService = {
             throw new Error('Mode mock auth désactivé.');
         }
 
-        const existing = mockAppUsers.find(u => u.MicrosoftEmail === newUser.MicrosoftEmail);
-        if (existing) throw new Error("User with this email already exists.");
+        const existing = mockAppUsers.find((u) => u.MicrosoftEmail === newUser.MicrosoftEmail);
+        if (existing) throw new Error('User with this email already exists.');
 
         const generatedId = Math.random().toString(36).substr(2, 9);
-        const tempPass = Math.random().toString(36).slice(-8) + "!";
+        const tempPass = Math.random().toString(36).slice(-8) + '!';
         const tempPin = generateTempPin();
         mockTempPasswords.set(generatedId, tempPass);
         mockTempPins.set(generatedId, tempPin);
@@ -296,7 +297,7 @@ export const authService = {
             CreatedDate: new Date().toISOString(),
             CreatedBy: newUser.CreatedBy || 'Admin',
             InvitationSentDate: new Date().toISOString(), // Simulating Email Sent
-            Notes: newUser.Notes
+            Notes: newUser.Notes,
         };
 
         mockAppUsers = [user, ...mockAppUsers];
@@ -311,8 +312,8 @@ export const authService = {
             throw new Error('Mode mock auth désactivé.');
         }
 
-        const index = mockAppUsers.findIndex(u => u.id === id);
-        if (index === -1) throw new Error("User not found");
+        const index = mockAppUsers.findIndex((u) => u.id === id);
+        if (index === -1) throw new Error('User not found');
 
         const safeUpdates = { ...updates };
         delete safeUpdates.TemporaryPassword;
@@ -330,18 +331,23 @@ export const authService = {
 
     resetUserPassword: async (id: string): Promise<ResetPasswordResult> => {
         if (canUseAuthApi()) {
-            const response = await fetch(authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/reset-password`), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-key': AUTH_ADMIN_API_KEY,
+            const response = await fetch(
+                authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/reset-password`),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-key': AUTH_ADMIN_API_KEY,
+                    },
+                    body: JSON.stringify({}),
                 },
-                body: JSON.stringify({}),
-            });
+            );
 
             const payload = (await response.json()) as ResetPasswordApiResponse;
             if (!response.ok || !payload.ok || !payload.user || !payload.temporaryPassword) {
-                throw new Error(payload.message || 'Réinitialisation du mot de passe refusée par le backend.');
+                throw new Error(
+                    payload.message || 'Réinitialisation du mot de passe refusée par le backend.',
+                );
             }
 
             return {
@@ -365,7 +371,8 @@ export const authService = {
         const updatedUser: AppUser = {
             ...mockAppUsers[index],
             MustChangePassword: true,
-            Status: mockAppUsers[index].Status === 'inactive' ? 'pending' : mockAppUsers[index].Status,
+            Status:
+                mockAppUsers[index].Status === 'inactive' ? 'pending' : mockAppUsers[index].Status,
             InvitationSentDate: new Date().toISOString(),
         };
 
@@ -380,18 +387,23 @@ export const authService = {
     resetUserPin: async (id: string): Promise<ResetPinResult> => {
         if (canUseAuthApi()) {
             try {
-                const response = await fetch(authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/reset-pin`), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-key': AUTH_ADMIN_API_KEY,
+                const response = await fetch(
+                    authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/reset-pin`),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-key': AUTH_ADMIN_API_KEY,
+                        },
+                        body: JSON.stringify({}),
                     },
-                    body: JSON.stringify({}),
-                });
+                );
 
                 const payload = (await response.json()) as ResetPinApiResponse;
                 if (!response.ok || !payload.ok || !payload.user || !payload.temporaryPin) {
-                    throw new Error(payload.message || 'Réinitialisation du PIN refusée par le backend.');
+                    throw new Error(
+                        payload.message || 'Réinitialisation du PIN refusée par le backend.',
+                    );
                 }
 
                 return {
@@ -400,9 +412,7 @@ export const authService = {
                 };
             } catch (error) {
                 if (!MOCK_AUTH_BACKEND_ENABLED) {
-                    throw error instanceof Error
-                        ? error
-                        : new Error('API PIN indisponible.');
+                    throw error instanceof Error ? error : new Error('API PIN indisponible.');
                 }
                 console.warn('[authService] Fallback local resetUserPin:', error);
             }
@@ -437,24 +447,27 @@ export const authService = {
     setUserStatus: async (id: string, status: AppUser['Status']): Promise<AppUser> => {
         if (canUseAuthApi()) {
             try {
-                const response = await fetch(authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/status`), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-key': AUTH_ADMIN_API_KEY,
+                const response = await fetch(
+                    authApiUrl(`/api/auth/users/${encodeURIComponent(id)}/status`),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-key': AUTH_ADMIN_API_KEY,
+                        },
+                        body: JSON.stringify({ status }),
                     },
-                    body: JSON.stringify({ status }),
-                });
+                );
                 const payload = (await response.json()) as SetStatusApiResponse;
                 if (!response.ok || !payload.ok || !payload.user) {
-                    throw new Error(payload.message || "Mise à jour du statut refusée par le backend.");
+                    throw new Error(
+                        payload.message || 'Mise à jour du statut refusée par le backend.',
+                    );
                 }
                 return payload.user;
             } catch (error) {
                 if (!MOCK_AUTH_BACKEND_ENABLED) {
-                    throw error instanceof Error
-                        ? error
-                        : new Error('API statut indisponible.');
+                    throw error instanceof Error ? error : new Error('API statut indisponible.');
                 }
                 console.warn('[authService] Fallback local setUserStatus:', error);
             }
@@ -486,8 +499,6 @@ export const authService = {
 
         mockTempPasswords.delete(id);
         mockTempPins.delete(id);
-        mockAppUsers = mockAppUsers.filter(u => u.id !== id);
-    }
+        mockAppUsers = mockAppUsers.filter((u) => u.id !== id);
+    },
 };
-
-

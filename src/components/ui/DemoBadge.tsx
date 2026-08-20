@@ -23,14 +23,14 @@ export const DemoBadge: React.FC<DemoBadgeProps> = ({ label = 'Démo', title, cl
             aria-label={accessibleTitle}
             title={accessibleTitle}
             className={cn(
-            'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-outline-variant',
-            'bg-surface-container text-on-surface-variant text-label-small uppercase tracking-wide whitespace-nowrap',
-            className
-        )}
-    >
-        <MaterialIcon name="science" size={12} />
-        {label}
-    </span>
+                'border-outline-variant inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5',
+                'bg-surface-container text-on-surface-variant text-label-small tracking-wide whitespace-nowrap uppercase',
+                className,
+            )}
+        >
+            <MaterialIcon name="science" size={12} />
+            {label}
+        </span>
     );
 };
 

@@ -241,11 +241,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                   chaque groupe porte 18 px, le lien en reprend 2 au-dessus
                                   — 20 px sous le champ — et en pose 28 avant le geste.
                                 */}
-                                <form
-                                    noValidate
-                                    onSubmit={handleLogin}
-                                    className="flex flex-col"
-                                >
+                                <form noValidate onSubmit={handleLogin} className="flex flex-col">
                                     <div className="mb-[18px]">
                                         <InputField
                                             id="login-email"
@@ -327,8 +323,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                     <div className="mt-auto pt-5">
                                         <div className="border-t border-[var(--tk-color-border-default)] pt-4">
                                             <p className="mb-3 text-[12px] text-[var(--tk-color-text-muted)]">
-                                                Comptes de démonstration — développement
-                                                uniquement
+                                                Comptes de démonstration — développement uniquement
                                             </p>
                                             {/*
                                               LE PORTEUR D'IDENTITÉ N'EST PLUS MUET.

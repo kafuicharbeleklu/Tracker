@@ -63,20 +63,20 @@ const ScreenState: React.FC<ScreenStateProps> = ({
 }) => (
     <div
         className={cn(
-            'flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-14 pt-7 text-center',
-            className
+            'flex flex-1 flex-col items-center justify-center gap-4 px-6 pt-7 pb-14 text-center',
+            className,
         )}
     >
-        <span className="flex h-28 w-28 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+        <span className="bg-surface-container text-on-surface-variant flex h-28 w-28 items-center justify-center rounded-full">
             <Icon glyph={icon} size={32} />
         </span>
 
         <div>
-            <p className="font-brand text-[20px] font-semibold leading-7 tracking-[-0.01em] text-on-surface">
+            <p className="font-brand text-on-surface text-[20px] leading-7 font-semibold tracking-[-0.01em]">
                 {title}
             </p>
             {description && (
-                <p className="text-body-medium mx-auto mt-2 max-w-[280px] leading-5 text-on-surface-variant">
+                <p className="text-body-medium text-on-surface-variant mx-auto mt-2 max-w-[280px] leading-5">
                     {description}
                 </p>
             )}
@@ -87,7 +87,9 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         )}
 
         {footnote && (
-            <p className="mx-auto max-w-[280px] text-body-small text-on-surface-variant">{footnote}</p>
+            <p className="text-body-small text-on-surface-variant mx-auto max-w-[280px]">
+                {footnote}
+            </p>
         )}
 
         {after && <div className="rounded-card bg-surface mt-1 w-full p-4 text-left">{after}</div>}

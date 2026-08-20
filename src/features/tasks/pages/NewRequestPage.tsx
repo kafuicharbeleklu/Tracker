@@ -32,9 +32,12 @@ const NewRequestPage = () => {
                 // Un type non attribuable ne se remet pas en main propre : il n'y a
                 // rien à demander (planche 06.4, arbitrage `assignable` du 05/08).
                 .filter((category) => category.assignable)
-                .map((category) => ({ value: category.name, label: getCategoryLabel(category.name) }))
+                .map((category) => ({
+                    value: category.name,
+                    label: getCategoryLabel(category.name),
+                }))
                 .sort((a, b) => a.label.localeCompare(b.label, 'fr')),
-        [categories]
+        [categories],
     );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,30 +53,34 @@ const NewRequestPage = () => {
 
         if (role === 'Manager') {
             // Managers see their direct reports
-            const team = users.filter(u => u.managerId === currentUser.id).map(u => ({
-                value: u.id,
-                label: u.name
-            }));
+            const team = users
+                .filter((u) => u.managerId === currentUser.id)
+                .map((u) => ({
+                    value: u.id,
+                    label: u.name,
+                }));
             return [selfOption, ...team];
         }
 
         if (role === 'Admin' || role === 'SuperAdmin') {
             // Admins see everyone
-            const all = users.map(u => ({
+            const all = users.map((u) => ({
                 value: u.id,
-                label: u.name
+                label: u.name,
             }));
             // Avoid duplicate self
-            return all.filter(u => u.value !== currentUser.id).concat([selfOption]);
+            return all.filter((u) => u.value !== currentUser.id).concat([selfOption]);
         }
 
         return [selfOption];
     }, [users, currentUser, role]);
 
-    const selectedBeneficiary = users.find(u => u.id === formData.beneficiaryId) || currentUser;
+    const selectedBeneficiary = users.find((u) => u.id === formData.beneficiaryId) || currentUser;
 
     // Find manager name of the BENEFICIARY (not necessarily the requester)
-    const beneficiaryManager = selectedBeneficiary?.managerId ? users.find(u => u.id === selectedBeneficiary.managerId) : null;
+    const beneficiaryManager = selectedBeneficiary?.managerId
+        ? users.find((u) => u.id === selectedBeneficiary.managerId)
+        : null;
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -139,15 +146,15 @@ const NewRequestPage = () => {
                 equipmentName: `Demande: ${formData.category}`,
                 equipmentType: formData.category,
                 requestType: 'Attribution',
-                requestDate: 'Aujourd\'hui',
-                image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop'
+                requestDate: "Aujourd'hui",
+                image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop',
             });
 
             const successMsg = isDelegated
                 ? `Demande créée pour ${selectedBeneficiary.name} avec succès`
                 : requiresManagerGate
-                    ? 'Votre demande a été transmise à votre manager'
-                    : "Votre demande a été transmise à l'équipe IT";
+                  ? 'Votre demande a été transmise à votre manager'
+                  : "Votre demande a été transmise à l'équipe IT";
 
             showToast(successMsg, 'success');
             navigate('/approvals');
@@ -163,9 +170,8 @@ const NewRequestPage = () => {
             saveLabel={isSubmitting ? 'Envoi en cours' : 'Envoyer la demande'}
             isSaving={isSubmitting}
         >
-            <div className="max-w-xl mx-auto">
-                <div className="bg-surface rounded-card border border-outline-variant p-6 shadow-elevation-1 space-y-6">
-
+            <div className="mx-auto max-w-xl">
+                <div className="bg-surface rounded-card border-outline-variant shadow-elevation-1 space-y-6 border p-6">
                     {/* Audit 14H: Beneficiary Selection */}
                     {(role === 'Manager' || role === 'Admin' || role === 'SuperAdmin') && (
                         <SelectField
@@ -173,7 +179,9 @@ const NewRequestPage = () => {
                             name="beneficiaryId"
                             options={potentialBeneficiaries}
                             value={formData.beneficiaryId}
-                            onChange={(e) => setFormData({ ...formData, beneficiaryId: e.target.value })}
+                            onChange={(e) =>
+                                setFormData({ ...formData, beneficiaryId: e.target.value })
+                            }
                             required
                         />
                     )}
@@ -200,7 +208,12 @@ const NewRequestPage = () => {
                                 { value: 'high', label: 'Urgente' },
                             ]}
                             value={formData.urgency}
-                            onChange={(e) => setFormData({ ...formData, urgency: e.target.value as 'low' | 'normal' | 'high' })}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    urgency: e.target.value as 'low' | 'normal' | 'high',
+                                })
+                            }
                         />
                     </div>
 
@@ -214,14 +227,19 @@ const NewRequestPage = () => {
                         required
                     />
 
-                    <div className="p-4 bg-primary-container/40 border border-primary/10 rounded-lg">
+                    <div className="bg-primary-container/40 border-primary/10 rounded-lg border p-4">
                         <p className="text-body-medium text-on-surface">
                             {/* Un émoji est un dessin qu'on n'a pas choisi (registre §2.34). */}
                             Demande pour <strong>{selectedBeneficiary?.name}</strong>.
-                            {beneficiaryManager && beneficiaryManager.id !== currentUser?.id
-                                ? <span> Elle part à <strong>{beneficiaryManager.name}</strong>, qui la validera.</span>
-                                : <span> Elle part directement à l'informatique.</span>
-                            }
+                            {beneficiaryManager && beneficiaryManager.id !== currentUser?.id ? (
+                                <span>
+                                    {' '}
+                                    Elle part à <strong>{beneficiaryManager.name}</strong>, qui la
+                                    validera.
+                                </span>
+                            ) : (
+                                <span> Elle part directement à l'informatique.</span>
+                            )}
                         </p>
                     </div>
                 </div>

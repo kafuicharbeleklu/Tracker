@@ -60,25 +60,42 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
     const visibleTo = Math.min(pageStart + pageItems.length, items.length);
 
     return (
-        <div className={cn('bg-surface rounded-xl shadow-elevation-1 border border-outline-variant p-card', className)}>
+        <div
+            className={cn(
+                'bg-surface shadow-elevation-1 border-outline-variant p-card rounded-xl border',
+                className,
+            )}
+        >
             <h3 className="text-label-large text-on-surface mb-6">{title}</h3>
             {items.length > 0 ? (
                 <>
-                    <div className="mb-3 flex items-center justify-between gap-3 text-label-small text-on-surface-variant">
-                        <span>{visibleFrom}-{visibleTo} sur {items.length}</span>
-                        {totalPages > 1 && <span>Page {currentPage}/{totalPages}</span>}
+                    <div className="text-label-small text-on-surface-variant mb-3 flex items-center justify-between gap-3">
+                        <span>
+                            {visibleFrom}-{visibleTo} sur {items.length}
+                        </span>
+                        {totalPages > 1 && (
+                            <span>
+                                Page {currentPage}/{totalPages}
+                            </span>
+                        )}
                     </div>
 
                     <div className={cn('overflow-y-auto pr-2', maxHeightClassName)}>
-                        <div className="space-y-0 relative border-l-2 border-outline-variant ml-3">
+                        <div className="border-outline-variant relative ml-3 space-y-0 border-l-2">
                             {pageItems.map((item) => (
-                                <div key={item.id} className="relative pl-8 pb-8 last:pb-0">
-                                    <div className="absolute -left-[10px] top-0 w-5 h-5 rounded-full bg-surface border-2 border-outline flex items-center justify-center">
-                                        <MaterialIcon name={item.icon || 'history'} size={12} className="text-primary" />
+                                <div key={item.id} className="relative pb-8 pl-8 last:pb-0">
+                                    <div className="bg-surface border-outline absolute top-0 -left-[10px] flex h-5 w-5 items-center justify-center rounded-full border-2">
+                                        <MaterialIcon
+                                            name={item.icon || 'history'}
+                                            size={12}
+                                            className="text-primary"
+                                        />
                                     </div>
-                                    <div className="flex flex-col medium:flex-row medium:justify-between medium:items-start gap-1.5">
+                                    <div className="medium:flex-row medium:justify-between medium:items-start flex flex-col gap-1.5">
                                         <div className="min-w-0">
-                                            <p className="text-body-small font-semibold text-on-surface break-words">{item.title}</p>
+                                            <p className="text-body-small text-on-surface font-semibold break-words">
+                                                {item.title}
+                                            </p>
                                             {(item.actor || item.meta) && (
                                                 <p className="text-label-small text-on-surface-variant break-words">
                                                     {item.actor ? `Par ${item.actor}` : null}
@@ -87,7 +104,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                                 </p>
                                             )}
                                         </div>
-                                        <span className="text-label-small font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-md whitespace-nowrap">
+                                        <span className="text-label-small text-on-surface-variant bg-surface-container rounded-md px-2 py-1 font-bold whitespace-nowrap">
                                             {formatTimelineDate(item.timestamp)}
                                         </span>
                                     </div>
@@ -102,7 +119,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                 type="button"
                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="border-outline-variant bg-surface text-label-small text-on-surface-variant hover:bg-surface-container focus-visible:ring-focus-ring focus-visible:ring-offset-surface duration-short4 inline-flex h-9 items-center gap-1 rounded-lg border px-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-38"
                                 aria-label="Page précédente de l'historique"
                             >
                                 <MaterialIcon name="chevron_left" size={16} />
@@ -111,9 +128,11 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
 
                             <button
                                 type="button"
-                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                onClick={() =>
+                                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                                }
                                 disabled={currentPage === totalPages}
-                                className="inline-flex h-9 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-3 text-label-small text-on-surface-variant hover:bg-surface-container active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-38 disabled:cursor-not-allowed transition-all duration-short4"
+                                className="border-outline-variant bg-surface text-label-small text-on-surface-variant hover:bg-surface-container focus-visible:ring-focus-ring focus-visible:ring-offset-surface duration-short4 inline-flex h-9 items-center gap-1 rounded-lg border px-3 transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-38"
                                 aria-label="Page suivante de l'historique"
                             >
                                 Suivant
@@ -123,7 +142,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                     )}
                 </>
             ) : (
-                <div className="rounded-md border border-dashed border-outline-variant bg-surface-container-low p-6 text-center">
+                <div className="border-outline-variant bg-surface-container-low rounded-md border border-dashed p-6 text-center">
                     <p className="text-body-medium text-on-surface-variant">{emptyMessage}</p>
                 </div>
             )}

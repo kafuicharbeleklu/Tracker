@@ -89,6 +89,7 @@ const MORE_VIEWS: ViewType[] = [
     'category_details',
     'model_details',
     'locations',
+    'site_details',
     'import_locations',
     'audit',
     'audit_details',
@@ -146,6 +147,7 @@ const MORE_SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
     category_details: 'management',
     model_details: 'management',
     locations: 'locations',
+    site_details: 'locations',
     import_locations: 'locations',
     audit: 'audit',
     audit_details: 'audit',
@@ -212,7 +214,7 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
         }}
         className={cn(
             'text-on-surface flex min-h-[52px] w-full items-center gap-3.5 rounded-md px-3 text-left text-[15px] font-medium transition-colors',
-            here ? 'bg-surface-container' : 'hover:bg-surface-container'
+            here ? 'bg-surface-container' : 'hover:bg-surface-container',
         )}
     >
         <Icon
@@ -353,9 +355,19 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             ...item,
             active: activeId !== null && item.id === activeId,
         }));
-    }, [currentView, onMoreClick, onViewChange, permissions.canViewApprovals, permissions.canViewInventory, permissions.canViewUsers]);
+    }, [
+        currentView,
+        onMoreClick,
+        onViewChange,
+        permissions.canViewApprovals,
+        permissions.canViewInventory,
+        permissions.canViewUsers,
+    ]);
 
-    const activeIndex = Math.max(0, destinations.findIndex((item) => item.active));
+    const activeIndex = Math.max(
+        0,
+        destinations.findIndex((item) => item.active),
+    );
 
     // Handle outside clicks and escape key for menu
     useEffect(() => {
@@ -391,32 +403,35 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         itemRefs.current[index]?.focus();
     }, []);
 
-    const handleItemKeyDown = useCallback((index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
-        if (destinations.length === 0) {
-            return;
-        }
+    const handleItemKeyDown = useCallback(
+        (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
+            if (destinations.length === 0) {
+                return;
+            }
 
-        switch (event.key) {
-            case 'ArrowRight':
-                event.preventDefault();
-                focusItem((index + 1) % destinations.length);
-                break;
-            case 'ArrowLeft':
-                event.preventDefault();
-                focusItem((index - 1 + destinations.length) % destinations.length);
-                break;
-            case 'Home':
-                event.preventDefault();
-                focusItem(0);
-                break;
-            case 'End':
-                event.preventDefault();
-                focusItem(destinations.length - 1);
-                break;
-            default:
-                break;
-        }
-    }, [destinations.length, focusItem]);
+            switch (event.key) {
+                case 'ArrowRight':
+                    event.preventDefault();
+                    focusItem((index + 1) % destinations.length);
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    focusItem((index - 1 + destinations.length) % destinations.length);
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    focusItem(0);
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    focusItem(destinations.length - 1);
+                    break;
+                default:
+                    break;
+            }
+        },
+        [destinations.length, focusItem],
+    );
 
     return (
         <>
@@ -444,7 +459,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 >
                     <span
                         aria-hidden="true"
-                        className="rounded-xs bg-outline-variant mx-auto mt-2 mb-0.5 h-1 w-9 shrink-0"
+                        className="bg-outline-variant mx-auto mt-2 mb-0.5 h-1 w-9 shrink-0 rounded-xs"
                     />
 
                     <div className="flex items-baseline gap-2 px-5 pt-2 pb-2.5">
@@ -481,7 +496,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                     />
                                 ))}
                             </div>
-                            <span aria-hidden="true" className="bg-outline-variant mx-5 my-2 h-px" />
+                            <span
+                                aria-hidden="true"
+                                className="bg-outline-variant mx-5 my-2 h-px"
+                            />
                         </>
                     )}
 
@@ -492,7 +510,6 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             onDone={() => setIsMenuOpen(false)}
                         />
                     </div>
-
                 </div>
             )}
 
@@ -501,10 +518,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 aria-label="Navigation principale"
                 role="navigation"
                 className={cn(
-                    'nav h-14 min-h-[56px] w-full flex items-center justify-around bg-surface border-t border-[var(--tk-color-border-default)] select-none',
+                    'nav bg-surface flex h-14 min-h-[56px] w-full items-center justify-around border-t border-[var(--tk-color-border-default)] select-none',
                     !embedded &&
-                        'fixed bottom-0 left-0 right-0 z-50 pb-[max(0px,env(safe-area-inset-bottom))]',
-                    className
+                        'fixed right-0 bottom-0 left-0 z-50 pb-[max(0px,env(safe-area-inset-bottom))]',
+                    className,
                 )}
             >
                 {destinations.map((item, index) => {
@@ -533,7 +550,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                     : 'text-on-surface-variant hover:text-on-surface',
                                 // La case ouverte s'allume : elle est au-dessus du voile,
                                 // et c'est le seul indice qu'elle est encore pressable.
-                                isMore && isMenuOpen && 'bg-surface-container text-on-surface'
+                                isMore && isMenuOpen && 'bg-surface-container text-on-surface',
                             )}
                         >
                             <Glyph

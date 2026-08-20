@@ -62,7 +62,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
     const isCompactOrMedium = useMediaQuery(MEDIA.belowExpanded);
     const titleId = useId();
     const internalDescriptionId = useId();
-    const resolvedDescriptionId = ariaDescribedBy ?? (description ? internalDescriptionId : undefined);
+    const resolvedDescriptionId =
+        ariaDescribedBy ?? (description ? internalDescriptionId : undefined);
 
     useEffect(() => {
         if (open) {
@@ -89,8 +90,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
         if (!sheetRef.current) return [];
         return Array.from(
             sheetRef.current.querySelectorAll<HTMLElement>(
-                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-            )
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
         );
     }, []);
 
@@ -164,31 +165,25 @@ const SideSheet: React.FC<SideSheetProps> = ({
 
     const renderAsBottomSheet = isCompactOrMedium;
 
-    const widthClass = width === 'standard'
-        ? 'w-[min(100vw,360px)]'
-        : 'w-[min(100vw,256px)]';
+    const widthClass = width === 'standard' ? 'w-[min(100vw,360px)]' : 'w-[min(100vw,256px)]';
 
     const sideClass = renderAsBottomSheet
         ? 'inset-x-0 bottom-0 border-t border-outline-variant rounded-t-xl'
         : side === 'right'
-            ? 'right-0 border-l border-outline-variant rounded-none'
-            : 'left-0 border-r border-outline-variant rounded-none';
+          ? 'right-0 border-l border-outline-variant rounded-none'
+          : 'left-0 border-r border-outline-variant rounded-none';
 
     const animationClass = renderAsBottomSheet
-        ? (
-            closing
-                ? 'animate-out slide-out-to-bottom-4 fade-out duration-200'
-                : 'animate-in slide-in-from-bottom-4 fade-in duration-medium2'
-        )
-        : (
-            closing
-                ? (side === 'right'
-                    ? 'animate-out slide-out-to-right-4 fade-out duration-200'
-                    : 'animate-out slide-out-to-left-4 fade-out duration-200')
-                : (side === 'right'
-                    ? 'animate-in slide-in-from-right-4 fade-in duration-medium2'
-                    : 'animate-in slide-in-from-left-4 fade-in duration-medium2')
-        );
+        ? closing
+            ? 'animate-out slide-out-to-bottom-4 fade-out duration-200'
+            : 'animate-in slide-in-from-bottom-4 fade-in duration-medium2'
+        : closing
+          ? side === 'right'
+              ? 'animate-out slide-out-to-right-4 fade-out duration-200'
+              : 'animate-out slide-out-to-left-4 fade-out duration-200'
+          : side === 'right'
+            ? 'animate-in slide-in-from-right-4 fade-in duration-medium2'
+            : 'animate-in slide-in-from-left-4 fade-in duration-medium2';
 
     return (
         <div className="fixed inset-0 z-[100]">
@@ -196,8 +191,10 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 <div
                     aria-hidden="true"
                     className={cn(
-                        'absolute inset-0 bg-scrim/[0.32]',
-                        closing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-medium2'
+                        'bg-scrim/[0.32] absolute inset-0',
+                        closing
+                            ? 'animate-out fade-out duration-200'
+                            : 'animate-in fade-in duration-medium2',
                     )}
                     onClick={handleClose}
                 />
@@ -212,19 +209,26 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 aria-describedby={resolvedDescriptionId}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    'absolute bg-surface shadow-elevation-2 flex flex-col',
+                    'bg-surface shadow-elevation-2 absolute flex flex-col',
                     renderAsBottomSheet ? 'max-h-[90vh] w-full' : `top-0 bottom-0 ${widthClass}`,
                     sideClass,
                     animationClass,
-                    className
+                    className,
                 )}
             >
                 {(title || dismissible) && (
-                    <div className="px-5 py-4 border-b border-outline-variant flex items-start justify-between gap-4 shrink-0">
+                    <div className="border-outline-variant flex shrink-0 items-start justify-between gap-4 border-b px-5 py-4">
                         <div className="min-w-0">
-                            {title && <h2 id={titleId} className="section-title">{title}</h2>}
+                            {title && (
+                                <h2 id={titleId} className="section-title">
+                                    {title}
+                                </h2>
+                            )}
                             {description && (
-                                <p id={resolvedDescriptionId} className="mt-1 text-body-small text-on-surface-variant">
+                                <p
+                                    id={resolvedDescriptionId}
+                                    className="text-body-small text-on-surface-variant mt-1"
+                                >
                                     {description}
                                 </p>
                             )}
@@ -233,12 +237,17 @@ const SideSheet: React.FC<SideSheetProps> = ({
                     </div>
                 )}
 
-                <div className={cn('flex-1 overflow-y-auto custom-scrollbar px-5 py-4', contentClassName)}>
+                <div
+                    className={cn(
+                        'custom-scrollbar flex-1 overflow-y-auto px-5 py-4',
+                        contentClassName,
+                    )}
+                >
                     {children}
                 </div>
 
                 {footer && (
-                    <div className="px-5 py-4 border-t border-outline-variant bg-surface-container shrink-0">
+                    <div className="border-outline-variant bg-surface-container shrink-0 border-t px-5 py-4">
                         {footer}
                     </div>
                 )}
@@ -248,4 +257,3 @@ const SideSheet: React.FC<SideSheetProps> = ({
 };
 
 export default SideSheet;
-

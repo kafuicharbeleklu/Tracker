@@ -1,5 +1,12 @@
 import React, { useMemo } from 'react';
-import { ArrowBendDownLeft, ArrowLeft, Funnel, List, SortAscending, X } from '@phosphor-icons/react';
+import {
+    ArrowBendDownLeft,
+    ArrowLeft,
+    Funnel,
+    List,
+    SortAscending,
+    X,
+} from '@phosphor-icons/react';
 
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
@@ -157,9 +164,10 @@ interface ListTemplateProps {
 }
 
 /** La mesure de lecture du système : 960 px, une seule valeur (§2.43). */
-const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-    <div className={cn('w-full max-w-[960px]', className)}>{children}</div>
-);
+const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
+    children,
+    className,
+}) => <div className={cn('w-full max-w-[960px]', className)}>{children}</div>;
 
 const ListTemplate: React.FC<ListTemplateProps> = ({
     title,
@@ -205,7 +213,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     }, [facets, activeFacetId, onFacetSelect]);
 
     return (
-        <div className={cn('relative flex min-h-0 min-w-0 w-full flex-1 flex-col', className)}>
+        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
             {selection?.active ? (
                 <SelectionTopBar
                     count={selection.count}
@@ -218,18 +226,18 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             ) : isCompact ? (
                 /* Barre du haut du téléphone (planche 04.1 .tbar.plain) : 56 px de haut,
                    titre 22 px Archivo, 20 px de marge latérale, bouton d'action à droite. */
-                <div className="flex min-h-14 items-center justify-between border-b border-outline-variant bg-surface px-5 py-1">
+                <div className="border-outline-variant bg-surface flex min-h-14 items-center justify-between border-b px-5 py-1">
                     {onBack && (
                         <button
                             type="button"
                             aria-label="Retour"
                             onClick={onBack}
-                            className="-ml-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                            className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
                         >
                             <Icon glyph={ArrowLeft} size={24} />
                         </button>
                     )}
-                    <h1 className="min-w-0 flex-1 font-brand text-[20px] font-semibold leading-7 tracking-[-0.015em] text-on-surface">
+                    <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
                         {title}
                     </h1>
                     {actions}
@@ -237,12 +245,14 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             ) : (
                 /* Au rail, la barre ne redit pas la destination : le rail la porte
                    déjà. Titre, compteur, gestes — sans filet (00.4). */
-                <div className="flex items-center gap-3 px-page pt-5">
-                    <h1 className="shrink-0 font-brand text-[20px] font-semibold leading-7 tracking-[-0.015em] text-on-surface">
+                <div className="px-page flex items-center gap-3 pt-5">
+                    <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
                         {title}
                     </h1>
                     {subtitle && (
-                        <span className="text-body-medium tabular-nums text-text-secondary">{subtitle}</span>
+                        <span className="text-body-medium text-text-secondary tabular-nums">
+                            {subtitle}
+                        </span>
                     )}
                     <span className="flex-1" />
                     {actions}
@@ -258,8 +268,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     className={cn(
                         'flex flex-col gap-2.5',
                         isCompact
-                            ? 'border-b border-outline-variant bg-surface px-5 py-3'
-                            : 'px-page pt-4'
+                            ? 'border-outline-variant bg-surface border-b px-5 py-3'
+                            : 'px-page pt-4',
                     )}
                 >
                     {(search || (filter && !(facets && facets.length > 0 && !search))) && (
@@ -277,15 +287,20 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     )}
 
                     {facets && facets.length > 0 && (
-                        <Reading className={cn('overflow-hidden', !search && filter ? 'flex items-center gap-2' : undefined)}>
+                        <Reading
+                            className={cn(
+                                'overflow-hidden',
+                                !search && filter ? 'flex items-center gap-2' : undefined,
+                            )}
+                        >
                             {/* À 393 px les puces défilent ; dès 600 elles tiennent toutes,
                                 et un filtre qu'on ne voit pas se choisit à l'aveugle. */}
                             {!search && filter && <span className="shrink-0">{filter}</span>}
                             <div
                                 className={cn(
-                                    'flex gap-2 overflow-x-auto [scrollbar-width:none]',
+                                    'flex [scrollbar-width:none] gap-2 overflow-x-auto',
                                     !search && filter && 'min-w-0 flex-1',
-                                    isCompact ? 'pr-1' : 'flex-wrap'
+                                    isCompact ? 'pr-1' : 'flex-wrap',
                                 )}
                             >
                                 {facets.map((facet) => (
@@ -298,7 +313,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         selected={facet.id === activeFacetId}
                                         onClick={() => onFacetSelect?.(facet.id)}
                                         onClear={
-                                            facet.id === activeFacetId ? onActiveFacetClear : undefined
+                                            facet.id === activeFacetId
+                                                ? onActiveFacetClear
+                                                : undefined
                                         }
                                         clearLabel={activeFacetClearLabel}
                                     />
@@ -309,12 +326,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 </div>
             )}
 
-            <div className="flex flex-1 flex-col gap-5 px-5 pt-4 pb-5 medium:px-page">
+            <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
                 {origin && (
                     <Reading>
-                        <div className="flex flex-wrap items-center gap-2 text-body-small text-text-secondary">
+                        <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">
                             {origin.displayToken !== false && (
-                                <span className="flex min-h-8 items-center gap-2 rounded-md bg-surface-container px-3 text-on-surface">
+                                <span className="bg-surface-container text-on-surface flex min-h-8 items-center gap-2 rounded-md px-3">
                                     {origin.token}
                                     <Button
                                         variant="text"
@@ -329,14 +346,18 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 </span>
                             )}
                             {origin.displayToken === false && (
-                                <Icon glyph={ArrowBendDownLeft} size={16} className="shrink-0 text-text-secondary" />
+                                <Icon
+                                    glyph={ArrowBendDownLeft}
+                                    size={16}
+                                    className="text-text-secondary shrink-0"
+                                />
                             )}
                             <span className="min-w-0">{origin.from}</span>
                             {origin.inlineClearLabel && (
                                 <button
                                     type="button"
                                     onClick={origin.onClear}
-                                    className="shrink-0 cursor-pointer text-[12px] font-medium text-on-surface underline underline-offset-4 hover:text-text-secondary"
+                                    className="text-on-surface hover:text-text-secondary shrink-0 cursor-pointer text-[12px] font-medium underline underline-offset-4"
                                 >
                                     {origin.inlineClearLabel}
                                 </button>
@@ -356,8 +377,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 */}
                 {activeFilterNotice && !selection?.active && (
                     <Reading>
-                        <div className="bg-surface-muted-strong text-body-medium flex items-center gap-2.5 rounded-vignette px-3.5 py-[11px] leading-[18px] text-on-surface-variant">
-                            <Icon glyph={Funnel} size={18} className="text-on-surface-variant shrink-0" />
+                        <div className="bg-surface-muted-strong text-body-medium rounded-vignette text-on-surface-variant flex items-center gap-2.5 px-3.5 py-[11px] leading-[18px]">
+                            <Icon
+                                glyph={Funnel}
+                                size={18}
+                                className="text-on-surface-variant shrink-0"
+                            />
                             <span className="min-w-0 flex-1">
                                 <b className="text-on-surface font-medium tabular-nums">
                                     {activeFilterNotice.shown} des {activeFilterNotice.total}
@@ -367,7 +392,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             <button
                                 type="button"
                                 onClick={activeFilterNotice.onClear}
-                                className="text-on-surface shrink-0 cursor-pointer text-body-small font-medium underline underline-offset-[3px]"
+                                className="text-on-surface text-body-small shrink-0 cursor-pointer font-medium underline underline-offset-[3px]"
                             >
                                 Tout voir
                             </button>
@@ -376,9 +401,11 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 )}
 
                 {count && !selection?.active && (
-                    <Reading className="flex min-h-11 items-center justify-between gap-3 text-[13px] text-text-secondary">
+                    <Reading className="text-text-secondary flex min-h-11 items-center justify-between gap-3 text-[13px]">
                         <span className="whitespace-nowrap">
-                            <b className="font-semibold tabular-nums text-on-surface">{count.total}</b>{' '}
+                            <b className="text-on-surface font-semibold tabular-nums">
+                                {count.total}
+                            </b>{' '}
                             {count.noun}
                             {typeof count.shown === 'number' && count.shown !== count.total && (
                                 <> · {count.shown} affichés</>
@@ -388,9 +415,13 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             <button
                                 type="button"
                                 onClick={sort.onClick}
-                                className="-mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium text-on-surface hover:bg-surface-container"
+                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium"
                             >
-                                <Icon glyph={SortAscending} size={18} className="text-text-secondary" />
+                                <Icon
+                                    glyph={SortAscending}
+                                    size={18}
+                                    className="text-text-secondary"
+                                />
                                 {sort.label}
                             </button>
                         )}
@@ -399,15 +430,15 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
                 {showSkeleton ? (
                     <Reading>
-                        <div className="rounded-xl bg-surface px-4">
+                        <div className="bg-surface rounded-xl px-4">
                             <SkeletonList />
                         </div>
                     </Reading>
                 ) : hasRows ? (
                     <Reading>
-                        <section className="rounded-xl bg-surface px-4">{children}</section>
+                        <section className="bg-surface rounded-xl px-4">{children}</section>
                         {footer && (
-                            <p className="mt-1.5 text-center text-[12px] tabular-nums text-text-muted">
+                            <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
                                 {footer}
                             </p>
                         )}
@@ -428,7 +459,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 variant="text"
                                 icon={<Icon glyph={List} size={18} />}
                                 onClick={origin.onClear}
-                                className="w-full justify-center rounded-none border-t border-outline-variant px-0 text-on-surface"
+                                className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
                             >
                                 {origin.clearLabel}
                             </Button>

@@ -1,156 +1,194 @@
-import React, { useState, useMemo } from 'react';
-import { useToast } from '../../../context/ToastContext';
-import Button from '../../../components/ui/Button';
-import Badge from '../../../components/ui/Badge';
-import { FileDropzone } from '../../../components/ui/FileDropzone';
-import { TableScrollArea } from '../../../components/ui/TableScrollArea';
+import React from 'react';
+import { Warning } from '@phosphor-icons/react';
+
+import ReferentialImportTemplate, {
+    type ImportCandidate,
+    type ImportColumn,
+} from '../../../components/layout/ReferentialImportTemplate';
+import Icon from '../../../components/ui/Icon';
 import { GLOSSARY } from '../../../constants/glossary';
-import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
+import { useData } from '../../../context/DataContext';
+import { useToast } from '../../../context/ToastContext';
 
 interface ImportLocationsPageProps {
     onCancel: () => void;
     onSave: () => void;
 }
 
-interface ParsedLocationRow {
-    _id: number;
-    name?: string;
-    type?: string;
+/**
+ * Les quatre valeurs admises. Le **local** s'ajoute aux trois de la planche : depuis
+ * l'arbitrage A2 de 10.1, l'arbre des emplacements est pays → site → local, et un
+ * import qui ne saurait pas écrire un local ne saurait pas remplir le référentiel.
+ * Le **service** reste admis : il n'est plus un niveau de l'arbre, mais il sert de
+ * périmètre à une campagne d'audit.
+ */
+type LocationKind = 'country' | 'site' | 'local' | 'service';
+const LOCATION_KINDS: LocationKind[] = ['country', 'site', 'local', 'service'];
+
+interface LocationDraft {
+    kind: LocationKind;
+    name: string;
     parent?: string;
-    _status: 'valid' | 'error';
-    _error: string;
-    [key: string]: string | number | undefined;
 }
 
+/** Le contrat de 09.2, colonne 4 — mêmes trois colonnes, une exigence conditionnelle. */
+const COLUMNS: ImportColumn[] = [
+    {
+        key: 'Name',
+        description: 'Le nom du pays, du site ou du local',
+        requirement: 'requis',
+        required: true,
+    },
+    {
+        key: 'Type',
+        description: (
+            <>
+                <b className="text-on-surface font-medium">country</b>,{' '}
+                <b className="text-on-surface font-medium">site</b>,{' '}
+                <b className="text-on-surface font-medium">local</b> ou{' '}
+                <b className="text-on-surface font-medium">service</b>
+            </>
+        ),
+        requirement: 'requis',
+        required: true,
+    },
+    {
+        key: 'ParentName',
+        description: 'Le nom exact du niveau au-dessus — vide pour un pays',
+        requirement: 'selon le type',
+    },
+];
+
+const SAMPLE = {
+    fileName: 'emplacements-exemple.csv',
+    content: [
+        'Name,Type,ParentName',
+        'Togo,country,',
+        'Lomé Siège,site,Togo',
+        'Salle serveurs,local,Lomé Siège',
+    ].join('\n'),
+};
+
+/**
+ * **Importer des emplacements** — planche 09.2, colonne 4.
+ *
+ * *« Même écran, même pied, même contrat : c'est un seul composant. »* Il partage donc
+ * `ReferentialImportTemplate` avec l'import de modèles, et ne garde que ce qui lui est
+ * propre — **la seule chose qui change, et elle est propre à la géographie** : une
+ * ligne peut être juste et refusée quand même, parce que son parent n'existe pas
+ * encore. C'est le seul cas où l'ordre des lignes du fichier compte.
+ *
+ * L'écran était resté le « avant » que la planche décrit : « Étape 1 : Télécharger le
+ * fichier CSV », les colonnes en une ligne de petit texte, un tableau de toutes les
+ * lignes avec une pastille par rangée — et un `handleImport` qui annonçait le succès
+ * sans rien écrire.
+ */
 const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onSave }) => {
+    const { locationData, addLocation } = useData();
     const { showToast } = useToast();
-    const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<ParsedLocationRow[]>([]);
-    const [previewMode, setPreviewMode] = useState(false);
 
-    const processFile = (uploadedFile: File) => {
-        if (uploadedFile.type !== 'text/csv' && !uploadedFile.name.endsWith('.csv')) {
-            showToast('Fichier CSV requis', 'error');
-            return;
-        }
-        setFile(uploadedFile);
+    const parse = (text: string): ImportCandidate<LocationDraft>[] => {
+        const lines = text.split(/\r?\n/).filter((line) => line.trim());
+        if (lines.length < 2) return [];
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target?.result as string;
-            if (!text) return;
+        const separator = lines[0].includes(';') ? ';' : ',';
+        /* Le référentiel grandit au fil du fichier : un pays créé à la ligne 3 rend
+           valide le site de la ligne 4. C'est ce qui permet de dire « il suffit souvent
+           de remonter la ligne du pays au-dessus de ses sites » plutôt que « Type
+           invalide » pour trois causes différentes. */
+        const knownCountries = new Set(
+            locationData.countries.map((country) => country.toLowerCase()),
+        );
+        const knownSites = new Set(
+            (Object.values(locationData.sites) as string[][])
+                .flat()
+                .map((site) => site.toLowerCase()),
+        );
 
-            const lines = text.split('\n').filter(l => l.trim());
-            if (lines.length < 2) return;
+        return lines.slice(1).map((line, index) => {
+            const values = line
+                .split(separator)
+                .map((value) => value.replace(/^["']|["']$/g, '').trim());
+            const [name = '', rawKind = '', parent = ''] = values;
+            const kind = rawKind.toLowerCase() as LocationKind;
+            const nameKey = name.toLowerCase();
+            const parentKey = parent.toLowerCase();
 
-            const data = lines.slice(1).map((line, idx) => {
-                const vals = line.split(',');
-                const row: ParsedLocationRow = {
-                    _id: idx,
-                    name: vals[0]?.trim(),
-                    type: vals[1]?.trim(),
-                    parent: vals[2]?.trim(),
-                    _status: 'error',
-                    _error: ''
-                };
+            let error: string | undefined;
+            if (!name) {
+                error = 'Nom absent';
+            } else if (!LOCATION_KINDS.includes(kind)) {
+                error = `Type « ${rawKind || '—'} » invalide — attendu : country, site, local ou service`;
+            } else if (kind === 'country') {
+                if (knownCountries.has(nameKey)) error = `« ${name} » existe déjà`;
+            } else if (kind === 'site') {
+                if (!parent) error = 'Parent absent — un site doit dire à quel pays il appartient';
+                else if (!knownCountries.has(parentKey)) {
+                    error = `Parent « ${parent} » introuvable — le pays doit être créé avant ses sites`;
+                } else if (knownSites.has(nameKey)) error = `« ${name} » existe déjà`;
+            } else if (!parent) {
+                error = `Parent absent — un ${kind === 'local' ? 'local' : 'service'} doit dire à quel site il appartient`;
+            } else if (!knownSites.has(parentKey)) {
+                error = `Parent « ${parent} » introuvable — le site doit être créé avant ses ${kind === 'local' ? 'locaux' : 'services'}`;
+            }
 
-                const isValidType = ['country', 'site', 'service'].includes(row.type?.toLowerCase());
+            if (!error) {
+                if (kind === 'country') knownCountries.add(nameKey);
+                if (kind === 'site') knownSites.add(nameKey);
+            }
 
-                row._status = (row.name && isValidType) ? 'valid' : 'error';
-                row._error = !row.name ? 'Nom requis' : !isValidType ? 'Type invalide' : '';
-                return row;
-            });
-            setParsedData(data);
-            setPreviewMode(true);
-        };
-        reader.readAsText(uploadedFile);
+            return {
+                line: index + 2,
+                label: name || '(sans nom)',
+                error,
+                value: error ? undefined : { kind, name, parent: parent || undefined },
+            };
+        });
     };
 
-    const stats = useMemo(() => ({
-        valid: parsedData.filter(d => d._status === 'valid').length,
-        invalid: parsedData.filter(d => d._status === 'error').length
-    }), [parsedData]);
-
-    const handleImport = () => {
-        if (!file || stats.valid === 0) return;
-        setTimeout(() => {
-            showToast(`${stats.valid} localisations importées.`, 'success');
-            onSave();
-        }, 800);
-    };
-
-    const reset = () => {
-        setFile(null);
-        setParsedData([]);
-        setPreviewMode(false);
+    /** Écrites **dans l'ordre du fichier** : c'est l'ordre qui a rendu les enfants valides. */
+    const handleImport = (drafts: LocationDraft[]) => {
+        drafts.forEach((draft) => {
+            addLocation(
+                draft.kind,
+                draft.name,
+                draft.kind === 'country' ? undefined : draft.parent,
+            );
+        });
+        showToast(
+            `${drafts.length} emplacement${drafts.length > 1 ? 's' : ''} importé${drafts.length > 1 ? 's' : ''}.`,
+            'success',
+        );
+        onSave();
     };
 
     return (
-        <FullScreenFormLayout
+        <ReferentialImportTemplate<LocationDraft>
             title={`Importer des ${GLOSSARY.LOCATION_PLURAL.toLowerCase()}`}
             onCancel={onCancel}
-            onSave={handleImport}
-            saveLabel={`Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`}
-            isSaving={!previewMode || stats.valid === 0}
-        >
-            {!previewMode ? (
-                <div className="bg-surface rounded-card p-page shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95">
-                    <h3 className="text-label-large font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
-                    <p className="text-body-medium text-on-surface-variant mb-6">Colonnes : Name, Type (country/site/service), ParentName.</p>
-                    <FileDropzone
-                        onFileSelect={processFile}
-                        accept=".csv"
-                        label="Glisser un fichier CSV"
-                        subLabel="ou cliquer pour importer"
-                        className="rounded-card p-12"
+            columns={COLUMNS}
+            sample={SAMPLE}
+            noun={{ one: 'emplacement', many: 'emplacements' }}
+            parse={parse}
+            onImport={handleImport}
+            dropSubLabel="Un pays doit figurer avant ses sites, un site avant ses services"
+            rejectionNote={
+                <>
+                    <Icon
+                        glyph={Warning}
+                        size={18}
+                        className="mt-px shrink-0 text-[var(--tk-color-st-ambre)]"
                     />
-                </div>
-            ) : (
-                <div className="space-y-6 animate-in slide-in-from-right-8">
-                    <div className="bg-surface p-4 rounded-xl border border-outline-variant flex justify-between items-center">
-                        <div>
-                            <p className="font-bold text-on-surface">{file?.name}</p>
-                            <p className="text-body-small text-on-surface-variant">{stats.valid} valides, {stats.invalid} erreurs</p>
-                        </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Annuler</Button>
-                    </div>
-
-                    <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden">
-                        <TableScrollArea
-                            label={`Aperçu des ${GLOSSARY.LOCATION_PLURAL.toLowerCase()} à importer`}
-                            scrollerClassName="max-h-[400px]"
-                        >
-                            <table className="w-full text-body-medium text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
-                                        <th className="px-4 py-3">Nom</th>
-                                        <th className="px-4 py-3">Type</th>
-                                        <th className="px-4 py-3">Parent</th>
-                                        <th className="px-4 py-3">Info</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {parsedData.map((row) => (
-                                        <tr key={row._id} className="group hover:bg-surface-container border-b border-outline-variant/30 last:border-0">
-                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface group-hover:bg-surface-container border-r border-outline-variant transition-colors">
-                                                {row._status === 'valid' ? <Badge variant="success">OK</Badge> : <Badge variant="danger">Erreur</Badge>}
-                                            </td>
-                                            <td className="px-4 py-3 font-bold">{row.name || '-'}</td>
-                                            <td className="px-4 py-3">{row.type || '-'}</td>
-                                            <td className="px-4 py-3 text-on-surface-variant">{row.parent || '-'}</td>
-                                            <td className="px-4 py-3 text-label-medium text-error font-bold">{row._error}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </TableScrollArea>
-                    </div>
-                </div>
-            )}
-        </FullScreenFormLayout>
+                    <span>
+                        <b className="text-on-surface font-medium">
+                            Un parent manquant n'est pas une faute de saisie.
+                        </b>{' '}
+                        Il suffit souvent de remonter la ligne du pays au-dessus de ses sites.
+                    </span>
+                </>
+            }
+        />
     );
 };
 
 export default ImportLocationsPage;
-

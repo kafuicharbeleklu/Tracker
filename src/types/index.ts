@@ -1,43 +1,74 @@
-
 import React from 'react';
 import type {
-  AuthenticationPolicy,
-  PermissionRule,
-  ScopeConstraint,
-  TemporaryRoleAssignment,
+    AuthenticationPolicy,
+    PermissionRule,
+    ScopeConstraint,
+    TemporaryRoleAssignment,
 } from './rbac';
 
 // Navigation
 // Added 'settings' to ViewType to resolve navigation and title mapping errors
-export type ViewType = 'dashboard' | 'tasks' | 'equipment' | 'equipment_details' | 'add_equipment' | 'edit_equipment' | 'import_equipment' | 'users' | 'user_details' | 'add_user' | 'edit_user' | 'import_users' | 'new_request' | 'management' | 'rbac' | 'add_category' | 'add_model' | 'import_models' | 'category_details' | 'model_details' | 'locations' | 'import_locations' | 'audit' | 'audit_details' | 'reports' | 'assignment_wizard' | 'return_wizard' | 'finance' | 'finance_expenses' | 'settings' | 'not_found';
+export type ViewType =
+    | 'dashboard'
+    | 'tasks'
+    | 'equipment'
+    | 'equipment_details'
+    | 'add_equipment'
+    | 'edit_equipment'
+    | 'import_equipment'
+    | 'users'
+    | 'user_details'
+    | 'add_user'
+    | 'edit_user'
+    | 'import_users'
+    | 'new_request'
+    | 'management'
+    | 'rbac'
+    | 'add_category'
+    | 'add_model'
+    | 'import_models'
+    | 'category_details'
+    | 'model_details'
+    | 'locations'
+    | 'site_details'
+    | 'import_locations'
+    | 'audit'
+    | 'audit_details'
+    | 'reports'
+    | 'assignment_wizard'
+    | 'return_wizard'
+    | 'finance'
+    | 'finance_expenses'
+    | 'settings'
+    | 'not_found';
 
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 
 // --- SYSTEM SETTINGS ---
 export interface AppSettings {
-  // Finances
-  currency: string;
-  fiscalYearStart: string;
-  defaultDepreciationMethod: 'linear' | 'degressive';
-  defaultDepreciationYears: number;
-  salvageValuePercent: number;
-  renewalThreshold: number;
-  roundingRule: 'standard' | 'integer' | 'ceil';
-  compactNotation: boolean; // New setting for 1K, 1M formatting
+    // Finances
+    currency: string;
+    fiscalYearStart: string;
+    defaultDepreciationMethod: 'linear' | 'degressive';
+    defaultDepreciationYears: number;
+    salvageValuePercent: number;
+    renewalThreshold: number;
+    roundingRule: 'standard' | 'integer' | 'ceil';
+    compactNotation: boolean; // New setting for 1K, 1M formatting
 
-  // Collecte automatique
-  autoCollectionAgentEnabled: boolean;
-  autoCollectionAgentApiKey: string;
-  autoCollectionApiBaseUrl: string;
-  autoCollectionForwardToApi: boolean;
-  autoCollectionHeartbeatMinutes: number;
-  autoCollectionAdEnabled: boolean;
-  autoCollectionAdHost: string;
-  autoCollectionAdBaseDn: string;
-  autoCollectionAdServiceAccount: string;
-  autoCollectionNetworkEnabled: boolean;
-  autoCollectionNetworkRanges: string;
-  autoCollectionRequireManualValidation: boolean;
+    // Collecte automatique
+    autoCollectionAgentEnabled: boolean;
+    autoCollectionAgentApiKey: string;
+    autoCollectionApiBaseUrl: string;
+    autoCollectionForwardToApi: boolean;
+    autoCollectionHeartbeatMinutes: number;
+    autoCollectionAdEnabled: boolean;
+    autoCollectionAdHost: string;
+    autoCollectionAdBaseDn: string;
+    autoCollectionAdServiceAccount: string;
+    autoCollectionNetworkEnabled: boolean;
+    autoCollectionNetworkRanges: string;
+    autoCollectionRequireManualValidation: boolean;
 }
 
 // --- FINANCE ---
@@ -46,222 +77,222 @@ export type FinanceExpenseStatus = 'Paid' | 'Pending' | 'Recurring';
 export type ExtractionConfidence = 'high' | 'medium' | 'low';
 
 export interface FinanceExpense {
-  id: string;
-  date: string;
-  supplier: string;
-  amount: number;
-  type: FinanceExpenseType;
-  status: FinanceExpenseStatus;
-  description: string;
-  invoiceNumber?: string;
-  sourceFileName?: string;
-  sourceFileId?: string;
-  sourceFileUrl?: string;
-  currencyCode?: string;
-  extractionSource?: 'filename' | 'content' | 'hybrid';
-  textSource?: 'native' | 'ocr' | 'hybrid' | 'none';
-  importFingerprint?: string;
-  extractionConfidence?: ExtractionConfidence;
-  createdAt: string;
+    id: string;
+    date: string;
+    supplier: string;
+    amount: number;
+    type: FinanceExpenseType;
+    status: FinanceExpenseStatus;
+    description: string;
+    invoiceNumber?: string;
+    sourceFileName?: string;
+    sourceFileId?: string;
+    sourceFileUrl?: string;
+    currencyCode?: string;
+    extractionSource?: 'filename' | 'content' | 'hybrid';
+    textSource?: 'native' | 'ocr' | 'hybrid' | 'none';
+    importFingerprint?: string;
+    extractionConfidence?: ExtractionConfidence;
+    createdAt: string;
 }
 
 export interface FinanceExpenseInsertResult {
-  ok: boolean;
-  expense?: FinanceExpense;
-  duplicateOf?: FinanceExpense;
-  reason?: string;
+    ok: boolean;
+    expense?: FinanceExpense;
+    duplicateOf?: FinanceExpense;
+    reason?: string;
 }
 
 export interface FinanceBudgetItem {
-  category: string;
-  type: FinanceExpenseType;
-  allocated: number;
-  spent: number;
-  /**
-   * Investissement (CAPEX) ou frais courant (OPEX) — **saisi, jamais deviné**.
-   *
-   * Le produit le déduisait du montant : au-dessus de 5 000, investissement ; en
-   * dessous, frais courants. Rien ne distinguait ce classement d'un classement
-   * saisi, et une ligne de budget mal classée se découvre à la clôture de
-   * l'exercice. Planche 15.1 : *un chiffre deviné ne se présente pas comme un
-   * chiffre su.*
-   *
-   * Absent sur une ligne héritée : l'écran n'affiche alors **rien** plutôt qu'une
-   * supposition.
-   */
-  capitalization?: 'CAPEX' | 'OPEX';
+    category: string;
+    type: FinanceExpenseType;
+    allocated: number;
+    spent: number;
+    /**
+     * Investissement (CAPEX) ou frais courant (OPEX) — **saisi, jamais deviné**.
+     *
+     * Le produit le déduisait du montant : au-dessus de 5 000, investissement ; en
+     * dessous, frais courants. Rien ne distinguait ce classement d'un classement
+     * saisi, et une ligne de budget mal classée se découvre à la clôture de
+     * l'exercice. Planche 15.1 : *un chiffre deviné ne se présente pas comme un
+     * chiffre su.*
+     *
+     * Absent sur une ligne héritée : l'écran n'affiche alors **rien** plutôt qu'une
+     * supposition.
+     */
+    capitalization?: 'CAPEX' | 'OPEX';
 }
 
 export interface FinanceBudget {
-  year: number;
-  status: 'En cours' | 'Clôturé' | 'Archivé';
-  totalAllocated: number;
-  items: FinanceBudgetItem[];
-  updatedAt: string;
-  sourceFileName?: string;
+    year: number;
+    status: 'En cours' | 'Clôturé' | 'Archivé';
+    totalAllocated: number;
+    items: FinanceBudgetItem[];
+    updatedAt: string;
+    sourceFileName?: string;
 }
 
 // Entities
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  department: string;
-  role: UserRole;
-  avatar: string;
-  lastLogin?: string;
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    department: string;
+    role: UserRole;
+    avatar: string;
+    lastLogin?: string;
 
-  // Location & Hierarchy
-  country?: string;
-  site?: string;
-  managerId?: string;
-  managedCountries?: string[];
+    // Location & Hierarchy
+    country?: string;
+    site?: string;
+    managerId?: string;
+    managedCountries?: string[];
 
-  // SharePoint Fields (merged)
-  status?: 'active' | 'inactive' | 'pending';
-  mustChangePassword?: boolean;
+    // SharePoint Fields (merged)
+    status?: 'active' | 'inactive' | 'pending';
+    mustChangePassword?: boolean;
 
-  // RBAC Overrides (optional, phase 1)
-  rbacRoleIds?: string[];
-  rbacGroupIds?: string[];
-  rbacDirectPermissions?: PermissionRule[];
-  rbacTemporaryRoles?: TemporaryRoleAssignment[];
-  rbacAuthPolicyOverride?: Partial<AuthenticationPolicy>;
-  rbacDataScopeOverrides?: ScopeConstraint[];
+    // RBAC Overrides (optional, phase 1)
+    rbacRoleIds?: string[];
+    rbacGroupIds?: string[];
+    rbacDirectPermissions?: PermissionRule[];
+    rbacTemporaryRoles?: TemporaryRoleAssignment[];
+    rbacAuthPolicyOverride?: Partial<AuthenticationPolicy>;
+    rbacDataScopeOverrides?: ScopeConstraint[];
 }
 
 // SharePoint List Schema
 export interface AppUser {
-  id: string; // SharePoint ID
-  Title: string; // Full Name
-  MicrosoftEmail: string;
-  FirstName?: string;
-  LastName?: string;
-  Role: UserRole;
-  Status: 'active' | 'inactive' | 'pending';
-  PinStatus?: 'active' | 'pending' | 'not_set';
-  TemporaryPassword?: string | null;
-  MustChangePassword: boolean;
-  LastLoginDate?: string;
-  CreatedDate: string;
-  CreatedBy: string; // Email or Name
-  InvitationSentDate?: string;
-  Notes?: string;
+    id: string; // SharePoint ID
+    Title: string; // Full Name
+    MicrosoftEmail: string;
+    FirstName?: string;
+    LastName?: string;
+    Role: UserRole;
+    Status: 'active' | 'inactive' | 'pending';
+    PinStatus?: 'active' | 'pending' | 'not_set';
+    TemporaryPassword?: string | null;
+    MustChangePassword: boolean;
+    LastLoginDate?: string;
+    CreatedDate: string;
+    CreatedBy: string; // Email or Name
+    InvitationSentDate?: string;
+    Notes?: string;
 }
 
 export interface EquipmentDocument {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  size?: string;
-  date: string;
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+    size?: string;
+    date: string;
 }
 
 export interface FinancialData {
-  purchasePrice: number;
-  purchaseDate: string;
-  supplier?: string;
-  invoiceNumber?: string;
-  depreciationMethod: 'linear' | 'degressive';
-  depreciationYears: number; // Duration in years
-  salvageValue?: number; // Residual value
+    purchasePrice: number;
+    purchaseDate: string;
+    supplier?: string;
+    invoiceNumber?: string;
+    depreciationMethod: 'linear' | 'degressive';
+    depreciationYears: number; // Duration in years
+    salvageValue?: number; // Residual value
 }
 
 // 3.2 - Statuts d'attribution
 export type AssignmentStatus =
-  | 'NONE'                      // Disponible
-  | 'RESERVED'                  // Réservé pour demande approuvée
-  | 'WAITING_MANAGER_APPROVAL'  // 🆕 Admin a attribué -> En attente validation Manager
-  | 'WAITING_IT_PROCESSING'     // 🆕 Validé par Manager -> En attente action IT
-  | 'WAITING_DOTATION_APPROVAL' // 🆕 Sélectionné par IT -> En attente validation dotation Manager
-  | 'PENDING_DELIVERY'          // Manager a validé (ou direct) -> En attente confirmation User
-  | 'PENDING_RETURN'            // 🆕 Restitution initiée, en attente de traitement IT
-  | 'CONFIRMED';                // User a confirmé réception
+    | 'NONE' // Disponible
+    | 'RESERVED' // Réservé pour demande approuvée
+    | 'WAITING_MANAGER_APPROVAL' // 🆕 Admin a attribué -> En attente validation Manager
+    | 'WAITING_IT_PROCESSING' // 🆕 Validé par Manager -> En attente action IT
+    | 'WAITING_DOTATION_APPROVAL' // 🆕 Sélectionné par IT -> En attente validation dotation Manager
+    | 'PENDING_DELIVERY' // Manager a validé (ou direct) -> En attente confirmation User
+    | 'PENDING_RETURN' // 🆕 Restitution initiée, en attente de traitement IT
+    | 'CONFIRMED'; // User a confirmé réception
 
 export interface Equipment {
-  id: string;
-  name: string;
-  assetId: string;
-  type: string; // Linked to Category name
-  model: string;
-  status:
-    | 'Disponible'
-    | 'Attribué'
-    | 'En attente'
-    | 'En réparation'
-    | 'En maintenance préventive'
-    | 'Retiré'
-    | 'Perdu'
-    | 'Réformé'
-    | 'Manquant'
-    | string;
+    id: string;
+    name: string;
+    assetId: string;
+    type: string; // Linked to Category name
+    model: string;
+    status:
+        | 'Disponible'
+        | 'Attribué'
+        | 'En attente'
+        | 'En réparation'
+        | 'En maintenance préventive'
+        | 'Retiré'
+        | 'Perdu'
+        | 'Réformé'
+        | 'Manquant'
+        | string;
 
-  // 3.2 - Workflow Status & Traçabilité
-  assignmentStatus?: AssignmentStatus;
+    // 3.2 - Workflow Status & Traçabilité
+    assignmentStatus?: AssignmentStatus;
 
-  // Traçabilité attribution
-  assignedBy?: string;      // ID Admin qui a attribué
-  assignedByName?: string;  // Snapshot nom
-  assignedAt?: string;      // Date attribution
+    // Traçabilité attribution
+    assignedBy?: string; // ID Admin qui a attribué
+    assignedByName?: string; // Snapshot nom
+    assignedAt?: string; // Date attribution
 
-  // Validation Manager (Nouveau)
-  managerValidationBy?: string;
-  managerValidationAt?: string;
+    // Validation Manager (Nouveau)
+    managerValidationBy?: string;
+    managerValidationAt?: string;
 
-  // Confirmation utilisateur
-  confirmedBy?: string;     // ID User qui a confirmé
-  confirmedAt?: string;     // Date confirmation
-  handoverProof?: string;   // URL signature/photo
+    // Confirmation utilisateur
+    confirmedBy?: string; // ID User qui a confirmé
+    confirmedAt?: string; // Date confirmation
+    handoverProof?: string; // URL signature/photo
 
-  // Réservation
-  reservedFor?: string;     // ID Approval liée
-  reservedAt?: string;
+    // Réservation
+    reservedFor?: string; // ID Approval liée
+    reservedAt?: string;
 
-  // Restitution
-  returnRequestedBy?: string;
-  returnRequestedAt?: string;
-  returnInspectedAt?: string;
-  lastReturnCondition?: string;
+    // Restitution
+    returnRequestedBy?: string;
+    returnRequestedAt?: string;
+    returnInspectedAt?: string;
+    lastReturnCondition?: string;
 
-  operationalStatus?: 'Actif' | 'Inactif' | 'Retiré';
-  image: string;
-  user?: Partial<User> | null;
+    operationalStatus?: 'Actif' | 'Inactif' | 'Retiré';
+    image: string;
+    user?: Partial<User> | null;
 
-  // Specs
-  serialNumber?: string;
-  biosUuid?: string;
-  macAddress?: string;
-  hostname?: string; // Added hostname
-  os?: string;
-  ram?: string;
-  storage?: string;
-  securityAgents?: {
-    sentinelOne: boolean;
-    matrix42: boolean;
-    manageEngine: boolean;
-    lastCheckedAt: string;
-  };
+    // Specs
+    serialNumber?: string;
+    biosUuid?: string;
+    macAddress?: string;
+    hostname?: string; // Added hostname
+    os?: string;
+    ram?: string;
+    storage?: string;
+    securityAgents?: {
+        sentinelOne: boolean;
+        matrix42: boolean;
+        manageEngine: boolean;
+        lastCheckedAt: string;
+    };
 
-  // Financial & Dates
-  financial?: FinancialData; // New Financial Object
-  warrantyEnd?: string;
+    // Financial & Dates
+    financial?: FinancialData; // New Financial Object
+    warrantyEnd?: string;
 
-  // Maintenance / Repair
-  repairStartDate?: string;
-  repairEndDate?: string;
+    // Maintenance / Repair
+    repairStartDate?: string;
+    repairEndDate?: string;
 
-  // Location
-  country?: string;
-  site?: string;
-  department?: string;
+    // Location
+    country?: string;
+    site?: string;
+    department?: string;
 
-  // Notes
-  notes?: string;
+    // Notes
+    notes?: string;
 
-  // Files
-  documents?: EquipmentDocument[];
+    // Files
+    documents?: EquipmentDocument[];
 }
 
 // Management
@@ -279,303 +310,300 @@ export interface Equipment {
  * selon le nombre d'enfants apprend une grammaire différente à chaque ouverture.
  */
 export type CategoryFamily =
-  | 'Informatique'
-  | 'Périphériques'
-  | 'Impression et réseau'
-  | 'Mobilier et divers';
+    'Informatique' | 'Périphériques' | 'Impression et réseau' | 'Mobilier et divers';
 
 export const CATEGORY_FAMILIES: CategoryFamily[] = [
-  'Informatique',
-  'Périphériques',
-  'Impression et réseau',
-  'Mobilier et divers',
+    'Informatique',
+    'Périphériques',
+    'Impression et réseau',
+    'Mobilier et divers',
 ];
 
 export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  icon: React.ReactNode;
-  iconName?: string;
-  /** La famille qui coiffe ce type (A2). Absente sur une donnée héritée. */
-  family?: CategoryFamily;
-  /**
-   * Un objet de ce type se remet-il en main propre à quelqu'un ?
-   * Non pour un serveur, une imprimante, du mobilier : ils servent un lieu, pas une personne.
-   * Ce drapeau ne filtre pas les listes — il retire le type du SÉLECTEUR D'ATTRIBUTION.
-   * Le passer à `false` ne défait aucune attribution existante : un paramètre de type ne
-   * réécrit pas le passé (même règle que `defaultDepreciation`).
-   * Arbitrage du 2026-08-05 — projet Claude Design, REGLES-TRANSVERSES.md §5.7.
-   */
-  assignable: boolean;
-  // 🆕 CONFIGURATION AMORTISSEMENT PAR DÉFAUT
-  defaultDepreciation: {
-    method: 'linear' | 'degressive';
-    years: number;
-    salvageValuePercent: number; // Ex: 10%
-  };
+    id: string;
+    name: string;
+    description?: string;
+    icon: React.ReactNode;
+    iconName?: string;
+    /** La famille qui coiffe ce type (A2). Absente sur une donnée héritée. */
+    family?: CategoryFamily;
+    /**
+     * Un objet de ce type se remet-il en main propre à quelqu'un ?
+     * Non pour un serveur, une imprimante, du mobilier : ils servent un lieu, pas une personne.
+     * Ce drapeau ne filtre pas les listes — il retire le type du SÉLECTEUR D'ATTRIBUTION.
+     * Le passer à `false` ne défait aucune attribution existante : un paramètre de type ne
+     * réécrit pas le passé (même règle que `defaultDepreciation`).
+     * Arbitrage du 2026-08-05 — projet Claude Design, REGLES-TRANSVERSES.md §5.7.
+     */
+    assignable: boolean;
+    // 🆕 CONFIGURATION AMORTISSEMENT PAR DÉFAUT
+    defaultDepreciation: {
+        method: 'linear' | 'degressive';
+        years: number;
+        salvageValuePercent: number; // Ex: 10%
+    };
 }
 
 export interface Model {
-  id: string;
-  name: string;
-  type: string;
-  count: number;
-  image: string;
-  brand?: string;
-  specs?: string;
+    id: string;
+    name: string;
+    type: string;
+    count: number;
+    image: string;
+    brand?: string;
+    specs?: string;
 }
 
 export type ApprovalStatus =
-  | 'WAITING_MANAGER_APPROVAL' // Phase 1
-  | 'WAITING_IT_PROCESSING'    // Phase 2
-  | 'WAITING_DOTATION_APPROVAL'// Phase 3
-  | 'PENDING_DELIVERY'         // Phase 4
-  | 'Rejected'
-  | 'Completed'
-  | 'Cancelled';
+    | 'WAITING_MANAGER_APPROVAL' // Phase 1
+    | 'WAITING_IT_PROCESSING' // Phase 2
+    | 'WAITING_DOTATION_APPROVAL' // Phase 3
+    | 'PENDING_DELIVERY' // Phase 4
+    | 'Rejected'
+    | 'Completed'
+    | 'Cancelled';
 
 // Verdicts négatifs du workflow : les 4 points de refus (§9.7.2) + l'annulation.
 export type DecisionNoteKind =
-  | 'MANAGER_REJECT'   // WAITING_MANAGER_APPROVAL -> Rejected
-  | 'IT_REJECT'        // WAITING_IT_PROCESSING -> Rejected
-  | 'DOTATION_REJECT'  // WAITING_DOTATION_APPROVAL -> WAITING_IT_PROCESSING (renvoi)
-  | 'DELIVERY_REJECT'  // PENDING_DELIVERY -> Rejected (refus de réception)
-  | 'CANCEL';          // -> Cancelled (annulation par le demandeur)
+    | 'MANAGER_REJECT' // WAITING_MANAGER_APPROVAL -> Rejected
+    | 'IT_REJECT' // WAITING_IT_PROCESSING -> Rejected
+    | 'DOTATION_REJECT' // WAITING_DOTATION_APPROVAL -> WAITING_IT_PROCESSING (renvoi)
+    | 'DELIVERY_REJECT' // PENDING_DELIVERY -> Rejected (refus de réception)
+    | 'CANCEL'; // -> Cancelled (annulation par le demandeur)
 
 // 3.2 - Mise à jour Approval
 export interface Approval {
-  id: string;
+    id: string;
 
-  // 👇 DISTINCTION Demandeur/Bénéficiaire
-  requesterId: string;      // Qui crée la demande
-  requesterName: string;
-  requesterRole: UserRole;
+    // 👇 DISTINCTION Demandeur/Bénéficiaire
+    requesterId: string; // Qui crée la demande
+    requesterName: string;
+    requesterRole: UserRole;
 
-  beneficiaryId: string;    // Qui recevra l'équipement
-  beneficiaryName: string;
+    beneficiaryId: string; // Qui recevra l'équipement
+    beneficiaryName: string;
 
-  isDelegated: boolean;     // true si requesterId !== beneficiaryId
+    isDelegated: boolean; // true si requesterId !== beneficiaryId
 
-  // Détails demande
-  equipmentCategory: string;
-  equipmentModel?: string;
-  reason: string;
-  urgency: 'low' | 'normal' | 'high';
-  estimatedCost?: number;   // 👈 NOUVEAU pour contrôle budgétaire
-
-  // Statut global
-  status: ApprovalStatus;
-
-  // Équipement attribué (une fois le workflow terminé ou en cours)
-  assignedEquipmentId?: string;
-  assignedEquipmentName?: string; // Snapshot pour affichage rapide
-
-  // Dernier verdict négatif (refus, renvoi, annulation) — dernier état seulement,
-  // purgé sur toute transition « en avant » ; l'historique exhaustif des motifs
-  // vit dans le journal (HistoryEvent.metadata.reason).
-  decisionNote?: {
-    kind: DecisionNoteKind;
+    // Détails demande
+    equipmentCategory: string;
+    equipmentModel?: string;
     reason: string;
-    actorId: string;
-    actorName: string;  // Snapshot pour historique
-    at: string;         // ISO 8601
-  };
+    urgency: 'low' | 'normal' | 'high';
+    estimatedCost?: number; // 👈 NOUVEAU pour contrôle budgétaire
 
-  // Dates
-  createdAt: string;
-  updatedAt: string;
+    // Statut global
+    status: ApprovalStatus;
 
-  // --- CHAMPS LEGACY (Maintenance UI existante) ---
-  // Ces champs sont conservés temporairement pour compatibilité avec l'interface actuelle
-  equipmentName?: string;
-  equipmentType?: string;
-  requestType?: 'Attribution' | 'Retour' | 'Réparation';
-  requester?: string;
-  requestDate?: string;
-  image: string; // Gardé obligatoire pour l'UI
+    // Équipement attribué (une fois le workflow terminé ou en cours)
+    assignedEquipmentId?: string;
+    assignedEquipmentName?: string; // Snapshot pour affichage rapide
+
+    // Dernier verdict négatif (refus, renvoi, annulation) — dernier état seulement,
+    // purgé sur toute transition « en avant » ; l'historique exhaustif des motifs
+    // vit dans le journal (HistoryEvent.metadata.reason).
+    decisionNote?: {
+        kind: DecisionNoteKind;
+        reason: string;
+        actorId: string;
+        actorName: string; // Snapshot pour historique
+        at: string; // ISO 8601
+    };
+
+    // Dates
+    createdAt: string;
+    updatedAt: string;
+
+    // --- CHAMPS LEGACY (Maintenance UI existante) ---
+    // Ces champs sont conservés temporairement pour compatibilité avec l'interface actuelle
+    equipmentName?: string;
+    equipmentType?: string;
+    requestType?: 'Attribution' | 'Retour' | 'Réparation';
+    requester?: string;
+    requestDate?: string;
+    image: string; // Gardé obligatoire pour l'UI
 }
 
 // Reports
 export interface Report {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
 }
 
 // Audit & Locations
 export interface AuditCountryStats {
-  name: string;
-  sites: number;
-  completed: number;
-  total: number;
+    name: string;
+    sites: number;
+    completed: number;
+    total: number;
 }
 
 export interface AuditScanPayload {
-  machineName?: string;
-  hostname?: string;
-  assetId?: string;
-  serialNumber?: string;
-  biosUuid?: string;
-  macAddress?: string;
-  os?: string;
-  ram?: string;
-  storage?: string;
-  type?: string;
-  model?: string;
-  userName?: string;
-  userEmail?: string;
-  country?: string;
-  site?: string;
-  service?: string;
-  scannedAt?: string;
-  agents?: {
-    sentinelOne?: boolean;
-    matrix42?: boolean;
-    manageEngine?: boolean;
-  };
+    machineName?: string;
+    hostname?: string;
+    assetId?: string;
+    serialNumber?: string;
+    biosUuid?: string;
+    macAddress?: string;
+    os?: string;
+    ram?: string;
+    storage?: string;
+    type?: string;
+    model?: string;
+    userName?: string;
+    userEmail?: string;
+    country?: string;
+    site?: string;
+    service?: string;
+    scannedAt?: string;
+    agents?: {
+        sentinelOne?: boolean;
+        matrix42?: boolean;
+        manageEngine?: boolean;
+    };
 }
 
 export type AutoCollectionSource = 'agent' | 'active_directory' | 'network_scan';
 
 export interface AgentCheckInPayload extends AuditScanPayload {
-  source?: AutoCollectionSource;
-  checkinId?: string;
-  agentVersion?: string;
-  apiKey?: string;
-  biosUuid?: string;
-  macAddress?: string;
-  ipAddress?: string;
-  domain?: string;
-  cpu?: string;
+    source?: AutoCollectionSource;
+    checkinId?: string;
+    agentVersion?: string;
+    apiKey?: string;
+    biosUuid?: string;
+    macAddress?: string;
+    ipAddress?: string;
+    domain?: string;
+    cpu?: string;
 }
 
 export interface DetectedDevice {
-  id: string;
-  source: AutoCollectionSource;
-  fingerprint: string;
-  machineName: string;
-  hostname?: string;
-  assetId?: string;
-  serialNumber?: string;
-  biosUuid?: string;
-  os?: string;
-  ram?: string;
-  storage?: string;
-  cpu?: string;
-  currentUserName?: string;
-  currentUserEmail?: string;
-  macAddress?: string;
-  ipAddress?: string;
-  domain?: string;
-  country?: string;
-  site?: string;
-  service?: string;
-  apps: {
-    sentinelOne: boolean;
-    matrix42: boolean;
-    manageEngine: boolean;
-  };
-  status: 'pending_review' | 'linked_existing' | 'imported' | 'ignored' | 'ambiguous_match';
-  matchConfidence?: 'strong' | 'weak' | 'none' | 'ambiguous';
-  matchScore?: number;
-  candidateEquipmentIds?: string[];
-  linkedEquipmentId?: string;
-  firstSeenAt: string;
-  lastSeenAt: string;
+    id: string;
+    source: AutoCollectionSource;
+    fingerprint: string;
+    machineName: string;
+    hostname?: string;
+    assetId?: string;
+    serialNumber?: string;
+    biosUuid?: string;
+    os?: string;
+    ram?: string;
+    storage?: string;
+    cpu?: string;
+    currentUserName?: string;
+    currentUserEmail?: string;
+    macAddress?: string;
+    ipAddress?: string;
+    domain?: string;
+    country?: string;
+    site?: string;
+    service?: string;
+    apps: {
+        sentinelOne: boolean;
+        matrix42: boolean;
+        manageEngine: boolean;
+    };
+    status: 'pending_review' | 'linked_existing' | 'imported' | 'ignored' | 'ambiguous_match';
+    matchConfidence?: 'strong' | 'weak' | 'none' | 'ambiguous';
+    matchScore?: number;
+    candidateEquipmentIds?: string[];
+    linkedEquipmentId?: string;
+    firstSeenAt: string;
+    lastSeenAt: string;
 }
 
 export interface AgentCheckInResult {
-  ok: boolean;
-  detectedId?: string;
-  status?: DetectedDevice['status'];
-  linkedEquipmentId?: string;
-  message: string;
+    ok: boolean;
+    detectedId?: string;
+    status?: DetectedDevice['status'];
+    linkedEquipmentId?: string;
+    message: string;
 }
 
 export type AuditScanResolution = 'found_in_service' | 'found_out_of_service' | 'created';
 
 export interface AuditScanResult {
-  ok: boolean;
-  resolution?: AuditScanResolution;
-  equipmentId?: string;
-  equipmentName?: string;
-  serviceMatches?: boolean;
-  wasUpdated?: boolean;
-  message: string;
+    ok: boolean;
+    resolution?: AuditScanResolution;
+    equipmentId?: string;
+    equipmentName?: string;
+    serviceMatches?: boolean;
+    wasUpdated?: boolean;
+    message: string;
 }
 
 // --- HISTORY & EVENTS (Phase 3) ---
 
 export type EventType =
-  | 'CREATE'           // Création équipement/utilisateur
-  | 'UPDATE'           // Modification
-  | 'DELETE'           // Suppression
-  | 'ASSIGN'           // Attribution
-  | 'ASSIGN_PENDING'   // Attribution en attente confirmation
-  | 'ASSIGN_MANAGER_WAIT' // 🆕 En attente manager
-  | 'ASSIGN_MANAGER_OK'   // 🆕 Validé par manager
-  | 'ASSIGN_IT_PROCESSING' // 🆕 En cours de traitement IT
-  | 'ASSIGN_IT_SELECTED'   // 🆕 Actif sélectionné par IT
-  | 'ASSIGN_DOTATION_WAIT' // 🆕 En attente validation dotation
-  | 'ASSIGN_DOTATION_OK'   // 🆕 Dotation validée
-  | 'ASSIGN_CONFIRMED' // Confirmation réception
-  | 'RETURN'           // Retour
-  | 'REPAIR_START'     // Début réparation
-  | 'REPAIR_END'       // Fin réparation
-  | 'APPROVAL_CREATE'  // Création demande
-  | 'APPROVAL_MANAGER' // Validation manager
-  | 'APPROVAL_ADMIN'   // Validation admin
-  | 'APPROVAL_REJECT'  // Rejet demande
-  | 'APPROVAL_DOTATION_REJECT' // Refus de dotation (retour au traitement IT)
-  | 'APPROVAL_CANCEL'  // Annulation par le demandeur
-  | 'LOGIN'            // Connexion
-  | 'LOGOUT'           // Déconnexion
-  | 'EXPORT'           // Export données
-  | 'VIEW_SENSITIVE'   // Consultation données sensibles
-  | 'SECURITY_STEP_UP'; // Step-up de sécurité (PIN) sur action sensible
+    | 'CREATE' // Création équipement/utilisateur
+    | 'UPDATE' // Modification
+    | 'DELETE' // Suppression
+    | 'ASSIGN' // Attribution
+    | 'ASSIGN_PENDING' // Attribution en attente confirmation
+    | 'ASSIGN_MANAGER_WAIT' // 🆕 En attente manager
+    | 'ASSIGN_MANAGER_OK' // 🆕 Validé par manager
+    | 'ASSIGN_IT_PROCESSING' // 🆕 En cours de traitement IT
+    | 'ASSIGN_IT_SELECTED' // 🆕 Actif sélectionné par IT
+    | 'ASSIGN_DOTATION_WAIT' // 🆕 En attente validation dotation
+    | 'ASSIGN_DOTATION_OK' // 🆕 Dotation validée
+    | 'ASSIGN_CONFIRMED' // Confirmation réception
+    | 'RETURN' // Retour
+    | 'REPAIR_START' // Début réparation
+    | 'REPAIR_END' // Fin réparation
+    | 'APPROVAL_CREATE' // Création demande
+    | 'APPROVAL_MANAGER' // Validation manager
+    | 'APPROVAL_ADMIN' // Validation admin
+    | 'APPROVAL_REJECT' // Rejet demande
+    | 'APPROVAL_DOTATION_REJECT' // Refus de dotation (retour au traitement IT)
+    | 'APPROVAL_CANCEL' // Annulation par le demandeur
+    | 'LOGIN' // Connexion
+    | 'LOGOUT' // Déconnexion
+    | 'EXPORT' // Export données
+    | 'VIEW_SENSITIVE' // Consultation données sensibles
+    | 'SECURITY_STEP_UP'; // Step-up de sécurité (PIN) sur action sensible
 
 export type TargetType = 'EQUIPMENT' | 'USER' | 'APPROVAL' | 'LOCATION' | 'SYSTEM';
 
 export interface HistoryEvent {
-  id: string;
-  timestamp: string; // ISO 8601
-  type: EventType;
+    id: string;
+    timestamp: string; // ISO 8601
+    type: EventType;
 
-  // Acteur (qui a fait l'action)
-  actorId: string;
-  actorName: string;    // Snapshot pour historique
-  actorRole: UserRole;
+    // Acteur (qui a fait l'action)
+    actorId: string;
+    actorName: string; // Snapshot pour historique
+    actorRole: UserRole;
 
-  // Cible (sur quoi porte l'action)
-  targetType: TargetType;
-  targetId: string;
-  targetName: string;   // Snapshot
+    // Cible (sur quoi porte l'action)
+    targetType: TargetType;
+    targetId: string;
+    targetName: string; // Snapshot
 
-  // Détails
-  description: string;  // Description humaine
-  metadata?: {          // Données techniques
-    changes?: Record<string, { from: unknown; to: unknown }>; // Changements trackés
-    reason?: string;    // Raison (pour rejets, etc.)
-    ipAddress?: string; // IP (pour sécurité)
-    location?: string;  // Localisation géographique
-    [key: string]: unknown;
-  };
+    // Détails
+    description: string; // Description humaine
+    metadata?: {
+        // Données techniques
+        changes?: Record<string, { from: unknown; to: unknown }>; // Changements trackés
+        reason?: string; // Raison (pour rejets, etc.)
+        ipAddress?: string; // IP (pour sécurité)
+        location?: string; // Localisation géographique
+        [key: string]: unknown;
+    };
 
-  // Flags
-  isSystem: boolean;    // Action automatique (timeout, etc.)
-  isSensitive: boolean; // Données sensibles (masquer pour Users)
+    // Flags
+    isSystem: boolean; // Action automatique (timeout, etc.)
+    isSensitive: boolean; // Données sensibles (masquer pour Users)
 }
 
 // Filtre pour récupération historique
 export interface HistoryFilter {
-  targetType?: TargetType;
-  targetId?: string;
-  actorId?: string;
-  eventTypes?: EventType[];
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
+    targetType?: TargetType;
+    targetId?: string;
+    actorId?: string;
+    eventTypes?: EventType[];
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
 }
-

@@ -65,11 +65,22 @@ const parseKeyValueInput = (raw: string): Record<string, unknown> => {
 
 const normalizeFromLegacyObject = (source: Record<string, unknown>): AgentCheckInPayload => {
     const payload: AgentCheckInPayload = {
-        source: asString(read(source, ['source', 'collector', 'origin'])) as AgentCheckInPayload['source'],
+        source: asString(
+            read(source, ['source', 'collector', 'origin']),
+        ) as AgentCheckInPayload['source'],
         checkinId: asString(read(source, ['checkinId', 'checkin_id', 'id'])),
         agentVersion: asString(read(source, ['agentVersion', 'agent_version', 'version'])),
         apiKey: asString(read(source, ['apiKey', 'api_key', 'agentKey', 'agent_key', 'token'])),
-        machineName: asString(read(source, ['machineName', 'machine_name', 'computerName', 'computer_name', 'deviceName', 'device_name'])),
+        machineName: asString(
+            read(source, [
+                'machineName',
+                'machine_name',
+                'computerName',
+                'computer_name',
+                'deviceName',
+                'device_name',
+            ]),
+        ),
         hostname: asString(read(source, ['hostname', 'host', 'hostName'])),
         assetId: asString(read(source, ['assetId', 'asset_id', 'assetTag', 'asset_tag'])),
         serialNumber: asString(read(source, ['serialNumber', 'serial_number', 'sn'])),
@@ -84,7 +95,9 @@ const normalizeFromLegacyObject = (source: Record<string, unknown>): AgentCheckI
         country: asString(read(source, ['country', 'pays'])),
         site: asString(read(source, ['site'])),
         service: asString(read(source, ['service', 'department', 'departement'])),
-        scannedAt: asString(read(source, ['scannedAt', 'scanned_at', 'timestamp', 'generatedAt', 'generated_at'])),
+        scannedAt: asString(
+            read(source, ['scannedAt', 'scanned_at', 'timestamp', 'generatedAt', 'generated_at']),
+        ),
         macAddress: asString(read(source, ['macAddress', 'mac_address', 'mac'])),
         ipAddress: asString(read(source, ['ipAddress', 'ip_address', 'ip'])),
         domain: asString(read(source, ['domain', 'adDomain', 'ad_domain'])),
@@ -106,11 +119,26 @@ const normalizeFromLegacyObject = (source: Record<string, unknown>): AgentCheckI
 };
 
 const normalizeFromSchemaV1 = (source: Record<string, unknown>): AgentCheckInPayload => {
-    const device = (source.device && typeof source.device === 'object') ? source.device as Record<string, unknown> : {};
-    const user = (source.user && typeof source.user === 'object') ? source.user as Record<string, unknown> : {};
-    const context = (source.context && typeof source.context === 'object') ? source.context as Record<string, unknown> : {};
-    const apps = (source.apps && typeof source.apps === 'object') ? source.apps as Record<string, unknown> : {};
-    const auth = (source.auth && typeof source.auth === 'object') ? source.auth as Record<string, unknown> : {};
+    const device =
+        source.device && typeof source.device === 'object'
+            ? (source.device as Record<string, unknown>)
+            : {};
+    const user =
+        source.user && typeof source.user === 'object'
+            ? (source.user as Record<string, unknown>)
+            : {};
+    const context =
+        source.context && typeof source.context === 'object'
+            ? (source.context as Record<string, unknown>)
+            : {};
+    const apps =
+        source.apps && typeof source.apps === 'object'
+            ? (source.apps as Record<string, unknown>)
+            : {};
+    const auth =
+        source.auth && typeof source.auth === 'object'
+            ? (source.auth as Record<string, unknown>)
+            : {};
 
     return {
         source: (asString(source.source) as AgentCheckInPayload['source']) || 'agent',
@@ -146,11 +174,13 @@ const normalizeFromSchemaV1 = (source: Record<string, unknown>): AgentCheckInPay
 };
 
 const validatePayload = (payload: AgentCheckInPayload): ParseAgentCheckInResult => {
-    const hasMachineIdentity = Boolean(payload.assetId || payload.hostname || payload.machineName || payload.serialNumber);
+    const hasMachineIdentity = Boolean(
+        payload.assetId || payload.hostname || payload.machineName || payload.serialNumber,
+    );
     if (!hasMachineIdentity) {
         return {
             ok: false,
-            error: "Check-in invalide: aucun identifiant machine détecté (assetId, hostname ou serial).",
+            error: 'Check-in invalide: aucun identifiant machine détecté (assetId, hostname ou serial).',
         };
     }
 
@@ -172,9 +202,10 @@ export const parseAgentCheckInObject = (value: unknown): ParseAgentCheckInResult
         };
     }
 
-    const payload = schema === AGENT_CHECKIN_SCHEMA_V1
-        ? normalizeFromSchemaV1(source)
-        : normalizeFromLegacyObject(source);
+    const payload =
+        schema === AGENT_CHECKIN_SCHEMA_V1
+            ? normalizeFromSchemaV1(source)
+            : normalizeFromLegacyObject(source);
 
     return validatePayload(payload);
 };
@@ -213,7 +244,11 @@ export const parseAgentBatchContent = (rawValue: string): ParseAgentBatchResult 
                 if (result.ok && result.payload) payloads.push(result.payload);
                 else errors.push(`Ligne ${index + 1}: ${result.error || 'format invalide'}.`);
             });
-        } else if (parsed && typeof parsed === 'object' && Array.isArray((parsed as Record<string, unknown>).checkins)) {
+        } else if (
+            parsed &&
+            typeof parsed === 'object' &&
+            Array.isArray((parsed as Record<string, unknown>).checkins)
+        ) {
             const checkins = (parsed as Record<string, unknown>).checkins as unknown[];
             checkins.forEach((entry, index) => {
                 const result = parseAgentCheckInObject(entry);

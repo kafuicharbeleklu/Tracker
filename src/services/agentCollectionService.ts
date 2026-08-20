@@ -14,8 +14,7 @@ interface AgentHealthResponse {
     dataDir?: string;
 }
 
-const normalizeBaseUrl = (rawUrl: string): string =>
-    rawUrl.trim().replace(/\/+$/, '');
+const normalizeBaseUrl = (rawUrl: string): string => rawUrl.trim().replace(/\/+$/, '');
 
 const toApiPayload = (payload: AgentCheckInPayload, apiKey: string) => ({
     schema: 'neemba.agent.checkin.v1',
@@ -92,7 +91,7 @@ export const postAgentCheckIn = async (
         const isTimeout = error instanceof Error && error.name === 'AbortError';
         return {
             ok: false,
-            message: isTimeout ? "Timeout API check-in." : "API check-in indisponible.",
+            message: isTimeout ? 'Timeout API check-in.' : 'API check-in indisponible.',
         };
     } finally {
         clearTimeout(timeout);

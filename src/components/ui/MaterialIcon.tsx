@@ -17,7 +17,7 @@ interface MaterialIconProps {
 /**
  * Material Symbols Outlined icon component.
  * Uses the variable font loaded via Google Fonts CDN.
- * 
+ *
  * @example
  * <MaterialIcon name="dashboard" />
  * <MaterialIcon name="home" filled size={20} />
@@ -31,7 +31,7 @@ const MaterialIcon: React.FC<MaterialIconProps> = ({
 }) => {
     return (
         <span
-            className={cn("material-symbols-outlined select-none", className)}
+            className={cn('material-symbols-outlined select-none', className)}
             style={{
                 fontSize: size,
                 fontVariationSettings: `'FILL' ${filled ? 1 : 0}, 'wght' ${weight}, 'GRAD' 0, 'opsz' ${size}`,
@@ -50,4 +50,3 @@ const MaterialIcon: React.FC<MaterialIconProps> = ({
 };
 
 export default MaterialIcon;
-

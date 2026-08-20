@@ -76,18 +76,20 @@ const VARIANT_STYLES: Record<
  * @see https://m3.material.io/components/icon-buttons/overview
  */
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-    ({
-        icon,
-        variant = 'standard',
-        size = 24,
-        density = 'default',
-        selected = false,
-        filled: filledProp,
-        className,
-        disabled,
-        ...props
-    }, ref) => {
-
+    (
+        {
+            icon,
+            variant = 'standard',
+            size = 24,
+            density = 'default',
+            selected = false,
+            filled: filledProp,
+            className,
+            disabled,
+            ...props
+        },
+        ref,
+    ) => {
         const styles = VARIANT_STYLES[variant];
         const isFilled = filledProp !== undefined ? (selected ? filledProp : false) : selected;
 
@@ -99,30 +101,25 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                     // Base: 40×40dp visual, centered icon. `touch-target` porte la hit-box à
                     // 48×48 sur tactile sans changer le visuel (index.css) ; sur coarse il rétablit
                     // aussi overflow:visible pour que state-layer (overflow:hidden) ne clippe pas la zone.
-                    "touch-target inline-flex items-center justify-center rounded-lg",
-                    "transition-all duration-short4 ease-emphasized",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
-                    "disabled:opacity-[0.38] disabled:cursor-not-allowed disabled:shadow-none",
-                    "active:scale-[0.92] state-layer",
+                    'touch-target inline-flex items-center justify-center rounded-lg',
+                    'duration-short4 ease-emphasized transition-all',
+                    'focus-visible:ring-focus-ring outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                    'disabled:cursor-not-allowed disabled:opacity-[0.38] disabled:shadow-none',
+                    'state-layer active:scale-[0.92]',
                     DENSITY_STYLES[density],
                     // Variant-specific
                     selected ? styles.selected : styles.base,
                     !disabled && (selected ? styles.selectedHover : styles.hover),
                     styles.focusRing,
-                    className
+                    className,
                 )}
                 {...props}
             >
-                <MaterialIcon
-                    name={icon}
-                    size={size}
-                    filled={isFilled}
-                />
+                <MaterialIcon name={icon} size={size} filled={isFilled} />
             </button>
         );
-    }
+    },
 );
 
 IconButton.displayName = 'IconButton';
 export default IconButton;
-

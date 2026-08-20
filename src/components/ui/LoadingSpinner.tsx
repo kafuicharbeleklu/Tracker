@@ -29,11 +29,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     if (variant === 'linear') {
         return (
             <div className={`w-full max-w-md ${containerClasses}`}>
-                <div className="h-1 w-full bg-surface-container-highest overflow-hidden rounded-full">
-                    <div className="animate-linear-indeterminate h-full bg-primary origin-left" />
+                <div className="bg-surface-container-highest h-1 w-full overflow-hidden rounded-full">
+                    <div className="animate-linear-indeterminate bg-primary h-full origin-left" />
                 </div>
                 {text && (
-                    <p className="mt-4 text-body-medium text-on-surface-variant animate-pulse">
+                    <p className="text-body-medium text-on-surface-variant mt-4 animate-pulse">
                         {text}
                     </p>
                 )}
@@ -44,29 +44,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     return (
         <div className={containerClasses}>
             <div className="relative">
+                <div className={` ${sizeClasses[size]} border-primary/30 rounded-full`} />
                 <div
-                    className={`
-                        ${sizeClasses[size]}
-                        rounded-full
-                        border-primary/30
-                    `}
-                />
-                <div
-                    className={`
-                        ${sizeClasses[size]}
-                        absolute top-0 left-0
-                        rounded-full
-                        border-t-primary
-                        border-r-primary
-                        border-b-transparent
-                        border-l-transparent
-                        animate-spin
-                    `}
+                    className={` ${sizeClasses[size]} border-t-primary border-r-primary absolute top-0 left-0 animate-spin rounded-full border-b-transparent border-l-transparent`}
                 />
             </div>
 
             {text && (
-                <p className="mt-4 text-body-medium text-on-surface-variant font-medium animate-pulse">
+                <p className="text-body-medium text-on-surface-variant mt-4 animate-pulse font-medium">
                     {text}
                 </p>
             )}

@@ -26,11 +26,11 @@ interface NoticeProps {
 const Notice: React.FC<NoticeProps> = ({ glyph = Info, children, className }) => (
     <div
         className={cn(
-            'flex gap-2.5 rounded-md bg-surface-container px-3 py-2.5 text-[12px] leading-[17px] text-text-secondary',
-            className
+            'bg-surface-container text-text-secondary flex gap-2.5 rounded-md px-3 py-2.5 text-[12px] leading-[17px]',
+            className,
         )}
     >
-        <Icon glyph={glyph} size={18} className="mt-px shrink-0 text-text-muted" />
+        <Icon glyph={glyph} size={18} className="text-text-muted mt-px shrink-0" />
         <span className="min-w-0">{children}</span>
     </div>
 );

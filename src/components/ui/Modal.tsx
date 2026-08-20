@@ -10,7 +10,14 @@ interface ModalProps {
     footer?: React.ReactNode;
     /** MD3 Dialog icon (optional, displayed centered above title) */
     icon?: React.ReactNode;
-    maxWidth?: 'max-w-md' | 'max-w-lg' | 'max-w-xl' | 'max-w-2xl' | 'max-w-4xl' | 'max-w-5xl' | 'max-w-[560px]';
+    maxWidth?:
+        | 'max-w-md'
+        | 'max-w-lg'
+        | 'max-w-xl'
+        | 'max-w-2xl'
+        | 'max-w-4xl'
+        | 'max-w-5xl'
+        | 'max-w-[560px]';
     /** Optional id of a description element for screen readers */
     ariaDescribedBy?: string;
 }
@@ -98,8 +105,8 @@ const Modal: React.FC<ModalProps> = ({
         if (!dialogRef.current) return [];
         return Array.from(
             dialogRef.current.querySelectorAll<HTMLElement>(
-                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-            )
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
         );
     }, []);
 
@@ -167,12 +174,14 @@ const Modal: React.FC<ModalProps> = ({
     return (
         <div
             className={cn(
-                "fixed inset-0 z-[100] flex items-end medium:items-center medium:justify-center medium:p-4 bg-scrim/[0.32]",
+                'medium:items-center medium:justify-center medium:p-4 bg-scrim/[0.32] fixed inset-0 z-[100] flex items-end',
                 closing
-                    ? "animate-out fade-out duration-150"
-                    : "animate-in fade-in duration-medium2"
+                    ? 'animate-out fade-out duration-150'
+                    : 'animate-in fade-in duration-medium2',
             )}
-            onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+            onClick={(e) => {
+                if (e.target === e.currentTarget) handleClose();
+            }}
             onAnimationEnd={handleAnimationEnd}
             role="presentation"
         >
@@ -184,33 +193,38 @@ const Modal: React.FC<ModalProps> = ({
                 aria-describedby={resolvedDescriptionId}
                 className={cn(
                     // Compact: full-screen dialog (MD3 spec for mobile)
-                    "bg-surface w-full flex flex-col overflow-hidden border border-outline-variant",
-                    "h-full rounded-none",
+                    'bg-surface border-outline-variant flex w-full flex-col overflow-hidden border',
+                    'h-full rounded-none',
                     // Medium+: centered modal dialog
-                    "medium:min-w-[280px] medium:h-auto medium:max-h-[90vh] medium:rounded-xl medium:shadow-elevation-4",
+                    'medium:min-w-[280px] medium:h-auto medium:max-h-[90vh] medium:rounded-xl medium:shadow-elevation-4',
                     closing
-                        ? "animate-out zoom-out-95 fade-out duration-150"
-                        : "animate-in slide-in-from-bottom medium:animate-in medium:zoom-in-95 duration-medium2",
-                    maxWidthClasses[maxWidth]
+                        ? 'animate-out zoom-out-95 fade-out duration-150'
+                        : 'animate-in slide-in-from-bottom medium:animate-in medium:zoom-in-95 duration-medium2',
+                    maxWidthClasses[maxWidth],
                 )}
             >
                 {/* Header */}
-                <div className="px-5 py-4 flex items-center justify-between shrink-0 border-b border-outline-variant">
+                <div className="border-outline-variant flex shrink-0 items-center justify-between border-b px-5 py-4">
                     <div className="flex items-center gap-3">
                         {icon && <span className="text-primary">{icon}</span>}
-                        <h2 id={titleId} className="section-title">{title}</h2>
+                        <h2 id={titleId} className="section-title">
+                            {title}
+                        </h2>
                     </div>
                     <CloseButton onClick={handleClose} />
                 </div>
 
                 {/* Content */}
-                <div id={resolvedDescriptionId} className="flex-1 overflow-y-auto custom-scrollbar px-5 py-5">
+                <div
+                    id={resolvedDescriptionId}
+                    className="custom-scrollbar flex-1 overflow-y-auto px-5 py-5"
+                >
                     {children}
                 </div>
 
                 {/* Actions */}
                 {footer && (
-                    <div className="px-5 py-4 flex justify-end gap-2 shrink-0 border-t border-outline-variant bg-surface-container">
+                    <div className="border-outline-variant bg-surface-container flex shrink-0 justify-end gap-2 border-t px-5 py-4">
                         {footer}
                     </div>
                 )}
@@ -220,5 +234,3 @@ const Modal: React.FC<ModalProps> = ({
 };
 
 export default Modal;
-
-

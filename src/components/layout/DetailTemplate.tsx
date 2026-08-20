@@ -61,8 +61,17 @@ interface DetailTemplateProps {
     /** Le menu de débordement : les actes nommés, l'irréversible en dernier. */
     menu?: React.ReactNode;
 
-    /** Le héro — un `DetailHero`. C'est la seule zone inversée de l'écran. */
-    hero: React.ReactNode;
+    /**
+     * Le héro — un `DetailHero`. C'est la seule zone inversée de l'écran.
+     *
+     * **Optionnel : une fiche n'en a pas toujours une.** La fiche d'un type de
+     * catalogue (09.1, colonne 2) enchaîne la barre d'identité et ses cartes sans
+     * héro — parce qu'elle n'a pas de stock à énoncer : *« les actifs ne sont pas
+     * listés ici, ils sont dans 04.1, et un second inventaire est une seconde
+     * vérité »*. Sans héro, la bascule à deux colonnes n'a plus de sujet à tenir à
+     * gauche : la fiche revient à **une colonne** de la mesure de lecture.
+     */
+    hero?: React.ReactNode;
     /**
      * L'échec d'un acte engagé depuis le héro (17.1, règle 1) : il se pose **sous le
      * héro**, là où le geste a été engagé, et l'état de l'objet ne change pas.
@@ -104,24 +113,33 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     children,
     className,
 }) => {
-    const twoColumn = useMediaQuery(TWO_COLUMN);
+    const twoColumnCapable = useMediaQuery(TWO_COLUMN);
     const showSkeleton = useDelayedPending(loading);
+    /* La colonne de gauche n'existe que si quelque chose la remplit. Vide, elle
+       laissait 440 px de blanc à côté des cartes au-delà de 1280. */
+    const twoColumn = twoColumnCapable && Boolean(hero || error || aside);
 
     return (
-        <div className={cn('flex min-h-0 min-w-0 w-full flex-1 flex-col', className)}>
+        <div className={cn('flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
             {/* L'identité n'est écrite qu'ici. */}
-            <div className="flex min-h-14 items-center gap-1 border-b border-outline-variant bg-surface px-2 py-1">
+            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
                 {onBack && (
-                    <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="shrink-0">
+                    <Button
+                        variant="text"
+                        iconOnly
+                        aria-label="Retour"
+                        onClick={onBack}
+                        className="shrink-0"
+                    >
                         <Icon glyph={ArrowLeft} />
                     </Button>
                 )}
                 <div className="min-w-0 flex-1 px-1">
-                    <p className="truncate font-brand text-[15px] font-semibold leading-5 tracking-[-0.015em] text-on-surface">
+                    <p className="font-brand text-on-surface truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
                         {code}
                     </p>
                     {reference && (
-                        <p className="truncate text-label-small tabular-nums tracking-[0.03em] text-text-secondary">
+                        <p className="text-label-small text-text-secondary truncate tracking-[0.03em] tabular-nums">
                             {reference}
                         </p>
                     )}
@@ -134,19 +152,26 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
             {showSkeleton ? (
                 <SkeletonDetail />
             ) : (
-                <div className="flex flex-1 flex-col gap-5 px-5 pt-4 pb-5 medium:px-page">
+                <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
                     <div
                         className={cn(
                             'mx-auto flex w-full gap-5',
-                            twoColumn ? 'max-w-[1280px] items-start' : 'max-w-[960px] flex-col'
+                            twoColumn ? 'max-w-[1280px] items-start' : 'max-w-[960px] flex-col',
                         )}
                     >
                         {/* Le sujet, et tout ce qui appelle un geste. */}
-                        <div className={cn('flex flex-col gap-5', twoColumn && 'w-[440px] shrink-0')}>
-                            {hero}
-                            {error}
-                            {aside}
-                        </div>
+                        {(hero || error || aside) && (
+                            <div
+                                className={cn(
+                                    'flex flex-col gap-5',
+                                    twoColumn && 'w-[440px] shrink-0',
+                                )}
+                            >
+                                {hero}
+                                {error}
+                                {aside}
+                            </div>
+                        )}
 
                         {/* La référence — bornée, jamais parcourue. */}
                         <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>

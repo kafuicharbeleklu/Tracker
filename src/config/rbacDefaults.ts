@@ -93,7 +93,9 @@ export const SYSTEM_ROLE_ID_BY_USER_ROLE: Record<UserRole, string> = {
     User: SYSTEM_ROLE_IDS.employee,
 };
 
-const allViewPermissions: PermissionRule[] = Object.values(RBAC_PERMISSIONS.views).map((key) => allow(key, 'read'));
+const allViewPermissions: PermissionRule[] = Object.values(RBAC_PERMISSIONS.views).map((key) =>
+    allow(key, 'read'),
+);
 
 export const DEFAULT_RBAC_ROLES: RbacRole[] = [
     {
@@ -414,10 +416,7 @@ export const buildRbacAssignmentFromUser = (user?: User | null): UserAccessAssig
         ...(template.roleIds || []),
         ...(user.rbacRoleIds || []),
     ]);
-    const groupIds = unique([
-        ...(template.groupIds || []),
-        ...(user.rbacGroupIds || []),
-    ]);
+    const groupIds = unique([...(template.groupIds || []), ...(user.rbacGroupIds || [])]);
 
     return {
         userId: user.id,
@@ -468,4 +467,3 @@ export const simulateAccessForRoleIds = (
         groups: DEFAULT_RBAC_GROUPS,
     });
 };
-

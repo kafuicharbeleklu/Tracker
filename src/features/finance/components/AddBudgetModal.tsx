@@ -76,7 +76,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const [mode, setMode] = useState<AddBudgetMode>('import');
     const [isProcessing, setIsProcessing] = useState(false);
     const [importedFile, setImportedFile] = useState<File | null>(null);
-    const [importMeta, setImportMeta] = useState<Pick<ExtractedBudgetDraft, 'confidence' | 'warnings' | 'source'> | null>(null);
+    const [importMeta, setImportMeta] = useState<Pick<
+        ExtractedBudgetDraft,
+        'confidence' | 'warnings' | 'source'
+    > | null>(null);
     const [isLowConfidenceReviewed, setIsLowConfidenceReviewed] = useState(false);
 
     const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -84,7 +87,12 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
         { category: 'Matériel IT', amount: '25000', type: 'Purchase', capitalization: 'CAPEX' },
-        { category: 'Licences & Logiciels', amount: '12000', type: 'License', capitalization: 'OPEX' },
+        {
+            category: 'Licences & Logiciels',
+            amount: '12000',
+            type: 'License',
+            capitalization: 'OPEX',
+        },
         { category: 'Infrastructure Cloud', amount: '8000', type: 'Cloud', capitalization: 'OPEX' },
     ]);
 
@@ -100,13 +108,22 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         let iconBg = 'bg-surface-container text-on-surface-variant';
 
         // Détection Icône & Style
-        if (lower.includes('matériel') || lower.includes('capex') || lower.includes('hardware') || lower.includes('serveur')) {
+        if (
+            lower.includes('matériel') ||
+            lower.includes('capex') ||
+            lower.includes('hardware') ||
+            lower.includes('serveur')
+        ) {
             icon = <Icon glyph={ShoppingBag} size={18} />;
             iconBg = 'bg-secondary-container text-secondary';
         } else if (lower.includes('licence') || lower.includes('software')) {
             icon = <Icon glyph={Key} size={18} />;
             iconBg = 'bg-secondary-container text-on-secondary-container';
-        } else if (lower.includes('cloud') || lower.includes('hosting') || lower.includes('infrastructure')) {
+        } else if (
+            lower.includes('cloud') ||
+            lower.includes('hosting') ||
+            lower.includes('infrastructure')
+        ) {
             icon = <Icon glyph={Cloud} size={18} />;
             iconBg = 'bg-tertiary-container text-tertiary';
         } else if (lower.includes('maintenance') || lower.includes('service')) {
@@ -120,7 +137,12 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const getFinanceTypeFromCategory = (category: string): FinanceExpenseType => {
         const lower = category.toLowerCase();
         if (lower.includes('licence') || lower.includes('software')) return 'License';
-        if (lower.includes('cloud') || lower.includes('hosting') || lower.includes('infrastructure')) return 'Cloud';
+        if (
+            lower.includes('cloud') ||
+            lower.includes('hosting') ||
+            lower.includes('infrastructure')
+        )
+            return 'Cloud';
         if (lower.includes('maintenance') || lower.includes('service')) return 'Service';
         return 'Purchase';
     };
@@ -134,7 +156,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         setYear(new Date().getFullYear().toString());
         setBudgetLines([
             { id: '1', category: 'Matériel IT', amount: '' },
-            { id: '2', category: 'Licences Logiciel', amount: '' }
+            { id: '2', category: 'Licences Logiciel', amount: '' },
         ]);
     };
 
@@ -151,15 +173,20 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
     // --- Row Management ---
     const addLine = () => {
-        setBudgetLines(prev => [...prev, { id: Date.now().toString(), category: '', amount: '' }]);
+        setBudgetLines((prev) => [
+            ...prev,
+            { id: Date.now().toString(), category: '', amount: '' },
+        ]);
     };
 
     const removeLine = (id: string) => {
-        setBudgetLines(prev => prev.filter(line => line.id !== id));
+        setBudgetLines((prev) => prev.filter((line) => line.id !== id));
     };
 
     const updateLine = (id: string, field: keyof BudgetLine, value: string) => {
-        setBudgetLines(prev => prev.map(line => line.id === id ? { ...line, [field]: value } : line));
+        setBudgetLines((prev) =>
+            prev.map((line) => (line.id === id ? { ...line, [field]: value } : line)),
+        );
     };
 
     // --- Import Logic ---
@@ -180,11 +207,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
 
             setYear(extracted.year);
             if (extracted.lines.length > 0) {
-                setBudgetLines(extracted.lines.map((line, index) => ({
-                    id: `${Date.now()}_${index}`,
-                    category: line.category,
-                    amount: line.amount,
-                })));
+                setBudgetLines(
+                    extracted.lines.map((line, index) => ({
+                        id: `${Date.now()}_${index}`,
+                        category: line.category,
+                        amount: line.amount,
+                    })),
+                );
             } else {
                 setBudgetLines([
                     { id: '1', category: 'Matériel IT', amount: '' },
@@ -218,19 +247,19 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         }
 
         if (totalBudget <= 0) {
-            showToast("Le budget total ne peut pas être nul.", "error");
+            showToast('Le budget total ne peut pas être nul.', 'error');
             return;
         }
-        const emptyLines = budgetLines.filter(l => !l.category || !l.amount);
+        const emptyLines = budgetLines.filter((l) => !l.category || !l.amount);
         if (emptyLines.length > 0) {
-            showToast("Veuillez remplir toutes les lignes ou les supprimer.", "error");
+            showToast('Veuillez remplir toutes les lignes ou les supprimer.', 'error');
             return;
         }
 
         const budgetYear = Number(year) || new Date().getFullYear();
-        const existingBudget = financeBudgets.find(budget => budget.year === budgetYear);
+        const existingBudget = financeBudgets.find((budget) => budget.year === budgetYear);
         const existingSpentByCategory = new Map(
-            (existingBudget?.items || []).map(item => [item.category, item.spent]),
+            (existingBudget?.items || []).map((item) => [item.category, item.spent]),
         );
 
         const normalizedItems: FinanceBudget['items'] = budgetLines.map((line) => {
@@ -254,13 +283,18 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             sourceFileName: importedFile?.name,
         });
 
-        showToast(`Budget ${year} de ${formatCurrency(totalBudget, settings.currency)} enregistré avec succès.`, "success");
+        showToast(
+            `Budget ${year} de ${formatCurrency(totalBudget, settings.currency)} enregistré avec succès.`,
+            'success',
+        );
         handleClose();
     };
 
     const footer = (
         <>
-            <Button variant="outlined" onClick={handleClose}>Annuler</Button>
+            <Button variant="outlined" onClick={handleClose}>
+                Annuler
+            </Button>
             <Button
                 variant="filled"
                 onClick={handleSubmit}
@@ -289,7 +323,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             footer={mode === 'manual' ? footer : undefined}
             maxWidth="max-w-4xl" // Wider modal for table view
         >
-            <div className="mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-2">
+            <div className="border-outline-variant bg-surface-container-low mb-6 rounded-xl border p-2">
                 <SegmentedButton
                     options={MODE_OPTIONS}
                     value={mode}
@@ -299,45 +333,73 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             </div>
 
             {mode === 'import' && (
-                <div className="min-h-[350px] flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                <div className="animate-in fade-in zoom-in-95 flex min-h-[350px] flex-col items-center justify-center space-y-6 text-center duration-300">
                     {!isProcessing ? (
                         <div className="w-full space-y-4">
                             <FileDropzone
                                 onFileSelect={startImportProcess}
                                 accept=".xlsx,.xls,.csv,.txt,.pdf,.jpg,.jpeg,.png,.webp"
                                 label="Importer votre fichier Budget"
-                                subLabel={"L'IA détectera automatiquement les colonnes Catégorie, Montant et Année."}
-                                className="w-full h-72 border-outline-variant hover:border-tertiary hover:bg-tertiary-container/10"
+                                subLabel={
+                                    "L'IA détectera automatiquement les colonnes Catégorie, Montant et Année."
+                                }
+                                className="border-outline-variant hover:border-tertiary hover:bg-tertiary-container/10 h-72 w-full"
                             />
-                            <div className="flex gap-2 justify-center">
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.XLSX</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.CSV</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.PDF</span>
-                                <span className="text-label-small font-bold bg-surface-container text-on-surface-variant px-2 py-1 rounded-md">.JPG/.PNG</span>
+                            <div className="flex justify-center gap-2">
+                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
+                                    .XLSX
+                                </span>
+                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
+                                    .CSV
+                                </span>
+                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
+                                    .PDF
+                                </span>
+                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
+                                    .JPG/.PNG
+                                </span>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center w-full max-w-sm">
-                            <div className="flex items-center gap-4 mb-6 w-full">
-                                <div className="w-12 h-12 bg-surface border border-outline-variant rounded-lg flex items-center justify-center shadow-elevation-1">
+                        <div className="flex w-full max-w-sm flex-col items-center">
+                            <div className="mb-6 flex w-full items-center gap-4">
+                                <div className="bg-surface border-outline-variant shadow-elevation-1 flex h-12 w-12 items-center justify-center rounded-lg border">
                                     <Icon glyph={FileCsv} size={24} className="text-tertiary" />
                                 </div>
                                 <div className="flex-1 space-y-2">
-                                    <div className="h-2 bg-surface-container rounded-full overflow-hidden">
-                                        <div className="h-full bg-tertiary animate-[width_2s_var(--tk-motion-easing-emphasized)_infinite]" style={{ width: '60%' }} />
+                                    <div className="bg-surface-container h-2 overflow-hidden rounded-full">
+                                        <div
+                                            className="bg-tertiary h-full animate-[width_2s_var(--tk-motion-easing-emphasized)_infinite]"
+                                            style={{ width: '60%' }}
+                                        />
                                     </div>
-                                    <div className="flex justify-between text-label-medium text-on-surface-variant font-bold">
+                                    <div className="text-label-medium text-on-surface-variant flex justify-between font-bold">
                                         <span>Analyse structurelle...</span>
                                         <span>60%</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="w-full bg-surface-container rounded-xl p-4 border border-outline-variant text-left space-y-2">
-                                <p className="text-label-medium font-bold text-on-surface-variant uppercase tracking-widest mb-2">Journal de traitement</p>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-100 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={18} className="text-tertiary" /> Fichier "{importedFile?.name}" chargé</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-500 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={Check} size={18} className="text-tertiary" /> Détection de l'exercice fiscal</span>
-                                <span className="animate-in fade-in slide-in-from-left-4 delay-1000 flex items-center gap-2 text-body-medium text-on-surface-variant"><Icon glyph={SpinnerGap} size={18} className="animate-spin text-primary" /> Extraction des lignes budgétaires...</span>
+                            <div className="bg-surface-container border-outline-variant w-full space-y-2 rounded-xl border p-4 text-left">
+                                <p className="text-label-medium text-on-surface-variant mb-2 font-bold tracking-widest uppercase">
+                                    Journal de traitement
+                                </p>
+                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-100">
+                                    <Icon glyph={Check} size={18} className="text-tertiary" />{' '}
+                                    Fichier "{importedFile?.name}" chargé
+                                </span>
+                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-500">
+                                    <Icon glyph={Check} size={18} className="text-tertiary" />{' '}
+                                    Détection de l'exercice fiscal
+                                </span>
+                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-1000">
+                                    <Icon
+                                        glyph={SpinnerGap}
+                                        size={18}
+                                        className="text-primary animate-spin"
+                                    />{' '}
+                                    Extraction des lignes budgétaires...
+                                </span>
                             </div>
                         </div>
                     )}
@@ -345,17 +407,28 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
             )}
 
             {mode === 'manual' && (
-                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+                <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
                     {importedFile && (
-                        <div className="bg-tertiary-container border border-tertiary/20 rounded-xl p-3 flex items-center justify-between">
+                        <div className="bg-tertiary-container border-tertiary/20 flex items-center justify-between rounded-xl border p-3">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-tertiary/20 rounded-lg text-on-tertiary-container"><Icon glyph={Sparkle} size={18} /></div>
+                                <div className="bg-tertiary/20 text-on-tertiary-container rounded-lg p-2">
+                                    <Icon glyph={Sparkle} size={18} />
+                                </div>
                                 <div>
-                                    <p className="text-label-medium font-bold text-on-tertiary-container uppercase">Données pré-remplies par IA</p>
-                                    <p className="text-body-small text-tertiary">Vérifiez les montants ci-dessous.</p>
+                                    <p className="text-label-medium text-on-tertiary-container font-bold uppercase">
+                                        Données pré-remplies par IA
+                                    </p>
+                                    <p className="text-body-small text-tertiary">
+                                        Vérifiez les montants ci-dessous.
+                                    </p>
                                     {importMeta && (
                                         <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
-                                            Confiance: {importMeta.confidence === 'high' ? 'elevee' : importMeta.confidence === 'medium' ? 'moyenne' : 'faible'}
+                                            Confiance:{' '}
+                                            {importMeta.confidence === 'high'
+                                                ? 'elevee'
+                                                : importMeta.confidence === 'medium'
+                                                  ? 'moyenne'
+                                                  : 'faible'}
                                         </p>
                                     )}
                                 </div>
@@ -374,13 +447,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                     )}
 
                     {importMeta?.warnings?.length ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
+                        <div className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant rounded-xl border px-3 py-2">
                             {importMeta.warnings[0]}
                         </div>
                     ) : null}
 
                     {requiresLowConfidenceReview ? (
-                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
+                        <label className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant flex items-start gap-2 rounded-xl border px-3 py-2">
                             <input
                                 type="checkbox"
                                 className="mt-0.5 h-4 w-4"
@@ -388,7 +461,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 onChange={(e) => setIsLowConfidenceReviewed(e.target.checked)}
                             />
                             <span>
-                                Je confirme avoir verifie manuellement l'annee, les categories et les montants.
+                                Je confirme avoir verifie manuellement l'annee, les categories et
+                                les montants.
                             </span>
                         </label>
                     ) : null}
@@ -405,31 +479,46 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 required
                             />
                         </div>
-                        <div className="flex-1 bg-surface-container-low p-3 rounded-xl border border-outline-variant flex justify-between items-center h-[54px]">
-                            <span className="text-label-large font-bold text-on-surface-variant pl-2">Budget Global Calculé</span>
-                            <span className="text-title-large font-black text-on-surface pr-2">{formatCurrency(totalBudget, settings.currency)}</span>
+                        <div className="bg-surface-container-low border-outline-variant flex h-[54px] flex-1 items-center justify-between rounded-xl border p-3">
+                            <span className="text-label-large text-on-surface-variant pl-2 font-bold">
+                                Budget Global Calculé
+                            </span>
+                            <span className="text-title-large text-on-surface pr-2 font-black">
+                                {formatCurrency(totalBudget, settings.currency)}
+                            </span>
                         </div>
                     </div>
 
                     {/* Table Container exactly like Finance Detail List */}
-                    <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
+                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-xl border">
                         {isCompact ? (
-                            <div className="divide-y divide-outline-variant">
+                            <div className="divide-outline-variant divide-y">
                                 {budgetLines.map((line) => {
                                     const details = getCategoryDetails(line.category);
                                     return (
-                                        <div key={line.id} className="p-4 space-y-3">
+                                        <div key={line.id} className="space-y-3 p-4">
                                             <div className="flex items-end gap-3">
-                                                <div className={cn('p-2 rounded-lg shrink-0 mb-1', details.iconBg)}>
+                                                <div
+                                                    className={cn(
+                                                        'mb-1 shrink-0 rounded-lg p-2',
+                                                        details.iconBg,
+                                                    )}
+                                                >
                                                     {details.icon}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <SelectField
                                                         name={`cat-${line.id}`}
                                                         label="Catégorie"
                                                         options={categoryOptions}
                                                         value={line.category}
-                                                        onChange={(e) => updateLine(line.id, 'category', e.target.value)}
+                                                        onChange={(e) =>
+                                                            updateLine(
+                                                                line.id,
+                                                                'category',
+                                                                e.target.value,
+                                                            )
+                                                        }
                                                         placeholder="Choisir une catégorie..."
                                                         className="w-full"
                                                     />
@@ -439,20 +528,32 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                     variant="standard"
                                                     aria-label="Supprimer la ligne budgétaire"
                                                     onClick={() => removeLine(line.id)}
-                                                    className="shrink-0 mb-1 text-on-surface-variant hover:text-error hover:bg-error-container"
+                                                    className="text-on-surface-variant hover:text-error hover:bg-error-container mb-1 shrink-0"
                                                 />
                                             </div>
                                             <div className="flex items-end gap-3">
-                                                <div className="flex-1 min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <InputField
                                                         label="Montant alloué"
                                                         type="number"
                                                         value={line.amount}
-                                                        onChange={(e) => updateLine(line.id, 'amount', e.target.value)}
+                                                        onChange={(e) =>
+                                                            updateLine(
+                                                                line.id,
+                                                                'amount',
+                                                                e.target.value,
+                                                            )
+                                                        }
                                                         aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
                                                         placeholder="0.00"
-                                                        prefix={settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}
-                                                        className="py-2 text-right font-mono font-bold bg-surface-container-low"
+                                                        prefix={
+                                                            settings.currency === 'USD'
+                                                                ? '$'
+                                                                : settings.currency === 'XOF'
+                                                                  ? 'XOF'
+                                                                  : '€'
+                                                        }
+                                                        className="bg-surface-container-low py-2 text-right font-mono font-bold"
                                                     />
                                                 </div>
                                                 <div className="w-40 shrink-0">
@@ -461,7 +562,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                                         label="Immobilisation"
                                                         options={CAPITALIZATION_OPTIONS}
                                                         value={line.capitalization}
-                                                        onChange={(e) => updateLine(line.id, 'capitalization', e.target.value)}
+                                                        onChange={(e) =>
+                                                            updateLine(
+                                                                line.id,
+                                                                'capitalization',
+                                                                e.target.value,
+                                                            )
+                                                        }
                                                         placeholder="À renseigner"
                                                         className="w-full"
                                                     />
@@ -472,99 +579,138 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 })}
 
                                 {budgetLines.length === 0 && (
-                                    <p className="px-6 py-8 text-center text-on-surface-variant italic text-body-medium">
+                                    <p className="text-on-surface-variant text-body-medium px-6 py-8 text-center italic">
                                         Aucune ligne budgétaire.
                                     </p>
                                 )}
                             </div>
                         ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-body-medium text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-small tracking-widest">
-                                    <tr>
-                                        <th className="px-6 py-4">Catégorie</th>
-                                        <th className="px-6 py-4 w-48 text-right">Montant Alloué</th>
-                                        <th className="px-6 py-4 text-center w-40">Immobilisation</th>
-                                        <th className="px-6 py-4 w-16"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-outline-variant bg-surface">
-                                    {budgetLines.map((line) => {
-                                        const details = getCategoryDetails(line.category);
-                                        return (
-                                            <tr key={line.id} className="hover:bg-surface-container/50 transition-colors group">
-                                                <td className="px-6 py-3">
-                                                    <div className="flex items-center gap-3 w-full">
-                                                        <div className={cn("p-2 rounded-lg shrink-0", details.iconBg)}>
-                                                            {details.icon}
+                            <div className="overflow-x-auto">
+                                <table className="text-body-medium w-full text-left">
+                                    <thead className="bg-surface-container text-on-surface-variant text-label-small font-bold tracking-widest uppercase">
+                                        <tr>
+                                            <th className="px-6 py-4">Catégorie</th>
+                                            <th className="w-48 px-6 py-4 text-right">
+                                                Montant Alloué
+                                            </th>
+                                            <th className="w-40 px-6 py-4 text-center">
+                                                Immobilisation
+                                            </th>
+                                            <th className="w-16 px-6 py-4"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-outline-variant bg-surface divide-y">
+                                        {budgetLines.map((line) => {
+                                            const details = getCategoryDetails(line.category);
+                                            return (
+                                                <tr
+                                                    key={line.id}
+                                                    className="hover:bg-surface-container/50 group transition-colors"
+                                                >
+                                                    <td className="px-6 py-3">
+                                                        <div className="flex w-full items-center gap-3">
+                                                            <div
+                                                                className={cn(
+                                                                    'shrink-0 rounded-lg p-2',
+                                                                    details.iconBg,
+                                                                )}
+                                                            >
+                                                                {details.icon}
+                                                            </div>
+                                                            <div className="min-w-[200px] flex-1">
+                                                                <SelectField
+                                                                    name={`cat-${line.id}`}
+                                                                    options={categoryOptions}
+                                                                    value={line.category}
+                                                                    onChange={(e) =>
+                                                                        updateLine(
+                                                                            line.id,
+                                                                            'category',
+                                                                            e.target.value,
+                                                                        )
+                                                                    }
+                                                                    placeholder="Choisir une catégorie..."
+                                                                    className="mb-0 h-auto w-full border-none bg-transparent px-0 py-0 hover:bg-transparent"
+                                                                />
+                                                            </div>
                                                         </div>
-                                                        <div className="flex-1 min-w-[200px]">
-                                                            <SelectField
-                                                                name={`cat-${line.id}`}
-                                                                options={categoryOptions}
-                                                                value={line.category}
-                                                                onChange={(e) => updateLine(line.id, 'category', e.target.value)}
-                                                                placeholder="Choisir une catégorie..."
-                                                                className="mb-0 w-full border-none bg-transparent hover:bg-transparent px-0 py-0 h-auto"
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <div className="relative">
+                                                            <span className="text-on-surface-variant text-label-medium absolute top-1/2 left-3 -translate-y-1/2 font-bold">
+                                                                {settings.currency === 'USD'
+                                                                    ? '$'
+                                                                    : settings.currency === 'XOF'
+                                                                      ? 'XOF'
+                                                                      : '€'}
+                                                            </span>
+                                                            <InputField
+                                                                type="number"
+                                                                value={line.amount}
+                                                                onChange={(e) =>
+                                                                    updateLine(
+                                                                        line.id,
+                                                                        'amount',
+                                                                        e.target.value,
+                                                                    )
+                                                                }
+                                                                aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
+                                                                placeholder="0.00"
+                                                                className="bg-surface-container-low py-2 pr-4 pl-8 text-right font-mono font-bold"
                                                             />
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3">
-                                                    <div className="relative">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-label-medium">{settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}</span>
-                                                        <InputField
-                                                            type="number"
-                                                            value={line.amount}
-                                                            onChange={(e) => updateLine(line.id, 'amount', e.target.value)}
-                                                            aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
-                                                            placeholder="0.00"
-                                                            className="py-2 pr-4 pl-8 text-right font-mono font-bold bg-surface-container-low"
+                                                    </td>
+                                                    <td className="px-6 py-3 text-center">
+                                                        <SelectField
+                                                            name={`cap-${line.id}`}
+                                                            options={CAPITALIZATION_OPTIONS}
+                                                            value={line.capitalization}
+                                                            onChange={(e) =>
+                                                                updateLine(
+                                                                    line.id,
+                                                                    'capitalization',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            placeholder="À renseigner"
+                                                            className="mb-0 w-full"
                                                         />
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-3 text-center">
-                                                    <SelectField
-                                                        name={`cap-${line.id}`}
-                                                        options={CAPITALIZATION_OPTIONS}
-                                                        value={line.capitalization}
-                                                        onChange={(e) => updateLine(line.id, 'capitalization', e.target.value)}
-                                                        placeholder="À renseigner"
-                                                        className="mb-0 w-full"
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-3 text-right">
-                                                    <IconButton
-                                                        icon="delete"
-                                                        variant="standard"
-                                                        aria-label="Supprimer la ligne budgétaire"
-                                                        onClick={() => removeLine(line.id)}
-                                                        className={cn(
-                                                            'text-on-surface-variant hover:text-error hover:bg-error-container transition-opacity',
-                                                            isHoverCapable
-                                                                ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-                                                                : 'opacity-100'
-                                                        )}
-                                                        title="Supprimer la ligne"
-                                                    />
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right">
+                                                        <IconButton
+                                                            icon="delete"
+                                                            variant="standard"
+                                                            aria-label="Supprimer la ligne budgétaire"
+                                                            onClick={() => removeLine(line.id)}
+                                                            className={cn(
+                                                                'text-on-surface-variant hover:text-error hover:bg-error-container transition-opacity',
+                                                                isHoverCapable
+                                                                    ? 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'
+                                                                    : 'opacity-100',
+                                                            )}
+                                                            title="Supprimer la ligne"
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+
+                                        {budgetLines.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={4}
+                                                    className="text-on-surface-variant text-body-medium px-6 py-8 text-center italic"
+                                                >
+                                                    Aucune ligne budgétaire.
                                                 </td>
                                             </tr>
-                                        );
-                                    })}
-
-                                    {budgetLines.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant italic text-body-medium">
-                                                Aucune ligne budgétaire.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
 
-                        <div className="p-2 border-t border-outline-variant">
+                        <div className="border-outline-variant border-t p-2">
                             <Button
                                 variant="outlined"
                                 size="sm"
@@ -581,4 +727,3 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         </Modal>
     );
 };
-

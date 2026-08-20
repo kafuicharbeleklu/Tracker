@@ -61,8 +61,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         if (!sheetRef.current) return [];
         return Array.from(
             sheetRef.current.querySelectorAll<HTMLElement>(
-                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-            )
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
         );
     }, []);
 
@@ -169,8 +169,10 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             {/* Scrim */}
             <div
                 className={cn(
-                    "absolute inset-0 bg-scrim/[0.32]",
-                    closing ? "animate-out fade-out duration-200" : "animate-in fade-in duration-200"
+                    'bg-scrim/[0.32] absolute inset-0',
+                    closing
+                        ? 'animate-out fade-out duration-200'
+                        : 'animate-in fade-in duration-200',
                 )}
                 onClick={onClose}
                 aria-hidden="true"
@@ -186,45 +188,44 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 aria-label={title ? undefined : 'Panneau inférieur'}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    "relative w-full max-h-[90vh] bg-surface rounded-t-xl shadow-elevation-4 border border-outline-variant flex flex-col",
+                    'bg-surface shadow-elevation-4 border-outline-variant relative flex max-h-[90vh] w-full flex-col rounded-t-xl border',
                     closing
-                        ? "animate-out slide-out-to-bottom-4 fade-out duration-300"
-                        : "animate-in slide-in-from-bottom-4 duration-300",
-                    "expanded:max-w-[640px]",
-                    !isDragging && "transition-transform duration-short4 ease-emphasized",
-                    className
+                        ? 'animate-out slide-out-to-bottom-4 fade-out duration-300'
+                        : 'animate-in slide-in-from-bottom-4 duration-300',
+                    'expanded:max-w-[640px]',
+                    !isDragging && 'duration-short4 ease-emphasized transition-transform',
+                    className,
                 )}
                 style={dragOffset > 0 ? { transform: `translateY(${dragOffset}px)` } : undefined}
             >
                 {/* Drag handle */}
                 {dragHandle && (
                     <div
-                        className="flex justify-center pt-3 pb-1 cursor-grab touch-none"
+                        className="flex cursor-grab touch-none justify-center pt-3 pb-1"
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
                         onPointerCancel={resetDrag}
                     >
-                        <div className="w-8 h-1 rounded-full bg-on-surface-variant/40" />
+                        <div className="bg-on-surface-variant/40 h-1 w-8 rounded-full" />
                     </div>
                 )}
 
                 {/* Title */}
                 {title && (
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
-                        <h2 id={titleId} className={cn('section-title', titleClassName)}>{title}</h2>
+                    <div className="border-outline-variant flex items-center justify-between border-b px-5 py-4">
+                        <h2 id={titleId} className={cn('section-title', titleClassName)}>
+                            {title}
+                        </h2>
                         <CloseButton onClick={onClose} />
                     </div>
                 )}
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4">
-                    {children}
-                </div>
+                <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-4">{children}</div>
             </div>
         </div>
     );
 };
 
 export default BottomSheet;
-

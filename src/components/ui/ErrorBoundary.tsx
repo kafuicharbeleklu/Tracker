@@ -64,7 +64,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <div
                 role="alert"
                 data-testid="error-boundary-fallback"
-                className="flex h-full min-h-[60vh] w-full items-center justify-center p-page-sm medium:p-page"
+                className="p-page-sm medium:p-page flex h-full min-h-[60vh] w-full items-center justify-center"
             >
                 <div className="w-full max-w-md">
                     <EmptyState
@@ -85,11 +85,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
                     {/* Détail technique réservé au dev : inutile — voire anxiogène — en production. */}
                     {import.meta.env.DEV && (
-                        <details className="mt-6 rounded-md border border-outline-variant bg-surface-container px-3 py-2">
-                            <summary className="cursor-pointer text-label-medium text-on-surface-variant">
+                        <details className="border-outline-variant bg-surface-container mt-6 rounded-md border px-3 py-2">
+                            <summary className="text-label-medium text-on-surface-variant cursor-pointer">
                                 Détail technique (dev)
                             </summary>
-                            <pre className="mt-2 overflow-x-auto text-body-small text-on-surface-variant">
+                            <pre className="text-body-small text-on-surface-variant mt-2 overflow-x-auto">
                                 {error.message}
                             </pre>
                         </details>

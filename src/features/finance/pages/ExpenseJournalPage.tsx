@@ -52,7 +52,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
 
     const [exerciseYear, setExerciseYear] = useState<number>(
-        () => financeBudgets[0]?.year || new Date().getFullYear()
+        () => financeBudgets[0]?.year || new Date().getFullYear(),
     );
 
     useEffect(() => {
@@ -75,8 +75,11 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
     }, [financeExpenses, settings.currency, settings.compactNotation, exerciseYear]);
 
     return (
-        <div className="flex flex-col h-full bg-surface">
-            <AddExpenseModal isOpen={isAddExpenseModalOpen} onClose={() => setIsAddExpenseModalOpen(false)} />
+        <div className="bg-surface flex h-full flex-col">
+            <AddExpenseModal
+                isOpen={isAddExpenseModalOpen}
+                onClose={() => setIsAddExpenseModalOpen(false)}
+            />
             <ExpenseDetailSheet
                 expenseId={selectedExpenseId}
                 onClose={() => setSelectedExpenseId(null)}
@@ -89,7 +92,11 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                     subtitle={countLabel}
                     breadcrumb="Finances"
                     showContentTitleOnCompact
-                    leadingIcon={{ icon: 'arrow_back', onClick: onBack, label: 'Retour aux finances' }}
+                    leadingIcon={{
+                        icon: 'arrow_back',
+                        onClick: onBack,
+                        label: 'Retour aux finances',
+                    }}
                     actions={
                         <Button
                             variant="filled"
@@ -104,9 +111,9 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
 
                 <Reading className="animate-in fade-in slide-in-from-bottom-4 duration-medium2">
                     <Card title="Historique des Transactions">
-                        <div className="hidden medium:block overflow-x-auto">
-                            <table className="w-full text-body-medium text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium">
+                        <div className="medium:block hidden overflow-x-auto">
+                            <table className="text-body-medium w-full text-left">
+                                <thead className="bg-surface-container text-on-surface-variant text-label-medium font-bold uppercase">
                                     <tr>
                                         <th className="px-6 py-4">Date</th>
                                         <th className="px-6 py-4">Fournisseur</th>
@@ -117,36 +124,56 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-outline-variant">
+                                <tbody className="divide-outline-variant divide-y">
                                     {financeExpenses.length > 0 ? (
                                         financeExpenses.map((exp) => (
                                             <tr
                                                 key={exp.id}
                                                 className="hover:bg-surface-container/50 focus-visible:ring-focus-ring group cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset"
-                                                {...rowActivation(() => setSelectedExpenseId(exp.id))}
+                                                {...rowActivation(() =>
+                                                    setSelectedExpenseId(exp.id),
+                                                )}
                                             >
-                                                <td className="px-6 py-4 text-on-surface-variant font-mono text-body-small whitespace-nowrap">
+                                                <td className="text-on-surface-variant text-body-small px-6 py-4 font-mono whitespace-nowrap">
                                                     {formatExpenseDate(exp.date)}
                                                 </td>
-                                                <td className="px-6 py-4 font-bold text-on-surface whitespace-nowrap">
+                                                <td className="text-on-surface px-6 py-4 font-bold whitespace-nowrap">
                                                     {exp.supplier}
                                                 </td>
-                                                <td className="px-6 py-4 text-on-surface-variant max-w-[260px]">
-                                                    <span className="block truncate" title={exp.description}>
-                                                        {toExpenseDescriptionPreview(exp.description)}
+                                                <td className="text-on-surface-variant max-w-[260px] px-6 py-4">
+                                                    <span
+                                                        className="block truncate"
+                                                        title={exp.description}
+                                                    >
+                                                        {toExpenseDescriptionPreview(
+                                                            exp.description,
+                                                        )}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Icon glyph={getExpenseTypeGlyph(exp.type)} size={18} className="text-on-surface-variant" />
-                                                        <span className="text-label-medium font-medium whitespace-nowrap">{EXPENSE_TYPE_LABELS[exp.type]}</span>
+                                                        <Icon
+                                                            glyph={getExpenseTypeGlyph(exp.type)}
+                                                            size={18}
+                                                            className="text-on-surface-variant"
+                                                        />
+                                                        <span className="text-label-medium font-medium whitespace-nowrap">
+                                                            {EXPENSE_TYPE_LABELS[exp.type]}
+                                                        </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 font-bold text-on-surface text-right tabular-nums whitespace-nowrap">
-                                                    {formatExpenseAmount(exp.amount, exp.currencyCode || settings.currency)}
+                                                <td className="text-on-surface px-6 py-4 text-right font-bold whitespace-nowrap tabular-nums">
+                                                    {formatExpenseAmount(
+                                                        exp.amount,
+                                                        exp.currencyCode || settings.currency,
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <Badge variant={getExpenseStatusVariant(exp.status)}>
+                                                    <Badge
+                                                        variant={getExpenseStatusVariant(
+                                                            exp.status,
+                                                        )}
+                                                    >
                                                         {getExpenseStatusLabel(exp.status)}
                                                     </Badge>
                                                 </td>
@@ -154,11 +181,17 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                                     <Button
                                                         variant="text"
                                                         size="sm"
-                                                        className="h-8 w-8 min-w-0 p-0 rounded-full text-error hover:bg-error-container/40"
+                                                        className="text-error hover:bg-error-container/40 h-8 w-8 min-w-0 rounded-full p-0"
                                                         aria-label={`Supprimer la dépense ${exp.id}`}
                                                         onClick={(event) => {
                                                             event.stopPropagation();
-                                                            requestExpenseDeletion(exp, () => setSelectedExpenseId((current) => (current === exp.id ? null : current)));
+                                                            requestExpenseDeletion(exp, () =>
+                                                                setSelectedExpenseId((current) =>
+                                                                    current === exp.id
+                                                                        ? null
+                                                                        : current,
+                                                                ),
+                                                            );
                                                         }}
                                                     >
                                                         <Icon glyph={Trash} size={18} />
@@ -168,7 +201,10 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={7} className="px-6 py-10 text-center text-on-surface-variant">
+                                            <td
+                                                colSpan={7}
+                                                className="text-on-surface-variant px-6 py-10 text-center"
+                                            >
                                                 Aucune dépense enregistrée pour le moment.
                                             </td>
                                         </tr>
@@ -178,7 +214,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                         </div>
 
                         {/* Vue cartes (compact) — Historique des transactions */}
-                        <div className="medium:hidden divide-y divide-outline-variant">
+                        <div className="medium:hidden divide-outline-variant divide-y">
                             {financeExpenses.length > 0 ? (
                                 financeExpenses.map((exp) => (
                                     <div
@@ -192,40 +228,57 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                                 setSelectedExpenseId(exp.id);
                                             }
                                         }}
-                                        className="p-4 space-y-2 cursor-pointer hover:bg-surface-container/50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                                        className="hover:bg-surface-container/50 focus-visible:ring-primary cursor-pointer space-y-2 p-4 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset"
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <span className="font-bold text-on-surface min-w-0 truncate">{exp.supplier}</span>
+                                            <span className="text-on-surface min-w-0 truncate font-bold">
+                                                {exp.supplier}
+                                            </span>
                                             <Badge variant={getExpenseStatusVariant(exp.status)}>
                                                 {getExpenseStatusLabel(exp.status)}
                                             </Badge>
                                         </div>
                                         {exp.description && (
-                                            <p className="text-body-small text-on-surface-variant truncate" title={exp.description}>
+                                            <p
+                                                className="text-body-small text-on-surface-variant truncate"
+                                                title={exp.description}
+                                            >
                                                 {toExpenseDescriptionPreview(exp.description)}
                                             </p>
                                         )}
                                         <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2 text-label-small text-on-surface-variant min-w-0">
-                                                <span className="font-mono whitespace-nowrap">{formatExpenseDate(exp.date)}</span>
+                                            <div className="text-label-small text-on-surface-variant flex min-w-0 items-center gap-2">
+                                                <span className="font-mono whitespace-nowrap">
+                                                    {formatExpenseDate(exp.date)}
+                                                </span>
                                                 <span className="inline-flex items-center gap-1 truncate">
-                                                    <Icon glyph={getExpenseTypeGlyph(exp.type)} size={18} />
+                                                    <Icon
+                                                        glyph={getExpenseTypeGlyph(exp.type)}
+                                                        size={18}
+                                                    />
                                                     {EXPENSE_TYPE_LABELS[exp.type]}
                                                 </span>
                                             </div>
-                                            <span className="font-bold text-on-surface tabular-nums whitespace-nowrap">
-                                                {formatExpenseAmount(exp.amount, exp.currencyCode || settings.currency)}
+                                            <span className="text-on-surface font-bold whitespace-nowrap tabular-nums">
+                                                {formatExpenseAmount(
+                                                    exp.amount,
+                                                    exp.currencyCode || settings.currency,
+                                                )}
                                             </span>
                                         </div>
                                         <div className="flex justify-end">
                                             <Button
                                                 variant="text"
                                                 size="sm"
-                                                className="h-9 min-w-0 px-2 rounded-full text-error hover:bg-error-container/40"
+                                                className="text-error hover:bg-error-container/40 h-9 min-w-0 rounded-full px-2"
                                                 aria-label={`Supprimer la dépense ${exp.id}`}
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    requestExpenseDeletion(exp, () => setSelectedExpenseId((current) => (current === exp.id ? null : current)));
+                                                    requestExpenseDeletion(exp, () =>
+                                                        setSelectedExpenseId((current) =>
+                                                            current === exp.id ? null : current,
+                                                        ),
+                                                    );
                                                 }}
                                                 icon={<Icon glyph={Trash} size={18} />}
                                             >
@@ -235,7 +288,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                     </div>
                                 ))
                             ) : (
-                                <div className="px-6 py-10 text-center text-on-surface-variant">
+                                <div className="text-on-surface-variant px-6 py-10 text-center">
                                     Aucune dépense enregistrée pour le moment.
                                 </div>
                             )}

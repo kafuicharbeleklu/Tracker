@@ -2,11 +2,11 @@ import React, { useId, useMemo } from 'react';
 import { cn } from '../../lib/utils';
 
 interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string;
-  error?: string;
-  supportingText?: string;
-  variant?: 'outlined' | 'filled';
-  showCharacterCount?: boolean;
+    label?: string;
+    error?: string;
+    supportingText?: string;
+    variant?: 'outlined' | 'filled';
+    showCharacterCount?: boolean;
 }
 
 /**
@@ -14,123 +14,137 @@ interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
  * Keeps API parity with InputField for supporting text/error/counter behavior.
  */
 export const TextArea: React.FC<TextAreaProps> = ({
-  label,
-  error,
-  supportingText,
-  variant = 'filled',
-  showCharacterCount = false,
-  className,
-  rows = 4,
-  id: providedId,
-  'aria-describedby': ariaDescribedByProp,
-  'aria-invalid': ariaInvalidProp,
-  'aria-required': ariaRequiredProp,
-  ...props
+    label,
+    error,
+    supportingText,
+    variant = 'filled',
+    showCharacterCount = false,
+    className,
+    rows = 4,
+    id: providedId,
+    'aria-describedby': ariaDescribedByProp,
+    'aria-invalid': ariaInvalidProp,
+    'aria-required': ariaRequiredProp,
+    ...props
 }) => {
-  const generatedId = useId();
-  const textAreaId = providedId || generatedId;
-  const isDisabled = Boolean(props.disabled);
+    const generatedId = useId();
+    const textAreaId = providedId || generatedId;
+    const isDisabled = Boolean(props.disabled);
 
-  const errorId = error ? `${textAreaId}-error-text` : undefined;
-  const supportingTextId = supportingText ? `${textAreaId}-supporting-text` : undefined;
-  const counterId = showCharacterCount && typeof props.maxLength === 'number' ? `${textAreaId}-counter` : undefined;
-  const currentValue = useMemo(() => {
-    if (props.value === null || props.value === undefined) {
-      if (props.defaultValue === null || props.defaultValue === undefined) {
-        return '';
-      }
-      return String(props.defaultValue);
-    }
-    return String(props.value);
-  }, [props.defaultValue, props.value]);
+    const errorId = error ? `${textAreaId}-error-text` : undefined;
+    const supportingTextId = supportingText ? `${textAreaId}-supporting-text` : undefined;
+    const counterId =
+        showCharacterCount && typeof props.maxLength === 'number'
+            ? `${textAreaId}-counter`
+            : undefined;
+    const currentValue = useMemo(() => {
+        if (props.value === null || props.value === undefined) {
+            if (props.defaultValue === null || props.defaultValue === undefined) {
+                return '';
+            }
+            return String(props.defaultValue);
+        }
+        return String(props.value);
+    }, [props.defaultValue, props.value]);
 
-  const describedByValues = [
-    ariaDescribedByProp as string | undefined,
-    error ? errorId : undefined,
-    !error && supportingText ? supportingTextId : undefined,
-    counterId,
-  ].filter(Boolean) as string[];
+    const describedByValues = [
+        ariaDescribedByProp as string | undefined,
+        error ? errorId : undefined,
+        !error && supportingText ? supportingTextId : undefined,
+        counterId,
+    ].filter(Boolean) as string[];
 
-  const resolvedAriaDescribedBy = describedByValues.length > 0 ? describedByValues.join(' ') : undefined;
-  const resolvedAriaInvalid = ariaInvalidProp ?? (error ? true : undefined);
-  const resolvedAriaRequired = ariaRequiredProp ?? (props.required ? true : undefined);
-  const resolvedAriaLabel =
-    (props['aria-label'] as string | undefined) ??
-    (!label ? props.placeholder : undefined);
+    const resolvedAriaDescribedBy =
+        describedByValues.length > 0 ? describedByValues.join(' ') : undefined;
+    const resolvedAriaInvalid = ariaInvalidProp ?? (error ? true : undefined);
+    const resolvedAriaRequired = ariaRequiredProp ?? (props.required ? true : undefined);
+    const resolvedAriaLabel =
+        (props['aria-label'] as string | undefined) ?? (!label ? props.placeholder : undefined);
 
-  return (
-    <div className="space-y-1.5">
-      {label && (
-        <label
-          htmlFor={textAreaId}
-          className={cn(
-            'block text-[11px] font-medium tracking-[0.02em] mb-1.5 transition-colors duration-short4',
-            error ? 'text-error' : 'text-on-surface-variant',
-            isDisabled && 'text-on-surface/[0.38]'
-          )}
-        >
-          {label}
-          {props.required && <span className="text-error ml-1">*</span>}
-        </label>
-      )}
-
-      <textarea
-        id={textAreaId}
-        rows={rows}
-        aria-label={resolvedAriaLabel}
-        aria-invalid={resolvedAriaInvalid}
-        aria-required={resolvedAriaRequired}
-        aria-describedby={resolvedAriaDescribedBy}
-        className={cn(
-          'w-full min-h-24 px-4 py-3',
-          'focus:outline-none',
-          'transition-[color,background-color,border-color,box-shadow] duration-short4 ease-emphasized resize-none',
-          'text-on-surface text-body-medium',
-          'placeholder:text-on-surface-variant',
-          'disabled:cursor-not-allowed disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38]',
-          variant === 'filled'
-            ? cn(
-              'bg-surface border rounded-md',
-              error
-                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
-              'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]'
-            )
-            : cn(
-              'bg-surface border rounded-md',
-              error
-                ? 'border-error hover:border-error focus:border-error focus:ring-2 focus:ring-error'
-                : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-2 focus:ring-focus-ring',
-              'disabled:border-on-surface/[0.12] disabled:bg-surface'
-            ),
-          className
-        )}
-        {...props}
-      />
-
-      {(error || supportingText || counterId) && (
-        <div className="flex items-start justify-between gap-2 ml-4">
-          <div className="min-h-[16px]">
-            {error && (
-              <p id={errorId} className="text-body-small text-error animate-in slide-in-from-top-1 duration-200" role="alert">
-                {error}
-              </p>
+    return (
+        <div className="space-y-1.5">
+            {label && (
+                <label
+                    htmlFor={textAreaId}
+                    className={cn(
+                        'duration-short4 mb-1.5 block text-[11px] font-medium tracking-[0.02em] transition-colors',
+                        error ? 'text-error' : 'text-on-surface-variant',
+                        isDisabled && 'text-on-surface/[0.38]',
+                    )}
+                >
+                    {label}
+                    {props.required && <span className="text-error ml-1">*</span>}
+                </label>
             )}
 
-            {!error && supportingText && (
-              <p id={supportingTextId} className="text-body-small text-on-surface-variant">
-                {supportingText}
-              </p>
-            )}
-          </div>
+            <textarea
+                id={textAreaId}
+                rows={rows}
+                aria-label={resolvedAriaLabel}
+                aria-invalid={resolvedAriaInvalid}
+                aria-required={resolvedAriaRequired}
+                aria-describedby={resolvedAriaDescribedBy}
+                className={cn(
+                    'min-h-24 w-full px-4 py-3',
+                    'focus:outline-none',
+                    'duration-short4 ease-emphasized resize-none transition-[color,background-color,border-color,box-shadow]',
+                    'text-on-surface text-body-medium',
+                    'placeholder:text-on-surface-variant',
+                    'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
+                    variant === 'filled'
+                        ? cn(
+                              'bg-surface rounded-md border',
+                              error
+                                  ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-2'
+                                  : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-focus-ring focus:ring-2',
+                              'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]',
+                          )
+                        : cn(
+                              'bg-surface rounded-md border',
+                              error
+                                  ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-2'
+                                  : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-focus-ring focus:ring-2',
+                              'disabled:border-on-surface/[0.12] disabled:bg-surface',
+                          ),
+                    className,
+                )}
+                {...props}
+            />
 
-          {counterId && (
-            <p id={counterId} className="text-body-small text-on-surface-variant tabular-nums whitespace-nowrap" aria-live="polite">
-              {currentValue.length}/{props.maxLength}
-            </p>
-          )}
+            {(error || supportingText || counterId) && (
+                <div className="ml-4 flex items-start justify-between gap-2">
+                    <div className="min-h-[16px]">
+                        {error && (
+                            <p
+                                id={errorId}
+                                className="text-body-small text-error animate-in slide-in-from-top-1 duration-200"
+                                role="alert"
+                            >
+                                {error}
+                            </p>
+                        )}
+
+                        {!error && supportingText && (
+                            <p
+                                id={supportingTextId}
+                                className="text-body-small text-on-surface-variant"
+                            >
+                                {supportingText}
+                            </p>
+                        )}
+                    </div>
+
+                    {counterId && (
+                        <p
+                            id={counterId}
+                            className="text-body-small text-on-surface-variant whitespace-nowrap tabular-nums"
+                            aria-live="polite"
+                        >
+                            {currentValue.length}/{props.maxLength}
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };

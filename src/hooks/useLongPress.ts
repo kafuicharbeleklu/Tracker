@@ -30,7 +30,7 @@ interface LongPressHandlers {
 
 export const useLongPress = (
     onLongPress: (() => void) | undefined,
-    delayMs: number = LONG_PRESS_MS
+    delayMs: number = LONG_PRESS_MS,
 ): LongPressHandlers => {
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const origin = useRef<{ x: number; y: number } | null>(null);
@@ -54,7 +54,7 @@ export const useLongPress = (
                 onLongPress();
             }, delayMs);
         },
-        [onLongPress, delayMs]
+        [onLongPress, delayMs],
     );
 
     const onPointerMove = useCallback(
@@ -64,7 +64,7 @@ export const useLongPress = (
             const dy = Math.abs(event.clientY - origin.current.y);
             if (dx > MOVE_TOLERANCE_PX || dy > MOVE_TOLERANCE_PX) clear();
         },
-        [clear]
+        [clear],
     );
 
     const onClickCapture = useCallback((event: React.MouseEvent) => {

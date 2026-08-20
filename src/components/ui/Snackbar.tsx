@@ -113,7 +113,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
             className={cn(
                 'pointer-events-none fixed z-[110] flex justify-center',
                 // 12 px d'air sur les bords en compact, comme la planche.
-                'right-3 left-3 expanded:right-4 expanded:left-4',
+                'expanded:right-4 expanded:left-4 right-3 left-3',
                 /* Au-dessus de la barre du bas, jamais dessus, et jamais au-dessus d'une
                    barre absente : l'écart se calcule sur la hauteur réellement publiée par
                    le layout. 12 px d'air quand il n'y a pas de barre (le cas `.snk.nonav`

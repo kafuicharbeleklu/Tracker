@@ -13,4 +13,3 @@ export const getPersistedValue = (currentKey: string, legacyKey: string): string
 
     return null;
 };
-

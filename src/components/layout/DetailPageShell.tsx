@@ -39,25 +39,25 @@ const DetailPageShell: React.FC<DetailPageShellProps> = ({
         const heroElement = heroRef.current;
         if (!scroller || !heroElement) return undefined;
 
-        const observer = new IntersectionObserver(
-            ([entry]) => setScrolled(!entry.isIntersecting),
-            { root: scroller, rootMargin: `-${PINNED_BAR_HEIGHT_PX}px 0px 0px 0px` }
-        );
+        const observer = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting), {
+            root: scroller,
+            rootMargin: `-${PINNED_BAR_HEIGHT_PX}px 0px 0px 0px`,
+        });
         observer.observe(heroElement);
         return () => observer.disconnect();
     }, []);
 
     return (
-        <div className="flex flex-col h-full bg-surface-container-low overflow-hidden">
+        <div className="bg-surface-container-low flex h-full flex-col overflow-hidden">
             <div ref={scrollerRef} className="flex-1 overflow-y-auto scroll-smooth">
-                <div className="sticky top-0 z-20 h-16 bg-surface border-b border-outline-variant px-page-sm medium:px-page">
+                <div className="bg-surface border-outline-variant px-page-sm medium:px-page sticky top-0 z-20 h-16 border-b">
                     {bar(scrolled)}
                 </div>
                 <div ref={heroRef} className="bg-surface">
                     {hero}
                 </div>
                 {tabs && (
-                    <div className="sticky top-16 z-20 bg-surface border-b border-outline-variant">
+                    <div className="bg-surface border-outline-variant sticky top-16 z-20 border-b">
                         {tabs}
                     </div>
                 )}

@@ -21,8 +21,8 @@ interface ContextBannerProps {
 export const ContextBanner: React.FC<ContextBannerProps> = ({ children, className }) => (
     <div
         className={cn(
-            'border-b border-outline-variant bg-surface px-5 py-3 text-body-small text-text-secondary',
-            className
+            'border-outline-variant bg-surface text-body-small text-text-secondary border-b px-5 py-3',
+            className,
         )}
     >
         {children}
@@ -57,8 +57,9 @@ export const OfflineBanner: React.FC<OfflineBannerProps> = ({ children, classNam
 
     return (
         <ContextBanner className={className}>
-            <b className="font-medium text-on-surface">Hors ligne.</b>{' '}
-            {children ?? 'Vous pouvez consulter ce qui est déjà chargé ; les gestes qui écrivent reviendront avec le réseau.'}
+            <b className="text-on-surface font-medium">Hors ligne.</b>{' '}
+            {children ??
+                'Vous pouvez consulter ce qui est déjà chargé ; les gestes qui écrivent reviendront avec le réseau.'}
         </ContextBanner>
     );
 };

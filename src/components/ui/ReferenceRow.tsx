@@ -62,32 +62,32 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
     return (
         <div
             className={cn(
-                'flex min-h-11 items-center justify-between gap-3.5 border-t border-outline-variant py-[11px] text-body-medium leading-[19px] first:border-t-0',
-                className
+                'border-outline-variant text-body-medium flex min-h-11 items-center justify-between gap-3.5 border-t py-[11px] leading-[19px] first:border-t-0',
+                className,
             )}
         >
-            <span className="shrink-0 text-text-secondary">{label}</span>
+            <span className="text-text-secondary shrink-0">{label}</span>
 
             {copyable ? (
                 <button
                     type="button"
                     onClick={copy}
-                    className="touch-target -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 text-body-large font-medium text-on-surface outline-none hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    className="touch-target text-body-large text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 font-medium outline-none focus-visible:ring-2"
                 >
-                    <span className="tabular-nums tracking-wide">{value}</span>
+                    <span className="tracking-wide tabular-nums">{value}</span>
                     <Icon glyph={Copy} size={18} className="text-on-surface-variant" />
                     <span className="sr-only">{copied ? 'Copié' : 'Copier'}</span>
                 </button>
             ) : (
                 <span
                     className={cn(
-                        'min-w-0 break-words text-right',
-                        quiet ? 'text-on-surface-variant' : 'font-medium text-on-surface'
+                        'min-w-0 text-right break-words',
+                        quiet ? 'text-on-surface-variant' : 'text-on-surface font-medium',
                     )}
                 >
                     {value}
                     {detail && (
-                        <span className="mt-0.5 block text-label-small font-normal text-on-surface-variant">
+                        <span className="text-label-small text-on-surface-variant mt-0.5 block font-normal">
                             {detail}
                         </span>
                     )}

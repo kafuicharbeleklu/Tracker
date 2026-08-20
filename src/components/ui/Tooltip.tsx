@@ -48,7 +48,7 @@ const Tooltip: React.FC<TooltipProps> = ({
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const tooltipId = useId();
-    const isInteractive = interactive ?? (variant === 'rich');
+    const isInteractive = interactive ?? variant === 'rich';
     const resolvedDelay = delay ?? (variant === 'plain' ? 1000 : 500);
 
     const clearTimers = useCallback(() => {
@@ -91,13 +91,16 @@ const Tooltip: React.FC<TooltipProps> = ({
         }, 600);
     }, []);
 
-    const handleBlurWithin = useCallback((e: React.FocusEvent<HTMLElement>) => {
-        const nextFocused = e.relatedTarget as Node | null;
-        if (nextFocused && wrapperRef.current?.contains(nextFocused)) {
-            return;
-        }
-        hideWithDelay();
-    }, [hideWithDelay]);
+    const handleBlurWithin = useCallback(
+        (e: React.FocusEvent<HTMLElement>) => {
+            const nextFocused = e.relatedTarget as Node | null;
+            if (nextFocused && wrapperRef.current?.contains(nextFocused)) {
+                return;
+            }
+            hideWithDelay();
+        },
+        [hideWithDelay],
+    );
 
     useEffect(() => {
         return () => {
@@ -164,16 +167,20 @@ const Tooltip: React.FC<TooltipProps> = ({
         <div
             id={tooltipId}
             role="tooltip"
-            style={strategy === 'fixed' && fixedPos ? { top: fixedPos.top, left: fixedPos.left } : undefined}
+            style={
+                strategy === 'fixed' && fixedPos
+                    ? { top: fixedPos.top, left: fixedPos.left }
+                    : undefined
+            }
             className={cn(
                 strategy === 'fixed'
                     ? cn('fixed z-[110]', fixedTransformClasses[placement])
                     : cn('absolute z-[100]', placementClasses[placement]),
-                "animate-in fade-in zoom-in-95 duration-150",
+                'animate-in fade-in zoom-in-95 duration-150',
                 isPlain
-                    ? "bg-inverse-surface text-inverse-on-surface text-body-small rounded-md px-2 py-1 max-w-[200px] shadow-elevation-1 pointer-events-none"
-                    : "bg-surface-container text-on-surface text-body-medium rounded-md p-4 max-w-[320px] shadow-elevation-2 pointer-events-auto",
-                className
+                    ? 'bg-inverse-surface text-inverse-on-surface text-body-small shadow-elevation-1 pointer-events-none max-w-[200px] rounded-md px-2 py-1'
+                    : 'bg-surface-container text-on-surface text-body-medium shadow-elevation-2 pointer-events-auto max-w-[320px] rounded-md p-4',
+                className,
             )}
             onMouseEnter={isInteractive ? showNow : undefined}
             onMouseLeave={isInteractive ? hideWithDelay : undefined}
@@ -198,10 +205,9 @@ const Tooltip: React.FC<TooltipProps> = ({
         >
             {mergedChild}
 
-            {strategy === 'fixed' ? (bubble && createPortal(bubble, document.body)) : bubble}
+            {strategy === 'fixed' ? bubble && createPortal(bubble, document.body) : bubble}
         </div>
     );
 };
 
 export default Tooltip;
-

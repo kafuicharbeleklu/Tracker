@@ -33,11 +33,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     return (
         <div
             className={cn(
-                'flex flex-col items-center justify-center py-10 px-6 text-center',
+                'flex flex-col items-center justify-center px-6 py-10 text-center',
                 className,
             )}
         >
-            <div className="w-14 h-14 rounded-lg bg-surface-container flex items-center justify-center mb-4 border border-outline-variant">
+            <div className="bg-surface-container border-outline-variant mb-4 flex h-14 w-14 items-center justify-center rounded-lg border">
                 <MaterialIcon name={icon} size={28} className="text-on-surface-variant" />
             </div>
 
@@ -51,11 +51,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 </p>
             )}
 
-            {action && (
-                <div className="mt-4">
-                    {action}
-                </div>
-            )}
+            {action && <div className="mt-4">{action}</div>}
         </div>
     );
 };

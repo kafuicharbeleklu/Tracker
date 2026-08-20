@@ -1,10 +1,4 @@
-import {
-    Cloud,
-    Key,
-    ShoppingBag,
-    Stack,
-    Wrench,
-} from '@phosphor-icons/react';
+import { Cloud, Key, ShoppingBag, Stack, Wrench } from '@phosphor-icons/react';
 
 import { FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../../types';
 
@@ -46,7 +40,9 @@ export const getExpenseStatusLabel = (status: FinanceExpenseStatus): string => {
     return 'Récurrente';
 };
 
-export const getExpenseStatusVariant = (status: FinanceExpenseStatus): 'success' | 'warning' | 'info' => {
+export const getExpenseStatusVariant = (
+    status: FinanceExpenseStatus,
+): 'success' | 'warning' | 'info' => {
     if (status === 'Paid') return 'success';
     if (status === 'Pending') return 'warning';
     return 'info';

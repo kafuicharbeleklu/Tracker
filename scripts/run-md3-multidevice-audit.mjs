@@ -41,6 +41,7 @@ const ROUTES = [
   { id: 'import_models', hash: '/management/models/import', label: 'Import models' },
   { id: 'finance', hash: '/finance', label: 'Finance' },
   { id: 'finance-expenses', hash: '/finance/expenses', label: 'Journal des dépenses' },
+  { id: 'site-details', hash: '/locations/site/Bureau%20Paris', label: 'Détail site' },
 ];
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

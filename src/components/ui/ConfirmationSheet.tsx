@@ -128,7 +128,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
         const focusables = (): HTMLElement[] => {
             const nodes = panelRef.current?.querySelectorAll<HTMLElement>(
-                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
             );
             return nodes ? Array.from(nodes) : [];
         };
@@ -158,7 +158,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         requestAnimationFrame(() => {
             panelRef.current
                 ?.querySelector<HTMLElement>(
-                    'textarea, input, button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    'textarea, input, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
                 )
                 ?.focus();
         });
@@ -181,10 +181,14 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         <div
             className={cn(
                 'fixed inset-0 z-[100] flex justify-center',
-                asDialog ? 'items-center' : 'items-end'
+                asDialog ? 'items-center' : 'items-end',
             )}
         >
-            <div className="absolute inset-0 bg-scrim/[0.42]" onClick={onClose} aria-hidden="true" />
+            <div
+                className="bg-scrim/[0.42] absolute inset-0"
+                onClick={onClose}
+                aria-hidden="true"
+            />
 
             <div
                 ref={panelRef}
@@ -192,17 +196,20 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 aria-modal="true"
                 aria-labelledby={titleId}
                 className={cn(
-                    'relative flex max-h-[97%] flex-col bg-surface pb-3.5',
+                    'bg-surface relative flex max-h-[97%] flex-col pb-3.5',
                     asDialog
-                        ? 'w-[440px] rounded-card shadow-elevation-4'
-                        : 'w-full rounded-t-card shadow-elevation-3',
+                        ? 'rounded-card shadow-elevation-4 w-[440px]'
+                        : 'rounded-t-card shadow-elevation-3 w-full',
                     'animate-in fade-in duration-200',
-                    !asDialog && 'slide-in-from-bottom-4 duration-300'
+                    !asDialog && 'slide-in-from-bottom-4 duration-300',
                 )}
             >
                 {/* La poignée dit qu'on peut refermer d'un geste — un dialogue, lui, n'en a pas. */}
                 {!asDialog && (
-                    <span aria-hidden="true" className="mx-auto mb-1.5 mt-2 h-1 w-9 rounded-full bg-outline-variant" />
+                    <span
+                        aria-hidden="true"
+                        className="bg-outline-variant mx-auto mt-2 mb-1.5 h-1 w-9 rounded-full"
+                    />
                 )}
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-2">
@@ -211,7 +218,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                             'mb-3.5 flex h-12 w-12 items-center justify-center rounded-full',
                             tone === 'destructive'
                                 ? 'bg-danger-light text-danger'
-                                : 'bg-surface-container text-on-surface-variant'
+                                : 'bg-surface-container text-on-surface-variant',
                         )}
                     >
                         <Icon glyph={icon} size={20} />
@@ -219,25 +226,29 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
                     <h2
                         id={titleId}
-                        className="font-brand text-[22px] font-semibold leading-[27px] tracking-tight text-on-surface"
+                        className="font-brand text-on-surface text-[22px] leading-[27px] font-semibold tracking-tight"
                     >
                         {title}
                     </h2>
 
-                    <p className="mt-2 text-body-medium text-text-secondary">{message}</p>
+                    <p className="text-body-medium text-text-secondary mt-2">{message}</p>
 
                     {details && details.length > 0 && (
-                        <div className="mt-3.5 border-t border-outline-variant">
+                        <div className="border-outline-variant mt-3.5 border-t">
                             {details.map((detail) => (
                                 <div
                                     key={detail.label}
-                                    className="flex min-h-11 items-center gap-2.5 border-t border-outline-variant text-body-medium text-text-secondary first:border-t-0"
+                                    className="border-outline-variant text-body-medium text-text-secondary flex min-h-11 items-center gap-2.5 border-t first:border-t-0"
                                 >
                                     {detail.icon && (
-                                        <Icon glyph={detail.icon} size={18} className="text-on-surface-variant" />
+                                        <Icon
+                                            glyph={detail.icon}
+                                            size={18}
+                                            className="text-on-surface-variant"
+                                        />
                                     )}
                                     {detail.label}
-                                    <b className="ml-auto font-medium tabular-nums text-on-surface">
+                                    <b className="text-on-surface ml-auto font-medium tabular-nums">
                                         {detail.value}
                                     </b>
                                 </div>
@@ -249,7 +260,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                         <div className="mt-3.5">
                             <label
                                 htmlFor={`${titleId}-reason`}
-                                className="mb-1.5 block text-label-small uppercase tracking-wider text-on-surface-variant"
+                                className="text-label-small text-on-surface-variant mb-1.5 block tracking-wider uppercase"
                             >
                                 {reason.label}
                             </label>
@@ -258,10 +269,12 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 value={reasonInput}
                                 onChange={(event) => setReasonInput(event.target.value)}
                                 placeholder={reason.placeholder}
-                                className="min-h-24 w-full rounded-md border border-outline bg-surface p-3 text-body-large leading-[21px] text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                className="border-outline bg-surface text-body-large text-on-surface focus-visible:ring-focus-ring min-h-24 w-full rounded-md border p-3 leading-[21px] outline-none focus-visible:ring-2"
                             />
                             {reason.hint && (
-                                <p className="mt-1.5 text-body-small text-text-secondary">{reason.hint}</p>
+                                <p className="text-body-small text-text-secondary mt-1.5">
+                                    {reason.hint}
+                                </p>
                             )}
                         </div>
                     )}
@@ -270,9 +283,11 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                         <div className="mt-3.5">
                             <label
                                 htmlFor={`${titleId}-keyword`}
-                                className="mb-1.5 block text-body-small text-text-secondary"
+                                className="text-body-small text-text-secondary mb-1.5 block"
                             >
-                                Tapez <b className="font-medium text-on-surface">{confirmKeyword}</b> pour confirmer
+                                Tapez{' '}
+                                <b className="text-on-surface font-medium">{confirmKeyword}</b> pour
+                                confirmer
                             </label>
                             <input
                                 id={`${titleId}-keyword`}
@@ -280,14 +295,14 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 value={keywordInput}
                                 onChange={(event) => setKeywordInput(event.target.value)}
                                 placeholder={confirmKeyword}
-                                className="min-h-12 w-full rounded-md border border-outline bg-surface px-3 text-body-large text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                className="border-outline bg-surface text-body-large text-on-surface focus-visible:ring-focus-ring min-h-12 w-full rounded-md border px-3 outline-none focus-visible:ring-2"
                             />
                         </div>
                     )}
 
                     {/* C4 — la seule différence visible entre supprimer et suspendre. */}
                     {irreversible && (
-                        <p className="mt-3 text-body-medium font-medium text-danger">
+                        <p className="text-body-medium text-danger mt-3 font-medium">
                             Cette action est irréversible.
                         </p>
                     )}
@@ -295,7 +310,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                     {error && <InlineError className="mt-3">{error}</InlineError>}
                 </div>
 
-                <div className="mt-4 flex items-center gap-3 border-t border-outline-variant px-5 pt-4">
+                <div className="border-outline-variant mt-4 flex items-center gap-3 border-t px-5 pt-4">
                     <Button variant="text" onClick={onClose} disabled={isLoading} className="px-1">
                         {cancelText}
                     </Button>

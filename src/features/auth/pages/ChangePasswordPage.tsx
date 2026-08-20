@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { authService } from '../../../services/authService';
@@ -20,38 +19,39 @@ const ChangePasswordPage: React.FC = () => {
         e.preventDefault();
 
         if (newPass !== confirmPass) {
-            showToast("Les nouveaux mots de passe ne correspondent pas", "error");
+            showToast('Les nouveaux mots de passe ne correspondent pas', 'error');
             return;
         }
 
         if (newPass.length < 8) {
-            showToast("Le mot de passe doit contenir au moins 8 caractères", "error");
+            showToast('Le mot de passe doit contenir au moins 8 caractères', 'error');
             return;
         }
 
         setIsLoading(true);
         try {
-            if (!currentUser) throw new Error("No user context");
+            if (!currentUser) throw new Error('No user context');
 
             await authService.changePassword(currentUser.id, tempPass, newPass);
-            showToast("Mot de passe modifié avec succès !", "success");
+            showToast('Mot de passe modifié avec succès !', 'success');
 
             // Re-verify auth status to clear the 'mustChangePassword' flag
             await checkAuthStatus();
-
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Erreur lors du changement de mot de passe";
-            showToast(message, "error");
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Erreur lors du changement de mot de passe';
+            showToast(message, 'error');
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-dvh flex flex-col items-center justify-center bg-surface text-on-surface p-4">
-            <div className="w-full max-w-md bg-surface p-8 rounded-xl shadow-elevation-2 border border-outline-variant space-y-6">
-
+        <div className="bg-surface text-on-surface flex min-h-dvh flex-col items-center justify-center p-4">
+            <div className="bg-surface shadow-elevation-2 border-outline-variant w-full max-w-md space-y-6 rounded-xl border p-8">
                 <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+                    <div className="bg-primary/10 text-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
                         <MaterialIcon name="lock_reset" size={32} />
                     </div>
                     <h1 className="text-headline-small">Première Connexion</h1>
@@ -87,12 +87,22 @@ const ChangePasswordPage: React.FC = () => {
                         />
                     </div>
 
-                    <div className="pt-4 flex gap-3">
-                        <Button variant="outlined" type="button" onClick={logout} className="flex-1">
+                    <div className="flex gap-3 pt-4">
+                        <Button
+                            variant="outlined"
+                            type="button"
+                            onClick={logout}
+                            className="flex-1"
+                        >
                             Annuler
                         </Button>
-                        <Button variant="filled" type="submit" disabled={isLoading} className="flex-1">
-                            {isLoading ? "Enregistrement..." : "Confirmer"}
+                        <Button
+                            variant="filled"
+                            type="submit"
+                            disabled={isLoading}
+                            className="flex-1"
+                        >
+                            {isLoading ? 'Enregistrement...' : 'Confirmer'}
                         </Button>
                     </div>
                 </form>

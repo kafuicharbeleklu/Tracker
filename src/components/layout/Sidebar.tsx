@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     className,
     isModalMode = true,
     isMobileOpen = false,
-    closeMobileMenu
+    closeMobileMenu,
 }) => {
     const { currentUser } = useAuth();
     const { permissions } = useAccessControl();
@@ -63,16 +63,16 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (!currentUser) return [];
 
         if (role === 'User') {
-            return approvals.filter(a => a.requester === currentUser.name);
+            return approvals.filter((a) => a.requester === currentUser.name);
         }
 
         if (role === 'Manager') {
             const teamUserNames = users
-                .filter(u => u.managerId === currentUser.id)
-                .map(u => u.name);
+                .filter((u) => u.managerId === currentUser.id)
+                .map((u) => u.name);
             teamUserNames.push(currentUser.name);
 
-            return approvals.filter(a => teamUserNames.includes(a.requester));
+            return approvals.filter((a) => teamUserNames.includes(a.requester));
         }
 
         return approvals;
@@ -85,15 +85,40 @@ const Sidebar: React.FC<SidebarProps> = ({
         'PENDING_DELIVERY',
     ]);
 
-    const pendingCount = relevantApprovals.filter((a) => ACTIVE_APPROVAL_STATUSES.has(a.status)).length;
-    const isNavSectionActive = (section: 'dashboard' | 'equipment' | 'users' | 'tasks' | 'finance' | 'management' | 'rbac' | 'locations' | 'audit' | 'reports' | 'settings'): boolean => {
+    const pendingCount = relevantApprovals.filter((a) =>
+        ACTIVE_APPROVAL_STATUSES.has(a.status),
+    ).length;
+    const isNavSectionActive = (
+        section:
+            | 'dashboard'
+            | 'equipment'
+            | 'users'
+            | 'tasks'
+            | 'finance'
+            | 'management'
+            | 'rbac'
+            | 'locations'
+            | 'audit'
+            | 'reports'
+            | 'settings',
+    ): boolean => {
         switch (section) {
             case 'dashboard':
                 return currentView === 'dashboard';
             case 'equipment':
-                return ['equipment', 'equipment_details', 'add_equipment', 'edit_equipment', 'import_equipment', 'assignment_wizard', 'return_wizard'].includes(currentView);
+                return [
+                    'equipment',
+                    'equipment_details',
+                    'add_equipment',
+                    'edit_equipment',
+                    'import_equipment',
+                    'assignment_wizard',
+                    'return_wizard',
+                ].includes(currentView);
             case 'users':
-                return ['users', 'user_details', 'add_user', 'edit_user', 'import_users'].includes(currentView);
+                return ['users', 'user_details', 'add_user', 'edit_user', 'import_users'].includes(
+                    currentView,
+                );
             case 'tasks':
                 // La file absorbe « nouvelle demande » : c'est un geste de la file,
                 // plus une section à part (17.7).
@@ -101,11 +126,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             case 'finance':
                 return ['finance', 'finance_expenses'].includes(currentView);
             case 'management':
-                return ['management', 'category_details', 'model_details', 'import_models', 'add_category', 'add_model'].includes(currentView);
+                return [
+                    'management',
+                    'category_details',
+                    'model_details',
+                    'import_models',
+                    'add_category',
+                    'add_model',
+                ].includes(currentView);
             case 'rbac':
                 return currentView === 'rbac';
             case 'locations':
-                return ['locations', 'import_locations'].includes(currentView);
+                return ['locations', 'site_details', 'import_locations'].includes(currentView);
             case 'audit':
                 return ['audit', 'audit_details'].includes(currentView);
             case 'reports':
@@ -137,7 +169,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         ].join(',');
 
         const getFocusableElements = (): HTMLElement[] => {
-            const elements = Array.from(drawerElement.querySelectorAll(focusableSelector)) as HTMLElement[];
+            const elements = Array.from(
+                drawerElement.querySelectorAll(focusableSelector),
+            ) as HTMLElement[];
             return elements.filter((element) => {
                 const isDisabled = element.hasAttribute('disabled');
                 const isAriaHidden = element.getAttribute('aria-hidden') === 'true';
@@ -200,8 +234,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* Mobile Overlay (Scrim) */}
             <div
                 className={cn(
-                    "fixed inset-0 bg-scrim/[0.32] z-[90] expanded:hidden transition-opacity duration-medium2 ease-emphasized",
-                    showModalDrawer ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                    'bg-scrim/[0.32] expanded:hidden duration-medium2 ease-emphasized fixed inset-0 z-[90] transition-opacity',
+                    showModalDrawer
+                        ? 'pointer-events-auto opacity-100'
+                        : 'pointer-events-none opacity-0',
                 )}
                 onClick={closeMobileMenu}
                 aria-hidden="true"
@@ -209,38 +245,50 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <aside
                 ref={drawerRef}
-                role={showModalDrawer ? "dialog" : undefined}
+                role={showModalDrawer ? 'dialog' : undefined}
                 aria-modal={showModalDrawer ? true : undefined}
-                aria-label={showModalDrawer ? "Menu de navigation" : undefined}
+                aria-label={showModalDrawer ? 'Menu de navigation' : undefined}
                 tabIndex={showModalDrawer ? -1 : undefined}
                 className={cn(
-                    "fixed inset-y-0 left-0 z-[100]",
-                    "expanded:static expanded:z-auto",
-                    "h-full bg-[var(--color-sidebar-bg)] text-white border-r border-white/[0.03] flex flex-col justify-between transition-all duration-medium4 ease-emphasized",
-                    showModalDrawer ? "translate-x-0 w-[85vw] max-w-[360px]" : "-translate-x-full expanded:translate-x-0",
-                    isCollapsed ? "expanded:w-[76px]" : "expanded:w-64",
-                    className
+                    'fixed inset-y-0 left-0 z-[100]',
+                    'expanded:static expanded:z-auto',
+                    'duration-medium4 ease-emphasized flex h-full flex-col justify-between border-r border-white/[0.03] bg-[var(--color-sidebar-bg)] text-white transition-all',
+                    showModalDrawer
+                        ? 'w-[85vw] max-w-[360px] translate-x-0'
+                        : 'expanded:translate-x-0 -translate-x-full',
+                    isCollapsed ? 'expanded:w-[76px]' : 'expanded:w-64',
+                    className,
                 )}
-                style={{ background: 'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)' }}
+                style={{
+                    background:
+                        'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)',
+                }}
             >
-                <div className={cn(
-                    "flex flex-col h-full overflow-y-auto custom-scrollbar transition-all duration-medium2 ease-emphasized",
-                    isCollapsed && !isMobileOpen ? "p-3" : "p-4"
-                )}>
-
+                <div
+                    className={cn(
+                        'custom-scrollbar duration-medium2 ease-emphasized flex h-full flex-col overflow-y-auto transition-all',
+                        isCollapsed && !isMobileOpen ? 'p-3' : 'p-4',
+                    )}
+                >
                     {/* Header / Logo — rétracté : TR puis chevron empilés sur 2 rangées, le
                         chevron flottant (-right-3) chevauchait le badge TR de 15px (§9.5) */}
-                    <div className={cn(
-                        "relative flex items-center mb-6 transition-all duration-medium2 min-h-11",
-                        isCollapsed && !isMobileOpen ? 'flex-col justify-center gap-1' : isCollapsed ? 'justify-center' : 'justify-between'
-                    )}>
+                    <div
+                        className={cn(
+                            'duration-medium2 relative mb-6 flex min-h-11 items-center transition-all',
+                            isCollapsed && !isMobileOpen
+                                ? 'flex-col justify-center gap-1'
+                                : isCollapsed
+                                  ? 'justify-center'
+                                  : 'justify-between',
+                        )}
+                    >
                         {isCollapsed && !isMobileOpen ? (
-                            <div className="w-10 h-10 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-body-small font-black text-primary select-none">
+                            <div className="text-body-small text-primary flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 font-black select-none">
                                 TR
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 overflow-hidden transition-all duration-medium2">
-                                <span className="text-title-large font-extrabold text-white whitespace-nowrap font-brand">
+                            <div className="duration-medium2 flex items-center gap-2 overflow-hidden transition-all">
+                                <span className="text-title-large font-brand font-extrabold whitespace-nowrap text-white">
                                     {APP_CONFIG.appName}
                                 </span>
                             </div>
@@ -249,7 +297,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {isModalMode ? (
                             <CloseButton
                                 onClick={closeMobileMenu}
-                                className="text-on-nav-surface-variant hover:text-on-nav-surface hover:bg-white/5 focus-visible:ring-primary p-2 rounded-lg transition-all duration-medium2"
+                                className="text-on-nav-surface-variant hover:text-on-nav-surface focus-visible:ring-primary duration-medium2 rounded-lg p-2 transition-all hover:bg-white/5"
                             />
                         ) : (
                             <Button
@@ -257,11 +305,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 size="sm"
                                 onClick={() => setIsCollapsed(!isCollapsed)}
                                 className={cn(
-                                    "hidden expanded:flex p-1.5 h-auto rounded-lg transition-all duration-medium2 border-none shadow-none",
-                                    isCollapsed && !isMobileOpen && "w-11 h-11 min-w-11 min-h-11 p-0 mx-auto"
+                                    'expanded:flex duration-medium2 hidden h-auto rounded-lg border-none p-1.5 shadow-none transition-all',
+                                    isCollapsed &&
+                                        !isMobileOpen &&
+                                        'mx-auto h-11 min-h-11 w-11 min-w-11 p-0',
                                 )}
-                                aria-label={isCollapsed ? "Déployer le menu" : "Réduire le menu"}
-                                icon={<MaterialIcon name={isCollapsed ? "chevron_right" : "chevron_left"} size={24} />}
+                                aria-label={isCollapsed ? 'Déployer le menu' : 'Réduire le menu'}
+                                icon={
+                                    <MaterialIcon
+                                        name={isCollapsed ? 'chevron_right' : 'chevron_left'}
+                                        size={24}
+                                    />
+                                }
                             />
                         )}
                     </div>
@@ -269,14 +324,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {/* Navigation Items — tiroir-complément : les 4 destinations primaires ne
                         sont rendues que si la barre/rail ne les porte pas déjà (§9.8) */}
                     <nav
-                        aria-label={hidePrimary ? "Autres sections" : "Sections principales"}
+                        aria-label={hidePrimary ? 'Autres sections' : 'Sections principales'}
                         className={cn(
-                            "space-y-1 transition-all duration-medium2",
-                            isCollapsed && !isMobileOpen && "flex flex-col items-center"
+                            'duration-medium2 space-y-1 transition-all',
+                            isCollapsed && !isMobileOpen && 'flex flex-col items-center',
                         )}
                     >
                         {hidePrimary && (
-                            <p className="px-3 pb-1 text-label-small font-semibold uppercase tracking-wider text-on-nav-surface-variant">
+                            <p className="text-label-small text-on-nav-surface-variant px-3 pb-1 font-semibold tracking-wider uppercase">
                                 Autres sections
                             </p>
                         )}
@@ -375,7 +430,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         )}
 
-                        {(permissions.canViewAudit || permissions.canScanAudit || permissions.canManageAudit) && (
+                        {(permissions.canViewAudit ||
+                            permissions.canScanAudit ||
+                            permissions.canManageAudit) && (
                             <SidebarItem
                                 isCollapsed={isCollapsed && !isMobileOpen}
                                 icon={DESTINATIONS.audit.icon}
@@ -400,8 +457,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <nav
                         aria-label="Actions secondaires"
                         className={cn(
-                            "mt-auto space-y-1 pt-4",
-                            isCollapsed && !isMobileOpen && "flex flex-col items-center"
+                            'mt-auto space-y-1 pt-4',
+                            isCollapsed && !isMobileOpen && 'flex flex-col items-center',
                         )}
                     >
                         <SidebarItem
@@ -433,12 +490,3 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-
-
-
-
-
-
-
-
-

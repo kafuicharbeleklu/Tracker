@@ -1,8 +1,8 @@
 /**
  * Vocabulaire partagé de l'audit physique par service.
  *
- * Extrait de `PhysicalAuditView` pour être consommé AUSSI par la vue compacte
- * (`AuditOverviewMobile`) sans créer d'import circulaire entre les deux.
+ * Extrait du conteneur (`AuditOverviewContainer`) pour être consommé aussi par la vue
+ * (`AuditOverview`) sans créer d'import circulaire entre les deux.
  * Aucun changement de comportement : mêmes types, mêmes fonctions.
  */
 

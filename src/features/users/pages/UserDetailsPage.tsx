@@ -75,7 +75,8 @@ interface UserDetailsPageProps {
 const getEquipmentIcon = (categoryName?: string) => {
     const cat = (categoryName || '').toLowerCase();
     if (cat.includes('souris') || cat.includes('mouse')) return Mouse;
-    if (cat.includes('serveur') || cat.includes('server') || cat.includes('drive')) return HardDrives;
+    if (cat.includes('serveur') || cat.includes('server') || cat.includes('drive'))
+        return HardDrives;
     return Laptop;
 };
 
@@ -101,7 +102,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             (item) =>
                 item.user?.id === user.id ||
                 item.user?.email === user.email ||
-                item.user?.name === user.name
+                item.user?.name === user.name,
         );
     }, [equipment, user]);
 
@@ -110,7 +111,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         return approvals.filter(
             (req) =>
                 (req.requestedBy?.id === user.id || req.requestedBy?.name === user.name) &&
-                req.status === 'pending'
+                req.status === 'pending',
         );
     }, [approvals, user]);
 
@@ -120,12 +121,14 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         return events
             .filter((event) => {
                 if (!isEquipmentMovementEvent(event)) return false;
-                const bName = typeof event.metadata?.beneficiaryName === 'string'
-                    ? event.metadata.beneficiaryName.trim().toLowerCase()
-                    : null;
-                const pName = typeof event.metadata?.previousUser === 'string'
-                    ? event.metadata.previousUser.trim().toLowerCase()
-                    : null;
+                const bName =
+                    typeof event.metadata?.beneficiaryName === 'string'
+                        ? event.metadata.beneficiaryName.trim().toLowerCase()
+                        : null;
+                const pName =
+                    typeof event.metadata?.previousUser === 'string'
+                        ? event.metadata.previousUser.trim().toLowerCase()
+                        : null;
                 return bName === userNorm || pName === userNorm;
             })
             .slice(0, 3);
@@ -133,7 +136,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const activeSuperAdminCount = useMemo(
         () => users.filter((u) => u.role === 'SuperAdmin' && u.status !== 'inactive').length,
-        [users]
+        [users],
     );
 
     if (!user) {
@@ -143,7 +146,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     icon={User}
                     title="Utilisateur introuvable"
                     description="Cette personne n'existe plus ou a été retirée."
-                    actions={<Button variant="filled" onClick={onBack}>Retour à l'équipe</Button>}
+                    actions={
+                        <Button variant="filled" onClick={onBack}>
+                            Retour à l'équipe
+                        </Button>
+                    }
                 />
             </div>
         );
@@ -167,11 +174,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
         requestConfirmation({
             title: `Supprimer le compte de ${user.name} ?`,
-            message: (
-                <p>
-                    L'accès sera coupé immédiatement. Aucun matériel n'est attribué.
-                </p>
-            ),
+            message: <p>L'accès sera coupé immédiatement. Aucun matériel n'est attribué.</p>,
             confirmText: 'Supprimer',
             variant: 'danger',
             onConfirm: () => {
@@ -234,22 +237,18 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         user.status === 'inactive'
             ? 'Compte suspendu le 22/07'
             : user.status === 'pending'
-            ? 'Départ prévu le 15/08/2026'
-            : 'Compte actif depuis le 08/01/2026';
+              ? 'Départ prévu le 15/08/2026'
+              : 'Compte actif depuis le 08/01/2026';
 
     const accountTone =
         user.status === 'inactive'
             ? 'attention'
             : user.status === 'pending'
-            ? 'pending'
-            : 'positive';
+              ? 'pending'
+              : 'positive';
 
     const accountIcon =
-        user.status === 'inactive'
-            ? Prohibit
-            : user.status === 'pending'
-            ? Clock
-            : CheckCircle;
+        user.status === 'inactive' ? Prohibit : user.status === 'pending' ? Clock : CheckCircle;
 
     const heroMetrics: DetailMetrics = [
         {
@@ -327,7 +326,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={handleToggleAccountStatus}
-                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!bg-primary hover:!bg-primary-hover !rounded-md !text-[var(--tk-color-brand-text)] !shadow-none"
             >
                 <Icon glyph={ArrowCounterClockwise} size={18} />
                 Réactiver le compte
@@ -337,7 +336,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={() => onViewChange?.('return_wizard')}
-                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!bg-primary hover:!bg-primary-hover !rounded-md !text-[var(--tk-color-brand-text)] !shadow-none"
             >
                 <Icon glyph={SignOut} size={18} />
                 Organiser la restitution
@@ -347,7 +346,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 variant="filled"
                 fullWidth
                 onClick={() => onViewChange?.('assignment_wizard')}
-                className="!rounded-md !shadow-none !bg-primary !text-[var(--tk-color-brand-text)] hover:!bg-primary-hover"
+                className="!bg-primary hover:!bg-primary-hover !rounded-md !text-[var(--tk-color-brand-text)] !shadow-none"
             >
                 <Icon glyph={Plus} size={18} />
                 Attribuer un équipement
@@ -358,11 +357,17 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     const heroNote =
         user.status === 'inactive' ? (
             <p className="text-body-small text-on-nav-surface-variant">
-                Suspendu par l'administrateur. <strong className="font-medium text-inverse-on-surface">Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} restent à son nom</strong> : une suspension coupe l'accès, elle ne rend pas le matériel.
+                Suspendu par l'administrateur.{' '}
+                <strong className="text-inverse-on-surface font-medium">
+                    Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} restent à
+                    son nom
+                </strong>{' '}
+                : une suspension coupe l'accès, elle ne rend pas le matériel.
             </p>
         ) : user.status === 'pending' ? (
             <p className="text-body-small text-on-nav-surface-variant">
-                Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} doivent être récupérés avant son dernier jour, sinon ils resteront attribués à un compte fermé.
+                Les {userEquipment.length} objet{userEquipment.length > 1 ? 's' : ''} doivent être
+                récupérés avant son dernier jour, sinon ils resteront attribués à un compte fermé.
             </p>
         ) : undefined;
 
@@ -401,7 +406,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 <>
                     {/* Groupe 1 : Équipements détenus (planche 05.2 — .grp lignes 268-275) */}
                     <RuleGroup header="Équipements détenus">
-
                         {userEquipment.length > 0 ? (
                             <div>
                                 {userEquipment.map((item) => {
@@ -411,30 +415,34 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                             key={item.id}
                                             type="button"
                                             onClick={() => onEquipmentClick?.(item.id)}
-                                            className="flex w-full min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                                            className="border-outline-variant hover:bg-surface-container flex min-h-[56px] w-full cursor-pointer items-center gap-3 border-t px-4 py-2.5 text-left transition-colors"
                                         >
                                             {/* Vignette 40×40, rayon 6 — §2.2 / R11, cran « bloc groupé en creux ». */}
-                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-surface-container text-text-secondary">
+                                            <span className="rounded-vignette bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center">
                                                 <Icon glyph={EqIcon} size={20} />
                                             </span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-label-large font-medium text-on-surface truncate">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-label-large text-on-surface truncate font-medium">
                                                     {item.code || item.name}
                                                 </p>
                                                 <p className="text-body-small text-text-secondary mt-px truncate">
                                                     {item.model || item.category || 'Équipement'}
                                                 </p>
                                             </div>
-                                            <span className="text-body-medium font-medium tabular-nums text-on-surface shrink-0">
+                                            <span className="text-body-medium text-on-surface shrink-0 font-medium tabular-nums">
                                                 {item.assignmentDate || '12/03/2026'}
                                             </span>
-                                            <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                                            <Icon
+                                                glyph={CaretRight}
+                                                size={20}
+                                                className="text-text-muted shrink-0"
+                                            />
                                         </button>
                                     );
                                 })}
                             </div>
                         ) : (
-                            <div className="px-4 py-3 text-body-medium text-text-muted">
+                            <div className="text-body-medium text-text-muted px-4 py-3">
                                 Aucun équipement attribué pour le moment.
                             </div>
                         )}
@@ -444,18 +452,26 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             <button
                                 type="button"
                                 onClick={() => onViewChange?.('tasks')}
-                                className="flex w-full min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                                className="border-outline-variant hover:bg-surface-container flex min-h-[56px] w-full cursor-pointer items-center gap-3 border-t px-4 py-2.5 text-left transition-colors"
                             >
-                                <Icon glyph={Bell} size={20} className="text-[var(--tk-color-st-ambre)] shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-label-large font-medium text-on-surface truncate">
+                                <Icon
+                                    glyph={Bell}
+                                    size={20}
+                                    className="shrink-0 text-[var(--tk-color-st-ambre)]"
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-label-large text-on-surface truncate font-medium">
                                         Sa demande de matériel attend
                                     </p>
                                     <p className="text-body-small text-text-secondary mt-px truncate">
                                         Déposée récemment · à arbitrer
                                     </p>
                                 </div>
-                                <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                                <Icon
+                                    glyph={CaretRight}
+                                    size={20}
+                                    className="text-text-muted shrink-0"
+                                />
                             </button>
                         )}
                     </RuleGroup>
@@ -467,7 +483,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             headerTrailing={`${currentUser?.name || 'Gestionnaire'} · Aujourd'hui`}
                             note="Visible par les gestionnaires uniquement."
                         >
-                            <div className="px-4 py-2.5 text-label-large text-on-surface">
+                            <div className="text-label-large text-on-surface px-4 py-2.5">
                                 {managerNote}
                             </div>
                         </RuleGroup>
@@ -503,16 +519,19 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 <div>
                     {userEvents.length > 0 ? (
                         userEvents.map((evt) => (
-                            <div key={evt.id} className="flex min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5">
+                            <div
+                                key={evt.id}
+                                className="border-outline-variant flex min-h-[56px] items-center gap-3 border-t px-4 py-2.5"
+                            >
                                 {/* Marqueur 32 px — planche 05.2 .mk */}
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-text-secondary">
+                                <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                                     <Icon glyph={Package} size={18} />
                                 </span>
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <p className="text-label-large text-on-surface truncate">
                                         {evt.description || evt.action}
                                     </p>
-                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary mt-px tabular-nums">
                                         {evt.timestamp ? evt.timestamp.slice(0, 10) : '12/03/2026'}
                                     </p>
                                 </div>
@@ -521,40 +540,38 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     ) : (
                         <>
                             <div className="flex min-h-[56px] items-center gap-3 px-4 py-2.5">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-text-secondary">
+                                <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                                     <Icon glyph={Package} size={18} />
                                 </span>
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <p className="text-label-large text-on-surface">
                                         LPT-HQ-01 attribué
                                     </p>
-                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary mt-px tabular-nums">
                                         12/03/2026 · par Clara Admin France
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-text-secondary">
+                            <div className="border-outline-variant flex min-h-[56px] items-center gap-3 border-t px-4 py-2.5">
+                                <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                                     <Icon glyph={ArrowUUpLeft} size={18} />
                                 </span>
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <p className="text-label-large text-on-surface">
                                         KEY-SALES-02 rendu, remis en stock
                                     </p>
-                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
+                                    <p className="text-body-small text-text-secondary mt-px tabular-nums">
                                         12/01/2026 · état : repart en stock
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-container text-text-secondary">
+                            <div className="border-outline-variant flex min-h-[56px] items-center gap-3 border-t px-4 py-2.5">
+                                <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                                     <Icon glyph={UserPlus} size={18} />
                                 </span>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-label-large text-on-surface">
-                                        Compte créé
-                                    </p>
-                                    <p className="text-body-small text-text-secondary tabular-nums mt-px">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-label-large text-on-surface">Compte créé</p>
+                                    <p className="text-body-small text-text-secondary mt-px tabular-nums">
                                         08/01/2026 · import depuis l'annuaire
                                     </p>
                                 </div>
@@ -566,15 +583,21 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     <button
                         type="button"
                         onClick={() => onViewChange?.('audit')}
-                        className="flex w-full min-h-[56px] items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                        className="border-outline-variant hover:bg-surface-container flex min-h-[56px] w-full cursor-pointer items-center gap-3 border-t px-4 py-2.5 text-left transition-colors"
                     >
-                        <Icon glyph={ClockCounterClockwise} size={20} className="text-text-secondary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-label-large font-medium text-on-surface">
+                        <Icon
+                            glyph={ClockCounterClockwise}
+                            size={20}
+                            className="text-text-secondary shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-label-large text-on-surface font-medium">
                                 Tout l'historique de {firstName}
                             </p>
                         </div>
-                        <span className="text-body-small text-text-muted shrink-0">dans l'Audit</span>
+                        <span className="text-body-small text-text-muted shrink-0">
+                            dans l'Audit
+                        </span>
                         <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                     </button>
                 </div>
@@ -595,7 +618,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         onChange={(e) => setManagerNote(e.target.value)}
                         placeholder="Ex : En attente d'un poste fixe..."
                         rows={4}
-                        className="w-full rounded-md border border-outline bg-surface p-3 text-label-large text-on-surface focus:border-primary focus:outline-hidden"
+                        className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border p-3 focus:outline-hidden"
                     />
                     <div className="flex justify-end gap-2">
                         <Button variant="text" onClick={() => setIsNoteSheetOpen(false)}>

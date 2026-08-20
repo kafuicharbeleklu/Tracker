@@ -98,14 +98,14 @@ const ScanHitRow: React.FC<{ hit: ScanHit; dense?: boolean }> = ({ hit, dense = 
     return (
         <div
             className={cn(
-                'flex items-center gap-3 border-t border-outline-variant first:border-t-0',
-                dense ? 'min-h-12' : 'min-h-14'
+                'border-outline-variant flex items-center gap-3 border-t first:border-t-0',
+                dense ? 'min-h-12' : 'min-h-14',
             )}
         >
             <span
                 className={cn(
                     'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white',
-                    isException ? 'bg-warning' : 'bg-success'
+                    isException ? 'bg-warning' : 'bg-success',
                 )}
             >
                 <Icon
@@ -117,13 +117,13 @@ const ScanHitRow: React.FC<{ hit: ScanHit; dense?: boolean }> = ({ hit, dense = 
             <div className="min-w-0 flex-1">
                 <span
                     className={cn(
-                        'block truncate font-brand font-semibold leading-5 tracking-tight text-on-surface',
-                        dense ? 'text-[15px]' : 'text-base'
+                        'font-brand text-on-surface block truncate leading-5 font-semibold tracking-tight',
+                        dense ? 'text-[15px]' : 'text-base',
                     )}
                 >
                     {hit.code}
                 </span>
-                <span className="mt-px block truncate text-body-small text-text-secondary">
+                <span className="text-body-small text-text-secondary mt-px block truncate">
                     {hit.detail}
                 </span>
             </div>
@@ -165,22 +165,26 @@ const ScanView: React.FC<ScanViewProps> = ({
             : 'Cadrez le numéro de série ou le code-barres. Tenez l’appareil à environ 20 cm.';
 
     return (
-        <div className={cn('relative flex min-h-dvh flex-col bg-inverse-surface', className)}>
+        <div className={cn('bg-inverse-surface relative flex min-h-dvh flex-col', className)}>
             {/* La caméra occupe tout ; le chrome se pose dessus. */}
             <div className="absolute inset-0 overflow-hidden">{preview}</div>
 
-            <div className="relative z-10 flex min-h-14 items-center gap-1 px-2 py-1 text-inverse-on-surface">
+            <div className="text-inverse-on-surface relative z-10 flex min-h-14 items-center gap-1 px-2 py-1">
                 <button
                     type="button"
                     onClick={onClose}
                     aria-label="Fermer le scan"
-                    className="touch-target flex h-12 w-12 shrink-0 items-center justify-center rounded-md outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-primary"
+                    className="touch-target focus-visible:ring-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-md outline-none hover:bg-white/10 focus-visible:ring-2"
                 >
                     <Icon glyph={X} />
                 </button>
 
                 {onModeChange && (
-                    <div className="ml-auto flex rounded-md bg-white/[0.13] p-[3px]" role="group" aria-label="Mode de scan">
+                    <div
+                        className="ml-auto flex rounded-md bg-white/[0.13] p-[3px]"
+                        role="group"
+                        aria-label="Mode de scan"
+                    >
                         {(['simple', 'batch'] as const).map((value) => (
                             <button
                                 key={value}
@@ -188,11 +192,11 @@ const ScanView: React.FC<ScanViewProps> = ({
                                 onClick={() => onModeChange(value)}
                                 aria-pressed={mode === value}
                                 className={cn(
-                                    'touch-target flex h-10 items-center rounded-sm px-3.5 text-label-large',
-                                    'outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                                    'touch-target text-label-large flex h-10 items-center rounded-sm px-3.5',
+                                    'focus-visible:ring-primary outline-none focus-visible:ring-2',
                                     mode === value
                                         ? 'bg-inverse-on-surface text-on-surface'
-                                        : 'text-on-nav-surface-variant'
+                                        : 'text-on-nav-surface-variant',
                                 )}
                             >
                                 {MODE_LABELS[value]}
@@ -208,20 +212,20 @@ const ScanView: React.FC<ScanViewProps> = ({
                     aria-hidden="true"
                     className={cn('relative w-[250px]', mode === 'batch' ? 'h-[120px]' : 'h-40')}
                 >
-                    <span className="absolute left-0 top-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-r-0 border-primary" />
-                    <span className="absolute right-0 top-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-l-0 border-primary" />
-                    <span className="absolute bottom-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-r-0 border-t-0 border-primary" />
-                    <span className="absolute bottom-0 right-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-l-0 border-t-0 border-primary" />
-                    <span className="absolute inset-x-2 top-1/2 h-0.5 bg-primary/50 blur-[3px]" />
-                    <span className="absolute inset-x-2 top-1/2 h-0.5 bg-primary/75" />
+                    <span className="border-primary absolute top-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-r-0 border-b-0" />
+                    <span className="border-primary absolute top-0 right-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-l-0" />
+                    <span className="border-primary absolute bottom-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-r-0" />
+                    <span className="border-primary absolute right-0 bottom-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-l-0" />
+                    <span className="bg-primary/50 absolute inset-x-2 top-1/2 h-0.5 blur-[3px]" />
+                    <span className="bg-primary/75 absolute inset-x-2 top-1/2 h-0.5" />
                 </div>
-                <p className="mt-4 max-w-[270px] text-center text-body-medium text-on-nav-surface-variant">
+                <p className="text-body-medium text-on-nav-surface-variant mt-4 max-w-[270px] text-center">
                     {tip ?? defaultTip}
                 </p>
             </div>
 
             {/* Le pied porte la lecture, et rien ne s'accepte sans qu'elle soit écrite. */}
-            <div className="relative z-10 rounded-t-card bg-surface px-5 pb-4 pt-3.5">
+            <div className="rounded-t-card bg-surface relative z-10 px-5 pt-3.5 pb-4">
                 {mode === 'simple' ? (
                     <>
                         {hit ? (
@@ -229,19 +233,27 @@ const ScanView: React.FC<ScanViewProps> = ({
                                 <ScanHitRow hit={hit} />
                                 <div className="mt-3 flex gap-3">
                                     {onRetry && (
-                                        <Button variant="tonal" onClick={onRetry} className="shrink-0">
+                                        <Button
+                                            variant="tonal"
+                                            onClick={onRetry}
+                                            className="shrink-0"
+                                        >
                                             Reprendre
                                         </Button>
                                     )}
                                     {onAccept && (
-                                        <Button variant="filled" onClick={() => onAccept(hit)} className="flex-1">
+                                        <Button
+                                            variant="filled"
+                                            onClick={() => onAccept(hit)}
+                                            className="flex-1"
+                                        >
                                             {acceptLabel}
                                         </Button>
                                     )}
                                 </div>
                             </>
                         ) : (
-                            <p className="min-h-14 text-body-medium text-text-secondary">
+                            <p className="text-body-medium text-text-secondary min-h-14">
                                 En attente d’une lecture.
                             </p>
                         )}
@@ -256,15 +268,17 @@ const ScanView: React.FC<ScanViewProps> = ({
                     <>
                         {/* N4 — le compte porte son dénominateur, et l'écart se dit à part. */}
                         <p className="mb-2.5 flex items-baseline gap-2">
-                            <span className="font-brand text-[30px] font-semibold tracking-tight tabular-nums text-on-surface">
+                            <span className="font-brand text-on-surface text-[30px] font-semibold tracking-tight tabular-nums">
                                 {hits.length}
                             </span>
                             <span className="text-body-medium text-text-secondary">
-                                {typeof expected === 'number' ? `scannés sur ${expected} attendus` : 'scannés'}
+                                {typeof expected === 'number'
+                                    ? `scannés sur ${expected} attendus`
+                                    : 'scannés'}
                                 {exceptions > 0 && (
                                     <>
                                         {' · '}
-                                        <b className="font-medium text-warning-strong">
+                                        <b className="text-warning-strong font-medium">
                                             {exceptions} hors campagne
                                         </b>
                                     </>

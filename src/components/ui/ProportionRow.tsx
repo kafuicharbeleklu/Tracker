@@ -62,8 +62,10 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             <p className="mt-3 flex items-baseline gap-2.5">
                 {/* Le chiffre est au rang du sujet — 20 px. Il valait 24, qui n'est sur aucune
                     marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre). */}
-                <span className="font-brand text-[20px] leading-none font-semibold tabular-nums text-on-surface">{value}</span>
-                <span className="min-w-0 flex-1 text-body-large leading-[19px] text-text-secondary">
+                <span className="font-brand text-on-surface text-[20px] leading-none font-semibold tabular-nums">
+                    {value}
+                </span>
+                <span className="text-body-large text-text-secondary min-w-0 flex-1 leading-[19px]">
                     {label}
                 </span>
             </p>
@@ -71,15 +73,22 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             <div
                 role="img"
                 aria-label={`${clamped} %`}
-                className="mt-3.5 h-1.5 overflow-hidden rounded-xs bg-surface-container"
+                className="bg-surface-container mt-3.5 h-1.5 overflow-hidden rounded-xs"
             >
-                <span className={cn('block h-full rounded-xs', TONE_FILL[tone])} style={{ width: `${clamped}%` }} />
+                <span
+                    className={cn('block h-full rounded-xs', TONE_FILL[tone])}
+                    style={{ width: `${clamped}%` }}
+                />
             </div>
 
-            {note && <p className="mt-2 text-body-medium leading-[18px] text-text-secondary">{note}</p>}
+            {note && (
+                <p className="text-body-medium text-text-secondary mt-2 leading-[18px]">{note}</p>
+            )}
 
             {source && (
-                <p className="mt-2.5 text-label-small leading-4 text-on-surface-variant">{source}</p>
+                <p className="text-label-small text-on-surface-variant mt-2.5 leading-4">
+                    {source}
+                </p>
             )}
         </div>
     );

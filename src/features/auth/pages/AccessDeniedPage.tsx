@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import Button from '../../../components/ui/Button';
@@ -18,9 +17,9 @@ const AccessDeniedPage: React.FC = () => {
     const motif = accessDeniedReason ?? "Votre compte n'a pas accès à cette application.";
 
     return (
-        <div className="min-h-dvh flex flex-col items-center justify-center bg-surface text-on-surface p-6">
-            <div className="w-full max-w-sm text-center space-y-6">
-                <div className="w-20 h-20 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
+        <div className="bg-surface text-on-surface flex min-h-dvh flex-col items-center justify-center p-6">
+            <div className="w-full max-w-sm space-y-6 text-center">
+                <div className="bg-surface-container text-on-surface-variant mx-auto flex h-20 w-20 items-center justify-center rounded-full">
                     <MaterialIcon name="lock" size={40} />
                 </div>
 
@@ -28,8 +27,8 @@ const AccessDeniedPage: React.FC = () => {
                     <h1 className="text-headline-small">{motif}</h1>
                     <p className="text-body-medium text-on-surface-variant">
                         Votre identifiant Microsoft est valide : c'est l'accès à Tracker qui ne
-                        l'est pas encore. Prévenez la personne qui gère les comptes de votre
-                        entité — elle peut l'ouvrir en une fois.
+                        l'est pas encore. Prévenez la personne qui gère les comptes de votre entité
+                        — elle peut l'ouvrir en une fois.
                     </p>
                 </div>
 

@@ -48,9 +48,9 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             const text = e.target?.result as string;
             if (!text) return;
 
-            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const lines = text.split('\n').filter((line) => line.trim() !== '');
             if (lines.length < 2) {
-                showToast("Le fichier semble vide.", "error");
+                showToast('Le fichier semble vide.', 'error');
                 setIsProcessing(false);
                 return;
             }
@@ -62,7 +62,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 const row: ParsedUserRow = {
                     _id: index,
                     _status: 'valid',
-                    _error: ''
+                    _error: '',
                 };
 
                 headers.forEach((header, i) => {
@@ -70,7 +70,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                     if (key.includes('nom') || key.includes('name')) row.name = values[i];
                     else if (key.includes('mail')) row.email = values[i];
                     else if (key.includes('role')) row.role = values[i];
-                    else if (key.includes('depart') || key.includes('service')) row.department = values[i];
+                    else if (key.includes('depart') || key.includes('service'))
+                        row.department = values[i];
                     else row[key] = values[i];
                 });
 
@@ -95,8 +96,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
     const stats = useMemo(() => {
         return {
             total: parsedData.length,
-            valid: parsedData.filter(d => d._status === 'valid').length,
-            invalid: parsedData.filter(d => d._status === 'error').length
+            valid: parsedData.filter((d) => d._status === 'valid').length,
+            invalid: parsedData.filter((d) => d._status === 'error').length,
         };
     }, [parsedData]);
 
@@ -138,18 +139,40 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             title="Importer des utilisateurs"
             onCancel={onCancel}
             onSave={handleImport}
-            saveLabel={isProcessing ? "Analyse..." : `Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`}
+            saveLabel={
+                isProcessing
+                    ? 'Analyse...'
+                    : `Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`
+            }
             isSaving={!previewMode || stats.valid === 0}
         >
             {!previewMode ? (
-                <div className="bg-surface rounded-card p-page shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95 duration-300">
-                    <h3 className="text-label-large font-bold text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
+                <div className="bg-surface rounded-card p-page shadow-elevation-1 border-outline-variant animate-in fade-in zoom-in-95 border duration-300">
+                    <h3 className="text-label-large text-on-surface mb-4 font-bold">
+                        Étape 1: Télécharger le fichier CSV
+                    </h3>
                     <p className="text-body-medium text-on-surface-variant mb-6">
-                        Colonnes attendues : <span className="font-mono bg-surface-container px-1 rounded-md">Name</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Email</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Role</span>, <span className="font-mono bg-surface-container px-1 rounded-md">Department</span>.
+                        Colonnes attendues :{' '}
+                        <span className="bg-surface-container rounded-md px-1 font-mono">Name</span>
+                        ,{' '}
+                        <span className="bg-surface-container rounded-md px-1 font-mono">
+                            Email
+                        </span>
+                        ,{' '}
+                        <span className="bg-surface-container rounded-md px-1 font-mono">Role</span>
+                        ,{' '}
+                        <span className="bg-surface-container rounded-md px-1 font-mono">
+                            Department
+                        </span>
+                        .
                     </p>
 
                     <div className="mb-8">
-                        <Button variant="outlined" onClick={handleDownloadTemplate} icon={<MaterialIcon name="download" size={18} />}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadTemplate}
+                            icon={<MaterialIcon name="download" size={18} />}
+                        >
                             Télécharger le modèle
                         </Button>
                     </div>
@@ -161,33 +184,47 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                     />
                 </div>
             ) : (
-                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
-                    <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-elevation-1 flex items-center justify-between">
+                <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
+                    <div className="bg-surface border-outline-variant shadow-elevation-1 flex items-center justify-between rounded-xl border p-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-secondary-container rounded-lg flex items-center justify-center text-secondary">
+                            <div className="bg-secondary-container text-secondary flex h-10 w-10 items-center justify-center rounded-lg">
                                 <MaterialIcon name="description" size={20} />
                             </div>
                             <div>
-                                <p className="font-bold text-on-surface text-label-large">{file?.name}</p>
-                                <div className="flex items-center gap-3 text-body-small mt-0.5">
-                                    <span className="text-on-surface-variant">{stats.total} lignes</span>
-                                    <span className="text-tertiary font-bold">{stats.valid} valides</span>
-                                    {stats.invalid > 0 && <span className="text-error font-bold">{stats.invalid} erreurs</span>}
+                                <p className="text-on-surface text-label-large font-bold">
+                                    {file?.name}
+                                </p>
+                                <div className="text-body-small mt-0.5 flex items-center gap-3">
+                                    <span className="text-on-surface-variant">
+                                        {stats.total} lignes
+                                    </span>
+                                    <span className="text-tertiary font-bold">
+                                        {stats.valid} valides
+                                    </span>
+                                    {stats.invalid > 0 && (
+                                        <span className="text-error font-bold">
+                                            {stats.invalid} erreurs
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">Changer</Button>
+                        <Button variant="outlined" size="sm" onClick={reset} className="text-error">
+                            Changer
+                        </Button>
                     </div>
 
-                    <div className="bg-surface rounded-xl shadow-elevation-1 border border-outline-variant overflow-hidden">
+                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-xl border">
                         <TableScrollArea
                             label="Aperçu des utilisateurs à importer"
                             scrollerClassName="max-h-[400px]"
                         >
-                            <table className="w-full text-body-medium text-left">
-                                <thead className="bg-surface-container text-on-surface-variant font-bold uppercase text-label-medium sticky top-0 z-10">
+                            <table className="text-body-medium w-full text-left">
+                                <thead className="bg-surface-container text-on-surface-variant text-label-medium sticky top-0 z-10 font-bold uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
+                                        <th className="bg-surface-container border-outline-variant sticky left-0 z-20 border-r px-4 py-3">
+                                            Statut
+                                        </th>
                                         <th className="px-4 py-3">Nom</th>
                                         <th className="px-4 py-3">Email</th>
                                         <th className="px-4 py-3">Rôle</th>
@@ -195,17 +232,35 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                                         <th className="px-4 py-3">Info</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-outline-variant">
+                                <tbody className="divide-outline-variant divide-y">
                                     {parsedData.map((row) => (
-                                        <tr key={row._id} className={cn("group hover:bg-surface-container transition-colors", row._status === 'error' && "bg-error-container/50")}>
-                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface group-hover:bg-surface-container border-r border-outline-variant transition-colors">
-                                                {row._status === 'valid' ? <Badge variant="success">OK</Badge> : <Badge variant="danger">Erreur</Badge>}
+                                        <tr
+                                            key={row._id}
+                                            className={cn(
+                                                'group hover:bg-surface-container transition-colors',
+                                                row._status === 'error' && 'bg-error-container/50',
+                                            )}
+                                        >
+                                            <td className="bg-surface group-hover:bg-surface-container border-outline-variant sticky left-0 z-10 border-r px-4 py-3 transition-colors">
+                                                {row._status === 'valid' ? (
+                                                    <Badge variant="success">OK</Badge>
+                                                ) : (
+                                                    <Badge variant="danger">Erreur</Badge>
+                                                )}
                                             </td>
-                                            <td className="px-4 py-3 font-bold text-on-surface">{row.name || '-'}</td>
-                                            <td className="px-4 py-3 text-on-surface-variant">{row.email || '-'}</td>
+                                            <td className="text-on-surface px-4 py-3 font-bold">
+                                                {row.name || '-'}
+                                            </td>
+                                            <td className="text-on-surface-variant px-4 py-3">
+                                                {row.email || '-'}
+                                            </td>
                                             <td className="px-4 py-3">{row.role || 'User'}</td>
-                                            <td className="px-4 py-3 text-on-surface-variant">{row.department || '-'}</td>
-                                            <td className="px-4 py-3 text-label-medium text-error font-bold">{row._error}</td>
+                                            <td className="text-on-surface-variant px-4 py-3">
+                                                {row.department || '-'}
+                                            </td>
+                                            <td className="text-label-medium text-error px-4 py-3 font-bold">
+                                                {row._error}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

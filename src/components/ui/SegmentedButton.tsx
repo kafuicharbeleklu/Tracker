@@ -46,7 +46,7 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
 
         if (multiSelect) {
             const current = selectedValues.includes(optionValue)
-                ? selectedValues.filter(v => v !== optionValue)
+                ? selectedValues.filter((v) => v !== optionValue)
                 : [...selectedValues, optionValue];
             onChange(current.length > 0 ? current : selectedValues); // prevent deselecting all
         } else {
@@ -58,9 +58,9 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
         <div
             role="group"
             className={cn(
-                "inline-flex gap-1 rounded-xl border border-outline-variant bg-surface p-1 shadow-elevation-1",
-                disabled && "opacity-[0.38] cursor-not-allowed",
-                className
+                'border-outline-variant bg-surface shadow-elevation-1 inline-flex gap-1 rounded-xl border p-1',
+                disabled && 'cursor-not-allowed opacity-[0.38]',
+                className,
             )}
         >
             {options.map((option) => {
@@ -74,34 +74,26 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
                         onClick={() => handleClick(option.value)}
                         aria-pressed={isSelected}
                         className={cn(
-                            "relative flex items-center justify-center gap-2 transition-all duration-short4 ease-emphasized outline-none",
-                            "focus-visible:ring-2 focus-visible:ring-focus-ring",
-                            density === 'compact' ? "px-3 h-8 text-label-medium" : "px-4 h-10 text-label-large",
-                            "rounded-lg",
+                            'duration-short4 ease-emphasized relative flex items-center justify-center gap-2 transition-all outline-none',
+                            'focus-visible:ring-focus-ring focus-visible:ring-2',
+                            density === 'compact'
+                                ? 'text-label-medium h-8 px-3'
+                                : 'text-label-large h-10 px-4',
+                            'rounded-lg',
                             isSelected
-                                ? "bg-primary text-on-primary shadow-sm"
-                                : "bg-surface text-on-surface",
-                            !disabled && !isSelected && "hover:bg-surface-container",
-                            !disabled && isSelected && "hover:bg-primary/90",
-                            !disabled && "active:scale-[0.98]",
+                                ? 'bg-primary text-on-primary shadow-sm'
+                                : 'bg-surface text-on-surface',
+                            !disabled && !isSelected && 'hover:bg-surface-container',
+                            !disabled && isSelected && 'hover:bg-primary/90',
+                            !disabled && 'active:scale-[0.98]',
                         )}
                     >
                         {/* Checkmark for selected state */}
-                        {isSelected && (
-                            <MaterialIcon
-                                name="check"
-                                size={18}
-                                className="shrink-0"
-                            />
-                        )}
+                        {isSelected && <MaterialIcon name="check" size={18} className="shrink-0" />}
 
                         {/* Icon (only when not selected or no checkmark conflict) */}
                         {option.icon && !isSelected && (
-                            <MaterialIcon
-                                name={option.icon}
-                                size={18}
-                                className="shrink-0"
-                            />
+                            <MaterialIcon name={option.icon} size={18} className="shrink-0" />
                         )}
 
                         <span className="truncate">{option.label}</span>
@@ -113,5 +105,3 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
 };
 
 export default SegmentedButton;
-
-

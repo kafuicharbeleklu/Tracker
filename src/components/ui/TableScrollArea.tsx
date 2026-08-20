@@ -78,7 +78,7 @@ export const TableScrollArea: React.FC<TableScrollAreaProps> = ({
                 aria-label={label}
                 tabIndex={0}
                 className={cn(
-                    'overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus-ring',
+                    'focus-visible:ring-focus-ring overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset',
                     scrollerClassName,
                 )}
             >
@@ -89,21 +89,20 @@ export const TableScrollArea: React.FC<TableScrollAreaProps> = ({
                 <>
                     <div
                         aria-hidden="true"
-                        className="pointer-events-none absolute inset-y-0 right-0 z-20 flex w-12 items-center justify-end bg-gradient-to-l from-surface via-surface/80 to-transparent"
+                        className="from-surface via-surface/80 pointer-events-none absolute inset-y-0 right-0 z-20 flex w-12 items-center justify-end bg-gradient-to-l to-transparent"
                     >
                         <button
                             type="button"
                             tabIndex={-1}
                             aria-hidden="true"
                             onClick={scrollRight}
-                            className="pointer-events-auto mr-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface-container text-on-surface-variant shadow-elevation-1 transition-colors duration-short4 hover:text-on-surface"
+                            className="bg-surface-container text-on-surface-variant shadow-elevation-1 duration-short4 hover:text-on-surface pointer-events-auto mr-1 flex h-7 w-7 items-center justify-center rounded-full transition-colors"
                         >
                             <MaterialIcon name="chevron_right" size={18} />
                         </button>
                     </div>
                     <p className="sr-only" aria-live="polite">
-                        {label} : contenu plus large que l'écran, défilement horizontal
-                        disponible.
+                        {label} : contenu plus large que l'écran, défilement horizontal disponible.
                     </p>
                 </>
             )}

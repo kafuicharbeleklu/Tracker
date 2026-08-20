@@ -40,7 +40,7 @@ interface SkeletonProps {
  * connaît que 2/4/8 et le registre interdit d'en inventer un quatrième).
  */
 export const Skeleton: React.FC<SkeletonProps> = ({ className }) => (
-    <div className={cn('h-3 rounded-xs bg-skeleton', className)} aria-hidden="true" />
+    <div className={cn('bg-skeleton h-3 rounded-xs', className)} aria-hidden="true" />
 );
 
 /** La vignette de rangée en attente — 40 × 40, rayon 6 (§2.2). */
@@ -73,7 +73,11 @@ interface SkeletonRowProps {
  * sous-ligne. Hauteur 72 px — celle d'une rangée de liste, à toutes les largeurs
  * (§2.43).
  */
-export const SkeletonRow: React.FC<SkeletonRowProps> = ({ withThumb = true, index = 0, className }) => {
+export const SkeletonRow: React.FC<SkeletonRowProps> = ({
+    withThumb = true,
+    index = 0,
+    className,
+}) => {
     const [title, sub] = ROW_WIDTHS[index % ROW_WIDTHS.length];
 
     return (
@@ -107,7 +111,11 @@ export const SkeletonList: React.FC<SkeletonListProps> = ({
     className,
     label = 'Chargement en cours',
 }) => (
-    <div className={cn('divide-y divide-outline-variant', className)} role="status" aria-live="polite">
+    <div
+        className={cn('divide-outline-variant divide-y', className)}
+        role="status"
+        aria-live="polite"
+    >
         <span className="sr-only">{label}</span>
         {Array.from({ length: rows }, (_, i) => (
             <SkeletonRow key={i} index={i} withThumb={withThumb} />
@@ -131,7 +139,11 @@ export const SkeletonQueue: React.FC<SkeletonQueueProps> = ({
     className,
     label = 'Chargement en cours',
 }) => (
-    <div className={cn('divide-y divide-outline-variant', className)} role="status" aria-live="polite">
+    <div
+        className={cn('divide-outline-variant divide-y', className)}
+        role="status"
+        aria-live="polite"
+    >
         <span className="sr-only">{label}</span>
         {Array.from({ length: rows }, (_, i) => (
             <div key={i} className="flex min-h-16 items-center gap-3 py-2.5">
@@ -169,7 +181,7 @@ export const SkeletonDetail: React.FC<SkeletonDetailProps> = ({
     <div className={cn('flex flex-col', className)} role="status" aria-live="polite">
         <span className="sr-only">{label}</span>
 
-        <div className="flex flex-col gap-3 bg-surface-container p-5">
+        <div className="bg-surface-container flex flex-col gap-3 p-5">
             <Skeleton className="h-2.5 w-28" />
             <Skeleton className="h-[26px] w-8/12 rounded-sm" />
             <Skeleton className="w-[150px]" />
@@ -187,7 +199,7 @@ export const SkeletonDetail: React.FC<SkeletonDetailProps> = ({
             <Skeleton className="h-12 rounded-sm" />
             <div className="rounded-card bg-surface p-4">
                 <Skeleton className="mb-3.5 h-[11px] w-32" />
-                <div className="divide-y divide-outline-variant">
+                <div className="divide-outline-variant divide-y">
                     {Array.from({ length: rows }, (_, i) => (
                         <div key={i} className="flex min-h-14 items-center gap-3 py-2.5">
                             <Skeleton className="h-2.5 w-2.5 shrink-0 rounded-full" />

@@ -27,10 +27,10 @@ const Divider: React.FC<DividerProps> = ({
                 role="separator"
                 aria-orientation="vertical"
                 className={cn(
-                    "w-px self-stretch bg-outline-variant shrink-0",
+                    'bg-outline-variant w-px shrink-0 self-stretch',
                     variant === 'inset' && 'my-4',
                     variant === 'middle' && 'my-4',
-                    className
+                    className,
                 )}
             />
         );
@@ -40,15 +40,14 @@ const Divider: React.FC<DividerProps> = ({
         <hr
             role="separator"
             className={cn(
-                "border-0 h-px bg-outline-variant shrink-0",
+                'bg-outline-variant h-px shrink-0 border-0',
                 variant === 'full-width' && 'w-full',
                 variant === 'inset' && 'ml-4',
                 variant === 'middle' && 'mx-4',
-                className
+                className,
             )}
         />
     );
 };
 
 export default Divider;
-

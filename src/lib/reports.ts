@@ -41,23 +41,23 @@ const readMetadataString = (event: HistoryEvent, key: string): string | null => 
  * Mouvements (attributions, retours…) concernant un utilisateur donné :
  * il est bénéficiaire du mouvement ou détenteur précédent (retour/réattribution).
  */
-export const buildUserMovementReportRows = (
-    events: HistoryEvent[],
-    userId: string,
-): ReportRow[] =>
+export const buildUserMovementReportRows = (events: HistoryEvent[], userId: string): ReportRow[] =>
     events
         .filter(isEquipmentMovementEvent)
         .filter(
             (event) =>
-                readMetadataString(event, 'beneficiaryId') === userId
-                || readMetadataString(event, 'previousUserId') === userId,
+                readMetadataString(event, 'beneficiaryId') === userId ||
+                readMetadataString(event, 'previousUserId') === userId,
         )
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .map((event) => ({
             Date: formatIsoDay(event.timestamp),
             Evenement: getHistoryEventTitle(event.type),
             Equipement: event.targetName,
-            Sens: readMetadataString(event, 'beneficiaryId') === userId ? 'Attribution' : 'Retour/Retrait',
+            Sens:
+                readMetadataString(event, 'beneficiaryId') === userId
+                    ? 'Attribution'
+                    : 'Retour/Retrait',
             Details: event.description,
         }));
 
@@ -72,8 +72,9 @@ export const buildAgingReportRows = (
 
     return equipment
         .map((item) => ({ item, purchase: asValidDate(item.financial?.purchaseDate) }))
-        .filter((entry): entry is { item: Equipment; purchase: Date } =>
-            entry.purchase !== null && entry.purchase < threshold,
+        .filter(
+            (entry): entry is { item: Equipment; purchase: Date } =>
+                entry.purchase !== null && entry.purchase < threshold,
         )
         .sort((a, b) => a.purchase.getTime() - b.purchase.getTime())
         .map(({ item, purchase }) => ({
@@ -98,8 +99,9 @@ export const buildWarrantyReportRows = (
 
     return equipment
         .map((item) => ({ item, end: asValidDate(item.warrantyEnd) }))
-        .filter((entry): entry is { item: Equipment; end: Date } =>
-            entry.end !== null && entry.end > now && entry.end <= limit,
+        .filter(
+            (entry): entry is { item: Equipment; end: Date } =>
+                entry.end !== null && entry.end > now && entry.end <= limit,
         )
         .sort((a, b) => a.end.getTime() - b.end.getTime())
         .map(({ item, end }) => ({

@@ -15,13 +15,31 @@ import { extendTailwindMerge } from 'tailwind-merge';
  */
 const SPACING_TOKENS = ['page', 'page-sm', 'card', 'card-compact', 'fab'];
 const SPACING_PREFIXES = [
-    'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl', 'ps', 'pe',
-    'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml', 'ms', 'me',
-    'gap', 'gap-x', 'gap-y',
+    'p',
+    'px',
+    'py',
+    'pt',
+    'pr',
+    'pb',
+    'pl',
+    'ps',
+    'pe',
+    'm',
+    'mx',
+    'my',
+    'mt',
+    'mr',
+    'mb',
+    'ml',
+    'ms',
+    'me',
+    'gap',
+    'gap-x',
+    'gap-y',
 ] as const;
 
 const spacingClassGroups = Object.fromEntries(
-    SPACING_PREFIXES.map((prefix) => [prefix, [{ [prefix]: SPACING_TOKENS }]])
+    SPACING_PREFIXES.map((prefix) => [prefix, [{ [prefix]: SPACING_TOKENS }]]),
 );
 
 const twMerge = extendTailwindMerge({

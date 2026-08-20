@@ -144,8 +144,6 @@ const ageLabel = (iso: string | null): string => {
     return `${days} j`;
 };
 
-
-
 const extractInitials = (name?: string): string | undefined => {
     if (!name) return undefined;
     const parts = name.trim().split(/\s+/);
@@ -244,7 +242,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         const teamUserIds = new Set(
             role === 'Manager'
                 ? users.filter((user) => user.managerId === currentUser.id).map((user) => user.id)
-                : []
+                : [],
         );
         const isRelatedApproval = (approval: (typeof approvals)[number]) => {
             if (role === 'Admin' || role === 'SuperAdmin') return true;
@@ -256,7 +254,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     teamUserIds.has(approval.beneficiaryId)
                 );
             }
-            return approval.requesterId === currentUser.id || approval.beneficiaryId === currentUser.id;
+            return (
+                approval.requesterId === currentUser.id || approval.beneficiaryId === currentUser.id
+            );
         };
 
         approvals.forEach((approval) => {
@@ -265,7 +265,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 approval.equipmentName ||
                 getCategoryLabel(approval.equipmentCategory || '');
             const beneficiary = approval.beneficiaryName || approval.requesterName;
-            const title = beneficiary ? `${beneficiary} — ${equipmentLabel}` : equipmentLabel || 'Demande d’équipement';
+            const title = beneficiary
+                ? `${beneficiary} — ${equipmentLabel}`
+                : equipmentLabel || 'Demande d’équipement';
             const isActionable = canUserActOnApproval({
                 approval,
                 actorRole: role,
@@ -333,7 +335,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         });
 
         const approvalEquipmentIds = new Set(
-            approvals.flatMap((approval) => (approval.assignedEquipmentId ? [approval.assignedEquipmentId] : []))
+            approvals.flatMap((approval) =>
+                approval.assignedEquipmentId ? [approval.assignedEquipmentId] : [],
+            ),
         );
 
         equipment.forEach((item) => {
@@ -347,7 +351,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'remise',
                         scope: 'todo',
                         title,
-                        context: item.user?.name ? `Remise à faire à ${item.user.name}` : 'Remise à préparer',
+                        context: item.user?.name
+                            ? `Remise à faire à ${item.user.name}`
+                            : 'Remise à préparer',
                         since: item.assignedAt ?? null,
                         action: 'Remettre',
                         target: 'assignment_wizard',
@@ -430,7 +436,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             if (!right.since) return -1;
             return new Date(left.since).getTime() - new Date(right.since).getTime();
         });
-    }, [approvals, equipment, users, detectedDevices, currentUser, role, permissions.canManageInventory]);
+    }, [
+        approvals,
+        equipment,
+        users,
+        detectedDevices,
+        currentUser,
+        role,
+        permissions.canManageInventory,
+    ]);
 
     const scopeTasks = useMemo(() => tasks.filter((task) => task.scope === scope), [scope, tasks]);
     const counts = useMemo(() => {
@@ -453,7 +467,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             following: tasks.filter((task) => task.scope === 'following').length,
             history: tasks.filter((task) => task.scope === 'history').length,
         }),
-        [tasks]
+        [tasks],
     );
 
     const facets = useMemo<ListFacet[]>(
@@ -465,23 +479,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 count: counts[taskNature],
             })),
         ],
-        [counts, scopeTasks.length]
+        [counts, scopeTasks.length],
     );
 
     const filteredTasks = useMemo(() => {
-        const byNature = nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
+        const byNature =
+            nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
         // La recherche porte sur ce que la rangée montre : le sujet et son contexte.
         const needle = query.trim().toLowerCase();
         const selected = needle
             ? byNature.filter(
                   (task) =>
                       task.title.toLowerCase().includes(needle) ||
-                      task.context.toLowerCase().includes(needle)
+                      task.context.toLowerCase().includes(needle),
               )
             : byNature;
         return [...selected].sort((left, right) => {
             const leftDate = left.since ? new Date(left.since).getTime() : Number.POSITIVE_INFINITY;
-            const rightDate = right.since ? new Date(right.since).getTime() : Number.POSITIVE_INFINITY;
+            const rightDate = right.since
+                ? new Date(right.since).getTime()
+                : Number.POSITIVE_INFINITY;
             return order === 'oldest' ? leftDate - rightDate : rightDate - leftDate;
         });
     }, [nature, order, query, scopeTasks]);
@@ -492,11 +509,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     const visibleTasks = useMemo(
         () => filteredTasks.slice(0, visibleCount),
-        [filteredTasks, visibleCount]
+        [filteredTasks, visibleCount],
     );
 
-    const activeFilterCount = Number(nature !== 'toutes') + Number(order !== 'oldest') + Number(scope !== 'todo');
-    const orderLabel = order === 'oldest' ? 'Les plus anciennes d’abord' : 'Les plus récentes d’abord';
+    const activeFilterCount =
+        Number(nature !== 'toutes') + Number(order !== 'oldest') + Number(scope !== 'todo');
+    const orderLabel =
+        order === 'oldest' ? 'Les plus anciennes d’abord' : 'Les plus récentes d’abord';
     const scopeSubtitle =
         scope === 'todo'
             ? scopeCounts.todo === 0
@@ -529,7 +548,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     const reviewDevice = useMemo(
         () => detectedDevices.find((device) => device.id === reviewDeviceId) ?? null,
-        [detectedDevices, reviewDeviceId]
+        [detectedDevices, reviewDeviceId],
     );
 
     const clearFilters = () => {
@@ -547,11 +566,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     variant="text"
                     aria-label="Filtrer les tâches"
                     onClick={() => setIsFilterSheetOpen(true)}
-                    className="relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border border-outline text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring p-0"
+                    className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 >
                     <Icon glyph={Funnel} size={20} />
                     {activeFilterCount > 0 && (
-                        <span className="absolute -right-1.5 -top-1.5 flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
+                        <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
                             {activeFilterCount}
                         </span>
                     )}
@@ -610,7 +629,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             empty={
                 <ScreenState
                     icon={CheckCircle}
-                    title={scope === 'todo' ? 'Vous êtes à jour' : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`}
+                    title={
+                        scope === 'todo'
+                            ? 'Vous êtes à jour'
+                            : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
+                    }
                     description={
                         scope === 'todo'
                             ? 'Rien n’attend votre geste. La file se remplira d’elle-même — vous n’avez pas à revenir la surveiller.'
@@ -627,7 +650,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         glyph: Check,
                                         text: (
                                             <>
-                                                Une demande <b className="text-on-surface font-medium">validée par un manager</b> — vous aurez la remise à faire.
+                                                Une demande{' '}
+                                                <b className="text-on-surface font-medium">
+                                                    validée par un manager
+                                                </b>{' '}
+                                                — vous aurez la remise à faire.
                                             </>
                                         ),
                                     },
@@ -636,7 +663,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         text: (
                                             <>
                                                 Une restitution attestée — vous aurez la{' '}
-                                                <b className="text-on-surface font-medium">réception</b> à faire.
+                                                <b className="text-on-surface font-medium">
+                                                    réception
+                                                </b>{' '}
+                                                à faire.
                                             </>
                                         ),
                                     },
@@ -644,7 +674,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         glyph: Info,
                                         text: (
                                             <>
-                                                Un retour qui <b className="text-on-surface font-medium">dépasse 7 jours</b> — il remontera seul, en tête.
+                                                Un retour qui{' '}
+                                                <b className="text-on-surface font-medium">
+                                                    dépasse 7 jours
+                                                </b>{' '}
+                                                — il remontera seul, en tête.
                                             </>
                                         ),
                                     },
@@ -653,7 +687,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         key={index}
                                         className="border-outline-variant text-body-medium text-on-surface-variant flex gap-2.5 border-t py-2.5 leading-[19px] first-of-type:border-t-0 first-of-type:pt-0"
                                     >
-                                        <Icon glyph={line.glyph} size={18} className="mt-0.5 shrink-0" />
+                                        <Icon
+                                            glyph={line.glyph}
+                                            size={18}
+                                            className="mt-0.5 shrink-0"
+                                        />
                                         <span>{line.text}</span>
                                     </p>
                                 ))}
@@ -678,11 +716,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         className="border-outline-variant hover:bg-surface-container/50 -mx-2 flex cursor-pointer items-center gap-3 rounded-md border-t px-2 py-2.5 transition-colors first:border-t-0"
                     >
                         <div className="rounded-vignette bg-surface-container text-body-large font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center font-semibold">
-                            {task.initials ? <span>{task.initials}</span> : <Icon glyph={IconGlyph} size={20} />}
+                            {task.initials ? (
+                                <span>{task.initials}</span>
+                            ) : (
+                                <Icon glyph={IconGlyph} size={20} />
+                            )}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                            <p className="text-label-large text-on-surface truncate font-medium">{task.title}</p>
+                            <p className="text-label-large text-on-surface truncate font-medium">
+                                {task.title}
+                            </p>
                             {/*
                               La nature passe en **paire teintée** et quitte le texte :
                               « Validation du manager · 9 j » disait deux fois la même chose,
@@ -693,12 +737,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 <span
                                     className={cn(
                                         'text-label-small inline-flex h-[22px] shrink-0 items-center gap-[5px] rounded-md px-2 font-medium',
-                                        NATURE_TINT[task.nature]
+                                        NATURE_TINT[task.nature],
                                     )}
                                 >
                                     {NATURE_BADGE[task.nature]}
                                 </span>
-                                <span className="text-on-surface shrink-0 font-medium">{ageLabel(task.since)}</span>
+                                <span className="text-on-surface shrink-0 font-medium">
+                                    {ageLabel(task.since)}
+                                </span>
                             </span>
                         </div>
 
@@ -739,7 +785,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     e.stopPropagation();
                                     openTask(task);
                                 }}
-                                className="shrink-0 text-on-surface-variant"
+                                className="text-on-surface-variant shrink-0"
                             >
                                 <Icon glyph={CaretRight} size={20} />
                             </Button>
@@ -799,10 +845,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 .map(([label, value]) => (
                                     <div
                                         key={String(label)}
-                                        className="flex min-h-11 items-center justify-between gap-3.5 border-t border-outline-variant py-[11px] text-body-medium leading-[19px] first:border-t-0"
+                                        className="border-outline-variant text-body-medium flex min-h-11 items-center justify-between gap-3.5 border-t py-[11px] leading-[19px] first:border-t-0"
                                     >
-                                        <dt className="shrink-0 text-text-secondary">{label}</dt>
-                                        <dd className="min-w-0 break-words text-right font-medium text-on-surface">
+                                        <dt className="text-text-secondary shrink-0">{label}</dt>
+                                        <dd className="text-on-surface min-w-0 text-right font-medium break-words">
                                             {value}
                                         </dd>
                                     </div>
@@ -810,18 +856,21 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </dl>
 
                         {reviewDevice.status === 'ambiguous_match' && (
-                            <p className="rounded-md bg-surface-container px-3 py-2.5 text-body-small text-text-secondary">
-                                Plusieurs actifs du parc lui ressemblent. L'importer en créerait un de plus —
-                                vérifiez d'abord lequel elle est.
+                            <p className="bg-surface-container text-body-small text-text-secondary rounded-md px-3 py-2.5">
+                                Plusieurs actifs du parc lui ressemblent. L'importer en créerait un
+                                de plus — vérifiez d'abord lequel elle est.
                             </p>
                         )}
 
-                        <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                        <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                             <Button
                                 variant="text"
                                 onClick={() => {
                                     const ok = markDetectedDeviceAsIgnored(reviewDevice.id);
-                                    showToast(ok ? 'Machine ignorée.' : 'Action refusée.', ok ? 'success' : 'warning');
+                                    showToast(
+                                        ok ? 'Machine ignorée.' : 'Action refusée.',
+                                        ok ? 'success' : 'warning',
+                                    );
                                     setReviewDeviceId(null);
                                 }}
                             >
@@ -831,7 +880,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 variant="filled"
                                 className="flex-1"
                                 onClick={() => {
-                                    const result = promoteDetectedDeviceToInventory(reviewDevice.id);
+                                    const result = promoteDetectedDeviceToInventory(
+                                        reviewDevice.id,
+                                    );
                                     showToast(result.message, result.ok ? 'success' : 'error');
                                     if (result.ok) setReviewDeviceId(null);
                                 }}
@@ -843,10 +894,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 )}
             </BottomSheet>
 
-            <BottomSheet open={isFilterSheetOpen} onClose={() => setIsFilterSheetOpen(false)} title="Filtrer">
+            <BottomSheet
+                open={isFilterSheetOpen}
+                onClose={() => setIsFilterSheetOpen(false)}
+                title="Filtrer"
+            >
                 <div className="flex flex-col gap-4 px-5 py-3">
                     <div>
-                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Nature</p>
+                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                            Nature
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             <Button
                                 variant={nature === 'toutes' ? 'tonal' : 'text'}
@@ -855,10 +912,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 className={cn(
                                     // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
                                     // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                    'min-h-11 px-3 text-body-medium font-medium',
+                                    'text-body-medium min-h-11 px-3 font-medium',
                                     nature === 'toutes'
                                         ? 'bg-inverse-surface text-inverse-on-surface'
-                                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                                 )}
                             >
                                 Tout {scopeTasks.length}
@@ -871,11 +928,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     onClick={() => setNature(taskNature)}
                                     className={cn(
                                         // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                    'min-h-11 px-3 text-body-medium font-medium',
+                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                        'text-body-medium min-h-11 px-3 font-medium',
                                         nature === taskNature
                                             ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                                     )}
                                 >
                                     {NATURE_LABEL[taskNature]} {counts[taskNature]}
@@ -885,7 +942,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </div>
 
                     <div>
-                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Ordre</p>
+                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                            Ordre
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(
                                 [
@@ -900,11 +959,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     onClick={() => setOrder(value)}
                                     className={cn(
                                         // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                    'min-h-11 px-3 text-body-medium font-medium',
+                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                        'text-body-medium min-h-11 px-3 font-medium',
                                         order === value
                                             ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                                     )}
                                 >
                                     {label}
@@ -914,7 +973,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </div>
 
                     <div>
-                        <p className="text-label-small tracking-[0.06em] text-text-secondary uppercase">Vue</p>
+                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
+                            Vue
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => (
                                 <Button
@@ -924,11 +985,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     onClick={() => setScope(taskScope)}
                                     className={cn(
                                         // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                    'min-h-11 px-3 text-body-medium font-medium',
+                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
+                                        'text-body-medium min-h-11 px-3 font-medium',
                                         scope === taskScope
                                             ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                                     )}
                                 >
                                     {SCOPE_LABEL[taskScope]} {scopeCounts[taskScope]}
@@ -937,13 +998,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </div>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-outline-variant pt-3">
+                    <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3">
                         <Button variant="ghost" onClick={clearFilters}>
                             Tout effacer
                         </Button>
                         <Button
                             variant="tonal"
-                            className="flex-1 bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1"
                             onClick={() => setIsFilterSheetOpen(false)}
                         >
                             Voir les {filteredTasks.length} tâches

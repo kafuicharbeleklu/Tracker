@@ -9,7 +9,11 @@ import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
 import { TextArea } from '../../../components/ui/TextArea';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
-import { formatCurrency, resolveDepreciationConfig, calculateLinearDepreciation } from '../../../lib/financial';
+import {
+    formatCurrency,
+    resolveDepreciationConfig,
+    calculateLinearDepreciation,
+} from '../../../lib/financial';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
@@ -58,7 +62,8 @@ const OPERATIONAL_STATUS_OPTIONS = [
 
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
-    const { locationData, categories, equipment, addEquipment, updateEquipment, settings } = useData();
+    const { locationData, categories, equipment, addEquipment, updateEquipment, settings } =
+        useData();
     const isMobile = useMediaQuery(MEDIA.belowExpanded);
 
     const isEditMode = !!equipmentId;
@@ -85,7 +90,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         department: '',
         status: 'Disponible',
         operationalStatus: 'Actif',
-        notes: ''
+        notes: '',
     });
 
     const [isScanning, setIsScanning] = useState(false);
@@ -94,14 +99,16 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
     // Load data for edit mode
     useEffect(() => {
         if (equipmentId) {
-            const itemToEdit = equipment.find(e => e.id === equipmentId);
+            const itemToEdit = equipment.find((e) => e.id === equipmentId);
             if (itemToEdit) {
                 setFormData({
                     categoryName: itemToEdit.type || '',
                     model: itemToEdit.model || '',
                     serialNumber: itemToEdit.serialNumber || '',
                     hostname: itemToEdit.hostname || '',
-                    purchaseDate: itemToEdit.financial?.purchaseDate ? new Date(itemToEdit.financial.purchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    purchaseDate: itemToEdit.financial?.purchaseDate
+                        ? new Date(itemToEdit.financial.purchaseDate).toISOString().split('T')[0]
+                        : new Date().toISOString().split('T')[0],
                     purchasePrice: itemToEdit.financial?.purchasePrice.toString() || '',
                     manualMethod: itemToEdit.financial?.depreciationMethod || 'linear',
                     manualYears: itemToEdit.financial?.depreciationYears.toString() || '',
@@ -109,7 +116,9 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     supplier: itemToEdit.financial?.supplier || '',
                     invoiceNumber: itemToEdit.financial?.invoiceNumber || '',
                     warrantyStart: '',
-                    warrantyEnd: itemToEdit.warrantyEnd ? new Date(itemToEdit.warrantyEnd).toISOString().split('T')[0] : '',
+                    warrantyEnd: itemToEdit.warrantyEnd
+                        ? new Date(itemToEdit.warrantyEnd).toISOString().split('T')[0]
+                        : '',
                     os: itemToEdit.os || '',
                     ram: itemToEdit.ram || '',
                     storage: itemToEdit.storage || '',
@@ -118,11 +127,14 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     department: itemToEdit.department || '',
                     status: itemToEdit.status,
                     operationalStatus: itemToEdit.operationalStatus || 'Actif',
-                    notes: itemToEdit.notes || ''
+                    notes: itemToEdit.notes || '',
                 });
 
-                const category = categories.find(c => c.name === itemToEdit.type);
-                if (category && category.defaultDepreciation.years !== itemToEdit.financial?.depreciationYears) {
+                const category = categories.find((c) => c.name === itemToEdit.type);
+                if (
+                    category &&
+                    category.defaultDepreciation.years !== itemToEdit.financial?.depreciationYears
+                ) {
                     setUseCustomDepreciation(true);
                 }
             }
@@ -130,35 +142,48 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
     }, [equipmentId, equipment, categories]);
 
     // Image inheritance
-    const selectedModelData = useMemo(() =>
-        mockModels.find(m => m.name === formData.model),
-        [formData.model]);
+    const selectedModelData = useMemo(
+        () => mockModels.find((m) => m.name === formData.model),
+        [formData.model],
+    );
 
-    const selectedCategory = useMemo(() =>
-        categories.find(c => c.name === formData.categoryName),
-        [formData.categoryName, categories]);
+    const selectedCategory = useMemo(
+        () => categories.find((c) => c.name === formData.categoryName),
+        [formData.categoryName, categories],
+    );
 
     const filteredModels = useMemo(() => {
         if (!formData.categoryName) return mockModels;
-        return mockModels.filter(m => m.type === formData.categoryName);
+        return mockModels.filter((m) => m.type === formData.categoryName);
     }, [formData.categoryName]);
 
     const effectiveConfig = useMemo(() => {
         return resolveDepreciationConfig(
-            useCustomDepreciation ? {
-                method: formData.manualMethod,
-                years: parseInt(formData.manualYears) || 0,
-                salvagePercent: parseFloat(formData.manualSalvagePercent) || 0,
-                source: 'equipment'
-            } : null,
-            selectedCategory?.defaultDepreciation ? {
-                method: selectedCategory.defaultDepreciation.method,
-                years: selectedCategory.defaultDepreciation.years,
-                salvageValuePercent: selectedCategory.defaultDepreciation.salvageValuePercent
-            } : null,
-            globalDepreciationConfig(settings)
+            useCustomDepreciation
+                ? {
+                      method: formData.manualMethod,
+                      years: parseInt(formData.manualYears) || 0,
+                      salvagePercent: parseFloat(formData.manualSalvagePercent) || 0,
+                      source: 'equipment',
+                  }
+                : null,
+            selectedCategory?.defaultDepreciation
+                ? {
+                      method: selectedCategory.defaultDepreciation.method,
+                      years: selectedCategory.defaultDepreciation.years,
+                      salvageValuePercent: selectedCategory.defaultDepreciation.salvageValuePercent,
+                  }
+                : null,
+            globalDepreciationConfig(settings),
         );
-    }, [useCustomDepreciation, formData.manualMethod, formData.manualYears, formData.manualSalvagePercent, selectedCategory, settings]);
+    }, [
+        useCustomDepreciation,
+        formData.manualMethod,
+        formData.manualYears,
+        formData.manualSalvagePercent,
+        selectedCategory,
+        settings,
+    ]);
 
     const financialEstimates = useMemo(() => {
         const price = parseFloat(formData.purchasePrice) || 0;
@@ -168,23 +193,25 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             price,
             formData.purchaseDate,
             effectiveConfig.years,
-            effectiveConfig.salvagePercent
+            effectiveConfig.salvagePercent,
         );
     }, [formData.purchasePrice, formData.purchaseDate, effectiveConfig]);
 
     const availableSites = useMemo(() => {
-        return formData.country ? (locationData.sites[formData.country] || []) : [];
+        return formData.country ? locationData.sites[formData.country] || [] : [];
     }, [formData.country, locationData.sites]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
         const { name, value } = e.target;
-        setFormData(prev => {
+        setFormData((prev) => {
             const newData = { ...prev, [name]: value };
-            if (name === 'country') { newData.site = ''; }
+            if (name === 'country') {
+                newData.site = '';
+            }
             if (name === 'categoryName') {
-                const fits = mockModels.find(m => m.name === prev.model && m.type === value);
+                const fits = mockModels.find((m) => m.name === prev.model && m.type === value);
                 if (!fits) newData.model = '';
             }
             return newData;
@@ -195,24 +222,33 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         if (!isMobile) return;
 
         setIsScanning(true);
-        showToast("Simulation du scan (démo)...", "info");
+        showToast('Simulation du scan (démo)...', 'info');
         setTimeout(() => {
             setIsScanning(false);
-            const mockSerial = "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-            setFormData(prev => ({ ...prev, serialNumber: mockSerial }));
-            showToast("Numéro de série d'exemple généré (démo) — vérifiez ou corrigez la valeur.", "info");
+            const mockSerial = 'SN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            setFormData((prev) => ({ ...prev, serialNumber: mockSerial }));
+            showToast(
+                "Numéro de série d'exemple généré (démo) — vérifiez ou corrigez la valeur.",
+                'info',
+            );
         }, 1500);
     };
 
     const handleSave = () => {
         if (!formData.categoryName || !formData.model || !formData.serialNumber) {
-            showToast('Veuillez remplir les champs obligatoires (Catégorie, Modèle, N° Série)', 'error');
+            showToast(
+                'Veuillez remplir les champs obligatoires (Catégorie, Modèle, N° Série)',
+                'error',
+            );
             return;
         }
 
         const payload = {
             name: formData.model,
-            assetId: isEditMode && equipmentId ? equipment.find(e => e.id === equipmentId)?.assetId || '' : `ASSET-${Date.now()}`,
+            assetId:
+                isEditMode && equipmentId
+                    ? equipment.find((e) => e.id === equipmentId)?.assetId || ''
+                    : `ASSET-${Date.now()}`,
             type: formData.categoryName,
             model: formData.model,
             status: formData.status,
@@ -227,7 +263,9 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             warrantyEnd: formData.warrantyEnd,
             notes: formData.notes,
             operationalStatus: formData.operationalStatus as Equipment['operationalStatus'],
-            image: selectedModelData?.image || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop',
+            image:
+                selectedModelData?.image ||
+                'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop',
             financial: {
                 purchasePrice: parseFloat(formData.purchasePrice) || 0,
                 purchaseDate: formData.purchaseDate,
@@ -235,8 +273,8 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 invoiceNumber: formData.invoiceNumber,
                 depreciationMethod: effectiveConfig.method,
                 depreciationYears: effectiveConfig.years,
-                salvageValue: financialEstimates?.salvageValue || 0
-            }
+                salvageValue: financialEstimates?.salvageValue || 0,
+            },
         };
 
         if (isEditMode && equipmentId) {
@@ -246,7 +284,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             addEquipment({
                 ...payload,
                 id: Date.now().toString(),
-                assignmentStatus: 'NONE'
+                assignmentStatus: 'NONE',
             });
             showToast(GLOSSARY.SUCCESS_CREATE(GLOSSARY.EQUIPMENT), 'success');
         }
@@ -256,38 +294,64 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
     return (
         <FullScreenFormLayout
-            title={isEditMode ? "Modifier l'actif" : "Nouvel actif"}
+            title={isEditMode ? "Modifier l'actif" : 'Nouvel actif'}
             onCancel={onCancel}
             onSave={handleSave}
-            saveLabel={isEditMode ? "Enregistrer les modifications" : "Créer l'équipement"}
+            saveLabel={isEditMode ? 'Enregistrer les modifications' : "Créer l'équipement"}
         >
-            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-8 max-w-7xl mx-auto">
-
+            <div className="medium:grid-cols-2 expanded:grid-cols-3 mx-auto grid max-w-7xl grid-cols-1 gap-8">
                 {/* COLONNE GAUCHE: IDENTITÉ & APERÇU (1/3) */}
                 <div className="expanded:col-span-1 space-y-6">
                     {/* Photo Card */}
-                    <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant flex flex-col items-center">
-                        <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest mb-6 self-start flex items-center gap-2">
+                    <section className="bg-surface shadow-elevation-1 border-outline-variant flex flex-col items-center rounded-md border p-6">
+                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 self-start tracking-widest uppercase">
                             <MaterialIcon name="image" size={14} /> Aperçu visuel
                         </h3>
 
-                        <div className="relative w-full aspect-square max-w-[240px]">
-                            <div className={cn(
-                                "w-full h-full rounded-md border-2 flex flex-col items-center justify-center transition-all duration-short4 overflow-hidden bg-surface-container-low",
-                                selectedModelData ? "border-tertiary-container shadow-inner" : "border-outline-variant border-dashed"
-                            )}>
+                        <div className="relative aspect-square w-full max-w-[240px]">
+                            <div
+                                className={cn(
+                                    'duration-short4 bg-surface-container-low flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-md border-2 transition-all',
+                                    selectedModelData
+                                        ? 'border-tertiary-container shadow-inner'
+                                        : 'border-outline-variant border-dashed',
+                                )}
+                            >
                                 {selectedModelData ? (
-                                    <div className="relative w-full h-full p-6 flex items-center justify-center">
-                                        <img src={selectedModelData.image} alt={selectedModelData.name} className="max-w-full max-h-full object-contain mix-blend-multiply drop-shadow-sm animate-in zoom-in-95 duration-500" />
+                                    <div className="relative flex h-full w-full items-center justify-center p-6">
+                                        {/* Un modèle sans photo porte **l'initiale de sa marque**,
+                                            jamais un cadre vide ni la photo d'un autre objet (09.2). */}
+                                        {selectedModelData.image ? (
+                                            <img
+                                                src={selectedModelData.image}
+                                                alt={selectedModelData.name}
+                                                className="animate-in zoom-in-95 max-h-full max-w-full object-contain mix-blend-multiply drop-shadow-sm duration-500"
+                                            />
+                                        ) : (
+                                            <span className="bg-surface-container font-brand text-on-surface-variant flex h-20 w-20 items-center justify-center rounded-md text-[32px] font-semibold">
+                                                {(selectedModelData.brand || selectedModelData.name)
+                                                    .trim()
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </span>
+                                        )}
                                         <div className="absolute top-3 right-3">
-                                            <Badge variant="success" className="shadow-none">Hérité du modèle</Badge>
+                                            <Badge variant="success" className="shadow-none">
+                                                Hérité du modèle
+                                            </Badge>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-center p-8 opacity-40">
-                                        <MaterialIcon name="select_all" size={48} className="text-on-surface-variant mx-auto mb-3" />
-                                        <p className="text-label-small text-on-surface-variant uppercase tracking-tight leading-relaxed">
-                                            Choisissez un modèle<br />pour voir l'aperçu
+                                    <div className="p-8 text-center opacity-40">
+                                        <MaterialIcon
+                                            name="select_all"
+                                            size={48}
+                                            className="text-on-surface-variant mx-auto mb-3"
+                                        />
+                                        <p className="text-label-small text-on-surface-variant leading-relaxed tracking-tight uppercase">
+                                            Choisissez un modèle
+                                            <br />
+                                            pour voir l'aperçu
                                         </p>
                                     </div>
                                 )}
@@ -296,22 +360,27 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                         {selectedModelData && (
                             <div className="mt-4 w-full text-center">
-                                <p className="text-label-large text-on-surface">{selectedModelData.name}</p>
-                                <p className="text-label-small text-on-surface-variant uppercase tracking-tighter">Catalogue {APP_CONFIG.companyName}</p>
+                                <p className="text-label-large text-on-surface">
+                                    {selectedModelData.name}
+                                </p>
+                                <p className="text-label-small text-on-surface-variant tracking-tighter uppercase">
+                                    Catalogue {APP_CONFIG.companyName}
+                                </p>
                             </div>
                         )}
                     </section>
 
                     {/* Identification */}
-                    <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant space-y-5">
-                        <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <MaterialIcon name="label" size={14} className="text-primary" /> Identification
+                    <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-5 rounded-md border p-6">
+                        <h3 className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
+                            <MaterialIcon name="label" size={14} className="text-primary" />{' '}
+                            Identification
                         </h3>
 
                         <SelectField
                             label="Catégorie d'actif"
                             name="categoryName"
-                            options={categories.map(c => ({ value: c.name, label: c.name }))}
+                            options={categories.map((c) => ({ value: c.name, label: c.name }))}
                             value={formData.categoryName}
                             onChange={handleChange}
                             required
@@ -319,19 +388,32 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between px-1">
-                                <label className="text-label-large text-on-surface">Numéro de série</label>
+                                <label className="text-label-large text-on-surface">
+                                    Numéro de série
+                                </label>
                                 {isMobile && (
                                     <div className="flex items-center gap-1.5">
-                                        <DemoBadge label="Simulation" title="Le scan caméra est simulé : il génère un numéro de série d'exemple" />
+                                        <DemoBadge
+                                            label="Simulation"
+                                            title="Le scan caméra est simulé : il génère un numéro de série d'exemple"
+                                        />
                                         <Button
                                             type="button"
                                             variant="text"
                                             onClick={handleScanSerial}
                                             disabled={isScanning}
-                                            className="px-2 py-0.5 rounded-xs bg-primary-container text-on-primary-container hover:text-on-primary-container/80 uppercase !text-label-small"
+                                            className="bg-primary-container text-on-primary-container hover:text-on-primary-container/80 !text-label-small rounded-xs px-2 py-0.5 uppercase"
                                         >
-                                            {isScanning ? <MaterialIcon name="sync" size={12} className="animate-spin" /> : <MaterialIcon name="qr_code_scanner" size={12} />}
-                                            {isScanning ? "Analyse..." : "Scan Caméra"}
+                                            {isScanning ? (
+                                                <MaterialIcon
+                                                    name="sync"
+                                                    size={12}
+                                                    className="animate-spin"
+                                                />
+                                            ) : (
+                                                <MaterialIcon name="qr_code_scanner" size={12} />
+                                            )}
+                                            {isScanning ? 'Analyse...' : 'Scan Caméra'}
                                         </Button>
                                     </div>
                                 )}
@@ -340,7 +422,9 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 name="serialNumber"
                                 value={formData.serialNumber}
                                 onChange={handleChange}
-                                placeholder={isMobile ? "Saisir ou scanner le SN..." : "Saisir le SN..."}
+                                placeholder={
+                                    isMobile ? 'Saisir ou scanner le SN...' : 'Saisir le SN...'
+                                }
                                 icon={<MaterialIcon name="inventory_2" size={18} />}
                                 required
                             />
@@ -359,21 +443,28 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                 {/* COLONNE DROITE: SPECS & FINANCE (2/3) */}
                 <div className="expanded:col-span-2 space-y-6">
-
                     {/* Spécifications */}
-                    <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant">
-                        <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <MaterialIcon name="memory" size={14} className="text-secondary" /> Modèle & Spécifications
+                    <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
+                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
+                            <MaterialIcon name="memory" size={14} className="text-secondary" />{' '}
+                            Modèle & Spécifications
                         </h3>
-                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-x-8 gap-y-6">
+                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-x-8 gap-y-6">
                             <SelectField
                                 label="Modèle Exact"
                                 name="model"
-                                options={filteredModels.map(m => ({ value: m.name, label: m.name }))}
+                                options={filteredModels.map((m) => ({
+                                    value: m.name,
+                                    label: m.name,
+                                }))}
                                 value={formData.model}
                                 onChange={handleChange}
                                 required
-                                placeholder={formData.categoryName ? "Rechercher un modèle..." : "Choisissez d'abord une catégorie"}
+                                placeholder={
+                                    formData.categoryName
+                                        ? 'Rechercher un modèle...'
+                                        : "Choisissez d'abord une catégorie"
+                                }
                                 disabled={!formData.categoryName}
                             />
                             <InputField
@@ -403,20 +494,28 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </section>
 
                     {/* Finance */}
-                    <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant space-y-6">
+                    <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-6 rounded-md border p-6">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
-                                <MaterialIcon name="euro" size={14} className="text-tertiary" /> Acquisition Financière
+                            <h3 className="text-label-small text-on-surface-variant flex items-center gap-2 tracking-widest uppercase">
+                                <MaterialIcon name="euro" size={14} className="text-tertiary" />{' '}
+                                Acquisition Financière
                             </h3>
                             {financialEstimates && (
-                                <div className="flex items-center gap-2 bg-tertiary-container px-3 py-1 rounded-md border border-outline-variant animate-in fade-in zoom-in-95">
-                                    <span className="text-label-small text-on-tertiary-container uppercase">Valeur Résiduelle :</span>
-                                    <span className="text-label-large text-on-tertiary-container">{formatCurrency(financialEstimates.salvageValue, settings.currency)}</span>
+                                <div className="bg-tertiary-container border-outline-variant animate-in fade-in zoom-in-95 flex items-center gap-2 rounded-md border px-3 py-1">
+                                    <span className="text-label-small text-on-tertiary-container uppercase">
+                                        Valeur Résiduelle :
+                                    </span>
+                                    <span className="text-label-large text-on-tertiary-container">
+                                        {formatCurrency(
+                                            financialEstimates.salvageValue,
+                                            settings.currency,
+                                        )}
+                                    </span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-8">
+                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-8">
                             <InputField
                                 label="Prix d'achat (HT)"
                                 type="number"
@@ -424,7 +523,15 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 value={formData.purchasePrice}
                                 onChange={handleChange}
                                 placeholder="0.00"
-                                icon={<span className="text-on-surface-variant font-medium">{settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€'}</span>}
+                                icon={
+                                    <span className="text-on-surface-variant font-medium">
+                                        {settings.currency === 'USD'
+                                            ? '$'
+                                            : settings.currency === 'XOF'
+                                              ? 'XOF'
+                                              : '€'}
+                                    </span>
+                                }
                                 required
                             />
                             <InputField
@@ -438,19 +545,37 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                         </div>
 
                         {/* Bloc Amortissement */}
-                        <div className={cn(
-                            "p-6 rounded-md border transition-all duration-medium2 ease-emphasized",
-                            useCustomDepreciation ? "bg-surface-container-low border-outline-variant" : "bg-secondary-container border-outline-variant"
-                        )}>
-                            <div className="flex items-center justify-between mb-6">
+                        <div
+                            className={cn(
+                                'duration-medium2 ease-emphasized rounded-md border p-6 transition-all',
+                                useCustomDepreciation
+                                    ? 'bg-surface-container-low border-outline-variant'
+                                    : 'bg-secondary-container border-outline-variant',
+                            )}
+                        >
+                            <div className="mb-6 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className={cn("p-2.5 rounded-md transition-colors duration-short4", useCustomDepreciation ? "bg-surface-container-highest text-on-surface-variant" : "bg-secondary text-on-secondary shadow-elevation-1")}>
+                                    <div
+                                        className={cn(
+                                            'duration-short4 rounded-md p-2.5 transition-colors',
+                                            useCustomDepreciation
+                                                ? 'bg-surface-container-highest text-on-surface-variant'
+                                                : 'bg-secondary text-on-secondary shadow-elevation-1',
+                                        )}
+                                    >
                                         <MaterialIcon name="calculate" size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="text-label-large text-on-surface">Règle de dépréciation</h4>
-                                        <p className="text-label-small text-on-surface-variant uppercase tracking-tighter mt-0.5">
-                                            Source : {effectiveConfig.source === 'category' ? 'Paramètres Catégorie' : effectiveConfig.source === 'equipment' ? 'Override Manuel' : 'Global System'}
+                                        <h4 className="text-label-large text-on-surface">
+                                            Règle de dépréciation
+                                        </h4>
+                                        <p className="text-label-small text-on-surface-variant mt-0.5 tracking-tighter uppercase">
+                                            Source :{' '}
+                                            {effectiveConfig.source === 'category'
+                                                ? 'Paramètres Catégorie'
+                                                : effectiveConfig.source === 'equipment'
+                                                  ? 'Override Manuel'
+                                                  : 'Global System'}
                                         </p>
                                     </div>
                                 </div>
@@ -458,18 +583,21 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     type="button"
                                     variant="text"
                                     onClick={() => setUseCustomDepreciation(!useCustomDepreciation)}
-                                    className="px-0 py-0 !text-label-small text-secondary hover:text-secondary/80 underline uppercase tracking-widest"
+                                    className="!text-label-small text-secondary hover:text-secondary/80 px-0 py-0 tracking-widest uppercase underline"
                                 >
-                                    {useCustomDepreciation ? "Rétablir défauts" : "Personnaliser"}
+                                    {useCustomDepreciation ? 'Rétablir défauts' : 'Personnaliser'}
                                 </Button>
                             </div>
 
                             {useCustomDepreciation ? (
-                                <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
+                                <div className="medium:grid-cols-2 expanded:grid-cols-3 animate-in slide-in-from-top-2 grid grid-cols-1 gap-6 duration-300">
                                     <SelectField
                                         label="Méthode"
                                         name="manualMethod"
-                                        options={[{ value: 'linear', label: 'Linéaire' }, { value: 'degressive', label: 'Dégressif' }]}
+                                        options={[
+                                            { value: 'linear', label: 'Linéaire' },
+                                            { value: 'degressive', label: 'Dégressif' },
+                                        ]}
                                         value={formData.manualMethod}
                                         onChange={handleChange}
                                     />
@@ -492,22 +620,42 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     />
                                 </div>
                             ) : (
-                                <div className="flex flex-col medium:flex-row items-center gap-6 text-on-secondary-container">
-                                    <div className="flex gap-4 w-full medium:w-auto">
-                                        <div className="bg-surface-container-lowest/70 backdrop-blur-sm px-4 py-3 rounded-md text-center flex-1 medium:min-w-[100px] border border-outline-variant shadow-elevation-1">
-                                            <span className="block text-label-small uppercase opacity-40 mb-1">Durée</span>
-                                            <span className="text-title-large">{effectiveConfig.years} ans</span>
+                                <div className="medium:flex-row text-on-secondary-container flex flex-col items-center gap-6">
+                                    <div className="medium:w-auto flex w-full gap-4">
+                                        <div className="bg-surface-container-lowest/70 medium:min-w-[100px] border-outline-variant shadow-elevation-1 flex-1 rounded-md border px-4 py-3 text-center backdrop-blur-sm">
+                                            <span className="text-label-small mb-1 block uppercase opacity-40">
+                                                Durée
+                                            </span>
+                                            <span className="text-title-large">
+                                                {effectiveConfig.years} ans
+                                            </span>
                                         </div>
-                                        <div className="bg-surface-container-lowest/70 backdrop-blur-sm px-4 py-3 rounded-md text-center flex-1 medium:min-w-[100px] border border-outline-variant shadow-elevation-1">
-                                            <span className="block text-label-small uppercase opacity-40 mb-1">Méthode</span>
-                                            <span className="text-title-large">{effectiveConfig.method === 'linear' ? 'LIN' : 'DEG'}</span>
+                                        <div className="bg-surface-container-lowest/70 medium:min-w-[100px] border-outline-variant shadow-elevation-1 flex-1 rounded-md border px-4 py-3 text-center backdrop-blur-sm">
+                                            <span className="text-label-small mb-1 block uppercase opacity-40">
+                                                Méthode
+                                            </span>
+                                            <span className="text-title-large">
+                                                {effectiveConfig.method === 'linear'
+                                                    ? 'LIN'
+                                                    : 'DEG'}
+                                            </span>
                                         </div>
                                     </div>
 
                                     {financialEstimates && (
-                                        <div className="medium:ml-auto text-center medium:text-right bg-secondary/5 px-4 py-2 rounded-md border border-outline-variant w-full medium:w-auto">
-                                            <span className="block text-label-small uppercase text-secondary mb-1 tracking-widest">Amortissement Estimé</span>
-                                            <span className="text-headline-small text-on-surface">{formatCurrency(financialEstimates.monthlyDepreciation, settings.currency)} <span className="text-body-small opacity-60">/ mois</span></span>
+                                        <div className="medium:ml-auto medium:text-right bg-secondary/5 border-outline-variant medium:w-auto w-full rounded-md border px-4 py-2 text-center">
+                                            <span className="text-label-small text-secondary mb-1 block tracking-widest uppercase">
+                                                Amortissement Estimé
+                                            </span>
+                                            <span className="text-headline-small text-on-surface">
+                                                {formatCurrency(
+                                                    financialEstimates.monthlyDepreciation,
+                                                    settings.currency,
+                                                )}{' '}
+                                                <span className="text-body-small opacity-60">
+                                                    / mois
+                                                </span>
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -516,26 +664,32 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </section>
 
                     {/* Localisation */}
-                    <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant">
-                        <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-6">
-                            <MaterialIcon name="location_on" size={14} className="text-error" /> Emplacement Physique
+                    <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
+                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
+                            <MaterialIcon name="location_on" size={14} className="text-error" />{' '}
+                            Emplacement Physique
                         </h3>
-                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-6">
+                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
                             <SelectField
                                 label="Pays"
                                 name="country"
-                                options={locationData.countries.map(c => ({ value: c, label: c }))}
+                                options={locationData.countries.map((c) => ({
+                                    value: c,
+                                    label: c,
+                                }))}
                                 value={formData.country}
                                 onChange={handleChange}
                             />
                             <SelectField
                                 label="Site / Campus"
                                 name="site"
-                                options={availableSites.map(s => ({ value: s, label: s }))}
+                                options={availableSites.map((s) => ({ value: s, label: s }))}
                                 value={formData.site}
                                 onChange={handleChange}
                                 disabled={!formData.country}
-                                placeholder={!formData.country ? "Sélectionnez un pays" : "Choisir un site"}
+                                placeholder={
+                                    !formData.country ? 'Sélectionnez un pays' : 'Choisir un site'
+                                }
                             />
                             <SelectField
                                 label="Statut inventaire"
@@ -556,16 +710,23 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                     {/* PREVIEW CARD */}
                     <div className="sticky top-8">
-                        <div className="bg-surface rounded-card p-6 border border-outline-variant shadow-elevation-3 text-center">
-                            <h3 className="text-title-medium font-bold text-on-surface mb-6">Aperçu de la fiche</h3>
+                        <div className="bg-surface rounded-card border-outline-variant shadow-elevation-3 border p-6 text-center">
+                            <h3 className="text-title-medium text-on-surface mb-6 font-bold">
+                                Aperçu de la fiche
+                            </h3>
                         </div>
                     </div>
 
                     {/* Garantie & Notes */}
-                    <div className="grid grid-cols-1 expanded:grid-cols-2 gap-8">
-                        <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant space-y-5">
-                            <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-2">
-                                <MaterialIcon name="verified_user" size={14} className="text-tertiary" /> Garantie Constructeur
+                    <div className="expanded:grid-cols-2 grid grid-cols-1 gap-8">
+                        <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-5 rounded-md border p-6">
+                            <h3 className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
+                                <MaterialIcon
+                                    name="verified_user"
+                                    size={14}
+                                    className="text-tertiary"
+                                />{' '}
+                                Garantie Constructeur
                             </h3>
                             <InputField
                                 label="Date expiration"
@@ -576,9 +737,14 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             />
                         </section>
 
-                        <section className="bg-surface rounded-md p-6 shadow-elevation-1 border border-outline-variant">
-                            <h3 className="text-label-small text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-6">
-                                <MaterialIcon name="description" size={14} className="text-primary" /> Observations
+                        <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
+                            <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
+                                <MaterialIcon
+                                    name="description"
+                                    size={14}
+                                    className="text-primary"
+                                />{' '}
+                                Observations
                             </h3>
                             <TextArea
                                 label=""
@@ -597,8 +763,3 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 };
 
 export default AddEquipmentPage;
-
-
-
-
-

@@ -44,9 +44,9 @@ const SearchField: React.FC<SearchFieldProps> = ({
     return (
         <div
             className={cn(
-                'flex h-12 min-w-0 items-center gap-2.5 rounded-md border border-outline bg-surface px-3',
-                'focus-within:ring-2 focus-within:ring-focus-ring',
-                className
+                'border-outline bg-surface flex h-12 min-w-0 items-center gap-2.5 rounded-md border px-3',
+                'focus-within:ring-focus-ring focus-within:ring-2',
+                className,
             )}
         >
             <Icon glyph={MagnifyingGlass} size={20} className="text-on-surface-variant" />
@@ -59,7 +59,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
-                className="min-w-0 flex-1 bg-transparent text-body-large text-on-surface outline-none placeholder:text-on-surface-variant"
+                className="text-body-large text-on-surface placeholder:text-on-surface-variant min-w-0 flex-1 bg-transparent outline-none"
             />
         </div>
     );

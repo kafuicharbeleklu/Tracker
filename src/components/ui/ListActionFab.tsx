@@ -33,7 +33,10 @@ const ListActionFab: React.FC<ListActionFabProps> = ({
     const [open, setOpen] = useState(false);
     const sheetId = `list-action-sheet-${useId().replace(/:/g, '')}`;
 
-    const resolvedActions = useMemo(() => actions.filter((action) => Boolean(action.label)), [actions]);
+    const resolvedActions = useMemo(
+        () => actions.filter((action) => Boolean(action.label)),
+        [actions],
+    );
 
     if (resolvedActions.length === 0) {
         return null;
@@ -88,8 +91,3 @@ const ListActionFab: React.FC<ListActionFabProps> = ({
 };
 
 export default ListActionFab;
-
-
-
-
-

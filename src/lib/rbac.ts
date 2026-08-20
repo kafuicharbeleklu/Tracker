@@ -82,13 +82,24 @@ const mergeAuthPolicy = (
     if (!override) return base;
 
     return {
-        requiredMethods: uniqueStrings([...(base.requiredMethods || []), ...((override.requiredMethods as string[]) || [])]) as AuthenticationPolicy['requiredMethods'],
-        sessionMaxMinutes: Math.min(base.sessionMaxMinutes, override.sessionMaxMinutes ?? base.sessionMaxMinutes),
-        requireStepUpForSensitiveActions: base.requireStepUpForSensitiveActions || Boolean(override.requireStepUpForSensitiveActions),
+        requiredMethods: uniqueStrings([
+            ...(base.requiredMethods || []),
+            ...((override.requiredMethods as string[]) || []),
+        ]) as AuthenticationPolicy['requiredMethods'],
+        sessionMaxMinutes: Math.min(
+            base.sessionMaxMinutes,
+            override.sessionMaxMinutes ?? base.sessionMaxMinutes,
+        ),
+        requireStepUpForSensitiveActions:
+            base.requireStepUpForSensitiveActions ||
+            Boolean(override.requireStepUpForSensitiveActions),
     };
 };
 
-const evaluateCandidates = (key: PermissionKey, candidates: PermissionCandidate[]): {
+const evaluateCandidates = (
+    key: PermissionKey,
+    candidates: PermissionCandidate[],
+): {
     winner: PermissionCandidate;
     conflicts: PermissionConflict | null;
 } => {
@@ -100,8 +111,8 @@ const evaluateCandidates = (key: PermissionKey, candidates: PermissionCandidate[
 
     const winner = sorted[0];
     const losers = sorted.slice(1);
-    const hasSemanticConflict = losers.some((candidate) =>
-        candidate.effect !== winner.effect || candidate.access !== winner.access,
+    const hasSemanticConflict = losers.some(
+        (candidate) => candidate.effect !== winner.effect || candidate.access !== winner.access,
     );
 
     return {
@@ -145,7 +156,9 @@ export const resolveEffectiveAccess = ({
     const groupIndex = new Map(groups.map((group) => [group.id, group]));
 
     const directRoles = safeAssignment.roleIds || [];
-    const groupsForUser = (safeAssignment.groupIds || []).filter((groupId) => groupIndex.has(groupId));
+    const groupsForUser = (safeAssignment.groupIds || []).filter((groupId) =>
+        groupIndex.has(groupId),
+    );
     const groupRoles = groupsForUser.flatMap((groupId) => groupIndex.get(groupId)?.roleIds || []);
 
     const temporaryRoleIds = (safeAssignment.temporaryRoles || [])
@@ -222,7 +235,13 @@ export const resolveEffectiveAccess = ({
         permissions: decisions,
         conflicts,
         authPolicy,
-        dataScopes: gatherDataScopes(expandedRoleIds, groupsForUser, safeAssignment, roleIndex, groupIndex),
+        dataScopes: gatherDataScopes(
+            expandedRoleIds,
+            groupsForUser,
+            safeAssignment,
+            roleIndex,
+            groupIndex,
+        ),
     };
 };
 
@@ -251,7 +270,9 @@ export const hasAllPermissions = (
 
 export const getPermissionConflictSummary = (profile: EffectiveAccessProfile): string[] =>
     profile.conflicts.map((conflict) => {
-        const loserSources = conflict.losers.map((loser) => `${loser.sourceKind}:${loser.sourceId}`).join(', ');
+        const loserSources = conflict.losers
+            .map((loser) => `${loser.sourceKind}:${loser.sourceId}`)
+            .join(', ');
         return `${conflict.key} -> ${conflict.winner.sourceKind}:${conflict.winner.sourceId} (overrides ${loserSources})`;
     });
 

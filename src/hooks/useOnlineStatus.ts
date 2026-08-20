@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
  */
 export const useOnlineStatus = (): boolean => {
     const [online, setOnline] = useState(() =>
-        typeof navigator === 'undefined' ? true : navigator.onLine
+        typeof navigator === 'undefined' ? true : navigator.onLine,
     );
 
     useEffect(() => {

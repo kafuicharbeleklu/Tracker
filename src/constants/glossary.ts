@@ -24,47 +24,49 @@
  * nouvelle page doit lire ce fichier plutôt que recopier la chaîne.
  */
 export const GLOSSARY = {
-  // Entités
-  EQUIPMENT: 'Équipement',
-  EQUIPMENT_PLURAL: 'Équipements',
-  USER: 'Utilisateur',
-  USER_PLURAL: 'Utilisateurs',
-  LOCATION: 'Emplacement',
-  LOCATION_PLURAL: 'Emplacements',
-  
-  // Actions
-  ADD: 'Ajouter',
-  SAVE: 'Enregistrer',
-  CANCEL: 'Annuler',
-  CONFIRM: 'Confirmer',
-  DELETE: 'Supprimer',
-  ASSIGN: 'Attribuer',
-  RETURN: 'Retourner',
-  EXPORT: 'Exporter',
-  IMPORT: 'Importer',
-  
-  // Pages
-  DASHBOARD: 'Tableau de bord',
-  INVENTORY: 'Inventaire',
-  USERS: 'Utilisateurs',
-  APPROVALS: 'Approbations',
-  MANAGEMENT: 'Gestion',
-  LOCATIONS: 'Emplacements',
-  AUDIT: 'Audit',
-  REPORTS: 'Rapports',
-  SETTINGS: 'Paramètres',
-  
-  // Messages
-  SUCCESS_CREATE: (entity: string) => `${entity} ajouté avec succès`,
-  SUCCESS_UPDATE: (entity: string) => `${entity} modifié avec succès`,
-  SUCCESS_DELETE: (entity: string) => `${entity} supprimé avec succès`,
-  ERROR_REQUIRED: 'Ce champ est requis',
-  ERROR_INVALID_EMAIL: 'Adresse e-mail invalide',
-  ERROR_SERVER: 'Une erreur est survenue. Veuillez réessayer.',
-  
-  // Placeholders
-  SEARCH_PLACEHOLDER: 'Rechercher...',
-  EXAMPLE_PREFIX: 'Ex :',
+    // Entités
+    EQUIPMENT: 'Équipement',
+    EQUIPMENT_PLURAL: 'Équipements',
+    USER: 'Utilisateur',
+    USER_PLURAL: 'Utilisateurs',
+    LOCATION: 'Emplacement',
+    LOCATION_PLURAL: 'Emplacements',
+
+    // Actions
+    ADD: 'Ajouter',
+    SAVE: 'Enregistrer',
+    CANCEL: 'Annuler',
+    CONFIRM: 'Confirmer',
+    DELETE: 'Supprimer',
+    ASSIGN: 'Attribuer',
+    RETURN: 'Retourner',
+    EXPORT: 'Exporter',
+    IMPORT: 'Importer',
+
+    // Pages
+    DASHBOARD: 'Tableau de bord',
+    INVENTORY: 'Inventaire',
+    USERS: 'Utilisateurs',
+    APPROVALS: 'Approbations',
+    /* Le référentiel s'appelle **Catalogue** — c'est le nom que la planche 09.1
+     donne à l'écran et à son groupe. « Gestion » ne disait pas ce qu'on y gère. */
+    MANAGEMENT: 'Catalogue',
+    LOCATIONS: 'Emplacements',
+    AUDIT: 'Audit',
+    REPORTS: 'Rapports',
+    SETTINGS: 'Paramètres',
+
+    // Messages
+    SUCCESS_CREATE: (entity: string) => `${entity} ajouté avec succès`,
+    SUCCESS_UPDATE: (entity: string) => `${entity} modifié avec succès`,
+    SUCCESS_DELETE: (entity: string) => `${entity} supprimé avec succès`,
+    ERROR_REQUIRED: 'Ce champ est requis',
+    ERROR_INVALID_EMAIL: 'Adresse e-mail invalide',
+    ERROR_SERVER: 'Une erreur est survenue. Veuillez réessayer.',
+
+    // Placeholders
+    SEARCH_PLACEHOLDER: 'Rechercher...',
+    EXAMPLE_PREFIX: 'Ex :',
 } as const;
 
 /**
@@ -86,16 +88,16 @@ export const GLOSSARY = {
  * administrateur n'a aucune entrée ici. Voir `REGLES-TRANSVERSES.md` §5.7.
  */
 export const CATEGORY_LABELS: Record<string, string> = {
-  Furniture: 'Mobilier',
-  Headphones: 'Casque',
-  Keyboard: 'Clavier',
-  Laptop: 'Ordinateur portable',
-  Monitor: 'Moniteur',
-  Mouse: 'Souris',
-  Phone: 'Téléphone',
-  Printer: 'Imprimante',
-  Server: 'Serveur',
-  Tablet: 'Tablette',
+    Furniture: 'Mobilier',
+    Headphones: 'Casque',
+    Keyboard: 'Clavier',
+    Laptop: 'Ordinateur portable',
+    Monitor: 'Moniteur',
+    Mouse: 'Souris',
+    Phone: 'Téléphone',
+    Printer: 'Imprimante',
+    Server: 'Serveur',
+    Tablet: 'Tablette',
 };
 
 /** Le libellé affichable d'une catégorie. Repli sur la clé : une catégorie créée

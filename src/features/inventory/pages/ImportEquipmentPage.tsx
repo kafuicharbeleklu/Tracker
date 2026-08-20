@@ -49,9 +49,9 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             const text = e.target?.result as string;
             if (!text) return;
 
-            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const lines = text.split('\n').filter((line) => line.trim() !== '');
             if (lines.length < 2) {
-                showToast("Le fichier semble vide ou ne contient pas d'en-têtes.", "error");
+                showToast("Le fichier semble vide ou ne contient pas d'en-têtes.", 'error');
                 setIsProcessing(false);
                 return;
             }
@@ -63,7 +63,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 const row: ParsedEquipmentRow = {
                     _id: index,
                     _status: 'valid',
-                    _error: ''
+                    _error: '',
                 };
 
                 headers.forEach((header, i) => {
@@ -72,7 +72,8 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                     else if (key.includes('asset') || key.includes('tag')) row.assetId = values[i];
                     else if (key.includes('type') || key.includes('cat')) row.type = values[i];
                     else if (key.includes('model')) row.model = values[i];
-                    else if (key.includes('status') || key.includes('statut')) row.status = values[i];
+                    else if (key.includes('status') || key.includes('statut'))
+                        row.status = values[i];
                     else row[key] = values[i];
                 });
 
@@ -94,8 +95,8 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
     const stats = useMemo(() => {
         return {
             total: parsedData.length,
-            valid: parsedData.filter(d => d._status === 'valid').length,
-            invalid: parsedData.filter(d => d._status === 'error').length
+            valid: parsedData.filter((d) => d._status === 'valid').length,
+            invalid: parsedData.filter((d) => d._status === 'error').length,
         };
     }, [parsedData]);
 
@@ -103,7 +104,10 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
         // Delimiter ',' to stay re-importable by parseFile, which splits on commas.
         const csvContent = [
             buildCsvLine(['Name', 'AssetID', 'Type', 'Model'], ','),
-            buildCsvLine(['Ordinateur portable Dell', 'NEEMBA-0001', 'Laptop', 'Latitude 5540'], ','),
+            buildCsvLine(
+                ['Ordinateur portable Dell', 'NEEMBA-0001', 'Laptop', 'Latitude 5540'],
+                ',',
+            ),
         ].join('\n');
 
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
@@ -137,18 +141,44 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             title="Importer des équipements"
             onCancel={onCancel}
             onSave={handleImport}
-            saveLabel={isProcessing ? "Analyse..." : `Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`}
+            saveLabel={
+                isProcessing
+                    ? 'Analyse...'
+                    : `Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`
+            }
             isSaving={!previewMode || stats.valid === 0}
         >
             {!previewMode ? (
-                <div className="bg-surface rounded-md p-8 shadow-elevation-1 border border-outline-variant animate-in fade-in zoom-in-95 duration-300">
-                    <h3 className="text-label-large text-on-surface mb-4">Étape 1: Télécharger le fichier CSV</h3>
+                <div className="bg-surface shadow-elevation-1 border-outline-variant animate-in fade-in zoom-in-95 rounded-md border p-8 duration-300">
+                    <h3 className="text-label-large text-on-surface mb-4">
+                        Étape 1: Télécharger le fichier CSV
+                    </h3>
                     <p className="text-body-medium text-on-surface-variant mb-6">
-                        Le fichier doit contenir les colonnes : <span className="font-mono text-on-surface bg-surface-container px-1 rounded-xs">Name</span>, <span className="font-mono text-on-surface bg-surface-container px-1 rounded-xs">AssetID</span>, <span className="font-mono text-on-surface bg-surface-container px-1 rounded-xs">Type</span>, <span className="font-mono text-on-surface bg-surface-container px-1 rounded-xs">Model</span>.
+                        Le fichier doit contenir les colonnes :{' '}
+                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
+                            Name
+                        </span>
+                        ,{' '}
+                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
+                            AssetID
+                        </span>
+                        ,{' '}
+                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
+                            Type
+                        </span>
+                        ,{' '}
+                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
+                            Model
+                        </span>
+                        .
                     </p>
 
                     <div className="mb-8">
-                        <Button variant="outlined" onClick={handleDownloadTemplate} icon={<MaterialIcon name="download" size={18} />}>
+                        <Button
+                            variant="outlined"
+                            onClick={handleDownloadTemplate}
+                            icon={<MaterialIcon name="download" size={18} />}
+                        >
                             Télécharger le modèle
                         </Button>
                     </div>
@@ -160,35 +190,52 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                     />
                 </div>
             ) : (
-                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
-                    <div className="bg-surface-container-lowest p-4 rounded-md border border-outline-variant shadow-elevation-1 flex items-center justify-between">
+                <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
+                    <div className="bg-surface-container-lowest border-outline-variant shadow-elevation-1 flex items-center justify-between rounded-md border p-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-secondary-container rounded-sm flex items-center justify-center text-secondary">
+                            <div className="bg-secondary-container text-secondary flex h-10 w-10 items-center justify-center rounded-sm">
                                 <MaterialIcon name="description" size={20} />
                             </div>
                             <div>
                                 <p className="text-label-large text-on-surface">{file?.name}</p>
-                                <div className="flex items-center gap-3 text-label-small mt-0.5">
-                                    <span className="text-on-surface-variant">{stats.total} lignes détectées</span>
-                                    <span className="text-tertiary flex items-center gap-1"><MaterialIcon name="check_circle" size={12} /> {stats.valid} valides</span>
-                                    {stats.invalid > 0 && <span className="text-error flex items-center gap-1"><MaterialIcon name="warning" size={12} /> {stats.invalid} erreurs</span>}
+                                <div className="text-label-small mt-0.5 flex items-center gap-3">
+                                    <span className="text-on-surface-variant">
+                                        {stats.total} lignes détectées
+                                    </span>
+                                    <span className="text-tertiary flex items-center gap-1">
+                                        <MaterialIcon name="check_circle" size={12} /> {stats.valid}{' '}
+                                        valides
+                                    </span>
+                                    {stats.invalid > 0 && (
+                                        <span className="text-error flex items-center gap-1">
+                                            <MaterialIcon name="warning" size={12} />{' '}
+                                            {stats.invalid} erreurs
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outlined" size="sm" onClick={reset} className="text-error hover:bg-error-container hover:text-on-error-container">
+                        <Button
+                            variant="outlined"
+                            size="sm"
+                            onClick={reset}
+                            className="text-error hover:bg-error-container hover:text-on-error-container"
+                        >
                             Changer de fichier
                         </Button>
                     </div>
 
-                    <div className="bg-surface rounded-md shadow-elevation-1 border border-outline-variant overflow-hidden">
+                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-md border">
                         <TableScrollArea
                             label="Aperçu des équipements à importer"
                             scrollerClassName="max-h-[400px]"
                         >
-                            <table className="w-full text-body-small text-left">
-                                <thead className="bg-surface-container text-on-surface-variant text-label-small uppercase sticky top-0 z-10">
+                            <table className="text-body-small w-full text-left">
+                                <thead className="bg-surface-container text-on-surface-variant text-label-small sticky top-0 z-10 uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 sticky left-0 z-20 bg-surface-container border-r border-outline-variant">Statut</th>
+                                        <th className="bg-surface-container border-outline-variant sticky left-0 z-20 border-r px-4 py-3">
+                                            Statut
+                                        </th>
                                         <th className="px-4 py-3">Nom</th>
                                         <th className="px-4 py-3">Asset ID</th>
                                         <th className="px-4 py-3">Type</th>
@@ -196,22 +243,48 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                                         <th className="px-4 py-3">Message</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-outline-variant">
+                                <tbody className="divide-outline-variant divide-y">
                                     {parsedData.map((row) => (
-                                        <tr key={row._id} className={cn("hover:bg-surface-container-low transition-colors duration-short4", row._status === 'error' && "bg-error-container/30")}>
-                                            <td className="px-4 py-3 sticky left-0 z-10 bg-surface border-r border-outline-variant">
+                                        <tr
+                                            key={row._id}
+                                            className={cn(
+                                                'hover:bg-surface-container-low duration-short4 transition-colors',
+                                                row._status === 'error' && 'bg-error-container/30',
+                                            )}
+                                        >
+                                            <td className="bg-surface border-outline-variant sticky left-0 z-10 border-r px-4 py-3">
                                                 {row._status === 'valid' ? (
-                                                    <Badge variant="success" className="shadow-none">Prêt</Badge>
+                                                    <Badge
+                                                        variant="success"
+                                                        className="shadow-none"
+                                                    >
+                                                        Prêt
+                                                    </Badge>
                                                 ) : (
-                                                    <Badge variant="danger" className="shadow-none">Erreur</Badge>
+                                                    <Badge variant="danger" className="shadow-none">
+                                                        Erreur
+                                                    </Badge>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-label-large text-on-surface">{row.name || '-'}</td>
-                                            <td className="px-4 py-3 font-mono text-on-surface-variant">{row.assetId || '-'}</td>
-                                            <td className="px-4 py-3 text-on-surface">{row.type || '-'}</td>
-                                            <td className="px-4 py-3 text-on-surface-variant">{row.model || '-'}</td>
-                                            <td className="px-4 py-3 text-label-small text-error">
-                                                {row._error && <span className="flex items-center gap-1"><MaterialIcon name="error" size={12} /> {row._error}</span>}
+                                            <td className="text-label-large text-on-surface px-4 py-3">
+                                                {row.name || '-'}
+                                            </td>
+                                            <td className="text-on-surface-variant px-4 py-3 font-mono">
+                                                {row.assetId || '-'}
+                                            </td>
+                                            <td className="text-on-surface px-4 py-3">
+                                                {row.type || '-'}
+                                            </td>
+                                            <td className="text-on-surface-variant px-4 py-3">
+                                                {row.model || '-'}
+                                            </td>
+                                            <td className="text-label-small text-error px-4 py-3">
+                                                {row._error && (
+                                                    <span className="flex items-center gap-1">
+                                                        <MaterialIcon name="error" size={12} />{' '}
+                                                        {row._error}
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

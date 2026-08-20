@@ -62,7 +62,9 @@ const FacetChip: React.FC<FacetChipProps> = ({
 }) => {
     const content = (
         <>
-            {icon && <Icon glyph={icon} size={18} className={selected ? undefined : TONE_CLASS[tone]} />}
+            {icon && (
+                <Icon glyph={icon} size={18} className={selected ? undefined : TONE_CLASS[tone]} />
+            )}
             {label}
             {typeof count === 'number' && <b className="font-semibold tabular-nums">{count}</b>}
         </>
@@ -74,15 +76,18 @@ const FacetChip: React.FC<FacetChipProps> = ({
         return (
             <span
                 className={cn(
-                    'flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-md bg-inverse-surface text-[13px] text-inverse-on-surface',
-                    className
+                    'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md text-[13px] whitespace-nowrap',
+                    className,
                 )}
             >
                 <button
                     type="button"
                     onClick={onClick}
                     aria-pressed="true"
-                    className={cn('flex min-h-10 items-center gap-[7px] rounded-l-md pl-3', focusRing)}
+                    className={cn(
+                        'flex min-h-10 items-center gap-[7px] rounded-l-md pl-3',
+                        focusRing,
+                    )}
                 >
                     {content}
                 </button>
@@ -92,7 +97,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
                     aria-label={clearLabel ?? `Retirer le filtre ${label}`}
                     className={cn(
                         'flex min-h-10 w-9 items-center justify-center rounded-r-md hover:bg-white/10',
-                        focusRing
+                        focusRing,
                     )}
                 >
                     <Icon glyph={X} size={16} />
@@ -107,12 +112,12 @@ const FacetChip: React.FC<FacetChipProps> = ({
             onClick={onClick}
             aria-pressed={selected}
             className={cn(
-                'flex min-h-10 shrink-0 items-center gap-[7px] whitespace-nowrap rounded-md px-3 text-[13px]',
+                'flex min-h-10 shrink-0 items-center gap-[7px] rounded-md px-3 text-[13px] whitespace-nowrap',
                 focusRing,
                 selected
                     ? 'bg-inverse-surface text-inverse-on-surface'
                     : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                className
+                className,
             )}
         >
             {content}

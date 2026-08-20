@@ -10,7 +10,9 @@ import { GLOSSARY } from '../../../constants/glossary';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 
-type FormChangeEvent = React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: { name: string; value: string } };
+type FormChangeEvent =
+    | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    | { target: { name: string; value: string } };
 
 interface AddUserPageProps {
     userId?: string; // Si présent, on est en mode édition
@@ -31,7 +33,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         role: 'User' as UserRole,
         country: '',
         site: '',
-        managerId: ''
+        managerId: '',
     });
 
     const isEditMode = !!userId;
@@ -39,7 +41,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
     // Chargement des données si édition
     useEffect(() => {
         if (userId) {
-            const userToEdit = users.find(u => u.id === userId);
+            const userToEdit = users.find((u) => u.id === userId);
             if (userToEdit) {
                 setFormData({
                     name: userToEdit.name,
@@ -49,7 +51,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                     role: userToEdit.role,
                     country: userToEdit.country || '',
                     site: userToEdit.site || '',
-                    managerId: userToEdit.managerId || ''
+                    managerId: userToEdit.managerId || '',
                 });
             }
         }
@@ -58,14 +60,14 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
     // NEW: Auto-assign manager based on selected department
     useEffect(() => {
         if (formData.department && serviceManagers[formData.department]) {
-            setFormData(prev => ({
+            setFormData((prev) => ({
                 ...prev,
-                managerId: serviceManagers[formData.department]
+                managerId: serviceManagers[formData.department],
             }));
         } else if (formData.department && !serviceManagers[formData.department]) {
             // Si le service n'a pas de manager configuré, on reset ou on laisse vide
             // Optionnel : ne rien faire si on veut laisser une valeur manuelle
-            setFormData(prev => ({ ...prev, managerId: '' }));
+            setFormData((prev) => ({ ...prev, managerId: '' }));
         }
     }, [formData.department, serviceManagers]);
 
@@ -73,24 +75,29 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
 
     // Cascading Logic
     const availableSites = useMemo(() => {
-        return formData.country ? (locationData.sites[formData.country] || []) : [];
+        return formData.country ? locationData.sites[formData.country] || [] : [];
     }, [formData.country, locationData.sites]);
 
     const availableDepartments = useMemo(() => {
-        return formData.site ? (locationData.services[formData.site] || []) : [];
+        return formData.site ? locationData.services[formData.site] || [] : [];
     }, [formData.site, locationData.services]);
 
     const handleChange = (e: FormChangeEvent) => {
         const { name, value } = e.target;
-        setFormData(prev => {
+        setFormData((prev) => {
             const newData = { ...prev, [name]: value };
-            if (name === 'country') { newData.site = ''; newData.department = ''; }
-            if (name === 'site') { newData.department = ''; }
+            if (name === 'country') {
+                newData.site = '';
+                newData.department = '';
+            }
+            if (name === 'site') {
+                newData.department = '';
+            }
             return newData;
         });
         // Clear error when field is modified
         if (errors[name]) {
-            setErrors(prev => {
+            setErrors((prev) => {
                 const newErrs = { ...prev };
                 delete newErrs[name];
                 return newErrs;
@@ -101,17 +108,17 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
     // Calcul du nom du manager pour l'affichage (car le champ est désactivé)
     const assignedManagerName = useMemo(() => {
         if (!formData.managerId) return '';
-        const mgr = users.find(u => u.id === formData.managerId);
+        const mgr = users.find((u) => u.id === formData.managerId);
         return mgr ? mgr.name : '';
     }, [formData.managerId, users]);
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
-        if (!formData.name) newErrors.name = "Le nom est requis";
+        if (!formData.name) newErrors.name = 'Le nom est requis';
         if (!formData.email) newErrors.email = "L'email est requis";
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Format email invalide";
-        if (!formData.country) newErrors.country = "Le pays est requis";
-        if (!formData.site) newErrors.site = "Le site est requis";
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Format email invalide';
+        if (!formData.country) newErrors.country = 'Le pays est requis';
+        if (!formData.site) newErrors.site = 'Le site est requis';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -138,10 +145,13 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 country: formData.country,
                 site: formData.site,
                 managerId: formData.managerId,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`,
             });
             if (!decision.allowed) {
-                showToast(decision.reason || 'Mise à jour impossible pour cet utilisateur.', 'error');
+                showToast(
+                    decision.reason || 'Mise à jour impossible pour cet utilisateur.',
+                    'error',
+                );
                 return;
             }
             showToast(GLOSSARY.SUCCESS_UPDATE(GLOSSARY.USER), 'success');
@@ -157,7 +167,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 country: formData.country,
                 site: formData.site,
                 managerId: formData.managerId,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'NewUser')}`
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'NewUser')}`,
             });
             if (!decision.allowed) {
                 showToast(decision.reason || 'Création impossible pour cet utilisateur.', 'error');
@@ -165,28 +175,38 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
             }
 
             // 2. Invite to Auth System
-            authService.createUser({
-                MicrosoftEmail: formData.email,
-                FirstName: formData.name.split(' ')[0] || '',
-                LastName: formData.name.split(' ').slice(1).join(' ') || '',
-                Role: formData.role,
-                Title: formData.name
-            }).then(() => {
-                console.log('User invited to Auth System via authService');
-            }).catch(err => {
-                console.error('Failed to invite user to Auth System', err);
-                showToast("Attention: L'utilisateur a été créé localement mais l'invitation Auth a échoué.", "warning");
-            });
+            authService
+                .createUser({
+                    MicrosoftEmail: formData.email,
+                    FirstName: formData.name.split(' ')[0] || '',
+                    LastName: formData.name.split(' ').slice(1).join(' ') || '',
+                    Role: formData.role,
+                    Title: formData.name,
+                })
+                .then(() => {
+                    console.log('User invited to Auth System via authService');
+                })
+                .catch((err) => {
+                    console.error('Failed to invite user to Auth System', err);
+                    showToast(
+                        "Attention: L'utilisateur a été créé localement mais l'invitation Auth a échoué.",
+                        'warning',
+                    );
+                });
 
             // Notification Feedback Spécifique
             if (formData.managerId) {
-                const managerName = users.find(u => u.id === formData.managerId)?.name || 'Le manager';
+                const managerName =
+                    users.find((u) => u.id === formData.managerId)?.name || 'Le manager';
                 // Toast étendu pour confirmer la notification
                 setTimeout(() => {
-                    showToast(`Utilisateur créé et invitation envoyée. Notification manager transmise à ${managerName}.`, 'success');
+                    showToast(
+                        `Utilisateur créé et invitation envoyée. Notification manager transmise à ${managerName}.`,
+                        'success',
+                    );
                 }, 800);
             } else {
-                showToast("Utilisateur créé et invitation envoyée par e-mail.", 'success');
+                showToast('Utilisateur créé et invitation envoyée par e-mail.', 'success');
             }
         }
 
@@ -195,40 +215,47 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
 
     const roles = [
         { value: 'User', label: 'Utilisateur standard' },
-        { value: 'Manager', label: 'Manager d\'équipe' },
+        { value: 'Manager', label: "Manager d'équipe" },
         { value: 'Admin', label: 'Administrateur Pays' },
-        ...(currentRole === 'SuperAdmin' ? [{ value: 'SuperAdmin', label: 'Super Administrateur' }] : []),
+        ...(currentRole === 'SuperAdmin'
+            ? [{ value: 'SuperAdmin', label: 'Super Administrateur' }]
+            : []),
     ];
 
     const getRoleDescription = (role: UserRole) => {
         switch (role) {
-            case 'SuperAdmin': return 'Accès total à tous les pays et paramètres système.';
-            case 'Admin': return 'Gère l\'inventaire et les utilisateurs de ses pays assignés.';
-            case 'Manager': return 'Peut approuver les demandes de son équipe directe.';
-            default: return 'Accès restreint à ses propres équipements.';
+            case 'SuperAdmin':
+                return 'Accès total à tous les pays et paramètres système.';
+            case 'Admin':
+                return "Gère l'inventaire et les utilisateurs de ses pays assignés.";
+            case 'Manager':
+                return 'Peut approuver les demandes de son équipe directe.';
+            default:
+                return 'Accès restreint à ses propres équipements.';
         }
     };
 
     return (
         <FullScreenFormLayout
-            title={isEditMode ? `Modifier le profil : ${formData.name}` : "Nouveau collaborateur"}
+            title={isEditMode ? `Modifier le profil : ${formData.name}` : 'Nouveau collaborateur'}
             onCancel={onCancel}
             onSave={handleSubmit}
-            saveLabel={isEditMode ? "Mettre à jour" : "Créer le compte"}
+            saveLabel={isEditMode ? 'Mettre à jour' : 'Créer le compte'}
         >
-            <div className="grid grid-cols-1 medium:grid-cols-2 expanded:grid-cols-3 gap-8 max-w-6xl mx-auto">
-
+            <div className="medium:grid-cols-2 expanded:grid-cols-3 mx-auto grid max-w-6xl grid-cols-1 gap-8">
                 {/* COLONNE GAUCHE : IDENTITÉ */}
                 <div className="expanded:col-span-2 space-y-6">
-                    <section className="bg-surface rounded-card p-6 shadow-elevation-1 border border-outline-variant">
-                        <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                            <div className="p-2 bg-primary/10 rounded-md text-primary">
+                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
+                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
+                            <div className="bg-primary/10 text-primary rounded-md p-2">
                                 <MaterialIcon name="person" size={20} />
                             </div>
-                            <h2 className="font-bold text-on-surface text-title-medium">Informations d'identité</h2>
+                            <h2 className="text-on-surface text-title-medium font-bold">
+                                Informations d'identité
+                            </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 expanded:grid-cols-2 gap-6">
+                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
                             <InputField
                                 label="Nom et Prénom"
                                 name="name"
@@ -264,19 +291,24 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                         </div>
                     </section>
 
-                    <section className="bg-surface rounded-card p-6 shadow-elevation-1 border border-outline-variant">
-                        <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                            <div className="p-2 bg-secondary-container rounded-md text-secondary">
+                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
+                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
+                            <div className="bg-secondary-container text-secondary rounded-md p-2">
                                 <MaterialIcon name="location_on" size={20} />
                             </div>
-                            <h2 className="font-bold text-on-surface text-title-medium">Affectation géographique</h2>
+                            <h2 className="text-on-surface text-title-medium font-bold">
+                                Affectation géographique
+                            </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 medium:grid-cols-2 large:grid-cols-3 gap-6">
+                        <div className="medium:grid-cols-2 large:grid-cols-3 grid grid-cols-1 gap-6">
                             <SelectField
                                 label="Pays"
                                 name="country"
-                                options={locationData.countries.map(c => ({ value: c, label: c }))}
+                                options={locationData.countries.map((c) => ({
+                                    value: c,
+                                    label: c,
+                                }))}
                                 value={formData.country}
                                 onChange={handleChange}
                                 required
@@ -286,7 +318,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                             <SelectField
                                 label="Site"
                                 name="site"
-                                options={availableSites.map(s => ({ value: s, label: s }))}
+                                options={availableSites.map((s) => ({ value: s, label: s }))}
                                 value={formData.site}
                                 onChange={handleChange}
                                 disabled={!formData.country}
@@ -298,7 +330,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                             <SelectField
                                 label="Service"
                                 name="department"
-                                options={availableDepartments.map(d => ({ value: d, label: d }))}
+                                options={availableDepartments.map((d) => ({ value: d, label: d }))}
                                 value={formData.department}
                                 onChange={handleChange}
                                 disabled={!formData.site}
@@ -309,7 +341,11 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                                 <InputField
                                     label="Manager direct (N+1)"
                                     name="managerId"
-                                    value={formData.department ? (assignedManagerName || 'Aucun manager configuré') : 'Sélectionnez un service'}
+                                    value={
+                                        formData.department
+                                            ? assignedManagerName || 'Aucun manager configuré'
+                                            : 'Sélectionnez un service'
+                                    }
                                     disabled
                                     icon={<MaterialIcon name="account_tree" size={18} />}
                                     supportingText="Ce champ est alimenté automatiquement selon le service sélectionné."
@@ -322,34 +358,36 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 {/* COLONNE DROITE : APERÇU ET RÔLE */}
                 <div className="space-y-6">
                     {/* AVATAR PREVIEW CARD */}
-                    <div className="bg-surface-container-high rounded-card p-8 text-center shadow-elevation-3 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div className="bg-surface-container-high rounded-card shadow-elevation-3 group relative overflow-hidden p-8 text-center">
+                        <div className="bg-primary/10 absolute top-0 right-0 -mt-16 -mr-16 h-32 w-32 rounded-full blur-2xl"></div>
                         <div className="relative z-10">
-                            <div className="inline-block p-1 rounded-full bg-gradient-to-tr from-primary to-primary-container mb-4 shadow-elevation-2 group-hover:scale-105 transition-transform duration-500">
-                                <div className="w-24 h-24 rounded-full bg-surface-container-low border-4 border-on-surface overflow-hidden">
+                            <div className="from-primary to-primary-container shadow-elevation-2 mb-4 inline-block rounded-full bg-gradient-to-tr p-1 transition-transform duration-500 group-hover:scale-105">
+                                <div className="bg-surface-container-low border-on-surface h-24 w-24 overflow-hidden rounded-full border-4">
                                     <img
                                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`}
                                         alt="Aperçu"
-                                        className="w-full h-full object-cover"
+                                        className="h-full w-full object-cover"
                                     />
                                 </div>
                             </div>
-                            <h3 className="text-inverse-on-surface text-title-medium font-bold line-clamp-2 break-words px-4">
-                                {formData.name || (isEditMode ? "Utilisateur" : "Nouveau Profil")}
+                            <h3 className="text-inverse-on-surface text-title-medium line-clamp-2 px-4 font-bold break-words">
+                                {formData.name || (isEditMode ? 'Utilisateur' : 'Nouveau Profil')}
                             </h3>
-                            <p className="text-on-surface-variant text-label-medium uppercase tracking-widest font-black mt-1">
+                            <p className="text-on-surface-variant text-label-medium mt-1 font-black tracking-widest uppercase">
                                 {formData.role}
                             </p>
                         </div>
                     </div>
 
                     {/* ROLE SELECTION CARD */}
-                    <section className="bg-surface rounded-card p-6 shadow-elevation-1 border border-outline-variant">
-                        <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                            <div className="p-2 bg-tertiary-container rounded-md text-tertiary">
+                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
+                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
+                            <div className="bg-tertiary-container text-tertiary rounded-md p-2">
                                 <MaterialIcon name="shield" size={20} />
                             </div>
-                            <h2 className="font-bold text-on-surface text-title-medium">Accès Système</h2>
+                            <h2 className="text-on-surface text-title-medium font-bold">
+                                Accès Système
+                            </h2>
                         </div>
 
                         <div className="space-y-4">
@@ -362,33 +400,37 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                                 required
                             />
 
-                            <div className="p-4 bg-surface-container rounded-lg border border-outline-variant">
+                            <div className="bg-surface-container border-outline-variant rounded-lg border p-4">
                                 <div className="flex items-start gap-2">
-                                    <MaterialIcon name="info" size={14} className="text-on-surface-variant mt-0.5 shrink-0" />
+                                    <MaterialIcon
+                                        name="info"
+                                        size={14}
+                                        className="text-on-surface-variant mt-0.5 shrink-0"
+                                    />
                                     <p className="text-body-small text-on-surface-variant leading-relaxed italic">
                                         {getRoleDescription(formData.role)}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="pt-4 space-y-3">
-                                <div className="flex items-center gap-2 text-label-medium font-bold text-tertiary">
+                            <div className="space-y-3 pt-4">
+                                <div className="text-label-medium text-tertiary flex items-center gap-2 font-bold">
                                     <MaterialIcon name="check_circle" size={14} />
                                     Compte actif
                                 </div>
                                 {isEditMode ? (
-                                    <div className="flex items-center gap-2 text-label-medium font-bold text-secondary">
+                                    <div className="text-label-medium text-secondary flex items-center gap-2 font-bold">
                                         <MaterialIcon name="sync" size={14} />
                                         Historique conservé
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex items-center gap-2 text-label-medium font-bold text-secondary">
+                                        <div className="text-label-medium text-secondary flex items-center gap-2 font-bold">
                                             <MaterialIcon name="check_circle" size={14} />
                                             Invitation e-mail envoyée
                                         </div>
                                         {formData.managerId && (
-                                            <div className="flex items-center gap-2 text-label-medium font-bold text-tertiary animate-pulse">
+                                            <div className="text-label-medium text-tertiary flex animate-pulse items-center gap-2 font-bold">
                                                 <MaterialIcon name="check_circle" size={14} />
                                                 Notification manager (Dotation)
                                             </div>
@@ -399,14 +441,9 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                         </div>
                     </section>
                 </div>
-
             </div>
         </FullScreenFormLayout>
     );
 };
 
 export default AddUserPage;
-
-
-
-

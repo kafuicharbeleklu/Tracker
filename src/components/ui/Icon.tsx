@@ -42,7 +42,12 @@ export interface IconProps {
     className?: string;
 }
 
-const Icon: React.FC<IconProps> = ({ glyph: Glyph, size = 24, emphasis = 'regular', className }) => (
+const Icon: React.FC<IconProps> = ({
+    glyph: Glyph,
+    size = 24,
+    emphasis = 'regular',
+    className,
+}) => (
     <Glyph
         size={size}
         weight={emphasis}

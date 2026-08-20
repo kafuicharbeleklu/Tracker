@@ -99,7 +99,15 @@ import { cn } from '../../../lib/utils';
 type RbacView = 'roles' | 'groups';
 
 /** L'ordre de lecture des portées : du plus large au plus étroit, l'inexprimable en dernier. */
-const SCOPE_ORDER: ScopeLevel[] = ['global', 'country', 'site', 'team', 'service', 'self', 'custom'];
+const SCOPE_ORDER: ScopeLevel[] = [
+    'global',
+    'country',
+    'site',
+    'team',
+    'service',
+    'self',
+    'custom',
+];
 
 const SCOPE_LABEL: Record<ScopeLevel, string> = {
     global: 'global',
@@ -207,7 +215,7 @@ const sessionLabel = (minutes: number): string =>
  */
 const inheritanceFact = (
     role: RbacRole,
-    byId: Map<string, RbacRole>
+    byId: Map<string, RbacRole>,
 ): { baseName: string; addsNothing: boolean } | null => {
     if (!role.baseRoleId) return null;
     const base = byId.get(role.baseRoleId);
@@ -236,19 +244,19 @@ const inheritanceFact = (
 const scopeNote = (
     level: ScopeLevel,
     roles: RbacRole[],
-    byId: Map<string, RbacRole>
+    byId: Map<string, RbacRole>,
 ): string | null => {
     const parts: string[] = [];
 
     if (level === 'global') {
         parts.push(
-            "Une portée globale reçoit le parc entier — mais l'Admin le reçoit aussi dès qu'aucun pays ne lui est affecté : c'est le repli de filterEquipment. Ce qui les sépare tient à managedCountries, une donnée de la personne, pas au rôle."
+            "Une portée globale reçoit le parc entier — mais l'Admin le reçoit aussi dès qu'aucun pays ne lui est affecté : c'est le repli de filterEquipment. Ce qui les sépare tient à managedCountries, une donnée de la personne, pas au rôle.",
         );
     }
 
     if (level === 'custom') {
         parts.push(
-            "Une portée sur mesure est une expression nommée qu'aucun code ne sait résoudre. Les autres portées sont au moins exprimables ; celle-ci n'a même pas de forme — elle est ignorée deux fois."
+            "Une portée sur mesure est une expression nommée qu'aucun code ne sait résoudre. Les autres portées sont au moins exprimables ; celle-ci n'a même pas de forme — elle est ignorée deux fois.",
         );
     }
 
@@ -257,7 +265,9 @@ const scopeNote = (
         parts.push(
             `Le décompte d'un rôle qui hérite ne dit pas ce qu'il porte : ${inheritsNothing
                 .map((role) => role.name)
-                .join(', ')} n'ajoute${inheritsNothing.length > 1 ? 'nt' : ''} aucun droit à sa base. La rangée le dit ; la colonne de droite ne peut pas.`
+                .join(
+                    ', ',
+                )} n'ajoute${inheritsNothing.length > 1 ? 'nt' : ''} aucun droit à sa base. La rangée le dit ; la colonne de droite ne peut pas.`,
         );
     }
 
@@ -269,7 +279,7 @@ const scopeNote = (
     });
     if (inheritsOtherScope.length > 0) {
         parts.push(
-            'Un rôle qui hérite empile sa portée sur celle de sa base : gatherDataScopes garde les deux sans les départager, et rien ne dit laquelle gagnerait — puisque rien ne les lit.'
+            'Un rôle qui hérite empile sa portée sur celle de sa base : gatherDataScopes garde les deux sans les départager, et rien ne dit laquelle gagnerait — puisque rien ne les lit.',
         );
     }
 
@@ -309,15 +319,12 @@ const RbacPage: React.FC = () => {
         if (!routeSegments[1]) navigate('/rbac/roles');
     }, [navigate, routeSegments]);
 
-    const rolesById = useMemo(
-        () => new Map(rbacRoles.map((role) => [role.id, role])),
-        [rbacRoles]
-    );
+    const rolesById = useMemo(() => new Map(rbacRoles.map((role) => [role.id, role])), [rbacRoles]);
 
     const openRole = openRoleId ? rolesById.get(openRoleId) : undefined;
     const openGroup = useMemo(
         () => rbacGroups.find((group) => group.id === openGroupId) ?? null,
-        [openGroupId, rbacGroups]
+        [openGroupId, rbacGroups],
     );
 
     useEffect(() => {
@@ -332,7 +339,9 @@ const RbacPage: React.FC = () => {
             (role) =>
                 role.name.toLowerCase().includes(needle) ||
                 role.id.toLowerCase().includes(needle) ||
-                role.permissions.some((rule) => permissionLabel(rule.key).toLowerCase().includes(needle))
+                role.permissions.some((rule) =>
+                    permissionLabel(rule.key).toLowerCase().includes(needle),
+                ),
         );
     }, [query, rbacRoles]);
 
@@ -355,7 +364,10 @@ const RbacPage: React.FC = () => {
         }));
     }, [filteredRoles]);
 
-    const customRoles = useMemo(() => rbacRoles.filter((role) => role.kind === 'custom'), [rbacRoles]);
+    const customRoles = useMemo(
+        () => rbacRoles.filter((role) => role.kind === 'custom'),
+        [rbacRoles],
+    );
 
     const goToRole = (roleId: string) => navigate(`/rbac/roles/${roleId}`);
 
@@ -370,8 +382,10 @@ const RbacPage: React.FC = () => {
             onConfirm: () => {
                 const decision = deleteRbacRole(role.id);
                 showToast(
-                    decision.allowed ? `« ${role.name} » supprimé.` : decision.reason || 'Suppression refusée.',
-                    decision.allowed ? 'success' : 'error'
+                    decision.allowed
+                        ? `« ${role.name} » supprimé.`
+                        : decision.reason || 'Suppression refusée.',
+                    decision.allowed ? 'success' : 'error',
                 );
                 if (decision.allowed) navigate('/rbac/roles');
             },
@@ -414,7 +428,7 @@ const RbacPage: React.FC = () => {
 
         return (
             <div className="flex min-h-0 w-full flex-1 flex-col">
-                <div className="flex min-h-14 items-center gap-1 border-b border-outline-variant bg-surface px-2 py-1">
+                <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
                     <Button
                         variant="text"
                         iconOnly
@@ -425,16 +439,16 @@ const RbacPage: React.FC = () => {
                         <Icon glyph={ArrowLeft} />
                     </Button>
                     <div className="min-w-0 flex-1 px-1">
-                        <p className="truncate font-brand text-base font-semibold leading-5 tracking-tight text-on-surface">
+                        <p className="font-brand text-on-surface truncate text-base leading-5 font-semibold tracking-tight">
                             {openRole.name}
                         </p>
-                        <p className="truncate text-label-small tabular-nums tracking-wide text-text-secondary">
+                        <p className="text-label-small text-text-secondary truncate tracking-wide tabular-nums">
                             {openRole.id}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-5 py-4 medium:px-page">
+                <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
                     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
                         <DetailHero
                             label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
@@ -462,7 +476,8 @@ const RbacPage: React.FC = () => {
                             ]}
                             note={
                                 <>
-                                    Connexion par <strong className="font-medium">{methods}</strong>.{' '}
+                                    Connexion par <strong className="font-medium">{methods}</strong>
+                                    .{' '}
                                     {openRole.authPolicy.requireStepUpForSensitiveActions
                                         ? 'Une élévation est demandée sur les actes sensibles.'
                                         : 'Aucun renforcement demandé sur les actes sensibles.'}
@@ -481,7 +496,7 @@ const RbacPage: React.FC = () => {
                             note="Les vues fermées ne sont pas listées : l'inventaire de ce qu'un rôle n'a pas est aussi long que la matrice entière."
                         >
                             {VIEW_KEYS.filter((key) =>
-                                editing ? true : allowed.some((rule) => rule.key === key)
+                                editing ? true : allowed.some((rule) => rule.key === key),
                             ).map((key) => {
                                 const rule = allowed.find((entry) => entry.key === key);
                                 return (
@@ -495,7 +510,9 @@ const RbacPage: React.FC = () => {
                                             editing ? (
                                                 <Toggle
                                                     checked={Boolean(rule)}
-                                                    onChange={(next) => toggleRule(key, next, 'read')}
+                                                    onChange={(next) =>
+                                                        toggleRule(key, next, 'read')
+                                                    }
                                                 />
                                             ) : undefined
                                         }
@@ -516,7 +533,7 @@ const RbacPage: React.FC = () => {
                             {ACTION_KEYS.filter(
                                 (key) =>
                                     (editing || allowed.some((rule) => rule.key === key)) &&
-                                    !denied.some((rule) => rule.key === key)
+                                    !denied.some((rule) => rule.key === key),
                             ).map((key) => {
                                 const rule = allowed.find((entry) => entry.key === key);
                                 return (
@@ -530,7 +547,9 @@ const RbacPage: React.FC = () => {
                                             editing ? (
                                                 <Toggle
                                                     checked={Boolean(rule)}
-                                                    onChange={(next) => toggleRule(key, next, 'write')}
+                                                    onChange={(next) =>
+                                                        toggleRule(key, next, 'write')
+                                                    }
                                                 />
                                             ) : undefined
                                         }
@@ -628,10 +647,13 @@ const RbacPage: React.FC = () => {
                         </RuleGroup>
 
                         <Notice glyph={Warning}>
-                            <strong className="font-medium text-on-surface">Valider une demande n'est pas dans cette matrice.</strong>{' '}
-                            Cette autorité est <strong className="font-medium text-on-surface">relationnelle</strong> — être
-                            le manager de, être le bénéficiaire de — et vit dans les gardes métier. La case est nommée ici
-                            parce que c'est là qu'on la chercherait.
+                            <strong className="text-on-surface font-medium">
+                                Valider une demande n'est pas dans cette matrice.
+                            </strong>{' '}
+                            Cette autorité est{' '}
+                            <strong className="text-on-surface font-medium">relationnelle</strong> —
+                            être le manager de, être le bénéficiaire de — et vit dans les gardes
+                            métier. La case est nommée ici parce que c'est là qu'on la chercherait.
                         </Notice>
 
                         <div className="flex flex-col gap-3">
@@ -676,14 +698,14 @@ const RbacPage: React.FC = () => {
     return (
         <div className="flex min-h-0 w-full flex-1 flex-col">
             {isCompact ? (
-                <div className="flex min-h-14 items-center border-b border-outline-variant bg-surface px-5 py-1">
-                    <h1 className="font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                <div className="border-outline-variant bg-surface flex min-h-14 items-center border-b px-5 py-1">
+                    <h1 className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-tight">
                         Rôles &amp; accès
                     </h1>
                 </div>
             ) : (
-                <div className="flex items-center gap-3 px-page pt-5">
-                    <h1 className="font-brand text-[22px] font-semibold leading-7 tracking-tight text-on-surface">
+                <div className="px-page flex items-center gap-3 pt-5">
+                    <h1 className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-tight">
                         Rôles &amp; accès
                     </h1>
                 </div>
@@ -692,7 +714,9 @@ const RbacPage: React.FC = () => {
             <div
                 className={cn(
                     'flex flex-col gap-2.5',
-                    isCompact ? 'border-b border-outline-variant bg-surface px-5 py-3' : 'px-page pt-4'
+                    isCompact
+                        ? 'border-outline-variant bg-surface border-b px-5 py-3'
+                        : 'px-page pt-4',
                 )}
             >
                 <div className="w-full max-w-[960px]">
@@ -718,22 +742,27 @@ const RbacPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 medium:px-page">
+            <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
                 <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
                     <Notice glyph={ShieldCheck}>
-                        <strong className="font-medium text-on-surface">
+                        <strong className="text-on-surface font-medium">
                             {TOTAL_PERMISSIONS} permissions
                         </strong>{' '}
-                        — {VIEW_KEYS.length} vues et {ACTION_KEYS.length} actions, en lecture, écriture ou
-                        suppression. Toutes sont lues par l'application.
+                        — {VIEW_KEYS.length} vues et {ACTION_KEYS.length} actions, en lecture,
+                        écriture ou suppression. Toutes sont lues par l'application.
                     </Notice>
 
                     {view === 'roles' ? (
                         <>
-                            <div className="flex items-center justify-between gap-3 text-[13px] text-text-secondary">
+                            <div className="text-text-secondary flex items-center justify-between gap-3 text-[13px]">
                                 <span className="tabular-nums">
-                                    <strong className="font-medium text-on-surface">{rbacRoles.length}</strong> rôles ·{' '}
-                                    <strong className="font-medium text-on-surface">{rbacAssignments.length}</strong>{' '}
+                                    <strong className="text-on-surface font-medium">
+                                        {rbacRoles.length}
+                                    </strong>{' '}
+                                    rôles ·{' '}
+                                    <strong className="text-on-surface font-medium">
+                                        {rbacAssignments.length}
+                                    </strong>{' '}
                                     affectations
                                 </span>
                                 <span className="flex items-center gap-1.5">
@@ -784,7 +813,11 @@ const RbacPage: React.FC = () => {
                                                 <RuleGroup.Row
                                                     key={role.id}
                                                     title={role.name}
-                                                    subtitle={facts.length > 0 ? facts.join(' · ') : role.id}
+                                                    subtitle={
+                                                        facts.length > 0
+                                                            ? facts.join(' · ')
+                                                            : role.id
+                                                    }
                                                     value={allowedRules(role).length}
                                                     onOpen={() => goToRole(role.id)}
                                                 />
@@ -799,14 +832,18 @@ const RbacPage: React.FC = () => {
                                 Sans elle, on croit que ranger sur la portée veut dire qu'elle
                                 s'applique. */}
                             <Notice glyph={Crosshair}>
-                                <strong className="font-medium text-on-surface">
-                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} rôles ont une branche dans le filtrage
-                                    ligne à ligne
+                                <strong className="text-on-surface font-medium">
+                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} rôles ont une
+                                    branche dans le filtrage ligne à ligne
                                 </strong>{' '}
-                                — les valeurs de <code>UserRole</code>, testées en dur. Leur portée déclarée et ce que le filtre
-                                applique coïncident <strong className="font-medium text-on-surface">par construction</strong>,
-                                jamais parce que la portée est lue. Les {customRoles.length} rôles personnalisés n'ont aucune
-                                branche : ils déclarent un périmètre que rien ne borne.
+                                — les valeurs de <code>UserRole</code>, testées en dur. Leur portée
+                                déclarée et ce que le filtre applique coïncident{' '}
+                                <strong className="text-on-surface font-medium">
+                                    par construction
+                                </strong>
+                                , jamais parce que la portée est lue. Les {customRoles.length} rôles
+                                personnalisés n'ont aucune branche : ils déclarent un périmètre que
+                                rien ne borne.
                             </Notice>
 
                             <div className="flex flex-col gap-3">
@@ -897,7 +934,11 @@ const RbacPage: React.FC = () => {
                             />
                             <RuleGroup.Row
                                 title="Portée déclarée"
-                                subtitle={openGroup.dataScopes?.length ? undefined : 'Le groupe n’en déclare aucune'}
+                                subtitle={
+                                    openGroup.dataScopes?.length
+                                        ? undefined
+                                        : 'Le groupe n’en déclare aucune'
+                                }
                                 value={
                                     openGroup.dataScopes?.length
                                         ? SCOPE_LABEL[openGroup.dataScopes[0].level]
@@ -916,12 +957,15 @@ const RbacPage: React.FC = () => {
                         </RuleGroup>
 
                         <Notice glyph={Warning}>
-                            La portée d'un groupe est <strong className="font-medium text-on-surface">déclarée puis ignorée</strong> :
-                            un membre d'un groupe borné à un pays voit tout de même le parc entier. Le droit ajouté par
-                            le groupe, lui, s'applique.
+                            La portée d'un groupe est{' '}
+                            <strong className="text-on-surface font-medium">
+                                déclarée puis ignorée
+                            </strong>{' '}
+                            : un membre d'un groupe borné à un pays voit tout de même le parc
+                            entier. Le droit ajouté par le groupe, lui, s'applique.
                         </Notice>
 
-                        <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                        <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                             <Button variant="text" onClick={() => setOpenGroupId(null)}>
                                 Fermer
                             </Button>
@@ -942,7 +986,7 @@ const RbacPage: React.FC = () => {
                                                 decision.allowed
                                                     ? `« ${openGroup.name} » supprimé.`
                                                     : decision.reason || 'Suppression refusée.',
-                                                decision.allowed ? 'success' : 'error'
+                                                decision.allowed ? 'success' : 'error',
                                             );
                                             if (decision.allowed) setOpenGroupId(null);
                                         },
@@ -963,8 +1007,10 @@ const RbacPage: React.FC = () => {
                 onCreate={(role) => {
                     const decision = upsertRbacRole(role);
                     showToast(
-                        decision.allowed ? `« ${role.name} » créé.` : decision.reason || 'Création refusée.',
-                        decision.allowed ? 'success' : 'error'
+                        decision.allowed
+                            ? `« ${role.name} » créé.`
+                            : decision.reason || 'Création refusée.',
+                        decision.allowed ? 'success' : 'error',
                     );
                     if (decision.allowed) {
                         setRoleSheetOpen(false);
@@ -980,8 +1026,10 @@ const RbacPage: React.FC = () => {
                 onCreate={(group) => {
                     const decision = upsertRbacGroup(group);
                     showToast(
-                        decision.allowed ? `« ${group.name} » créé.` : decision.reason || 'Création refusée.',
-                        decision.allowed ? 'success' : 'error'
+                        decision.allowed
+                            ? `« ${group.name} » créé.`
+                            : decision.reason || 'Création refusée.',
+                        decision.allowed ? 'success' : 'error',
                     );
                     if (decision.allowed) setGroupSheetOpen(false);
                 }}
@@ -996,8 +1044,10 @@ const RbacPage: React.FC = () => {
                 onSave={(userId, updates) => {
                     const decision = upsertUserRbacAssignment(userId, updates);
                     showToast(
-                        decision.allowed ? 'Affectation enregistrée.' : decision.reason || 'Affectation refusée.',
-                        decision.allowed ? 'success' : 'error'
+                        decision.allowed
+                            ? 'Affectation enregistrée.'
+                            : decision.reason || 'Affectation refusée.',
+                        decision.allowed ? 'success' : 'error',
                     );
                     if (decision.allowed) setAssignmentSheetOpen(false);
                 }}
@@ -1057,12 +1107,13 @@ const CreateRoleSheet: React.FC<{
                     ]}
                 />
                 <Notice>
-                    Partir d'un rôle en <strong className="font-medium text-on-surface">copie</strong> les
-                    permissions ; l'héritage, lui, les garde liées — c'est ce qui fait qu'un rôle hérité peut
+                    Partir d'un rôle en{' '}
+                    <strong className="text-on-surface font-medium">copie</strong> les permissions ;
+                    l'héritage, lui, les garde liées — c'est ce qui fait qu'un rôle hérité peut
                     afficher quatre règles et en porter vingt-quatre.
                 </Notice>
 
-                <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>
@@ -1137,7 +1188,7 @@ const CreateGroupSheet: React.FC<{
                     ]}
                 />
 
-                <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>
@@ -1215,7 +1266,7 @@ const AssignmentSheet: React.FC<{
                     ]}
                 />
 
-                <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-3.5">
+                <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>

@@ -67,7 +67,10 @@ const extractPdfNativeText = async (pdfData: ArrayBuffer, maxPages: number): Pro
     return normalizeWhitespace(pageTexts.join('\n'));
 };
 
-const renderPdfPagesAsDataUrls = async (pdfData: ArrayBuffer, maxPages: number): Promise<string[]> => {
+const renderPdfPagesAsDataUrls = async (
+    pdfData: ArrayBuffer,
+    maxPages: number,
+): Promise<string[]> => {
     const pdfjs = await loadPdfJs();
     const loadingTask = pdfjs.getDocument({
         data: pdfData,
@@ -149,7 +152,10 @@ const extractFromImage = async (file: File): Promise<DocumentTextExtractionResul
     }
 };
 
-const extractFromPdf = async (file: File, options: ExtractionOptions): Promise<DocumentTextExtractionResult> => {
+const extractFromPdf = async (
+    file: File,
+    options: ExtractionOptions,
+): Promise<DocumentTextExtractionResult> => {
     const warnings: string[] = [];
     const maxTextPages = options.maxPdfTextPages ?? 3;
     const maxOcrPages = options.maxPdfOcrPages ?? 2;
@@ -195,14 +201,13 @@ const extractFromPdf = async (file: File, options: ExtractionOptions): Promise<D
             };
         }
 
-        const source: DocumentExtractionSource = nativeText && ocrText
-            ? 'hybrid'
-            : ocrText
-                ? 'ocr'
-                : 'native';
+        const source: DocumentExtractionSource =
+            nativeText && ocrText ? 'hybrid' : ocrText ? 'ocr' : 'native';
 
         if (source === 'ocr') {
-            warnings.push('Texte extrait via OCR, vérifiez les champs sensibles (montants/références).');
+            warnings.push(
+                'Texte extrait via OCR, vérifiez les champs sensibles (montants/références).',
+            );
         }
 
         return {
@@ -242,4 +247,3 @@ export const extractDocumentText = async (
         warnings: [],
     };
 };
-

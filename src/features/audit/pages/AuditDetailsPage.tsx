@@ -30,7 +30,10 @@ import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import FacetChip from '../../../components/ui/FacetChip';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import DetailHero, { type DetailHeroFact, type DetailMetrics } from '../../../components/ui/DetailHero';
+import DetailHero, {
+    type DetailHeroFact,
+    type DetailMetrics,
+} from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import { useToast } from '../../../context/ToastContext';
@@ -44,7 +47,6 @@ import { buildCsvLine } from '../../../lib/csv';
 import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../../types';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
-
 
 interface AuditDetailsPageProps {
     onBack: () => void;
@@ -116,11 +118,11 @@ const matchesSearch = (item: Equipment, query: string): boolean => {
     if (!query) return true;
     const q = query.toLowerCase();
     return (
-        item.name.toLowerCase().includes(q)
-        || item.assetId.toLowerCase().includes(q)
-        || (item.hostname || '').toLowerCase().includes(q)
-        || (item.serialNumber || '').toLowerCase().includes(q)
-        || (item.user?.name || '').toLowerCase().includes(q)
+        item.name.toLowerCase().includes(q) ||
+        item.assetId.toLowerCase().includes(q) ||
+        (item.hostname || '').toLowerCase().includes(q) ||
+        (item.serialNumber || '').toLowerCase().includes(q) ||
+        (item.user?.name || '').toLowerCase().includes(q)
     );
 };
 
@@ -158,12 +160,12 @@ const formatSince = (value?: string): string => {
  * pastille peinte qui disait la nature d'un écart par sa seule couleur de fond ;
  * une teinte ne se lit pas pour qui ne la distingue pas, ni à l'impression.
  */
-const ExceptionMark: React.FC<{ icon: PhosphorGlyph; label: string; tone: ListRowStatus['tone'] }> = ({
-    icon,
-    label,
-    tone,
-}) => (
-    <span className="flex shrink-0 items-center gap-[5px] whitespace-nowrap text-[12px] text-text-secondary">
+const ExceptionMark: React.FC<{
+    icon: PhosphorGlyph;
+    label: string;
+    tone: ListRowStatus['tone'];
+}> = ({ icon, label, tone }) => (
+    <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap">
         <Icon glyph={icon} size={18} className={EXCEPTION_TONE[tone]} />
         {label}
     </span>
@@ -247,7 +249,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [missingIds, setMissingIds] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
 
-    const [selectedCountry, setSelectedCountry] = useState<string>(storedScope.country || locationData.countries[0] || '');
+    const [selectedCountry, setSelectedCountry] = useState<string>(
+        storedScope.country || locationData.countries[0] || '',
+    );
     const [selectedSite, setSelectedSite] = useState<string>(storedScope.site || '');
     const [selectedService, setSelectedService] = useState<string>(storedScope.service || '');
 
@@ -258,11 +262,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         [locationData.countries],
     );
     const siteOptions = useMemo(
-        () => (locationData.sites[selectedCountry] || []).map((site) => ({ value: site, label: site })),
+        () =>
+            (locationData.sites[selectedCountry] || []).map((site) => ({
+                value: site,
+                label: site,
+            })),
         [locationData.sites, selectedCountry],
     );
     const serviceOptions = useMemo(
-        () => (locationData.services[selectedSite] || []).map((service) => ({ value: service, label: service })),
+        () =>
+            (locationData.services[selectedSite] || []).map((service) => ({
+                value: service,
+                label: service,
+            })),
         [locationData.services, selectedSite],
     );
 
@@ -311,10 +323,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     const scopedEquipment = useMemo(() => {
         if (!selectedCountry || !selectedSite || !selectedService) return [];
-        return equipment.filter((item) =>
-            item.country === selectedCountry
-            && item.site === selectedSite
-            && item.department === selectedService,
+        return equipment.filter(
+            (item) =>
+                item.country === selectedCountry &&
+                item.site === selectedSite &&
+                item.department === selectedService,
         );
     }, [equipment, selectedCountry, selectedSite, selectedService]);
 
@@ -393,7 +406,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         if (!debouncedSearch) return exceptionsDisplay;
         const q = debouncedSearch.toLowerCase();
         return exceptionsDisplay.filter((entry) => {
-            const name = entry.result.equipmentName || entry.payload.machineName || entry.payload.hostname || '';
+            const name =
+                entry.result.equipmentName ||
+                entry.payload.machineName ||
+                entry.payload.hostname ||
+                '';
             const asset = entry.payload.assetId || entry.equipment?.assetId || '';
             return name.toLowerCase().includes(q) || asset.toLowerCase().includes(q);
         });
@@ -423,7 +440,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         () => missingItems.filter((item) => Boolean(item.user)).length,
         [missingItems],
     );
-    const progressPercentage = sessionTotal > 0 ? Math.round((sessionFound / sessionTotal) * 100) : 0;
+    const progressPercentage =
+        sessionTotal > 0 ? Math.round((sessionFound / sessionTotal) * 100) : 0;
     const lastScanAt = useMemo(() => {
         const stamps = Object.values(foundAt);
         return stamps.length > 0 ? stamps.slice().sort().at(-1) : undefined;
@@ -434,7 +452,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         if (activeTab === 'scanned') return filteredScanned.length;
         if (activeTab === 'missing') return filteredMissing.length;
         return filteredExceptions.length;
-    }, [activeTab, filteredTodo.length, filteredScanned.length, filteredMissing.length, filteredExceptions.length]);
+    }, [
+        activeTab,
+        filteredTodo.length,
+        filteredScanned.length,
+        filteredMissing.length,
+        filteredExceptions.length,
+    ]);
 
     const scopeIsReady = Boolean(selectedCountry && selectedSite && selectedService);
     const scopeLocked = sessionStarted;
@@ -480,7 +504,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setFinalizedAt(null);
         setAuditStartedAt(new Date().toISOString());
         setActiveTab('todo');
-        showToast(`Audit démarré pour ${selectedService} (${ids.length} machine(s) ciblée(s)).`, 'success');
+        showToast(
+            `Audit démarré pour ${selectedService} (${ids.length} machine(s) ciblée(s)).`,
+            'success',
+        );
     };
 
     /**
@@ -533,11 +560,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             }
         });
 
-        showToast(`Campagne clôturée : ${flaggedAsMissing} actif(s) marqué(s) manquant(s).`, 'warning');
+        showToast(
+            `Campagne clôturée : ${flaggedAsMissing} actif(s) marqué(s) manquant(s).`,
+            'warning',
+        );
         setActiveTab('missing');
     };
 
-    const registerScanHit = (label: string, code: string, detail: string, kind: ScanHit['kind']) => {
+    const registerScanHit = (
+        label: string,
+        code: string,
+        detail: string,
+        kind: ScanHit['kind'],
+    ) => {
         setScanHits((prev) => [
             {
                 id: `hit_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -573,12 +608,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return;
         }
 
-        const scannedCode = parsed.payload.assetId
-            || parsed.payload.serialNumber
-            || parsed.payload.hostname
-            || '—';
+        const scannedCode =
+            parsed.payload.assetId || parsed.payload.serialNumber || parsed.payload.hostname || '—';
 
-        if (result.equipmentId && result.serviceMatches && baselineSourceIds.includes(result.equipmentId)) {
+        if (
+            result.equipmentId &&
+            result.serviceMatches &&
+            baselineSourceIds.includes(result.equipmentId)
+        ) {
             const equipmentId = result.equipmentId;
             setFoundIds((prev) => (prev.includes(equipmentId) ? prev : [...prev, equipmentId]));
             setFoundAt((prev) => ({ ...prev, [equipmentId]: new Date().toISOString() }));
@@ -593,10 +630,20 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 resolved: false,
             };
             setExceptionEntries((prev) => [entry, ...prev]);
-            registerScanHit(result.equipmentName || scannedCode, scannedCode, 'écart — à trancher', 'exception');
+            registerScanHit(
+                result.equipmentName || scannedCode,
+                scannedCode,
+                'écart — à trancher',
+                'exception',
+            );
             setActiveTab('exceptions');
         } else {
-            registerScanHit(result.equipmentName || scannedCode, scannedCode, 'attendu — retrouvé', 'expected');
+            registerScanHit(
+                result.equipmentName || scannedCode,
+                scannedCode,
+                'attendu — retrouvé',
+                'expected',
+            );
             setActiveTab('scanned');
         }
 
@@ -645,9 +692,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Clôturer l'audit de ${selectedService} ?`,
             message: (
                 <>
-                    <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront marqués
-                    manquants et retirés du service. Ils restent au parc, avec tout leur historique, et
-                    réapparaîtront s'ils sont scannés ailleurs.
+                    <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
+                    marqués manquants et retirés du service. Ils restent au parc, avec tout leur
+                    historique, et réapparaîtront s'ils sont scannés ailleurs.
                 </>
             ),
             tone: 'destructive',
@@ -661,7 +708,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             // ferait une quatrième chose à peser au moment de décider.
             details: [
                 { icon: CheckCircle, label: 'Retrouvés, inchangés', value: sessionFound },
-                { icon: Question, label: 'Marqués manquants, retirés du service', value: missingSnapshot.length },
+                {
+                    icon: Question,
+                    label: 'Marqués manquants, retirés du service',
+                    value: missingSnapshot.length,
+                },
                 {
                     icon: ArrowsLeftRight,
                     label: 'Écarts tranchés',
@@ -701,12 +752,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             prev.map((entry) =>
                 entry.id === entryId
                     ? {
-                        ...entry,
-                        resolved: true,
-                        decision: 'attached',
-                        decidedAt: new Date().toISOString(),
-                        previousScope,
-                    }
+                          ...entry,
+                          resolved: true,
+                          decision: 'attached',
+                          decidedAt: new Date().toISOString(),
+                          previousScope,
+                      }
                     : entry,
             ),
         );
@@ -722,7 +773,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setExceptionEntries((prev) =>
             prev.map((entry) =>
                 entry.id === entryId
-                    ? { ...entry, resolved: true, decision: 'left', decidedAt: new Date().toISOString() }
+                    ? {
+                          ...entry,
+                          resolved: true,
+                          decision: 'left',
+                          decidedAt: new Date().toISOString(),
+                      }
                     : entry,
             ),
         );
@@ -742,7 +798,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setExceptionEntries((prev) =>
             prev.map((entry) =>
                 entry.id === entryId
-                    ? { ...entry, resolved: true, decision: 'kept', decidedAt: new Date().toISOString() }
+                    ? {
+                          ...entry,
+                          resolved: true,
+                          decision: 'kept',
+                          decidedAt: new Date().toISOString(),
+                      }
                     : entry,
             ),
         );
@@ -760,8 +821,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Écarter ${label} ?`,
             message: (
                 <>
-                    Le scan avait créé une fiche à partir du seul code lu. L'écarter la retire du parc.
-                    Le code pourra être rescanné plus tard s'il correspond à un vrai actif.
+                    Le scan avait créé une fiche à partir du seul code lu. L'écarter la retire du
+                    parc. Le code pourra être rescanné plus tard s'il correspond à un vrai actif.
                 </>
             ),
             tone: 'destructive',
@@ -774,7 +835,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 setExceptionEntries((prev) =>
                     prev.map((entry) =>
                         entry.id === entryId
-                            ? { ...entry, resolved: true, decision: 'discarded', decidedAt: new Date().toISOString() }
+                            ? {
+                                  ...entry,
+                                  resolved: true,
+                                  decision: 'discarded',
+                                  decidedAt: new Date().toISOString(),
+                              }
                             : entry,
                     ),
                 );
@@ -803,7 +869,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setExceptionEntries((prev) =>
             prev.map((candidate) =>
                 candidate.id === entryId
-                    ? { ...candidate, resolved: false, decision: undefined, decidedAt: undefined, previousScope: undefined }
+                    ? {
+                          ...candidate,
+                          resolved: false,
+                          decision: undefined,
+                          decidedAt: undefined,
+                          previousScope: undefined,
+                      }
                     : candidate,
             ),
         );
@@ -816,8 +888,20 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const exportRelevé = () => {
         const rows = [
-            ...scannedItems.map((item) => [item.assetId, item.name, item.user?.name || 'non attribué', 'retrouvé', formatDateTime(foundAt[item.id])]),
-            ...missingItems.map((item) => [item.assetId, item.name, item.user?.name || 'non attribué', 'manquant', '']),
+            ...scannedItems.map((item) => [
+                item.assetId,
+                item.name,
+                item.user?.name || 'non attribué',
+                'retrouvé',
+                formatDateTime(foundAt[item.id]),
+            ]),
+            ...missingItems.map((item) => [
+                item.assetId,
+                item.name,
+                item.user?.name || 'non attribué',
+                'manquant',
+                '',
+            ]),
         ];
         const csv = [
             buildCsvLine(['Référence', 'Actif', 'Détenteur', 'Résultat', 'Scanné le'], ','),
@@ -850,7 +934,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     icon="search_off"
                     title="Rien ne correspond à cette recherche"
                     description={`Aucun résultat pour « ${debouncedSearch} » dans cette liste.`}
-                    action={<Button variant="text" onClick={() => setSearchQuery('')}>Effacer la recherche</Button>}
+                    action={
+                        <Button variant="text" onClick={() => setSearchQuery('')}>
+                            Effacer la recherche
+                        </Button>
+                    }
                 />
             );
         }
@@ -934,11 +1022,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
         return rows.map((item) => {
             const holder = item.user?.name || 'non attribué';
-            const mark: ListRowStatus = mode === 'scanned'
-                ? { icon: CheckCircle, label: formatSince(foundAt[item.id]), tone: 'positive' }
-                : mode === 'missing'
-                    ? { icon: Question, label: 'manquant', tone: 'attention' }
-                    : { icon: CircleDashed, label: 'à scanner', tone: 'muted' };
+            const mark: ListRowStatus =
+                mode === 'scanned'
+                    ? { icon: CheckCircle, label: formatSince(foundAt[item.id]), tone: 'positive' }
+                    : mode === 'missing'
+                      ? { icon: Question, label: 'manquant', tone: 'attention' }
+                      : { icon: CircleDashed, label: 'à scanner', tone: 'muted' };
 
             return (
                 <ListRow
@@ -995,7 +1084,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             activeId={activeTab === 'exceptions' ? 'exceptions' : 'parc'}
             onChange={(tabId) => setActiveTab(tabId === 'exceptions' ? 'exceptions' : 'todo')}
             items={[
-                { id: 'parc', label: 'Le parc du service', shortLabel: 'Le parc', badge: sessionTotal },
+                {
+                    id: 'parc',
+                    label: 'Le parc du service',
+                    shortLabel: 'Le parc',
+                    badge: sessionTotal,
+                },
                 { id: 'exceptions', label: 'Écarts', badge: sessionExceptions },
             ]}
         />
@@ -1008,23 +1102,25 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * montré au bon moment (C1).
      */
     const parcChips = (
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
-            {(([
-                ...(auditFinalized ? [] : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
-                ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
-                ['missing', 'Manquants', missingItems.length, Question],
-            ]) as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>).map(
-                ([id, label, count, glyph]) => (
-                    <FacetChip
-                        key={id}
-                        label={label}
-                        count={count}
-                        icon={glyph}
-                        selected={activeTab === id}
-                        onClick={() => setActiveTab(id)}
-                    />
-                ),
-            )}
+        <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto">
+            {(
+                [
+                    ...(auditFinalized
+                        ? []
+                        : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
+                    ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
+                    ['missing', 'Manquants', missingItems.length, Question],
+                ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
+            ).map(([id, label, count, glyph]) => (
+                <FacetChip
+                    key={id}
+                    label={label}
+                    count={count}
+                    icon={glyph}
+                    selected={activeTab === id}
+                    onClick={() => setActiveTab(id)}
+                />
+            ))}
         </div>
     );
 
@@ -1081,7 +1177,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 children: `clôturée ${formatSince(finalizedAt || undefined)} · le ${formatDateTime(finalizedAt || undefined)}`,
             });
         } else if (sessionStarted) {
-            facts.push({ icon: ClockCountdown, children: `démarrée ${formatSince(auditStartedAt || undefined)}` });
+            facts.push({
+                icon: ClockCountdown,
+                children: `démarrée ${formatSince(auditStartedAt || undefined)}`,
+            });
             facts.push({
                 icon: QrCode,
                 children: `périmètre figé au démarrage · dernier scan ${formatSince(lastScanAt)}`,
@@ -1091,8 +1190,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         }
         return facts;
     }, [
-        auditFinalized, auditStartedAt, finalizedAt, lastScanAt, scopeIsReady,
-        selectedCountry, selectedSite, sessionStarted,
+        auditFinalized,
+        auditStartedAt,
+        finalizedAt,
+        lastScanAt,
+        scopeIsReady,
+        selectedCountry,
+        selectedSite,
+        sessionStarted,
     ]);
 
     /**
@@ -1102,7 +1207,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const heroNote = sessionStarted ? (
         <>
-            <span aria-hidden="true" className="block h-1.5 overflow-hidden rounded-full bg-white/[0.16]">
+            <span
+                aria-hidden="true"
+                className="block h-1.5 overflow-hidden rounded-full bg-white/[0.16]"
+            >
                 <span
                     className="block h-full rounded-full bg-[var(--tk-color-live-vert)]"
                     style={{ width: `${progressPercentage}%` }}
@@ -1110,7 +1218,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             </span>
             <span className="mt-1.5 block tabular-nums">
                 {sessionFound} sur {sessionTotal} · {progressPercentage} %
-                {auditFinalized && sessionExceptions > 0 && ` · ${resolvedExceptions} écarts tranchés`}
+                {auditFinalized &&
+                    sessionExceptions > 0 &&
+                    ` · ${resolvedExceptions} écarts tranchés`}
             </span>
         </>
     ) : undefined;
@@ -1128,7 +1238,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             });
         }
         return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sessionStarted, auditFinalized, sessionFound, sessionExceptions, selectedService]);
 
     /**
@@ -1157,20 +1267,30 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * reste que l'export, en neutre : plus rien à engager.
      */
     const footerActions = auditFinalized ? (
-        <Button variant="outlined" onClick={exportRelevé} className="w-full" icon={<Icon glyph={Export} size={20} />}>
+        <Button
+            variant="outlined"
+            onClick={exportRelevé}
+            className="w-full"
+            icon={<Icon glyph={Export} size={20} />}
+        >
             Exporter le relevé
         </Button>
     ) : sessionStarted ? (
         <>
             {closureBlocked ? (
-                <p className="flex items-start gap-2.5 rounded-card border border-outline-variant bg-surface px-3.5 py-3 text-body-small text-on-surface">
-                    <Icon glyph={Warning} size={18} className="mt-px shrink-0 text-[var(--tk-color-st-orange)]" />
+                <p className="rounded-card border-outline-variant bg-surface text-body-small text-on-surface flex items-start gap-2.5 border px-3.5 py-3">
+                    <Icon
+                        glyph={Warning}
+                        size={18}
+                        className="mt-px shrink-0 text-[var(--tk-color-st-orange)]"
+                    />
                     <span>
                         <strong className="font-medium">
-                            {pendingExceptions.length} écart{pendingExceptions.length > 1 ? 's' : ''} à trancher
+                            {pendingExceptions.length} écart
+                            {pendingExceptions.length > 1 ? 's' : ''} à trancher
                         </strong>{' '}
-                        avant de pouvoir clôturer. Un objet trouvé ici sans y être attendu ne peut pas
-                        rester sans réponse.
+                        avant de pouvoir clôturer. Un objet trouvé ici sans y être attendu ne peut
+                        pas rester sans réponse.
                     </span>
                 </p>
             ) : (
@@ -1188,22 +1308,27 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             </Button>
         </>
     ) : (
-        <Button variant="filled" onClick={startAuditSession} className="w-full" disabled={!scopeIsReady}>
+        <Button
+            variant="filled"
+            onClick={startAuditSession}
+            className="w-full"
+            disabled={!scopeIsReady}
+        >
             Lancer la campagne
         </Button>
     );
 
     return (
-        <div className="flex flex-col h-full bg-surface-container-low">
+        <div className="bg-surface-container-low flex h-full flex-col">
             {isMobile ? (
                 /* La barre du haut de la planche : retour · identité · débordement. Les onglets
                    n'y sont pas — ils descendent sous le héro, avec les puces qu'ils commandent
                    (§9.4 : la barre « Vue globale / Détails » disparaît, le Retour l'assume). */
-                <div className="bg-surface border-b border-outline-variant px-page-sm medium:px-page py-1.5 flex items-center gap-1">
+                <div className="bg-surface border-outline-variant px-page-sm medium:px-page flex items-center gap-1 border-b py-1.5">
                     <Button
                         variant="text"
                         onClick={onBack}
-                        className="h-11 w-11 min-w-0 p-0 rounded-full shrink-0 text-on-surface-variant hover:text-on-surface"
+                        className="text-on-surface-variant hover:text-on-surface h-11 w-11 min-w-0 shrink-0 rounded-full p-0"
                         icon={<Icon glyph={ArrowLeft} size={24} />}
                         aria-label="Retour"
                     />
@@ -1211,10 +1336,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         Le héro porte le sujet, pas son étiquette : la dire deux fois volerait
                         une ligne au voile pour un fait qu'on a déjà lu. */}
                     <span className="min-w-0 flex-1 leading-tight">
-                        <span className="block truncate text-[13px] font-medium text-on-surface">
+                        <span className="text-on-surface block truncate text-[13px] font-medium">
                             Campagne d'audit
                         </span>
-                        <span className="block truncate text-[11px] text-text-secondary">{scopeCaption}</span>
+                        <span className="text-text-secondary block truncate text-[11px]">
+                            {scopeCaption}
+                        </span>
                     </span>
                     {overflowItems.length > 0 && (
                         <Menu
@@ -1229,7 +1356,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     )}
                 </div>
             ) : (
-                <div className="bg-surface border-b border-outline-variant px-page-sm medium:px-page flex items-center justify-between gap-2">
+                <div className="bg-surface border-outline-variant px-page-sm medium:px-page flex items-center justify-between gap-3 border-b">
+                    {/* **Le périmètre courant se lit dans la barre du haut** (16.1). Au
+                        rail, la barre ne portait que les deux onglets : on ne savait pas
+                        de quelle campagne on regardait les écarts. Le téléphone le disait
+                        déjà — c'est le même fait, il ne dépend pas de la largeur. */}
+                    <span className="min-w-0 shrink leading-tight">
+                        <span className="text-on-surface block truncate text-[13px] font-medium">
+                            Campagne d'audit
+                        </span>
+                        <span className="text-text-secondary block truncate text-[11px]">
+                            {scopeCaption}
+                        </span>
+                    </span>
                     <PageTabs
                         activeId="details"
                         onChange={(tabId) => {
@@ -1262,7 +1401,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
             {/* Plus de FAB, donc plus de dégagement bas à réserver : le pied d'acte est
                 dans le flux, en fin de contenu. */}
-            <div className="p-page-sm medium:p-page overflow-y-auto space-y-4">
+            <div className="p-page-sm medium:p-page space-y-4 overflow-y-auto">
                 {hero}
 
                 {sessionTabs}
@@ -1270,7 +1409,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 {/* Le périmètre ne se choisit que hors campagne : une fois lancée, il est figé,
                     et le dire une fois vaut mieux que trois champs grisés sans explication. */}
                 {!sessionStarted ? (
-                    <div className="grid grid-cols-1 medium:grid-cols-3 gap-3">
+                    <div className="medium:grid-cols-3 grid grid-cols-1 gap-3">
                         <SelectField
                             label="Pays"
                             name="auditCountry"
@@ -1314,43 +1453,56 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
                         {/* La légende de liste : le sujet à gauche, le compte à droite. */}
                         <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-[15px] font-medium text-on-surface">{listCaption().title}</p>
-                            <p className="shrink-0 text-body-small tabular-nums text-text-secondary">
+                            <p className="text-on-surface text-[15px] font-medium">
+                                {listCaption().title}
+                            </p>
+                            <p className="text-body-small text-text-secondary shrink-0 tabular-nums">
                                 {listCaption().count}
                             </p>
                         </div>
 
-                        <section className="rounded-card border border-outline-variant bg-surface px-4">
+                        <section className="rounded-card border-outline-variant bg-surface border px-4">
                             {activeTab === 'todo' && renderEquipmentRows(filteredTodo, 'todo')}
-                            {activeTab === 'scanned' && renderEquipmentRows(filteredScanned, 'scanned')}
-                            {activeTab === 'missing' && renderEquipmentRows(filteredMissing, 'missing')}
+                            {activeTab === 'scanned' &&
+                                renderEquipmentRows(filteredScanned, 'scanned')}
+                            {activeTab === 'missing' &&
+                                renderEquipmentRows(filteredMissing, 'missing')}
 
                             {/* Les indices de la planche : ils ne paraissent que quand ils
                                 s'appliquent. Une explication permanente devient du décor. */}
-                            {activeTab === 'todo' && filteredTodo.some((item) => item.status === 'En réparation') && (
-                                <p className="border-t border-outline-variant py-3 text-body-small text-on-surface-variant">
-                                    <strong className="font-medium text-on-surface">
-                                        L'actif en réparation reste à scanner.
-                                    </strong>{' '}
-                                    Il est attendu dans le service : c'est l'audit qui dit s'il y est encore, pas
-                                    son statut.
-                                </p>
-                            )}
+                            {activeTab === 'todo' &&
+                                filteredTodo.some((item) => item.status === 'En réparation') && (
+                                    <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
+                                        <strong className="text-on-surface font-medium">
+                                            L'actif en réparation reste à scanner.
+                                        </strong>{' '}
+                                        Il est attendu dans le service : c'est l'audit qui dit s'il
+                                        y est encore, pas son statut.
+                                    </p>
+                                )}
                             {activeTab === 'scanned' && filteredScanned.length > 0 && (
-                                <p className="border-t border-outline-variant py-3 text-body-small text-on-surface-variant">
-                                    L'heure remplace le statut : dans une campagne, ce qui compte est{' '}
-                                    <strong className="font-medium text-on-surface">quand l'objet a été vu</strong>.
+                                <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
+                                    L'heure remplace le statut : dans une campagne, ce qui compte
+                                    est{' '}
+                                    <strong className="text-on-surface font-medium">
+                                        quand l'objet a été vu
+                                    </strong>
+                                    .
                                 </p>
                             )}
-                            {activeTab === 'missing' && auditFinalized && assignedMissingCount > 0 && (
-                                <p className="border-t border-outline-variant py-3 text-body-small text-on-surface-variant">
-                                    <strong className="font-medium text-on-surface">
-                                        {assignedMissingCount} des {missingItems.length} manquants sont attribués.
-                                    </strong>{' '}
-                                    Leur porteur reste responsable : le manquant devrait ouvrir une tâche chez lui,
-                                    et il ne s'efface pas avec la campagne. La file ne le fait pas encore — dette D3.
-                                </p>
-                            )}
+                            {activeTab === 'missing' &&
+                                auditFinalized &&
+                                assignedMissingCount > 0 && (
+                                    <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
+                                        <strong className="text-on-surface font-medium">
+                                            {assignedMissingCount} des {missingItems.length}{' '}
+                                            manquants sont attribués.
+                                        </strong>{' '}
+                                        Leur porteur reste responsable : le manquant devrait ouvrir
+                                        une tâche chez lui, et il ne s'efface pas avec la campagne.
+                                        La file ne le fait pas encore — dette D3.
+                                    </p>
+                                )}
                         </section>
                     </>
                 )}
@@ -1364,39 +1516,46 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <div className="space-y-3">
                         {/* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */}
                         <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-[15px] font-medium text-on-surface">
+                            <p className="text-on-surface text-[15px] font-medium">
                                 {pendingExceptions.length > 0
                                     ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
                                     : sessionExceptions > 0
-                                        ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
-                                        : 'Aucun écart'}
+                                      ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
+                                      : 'Aucun écart'}
                             </p>
-                            <p className="shrink-0 text-body-small text-text-secondary">scannés hors campagne</p>
+                            <p className="text-body-small text-text-secondary shrink-0">
+                                scannés hors campagne
+                            </p>
                         </div>
 
                         {filteredExceptions.length === 0 ? (
-                            <section className="overflow-hidden rounded-card border border-outline-variant bg-surface">
+                            <section className="rounded-card border-outline-variant bg-surface overflow-hidden border">
                                 {renderEmptyList('exceptions')}
                             </section>
                         ) : (
                             filteredExceptions.map((entry) => {
-                                const name = entry.result.equipmentName
-                                    || entry.payload.machineName
-                                    || entry.payload.hostname
-                                    || 'Machine inconnue';
-                                const code = entry.payload.assetId
-                                    || entry.payload.serialNumber
-                                    || entry.equipment?.assetId
-                                    || 'code inconnu';
-                                const isOutOfService = entry.result.resolution === 'found_out_of_service';
+                                const name =
+                                    entry.result.equipmentName ||
+                                    entry.payload.machineName ||
+                                    entry.payload.hostname ||
+                                    'Machine inconnue';
+                                const code =
+                                    entry.payload.assetId ||
+                                    entry.payload.serialNumber ||
+                                    entry.equipment?.assetId ||
+                                    'code inconnu';
+                                const isOutOfService =
+                                    entry.result.resolution === 'found_out_of_service';
                                 const registeredAt = entry.equipment
-                                    ? [entry.equipment.department, entry.equipment.site].filter(Boolean).join(' · ')
+                                    ? [entry.equipment.department, entry.equipment.site]
+                                          .filter(Boolean)
+                                          .join(' · ')
                                     : '';
 
                                 return (
                                     <section
                                         key={entry.id}
-                                        className="rounded-card border border-outline-variant bg-surface px-4 py-3.5"
+                                        className="rounded-card border-outline-variant bg-surface border px-4 py-3.5"
                                     >
                                         <div className="flex items-center gap-3">
                                             {/* La pastille de nature à gauche, comme le « pin » de la
@@ -1404,22 +1563,33 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                 il s'agit avant même de lire le code. */}
                                             <span
                                                 className={cn(
-                                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-surface-container',
+                                                    'rounded-vignette bg-surface-container flex h-10 w-10 shrink-0 items-center justify-center',
                                                     isOutOfService
                                                         ? 'text-[var(--tk-color-st-orange)]'
                                                         : 'text-[var(--tk-color-st-bleu)]',
                                                 )}
                                             >
-                                                <Icon glyph={isOutOfService ? ArrowsLeftRight : Question} size={20} />
+                                                <Icon
+                                                    glyph={
+                                                        isOutOfService ? ArrowsLeftRight : Question
+                                                    }
+                                                    size={20}
+                                                />
                                             </span>
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-[15px] font-medium text-on-surface">{code}</p>
-                                                <p className="truncate text-body-small text-text-secondary">
+                                                <p className="text-on-surface truncate text-[15px] font-medium">
+                                                    {code}
+                                                </p>
+                                                <p className="text-body-small text-text-secondary truncate">
                                                     {name} · scanné {formatSince(entry.timestamp)}
                                                 </p>
                                             </div>
                                             {entry.resolved ? (
-                                                <ExceptionMark icon={CheckCircle} label="tranché" tone="positive" />
+                                                <ExceptionMark
+                                                    icon={CheckCircle}
+                                                    label="tranché"
+                                                    tone="positive"
+                                                />
                                             ) : isOutOfService ? (
                                                 <ExceptionMark
                                                     icon={ArrowsLeftRight}
@@ -1427,34 +1597,69 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                     tone="attention"
                                                 />
                                             ) : (
-                                                <ExceptionMark icon={PlusCircle} label="nouveau" tone="info" />
+                                                <ExceptionMark
+                                                    icon={PlusCircle}
+                                                    label="nouveau"
+                                                    tone="info"
+                                                />
                                             )}
                                         </div>
 
                                         {/* Le fait, avant les gestes. */}
-                                        <p className="mt-2.5 text-body-small text-on-surface">
+                                        <p className="text-body-small text-on-surface mt-2.5">
                                             {entry.resolved ? (
                                                 entry.decision === 'attached' ? (
-                                                    <>Rattaché à <strong className="font-medium">{selectedService}</strong> {formatSince(entry.decidedAt)}. L'actif compte désormais parmi les retrouvés.</>
+                                                    <>
+                                                        Rattaché à{' '}
+                                                        <strong className="font-medium">
+                                                            {selectedService}
+                                                        </strong>{' '}
+                                                        {formatSince(entry.decidedAt)}. L'actif
+                                                        compte désormais parmi les retrouvés.
+                                                    </>
                                                 ) : entry.decision === 'left' ? (
-                                                    <>Laissé à son service d'origine {registeredAt ? <>— <strong className="font-medium">{registeredAt}</strong></> : null}. Il était de passage ici.</>
+                                                    <>
+                                                        Laissé à son service d'origine{' '}
+                                                        {registeredAt ? (
+                                                            <>
+                                                                —{' '}
+                                                                <strong className="font-medium">
+                                                                    {registeredAt}
+                                                                </strong>
+                                                            </>
+                                                        ) : null}
+                                                        . Il était de passage ici.
+                                                    </>
                                                 ) : entry.decision === 'kept' ? (
-                                                    <>Fiche gardée et ouverte pour être complétée {formatSince(entry.decidedAt)}. Elle est rattachée au périmètre de la campagne.</>
+                                                    <>
+                                                        Fiche gardée et ouverte pour être complétée{' '}
+                                                        {formatSince(entry.decidedAt)}. Elle est
+                                                        rattachée au périmètre de la campagne.
+                                                    </>
                                                 ) : (
-                                                    <>Fiche écartée et retirée du parc. Le code pourra être rescanné.</>
+                                                    <>
+                                                        Fiche écartée et retirée du parc. Le code
+                                                        pourra être rescanné.
+                                                    </>
                                                 )
                                             ) : isOutOfService ? (
                                                 <>
                                                     Cet actif est enregistré sur{' '}
-                                                    <strong className="font-medium">{registeredAt || 'un autre service'}</strong>.
-                                                    Il a été trouvé dans le local de{' '}
-                                                    <strong className="font-medium">{selectedService}</strong>. Vit-il ici ?
+                                                    <strong className="font-medium">
+                                                        {registeredAt || 'un autre service'}
+                                                    </strong>
+                                                    . Il a été trouvé dans le local de{' '}
+                                                    <strong className="font-medium">
+                                                        {selectedService}
+                                                    </strong>
+                                                    . Vit-il ici ?
                                                 </>
                                             ) : (
                                                 <>
                                                     Aucune fiche ne portait ce code. Le scan a lu{' '}
-                                                    <strong className="font-medium">{name}</strong> sur l'étiquette — le reste
-                                                    de la fiche est à saisir. Faut-il la garder ?
+                                                    <strong className="font-medium">{name}</strong>{' '}
+                                                    sur l'étiquette — le reste de la fiche est à
+                                                    saisir. Faut-il la garder ?
                                                 </>
                                             )}
                                         </p>
@@ -1463,18 +1668,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                             {entry.resolved ? (
                                                 auditFinalized ? (
                                                     <span className="text-body-small text-on-surface-variant">
-                                                        La campagne est clôturée : la décision est figée.
+                                                        La campagne est clôturée : la décision est
+                                                        figée.
                                                     </span>
                                                 ) : (
                                                     <Button
                                                         variant="text"
                                                         size="sm"
                                                         onClick={() => undoException(entry.id)}
-                                                        icon={<Icon glyph={ArrowUUpLeft} size={16} />}
+                                                        icon={
+                                                            <Icon glyph={ArrowUUpLeft} size={16} />
+                                                        }
                                                     >
                                                         {entry.decision === 'attached'
-                                                        ? 'Annuler ce rattachement'
-                                                        : 'Annuler cette décision'}
+                                                            ? 'Annuler ce rattachement'
+                                                            : 'Annuler cette décision'}
                                                     </Button>
                                                 )
                                             ) : isOutOfService ? (
@@ -1489,7 +1697,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                     <Button
                                                         variant="tonal"
                                                         size="sm"
-                                                        onClick={() => attachException(entry.id, entry.equipment)}
+                                                        onClick={() =>
+                                                            attachException(
+                                                                entry.id,
+                                                                entry.equipment,
+                                                            )
+                                                        }
                                                         disabled={!entry.equipment}
                                                     >
                                                         Rattacher ici
@@ -1500,14 +1713,24 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                     <Button
                                                         variant="outlined"
                                                         size="sm"
-                                                        onClick={() => discardException(entry.id, entry.equipment)}
+                                                        onClick={() =>
+                                                            discardException(
+                                                                entry.id,
+                                                                entry.equipment,
+                                                            )
+                                                        }
                                                     >
                                                         Écarter
                                                     </Button>
                                                     <Button
                                                         variant="tonal"
                                                         size="sm"
-                                                        onClick={() => completeException(entry.id, entry.equipment)}
+                                                        onClick={() =>
+                                                            completeException(
+                                                                entry.id,
+                                                                entry.equipment,
+                                                            )
+                                                        }
                                                         disabled={!entry.equipment}
                                                     >
                                                         Compléter la fiche
@@ -1519,26 +1742,36 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
                                             réellement. Le pictogramme la distingue du fait au-dessus. */}
                                         {!entry.resolved && (
-                                            <p className="mt-2 flex items-start gap-2 text-label-small text-on-surface-variant">
-                                                <Icon glyph={Info} size={18} className="mt-px shrink-0" />
+                                            <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
+                                                <Icon
+                                                    glyph={Info}
+                                                    size={18}
+                                                    className="mt-px shrink-0"
+                                                />
                                                 <span>
                                                     {isOutOfService
-                                                        ? '« Rattacher » écrit l\'emplacement dans la fiche — c\'est une modification d\'actif, elle est journalisée.'
+                                                        ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
                                                         : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
                                                 </span>
                                             </p>
                                         )}
                                         {entry.resolved && !auditFinalized && (
-                                            <p className="mt-2 flex items-start gap-2 text-label-small text-on-surface-variant">
-                                                <Icon glyph={ArrowUUpLeft} size={18} className="mt-px shrink-0" />
-                                                <span>Annulable jusqu'à la clôture — après, la décision est figée.</span>
+                                            <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
+                                                <Icon
+                                                    glyph={ArrowUUpLeft}
+                                                    size={18}
+                                                    className="mt-px shrink-0"
+                                                />
+                                                <span>
+                                                    Annulable jusqu'à la clôture — après, la
+                                                    décision est figée.
+                                                </span>
                                             </p>
                                         )}
                                     </section>
                                 );
                             })
                         )}
-
                     </div>
                 )}
 
@@ -1579,7 +1812,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <textarea
                         value={scanRawValue}
                         onChange={(e) => setScanRawValue(e.target.value)}
-                        className="w-full min-h-40 rounded-card border border-outline-variant bg-surface px-3 py-2 text-body-medium text-on-surface outline-none focus:border-primary"
+                        className="rounded-card border-outline-variant bg-surface text-body-medium text-on-surface focus:border-primary min-h-40 w-full border px-3 py-2 outline-none"
                         placeholder={`Exemple JSON:\n{\n  "assetId": "ASSET-10001",\n  "hostname": "PC-HQ-01",\n  "userEmail": "user@company.com"\n}`}
                     />
                     <div className="flex justify-end gap-2">

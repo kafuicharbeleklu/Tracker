@@ -53,7 +53,11 @@ const MODE_OPTIONS = [
 /** « 6 août 2026 » — la date d'une lecture se lit, elle ne se décode pas. */
 const formatReadDate = (date: Date): string => {
     if (Number.isNaN(date.getTime())) return '—';
-    return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+    return new Intl.DateTimeFormat('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    }).format(date);
 };
 
 const getObjectUrlForFile = (file?: File | null): string | undefined => {
@@ -94,8 +98,11 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         invoiceNumber: '',
     });
 
-    const currencySymbol = settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€';
-    const requiresLowConfidenceReview = Boolean(scannedFile && extractionMeta?.confidence === 'low');
+    const currencySymbol =
+        settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€';
+    const requiresLowConfidenceReview = Boolean(
+        scannedFile && extractionMeta?.confidence === 'low',
+    );
 
     /* `confidenceLabel` et `textSourceLabel` sont tombés avec le bandeau « Données
        extraites par IA » : la confiance et la source de lecture ne s'affichent plus,
@@ -159,8 +166,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         if (amount === null || amount <= 0) return null;
 
         const year = new Date(formData.date || Date.now()).getFullYear();
-        const budget =
-            financeBudgets.find((entry) => entry.year === year) ?? financeBudgets[0];
+        const budget = financeBudgets.find((entry) => entry.year === year) ?? financeBudgets[0];
         const line = budget?.items.find((item) => item.type === formData.type);
         if (!line || line.allocated <= 0) return null;
 
@@ -194,7 +200,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             description: extracted.description,
             invoiceNumber: keepIfRead(
                 extracted.invoiceNumber,
-                extracted.fieldConfidence.invoiceNumber
+                extracted.fieldConfidence.invoiceNumber,
             ),
         });
         setExtractionMeta({
@@ -237,9 +243,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
         if (!inserted.ok) {
             await cleanupPreparedSourceFile(preparedSource);
-            const reason = inserted.reason === 'forbidden'
-                ? 'forbidden'
-                : 'duplicate';
+            const reason = inserted.reason === 'forbidden' ? 'forbidden' : 'duplicate';
             return { ok: false as const, reason };
         }
 
@@ -321,10 +325,11 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             try {
                 const extracted = await extractExpenseDraftFromFile(file);
                 const coreAmount = parseAmountString(extracted.amount);
-                const needsReview = extracted.confidence === 'low'
-                    || !coreAmount
-                    || !extracted.supplier
-                    || extracted.supplier === 'Fournisseur non détecté';
+                const needsReview =
+                    extracted.confidence === 'low' ||
+                    !coreAmount ||
+                    !extracted.supplier ||
+                    extracted.supplier === 'Fournisseur non détecté';
 
                 if (needsReview) {
                     reviewRequired += 1;
@@ -356,7 +361,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         setIsScanning(false);
 
         if (permissionDenied) {
-            showToast('Action refusée: permissions insuffisantes pour ajouter des dépenses.', 'error');
+            showToast(
+                'Action refusée: permissions insuffisantes pour ajouter des dépenses.',
+                'error',
+            );
             return;
         }
 
@@ -408,7 +416,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         if (!createdExpense.ok) {
             await cleanupPreparedSourceFile(preparedSource);
             if (createdExpense.reason === 'forbidden') {
-                showToast('Action refusée: permissions insuffisantes pour ajouter des dépenses.', 'error');
+                showToast(
+                    'Action refusée: permissions insuffisantes pour ajouter des dépenses.',
+                    'error',
+                );
                 return;
             }
             showToast('Dépense déjà importée. Aucun doublon ajouté.', 'warning');
@@ -416,13 +427,18 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             return;
         }
 
-        showToast(`Dépense enregistrée (${createdExpense.expense?.supplier || formData.supplier}).`, 'success');
+        showToast(
+            `Dépense enregistrée (${createdExpense.expense?.supplier || formData.supplier}).`,
+            'success',
+        );
         handleClose();
     };
 
     const footer = (
         <>
-            <Button variant="outlined" onClick={handleClose}>Annuler</Button>
+            <Button variant="outlined" onClick={handleClose}>
+                Annuler
+            </Button>
             <Button
                 variant="filled"
                 onClick={() => {
@@ -443,8 +459,8 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             footer={mode === 'manual' ? footer : undefined}
             maxWidth="max-w-5xl"
         >
-            <div className="mb-6 rounded-md border border-outline-variant bg-gradient-to-r from-surface-container-low to-surface-container p-3">
-                <div className="mb-2 flex items-center gap-2 text-label-small text-on-surface-variant uppercase tracking-widest">
+            <div className="border-outline-variant from-surface-container-low to-surface-container mb-6 rounded-md border bg-gradient-to-r p-3">
+                <div className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
                     <Icon glyph={ArrowsClockwise} size={18} />
                     Mode de saisie
                 </div>
@@ -457,7 +473,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             </div>
 
             {mode === 'scan' && (
-                <div className="min-h-[300px] flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                <div className="animate-in fade-in zoom-in-95 flex min-h-[300px] flex-col items-center justify-center space-y-6 text-center duration-300">
                     {!isScanning ? (
                         <FileDropzone
                             onFileSelect={startScan}
@@ -466,34 +482,50 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                             accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
                             label="Déposez vos factures ici"
                             subLabel="Import unitaire ou en lot: extraction automatique des informations clés"
-                            className="w-full h-64 border-outline-variant hover:border-primary"
+                            className="border-outline-variant hover:border-primary h-64 w-full"
                         />
                     ) : (
                         <div className="flex flex-col items-center">
                             <div className="relative">
-                                <div className="w-24 h-24 rounded-full border-4 border-outline-variant flex items-center justify-center relative overflow-hidden">
-                                    <Icon glyph={FileText} size={32} className="text-on-surface-variant" />
+                                <div className="border-outline-variant relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4">
+                                    <Icon
+                                        glyph={FileText}
+                                        size={32}
+                                        className="text-on-surface-variant"
+                                    />
                                     <div
-                                        className="absolute inset-0 bg-primary/20 animate-[spin_3s_linear_infinite]"
-                                        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)' }}
+                                        className="bg-primary/20 absolute inset-0 animate-[spin_3s_linear_infinite]"
+                                        style={{
+                                            clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)',
+                                        }}
                                     />
                                 </div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Icon glyph={MagnifyingGlass} size={32} className="text-primary animate-pulse" />
+                                    <Icon
+                                        glyph={MagnifyingGlass}
+                                        size={32}
+                                        className="text-primary animate-pulse"
+                                    />
                                 </div>
                             </div>
-                            <h3 className="text-title-medium font-bold text-on-surface mt-6">Analyse en cours...</h3>
-                            <div className="flex flex-col gap-1 mt-2 text-body-medium text-on-surface-variant">
-                                <span className="animate-in fade-in slide-in-from-bottom-2 delay-100 flex items-center gap-2">
+                            <h3 className="text-title-medium text-on-surface mt-6 font-bold">
+                                Analyse en cours...
+                            </h3>
+                            <div className="text-body-medium text-on-surface-variant mt-2 flex flex-col gap-1">
+                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-100">
                                     <Icon glyph={Check} size={18} className="text-tertiary" />
                                     Détection du fournisseur
                                 </span>
-                                <span className="animate-in fade-in slide-in-from-bottom-2 delay-500 flex items-center gap-2">
+                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-500">
                                     <Icon glyph={Check} size={18} className="text-tertiary" />
                                     Lecture des montants HT/TTC
                                 </span>
-                                <span className="animate-in fade-in slide-in-from-bottom-2 delay-1000 flex items-center gap-2">
-                                    <Icon glyph={SpinnerGap} size={18} className="animate-spin text-primary" />
+                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-1000">
+                                    <Icon
+                                        glyph={SpinnerGap}
+                                        size={18}
+                                        className="text-primary animate-spin"
+                                    />
                                     Catégorisation...
                                 </span>
                             </div>
@@ -503,23 +535,23 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             )}
 
             {mode === 'manual' && (
-                <div className="animate-in slide-in-from-right-8 duration-300 space-y-4">
+                <div className="animate-in slide-in-from-right-8 space-y-4 duration-300">
                     {/* Le fichier lu — `.fread` de 15.1. Une surface neutre : icône, nom,
                         date de lecture, et de quoi le retirer. Le bandeau teinté « Données
                         extraites par IA » disait la machine plutôt que le document, et
                         empilait trois lignes de métadonnées que la planche ne porte pas —
                         la confiance ne se dit pas, elle décide (voir `keepIfRead`). */}
                     {scannedFile && (
-                        <div className="rounded-lg border border-outline-variant bg-surface p-4 shadow-elevation-1">
+                        <div className="border-outline-variant bg-surface shadow-elevation-1 rounded-lg border p-4">
                             <div className="flex min-h-[56px] items-center gap-3">
-                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] bg-surface-container text-on-surface-variant">
+                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px]">
                                     <Icon glyph={FileText} size={20} />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <b className="block truncate text-[14px] font-medium text-on-surface">
+                                    <b className="text-on-surface block truncate text-[14px] font-medium">
                                         {scannedFile.name}
                                     </b>
-                                    <span className="block text-[12px] text-on-surface-variant">
+                                    <span className="text-on-surface-variant block text-[12px]">
                                         lue le {formatReadDate(new Date())}
                                     </span>
                                 </span>
@@ -538,7 +570,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                     )}
 
                     {extractionMeta?.warnings?.length ? (
-                        <div className="rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
+                        <div className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant rounded-xl border px-3 py-2">
                             {extractionMeta.warnings[0]}
                         </div>
                     ) : null}
@@ -550,21 +582,31 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         coup d'œil ; ce qui ne l'a pas été porte « non lu · à saisir », et
                         c'est le seul endroit où l'œil doit se poser. */}
                     {scannedFile && extractionMeta && (
-                        <div className="rounded-lg border border-outline-variant bg-surface p-4 shadow-elevation-1">
+                        <div className="border-outline-variant bg-surface shadow-elevation-1 rounded-lg border p-4">
                             <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-[13px] font-medium text-on-surface">Ce que la machine a lu</h3>
+                                <h3 className="text-on-surface text-[13px] font-medium">
+                                    Ce que la machine a lu
+                                </h3>
                             </div>
-                            <div className="divide-y divide-outline-variant">
+                            <div className="divide-outline-variant divide-y">
                                 {[
-                                    { label: 'Fournisseur', value: formData.supplier, confidence: extractionMeta.fieldConfidence?.supplier },
+                                    {
+                                        label: 'Fournisseur',
+                                        value: formData.supplier,
+                                        confidence: extractionMeta.fieldConfidence?.supplier,
+                                    },
                                     {
                                         label: 'Montant',
-                                        value: formData.amount ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}` : '',
+                                        value: formData.amount
+                                            ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}`
+                                            : '',
                                         confidence: extractionMeta.fieldConfidence?.amount,
                                     },
                                     {
                                         label: 'Date',
-                                        value: formData.date ? formatReadDate(new Date(formData.date)) : '',
+                                        value: formData.date
+                                            ? formatReadDate(new Date(formData.date))
+                                            : '',
                                         confidence: extractionMeta.fieldConfidence?.date,
                                     },
                                     {
@@ -575,33 +617,44 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                 ].map((row) => {
                                     const unread = !row.value || row.confidence === 'low';
                                     return (
-                                        <div key={row.label} className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
-                                            <span className="w-[106px] shrink-0 text-on-surface-variant">{row.label}</span>
+                                        <div
+                                            key={row.label}
+                                            className="flex items-baseline gap-2.5 py-[9px] text-[13px]"
+                                        >
+                                            <span className="text-on-surface-variant w-[106px] shrink-0">
+                                                {row.label}
+                                            </span>
                                             <span
                                                 className={
                                                     unread
-                                                        ? 'min-w-0 flex-1 font-normal text-text-muted'
-                                                        : 'min-w-0 flex-1 truncate font-medium tabular-nums text-on-surface'
+                                                        ? 'text-text-muted min-w-0 flex-1 font-normal'
+                                                        : 'text-on-surface min-w-0 flex-1 truncate font-medium tabular-nums'
                                                 }
                                             >
                                                 {unread ? 'non lu' : row.value}
                                             </span>
                                             {unread && (
-                                                <span className="shrink-0 text-[11px] text-text-muted">à saisir</span>
+                                                <span className="text-text-muted shrink-0 text-[11px]">
+                                                    à saisir
+                                                </span>
                                             )}
                                         </div>
                                     );
                                 })}
                             </div>
-                            <p className="mt-1.5 px-0.5 text-[12px] leading-[17px] text-on-surface-variant">
+                            <p className="text-on-surface-variant mt-1.5 px-0.5 text-[12px] leading-[17px]">
                                 {unreadFields.length === 0 ? (
                                     <>Les quatre champs sont acquis. Rien à relire.</>
                                 ) : (
                                     <>
-                                        {4 - unreadFields.length} champ{4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
-                                        {4 - unreadFields.length > 1 ? 'sont acquis' : 'est acquis'}. Le
-                                        {unreadFields.length > 1 ? 's autres arrivent vides' : ' quatrième arrive vide'} : c'est le
-                                        seul endroit où l'œil doit se poser.
+                                        {4 - unreadFields.length} champ
+                                        {4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
+                                        {4 - unreadFields.length > 1 ? 'sont acquis' : 'est acquis'}
+                                        . Le
+                                        {unreadFields.length > 1
+                                            ? 's autres arrivent vides'
+                                            : ' quatrième arrive vide'}{' '}
+                                        : c'est le seul endroit où l'œil doit se poser.
                                     </>
                                 )}
                             </p>
@@ -609,7 +662,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                     )}
 
                     {requiresLowConfidenceReview ? (
-                        <label className="flex items-start gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-body-small text-on-surface-variant">
+                        <label className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant flex items-start gap-2 rounded-xl border px-3 py-2">
                             <input
                                 type="checkbox"
                                 className="mt-0.5 h-4 w-4"
@@ -617,29 +670,36 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                 onChange={(e) => setIsLowConfidenceReviewed(e.target.checked)}
                             />
                             <span>
-                                Je confirme avoir verifie manuellement le fournisseur, le montant, la date et la reference.
+                                Je confirme avoir verifie manuellement le fournisseur, le montant,
+                                la date et la reference.
                             </span>
                         </label>
                     ) : null}
 
-                    <div className="border border-primary/25 bg-primary-container/10 p-4">
+                    <div className="border-primary/25 bg-primary-container/10 border p-4">
                         <div className="mb-3 flex items-center gap-2">
                             <Icon glyph={WarningCircle} size={18} className="text-primary" />
-                            <p className="text-label-medium uppercase tracking-widest text-on-surface">Champs critiques</p>
+                            <p className="text-label-medium text-on-surface tracking-widest uppercase">
+                                Champs critiques
+                            </p>
                         </div>
-                        <div className="grid grid-cols-1 expanded:grid-cols-3 gap-4">
+                        <div className="expanded:grid-cols-3 grid grid-cols-1 gap-4">
                             <InputField
                                 label={`Montant (${currencySymbol}) *`}
                                 type="number"
                                 value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, amount: e.target.value })
+                                }
                                 placeholder="0.00"
                                 required
                             />
                             <InputField
                                 label="Fournisseur *"
                                 value={formData.supplier}
-                                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, supplier: e.target.value })
+                                }
                                 placeholder="Ex: Dell Technologies"
                                 required
                             />
@@ -653,15 +713,19 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 expanded:grid-cols-2 gap-4 border border-outline-variant bg-surface-container-low p-4">
+                    <div className="expanded:grid-cols-2 border-outline-variant bg-surface-container-low grid grid-cols-1 gap-4 border p-4">
                         <div className="expanded:col-span-2 mb-1 flex items-center gap-2">
                             <Icon glyph={Sliders} size={18} className="text-on-surface-variant" />
-                            <p className="text-label-medium uppercase tracking-widest text-on-surface-variant">Détails complémentaires</p>
+                            <p className="text-label-medium text-on-surface-variant tracking-widest uppercase">
+                                Détails complémentaires
+                            </p>
                         </div>
                         <InputField
                             label="N° Facture (optionnel)"
                             value={formData.invoiceNumber}
-                            onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                            onChange={(e) =>
+                                setFormData({ ...formData, invoiceNumber: e.target.value })
+                            }
                             placeholder="INV-2024-001"
                         />
                         <SelectField
@@ -677,7 +741,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                             <TextArea
                                 label="Description (optionnelle)"
                                 value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, description: e.target.value })
+                                }
                                 rows={3}
                                 placeholder="Détails de la dépense..."
                             />
@@ -689,19 +755,30 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         consommé, et ce qu'il en restera une fois cette dépense enregistrée.
                         Un solde qui passe sous zéro se voit ici, pas à la clôture. */}
                     {budgetImpact && (
-                        <div className="flex gap-2.5 rounded-md border border-outline-variant bg-surface-container p-[11px_12px] text-[12px] leading-[17px] text-on-surface-variant">
-                            <Icon glyph={Warning} size={18} className="mt-px shrink-0 text-on-surface-variant" />
+                        <div className="border-outline-variant bg-surface-container text-on-surface-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[12px] leading-[17px]">
+                            <Icon
+                                glyph={Warning}
+                                size={18}
+                                className="text-on-surface-variant mt-px shrink-0"
+                            />
                             <span>
-                                <b className="font-medium text-on-surface">
+                                <b className="text-on-surface font-medium">
                                     Cette dépense s'impute sur «&nbsp;{budgetImpact.category}&nbsp;»
                                 </b>
-                                , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après enregistrement, il restera{' '}
+                                , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après
+                                enregistrement, il restera{' '}
                                 <b
                                     className={
-                                        budgetImpact.after < 0 ? 'font-medium text-error' : 'font-medium text-on-surface'
+                                        budgetImpact.after < 0
+                                            ? 'text-error font-medium'
+                                            : 'text-on-surface font-medium'
                                     }
                                 >
-                                    {formatCurrency(budgetImpact.after, settings.currency, settings.compactNotation)}
+                                    {formatCurrency(
+                                        budgetImpact.after,
+                                        settings.currency,
+                                        settings.compactNotation,
+                                    )}
                                 </b>{' '}
                                 sur le poste.
                             </span>
@@ -712,4 +789,3 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         </Modal>
     );
 };
-

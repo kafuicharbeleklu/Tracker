@@ -42,43 +42,47 @@ interface FloatingActionButtonProps extends React.ButtonHTMLAttributes<HTMLButto
  * Used for the primary action on a screen.
  */
 const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionButtonProps>(
-    ({ variant = 'primary', size = 'medium', icon, label, lowered = false, className, ...props }, ref) => {
-
+    (
+        { variant = 'primary', size = 'medium', icon, label, lowered = false, className, ...props },
+        ref,
+    ) => {
         // Extended FAB check
         const isExtended = !!label;
 
         const baseStyles = cn(
-            "inline-flex items-center justify-center shrink-0",
-            "transition-all duration-short4 ease-emphasized",
-            "cursor-pointer overflow-hidden",
-            "shadow-elevation-3 hover:shadow-elevation-4 active:shadow-elevation-3", // Standard FAB elevation
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2",
+            'inline-flex items-center justify-center shrink-0',
+            'transition-all duration-short4 ease-emphasized',
+            'cursor-pointer overflow-hidden',
+            'shadow-elevation-3 hover:shadow-elevation-4 active:shadow-elevation-3', // Standard FAB elevation
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2',
             // État désactivé : le composant acceptait `disabled` sans AUCUN rendu
             // associé — bouton mort d'aspect actif (Tracker DS v1, tâche 1).
             // `pointer-events-none` neutralise aussi la couche d'état `after:` ci-dessous.
-            "disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-[0.38] disabled:shadow-elevation-0",
+            'disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-[0.38] disabled:shadow-elevation-0',
             // State Layer
-            "relative after:absolute after:inset-0 after:bg-current after:opacity-0 hover:after:opacity-[0.08] active:after:opacity-[0.12] after:transition-opacity after:pointer-events-none"
+            'relative after:absolute after:inset-0 after:bg-current after:opacity-0 hover:after:opacity-[0.08] active:after:opacity-[0.12] after:transition-opacity after:pointer-events-none',
         );
 
         const variants = {
-            primary: "bg-primary text-on-primary",
-            secondary: "bg-secondary-container text-on-secondary-container",
-            tertiary: "bg-tertiary-container text-on-tertiary-container",
-            surface: "bg-surface-container-high text-on-surface",
+            primary: 'bg-primary text-on-primary',
+            secondary: 'bg-secondary-container text-on-secondary-container',
+            tertiary: 'bg-tertiary-container text-on-tertiary-container',
+            surface: 'bg-surface-container-high text-on-surface',
         };
 
         const sizes = {
-            small: "w-10 h-10 rounded-md", // 40dp, 4px
-            medium: "w-14 h-14 rounded-xl", // 56dp, 8px (--tk-radius-sheet / .fab)
-            large: "w-24 h-24 rounded-xl", // 96dp, 8px
+            small: 'w-10 h-10 rounded-md', // 40dp, 4px
+            medium: 'w-14 h-14 rounded-xl', // 56dp, 8px (--tk-radius-sheet / .fab)
+            large: 'w-24 h-24 rounded-xl', // 96dp, 8px
         };
 
-        const extendedStyles = isExtended ? cn(
-            "h-14 px-4 rounded-xl w-auto gap-2", // Height 56dp, shape-large (8px)
-            // Typography for Extended FAB (Label Large)
-            "text-label-large font-medium"
-        ) : "";
+        const extendedStyles = isExtended
+            ? cn(
+                  'h-14 px-4 rounded-xl w-auto gap-2', // Height 56dp, shape-large (8px)
+                  // Typography for Extended FAB (Label Large)
+                  'text-label-large font-medium',
+              )
+            : '';
 
         return (
             <button
@@ -87,16 +91,18 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
                     baseStyles,
                     variants[variant],
                     isExtended ? extendedStyles : sizes[size],
-                    lowered && "shadow-elevation-1 hover:shadow-elevation-2",
-                    className
+                    lowered && 'shadow-elevation-1 hover:shadow-elevation-2',
+                    className,
                 )}
                 {...props}
             >
                 {/* Icon rendering */}
-                <span className={cn(
-                    "inline-flex shrink-0 z-10",
-                    size === 'large' ? "w-9 h-9" : "w-6 h-6"
-                )}>
+                <span
+                    className={cn(
+                        'z-10 inline-flex shrink-0',
+                        size === 'large' ? 'h-9 w-9' : 'h-6 w-6',
+                    )}
+                >
                     {typeof icon === 'string' ? (
                         <MaterialIcon name={icon} size={size === 'large' ? 36 : 24} />
                     ) : (
@@ -105,14 +111,11 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
                 </span>
 
                 {/* Extended Label rendering */}
-                {isExtended && (
-                    <span className="z-10 whitespace-nowrap">{label}</span>
-                )}
+                {isExtended && <span className="z-10 whitespace-nowrap">{label}</span>}
             </button>
         );
-    }
+    },
 );
 
 FloatingActionButton.displayName = 'FloatingActionButton';
 export default FloatingActionButton;
-

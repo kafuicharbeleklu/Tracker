@@ -20,7 +20,7 @@ export interface BusinessRuleDecision {
 
 const buildPermissionGuardDecision = (
     access: EffectiveAccessProfile | null | undefined,
-    permissionKey: typeof RBAC_PERMISSIONS.actions[keyof typeof RBAC_PERMISSIONS.actions],
+    permissionKey: (typeof RBAC_PERMISSIONS.actions)[keyof typeof RBAC_PERMISSIONS.actions],
     areaLabel: string,
 ): BusinessRuleDecision => {
     if (access && isPermissionGranted(access, permissionKey, 'write')) {
@@ -33,19 +33,29 @@ const buildPermissionGuardDecision = (
     };
 };
 
-export const canManageInventoryByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+export const canManageInventoryByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.inventoryManage, 'Inventaire');
 
-export const canManageFinanceByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+export const canManageFinanceByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.financeManage, 'Finances');
 
-export const canManageUsersByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+export const canManageUsersByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.usersManage, 'Utilisateurs');
 
-export const canManageSystemByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
-    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.managementManage, 'Gestion');
+export const canManageSystemByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.managementManage, 'Catalogue');
 
-export const canManageLocationsByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+export const canManageLocationsByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.locationsManage, 'Emplacements');
 
 interface ApprovalTransitionContext {
@@ -100,20 +110,25 @@ interface ReturnWorkflowContext {
 }
 
 type ReturnInspectionCondition =
-    | 'Excellent'
-    | 'Bon'
-    | 'Moyen'
-    | 'Mauvais'
-    | 'Dégradé'
-    | 'Hors service';
+    'Excellent' | 'Bon' | 'Moyen' | 'Mauvais' | 'Dégradé' | 'Hors service';
 
 const APPROVAL_TRANSITIONS: Partial<Record<ApprovalStatus, readonly ApprovalStatus[]>> = {
     WAITING_MANAGER_APPROVAL: ['WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
     // PENDING_DELIVERY depuis l'IT : uniquement pour les demandes sans gate manager
     // (§9.9) — le raccourci est gardé par approvalRequiresManagerGate dans
     // canTransitionApprovalStatus, un Admin ne saute pas la dotation des autres.
-    WAITING_IT_PROCESSING: ['WAITING_DOTATION_APPROVAL', 'PENDING_DELIVERY', 'Rejected', 'Cancelled'],
-    WAITING_DOTATION_APPROVAL: ['PENDING_DELIVERY', 'WAITING_IT_PROCESSING', 'Rejected', 'Cancelled'],
+    WAITING_IT_PROCESSING: [
+        'WAITING_DOTATION_APPROVAL',
+        'PENDING_DELIVERY',
+        'Rejected',
+        'Cancelled',
+    ],
+    WAITING_DOTATION_APPROVAL: [
+        'PENDING_DELIVERY',
+        'WAITING_IT_PROCESSING',
+        'Rejected',
+        'Cancelled',
+    ],
     PENDING_DELIVERY: ['Completed', 'Rejected', 'Cancelled'],
 };
 
@@ -124,11 +139,7 @@ export const ACTIVE_APPROVAL_STATUSES: readonly ApprovalStatus[] = [
     'PENDING_DELIVERY',
 ];
 
-const APPROVAL_HISTORY_STATUSES: readonly ApprovalStatus[] = [
-    'Rejected',
-    'Completed',
-    'Cancelled',
-];
+const APPROVAL_HISTORY_STATUSES: readonly ApprovalStatus[] = ['Rejected', 'Completed', 'Cancelled'];
 
 export const MANAGER_VALIDATION_PENDING_STATUSES: readonly ApprovalStatus[] = [
     'WAITING_MANAGER_APPROVAL',
@@ -161,7 +172,10 @@ const RELEASED_EQUIPMENT_FIELDS: Partial<Equipment> = {
     reservedAt: undefined,
 };
 
-const MANAGER_GATES: readonly ApprovalStatus[] = ['WAITING_MANAGER_APPROVAL', 'WAITING_DOTATION_APPROVAL'];
+const MANAGER_GATES: readonly ApprovalStatus[] = [
+    'WAITING_MANAGER_APPROVAL',
+    'WAITING_DOTATION_APPROVAL',
+];
 const IT_GATES: readonly ApprovalStatus[] = ['WAITING_IT_PROCESSING'];
 const USER_CONFIRMATION_GATES: readonly ApprovalStatus[] = ['PENDING_DELIVERY'];
 const DISPLAYABLE_PENDING_ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = [
@@ -315,7 +329,11 @@ const findUserByApprovalRef = (users: User[], id?: string, name?: string) => {
 // bénéficiaire qualifie — ni le demandeur/bénéficiaire lui-même (ex-court-circuit
 // ligne 315), ni le manager du demandeur (arbitrage (c)).
 const isManagerOfRequest = (approval: Approval, actorId: string, users: User[]) => {
-    const beneficiary = findUserByApprovalRef(users, approval.beneficiaryId, approval.beneficiaryName);
+    const beneficiary = findUserByApprovalRef(
+        users,
+        approval.beneficiaryId,
+        approval.beneficiaryName,
+    );
     return beneficiary?.managerId === actorId;
 };
 
@@ -329,7 +347,11 @@ export const approvalRequiresManagerGate = (
     approval: Pick<Approval, 'requesterId' | 'beneficiaryId' | 'beneficiaryName'>,
     users: User[],
 ): boolean => {
-    const beneficiary = findUserByApprovalRef(users, approval.beneficiaryId, approval.beneficiaryName);
+    const beneficiary = findUserByApprovalRef(
+        users,
+        approval.beneficiaryId,
+        approval.beneficiaryName,
+    );
     const manager = beneficiary?.managerId
         ? users.find((user) => user.id === beneficiary.managerId)
         : undefined;
@@ -419,15 +441,16 @@ export const getRefusalDecisionKind = (
 export const isRefusalTransition = (from: ApprovalStatus, to: ApprovalStatus): boolean =>
     getRefusalDecisionKind(from, to) !== null;
 
-export const getDecisionNoteLabel = (kind: DecisionNoteKind): string =>
-    DECISION_NOTE_LABELS[kind];
+export const getDecisionNoteLabel = (kind: DecisionNoteKind): string => DECISION_NOTE_LABELS[kind];
 
 /**
  * Dérive la disponibilité des actions par rangée depuis la machine à états
  * (APPROVAL_TRANSITIONS) et les gates de rôle — la présentation (libellés,
  * couleurs) reste à la charge des pages.
  */
-export const getAvailableApprovalActions = (context: ApprovalActionContext): AvailableApprovalActions => {
+export const getAvailableApprovalActions = (
+    context: ApprovalActionContext,
+): AvailableApprovalActions => {
     const { approval, actorId } = context;
     const allowedTargets = APPROVAL_TRANSITIONS[approval.status] || [];
 
@@ -435,21 +458,24 @@ export const getAvailableApprovalActions = (context: ApprovalActionContext): Ava
     // un User demandeur ne *valide* rien (gates de rôle) mais peut annuler sa propre
     // demande tant qu'elle est active (la table n'offre Cancelled qu'aux statuts
     // actifs). Le bénéficiaire d'une demande déléguée n'a pas ce droit.
-    const cancel = actorId && approval.requesterId === actorId && allowedTargets.includes('Cancelled')
-        ? { nextStatus: 'Cancelled' as ApprovalStatus }
-        : null;
+    const cancel =
+        actorId && approval.requesterId === actorId && allowedTargets.includes('Cancelled')
+            ? { nextStatus: 'Cancelled' as ApprovalStatus }
+            : null;
 
     if (!canUserActOnApproval(context)) {
         return { primary: null, reject: null, cancel };
     }
 
     const primaryCandidate = PRIMARY_APPROVAL_ACTIONS[approval.status] || null;
-    const primaryTarget = primaryCandidate?.kind === 'assign'
-        ? 'WAITING_DOTATION_APPROVAL'
-        : primaryCandidate?.nextStatus;
-    const primary = primaryCandidate && primaryTarget && allowedTargets.includes(primaryTarget)
-        ? primaryCandidate
-        : null;
+    const primaryTarget =
+        primaryCandidate?.kind === 'assign'
+            ? 'WAITING_DOTATION_APPROVAL'
+            : primaryCandidate?.nextStatus;
+    const primary =
+        primaryCandidate && primaryTarget && allowedTargets.includes(primaryTarget)
+            ? primaryCandidate
+            : null;
 
     const rejectTarget = getApprovalRejectTarget(approval.status);
     const reject = allowedTargets.includes(rejectTarget) ? { nextStatus: rejectTarget } : null;
@@ -457,10 +483,7 @@ export const getAvailableApprovalActions = (context: ApprovalActionContext): Ava
     return { primary, reject, cancel };
 };
 
-export const getStatusLabel = (
-    status: string,
-    options?: { short?: boolean },
-): string => {
+export const getStatusLabel = (status: string, options?: { short?: boolean }): string => {
     const entry = STATUS_DISPLAY_LABELS[status];
     if (!entry) return status;
     if (options?.short && entry.short) return entry.short;
@@ -512,9 +535,9 @@ const isMovementUpdateEvent = (event: HistoryEvent): boolean => {
     const fromAssignmentStatus = readMetadataString(event.metadata?.fromAssignmentStatus);
     const toAssignmentStatus = readMetadataString(event.metadata?.toAssignmentStatus);
     if (
-        fromAssignmentStatus !== null
-        && toAssignmentStatus !== null
-        && fromAssignmentStatus !== toAssignmentStatus
+        fromAssignmentStatus !== null &&
+        toAssignmentStatus !== null &&
+        fromAssignmentStatus !== toAssignmentStatus
     ) {
         return true;
     }
@@ -657,11 +680,17 @@ export const canDeleteEquipmentByBusinessRule = (
     hasBusinessHistory: boolean,
 ): BusinessRuleDecision => {
     if (equipment.status === 'Attribué' || equipment.status === 'En attente') {
-        return { allowed: false, reason: 'Impossible de supprimer un actif attribué ou en attente.' };
+        return {
+            allowed: false,
+            reason: 'Impossible de supprimer un actif attribué ou en attente.',
+        };
     }
 
     if (hasBusinessHistory) {
-        return { allowed: false, reason: 'Suppression bloquée: actif avec historique métier existant.' };
+        return {
+            allowed: false,
+            reason: 'Suppression bloquée: actif avec historique métier existant.',
+        };
     }
 
     return { allowed: true };
@@ -844,4 +873,3 @@ export const getEquipmentUpdatesForReturnWorkflow = ({
         repairStartDate: isRepairFlow ? nowISO : undefined,
     };
 };
-

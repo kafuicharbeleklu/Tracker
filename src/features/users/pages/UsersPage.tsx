@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-    CaretDown,
-    EnvelopeSimple,
-    Funnel,
-    Plus,
-    UsersThree,
-} from '@phosphor-icons/react';
+import { CaretDown, EnvelopeSimple, Funnel, Plus, UsersThree } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -86,9 +80,11 @@ const initials = (name: string) =>
 interface UsersPageProps {
     onUserClick?: (id: string) => void;
     onViewChange: (view: ViewType) => void;
+    /** Le site reçu d'un autre écran — la fiche d'un site renvoie ici, filtrée (10.1, C2). */
+    initialSite?: string | null;
 }
 
-const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
+const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initialSite }) => {
     const { users: allUsers, equipment, deleteUser, locationData } = useData();
     const { user: currentUser, filterUsers, permissions } = useAccessControl();
     const { showToast } = useToast();
@@ -96,19 +92,27 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
     const users = useMemo(() => filterUsers(allUsers), [allUsers, filterUsers]);
     const activeSuperAdminCount = useMemo(
-        () => allUsers.filter((user) => user.role === 'SuperAdmin' && user.status !== 'inactive').length,
-        [allUsers]
+        () =>
+            allUsers.filter((user) => user.role === 'SuperAdmin' && user.status !== 'inactive')
+                .length,
+        [allUsers],
     );
 
-    const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '');
-    const [roleFilter, setRoleFilter] = useState(() => sessionStorage.getItem(STORAGE_KEY_ROLE) || '');
+    const [searchQuery, setSearchQuery] = useState(
+        () => sessionStorage.getItem(STORAGE_KEY_SEARCH) || '',
+    );
+    const [roleFilter, setRoleFilter] = useState(
+        () => sessionStorage.getItem(STORAGE_KEY_ROLE) || '',
+    );
     const [ascending, setAscending] = useState(true);
     const selection = useSelection();
 
     // Filtres avancés feuille montante (05.1)
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [departmentFilter, setDepartmentFilter] = useState('Tous');
-    const [siteFilter, setSiteFilter] = useState('Tous');
+    const [siteFilter, setSiteFilter] = useState(() => initialSite || 'Tous');
+    /** Vrai tant qu'on n'a pas quitté le filtre reçu d'un autre écran (04.1). */
+    const [arrivedFiltered, setArrivedFiltered] = useState(() => Boolean(initialSite));
     const [statusFilter, setStatusFilter] = useState('Tous');
 
     // Feuille montante d'ajout (05.1)
@@ -202,7 +206,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
     const selectedUsers = useMemo(
         () => filteredUsers.filter((user) => selection.isSelected(user.id)),
-        [filteredUsers, selection]
+        [filteredUsers, selection],
     );
 
     const handleExport = (itemsToExport = filteredUsers) => {
@@ -211,7 +215,16 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
             return;
         }
 
-        const headers = ['Nom', 'Email', 'Département', 'Rôle', 'Dernière connexion', 'Pays', 'Site', 'Statut'];
+        const headers = [
+            'Nom',
+            'Email',
+            'Département',
+            'Rôle',
+            'Dernière connexion',
+            'Pays',
+            'Site',
+            'Statut',
+        ];
         const rows = itemsToExport.map((user) => [
             user.name,
             user.email,
@@ -223,7 +236,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
             user.status || '',
         ]);
 
-        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join('\n');
+        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join(
+            '\n',
+        );
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const fileDate = new Date().toISOString().slice(0, 10);
         const link = document.createElement('a');
@@ -244,13 +259,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
         const ids = [...selection.selectedIds];
 
         requestConfirmation({
-            title:
-                ids.length > 1
-                    ? `Supprimer ${ids.length} comptes ?`
-                    : 'Supprimer ce compte ?',
-            message: (
-                <p>Les accès seront révoqués. Opération irréversible.</p>
-            ),
+            title: ids.length > 1 ? `Supprimer ${ids.length} comptes ?` : 'Supprimer ce compte ?',
+            message: <p>Les accès seront révoqués. Opération irréversible.</p>,
             confirmText: 'Supprimer',
             onConfirm: () => {
                 let deleted = 0;
@@ -294,7 +304,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
         debouncedSearch ||
         departmentFilter !== 'Tous' ||
         siteFilter !== 'Tous' ||
-        statusFilter !== 'Tous'
+        statusFilter !== 'Tous',
     );
     const holdersCount = users.filter((user) => holdings(user) > 0).length;
     const heldCount = users.reduce((total, user) => total + holdings(user), 0);
@@ -303,6 +313,27 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
         <>
             <ListTemplate
                 title="Équipe"
+                /* **Une arrivée pré-filtrée se dit** (04.1) : la provenance en toutes
+                   lettres, et une sortie qui nomme sa destination. */
+                origin={
+                    arrivedFiltered && siteFilter !== 'Tous'
+                        ? {
+                              token: siteFilter,
+                              from: (
+                                  <span>
+                                      Depuis <b>{siteFilter}</b> · fiche du site
+                                  </span>
+                              ),
+                              clearLabel: `Voir les ${users.length} personnes de l'équipe`,
+                              onClear: () => {
+                                  setSiteFilter('Tous');
+                                  setArrivedFiltered(false);
+                              },
+                              displayToken: false,
+                              clearPresentation: 'more',
+                          }
+                        : undefined
+                }
                 search={{
                     value: searchQuery,
                     onChange: setSearchQuery,
@@ -313,11 +344,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                         type="button"
                         onClick={() => setIsFilterSheetOpen(true)}
                         aria-label="Filtrer"
-                        className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-outline text-on-surface hover:bg-surface-container transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                        className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
                     >
                         <Icon glyph={Funnel} size={20} />
                         {activeSheetFiltersCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-inverse-surface px-1 text-label-small font-semibold tabular-nums text-inverse-on-surface">
+                            <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
                                 {activeSheetFiltersCount}
                             </span>
                         )}
@@ -387,11 +418,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 }
                 fab={
                     permissions.canManageUsers && !selection.isActive ? (
-                        <FabContainer description="Ajouter une personne" className="bottom-[76px] right-5 compact:bottom-[76px]">
+                        <FabContainer
+                            description="Ajouter une personne"
+                            className="compact:bottom-[76px] right-5 bottom-[76px]"
+                        >
                             <button
                                 type="button"
                                 aria-label="Ajouter une personne"
-                                className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-[var(--tk-color-brand-text)] shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95 cursor-pointer"
+                                className="bg-primary flex h-14 w-14 cursor-pointer items-center justify-center rounded-xl text-[var(--tk-color-brand-text)] shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95"
                                 onClick={() => setIsAddSheetOpen(true)}
                             >
                                 <Icon glyph={Plus} size={24} />
@@ -405,12 +439,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     return (
                         <ListRow
                             key={user.id}
-                            vignette={<span className="font-brand text-body-large font-semibold">{initials(user.name)}</span>}
+                            vignette={
+                                <span className="font-brand text-body-large font-semibold">
+                                    {initials(user.name)}
+                                </span>
+                            }
                             title={user.name}
                             type={getStatusLabel(user.role)}
                             holder={user.department || user.site || '—'}
-                            reference={held > 0 ? `${held} équipement${held > 1 ? 's' : ''}` : 'aucun équipement'}
-                            referenceClassName={held > 0 ? 'text-text-secondary' : 'text-text-muted'}
+                            reference={
+                                held > 0
+                                    ? `${held} équipement${held > 1 ? 's' : ''}`
+                                    : 'aucun équipement'
+                            }
+                            referenceClassName={
+                                held > 0 ? 'text-text-secondary' : 'text-text-muted'
+                            }
                             onOpen={() => onUserClick?.(user.id)}
                             selectionActive={selection.isActive}
                             selected={selection.isSelected(user.id)}
@@ -430,7 +474,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                 <div className="space-y-4 px-1 pb-2">
                     {/* Département */}
                     <div>
-                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
                             Département
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -439,7 +483,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={dept}
                                     type="button"
                                     onClick={() => setDepartmentFilter(dept)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
+                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
                                         departmentFilter === dept
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -453,7 +497,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
                     {/* Site */}
                     <div>
-                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
                             Site
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -462,7 +506,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={s}
                                     type="button"
                                     onClick={() => setSiteFilter(s)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
+                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
                                         siteFilter === s
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -476,7 +520,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
 
                     {/* État du compte */}
                     <div>
-                        <p className="text-label-small uppercase tracking-[0.06em] text-text-muted mb-1.5">
+                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -485,7 +529,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                     key={st}
                                     type="button"
                                     onClick={() => setStatusFilter(st)}
-                                    className={`inline-flex items-center min-h-10 px-3 rounded-md text-body-medium transition-colors cursor-pointer ${
+                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
                                         statusFilter === st
                                             ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                                             : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
@@ -498,7 +542,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                     </div>
 
                     {/* Actions de pied */}
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-outline-variant pt-3.5">
+                    <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3.5">
                         <button
                             type="button"
                             onClick={() => {
@@ -506,19 +550,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                                 setSiteFilter('Tous');
                                 setStatusFilter('Tous');
                             }}
-                            className="text-label-large font-medium text-on-surface hover:text-text-secondary cursor-pointer"
+                            className="text-label-large text-on-surface hover:text-text-secondary cursor-pointer font-medium"
                         >
                             Tout effacer
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="flex-1 max-w-[240px] flex h-12 items-center justify-center rounded-md bg-inverse-surface text-inverse-on-surface text-label-large font-medium transition-colors hover:bg-inverse-surface/90 cursor-pointer"
+                            className="bg-inverse-surface text-inverse-on-surface text-label-large hover:bg-inverse-surface/90 flex h-12 max-w-[240px] flex-1 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
                         >
                             Voir les {filteredUsers.length} personnes
                         </button>
                     </div>
-
                 </div>
             </BottomSheet>
 
@@ -535,18 +578,24 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                             setIsAddSheetOpen(false);
                             onViewChange('add_user');
                         }}
-                        className="flex w-full min-h-16 items-center gap-3.5 rounded-lg p-2 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                        className="hover:bg-surface-container flex min-h-16 w-full cursor-pointer items-center gap-3.5 rounded-lg p-2 text-left transition-colors"
                     >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface">
+                        <span className="bg-surface-container text-on-surface flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-body-large font-medium text-on-surface">Inviter par e-mail</p>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-body-large text-on-surface font-medium">
+                                Inviter par e-mail
+                            </p>
                             <p className="text-label-small text-text-muted">
                                 La personne choisit son mot de passe à la première connexion.
                             </p>
                         </div>
-                        <Icon glyph={CaretDown} size={18} className="shrink-0 -rotate-90 text-text-muted" />
+                        <Icon
+                            glyph={CaretDown}
+                            size={18}
+                            className="text-text-muted shrink-0 -rotate-90"
+                        />
                     </button>
 
                     <button
@@ -555,20 +604,25 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange }) => {
                             setIsAddSheetOpen(false);
                             onViewChange('import_users');
                         }}
-                        className="flex w-full min-h-16 items-center gap-3.5 rounded-lg p-2 text-left hover:bg-surface-container transition-colors cursor-pointer"
+                        className="hover:bg-surface-container flex min-h-16 w-full cursor-pointer items-center gap-3.5 rounded-lg p-2 text-left transition-colors"
                     >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-container text-on-surface">
+                        <span className="bg-surface-container text-on-surface flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                             <Icon glyph={UsersThree} size={20} />
                         </span>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-body-large font-medium text-on-surface">Importer depuis l’annuaire</p>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-body-large text-on-surface font-medium">
+                                Importer depuis l’annuaire
+                            </p>
                             <p className="text-label-small text-text-muted">
                                 Le compte existe déjà côté entreprise : rien à saisir.
                             </p>
                         </div>
-                        <Icon glyph={CaretDown} size={18} className="shrink-0 -rotate-90 text-text-muted" />
+                        <Icon
+                            glyph={CaretDown}
+                            size={18}
+                            className="text-text-muted shrink-0 -rotate-90"
+                        />
                     </button>
-
                 </div>
             </BottomSheet>
         </>

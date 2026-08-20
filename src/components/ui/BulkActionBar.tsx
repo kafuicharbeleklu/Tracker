@@ -36,9 +36,9 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({ count, children, overflow
             className={cn(
                 // Collant en bas : les actes de la sélection restent sous le pouce quelle
                 // que soit la longueur de la liste — on ne fait pas défiler pour agir.
-                'sticky bottom-0 z-30 flex items-center gap-2.5 border-t border-outline-variant bg-surface px-5 py-3',
+                'border-outline-variant bg-surface sticky bottom-0 z-30 flex items-center gap-2.5 border-t px-5 py-3',
                 'shadow-[0_-6px_18px_rgb(0_0_0/0.07)]',
-                className
+                className,
             )}
         >
             <div className="flex flex-1 items-center gap-2.5 [&>*]:flex-1">{children}</div>

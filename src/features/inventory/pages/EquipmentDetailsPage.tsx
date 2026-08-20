@@ -23,7 +23,10 @@ import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
-import DetailHero, { type DetailMetric, type DetailMetrics } from '../../../components/ui/DetailHero';
+import DetailHero, {
+    type DetailMetric,
+    type DetailMetrics,
+} from '../../../components/ui/DetailHero';
 import ReferenceRow from '../../../components/ui/ReferenceRow';
 import ProportionRow from '../../../components/ui/ProportionRow';
 import Button from '../../../components/ui/Button';
@@ -88,7 +91,11 @@ const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 const formatDate = (value?: string) =>
     value
-        ? new Date(value).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
+        ? new Date(value).toLocaleDateString('fr-FR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+          })
         : 'N/A';
 
 const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId, onBack }) => {
@@ -108,7 +115,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             item.financial.depreciationYears,
             item.financial.purchasePrice > 0
                 ? ((item.financial.salvageValue || 0) / item.financial.purchasePrice) * 100
-                : 0
+                : 0,
         );
     }, [item]);
 
@@ -160,13 +167,15 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
               (user) =>
                   (item.user?.id && user.id === item.user.id) ||
                   (item.user?.email && user.email === item.user.email) ||
-                  (item.user?.name && user.name === item.user.name)
+                  (item.user?.name && user.name === item.user.name),
           )
         : null;
 
     // ---- les trois qualifiants du voile (R3) -----------------------------------
     const purchaseDate = item.financial?.purchaseDate;
-    const ageYears = purchaseDate ? (Date.now() - new Date(purchaseDate).getTime()) / MS_PER_YEAR : null;
+    const ageYears = purchaseDate
+        ? (Date.now() - new Date(purchaseDate).getTime()) / MS_PER_YEAR
+        : null;
 
     const warrantyMonthsLeft = item.warrantyEnd
         ? Math.round((new Date(item.warrantyEnd).getTime() - Date.now()) / (MS_PER_YEAR / 12))
@@ -193,10 +202,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             });
         } else if (item.confirmedAt || item.assignedAt) {
             facts.push({
-                value: new Date(item.confirmedAt || item.assignedAt || '').toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                }),
+                value: new Date(item.confirmedAt || item.assignedAt || '').toLocaleDateString(
+                    'fr-FR',
+                    {
+                        day: 'numeric',
+                        month: 'short',
+                    },
+                ),
                 label: 'remis',
             });
         }
@@ -207,15 +219,18 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     // ---- les actes -------------------------------------------------------------
     const handleAssign = () =>
-        navigate(`/wizards/assignment?context=equipment_details&equipmentId=${encodeURIComponent(item.id)}`);
+        navigate(
+            `/wizards/assignment?context=equipment_details&equipmentId=${encodeURIComponent(item.id)}`,
+        );
 
     const handleDeclareIncident = () => {
         requestConfirmation({
             title: `Déclarer un incident sur ${item.name} ?`,
             message: (
                 <>
-                    L’équipement passera en statut <strong className="font-medium text-on-surface">En réparation</strong>{' '}
-                    et une tâche de maintenance sera ouverte.
+                    L’équipement passera en statut{' '}
+                    <strong className="text-on-surface font-medium">En réparation</strong> et une
+                    tâche de maintenance sera ouverte.
                 </>
             ),
             confirmText: 'Déclarer l’incident',
@@ -234,7 +249,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     };
 
     const handleReassign = () => {
-        navigate(`/wizards/assignment?context=equipment_details&reassign=true&equipmentId=${encodeURIComponent(item.id)}`);
+        navigate(
+            `/wizards/assignment?context=equipment_details&reassign=true&equipmentId=${encodeURIComponent(item.id)}`,
+        );
     };
 
     const handleEndRepair = () => {
@@ -242,8 +259,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             title: `Remettre ${item.name} en service ?`,
             message: (
                 <>
-                    L’équipement repasse en <strong className="font-medium text-on-surface">Disponible</strong>{' '}
-                    et redevient attribuable. La date de fin d’intervention est enregistrée.
+                    L’équipement repasse en{' '}
+                    <strong className="text-on-surface font-medium">Disponible</strong> et redevient
+                    attribuable. La date de fin d’intervention est enregistrée.
                 </>
             ),
             confirmText: 'Mettre en service',
@@ -268,8 +286,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             message: (
                 <>
                     L’équipement disparaît de l’inventaire et des rapports.{' '}
-                    <strong className="font-medium text-on-surface">Son historique est conservé</strong> et
-                    restera consultable depuis le journal d’audit.
+                    <strong className="text-on-surface font-medium">
+                        Son historique est conservé
+                    </strong>{' '}
+                    et restera consultable depuis le journal d’audit.
                 </>
             ),
             tone: 'destructive',
@@ -433,9 +453,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                   Math.max(
                       0,
                       ((Date.now() - new Date(purchaseDate).getTime()) /
-                          (new Date(item.warrantyEnd).getTime() - new Date(purchaseDate).getTime())) *
-                          100
-                  )
+                          (new Date(item.warrantyEnd).getTime() -
+                              new Date(purchaseDate).getTime())) *
+                          100,
+                  ),
               )
             : null;
 
@@ -459,7 +480,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             }
             hero={
                 <DetailHero
-                    status={{ icon: status.icon, label: status.label, tone: statusHeroTone(status.tone) }}
+                    status={{
+                        icon: status.icon,
+                        label: status.label,
+                        tone: statusHeroTone(status.tone),
+                    }}
                     label={item.type}
                     subject={item.model || item.name}
                     metrics={metrics}
@@ -499,17 +524,25 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             }
         >
             <section className="rounded-card bg-surface p-4">
-                <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
                     <Icon glyph={Laptop} size={18} className="text-on-surface-variant" />
                     Référence technique
                 </p>
                 <div className="mt-3">
                     {/* Le numéro de série passe en premier, et il est copiable : c'est le
                         seul champ qu'on lit à voix haute au téléphone avec le support. */}
-                    <ReferenceRow label="Numéro de série" value={item.serialNumber || '—'} copyable={Boolean(item.serialNumber)} />
+                    <ReferenceRow
+                        label="Numéro de série"
+                        value={item.serialNumber || '—'}
+                        copyable={Boolean(item.serialNumber)}
+                    />
                     <ReferenceRow label="Modèle" value={item.model || '—'} quiet={!item.model} />
                     <ReferenceRow label="Mémoire" value={item.ram || '—'} quiet={!item.ram} />
-                    <ReferenceRow label="Stockage" value={item.storage || '—'} quiet={!item.storage} />
+                    <ReferenceRow
+                        label="Stockage"
+                        value={item.storage || '—'}
+                        quiet={!item.storage}
+                    />
                     <ReferenceRow label="Système" value={item.os || '—'} quiet={!item.os} />
                     {item.lastReturnCondition && (
                         <ReferenceRow label="Réserve d’usage" value={item.lastReturnCondition} />
@@ -519,7 +552,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
             {(warrantyPercent !== null || (financialStats && permissions.canManageInventory)) && (
                 <section className="rounded-card bg-surface p-4">
-                    <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
                         <Icon glyph={ShieldWarning} size={18} className="text-on-surface-variant" />
                         {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
                     </p>
@@ -534,19 +567,19 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 warrantyPercent < 100 ? (
                                     <>
                                         Toute réparation est{' '}
-                                        <strong className="font-medium text-on-surface">
+                                        <strong className="text-on-surface font-medium">
                                             prise en charge par le fournisseur
                                         </strong>{' '}
                                         jusqu’au{' '}
-                                        <strong className="font-medium text-on-surface">
+                                        <strong className="text-on-surface font-medium">
                                             {formatDate(item.warrantyEnd)}
                                         </strong>
                                         .
                                     </>
                                 ) : (
                                     <>
-                                        La garantie a expiré le {formatDate(item.warrantyEnd)} : une réparation
-                                        s’impute désormais sur le budget du service.
+                                        La garantie a expiré le {formatDate(item.warrantyEnd)} : une
+                                        réparation s’impute désormais sur le budget du service.
                                     </>
                                 )
                             }
@@ -556,25 +589,30 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     {financialStats && item.financial && permissions.canManageInventory && (
                         <>
                             <ProportionRow
-                                className={warrantyPercent !== null ? 'mt-4 border-t border-outline-variant pt-1' : undefined}
+                                className={
+                                    warrantyPercent !== null
+                                        ? 'border-outline-variant mt-4 border-t pt-1'
+                                        : undefined
+                                }
                                 value={`${Math.round(financialStats.progressPercent)} %`}
                                 label={`de la valeur amortie — ${formatCurrency(
                                     financialStats.currentValue,
-                                    settings.currency
+                                    settings.currency,
                                 )} restent à amortir`}
                                 percent={financialStats.progressPercent}
                                 tone={financialStats.progressPercent > 80 ? 'attention' : 'neutral'}
                                 note={
                                     financialStats.progressPercent > 80 ? (
-                                        <strong className="font-medium text-on-surface">
+                                        <strong className="text-on-surface font-medium">
                                             À renouveler cette année.
                                         </strong>
                                     ) : (
                                         <>
                                             Renouvellement à prévoir pour{' '}
-                                            <strong className="font-medium text-on-surface">
-                                                {new Date(item.financial.purchaseDate).getFullYear() +
-                                                    item.financial.depreciationYears}
+                                            <strong className="text-on-surface font-medium">
+                                                {new Date(
+                                                    item.financial.purchaseDate,
+                                                ).getFullYear() + item.financial.depreciationYears}
                                             </strong>
                                             , fin d’amortissement.
                                         </>
@@ -584,11 +622,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             />
                             <Button
                                 variant="text"
-                                className="mt-2 min-h-11 w-full justify-start gap-2.5 border-t border-outline-variant px-0 hover:bg-transparent"
+                                className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
                                 onClick={() => navigate('/finance')}
                             >
                                 <span>Prix d’achat et amortissement</span>
-                                <span className="ml-auto text-body-medium font-normal text-text-secondary">
+                                <span className="text-body-medium text-text-secondary ml-auto font-normal">
                                     dans Finances
                                 </span>
                                 <Icon glyph={CaretDown} size={18} className="-rotate-90" />
@@ -600,31 +638,46 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
             {permissions.canManageInventory && (
                 <section className="rounded-card bg-surface p-4">
-                    <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
-                        <Icon glyph={ClockCounterClockwise} size={18} className="text-on-surface-variant" />
+                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
+                        <Icon
+                            glyph={ClockCounterClockwise}
+                            size={18}
+                            className="text-on-surface-variant"
+                        />
                         Historique
                     </p>
                     {history.length > 0 ? (
                         <>
                             <div className="mt-3">
                                 {history.map((event) => (
-                                    <ReferenceRow key={event.id} label={event.title} value={event.date} quiet />
+                                    <ReferenceRow
+                                        key={event.id}
+                                        label={event.title}
+                                        value={event.date}
+                                        quiet
+                                    />
                                 ))}
                             </div>
                             <Button
                                 variant="text"
-                                className="mt-2 min-h-11 w-full justify-start gap-2.5 border-t border-outline-variant px-0 hover:bg-transparent"
-                                onClick={() => navigate(`/audit?targetId=${encodeURIComponent(item.id)}`)}
+                                className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
+                                onClick={() =>
+                                    navigate(`/audit?targetId=${encodeURIComponent(item.id)}`)
+                                }
                             >
-                                <span>{history.length > 0 ? `Les ${history.length} événements` : 'Tout l’historique'}</span>
-                                <span className="ml-auto text-body-medium font-normal text-text-secondary">
+                                <span>
+                                    {history.length > 0
+                                        ? `Les ${history.length} événements`
+                                        : 'Tout l’historique'}
+                                </span>
+                                <span className="text-body-medium text-text-secondary ml-auto font-normal">
                                     dans Audit, filtré sur cet actif
                                 </span>
                                 <Icon glyph={CaretDown} size={18} className="-rotate-90" />
                             </Button>
                         </>
                     ) : (
-                        <p className="mt-3 text-body-medium text-text-secondary">
+                        <p className="text-body-medium text-text-secondary mt-3">
                             Aucun mouvement enregistré pour cet équipement.
                         </p>
                     )}
@@ -633,7 +686,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
             {item.documents && item.documents.length > 0 && (
                 <section className="rounded-card bg-surface p-4">
-                    <p className="mb-1 flex items-center gap-2.5 text-body-medium font-medium text-on-surface">
+                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
                         <Icon glyph={FileText} size={18} className="text-on-surface-variant" />
                         Documents
                         <DemoBadge className="ml-auto" />
