@@ -78,6 +78,22 @@ interface DetailHeroProps {
     /** Note explicative sous le bouton d'action dans le héro (planche 05.2 .hnote). */
     note?: React.ReactNode;
     status?: DetailHeroStatus;
+    /**
+     * Le fait qui **accompagne l'état**, sur sa ligne — « démarrée il y a 2 h ».
+     *
+     * R3 le dit dans l'ordre : *« un état — badge I3 complet, **suivi du fait qui
+     * situe l'objet** »*. Ce fait-là n'attend donc pas sous les qualifiants : il se
+     * lit avec l'état, parce qu'il le date. Sans ce logement, la planche 16.2 le
+     * renvoyait dans `facts`, deux blocs et deux filets plus bas.
+     */
+    statusDetail?: React.ReactNode;
+    /**
+     * La ligne qui **précise le sujet**, juste sous lui — « Périmètre figé au
+     * démarrage · dernier scan il y a 12 min ». Ce n'est pas une étiquette (`label`
+     * est en capitales, au-dessus) et ce n'est pas un fait situant : c'est la portée
+     * du sujet, et elle ne se lit qu'accolée à lui.
+     */
+    subtitle?: React.ReactNode;
     metrics?: DetailMetrics;
     /** Les faits qui situent : emplacement, rattachement. */
     facts?: DetailHeroFact[];
@@ -104,6 +120,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     avatar,
     note,
     status,
+    statusDetail,
+    subtitle,
     metrics,
     facts,
     relation,
@@ -153,14 +171,21 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         ) : (
             <>
                 {status && (
-                    <span className="text-body-small inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5">
-                        <Icon
-                            glyph={status.icon}
-                            size={18}
-                            className={status.tone ? STATUS_TONE[status.tone] : undefined}
-                        />
-                        {status.label}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-body-small inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5">
+                            <Icon
+                                glyph={status.icon}
+                                size={18}
+                                className={status.tone ? STATUS_TONE[status.tone] : undefined}
+                            />
+                            {status.label}
+                        </span>
+                        {statusDetail && (
+                            <span className="text-on-nav-surface-variant text-[12px]">
+                                {statusDetail}
+                            </span>
+                        )}
+                    </div>
                 )}
 
                 {label && (
@@ -172,6 +197,12 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                     {subject}
                 </p>
+
+                {subtitle && (
+                    <p className="text-on-nav-surface-variant mt-1 text-[13px] leading-[19px]">
+                        {subtitle}
+                    </p>
+                )}
             </>
         )}
 

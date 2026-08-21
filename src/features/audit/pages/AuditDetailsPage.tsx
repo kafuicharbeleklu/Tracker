@@ -11,36 +11,29 @@ import {
     DotsThreeVertical,
     Export,
     Info,
-    MapPin,
     Package,
     PlusCircle,
-    QrCode,
     Question,
     Scan,
     Warning,
 } from '@phosphor-icons/react';
 
 import { MEDIA } from '../../../constants/breakpoints';
+import Reading from '../../../components/layout/Reading';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
-import { useDebounce } from '../../../hooks/useDebounce';
-import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import FacetChip from '../../../components/ui/FacetChip';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import DetailHero, {
-    type DetailHeroFact,
-    type DetailMetrics,
-} from '../../../components/ui/DetailHero';
+import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import { useToast } from '../../../context/ToastContext';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import SideSheet from '../../../components/ui/SideSheet';
-import SelectField from '../../../components/ui/SelectField';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
 import { buildCsvLine } from '../../../lib/csv';
@@ -112,18 +105,6 @@ const readStoredScope = (): StoredAuditScope => {
     } catch {
         return {};
     }
-};
-
-const matchesSearch = (item: Equipment, query: string): boolean => {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return (
-        item.name.toLowerCase().includes(q) ||
-        item.assetId.toLowerCase().includes(q) ||
-        (item.hostname || '').toLowerCase().includes(q) ||
-        (item.serialNumber || '').toLowerCase().includes(q) ||
-        (item.user?.name || '').toLowerCase().includes(q)
-    );
 };
 
 const formatDateTime = (value?: string): string => {
@@ -222,7 +203,6 @@ const EXCEPTION_TONE: Record<ListRowStatus['tone'], string> = {
 const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChange }) => {
     const {
         equipment,
-        locationData,
         upsertEquipmentFromAuditScan,
         removeEquipmentFromServiceAfterAudit,
         updateEquipment,
@@ -235,7 +215,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const storedScope = useMemo(() => readStoredScope(), []);
 
     const [activeTab, setActiveTab] = useState<AuditTab>('todo');
-    const [searchQuery, setSearchQuery] = useState('');
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
     const [scanRawValue, setScanRawValue] = useState('');
@@ -249,77 +228,22 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [missingIds, setMissingIds] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
 
-    const [selectedCountry, setSelectedCountry] = useState<string>(
-        storedScope.country || locationData.countries[0] || '',
-    );
-    const [selectedSite, setSelectedSite] = useState<string>(storedScope.site || '');
-    const [selectedService, setSelectedService] = useState<string>(storedScope.service || '');
-
-    const debouncedSearch = useDebounce(searchQuery, 250);
-
-    const countryOptions = useMemo(
-        () => locationData.countries.map((country) => ({ value: country, label: country })),
-        [locationData.countries],
-    );
-    const siteOptions = useMemo(
-        () =>
-            (locationData.sites[selectedCountry] || []).map((site) => ({
-                value: site,
-                label: site,
-            })),
-        [locationData.sites, selectedCountry],
-    );
-    const serviceOptions = useMemo(
-        () =>
-            (locationData.services[selectedSite] || []).map((service) => ({
-                value: service,
-                label: service,
-            })),
-        [locationData.services, selectedSite],
-    );
-
-    useEffect(() => {
-        if (!selectedCountry && locationData.countries.length > 0) {
-            setSelectedCountry(locationData.countries[0]);
-        }
-    }, [locationData.countries, selectedCountry]);
-
-    useEffect(() => {
-        const sites = locationData.sites[selectedCountry] || [];
-        if (sites.length === 0) {
-            setSelectedSite('');
-            return;
-        }
-        if (!sites.includes(selectedSite)) {
-            setSelectedSite(sites[0]);
-        }
-    }, [locationData.sites, selectedCountry, selectedSite]);
-
-    useEffect(() => {
-        const services = locationData.services[selectedSite] || [];
-        if (services.length === 0) {
-            setSelectedService('');
-            return;
-        }
-        if (!services.includes(selectedService)) {
-            setSelectedService(services[0]);
-        }
-    }, [locationData.services, selectedSite, selectedService]);
-
-    useEffect(() => {
-        try {
-            sessionStorage.setItem(
-                AUDIT_SCOPE_PREF_KEY,
-                JSON.stringify({
-                    country: selectedCountry,
-                    site: selectedSite,
-                    service: selectedService,
-                }),
-            );
-        } catch {
-            // Ignore storage failures.
-        }
-    }, [selectedCountry, selectedService, selectedSite]);
+    /**
+     * **Le périmètre n'est pas un choix de cet écran.** La planche 16.2 ne dessine
+     * aucun sélecteur : elle ouvre sur une campagne *déjà nommée* — « Support
+     * Afrique · Campus Dakar » dans la barre du haut, le service au palier haut du
+     * héro, et le sous-titre qui dit *« périmètre figé au démarrage »*.
+     *
+     * L'écran portait pourtant trois `SelectField` — pays, site, service —, hérités
+     * de l'écran d'avant, où l'on composait sa portée sur place. C'est **16.1 qui
+     * désigne le service** : sa rangée porte « Lancer », et c'est ce geste qui fixe le
+     * triplet. Ici, il se lit ; il ne se compose plus. Les trois valeurs arrivent donc
+     * de la portée posée à la navigation, une fois, et ne bougent plus de la vie de
+     * l'écran — ce qui est exactement ce que « figé au démarrage » veut dire.
+     */
+    const selectedCountry = storedScope.country || '';
+    const selectedSite = storedScope.site || '';
+    const selectedService = storedScope.service || '';
 
     const scopedEquipment = useMemo(() => {
         if (!selectedCountry || !selectedSite || !selectedService) return [];
@@ -390,32 +314,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     );
     const closureBlocked = pendingExceptions.length > 0;
 
-    const filteredTodo = useMemo(
-        () => todoItems.filter((item) => matchesSearch(item, debouncedSearch)),
-        [todoItems, debouncedSearch],
-    );
-    const filteredScanned = useMemo(
-        () => scannedItems.filter((item) => matchesSearch(item, debouncedSearch)),
-        [scannedItems, debouncedSearch],
-    );
-    const filteredMissing = useMemo(
-        () => missingItems.filter((item) => matchesSearch(item, debouncedSearch)),
-        [missingItems, debouncedSearch],
-    );
-    const filteredExceptions = useMemo(() => {
-        if (!debouncedSearch) return exceptionsDisplay;
-        const q = debouncedSearch.toLowerCase();
-        return exceptionsDisplay.filter((entry) => {
-            const name =
-                entry.result.equipmentName ||
-                entry.payload.machineName ||
-                entry.payload.hostname ||
-                '';
-            const asset = entry.payload.assetId || entry.equipment?.assetId || '';
-            return name.toLowerCase().includes(q) || asset.toLowerCase().includes(q);
-        });
-    }, [exceptionsDisplay, debouncedSearch]);
-
+    /**
+     * **Pas de recherche sur une campagne.** La planche 16.2 n'en dessine aucune, et
+     * sa feuille de style n'en déclare même pas le rôle : les trois puces *sont* le
+     * filtre, sur un parc borné au service et figé au démarrage. Chercher un code
+     * dans une liste qu'on parcourt un objet à la main, scanner à la main, n'a pas
+     * d'emploi — c'est le scan qui trouve, et il coche la rangée lui-même. La barre
+     * de recherche héritée obligeait en plus le vide à raconter une cinquième
+     * histoire (« rien ne correspond ») par-dessus les quatre de C5.
+     */
     /**
      * Le nombre d'attendus est **figé au démarrage** et ne bouge plus : c'est la ligne
      * de base. Ne pas y ajouter les manquants après la clôture — la requalification
@@ -447,21 +354,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         return stamps.length > 0 ? stamps.slice().sort().at(-1) : undefined;
     }, [foundAt]);
 
-    const currentListCount = useMemo(() => {
-        if (activeTab === 'todo') return filteredTodo.length;
-        if (activeTab === 'scanned') return filteredScanned.length;
-        if (activeTab === 'missing') return filteredMissing.length;
-        return filteredExceptions.length;
-    }, [
-        activeTab,
-        filteredTodo.length,
-        filteredScanned.length,
-        filteredMissing.length,
-        filteredExceptions.length,
-    ]);
-
     const scopeIsReady = Boolean(selectedCountry && selectedSite && selectedService);
-    const scopeLocked = sessionStarted;
     const currentScope: AuditScope = {
         country: selectedCountry,
         site: selectedSite,
@@ -488,11 +381,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * acte séparé, nommé, et confirmé.
      */
     const startAuditSession = () => {
-        if (sessionStarted) return;
-        if (!scopeIsReady) {
-            showToast('Sélectionnez un pays, un site et un service.', 'warning');
-            return;
-        }
+        if (sessionStarted || !scopeIsReady) return;
         const ids = scopedEquipment.map((item) => item.id);
         setBaselineIds(ids);
         setFoundIds([]);
@@ -504,11 +393,24 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setFinalizedAt(null);
         setAuditStartedAt(new Date().toISOString());
         setActiveTab('todo');
-        showToast(
-            `Audit démarré pour ${selectedService} (${ids.length} machine(s) ciblée(s)).`,
-            'success',
-        );
     };
+
+    /**
+     * **La campagne s'ouvre déjà lancée.** « Lancer » est un geste de 16.1 : c'est la
+     * rangée du service qui le porte, et l'écran qui s'ouvre derrière montre une
+     * campagne *en cours* — « démarrée il y a 2 h », « périmètre figé au démarrage ».
+     * Le relevé part donc à l'arrivée, sur la portée que la navigation a posée.
+     *
+     * Il ne part **pas** sur un service qui n'attend aucun actif : il n'y aurait rien
+     * à parcourir, et le voile doit pouvoir dire « rien à auditer » plutôt que « en
+     * cours » devant une liste vide.
+     */
+    useEffect(() => {
+        if (sessionStarted || auditFinalized) return;
+        if (!scopeIsReady || scopedEquipment.length === 0) return;
+        startAuditSession();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
 
     /**
      * Abandonner le relevé — l'ancien « Réinitialiser », rendu à sa nature. Il jette
@@ -928,21 +830,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * opposées apprenait quelque chose de faux trois fois sur quatre.
      */
     const renderEmptyList = (scope: AuditTab) => {
-        if (debouncedSearch) {
-            return (
-                <EmptyState
-                    icon="search_off"
-                    title="Rien ne correspond à cette recherche"
-                    description={`Aucun résultat pour « ${debouncedSearch} » dans cette liste.`}
-                    action={
-                        <Button variant="text" onClick={() => setSearchQuery('')}>
-                            Effacer la recherche
-                        </Button>
-                    }
-                />
-            );
-        }
-
         if (scope === 'todo') {
             if (auditFinalized) {
                 return (
@@ -1081,16 +968,34 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const sessionTabs = (
         <PageTabs
+            /* Le segment actif est **blanc sur le creux** (`.seg span.on`), jamais
+               rempli de jaune : « le jaune n'est pas un fond d'onglet »
+               (interdit §8.1, et §4 du brief). La vue globale portait déjà
+               le segment de l'ADN ; la campagne était restée sur la pilule de marque,
+               et les deux écrans d'un même domaine ne se ressemblaient plus. */
+            appearance="neutral"
+            allViewsButton={false}
+            idBase="audit-campagne"
+            ariaLabel="Vues de la campagne"
             activeId={activeTab === 'exceptions' ? 'exceptions' : 'parc'}
             onChange={(tabId) => setActiveTab(tabId === 'exceptions' ? 'exceptions' : 'todo')}
             items={[
                 {
                     id: 'parc',
+                    /* La planche écrit « Le parc du service » en toutes lettres à
+                       393 px : le libellé court coupait un mot qui tient. */
                     label: 'Le parc du service',
-                    shortLabel: 'Le parc',
                     badge: sessionTotal,
                 },
-                { id: 'exceptions', label: 'Écarts', badge: sessionExceptions },
+                {
+                    id: 'exceptions',
+                    label: 'Écarts',
+                    badge: sessionExceptions,
+                    /* `.al` — le badge d'écart est **orange** : c'est le seul compteur
+                       de l'écran qui demande une décision, et il ne se confond pas
+                       avec le 41 qui ne fait que dire la taille du parc. */
+                    badgeTone: pendingExceptions.length > 0 ? 'attention' : 'neutral',
+                },
             ]}
         />
     );
@@ -1102,7 +1007,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * montré au bon moment (C1).
      */
     const parcChips = (
-        <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto">
+        <div className="-mr-page-sm medium:-mr-page pr-page-sm medium:pr-page flex [scrollbar-width:none] gap-2 overflow-x-auto">
             {(
                 [
                     ...(auditFinalized
@@ -1138,7 +1043,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return { icon: CircleHalf, label: 'en cours', tone: 'info' as const };
         }
         if (scopeIsReady && scopedEquipment.length === 0) {
-            return { icon: CircleDashed, label: 'rien à auditer', tone: 'attention' as const };
+            /* V4 : `circle-dashed` **neutre** — « rien à auditer » est un état de
+               donnée, pas une alerte de campagne. */
+            return { icon: CircleDashed, label: 'rien à auditer' };
         }
         return { icon: ClockCountdown, label: 'à lancer', tone: 'pending' as const };
     }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
@@ -1169,36 +1076,28 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * renégocie pas par écran : la planche les dessine au-dessus, le registre les met
      * en dessous, et c'est le registre qui décide de la hiérarchie du héro.
      */
-    const heroFacts = useMemo(() => {
-        const facts: DetailHeroFact[] = [];
-        if (auditFinalized) {
-            facts.push({
-                icon: CheckCircle,
-                children: `clôturée ${formatSince(finalizedAt || undefined)} · le ${formatDateTime(finalizedAt || undefined)}`,
-            });
-        } else if (sessionStarted) {
-            facts.push({
-                icon: ClockCountdown,
-                children: `démarrée ${formatSince(auditStartedAt || undefined)}`,
-            });
-            facts.push({
-                icon: QrCode,
-                children: `périmètre figé au démarrage · dernier scan ${formatSince(lastScanAt)}`,
-            });
-        } else if (scopeIsReady) {
-            facts.push({ icon: MapPin, children: `${selectedSite} · ${selectedCountry}` });
-        }
-        return facts;
-    }, [
-        auditFinalized,
-        auditStartedAt,
-        finalizedAt,
-        lastScanAt,
-        scopeIsReady,
-        selectedCountry,
-        selectedSite,
-        sessionStarted,
-    ]);
+    /**
+     * **La ligne d'état, et la ligne de portée** — l'ordre de la planche, qui est
+     * aussi celui de R3 : l'état, *puis le fait qui situe*, puis le sujet, puis les
+     * qualifiants. Ces deux phrases descendaient sous les métriques, dans deux blocs
+     * à filet et à pictogramme : le voile faisait deux fois sa hauteur pour dire la
+     * même chose, et le sujet se retrouvait au milieu au lieu d'être en tête.
+     */
+    const heroStatusDetail = auditFinalized
+        ? `par vous, ${formatSince(finalizedAt || undefined)}`
+        : sessionStarted
+          ? `démarrée ${formatSince(auditStartedAt || undefined)}`
+          : undefined;
+
+    const heroSubtitle = auditFinalized
+        ? `Campagne du ${formatDateTime(finalizedAt || undefined)}`
+        : sessionStarted
+          ? `Périmètre figé au démarrage${
+                lastScanAt ? ` · dernier scan ${formatSince(lastScanAt)}` : ' · aucun scan'
+            }`
+          : scopeIsReady
+            ? `${selectedSite} · ${selectedCountry}`
+            : undefined;
 
     /**
      * La couverture, en barre puis en clair — « 34 sur 41 · 83 % ». C'est le seul
@@ -1211,8 +1110,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 aria-hidden="true"
                 className="block h-1.5 overflow-hidden rounded-full bg-white/[0.16]"
             >
+                {/* La jauge prend l'encre de la surface inversée, pas une couleur
+                    d'état : elle mesure une avancée, elle ne qualifie rien. Le vert
+                    disait « tout va bien » à 12 % de relevé. */}
                 <span
-                    className="block h-full rounded-full bg-[var(--tk-color-live-vert)]"
+                    className="bg-inverse-on-surface block h-full rounded-full"
                     style={{ width: `${progressPercentage}%` }}
                 />
             </span>
@@ -1247,12 +1149,22 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * main dans un local. Et l'identité — « Campagne d'audit · service · site » — vit
      * dans la barre du haut, pas dans le voile : le voile porte le sujet, une fois.
      */
+    /** La vue globale : c'est là que se choisit le service, et nulle part ailleurs. */
+    const backToOverview = () => {
+        if (typeof onViewChange === 'function') {
+            onViewChange('audit');
+            return;
+        }
+        onBack();
+    };
+
     const hero = (
         <DetailHero
             subject={selectedService || 'Périmètre à choisir'}
             status={heroStatus}
             metrics={heroMetrics}
-            facts={heroFacts}
+            statusDetail={heroStatusDetail}
+            subtitle={heroSubtitle}
             note={heroNote}
         />
     );
@@ -1265,6 +1177,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * place, le bandeau qui dit ce qui manque. Un bouton grisé aurait redit la même
      * chose en donnant à croire qu'on peut cliquer. Sur une campagne clôturée il ne
      * reste que l'export, en neutre : plus rien à engager.
+     *
+     * **Et rien du tout avant le premier scan** : C3 veut *« une campagne ouverte n'a
+     * plus de bouton de démarrage »*. Le « Lancer la campagne » qui restait ici était
+     * le second exemplaire du geste que 16.1 porte déjà sur sa rangée — donc un même
+     * acte à deux endroits, et un écran qui s'ouvrait en attendant qu'on répète ce
+     * qu'on venait de dire. Le seul cas où le pied est vide est celui du service qui
+     * n'attend aucun actif : il n'y a rien à engager, et la liste le dit.
      */
     const footerActions = auditFinalized ? (
         <Button
@@ -1278,7 +1197,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     ) : sessionStarted ? (
         <>
             {closureBlocked ? (
-                <p className="rounded-card border-outline-variant bg-surface text-body-small text-on-surface flex items-start gap-2.5 border px-3.5 py-3">
+                <p className="bg-surface-container text-body-small text-on-surface flex items-start gap-2.5 rounded-md px-3.5 py-3">
                     <Icon
                         glyph={Warning}
                         size={18}
@@ -1307,16 +1226,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 Scanner — mode lot
             </Button>
         </>
-    ) : (
-        <Button
-            variant="filled"
-            onClick={startAuditSession}
-            className="w-full"
-            disabled={!scopeIsReady}
-        >
-            Lancer la campagne
-        </Button>
-    );
+    ) : null;
 
     return (
         <div className="bg-surface-container-low flex h-full flex-col">
@@ -1324,462 +1234,495 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 /* La barre du haut de la planche : retour · identité · débordement. Les onglets
                    n'y sont pas — ils descendent sous le héro, avec les puces qu'ils commandent
                    (§9.4 : la barre « Vue globale / Détails » disparaît, le Retour l'assume). */
-                <div className="bg-surface border-outline-variant px-page-sm medium:px-page flex items-center gap-1 border-b py-1.5">
-                    <Button
-                        variant="text"
-                        onClick={onBack}
-                        className="text-on-surface-variant hover:text-on-surface h-11 w-11 min-w-0 shrink-0 rounded-full p-0"
-                        icon={<Icon glyph={ArrowLeft} size={24} />}
-                        aria-label="Retour"
-                    />
-                    {/* L'identité de l'écran vit ici — « Campagne d'audit », puis le périmètre.
-                        Le héro porte le sujet, pas son étiquette : la dire deux fois volerait
-                        une ligne au voile pour un fait qu'on a déjà lu. */}
-                    <span className="min-w-0 flex-1 leading-tight">
-                        <span className="text-on-surface block truncate text-[13px] font-medium">
-                            Campagne d'audit
-                        </span>
-                        <span className="text-text-secondary block truncate text-[11px]">
-                            {scopeCaption}
-                        </span>
-                    </span>
-                    {overflowItems.length > 0 && (
-                        <Menu
-                            align="end"
-                            items={overflowItems}
-                            trigger={
-                                <Button variant="text" iconOnly aria-label="Autres actions">
-                                    <Icon glyph={DotsThreeVertical} size={20} />
-                                </Button>
-                            }
+                <div className="bg-surface border-outline-variant px-page-sm medium:px-page border-b py-1.5">
+                    <Reading className="flex min-h-14 items-center gap-1">
+                        <Button
+                            variant="text"
+                            onClick={onBack}
+                            className="text-on-surface-variant hover:text-on-surface h-11 w-11 min-w-0 shrink-0 rounded-full p-0"
+                            icon={<Icon glyph={ArrowLeft} size={24} />}
+                            aria-label="Retour"
                         />
-                    )}
+                        {/* L'identité de l'écran vit ici — « Campagne d'audit », puis le périmètre.
+                            Le héro porte le sujet, pas son étiquette : la dire deux fois volerait
+                            une ligne au voile pour un fait qu'on a déjà lu. */}
+                        <span className="min-w-0 flex-1 leading-tight">
+                            <span className="font-brand text-on-surface block truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
+                                Campagne d'audit
+                            </span>
+                            <span className="text-text-secondary block truncate text-[11px] leading-[15px]">
+                                {scopeCaption}
+                            </span>
+                        </span>
+                        {/* Après la clôture il n'y a plus rien à décider : le débordement
+                            se vide, et la barre porte le seul geste qui reste. */}
+                        {auditFinalized ? (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                onClick={exportRelevé}
+                                aria-label="Exporter le relevé"
+                            >
+                                <Icon glyph={Export} size={20} />
+                            </Button>
+                        ) : (
+                            overflowItems.length > 0 && (
+                                <Menu
+                                    align="end"
+                                    items={overflowItems}
+                                    trigger={
+                                        <Button variant="text" iconOnly aria-label="Autres actions">
+                                            <Icon glyph={DotsThreeVertical} size={20} />
+                                        </Button>
+                                    }
+                                />
+                            )
+                        )}
+                    </Reading>
                 </div>
             ) : (
-                <div className="bg-surface border-outline-variant px-page-sm medium:px-page flex items-center justify-between gap-3 border-b">
-                    {/* **Le périmètre courant se lit dans la barre du haut** (16.1). Au
+                <div className="bg-surface border-outline-variant px-page-sm medium:px-page border-b">
+                    <Reading className="flex items-center justify-between gap-3">
+                        {/* **Le périmètre courant se lit dans la barre du haut** (16.1). Au
                         rail, la barre ne portait que les deux onglets : on ne savait pas
                         de quelle campagne on regardait les écarts. Le téléphone le disait
                         déjà — c'est le même fait, il ne dépend pas de la largeur. */}
-                    <span className="min-w-0 shrink leading-tight">
-                        <span className="text-on-surface block truncate text-[13px] font-medium">
-                            Campagne d'audit
+                        <span className="min-w-0 shrink leading-tight">
+                            <span className="font-brand text-on-surface block truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
+                                Campagne d'audit
+                            </span>
+                            <span className="text-text-secondary block truncate text-[11px] leading-[15px]">
+                                {scopeCaption}
+                            </span>
                         </span>
-                        <span className="text-text-secondary block truncate text-[11px]">
-                            {scopeCaption}
-                        </span>
-                    </span>
-                    <PageTabs
-                        activeId="details"
-                        onChange={(tabId) => {
-                            if (tabId === 'overview') {
-                                if (typeof onViewChange === 'function') {
-                                    onViewChange('audit');
-                                    return;
+                        <PageTabs
+                            appearance="neutral"
+                            allViewsButton={false}
+                            activeId="details"
+                            onChange={(tabId) => {
+                                if (tabId === 'overview') {
+                                    if (typeof onViewChange === 'function') {
+                                        onViewChange('audit');
+                                        return;
+                                    }
+                                    onBack();
                                 }
-                                onBack();
-                            }
-                        }}
-                        items={[
-                            { id: 'overview', label: 'Vue globale' },
-                            { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
-                        ]}
-                    />
-                    {overflowItems.length > 0 && (
-                        <Menu
-                            align="end"
-                            items={overflowItems}
-                            trigger={
-                                <Button variant="text" iconOnly aria-label="Autres actions">
-                                    <Icon glyph={DotsThreeVertical} size={20} />
-                                </Button>
-                            }
+                            }}
+                            items={[
+                                { id: 'overview', label: 'Vue globale' },
+                                { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
+                            ]}
                         />
-                    )}
+                        {overflowItems.length > 0 && (
+                            <Menu
+                                align="end"
+                                items={overflowItems}
+                                trigger={
+                                    <Button variant="text" iconOnly aria-label="Autres actions">
+                                        <Icon glyph={DotsThreeVertical} size={20} />
+                                    </Button>
+                                }
+                            />
+                        )}
+                    </Reading>
                 </div>
             )}
 
             {/* Plus de FAB, donc plus de dégagement bas à réserver : le pied d'acte est
                 dans le flux, en fin de contenu. */}
-            <div className="p-page-sm medium:p-page space-y-4 overflow-y-auto">
-                {hero}
-
-                {sessionTabs}
-
-                {/* Le périmètre ne se choisit que hors campagne : une fois lancée, il est figé,
-                    et le dire une fois vaut mieux que trois champs grisés sans explication. */}
-                {!sessionStarted ? (
-                    <div className="medium:grid-cols-3 grid grid-cols-1 gap-3">
-                        <SelectField
-                            label="Pays"
-                            name="auditCountry"
-                            value={selectedCountry}
-                            onChange={(e) => setSelectedCountry(e.target.value)}
-                            options={countryOptions}
-                            placeholder="Choisir pays"
-                            disabled={scopeLocked}
+            {/* **La mesure de lecture du système — 960 px** (§2.43). L'écran s'étirait
+                sur toute la fenêtre alors que la vue globale d'où l'on vient s'arrête à
+                960 : on ouvrait un service et la page changeait de largeur sous le
+                doigt. Une largeur, une seule, et le reste est de la marge. */}
+            <div className="overflow-y-auto">
+                <Reading className="p-page-sm medium:p-page space-y-4">
+                    {!scopeIsReady ? (
+                        /* **Une campagne sans service n'est pas une campagne.** L'écran
+                       n'ouvre plus trois sélecteurs pour s'en composer une : il renvoie
+                       à la liste qui les porte déjà, avec ses statuts et ses comptes. */
+                        <EmptyState
+                            icon="pin_drop"
+                            title="Aucune campagne ouverte"
+                            description="Une campagne porte sur un service, et c'est la vue globale qui le désigne : sa rangée dit ce qui reste à vérifier, et son geste lance le relevé."
+                            action={
+                                <Button variant="filled" onClick={backToOverview}>
+                                    Choisir un service à auditer
+                                </Button>
+                            }
                         />
-                        <SelectField
-                            label="Site"
-                            name="auditSite"
-                            value={selectedSite}
-                            onChange={(e) => setSelectedSite(e.target.value)}
-                            options={siteOptions}
-                            placeholder="Choisir site"
-                            disabled={scopeLocked}
-                        />
-                        <SelectField
-                            label="Service"
-                            name="auditService"
-                            value={selectedService}
-                            onChange={(e) => setSelectedService(e.target.value)}
-                            options={serviceOptions}
-                            placeholder="Choisir service"
-                            disabled={scopeLocked}
-                        />
-                    </div>
-                ) : null}
+                    ) : (
+                        <>
+                            {hero}
 
-                <SearchFilterBar
-                    searchValue={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    resultCount={currentListCount}
-                    placeholder="Rechercher par nom, asset ID, hostname..."
-                />
+                            {sessionTabs}
 
-                {activeTab !== 'exceptions' && (
-                    <>
-                        {parcChips}
+                            {activeTab !== 'exceptions' && (
+                                <>
+                                    {parcChips}
 
-                        {/* La légende de liste : le sujet à gauche, le compte à droite. */}
-                        <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-on-surface text-[15px] font-medium">
-                                {listCaption().title}
-                            </p>
-                            <p className="text-body-small text-text-secondary shrink-0 tabular-nums">
-                                {listCaption().count}
-                            </p>
-                        </div>
+                                    {/* La légende de liste : le sujet à gauche, le compte à droite. */}
+                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-0.5">
+                                        <p className="text-text-secondary">{listCaption().title}</p>
+                                        <p className="text-text-muted shrink-0 tabular-nums">
+                                            {listCaption().count}
+                                        </p>
+                                    </div>
 
-                        <section className="rounded-card border-outline-variant bg-surface border px-4">
-                            {activeTab === 'todo' && renderEquipmentRows(filteredTodo, 'todo')}
-                            {activeTab === 'scanned' &&
-                                renderEquipmentRows(filteredScanned, 'scanned')}
-                            {activeTab === 'missing' &&
-                                renderEquipmentRows(filteredMissing, 'missing')}
+                                    <section className="rounded-card bg-surface shadow-elevation-1 px-4">
+                                        {activeTab === 'todo' &&
+                                            renderEquipmentRows(todoItems, 'todo')}
+                                        {activeTab === 'scanned' &&
+                                            renderEquipmentRows(scannedItems, 'scanned')}
+                                        {activeTab === 'missing' &&
+                                            renderEquipmentRows(missingItems, 'missing')}
 
-                            {/* Les indices de la planche : ils ne paraissent que quand ils
+                                        {/* Les indices de la planche : ils ne paraissent que quand ils
                                 s'appliquent. Une explication permanente devient du décor. */}
-                            {activeTab === 'todo' &&
-                                filteredTodo.some((item) => item.status === 'En réparation') && (
-                                    <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
-                                        <strong className="text-on-surface font-medium">
-                                            L'actif en réparation reste à scanner.
-                                        </strong>{' '}
-                                        Il est attendu dans le service : c'est l'audit qui dit s'il
-                                        y est encore, pas son statut.
-                                    </p>
-                                )}
-                            {activeTab === 'scanned' && filteredScanned.length > 0 && (
-                                <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
-                                    L'heure remplace le statut : dans une campagne, ce qui compte
-                                    est{' '}
-                                    <strong className="text-on-surface font-medium">
-                                        quand l'objet a été vu
-                                    </strong>
-                                    .
-                                </p>
+                                        {activeTab === 'todo' &&
+                                            todoItems.some(
+                                                (item) => item.status === 'En réparation',
+                                            ) && (
+                                                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                                                    <strong className="text-on-surface font-medium">
+                                                        L'actif en réparation reste à scanner.
+                                                    </strong>{' '}
+                                                    Il est attendu dans le service : c'est l'audit
+                                                    qui dit s'il y est encore, pas son statut.
+                                                </p>
+                                            )}
+                                        {activeTab === 'scanned' && scannedItems.length > 0 && (
+                                            <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                                                L'heure remplace le statut : dans une campagne, ce
+                                                qui compte est{' '}
+                                                <strong className="text-on-surface font-medium">
+                                                    quand l'objet a été vu
+                                                </strong>
+                                                .
+                                            </p>
+                                        )}
+                                        {activeTab === 'missing' &&
+                                            auditFinalized &&
+                                            assignedMissingCount > 0 && (
+                                                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                                                    <strong className="text-on-surface font-medium">
+                                                        {assignedMissingCount} des{' '}
+                                                        {missingItems.length} manquants sont
+                                                        attribués.
+                                                    </strong>{' '}
+                                                    Leur porteur reste responsable : le manquant
+                                                    devrait ouvrir une tâche chez lui, et il ne
+                                                    s'efface pas avec la campagne. La file ne le
+                                                    fait pas encore — dette D3.
+                                                </p>
+                                            )}
+                                    </section>
+                                </>
                             )}
-                            {activeTab === 'missing' &&
-                                auditFinalized &&
-                                assignedMissingCount > 0 && (
-                                    <p className="border-outline-variant text-body-small text-on-surface-variant border-t py-3">
-                                        <strong className="text-on-surface font-medium">
-                                            {assignedMissingCount} des {missingItems.length}{' '}
-                                            manquants sont attribués.
-                                        </strong>{' '}
-                                        Leur porteur reste responsable : le manquant devrait ouvrir
-                                        une tâche chez lui, et il ne s'efface pas avec la campagne.
-                                        La file ne le fait pas encore — dette D3.
-                                    </p>
-                                )}
-                        </section>
-                    </>
-                )}
 
-                {/* L'écart est le seul objet propre à cet écran : une **carte à décision**.
+                            {/* L'écart est le seul objet propre à cet écran : une **carte à décision**.
                     Chaque écart porte son fait — où l'objet est enregistré, ou pourquoi il est
                     inconnu — **avant** ses gestes. Un écart sans son fait ne se tranche pas, il
                     se devine. Et le geste principal est sombre, pas jaune : le jaune est pris
                     par le scan, et ceci est une décision de ligne, pas l'acte de l'écran. */}
-                {activeTab === 'exceptions' && (
-                    <div className="space-y-3">
-                        {/* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */}
-                        <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-on-surface text-[15px] font-medium">
-                                {pendingExceptions.length > 0
-                                    ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
-                                    : sessionExceptions > 0
-                                      ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
-                                      : 'Aucun écart'}
-                            </p>
-                            <p className="text-body-small text-text-secondary shrink-0">
-                                scannés hors campagne
-                            </p>
-                        </div>
+                            {activeTab === 'exceptions' && (
+                                <div className="space-y-3">
+                                    {/* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */}
+                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-0.5">
+                                        <p className="text-text-secondary">
+                                            {pendingExceptions.length > 0
+                                                ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
+                                                : sessionExceptions > 0
+                                                  ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
+                                                  : 'Aucun écart'}
+                                        </p>
+                                        <p className="text-text-muted shrink-0">
+                                            scannés hors campagne
+                                        </p>
+                                    </div>
 
-                        {filteredExceptions.length === 0 ? (
-                            <section className="rounded-card border-outline-variant bg-surface overflow-hidden border">
-                                {renderEmptyList('exceptions')}
-                            </section>
-                        ) : (
-                            filteredExceptions.map((entry) => {
-                                const name =
-                                    entry.result.equipmentName ||
-                                    entry.payload.machineName ||
-                                    entry.payload.hostname ||
-                                    'Machine inconnue';
-                                const code =
-                                    entry.payload.assetId ||
-                                    entry.payload.serialNumber ||
-                                    entry.equipment?.assetId ||
-                                    'code inconnu';
-                                const isOutOfService =
-                                    entry.result.resolution === 'found_out_of_service';
-                                const registeredAt = entry.equipment
-                                    ? [entry.equipment.department, entry.equipment.site]
-                                          .filter(Boolean)
-                                          .join(' · ')
-                                    : '';
+                                    {exceptionsDisplay.length === 0
+                                        ? /* Le vide d'un onglet n'est pas une carte : la carte
+                                           est ce qui porte un écart, et il n'y en a aucun. */
+                                          renderEmptyList('exceptions')
+                                        : exceptionsDisplay.map((entry) => {
+                                              const name =
+                                                  entry.result.equipmentName ||
+                                                  entry.payload.machineName ||
+                                                  entry.payload.hostname ||
+                                                  'Machine inconnue';
+                                              const code =
+                                                  entry.payload.assetId ||
+                                                  entry.payload.serialNumber ||
+                                                  entry.equipment?.assetId ||
+                                                  'code inconnu';
+                                              const isOutOfService =
+                                                  entry.result.resolution ===
+                                                  'found_out_of_service';
+                                              const registeredAt = entry.equipment
+                                                  ? [
+                                                        entry.equipment.department,
+                                                        entry.equipment.site,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' · ')
+                                                  : '';
 
-                                return (
-                                    <section
-                                        key={entry.id}
-                                        className="rounded-card border-outline-variant bg-surface border px-4 py-3.5"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* La pastille de nature à gauche, comme le « pin » de la
+                                              return (
+                                                  <section
+                                                      key={entry.id}
+                                                      className="rounded-card bg-surface shadow-elevation-1 px-4 py-3.5"
+                                                  >
+                                                      <div className="flex items-center gap-3">
+                                                          {/* La pastille de nature à gauche, comme le « pin » de la
                                                 planche : elle dit d'un coup d'œil de quel genre d'écart
                                                 il s'agit avant même de lire le code. */}
-                                            <span
-                                                className={cn(
-                                                    'rounded-vignette bg-surface-container flex h-10 w-10 shrink-0 items-center justify-center',
-                                                    isOutOfService
-                                                        ? 'text-[var(--tk-color-st-orange)]'
-                                                        : 'text-[var(--tk-color-st-bleu)]',
-                                                )}
-                                            >
-                                                <Icon
-                                                    glyph={
-                                                        isOutOfService ? ArrowsLeftRight : Question
-                                                    }
-                                                    size={20}
-                                                />
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface truncate text-[15px] font-medium">
-                                                    {code}
-                                                </p>
-                                                <p className="text-body-small text-text-secondary truncate">
-                                                    {name} · scanné {formatSince(entry.timestamp)}
-                                                </p>
-                                            </div>
-                                            {entry.resolved ? (
-                                                <ExceptionMark
-                                                    icon={CheckCircle}
-                                                    label="tranché"
-                                                    tone="positive"
-                                                />
-                                            ) : isOutOfService ? (
-                                                <ExceptionMark
-                                                    icon={ArrowsLeftRight}
-                                                    label="hors service"
-                                                    tone="attention"
-                                                />
-                                            ) : (
-                                                <ExceptionMark
-                                                    icon={PlusCircle}
-                                                    label="nouveau"
-                                                    tone="info"
-                                                />
-                                            )}
-                                        </div>
+                                                          <span
+                                                              className={cn(
+                                                                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                                                                  isOutOfService
+                                                                      ? 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-st-orange)]'
+                                                                      : 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-st-bleu)]',
+                                                              )}
+                                                          >
+                                                              <Icon
+                                                                  glyph={
+                                                                      isOutOfService
+                                                                          ? ArrowsLeftRight
+                                                                          : Question
+                                                                  }
+                                                                  size={20}
+                                                              />
+                                                          </span>
+                                                          <div className="min-w-0 flex-1">
+                                                              <p className="font-brand text-on-surface truncate text-[16px] font-semibold tracking-[-0.01em]">
+                                                                  {code}
+                                                              </p>
+                                                              <p className="text-body-small text-text-secondary truncate">
+                                                                  {name} · scanné{' '}
+                                                                  {formatSince(entry.timestamp)}
+                                                              </p>
+                                                          </div>
+                                                          {entry.resolved ? (
+                                                              <ExceptionMark
+                                                                  icon={CheckCircle}
+                                                                  label="tranché"
+                                                                  tone="positive"
+                                                              />
+                                                          ) : isOutOfService ? (
+                                                              <ExceptionMark
+                                                                  icon={ArrowsLeftRight}
+                                                                  label="hors service"
+                                                                  tone="attention"
+                                                              />
+                                                          ) : (
+                                                              <ExceptionMark
+                                                                  icon={PlusCircle}
+                                                                  label="nouveau"
+                                                                  tone="info"
+                                                              />
+                                                          )}
+                                                      </div>
 
-                                        {/* Le fait, avant les gestes. */}
-                                        <p className="text-body-small text-on-surface mt-2.5">
-                                            {entry.resolved ? (
-                                                entry.decision === 'attached' ? (
-                                                    <>
-                                                        Rattaché à{' '}
-                                                        <strong className="font-medium">
-                                                            {selectedService}
-                                                        </strong>{' '}
-                                                        {formatSince(entry.decidedAt)}. L'actif
-                                                        compte désormais parmi les retrouvés.
-                                                    </>
-                                                ) : entry.decision === 'left' ? (
-                                                    <>
-                                                        Laissé à son service d'origine{' '}
-                                                        {registeredAt ? (
-                                                            <>
-                                                                —{' '}
-                                                                <strong className="font-medium">
-                                                                    {registeredAt}
-                                                                </strong>
-                                                            </>
-                                                        ) : null}
-                                                        . Il était de passage ici.
-                                                    </>
-                                                ) : entry.decision === 'kept' ? (
-                                                    <>
-                                                        Fiche gardée et ouverte pour être complétée{' '}
-                                                        {formatSince(entry.decidedAt)}. Elle est
-                                                        rattachée au périmètre de la campagne.
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        Fiche écartée et retirée du parc. Le code
-                                                        pourra être rescanné.
-                                                    </>
-                                                )
-                                            ) : isOutOfService ? (
-                                                <>
-                                                    Cet actif est enregistré sur{' '}
-                                                    <strong className="font-medium">
-                                                        {registeredAt || 'un autre service'}
-                                                    </strong>
-                                                    . Il a été trouvé dans le local de{' '}
-                                                    <strong className="font-medium">
-                                                        {selectedService}
-                                                    </strong>
-                                                    . Vit-il ici ?
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Aucune fiche ne portait ce code. Le scan a lu{' '}
-                                                    <strong className="font-medium">{name}</strong>{' '}
-                                                    sur l'étiquette — le reste de la fiche est à
-                                                    saisir. Faut-il la garder ?
-                                                </>
-                                            )}
-                                        </p>
+                                                      {/* Le fait, avant les gestes — et sur le creux que la
+                                            planche lui donne : ce n'est pas la suite de la carte,
+                                            c'est le relevé sur lequel on va trancher. */}
+                                                      <p className="bg-surface-container text-body-small text-on-surface mt-3 rounded-sm px-3 py-2.5">
+                                                          {entry.resolved ? (
+                                                              entry.decision === 'attached' ? (
+                                                                  <>
+                                                                      Rattaché à{' '}
+                                                                      <strong className="font-medium">
+                                                                          {selectedService}
+                                                                      </strong>{' '}
+                                                                      {formatSince(entry.decidedAt)}
+                                                                      . L'actif compte désormais
+                                                                      parmi les retrouvés.
+                                                                  </>
+                                                              ) : entry.decision === 'left' ? (
+                                                                  <>
+                                                                      Laissé à son service d'origine{' '}
+                                                                      {registeredAt ? (
+                                                                          <>
+                                                                              —{' '}
+                                                                              <strong className="font-medium">
+                                                                                  {registeredAt}
+                                                                              </strong>
+                                                                          </>
+                                                                      ) : null}
+                                                                      . Il était de passage ici.
+                                                                  </>
+                                                              ) : entry.decision === 'kept' ? (
+                                                                  <>
+                                                                      Fiche gardée et ouverte pour
+                                                                      être complétée{' '}
+                                                                      {formatSince(entry.decidedAt)}
+                                                                      . Elle est rattachée au
+                                                                      périmètre de la campagne.
+                                                                  </>
+                                                              ) : (
+                                                                  <>
+                                                                      Fiche écartée et retirée du
+                                                                      parc. Le code pourra être
+                                                                      rescanné.
+                                                                  </>
+                                                              )
+                                                          ) : isOutOfService ? (
+                                                              <>
+                                                                  Cet actif est enregistré sur{' '}
+                                                                  <strong className="font-medium">
+                                                                      {registeredAt ||
+                                                                          'un autre service'}
+                                                                  </strong>
+                                                                  . Il a été trouvé dans le local de{' '}
+                                                                  <strong className="font-medium">
+                                                                      {selectedService}
+                                                                  </strong>
+                                                                  . Vit-il ici ?
+                                                              </>
+                                                          ) : (
+                                                              <>
+                                                                  Aucune fiche ne portait ce code.
+                                                                  Le scan a lu{' '}
+                                                                  <strong className="font-medium">
+                                                                      {name}
+                                                                  </strong>{' '}
+                                                                  sur l'étiquette — le reste de la
+                                                                  fiche est à saisir. Faut-il la
+                                                                  garder ?
+                                                              </>
+                                                          )}
+                                                      </p>
 
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            {entry.resolved ? (
-                                                auditFinalized ? (
-                                                    <span className="text-body-small text-on-surface-variant">
-                                                        La campagne est clôturée : la décision est
-                                                        figée.
-                                                    </span>
-                                                ) : (
-                                                    <Button
-                                                        variant="text"
-                                                        size="sm"
-                                                        onClick={() => undoException(entry.id)}
-                                                        icon={
-                                                            <Icon glyph={ArrowUUpLeft} size={16} />
-                                                        }
-                                                    >
-                                                        {entry.decision === 'attached'
-                                                            ? 'Annuler ce rattachement'
-                                                            : 'Annuler cette décision'}
-                                                    </Button>
-                                                )
-                                            ) : isOutOfService ? (
-                                                <>
-                                                    <Button
-                                                        variant="outlined"
-                                                        size="sm"
-                                                        onClick={() => leaveException(entry.id)}
-                                                    >
-                                                        Il reste là-bas
-                                                    </Button>
-                                                    <Button
-                                                        variant="tonal"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            attachException(
-                                                                entry.id,
-                                                                entry.equipment,
-                                                            )
-                                                        }
-                                                        disabled={!entry.equipment}
-                                                    >
-                                                        Rattacher ici
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Button
-                                                        variant="outlined"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            discardException(
-                                                                entry.id,
-                                                                entry.equipment,
-                                                            )
-                                                        }
-                                                    >
-                                                        Écarter
-                                                    </Button>
-                                                    <Button
-                                                        variant="tonal"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            completeException(
-                                                                entry.id,
-                                                                entry.equipment,
-                                                            )
-                                                        }
-                                                        disabled={!entry.equipment}
-                                                    >
-                                                        Compléter la fiche
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
+                                                      {/* `.acts .btn{flex:1}` — les deux réponses pèsent le
+                                            même poids et prennent la même largeur : on ne
+                                            suggère pas laquelle prendre, on demande laquelle
+                                            est vraie. Le second est sombre, pas jaune — le
+                                            jaune de l'écran est pris par le scan, et ceci est
+                                            une décision de ligne, pas l'acte de l'écran. */}
+                                                      {!entry.resolved && (
+                                                          <div className="mt-3 flex items-center gap-2.5">
+                                                              {isOutOfService ? (
+                                                                  <>
+                                                                      <Button
+                                                                          variant="outlined"
+                                                                          onClick={() =>
+                                                                              leaveException(
+                                                                                  entry.id,
+                                                                              )
+                                                                          }
+                                                                          className="flex-1"
+                                                                      >
+                                                                          Il reste là-bas
+                                                                      </Button>
+                                                                      <Button
+                                                                          variant="tonal"
+                                                                          onClick={() =>
+                                                                              attachException(
+                                                                                  entry.id,
+                                                                                  entry.equipment,
+                                                                              )
+                                                                          }
+                                                                          disabled={
+                                                                              !entry.equipment
+                                                                          }
+                                                                          className="flex-1"
+                                                                      >
+                                                                          Rattacher ici
+                                                                      </Button>
+                                                                  </>
+                                                              ) : (
+                                                                  <>
+                                                                      <Button
+                                                                          variant="outlined"
+                                                                          onClick={() =>
+                                                                              discardException(
+                                                                                  entry.id,
+                                                                                  entry.equipment,
+                                                                              )
+                                                                          }
+                                                                          className="flex-1"
+                                                                      >
+                                                                          Écarter
+                                                                      </Button>
+                                                                      <Button
+                                                                          variant="tonal"
+                                                                          onClick={() =>
+                                                                              completeException(
+                                                                                  entry.id,
+                                                                                  entry.equipment,
+                                                                              )
+                                                                          }
+                                                                          disabled={
+                                                                              !entry.equipment
+                                                                          }
+                                                                          className="flex-1"
+                                                                      >
+                                                                          Compléter la fiche
+                                                                      </Button>
+                                                                  </>
+                                                              )}
+                                                          </div>
+                                                      )}
 
-                                        {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
+                                                      {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
                                             réellement. Le pictogramme la distingue du fait au-dessus. */}
-                                        {!entry.resolved && (
-                                            <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
-                                                <Icon
-                                                    glyph={Info}
-                                                    size={18}
-                                                    className="mt-px shrink-0"
-                                                />
-                                                <span>
-                                                    {isOutOfService
-                                                        ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
-                                                        : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
-                                                </span>
-                                            </p>
-                                        )}
-                                        {entry.resolved && !auditFinalized && (
-                                            <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
-                                                <Icon
-                                                    glyph={ArrowUUpLeft}
-                                                    size={18}
-                                                    className="mt-px shrink-0"
-                                                />
-                                                <span>
-                                                    Annulable jusqu'à la clôture — après, la
-                                                    décision est figée.
-                                                </span>
-                                            </p>
-                                        )}
-                                    </section>
-                                );
-                            })
-                        )}
-                    </div>
-                )}
+                                                      {!entry.resolved && (
+                                                          <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
+                                                              <Icon
+                                                                  glyph={Info}
+                                                                  size={18}
+                                                                  className="mt-px shrink-0"
+                                                              />
+                                                              <span>
+                                                                  {isOutOfService
+                                                                      ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
+                                                                      : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
+                                                              </span>
+                                                          </p>
+                                                      )}
+                                                      {entry.resolved &&
+                                                          (auditFinalized ? (
+                                                              <p className="text-label-small text-on-surface-variant mt-2.5">
+                                                                  La campagne est clôturée : la
+                                                                  décision est figée.
+                                                              </p>
+                                                          ) : (
+                                                              <Button
+                                                                  variant="text"
+                                                                  size="sm"
+                                                                  onClick={() =>
+                                                                      undoException(entry.id)
+                                                                  }
+                                                                  icon={
+                                                                      <Icon
+                                                                          glyph={ArrowUUpLeft}
+                                                                          size={18}
+                                                                      />
+                                                                  }
+                                                                  className="text-label-small text-on-surface-variant mt-2 min-h-0 px-0"
+                                                              >
+                                                                  {entry.decision === 'attached'
+                                                                      ? 'Annuler ce rattachement'
+                                                                      : 'Annuler cette décision'}{' '}
+                                                                  — possible jusqu'à la clôture
+                                                              </Button>
+                                                          ))}
+                                                  </section>
+                                              );
+                                          })}
+                                </div>
+                            )}
 
-                {/* Le pied d'acte, en pleine largeur et en fin de contenu : la planche n'a
+                            {/* Le pied d'acte, en pleine largeur et en fin de contenu : la planche n'a
                     pas de bouton flottant ici. Un FAB masque une rangée et impose un
                     dégagement bas ; le geste au fil du contenu se pose sous ce qu'il
                     concerne, et se lit avant d'être frappé. */}
-                <div className="flex flex-col gap-2.5 pt-1">{footerActions}</div>
+                            {footerActions && (
+                                <div className="flex flex-col gap-2.5 pt-1">{footerActions}</div>
+                            )}
+                        </>
+                    )}
+                </Reading>
             </div>
 
             {/* C6 — le canevas de 17.3, en **mode lot** : la caméra ne se referme pas entre
@@ -1792,7 +1735,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <ScanView
                         mode="batch"
                         onClose={() => setScanOpen(false)}
-                        tip="Cadrez le QR collé sur l'actif. Le compteur monte à chaque lecture."
+                        tip="Cadrez le numéro de série ou le code-barres. Le compteur monte à chaque lecture."
                         hits={scanHits}
                         expected={sessionTotal}
                         finishLabel="Terminer le lot"
@@ -1805,15 +1748,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             <SideSheet
                 open={manualOpen}
                 onClose={() => setManualOpen(false)}
-                title="Saisir le contenu du QR"
-                description="Collez le contenu du QR généré par le script (JSON ou format clé=valeur)."
+                title="Saisir le code lu"
+                description="Le numéro de série ou le code d’actif lu sur l’étiquette — ou le contenu d’un QR, si l’actif en porte un."
             >
                 <div className="space-y-4">
                     <textarea
                         value={scanRawValue}
                         onChange={(e) => setScanRawValue(e.target.value)}
                         className="rounded-card border-outline-variant bg-surface text-body-medium text-on-surface focus:border-primary min-h-40 w-full border px-3 py-2 outline-none"
-                        placeholder={`Exemple JSON:\n{\n  "assetId": "ASSET-10001",\n  "hostname": "PC-HQ-01",\n  "userEmail": "user@company.com"\n}`}
+                        placeholder={`ASSET-10001\n7QK4XZ2\n\n— ou le contenu d\u2019un QR :\n{ "assetId": "ASSET-10001", "hostname": "PC-HQ-01" }`}
                     />
                     <div className="flex justify-end gap-2">
                         <Button variant="text" onClick={() => setManualOpen(false)}>

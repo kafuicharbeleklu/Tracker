@@ -177,7 +177,16 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
                         (count, id) => (scopedIds.has(id) ? count + 1 : count),
                         0,
                     );
-                    const missing = Math.max(expected - found, 0);
+                    /**
+                     * **V2 — un manquant n'existe pas avant d'avoir cherché.**
+                     * `expected − found` déclarait tout le parc manquant au repos :
+                     * l'écran s'ouvrait sur « 7 manquants » d'un parc que personne
+                     * n'avait scanné, et ce faux compte allumait à lui seul le régime
+                     * « campagne en cours » — donc le bloc des quatre chiffres, que la
+                     * planche réserve à une campagne qui tourne. Tant qu'aucun scan
+                     * n'a eu lieu sur ce périmètre, il n'y a **rien** à compter.
+                     */
+                    const missing = scanEvents.length > 0 ? Math.max(expected - found, 0) : 0;
                     const exceptions = alignEvents.length;
                     const progress = expected > 0 ? Math.round((found / expected) * 100) : 0;
                     const lastScanAt =
@@ -281,22 +290,83 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
         [allRows, equipment.length],
     );
 
-    const persistScopePreference = (row?: ServiceAuditRow) => {
+    /**
+     * **Chaque option de périmètre porte son compte** (16.1, colonne 3) — *« un filtre
+     * qui ne dit pas combien il reste après lui se choisit à l'aveugle »*.
+     *
+     * Les comptes se lisent dans l'ordre où les axes se resserrent : le pays compte sur
+     * tout le référentiel, le site sur le pays retenu, le service sur le site retenu, le
+     * statut sur la portée entière. Un axe qui compterait sur sa propre sélection
+     * afficherait le total de ce qu'il vient de produire, ce qui ne renseigne rien.
+     */
+    const scopeOptions = useMemo(() => {
+        const withCount = (
+            base: ServiceAuditRow[],
+            options: { value: string; label: string }[],
+            match: (row: ServiceAuditRow, value: string) => boolean,
+        ) =>
+            options.map((option) => ({
+                ...option,
+                count:
+                    option.value === ALL_VALUE
+                        ? base.length
+                        : base.filter((row) => match(row, option.value)).length,
+            }));
+
+        const byCountry =
+            selectedCountry === ALL_VALUE
+                ? allRows
+                : allRows.filter((row) => row.country === selectedCountry);
+        const bySite =
+            selectedSite === ALL_VALUE
+                ? byCountry
+                : byCountry.filter((row) => row.site === selectedSite);
+
+        return {
+            country: withCount(allRows, countryOptions, (row, value) => row.country === value),
+            site: withCount(byCountry, siteOptions, (row, value) => row.site === value),
+            service: withCount(bySite, serviceOptions, (row, value) => row.service === value),
+            status: withCount(scopedRows, STATUS_OPTIONS, (row, value) => row.status === value),
+        };
+    }, [
+        allRows,
+        countryOptions,
+        siteOptions,
+        serviceOptions,
+        scopedRows,
+        selectedCountry,
+        selectedSite,
+    ]);
+
+    /**
+     * **Une campagne porte sur un service** — le lexique de 16.1 le dit ainsi : *«
+     * Campagne : un service, une session de vérification »*. Le geste de pied doit
+     * donc désigner une rangée, pas une portée.
+     *
+     * Celle qui tourne d'abord — c'est elle qu'on reprend ou qu'on clôture —, sinon
+     * la seule que la portée laisse, s'il n'en reste qu'une. Quand la portée en laisse
+     * plusieurs, aucun geste ne peut choisir à notre place : la vue le dit et ouvre la
+     * feuille de périmètre au lieu de partir sur un écran sans sujet.
+     */
+    const scopeTargetRow = useMemo(
+        () =>
+            scopedRows.find((row) => row.status === 'En cours') ??
+            (scopedRows.length === 1 ? scopedRows[0] : null),
+        [scopedRows],
+    );
+
+    const persistScopePreference = (row: ServiceAuditRow) => {
         try {
-            const payload = row
-                ? { country: row.country, site: row.site, service: row.service }
-                : {
-                      country: selectedCountry === ALL_VALUE ? '' : selectedCountry,
-                      site: selectedSite === ALL_VALUE ? '' : selectedSite,
-                      service: selectedService === ALL_VALUE ? '' : selectedService,
-                  };
-            sessionStorage.setItem(AUDIT_SCOPE_PREF_KEY, JSON.stringify(payload));
+            sessionStorage.setItem(
+                AUDIT_SCOPE_PREF_KEY,
+                JSON.stringify({ country: row.country, site: row.site, service: row.service }),
+            );
         } catch {
             // Ignore storage failures.
         }
     };
 
-    const openAuditDetails = (row?: ServiceAuditRow) => {
+    const openAuditDetails = (row: ServiceAuditRow) => {
         persistScopePreference(row);
         if (typeof onViewChange === 'function') {
             onViewChange('audit_details');
@@ -315,18 +385,19 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
      */
     const startAuditForRow = (row: ServiceAuditRow) => {
         setSelectedRowKey(buildRowKey(row));
-        showToast(`Audit prêt pour ${row.service} (${row.site}).`, 'success');
+        showToast(`Campagne lancée sur ${row.service} (${row.site}).`, 'success');
         openAuditDetails(row);
     };
 
     /**
-     * Action du FAB de la vue compacte : lancer l'audit sur le PÉRIMÈTRE COURANT.
-     * Contrairement aux deux boutons supprimés par l'ADN (§4 : « jamais de bouton
-     * désactivé accompagné d'une phrase d'instruction »), elle n'exige aucune
-     * sélection préalable — donc elle n'est jamais impossible.
+     * Le geste de pied — il n'est jamais impossible, mais il ne promet plus ce qu'il
+     * ne peut pas tenir. Quand la portée désigne un service, il l'ouvre ; sinon la vue
+     * ouvre la feuille de périmètre, et le libellé du bouton dit lequel des deux se
+     * produira. Rien de désactivé, rien de grisé (§4).
      */
     const handleStartScopedAudit = () => {
-        openAuditDetails();
+        if (!scopeTargetRow) return;
+        openAuditDetails(scopeTargetRow);
     };
 
     const setFilterValue = (key: 'country' | 'site' | 'service' | 'status', value: string) => {
@@ -357,19 +428,15 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
                 service: selectedService,
                 status: selectedStatus,
             }}
-            filterOptions={{
-                country: countryOptions,
-                site: siteOptions,
-                service: serviceOptions,
-                status: STATUS_OPTIONS,
-            }}
+            filterOptions={scopeOptions}
             onFilterChange={setFilterValue}
             onResetFilters={resetFilters}
             onOpenService={openAuditDetails}
             onStartService={startAuditForRow}
             unscopedAssets={unscopedAssets}
             onStartAudit={handleStartScopedAudit}
-            onOpenDetailsTab={() => openAuditDetails()}
+            canStartOnScope={Boolean(scopeTargetRow)}
+            onOpenDetailsTab={handleStartScopedAudit}
         />
     );
 };

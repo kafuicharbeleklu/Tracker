@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowElbowDownRight,
     ArrowLeft,
+    ArrowRight,
     Briefcase,
+    CaretDown,
+    CaretUp,
     Crosshair,
     Eye,
     Flag,
@@ -26,6 +29,7 @@ import Button from '../../../components/ui/Button';
 import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
 import RuleGroup from '../../../components/ui/RuleGroup';
+import InfoTip from '../../../components/ui/InfoTip';
 import ScreenState from '../../../components/ui/ScreenState';
 import SearchField from '../../../components/ui/SearchField';
 import FacetChip from '../../../components/ui/FacetChip';
@@ -241,49 +245,112 @@ const inheritanceFact = (
  * Chaque note est **déduite de ce que le groupe contient réellement** — jamais posée en
  * dur sur un nom de rôle, qui changerait sans que la phrase change.
  */
-const scopeNote = (
+/**
+ * **Ce qui explique un chiffre monte en ⓘ** — passe R13 de la planche 11.1.
+ *
+ * Ces trois faits expliquaient chacun le **décompte d'une rangée**, et ils vivaient
+ * pourtant en pied de groupe, en paragraphes de quatre lignes posés entre deux
+ * cadres. Un pied de groupe qui parle d'une rangée oblige à retrouver laquelle ; une
+ * ⓘ collée au chiffre désigne son sujet toute seule.
+ *
+ * Retourne la bulle qui accompagne le décompte du rôle, ou `null` quand le décompte
+ * dit ce qu'il paraît dire — c'est le cas des cinq rôles sur huit qui n'héritent de
+ * rien et dont la portée s'exprime.
+ */
+const roleCountTip = (
+    role: RbacRole,
     level: ScopeLevel,
-    roles: RbacRole[],
     byId: Map<string, RbacRole>,
-): string | null => {
-    const parts: string[] = [];
+): React.ReactNode => {
+    const inheritance = inheritanceFact(role, byId);
 
-    if (level === 'global') {
-        parts.push(
-            "Une portée globale reçoit le parc entier — mais l'Admin le reçoit aussi dès qu'aucun pays ne lui est affecté : c'est le repli de filterEquipment. Ce qui les sépare tient à managedCountries, une donnée de la personne, pas au rôle.",
+    /* « Affiche 4, porte 24 » : le rôle qui hérite sans rien ajouter. Son décompte
+       est celui de ses propres règles, pas de ce qu'il donne. */
+    if (inheritance?.addsNothing) {
+        const base = role.baseRoleId ? byId.get(role.baseRoleId) : undefined;
+        const carried = base ? allowedRules(base).length : null;
+        return (
+            <InfoTip
+                title={
+                    carried !== null
+                        ? `Affiche ${allowedRules(role).length}, porte ${carried}`
+                        : 'Le décompte ne dit pas ce que le rôle porte'
+                }
+                detail="Un décompte de rôle qui hérite ne dit pas ce qu'il porte."
+            />
         );
     }
 
-    if (level === 'custom') {
-        parts.push(
-            "Une portée sur mesure est une expression nommée qu'aucun code ne sait résoudre. Les autres portées sont au moins exprimables ; celle-ci n'a même pas de forme — elle est ignorée deux fois.",
-        );
-    }
-
-    const inheritsNothing = roles.filter((role) => inheritanceFact(role, byId)?.addsNothing);
-    if (inheritsNothing.length > 0) {
-        parts.push(
-            `Le décompte d'un rôle qui hérite ne dit pas ce qu'il porte : ${inheritsNothing
-                .map((role) => role.name)
-                .join(
-                    ', ',
-                )} n'ajoute${inheritsNothing.length > 1 ? 'nt' : ''} aucun droit à sa base. La rangée le dit ; la colonne de droite ne peut pas.`,
-        );
-    }
-
-    const inheritsOtherScope = roles.filter((role) => {
-        if (!role.baseRoleId) return false;
+    /* « Deux portées empilées » : hériter d'un rôle d'une autre portée les additionne,
+       et `gatherDataScopes` garde les deux sans les départager. */
+    if (inheritance && role.baseRoleId) {
         const base = byId.get(role.baseRoleId);
-        if (!base) return false;
-        return declaredScope(base) !== level;
-    });
-    if (inheritsOtherScope.length > 0) {
-        parts.push(
-            'Un rôle qui hérite empile sa portée sur celle de sa base : gatherDataScopes garde les deux sans les départager, et rien ne dit laquelle gagnerait — puisque rien ne les lit.',
+        const baseLevel = base ? declaredScope(base) : null;
+        if (baseLevel && baseLevel !== level) {
+            return (
+                <InfoTip
+                    title="Deux portées empilées"
+                    detail={`${SCOPE_LABEL[baseLevel]}, héritée ; ${SCOPE_LABEL[level]}, déclarée. Rien ne les départage.`}
+                />
+            );
+        }
+    }
+
+    /* « Portée nommée » : une expression sur mesure qu'aucun code ne sait résoudre. */
+    if (level === 'custom') {
+        const named = role.dataScopes?.[0]?.expression;
+        return (
+            <InfoTip
+                title={named ? `Portée nommée ${named}` : 'Portée sur mesure'}
+                detail="Aucun code ne sait la résoudre."
+            />
         );
     }
 
-    return parts.length > 0 ? parts.join(' ') : null;
+    return null;
+};
+
+/**
+ * **Le repli — et il n'en reste qu'un.** Passe R13 : le relevé de code descend sous
+ * le cadre, ce qui explique un chiffre monte en ⓘ, *« un seul repli reste, celui qui
+ * a un renvoi »*. C'est celui-ci : le fait est long, il concerne **deux rôles à la
+ * fois** — donc aucun chiffre en particulier —, et il se termine par un endroit où
+ * aller. Replié, il tient sur une ligne ; déplié, il ne coupe pas la liste puisqu'on
+ * vient de l'ouvrir.
+ */
+const ScopeDisclosure: React.FC<{
+    summary: string;
+    children: React.ReactNode;
+    linkLabel: string;
+    onFollow: () => void;
+}> = ({ summary, children, linkLabel, onFollow }) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="text-text-muted text-[11px] leading-4">
+            <Button
+                variant="text"
+                onClick={() => setOpen((value) => !value)}
+                aria-expanded={open}
+                className="text-text-secondary min-h-11 w-full justify-between gap-2 px-0 text-left text-[12px]"
+            >
+                <span className="min-w-0 flex-1">{summary}</span>
+                <Icon glyph={open ? CaretUp : CaretDown} size={18} className="shrink-0" />
+            </Button>
+            {open && (
+                <div className="flex flex-col items-start gap-1 pb-3">
+                    <p>{children}</p>
+                    <Button
+                        variant="text"
+                        onClick={onFollow}
+                        className="text-on-surface min-h-11 gap-1.5 px-0 text-[12px]"
+                    >
+                        {linkLabel}
+                        <Icon glyph={ArrowRight} size={16} />
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
 };
 
 const RbacPage: React.FC = () => {
@@ -744,12 +811,21 @@ const RbacPage: React.FC = () => {
 
             <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
                 <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
+                    {/* `.pv` de 11.1 — **le chiffre, son libellé court, et l'explication
+                        rangée derrière l'ⓘ** (17.9). Les deux propositions qui suivaient
+                        le décompte tenaient sur trois lignes dans un encart lu une fois,
+                        puis jamais. */}
                     <Notice glyph={ShieldCheck}>
                         <strong className="text-on-surface font-medium">
                             {TOTAL_PERMISSIONS} permissions
                         </strong>{' '}
-                        — {VIEW_KEYS.length} vues et {ACTION_KEYS.length} actions, en lecture,
-                        écriture ou suppression. Toutes sont lues par l'application.
+                        — {VIEW_KEYS.length} vues, {ACTION_KEYS.length} actions
+                        <InfoTip
+                            title="En lecture, écriture ou suppression"
+                            detail="Toutes lues par l'application."
+                            label="Ce que compte ce chiffre"
+                            className="ml-1.5"
+                        />
                     </Notice>
 
                     {view === 'roles' ? (
@@ -797,7 +873,29 @@ const RbacPage: React.FC = () => {
                                             </span>
                                         }
                                         headerTrailing={`${roles.length} rôle${roles.length > 1 ? 's' : ''}`}
-                                        note={scopeNote(level, roles, rolesById)}
+                                        note={
+                                            level === 'global' ? (
+                                                <ScopeDisclosure
+                                                    summary="Deux rôles reçoivent le parc entier"
+                                                    linkLabel="Voir les pays affectés à l'Admin"
+                                                    onFollow={() => navigate('/users')}
+                                                >
+                                                    Le SuperAdmin toujours, et l'
+                                                    <strong className="text-on-surface font-medium">
+                                                        Admin dès qu'aucun pays ne lui est affecté
+                                                    </strong>{' '}
+                                                    — le repli de filterEquipment le dit en
+                                                    commentaire. Ce qui les sépare tient à
+                                                    managedCountries, une donnée de la personne, pas
+                                                    au rôle. Seul écart qui vienne bien du rôle :
+                                                    les quatorze actions{' '}
+                                                    <strong className="text-on-surface font-medium">
+                                                        en suppression
+                                                    </strong>
+                                                    , contre trois à l'Admin.
+                                                </ScopeDisclosure>
+                                            ) : null
+                                        }
                                     >
                                         {roles.map((role) => {
                                             const inheritance = inheritanceFact(role, rolesById);
@@ -818,7 +916,12 @@ const RbacPage: React.FC = () => {
                                                             ? facts.join(' · ')
                                                             : role.id
                                                     }
-                                                    value={allowedRules(role).length}
+                                                    value={
+                                                        <span className="inline-flex items-center gap-1">
+                                                            {allowedRules(role).length}
+                                                            {roleCountTip(role, level, rolesById)}
+                                                        </span>
+                                                    }
                                                     onOpen={() => goToRole(role.id)}
                                                 />
                                             );

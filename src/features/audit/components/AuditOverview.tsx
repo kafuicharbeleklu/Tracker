@@ -9,6 +9,7 @@ import {
     Funnel,
     MagnifyingGlassMinus,
     Play,
+    Scan,
 } from '@phosphor-icons/react';
 import Reading from '../../../components/layout/Reading';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -16,15 +17,16 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
-import SelectField from '../../../components/ui/SelectField';
 import { cn } from '../../../lib/utils';
 import { ALL_VALUE, ServiceAuditRow } from '../serviceAudit';
 
 type FilterKey = 'country' | 'site' | 'service' | 'status';
 
-interface SelectOption {
+interface ScopeOption {
     value: string;
     label: string;
+    /** Ce qui reste après ce choix. Un filtre sans compte se choisit à l'aveugle (16.1). */
+    count: number;
 }
 
 export interface AuditScopeFilters {
@@ -48,7 +50,7 @@ interface AuditOverviewProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
     filters: AuditScopeFilters;
-    filterOptions: Record<FilterKey, SelectOption[]>;
+    filterOptions: Record<FilterKey, ScopeOption[]>;
     onFilterChange: (key: FilterKey, value: string) => void;
     onResetFilters: () => void;
     onOpenService: (row: ServiceAuditRow) => void;
@@ -57,6 +59,12 @@ interface AuditOverviewProps {
     /** Les actifs qu'aucun service du référentiel ne réclame (dette V3). */
     unscopedAssets: number;
     onStartAudit: () => void;
+    /**
+     * La portée désigne-t-elle **un** service ? Une campagne n'en couvre qu'un — le
+     * lexique de la planche le dit —, donc le geste de pied n'a de cible que dans ce
+     * cas. Sinon il ouvre la feuille de périmètre, et son libellé l'annonce.
+     */
+    canStartOnScope: boolean;
     onOpenDetailsTab: () => void;
 }
 
@@ -96,6 +104,20 @@ const statusConfig = (status: ServiceAuditRow['status']) => {
     }
 };
 
+/**
+ * **`.rbtn` — le geste de rangée, et il n'est jamais peint.**
+ *
+ * La planche déclare un seul geste de rangée — le creux de la page pour fond, encre
+ * normale, 44 px de haut — et les trois verbes de la liste le portent **à
+ * l'identique** : lancer, reprendre, clôturer. Le code en faisait trois boutons
+ * différents : « Reprendre » en jaune de marque et « Clôturer » sur la surface
+ * inversée. Le jaune de cet écran est déjà pris par le geste de pied — deux usages
+ * par écran est le plafond, et une rangée par service en aurait posé autant qu'il y
+ * a de campagnes ouvertes.
+ */
+const ROW_ACTION_CLASS =
+    'bg-surface-container text-on-surface hover:bg-surface-container-high min-h-11 shrink-0 rounded-sm px-3.5 text-[13px]';
+
 const StatusBadge: React.FC<{ status: ServiceAuditRow['status'] }> = ({ status }) => {
     const config = statusConfig(status);
     return (
@@ -125,6 +147,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     onStartService,
     unscopedAssets,
     onStartAudit,
+    canStartOnScope,
     onOpenDetailsTab,
 }) => {
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -168,6 +191,30 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * ne s'applique jamais en silence »*. Il nomme désormais l'axe le plus fin des
      * trois, celui qui décide réellement de ce qu'on voit.
      */
+    /**
+     * Ce qui est **posé** sur la liste, en toutes lettres — le périmètre, le statut, la
+     * recherche. Le bandeau les nomme, et le vide s'en sert pour dire *pourquoi* il est
+     * vide plutôt que de constater qu'il l'est.
+     */
+    const statusLabel = filterOptions.status.find(
+        (option) => option.value === filters.status,
+    )?.label;
+    const activeConstraints = useMemo(() => {
+        const constraints: string[] = [];
+        if (filters.service !== ALL_VALUE) constraints.push(`service « ${filters.service} »`);
+        else if (filters.site !== ALL_VALUE) constraints.push(`site « ${filters.site} »`);
+        else if (filters.country !== ALL_VALUE) constraints.push(`pays « ${filters.country} »`);
+        if (filters.status !== ALL_VALUE && statusLabel)
+            constraints.push(`statut « ${statusLabel.toLowerCase()} »`);
+        if (searchQuery.trim()) constraints.push(`recherche « ${searchQuery.trim()} »`);
+        return constraints;
+    }, [filters, statusLabel, searchQuery]);
+
+    const emptyCause =
+        activeConstraints.length === 0
+            ? "Aucun service n'est rattaché à ce référentiel : les actifs portent un département là où le référentiel porte un service."
+            : `Aucun service ne réunit ${activeConstraints.join(' et ')}. Élargissez l'un des deux, ou effacez tout.`;
+
     const scopeLabel =
         filters.service !== ALL_VALUE
             ? filters.service
@@ -196,7 +243,15 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 ariaLabel="Vues de l'audit"
                 activeId="overview"
                 onChange={(tabId) => {
-                    if (tabId === 'details') onOpenDetailsTab();
+                    if (tabId !== 'details') return;
+                    /* Une campagne porte sur un service : sans service désigné, il n'y
+                       a pas de campagne à ouvrir. L'onglet renvoie alors au périmètre,
+                       comme le geste de pied — jamais sur un écran sans sujet. */
+                    if (!canStartOnScope) {
+                        setFiltersOpen(true);
+                        return;
+                    }
+                    onOpenDetailsTab();
                 }}
                 items={[
                     { id: 'overview', label: 'Vue globale' },
@@ -215,7 +270,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
             />
 
             {/* Bandeau de périmètre actif (Planche 16.1) */}
-            {isScopeFiltered && (
+            {(isScopeFiltered || filters.status !== ALL_VALUE) && (
                 <div className="bg-surface-container text-body-small text-on-surface flex items-center justify-between gap-2 rounded-md p-3">
                     <div className="flex min-w-0 items-center gap-2">
                         <Icon glyph={Funnel} size={16} className="text-text-secondary shrink-0" />
@@ -224,6 +279,12 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                                 Le bandeau ne dit donc plus « posé à l'ouverture, pas par
                                 vous » — il nomme la portée et met sa sortie à côté. */}
                             Périmètre <strong>{scopeLabel}</strong>
+                            {filters.status !== ALL_VALUE && statusLabel && (
+                                <>
+                                    {' '}
+                                    · statut <strong>{statusLabel.toLowerCase()}</strong>
+                                </>
+                            )}
                         </span>
                     </div>
                     <Button
@@ -323,134 +384,211 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 </section>
             )}
 
-            {/* Barre de recherche et filtres */}
-            <div className="flex items-center gap-2">
-                <div className="flex-1">
-                    <SearchFilterBar
-                        searchValue={searchQuery}
-                        onSearchChange={onSearchChange}
-                        onFilterClick={() => setFiltersOpen(true)}
-                        filterActive={filtersOpen}
-                        filterPanelId="audit-scope-filter-sheet"
-                        filterCount={activeFilters.length}
-                        placeholder="Rechercher un service"
-                    />
-                </div>
-            </div>
+            {/* **La recherche n'existe qu'au repos** (16.1). La colonne « campagne en
+                cours » ne la dessine pas : dès qu'un scan a eu lieu, l'écran ne sert plus
+                à *trouver un service*, il sert à dire ce que la campagne a laissé à
+                décider. Le périmètre, lui, a été posé au lancement — et le bandeau
+                au-dessus le nomme, avec sa sortie.
+
+                **Sauf devant une liste vide** : là, le champ et le bouton restent,
+                actifs. *« Les faire disparaître avec la liste est ce qui fait croire
+                qu'on a perdu le filtre, et non qu'on l'a trop serré. »* */}
+            {(!isCampaignActive || rows.length === 0) && (
+                <SearchFilterBar
+                    searchValue={searchQuery}
+                    onSearchChange={onSearchChange}
+                    onFilterClick={() => setFiltersOpen(true)}
+                    filterActive={filtersOpen}
+                    filterPanelId="audit-scope-filter-sheet"
+                    filterCount={activeFilters.length}
+                    placeholder="Rechercher un service"
+                />
+            )}
 
             {/* Liste des services */}
             <div className="text-body-small text-text-secondary flex items-baseline justify-between px-0.5">
                 <span>Les jamais vérifiés d'abord</span>
-                <span className="font-brand text-on-surface font-semibold tabular-nums">
-                    {rows.length} service{rows.length > 1 ? 's' : ''} · {totals.expected} attendu
-                    {totals.expected > 1 ? 's' : ''}
+                <span className="text-text-muted shrink-0 tabular-nums">
+                    {isCampaignActive
+                        ? `${rows.length} des ${scopedServiceCount} services`
+                        : `${rows.length} service${rows.length > 1 ? 's' : ''} · ${totals.expected} attendu${totals.expected > 1 ? 's' : ''}`}
                 </span>
             </div>
 
             {rows.length === 0 ? (
-                <section className="bg-surface shadow-elevation-1 flex flex-col items-center justify-center gap-3 rounded-lg p-8 text-center">
-                    <Icon glyph={MagnifyingGlassMinus} size={36} className="text-text-secondary" />
+                <section className="flex flex-col items-center justify-center gap-3.5 px-6 py-10 text-center">
+                    <Icon glyph={MagnifyingGlassMinus} size={32} className="text-text-muted" />
                     <div>
                         <h3 className="font-brand text-body-large text-on-surface font-semibold">
                             Aucun service ne correspond
                         </h3>
-                        <p className="text-body-small text-text-secondary mt-1 max-w-[280px]">
-                            Élargissez le périmètre ou effacez la recherche pour afficher les
-                            services du parc.
+                        {/* **Il nomme la contradiction** — c'est la seule information
+                            utile devant une liste vide : la cause, pas le constat. */}
+                        <p className="text-body-small text-text-secondary mt-1 max-w-[320px]">
+                            {emptyCause}
                         </p>
                     </div>
                     <Button variant="outlined" size="sm" onClick={onResetFilters}>
-                        Effacer les filtres
+                        {activeConstraints.length > 1
+                            ? `Effacer les ${activeConstraints.length} filtres`
+                            : 'Effacer le filtre'}
                     </Button>
                 </section>
             ) : (
-                <section className="bg-surface shadow-elevation-1 divide-outline-variant divide-y overflow-hidden rounded-lg">
-                    {rows.map((row) => (
-                        <div
-                            key={`${row.country}-${row.site}-${row.service}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => onOpenService(row)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    onOpenService(row);
-                                }
-                            }}
-                            className="hover:bg-surface-container flex min-h-[64px] w-full cursor-pointer items-center gap-3 p-3.5 text-left transition-colors"
-                        >
-                            <div className="bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                <Icon glyph={Buildings} size={20} />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                                <span className="font-brand text-body-medium text-on-surface block truncate font-semibold">
-                                    {row.service}
-                                </span>
-                                <div className="text-body-small text-text-secondary mt-0.5 flex items-center gap-2">
-                                    <span className="truncate">{row.site}</span>
-                                    <span>·</span>
-                                    <StatusBadge status={row.status} />
-                                </div>
-                            </div>
-
-                            {row.status === 'A lancer' ? (
-                                <Button
-                                    variant="tonal"
-                                    size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onStartService(row);
-                                    }}
-                                    className="shrink-0"
-                                >
-                                    Lancer
-                                </Button>
-                            ) : row.status === 'En cours' ? (
-                                <Button
-                                    variant="filled"
-                                    size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
+                <section className="bg-surface shadow-elevation-1 overflow-hidden rounded-lg">
+                    <div className="divide-outline-variant divide-y">
+                        {rows.map((row) => (
+                            <div
+                                key={`${row.country}-${row.site}-${row.service}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => onOpenService(row)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
                                         onOpenService(row);
-                                    }}
-                                    className="shrink-0"
-                                >
-                                    Reprendre
-                                </Button>
-                            ) : (
-                                <Icon
-                                    glyph={CaretRight}
-                                    size={18}
-                                    className="text-text-secondary shrink-0"
-                                />
-                            )}
-                        </div>
-                    ))}
+                                    }
+                                }}
+                                className="hover:bg-surface-container flex min-h-[64px] w-full cursor-pointer items-center gap-3 p-3.5 text-left transition-colors"
+                            >
+                                <div className="bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
+                                    <Icon glyph={Buildings} size={20} />
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                    <span className="text-body-medium text-on-surface block truncate font-medium">
+                                        {row.service}
+                                    </span>
+                                    <div className="text-body-small text-text-secondary mt-0.5 flex items-center gap-1.5">
+                                        <span className="min-w-0 flex-1 truncate">{row.site}</span>
+                                        <StatusBadge status={row.status} />
+                                    </div>
+                                </div>
+
+                                {row.status === 'A lancer' ? (
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onStartService(row);
+                                        }}
+                                        className={ROW_ACTION_CLASS}
+                                    >
+                                        Lancer
+                                    </Button>
+                                ) : row.status === 'En cours' ? (
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenService(row);
+                                        }}
+                                        className={ROW_ACTION_CLASS}
+                                    >
+                                        Reprendre
+                                    </Button>
+                                ) : row.status === 'Complet' ? (
+                                    /* Une campagne complète n'attend plus qu'un acte, et c'est
+                                   celui-là : la rangée le nomme au lieu d'un chevron. */
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenService(row);
+                                        }}
+                                        className={ROW_ACTION_CLASS}
+                                    >
+                                        Clôturer
+                                    </Button>
+                                ) : (
+                                    <Icon
+                                        glyph={CaretRight}
+                                        size={18}
+                                        className="text-text-secondary shrink-0"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* `.hint` — **ce n'est pas un état vide de dessin, c'est une donnée
+                        à réconcilier** : les actifs portent un département là où le
+                        référentiel porte un service, et les deux vocabulaires ne se
+                        recoupent pas (16.1, dette V3). La planche le dit sous les
+                        rangées, dans la carte : il parle de la liste, pas de l'écran. */}
+                    {unscopedAssets > 0 && (
+                        <p className="text-body-small text-text-secondary px-3.5 pb-3.5 leading-[17px]">
+                            <strong className="text-on-surface font-medium">
+                                {unscopedAssets} actif{unscopedAssets > 1 ? 's' : ''} n'
+                                {unscopedAssets > 1 ? 'entrent' : 'entre'} dans aucune campagne
+                            </strong>
+                            {
+                                " — ils ne sont rattachés à aucun service du référentiel. Ce n'est pas un vide de dessin : c'est une donnée à réconcilier."
+                            }
+                        </p>
+                    )}
                 </section>
             )}
 
-            {/* `.hint` — **ce n'est pas un état vide de dessin, c'est une donnée à
-                réconcilier** : les actifs portent un département là où le référentiel
-                porte un service, et les deux vocabulaires ne se recoupent pas (16.1,
-                dette V3). La planche le dit en clair sous la liste. */}
-            {unscopedAssets > 0 && (
-                <p className="text-body-small text-text-secondary px-0.5 leading-[17px]">
-                    <strong className="text-on-surface font-medium">
-                        {unscopedAssets} actif{unscopedAssets > 1 ? 's' : ''} n'
-                        {unscopedAssets > 1 ? 'entrent' : 'entre'} dans aucune campagne
-                    </strong>
-                    {
-                        " — ils ne sont rattachés à aucun service du référentiel. Ce n'est pas un vide de dessin : c'est une donnée à réconcilier."
-                    }
-                </p>
+            {/* LE GESTE DE PIED — **jamais un bouton flottant** : il agit sur le
+                périmètre entier, donc sur ce que la liste vient de dire, et il n'a rien à
+                recouvrir (16.1). Il a trois libellés, un par moment de l'écran : on lance,
+                on reprend, on clôture. */}
+            {!canStartOnScope ? (
+                /* La portée couvre plusieurs services, et une campagne n'en prend
+                   qu'un. Le bouton ne promet donc pas de lancer : il ouvre la feuille
+                   qui resserre. Rien de désactivé — ce que l'ADN interdit, c'est le
+                   bouton mort accompagné d'une phrase d'instruction. */
+                <Button
+                    variant="filled"
+                    className="mt-2 w-full justify-center"
+                    onClick={() => setFiltersOpen(true)}
+                >
+                    <Icon glyph={Funnel} size={18} />
+                    Choisir le service à auditer
+                </Button>
+            ) : isCampaignClean ? (
+                <Button
+                    variant="tonal"
+                    className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 mt-2 w-full justify-center"
+                    onClick={onStartAudit}
+                >
+                    Clôturer la campagne
+                </Button>
+            ) : isCampaignActive ? (
+                <Button
+                    variant="filled"
+                    className="mt-2 w-full justify-center"
+                    onClick={onStartAudit}
+                >
+                    <Icon glyph={Scan} size={18} />
+                    Reprendre le scan
+                </Button>
+            ) : (
+                <Button
+                    variant="filled"
+                    className="mt-2 w-full justify-center"
+                    onClick={onStartAudit}
+                >
+                    <Icon glyph={Play} size={18} />
+                    Lancer une campagne sur ce périmètre
+                </Button>
             )}
 
-            {/* Bouton principal de pied de page (Planche 16.1) */}
-            <Button variant="filled" className="mt-2 w-full justify-center" onClick={onStartAudit}>
-                <Icon glyph={Play} size={18} />
-                Lancer une campagne sur ce périmètre
-            </Button>
+            {/* La clôture retire des actifs d'un service : elle se confirme là où elle
+                s'explique, sur la campagne (16.2). Le dire ici évite de la chercher. */}
+            {hasPendingDecisions && (
+                <p className="text-body-small text-text-secondary px-0.5 leading-[17px]">
+                    La clôture n'est pas ici :{' '}
+                    <strong className="text-on-surface font-medium">
+                        elle retire des actifs d'un service
+                    </strong>{' '}
+                    et se confirme sur la campagne.
+                </p>
+            )}
 
             {/* Feuille de filtre (Planche 16.1 Colonne 3) */}
             <BottomSheet
@@ -459,28 +597,49 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 onClose={() => setFiltersOpen(false)}
                 title="Périmètre"
             >
-                <div className="space-y-4">
+                <div className="flex flex-col pb-0">
+                    {/* **Quatre axes, dans l'ordre où ils se resserrent** — pays → site →
+                        service —, puis le statut, qui ne resserre pas un lieu mais un
+                        état. Chaque option porte son compte : c'est ce qui distingue un
+                        filtre qu'on choisit d'un filtre qu'on tente. */}
                     {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => (
-                        <SelectField
-                            key={key}
-                            label={FILTER_LABELS[key]}
-                            name={`auditScope-${key}`}
-                            value={filters[key]}
-                            onChange={(event) => onFilterChange(key, event.target.value)}
-                            options={filterOptions[key]}
-                        />
+                        <React.Fragment key={key}>
+                            <p className="text-text-muted px-5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
+                                {FILTER_LABELS[key]}
+                            </p>
+                            <div className="flex flex-wrap gap-2 px-5">
+                                {filterOptions[key].map((option) => (
+                                    <Button
+                                        key={option.value}
+                                        variant="text"
+                                        onClick={() => onFilterChange(key, option.value)}
+                                        className={cn(
+                                            'flex min-h-11 items-center gap-[7px] rounded-md px-3 text-[13px]',
+                                            filters[key] === option.value
+                                                ? 'bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90'
+                                                : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
+                                        )}
+                                    >
+                                        {option.label}
+                                        <b className="font-semibold tabular-nums">{option.count}</b>
+                                    </Button>
+                                ))}
+                            </div>
+                        </React.Fragment>
                     ))}
 
-                    <div className="border-outline-variant flex items-center gap-3 border-t pt-2">
-                        <Button variant="ghost" onClick={onResetFilters}>
+                    {/* Une feuille de **filtre** a un pied, et le pied dit le résultat
+                        avant de le montrer (§2.9). */}
+                    <div className="border-outline-variant mt-3 flex items-center gap-3 border-t px-5 pt-3.5 pb-0.5">
+                        <Button variant="ghost" className="px-1" onClick={onResetFilters}>
                             Tout effacer
                         </Button>
                         <Button
-                            variant="filled"
-                            className="flex-1 justify-center"
+                            variant="tonal"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1 justify-center"
                             onClick={() => setFiltersOpen(false)}
                         >
-                            Voir les {rows.length} services
+                            Voir les {rows.length} service{rows.length > 1 ? 's' : ''}
                         </Button>
                     </div>
                 </div>

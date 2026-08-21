@@ -25,6 +25,9 @@ import {
 
 type ReportId = '1' | '2' | '3' | '4';
 
+/** CSV ou PDF — le format que l'aperçu prépare, et que son geste de pied exécute. */
+type ExportFormat = 'csv' | 'pdf';
+
 const slugify = (value: string) => value.replace(/\s+/g, '_').toLowerCase();
 
 const formatFrenchDate = (date: Date): string => {
@@ -35,12 +38,63 @@ const formatFrenchDate = (date: Date): string => {
     }).format(date);
 };
 
+/**
+ * `.exp` — **le pied d'une carte de rapport, et il porte deux gestes égaux.**
+ *
+ * La planche pose `.exp{display:flex;gap:10px}` avec `.exp>.btn{flex:1}`, en `.btn-o`
+ * — le creux de la page pour fond, pas de surface inversée, pas de jaune. Le code en
+ * mettait trois, de trois tailles : un « Aperçu » sombre qui écrasait la carte, puis
+ * deux boutons contournés au rabais. Trois poids pour des gestes qui n'en ont qu'un.
+ *
+ * **Un rapport sans lignes n'a pas de bouton d'export** — la carte le dit à la place,
+ * avant le clic. Et sans la permission, les deux gestes sont **absents** : reste
+ * l'aperçu seul, pour que la lecture d'un rapport ne dépende pas du droit de
+ * l'emporter.
+ */
+const REPORT_ACTION_CLASS =
+    'bg-surface-container text-on-surface hover:bg-surface-container-high min-h-12 flex-1 justify-center rounded-sm';
+
+const ReportExports: React.FC<{
+    canExport: boolean;
+    onOpen: (format: ExportFormat) => void;
+}> = ({ canExport, onOpen }) => (
+    <div className="flex items-center gap-2.5 pt-1">
+        {canExport ? (
+            (['csv', 'pdf'] as const).map((format) => (
+                <Button
+                    key={format}
+                    variant="text"
+                    className={REPORT_ACTION_CLASS}
+                    onClick={() => onOpen(format)}
+                >
+                    <Icon glyph={CaretDown} size={18} />
+                    {format.toUpperCase()}
+                </Button>
+            ))
+        ) : (
+            <Button variant="text" className={REPORT_ACTION_CLASS} onClick={() => onOpen('csv')}>
+                Aperçu
+            </Button>
+        )}
+    </div>
+);
+
 const ReportsPage = () => {
     const { showToast } = useToast();
     const { equipment, users, events } = useData();
     const { permissions } = useAccessControl();
     const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '');
-    const [previewReportId, setPreviewReportId] = useState<ReportId | null>(null);
+    /**
+     * **Le rapport qu'on regarde avant de l'exporter**, et dans quel format.
+     *
+     * La planche 15.1 ne met que **deux gestes** sur une carte de rapport — `CSV` et
+     * `PDF`, à parts égales — et dessine à côté un écran entier, « un rapport avant
+     * l'export », dont le pied dit *Exporter*. Les deux se répondent : le geste de la
+     * carte ne télécharge pas, il **ouvre le rapport sur le format demandé**, et c'est
+     * là qu'on voit cinq lignes avant d'engager le fichier. C'est ce qui donne son
+     * emploi à la colonne 4 — sinon elle ne serait atteignable par rien.
+     */
+    const [preview, setPreview] = useState<{ id: ReportId; format: ExportFormat } | null>(null);
 
     const canExport = permissions.canExportReports;
 
@@ -248,10 +302,17 @@ const ReportsPage = () => {
         }
     };
 
-    const activePreview = previewReportId ? getReportDetails(previewReportId) : null;
+    const activePreview = preview ? getReportDetails(preview.id) : null;
     const previewSampleRows = activePreview?.rows.slice(0, 5) || [];
     /** Le nombre de colonnes du fichier — la planche le pose a cote du nombre de lignes :
      *  « 1 284 lignes · 11 colonnes · separateur virgule ». Il se compte sur la donnee. */
+    /**
+     * Le format demandé passe en tête : c'est lui qui portera le jaune, l'autre reste
+     * à portée en neutre. Un ordre, pas deux boutons de même poids — on est venu pour
+     * un format, on l'a dit sur la carte.
+     */
+    const orderedFormats: ExportFormat[] =
+        preview?.format === 'pdf' ? ['pdf', 'csv'] : ['csv', 'pdf'];
     const previewColumnCount =
         previewSampleRows.length > 0 ? Object.keys(previewSampleRows[0]).length : 0;
     /*
@@ -293,7 +354,7 @@ const ReportsPage = () => {
                     {/* Carte 1 : Inventaire complet */}
                     <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
                         <div className="flex flex-col gap-1.5">
-                            <span className="font-brand text-body-large text-on-surface font-semibold">
+                            <span className="text-body-medium text-on-surface font-medium">
                                 Inventaire complet
                             </span>
                             <span className="text-body-small text-on-surface-variant">
@@ -324,40 +385,18 @@ const ReportsPage = () => {
                             </div>
                         </div>
 
-                        <div className="border-outline-variant flex items-center gap-2 border-t pt-2">
-                            <Button
-                                variant="tonal"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setPreviewReportId('1')}
-                            >
-                                Aperçu
-                            </Button>
-                            {canExport && inventoryRows.length > 0 && (
-                                <>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportCSV('1')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> CSV
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportPDF('1')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> PDF
-                                    </Button>
-                                </>
-                            )}
-                        </div>
+                        {inventoryRows.length > 0 && (
+                            <ReportExports
+                                canExport={canExport}
+                                onOpen={(format) => setPreview({ id: '1', format })}
+                            />
+                        )}
                     </section>
 
                     {/* Carte 2 : Historique par personne */}
                     <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
                         <div className="flex flex-col gap-1.5">
-                            <span className="font-brand text-body-large text-on-surface font-semibold">
+                            <span className="text-body-medium text-on-surface font-medium">
                                 Historique par personne
                             </span>
                             <span className="text-body-small text-on-surface-variant">
@@ -384,41 +423,18 @@ const ReportsPage = () => {
                             </div>
                         </div>
 
-                        <div className="border-outline-variant flex items-center gap-2 border-t pt-2">
-                            <Button
-                                variant="tonal"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setPreviewReportId('2')}
-                                disabled={userMovementRows.length === 0}
-                            >
-                                Aperçu
-                            </Button>
-                            {canExport && userMovementRows.length > 0 && (
-                                <>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportCSV('2')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> CSV
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportPDF('2')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> PDF
-                                    </Button>
-                                </>
-                            )}
-                        </div>
+                        {userMovementRows.length > 0 && (
+                            <ReportExports
+                                canExport={canExport}
+                                onOpen={(format) => setPreview({ id: '2', format })}
+                            />
+                        )}
                     </section>
 
                     {/* Carte 3 : Équipement vieillissant */}
                     <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
                         <div className="flex flex-col gap-1.5">
-                            <span className="font-brand text-body-large text-on-surface font-semibold">
+                            <span className="text-body-medium text-on-surface font-medium">
                                 Équipement vieillissant
                             </span>
                             <span className="text-body-small text-on-surface-variant">
@@ -437,41 +453,18 @@ const ReportsPage = () => {
                             </div>
                         </div>
 
-                        <div className="border-outline-variant flex items-center gap-2 border-t pt-2">
-                            <Button
-                                variant="tonal"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setPreviewReportId('3')}
-                                disabled={agingRows.length === 0}
-                            >
-                                Aperçu
-                            </Button>
-                            {canExport && agingRows.length > 0 && (
-                                <>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportCSV('3')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> CSV
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={() => handleExportPDF('3')}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> PDF
-                                    </Button>
-                                </>
-                            )}
-                        </div>
+                        {agingRows.length > 0 && (
+                            <ReportExports
+                                canExport={canExport}
+                                onOpen={(format) => setPreview({ id: '3', format })}
+                            />
+                        )}
                     </section>
 
                     {/* Carte 4 : Garanties qui expirent */}
                     <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
                         <div className="flex flex-col gap-1.5">
-                            <span className="font-brand text-body-large text-on-surface font-semibold">
+                            <span className="text-body-medium text-on-surface font-medium">
                                 Garanties qui expirent
                             </span>
                             <span className="text-body-small text-on-surface-variant">
@@ -500,36 +493,12 @@ const ReportsPage = () => {
                             )}
                         </div>
 
-                        {warrantyRows.length > 0 ? (
-                            <div className="border-outline-variant flex items-center gap-2 border-t pt-2">
-                                <Button
-                                    variant="tonal"
-                                    size="sm"
-                                    className="flex-1"
-                                    onClick={() => setPreviewReportId('4')}
-                                >
-                                    Aperçu
-                                </Button>
-                                {canExport && (
-                                    <>
-                                        <Button
-                                            variant="outlined"
-                                            size="sm"
-                                            onClick={() => handleExportCSV('4')}
-                                        >
-                                            <Icon glyph={CaretDown} size={18} /> CSV
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            size="sm"
-                                            onClick={() => handleExportPDF('4')}
-                                        >
-                                            <Icon glyph={CaretDown} size={18} /> PDF
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        ) : null}
+                        {warrantyRows.length > 0 && (
+                            <ReportExports
+                                canExport={canExport}
+                                onOpen={(format) => setPreview({ id: '4', format })}
+                            />
+                        )}
                     </section>
                 </div>
             </Reading>
@@ -537,19 +506,23 @@ const ReportsPage = () => {
             {/* Modal d'aperçu d'un rapport (Planche 15.1 Colonne 4) */}
             {activePreview && (
                 <Modal
-                    isOpen={Boolean(previewReportId)}
-                    onClose={() => setPreviewReportId(null)}
+                    isOpen={Boolean(preview)}
+                    onClose={() => setPreview(null)}
                     title={activePreview.title}
                     className="max-w-2xl"
                     footer={
                         <>
-                            <Button variant="outlined" onClick={() => setPreviewReportId(null)}>
+                            <Button variant="text" onClick={() => setPreview(null)}>
                                 Fermer
                             </Button>
                             {canExport && activePreview.rows.length > 0 && (
                                 <Button
                                     variant="filled"
-                                    onClick={() => handleExportCSV(activePreview.id)}
+                                    onClick={() =>
+                                        preview?.format === 'pdf'
+                                            ? handleExportPDF(activePreview.id)
+                                            : handleExportCSV(activePreview.id)
+                                    }
                                 >
                                     Exporter
                                 </Button>
@@ -609,35 +582,47 @@ const ReportsPage = () => {
                             <h3 className="text-body-medium text-on-surface font-semibold">
                                 Le fichier
                             </h3>
-                            <div className="text-body-small flex items-center justify-between">
-                                <span className="text-on-surface font-mono font-medium">
-                                    {activePreview.slug}_{new Date().toISOString().split('T')[0]}
-                                    .csv
+                            {/* `.arow` de la planche : le nom du fichier sur sa ligne, ce
+                                qu'il pèse en dessous. Côte à côte, les deux se disputaient
+                                la largeur et le nom se tronquait le premier. */}
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-body-medium text-on-surface font-medium">
+                                    {activePreview.slug}_{new Date().toISOString().split('T')[0]}.
+                                    {preview?.format ?? 'csv'}
                                 </span>
-                                <span className="text-on-surface-variant">
+                                <span className="text-body-small text-on-surface-variant tabular-nums">
                                     {activePreview.rows.length} lignes · {previewColumnCount}{' '}
-                                    colonnes · séparateur virgule
+                                    colonnes
+                                    {preview?.format === 'pdf' ? '' : ' · séparateur virgule'}
                                 </span>
                             </div>
 
                             {/* Sans la permission, les deux gestes sont **absents** — pas grisés :
                                 une action qu'on ne peut pas faire n'a pas à occuper la place (15.1). */}
+                            {/* Le format demandé depuis la carte porte le jaune ; l'autre reste
+                                à portée, en neutre. Un seul jaune, et il suit ce qu'on est venu
+                                chercher. */}
                             {canExport && activePreview.rows.length > 0 && (
                                 <div className="border-outline-variant flex flex-col gap-2.5 border-t pt-2">
-                                    <Button
-                                        variant="filled"
-                                        className="w-full justify-center"
-                                        onClick={() => handleExportCSV(activePreview.id)}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> Exporter en CSV
-                                    </Button>
-                                    <Button
-                                        variant="tonal"
-                                        className="w-full justify-center"
-                                        onClick={() => handleExportPDF(activePreview.id)}
-                                    >
-                                        <Icon glyph={CaretDown} size={18} /> Exporter en PDF
-                                    </Button>
+                                    {orderedFormats.map((format, index) => (
+                                        <Button
+                                            key={format}
+                                            variant={index === 0 ? 'filled' : 'text'}
+                                            className={
+                                                index === 0
+                                                    ? 'w-full justify-center'
+                                                    : REPORT_ACTION_CLASS + ' w-full flex-none'
+                                            }
+                                            onClick={() =>
+                                                format === 'pdf'
+                                                    ? handleExportPDF(activePreview.id)
+                                                    : handleExportCSV(activePreview.id)
+                                            }
+                                        >
+                                            <Icon glyph={CaretDown} size={18} /> Exporter en{' '}
+                                            {format.toUpperCase()}
+                                        </Button>
+                                    ))}
                                 </div>
                             )}
                         </section>

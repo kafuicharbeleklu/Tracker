@@ -12,7 +12,29 @@ export interface TabItem {
     shortLabel?: string;
     icon?: React.ReactNode;
     badge?: number | string;
+    /**
+     * Le ton de la pastille. `neutral` par défaut — un simple compte.
+     *
+     * `attention` la remplit d'orange : elle ne dit plus *combien il y en a* mais
+     * *combien attendent une décision*. Planche 16.2, où c'est le seul compteur de
+     * l'écran qui demande un geste ; le registre l'y appelle `.al`.
+     */
+    badgeTone?: 'neutral' | 'attention';
 }
+
+/** `.al` — la pastille qui réclame une décision. Orange plein, encre blanche. */
+const BADGE_ATTENTION_CLASS = 'bg-[var(--tk-color-st-orange)] text-white';
+
+/**
+ * La pastille de l'onglet **actif**, et elle suit l'habillage.
+ *
+ * `brand` remplit l'onglet de jaune : la pastille s'inverse, encre jaune sur noir.
+ * `neutral` laisse le segment actif **blanc** — la même inversion y peindrait un
+ * compteur en jaune de marque, ce que ni la planche ni l'ADN n'admettent. Le
+ * registre y demande la surface inversée pour fond et l'encre claire par-dessus.
+ */
+const activeBadgeClass = (isNeutral: boolean) =>
+    isNeutral ? 'bg-inverse-surface text-inverse-on-surface' : 'bg-on-primary text-primary';
 
 const sanitizeIdPart = (value: string): string => value.replace(/[^a-zA-Z0-9_-]/g, '-');
 export const getTabElementId = (idBase: string, itemId: string): string =>
@@ -257,7 +279,8 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                                             'ml-1 h-4 min-w-[16px] px-1.5 py-0',
                                             // Onglet actif (rempli jaune) : pastille inverse noir/jaune — le ! est requis,
                                             // cn ne fait pas de tailwind-merge et l'override perdait la cascade.
-                                            isActive ? 'bg-on-primary text-primary' : '',
+                                            isActive ? activeBadgeClass(isNeutral) : '',
+                                            item.badgeTone === 'attention' && BADGE_ATTENTION_CLASS,
                                         )}
                                     >
                                         {item.badge}
@@ -376,7 +399,9 @@ export const PageTabs: React.FC<PageTabsProps> = ({
                                             variant="neutral"
                                             className={cn(
                                                 'h-4 min-w-[16px] px-1.5 py-0',
-                                                isActive && 'bg-on-primary text-primary',
+                                                isActive && activeBadgeClass(isNeutral),
+                                                item.badgeTone === 'attention' &&
+                                                    BADGE_ATTENTION_CLASS,
                                             )}
                                         >
                                             {item.badge}
