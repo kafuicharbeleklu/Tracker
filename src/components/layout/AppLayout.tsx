@@ -84,11 +84,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const {
         currentView,
         selectedId: selectedItemId,
+        routeSegments,
+        navigate,
         navigateToView,
         navigateToItem,
         goBack,
     } = useAppNavigation();
-    const { permissions } = useAccessControl();
+    const { permissions, user: currentUser } = useAccessControl();
     const [inventoryFilter, setInventoryFilter] = useState<string | null>(null);
     /**
      * Le site reçu par une liste qu'on ouvre depuis la fiche d'un site (10.1, C2 :
@@ -127,6 +129,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         } else if (path === '/inventory') {
             setInventoryFilter(null);
             navigateToView('equipment');
+        } else {
+            /*
+             * Toute autre adresse part au routeur telle quelle. La liste ci-dessus ne
+             * couvrait que les renvois porteurs d'un périmètre ; les trois autres —
+             * `/users/<id>`, `/settings/account`, `/documentation/ui-flow-map` — tombaient
+             * dans le vide, et les rangées du menu de compte (planche 03.1) ne faisaient
+             * rien du tout. Un `else` muet transforme chaque nouvelle destination en
+             * geste mort.
+             */
+            navigate(path);
+            window.scrollTo(0, 0);
         }
     };
 
@@ -281,6 +294,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             if (view === 'assignment_wizard' || view === 'return_wizard') {
                 return permissions.canManageInventory;
             }
+            /*
+             * « Mon profil » du menu de compte (03.1) ouvre sa **propre** fiche. C'est la
+             * même vue que l'annuaire, mais pas le même acte : un employé n'a pas
+             * `users:read` et se voyait refuser sa propre page.
+             */
+            if (view === 'user_details' && selectedItemId && selectedItemId === currentUser?.id) {
+                return true;
+            }
             if (view === 'users' || view === 'user_details') return permissions.canViewUsers;
             if (view === 'add_user' || view === 'edit_user' || view === 'import_users') {
                 return permissions.canManageUsers;
@@ -364,7 +385,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <InventoryPage onViewChange={handleViewChange} />
                 );
             case 'import_equipment':
-                return <ImportEquipmentPage onViewChange={handleViewChange} />;
+                /* Les deux imports du parc et de l'équipe recevaient `onViewChange`
+                   quand ils attendent `onCancel` / `onSave` : refermer ou enregistrer
+                   levait « onSave is not a function ». Les imports de 09.2 (modèles,
+                   emplacements) étaient, eux, montés correctement. */
+                return (
+                    <ImportEquipmentPage
+                        onCancel={() => handleViewChange('equipment')}
+                        onSave={() => handleViewChange('equipment')}
+                    />
+                );
 
             case 'users':
                 return (
@@ -404,7 +434,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
             case 'import_users':
-                return <ImportUsersPage onViewChange={handleViewChange} />;
+                return (
+                    <ImportUsersPage
+                        onCancel={() => handleViewChange('users')}
+                        onSave={() => handleViewChange('users')}
+                    />
+                );
 
             case 'new_request':
                 return <NewRequestPage onViewChange={handleViewChange} />;
@@ -488,7 +523,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'reports':
                 return <ReportsPage />;
             case 'settings':
-                return <SettingsPage onLogout={onLogout} onNavigate={handleViewChange} />;
+                return (
+                    <SettingsPage
+                        onLogout={onLogout}
+                        onNavigate={handleViewChange}
+                        initialSection={routeSegments[1] === 'account' ? 'account' : undefined}
+                    />
+                );
 
             // Wizards & Forms
             case 'assignment_wizard':

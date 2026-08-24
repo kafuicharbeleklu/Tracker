@@ -35,12 +35,14 @@ import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import SecurityGate from '../../../components/security/SecurityGate';
 import dashboardHeroImage from '../../../assets/dashboard-hero.webp';
 
+import { APP_CONFIG } from '../../../config';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate } from '../../../lib/financial';
 import {
     ACTIVE_APPROVAL_STATUSES,
     canUserActOnApproval,
     getHistoryEventSentence,
+    getStatusLabel,
 } from '../../../lib/businessRules';
 import { Approval } from '../../../types';
 import { cn } from '../../../lib/utils';
@@ -88,6 +90,15 @@ import { cn } from '../../../lib/utils';
  *   dessinée est un défaut). Il porte Mon profil, Mon compte, Aide et support et la
  *   déconnexion — le découpage de Paramètres (14.1) que la planche demande. Cette note
  *   annonçait le contraire jusqu'au 20/08 : elle décrivait un état dépassé.
+ * - **Ses rangées mènent quelque part depuis le 22/08.** Trois d'entre elles étaient
+ *   des gestes morts : `AppLayout.handleNavigate` ne connaissait que les renvois
+ *   porteurs d'un périmètre (`/inventory/...`) et laissait tomber sans bruit
+ *   `/users/<id>` et `/documentation/ui-flow-map` ; « Mon compte » ouvrait l'index de
+ *   Paramètres au lieu de la vue *Compte et sécurité* (07.1), qui est le même écran
+ *   quel que soit le point d'entrée. S'y ajoutaient deux impasses : un employé n'a pas
+ *   `users:read` et se voyait refuser **sa propre** fiche, et la documentation se monte
+ *   hors de la coque, donc sans retour.
+ * - **Le pied du menu**, `Tracker v1.2.0` — la planche le porte, le code l'avait laissé.
  * - **Les valeurs de l'échelle**, que le code prenait hors barème : 23 px sur l'accueil,
  *   24 px sur les KPI et le chiffre de budget, 30 px sur le compteur saturé — aucune
  *   n'est une marche du socle. Ramenées à 20 / 20 / 28, en Archivo 600.
@@ -234,6 +245,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 .toUpperCase() || 'AS'
         );
     }, [currentUser?.name]);
+
+    /*
+      Le rôle puis le rattachement, la grammaire de l'en-tête de la fiche
+      (`UserDetailsPage`) — le menu et la page qu'il ouvre disent la même chose. Le code
+      testait `role === 'ADMIN'`, une valeur qui n'existe pas dans `UserRole` : Alice
+      SuperAdmin lisait « IT HQ » et son rôle n'apparaissait nulle part.
+    */
+    const accountSubtitle = useMemo(() => {
+        if (!currentUser) return 'Utilisateur';
+        const attachment = currentUser.jobTitle || currentUser.department || currentUser.site;
+        const role = getStatusLabel(currentUser.role);
+        return attachment ? `${role} · ${attachment}` : role;
+    }, [currentUser]);
 
     const equipment = useMemo(
         () => filterEquipment(allEquipment, users),
@@ -589,11 +613,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     {currentUser?.name || 'Utilisateur'}
                                                 </p>
                                                 <p className="text-on-surface-variant truncate text-xs">
-                                                    {currentUser?.role === 'ADMIN'
-                                                        ? 'Super-administrateur'
-                                                        : currentUser?.jobTitle ||
-                                                          currentUser?.department ||
-                                                          'Utilisateur'}
+                                                    {accountSubtitle}
                                                 </p>
                                             </div>
                                         </div>
@@ -621,7 +641,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             layout="card"
                                             onClick={() => {
                                                 setIsAccountOpen(false);
-                                                onViewChange('settings');
+                                                onNavigate?.('/settings/account');
                                             }}
                                             className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t px-2.5 py-2 text-left text-sm"
                                         >
@@ -661,6 +681,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         >
                                             Se déconnecter
                                         </Button>
+
+                                        {/* Le pied du menu de la planche : la version s'y lit
+                                            sans ouvrir Paramètres. */}
+                                        <p className="border-outline-variant text-outline mt-1 border-t px-2.5 pt-2 pb-0.5 text-[11px] tabular-nums">
+                                            {APP_CONFIG.appName} v{APP_CONFIG.version}
+                                        </p>
                                     </div>
                                 </>
                             )}

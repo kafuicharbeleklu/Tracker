@@ -1,300 +1,229 @@
-import React, { useState, useMemo } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import React, { useMemo } from 'react';
+
+import ReferentialImportTemplate, {
+    type ImportCandidate,
+    type ImportColumn,
+} from '../../../components/layout/ReferentialImportTemplate';
+import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
-import { cn } from '../../../lib/utils';
-import Button from '../../../components/ui/Button';
-import Badge from '../../../components/ui/Badge';
-import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
-import { FileDropzone } from '../../../components/ui/FileDropzone';
-import { TableScrollArea } from '../../../components/ui/TableScrollArea';
-import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
+import { Equipment } from '../../../types';
+import { nextInternalCode, proposeReadableId } from '../lib/assetCode';
 
 interface ImportEquipmentPageProps {
     onCancel: () => void;
     onSave: () => void;
 }
 
-interface ParsedEquipmentRow {
-    _id: number;
-    _status: 'valid' | 'error';
-    _error: string;
-    name?: string;
-    assetId?: string;
-    type?: string;
-    model?: string;
-    status?: string;
-    [key: string]: string | number | undefined;
+interface EquipmentDraft {
+    model: string;
+    type: string;
+    serial: string;
+    country: string;
+    site: string;
+    purchaseDate: string;
+    purchasePrice: number;
 }
 
+/**
+ * **Importer des équipements** — le gabarit d'import de la planche 09.2, appliqué au
+ * parc.
+ *
+ * L'écran tenait sa propre version de l'import, et elle portait exactement les trois
+ * défauts que 09.2 relève :
+ *
+ * - **le contrat n'était pas montré** — quatre noms de colonnes en petit texte sous
+ *   « Étape 1 », sans dire lesquels sont requis ni ce qu'ils portent ;
+ * - **les lignes refusées se comptaient au lieu de se nommer** : un tableau de
+ *   *toutes* les lignes avec une pastille par rangée, dans lequel il fallait chercher
+ *   les fautives — *« trois lignes nommées valent mieux qu'un compte : c'est dans le
+ *   tableur qu'on les corrigera, et il faut savoir lesquelles »* ;
+ * - **et surtout, il n'écrivait rien.** `handleImport` posait un `setTimeout`,
+ *   affichait « N équipements importés avec succès » et refermait l'écran. Aucun actif
+ *   n'entrait au parc. C'est le cas nommé par la planche : *« un seul des deux
+ *   écrivait vraiment »*.
+ *
+ * ## Ce que l'écran garde en propre
+ *
+ * Son contrat, sa lecture, son écriture — rien d'autre. Le reste vient du gabarit,
+ * qu'il partage désormais avec les imports de modèles et d'emplacements.
+ *
+ * **Le numéro de série est la clé.** C'est le seul champ que rien ne connaît (04.3) :
+ * il est requis, et une série déjà au parc — ou répétée dans le fichier — est refusée
+ * plutôt que dupliquée. Le **modèle** doit exister au catalogue, puisque c'est lui qui
+ * porte le type, la marque et la durée d'amortissement. Les **deux codes** ne se
+ * lisent pas dans le fichier : l'identifiant lisible et le code interne sont
+ * **générés**, par les mêmes règles que la saisie d'une fiche.
+ */
+
+/** Le contrat, montré avant d'aller chercher un fichier — 09.2. */
+const COLUMNS: ImportColumn[] = [
+    {
+        key: 'Model',
+        description: 'Un modèle du catalogue — il porte le type et la marque',
+        requirement: 'requis',
+        required: true,
+    },
+    {
+        key: 'Serial',
+        description: "Le numéro de série lu sur l'étiquette, unique au parc",
+        requirement: 'requis',
+        required: true,
+    },
+    { key: 'Country', description: 'Le pays du référentiel', requirement: 'facultatif' },
+    {
+        key: 'Site',
+        description: "L'emplacement — il compose le code lisible de l'actif",
+        requirement: 'facultatif',
+    },
+    {
+        key: 'PurchaseDate',
+        description: "Date d'achat, au format AAAA-MM-JJ",
+        requirement: 'facultatif',
+    },
+    { key: 'PurchasePrice', description: "Prix d'achat, en chiffres", requirement: 'facultatif' },
+];
+
+const SAMPLE = {
+    fileName: 'equipements-exemple.csv',
+    content: [
+        'Model,Serial,Country,Site,PurchaseDate,PurchasePrice',
+        'Dell Latitude 7420,5CG1234ABC,France,Paris HQ,2026-01-05,1250',
+        'Dell U2721DE,CN0J8K2L,France,Paris HQ,2026-01-05,320',
+        'Logitech MX Keys,2145LZ0A9,Togo,Lomé,2026-02-11,95',
+    ].join('\n'),
+};
+
 const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onSave }) => {
+    const { equipment, models, addEquipment, categories, settings } = useData();
     const { showToast } = useToast();
-    const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<ParsedEquipmentRow[]>([]);
-    const [previewMode, setPreviewMode] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
 
-    const validateAndSetFile = (uploadedFile: File) => {
-        if (uploadedFile.type === 'text/csv' || uploadedFile.name.endsWith('.csv')) {
-            setFile(uploadedFile);
-            parseFile(uploadedFile);
-        } else {
-            showToast('Veuillez télécharger un fichier CSV valide.', 'error');
-        }
+    /** Un modèle se désigne par son nom ; la casse ne doit pas décider d'un refus. */
+    const modelByName = useMemo(() => {
+        const table = new Map<string, (typeof models)[number]>();
+        models.forEach((model) => table.set(model.name.toLowerCase(), model));
+        return table;
+    }, [models]);
+
+    const parse = (text: string): ImportCandidate<EquipmentDraft>[] => {
+        const lines = text.split(/\r?\n/).filter((line) => line.trim());
+        if (lines.length < 2) return [];
+
+        const separator = lines[0].includes(';') ? ';' : ',';
+        /* Le parc grandit au fil du fichier : deux lignes qui portent la même série ne
+           peuvent pas entrer toutes les deux, et la seconde doit le savoir avant
+           l'écriture plutôt que d'écraser la première. */
+        const knownSerials = new Set(
+            equipment
+                .map((item) => (item.serialNumber || '').toLowerCase())
+                .filter((serial) => serial),
+        );
+
+        return lines.slice(1).map((line, index) => {
+            const values = line
+                .split(separator)
+                .map((value) => value.replace(/^["']|["']$/g, '').trim());
+            const [
+                rawModel = '',
+                serial = '',
+                country = '',
+                site = '',
+                purchaseDate = '',
+                rawPrice = '',
+            ] = values;
+            const model = modelByName.get(rawModel.toLowerCase());
+
+            let error: string | undefined;
+            if (!rawModel) error = 'Modèle absent — la colonne Model est vide';
+            else if (!model) error = `Modèle « ${rawModel} » inconnu au catalogue`;
+            else if (!serial) error = 'Numéro de série absent';
+            else if (knownSerials.has(serial.toLowerCase()))
+                error = `Le numéro de série ${serial} est déjà au parc`;
+
+            if (!error) knownSerials.add(serial.toLowerCase());
+
+            return {
+                line: index + 2,
+                label: serial
+                    ? `${rawModel || '(sans modèle)'} · ${serial}`
+                    : rawModel || '(sans nom)',
+                error,
+                value: error
+                    ? undefined
+                    : {
+                          model: model!.name,
+                          type: model!.type,
+                          serial,
+                          country,
+                          site,
+                          purchaseDate,
+                          purchasePrice: parseFloat(rawPrice.replace(',', '.')) || 0,
+                      },
+            };
+        });
     };
 
-    const parseFile = (fileToParse: File) => {
-        setIsProcessing(true);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target?.result as string;
-            if (!text) return;
+    const handleImport = (drafts: EquipmentDraft[]) => {
+        /* Les deux codes se calculent sur un parc qui **grandit à chaque ligne** : les
+           lire sur le contexte ne rendrait le rang suivant qu'au prochain rendu, et les
+           douze unités d'une livraison porteraient toutes le même code. */
+        const parc: Equipment[] = [...equipment];
 
-            const lines = text.split('\n').filter((line) => line.trim() !== '');
-            if (lines.length < 2) {
-                showToast("Le fichier semble vide ou ne contient pas d'en-têtes.", 'error');
-                setIsProcessing(false);
-                return;
-            }
+        drafts.forEach((draft, index) => {
+            const category = categories.find((item) => item.name === draft.type);
+            const created: Equipment = {
+                id: `${Date.now()}_${index}`,
+                name: proposeReadableId(draft.type, draft.site, parc) || draft.serial,
+                assetId: nextInternalCode(parc),
+                type: draft.type,
+                model: draft.model,
+                status: 'Disponible',
+                assignmentStatus: 'NONE',
+                serialNumber: draft.serial,
+                country: draft.country,
+                site: draft.site,
+                image: models.find((item) => item.name === draft.model)?.image || '',
+                financial: {
+                    purchasePrice: draft.purchasePrice,
+                    purchaseDate: draft.purchaseDate || new Date().toISOString().split('T')[0],
+                    depreciationMethod:
+                        category?.defaultDepreciation.method || settings.defaultDepreciationMethod,
+                    depreciationYears:
+                        category?.defaultDepreciation.years || settings.defaultDepreciationYears,
+                },
+            };
 
-            const headers = parseCsvLine(lines[0], ',');
+            parc.push(created);
+            addEquipment(created);
+        });
 
-            const data = lines.slice(1).map((line, index) => {
-                const values = parseCsvLine(line, ',');
-                const row: ParsedEquipmentRow = {
-                    _id: index,
-                    _status: 'valid',
-                    _error: '',
-                };
-
-                headers.forEach((header, i) => {
-                    const key = header.toLowerCase();
-                    if (key.includes('nom') || key.includes('name')) row.name = values[i];
-                    else if (key.includes('asset') || key.includes('tag')) row.assetId = values[i];
-                    else if (key.includes('type') || key.includes('cat')) row.type = values[i];
-                    else if (key.includes('model')) row.model = values[i];
-                    else if (key.includes('status') || key.includes('statut'))
-                        row.status = values[i];
-                    else row[key] = values[i];
-                });
-
-                if (!row.name || !row.assetId || !row.type) {
-                    row._status = 'error';
-                    row._error = 'Champs obligatoires manquants';
-                }
-
-                return row;
-            });
-
-            setParsedData(data);
-            setPreviewMode(true);
-            setIsProcessing(false);
-        };
-        reader.readAsText(fileToParse);
-    };
-
-    const stats = useMemo(() => {
-        return {
-            total: parsedData.length,
-            valid: parsedData.filter((d) => d._status === 'valid').length,
-            invalid: parsedData.filter((d) => d._status === 'error').length,
-        };
-    }, [parsedData]);
-
-    const handleDownloadTemplate = () => {
-        // Delimiter ',' to stay re-importable by parseFile, which splits on commas.
-        const csvContent = [
-            buildCsvLine(['Name', 'AssetID', 'Type', 'Model'], ','),
-            buildCsvLine(
-                ['Ordinateur portable Dell', 'NEEMBA-0001', 'Laptop', 'Latitude 5540'],
-                ',',
-            ),
-        ].join('\n');
-
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        link.href = url;
-        link.download = 'modele-import-equipements.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImport = () => {
-        if (!file || stats.valid === 0) return;
-        setTimeout(() => {
-            showToast(`${stats.valid} équipements importés avec succès.`, 'success');
-            onSave();
-        }, 1000);
-    };
-
-    const reset = () => {
-        setFile(null);
-        setParsedData([]);
-        setPreviewMode(false);
+        showToast(
+            `${drafts.length} équipement${drafts.length > 1 ? 's sont entrés' : ' est entré'} au parc.`,
+            'success',
+        );
+        onSave();
     };
 
     return (
-        <FullScreenFormLayout
+        <ReferentialImportTemplate<EquipmentDraft>
             title="Importer des équipements"
             onCancel={onCancel}
-            onSave={handleImport}
-            saveLabel={
-                isProcessing
-                    ? 'Analyse...'
-                    : `Importer ${stats.valid > 0 ? `(${stats.valid})` : ''}`
+            columns={COLUMNS}
+            sample={SAMPLE}
+            noun={{ one: 'équipement', many: 'équipements' }}
+            parse={parse}
+            onImport={handleImport}
+            dropSubLabel="Une ligne par unité — un modèle, un numéro de série"
+            rejectionNote={
+                /* Le gabarit pose la note en `flex` : elle doit lui arriver en **un**
+                   enfant, sinon chaque fragment devient une colonne. */
+                <span>
+                    Un modèle absent du catalogue se crée d'abord au{' '}
+                    <b className="font-medium">Référentiel</b>. L'identifiant lisible et le code
+                    interne, eux, ne se lisent pas dans le fichier — ils sont générés à l'écriture,
+                    par les règles de la saisie d'une fiche.
+                </span>
             }
-            isSaving={!previewMode || stats.valid === 0}
-        >
-            {!previewMode ? (
-                <div className="bg-surface shadow-elevation-1 border-outline-variant animate-in fade-in zoom-in-95 rounded-md border p-8 duration-300">
-                    <h3 className="text-label-large text-on-surface mb-4">
-                        Étape 1: Télécharger le fichier CSV
-                    </h3>
-                    <p className="text-body-medium text-on-surface-variant mb-6">
-                        Le fichier doit contenir les colonnes :{' '}
-                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
-                            Name
-                        </span>
-                        ,{' '}
-                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
-                            AssetID
-                        </span>
-                        ,{' '}
-                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
-                            Type
-                        </span>
-                        ,{' '}
-                        <span className="text-on-surface bg-surface-container rounded-xs px-1 font-mono">
-                            Model
-                        </span>
-                        .
-                    </p>
-
-                    <div className="mb-8">
-                        <Button
-                            variant="outlined"
-                            onClick={handleDownloadTemplate}
-                            icon={<MaterialIcon name="download" size={18} />}
-                        >
-                            Télécharger le modèle
-                        </Button>
-                    </div>
-
-                    <FileDropzone
-                        onFileSelect={validateAndSetFile}
-                        accept=".csv"
-                        isProcessing={isProcessing}
-                    />
-                </div>
-            ) : (
-                <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
-                    <div className="bg-surface-container-lowest border-outline-variant shadow-elevation-1 flex items-center justify-between rounded-md border p-4">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-secondary-container text-secondary flex h-10 w-10 items-center justify-center rounded-sm">
-                                <MaterialIcon name="description" size={20} />
-                            </div>
-                            <div>
-                                <p className="text-label-large text-on-surface">{file?.name}</p>
-                                <div className="text-label-small mt-0.5 flex items-center gap-3">
-                                    <span className="text-on-surface-variant">
-                                        {stats.total} lignes détectées
-                                    </span>
-                                    <span className="text-tertiary flex items-center gap-1">
-                                        <MaterialIcon name="check_circle" size={12} /> {stats.valid}{' '}
-                                        valides
-                                    </span>
-                                    {stats.invalid > 0 && (
-                                        <span className="text-error flex items-center gap-1">
-                                            <MaterialIcon name="warning" size={12} />{' '}
-                                            {stats.invalid} erreurs
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <Button
-                            variant="outlined"
-                            size="sm"
-                            onClick={reset}
-                            className="text-error hover:bg-error-container hover:text-on-error-container"
-                        >
-                            Changer de fichier
-                        </Button>
-                    </div>
-
-                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-md border">
-                        <TableScrollArea
-                            label="Aperçu des équipements à importer"
-                            scrollerClassName="max-h-[400px]"
-                        >
-                            <table className="text-body-small w-full text-left">
-                                <thead className="bg-surface-container text-on-surface-variant text-label-small sticky top-0 z-10 uppercase">
-                                    <tr>
-                                        <th className="bg-surface-container border-outline-variant sticky left-0 z-20 border-r px-4 py-3">
-                                            Statut
-                                        </th>
-                                        <th className="px-4 py-3">Nom</th>
-                                        <th className="px-4 py-3">Asset ID</th>
-                                        <th className="px-4 py-3">Type</th>
-                                        <th className="px-4 py-3">Modèle</th>
-                                        <th className="px-4 py-3">Message</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-outline-variant divide-y">
-                                    {parsedData.map((row) => (
-                                        <tr
-                                            key={row._id}
-                                            className={cn(
-                                                'hover:bg-surface-container-low duration-short4 transition-colors',
-                                                row._status === 'error' && 'bg-error-container/30',
-                                            )}
-                                        >
-                                            <td className="bg-surface border-outline-variant sticky left-0 z-10 border-r px-4 py-3">
-                                                {row._status === 'valid' ? (
-                                                    <Badge
-                                                        variant="success"
-                                                        className="shadow-none"
-                                                    >
-                                                        Prêt
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="danger" className="shadow-none">
-                                                        Erreur
-                                                    </Badge>
-                                                )}
-                                            </td>
-                                            <td className="text-label-large text-on-surface px-4 py-3">
-                                                {row.name || '-'}
-                                            </td>
-                                            <td className="text-on-surface-variant px-4 py-3 font-mono">
-                                                {row.assetId || '-'}
-                                            </td>
-                                            <td className="text-on-surface px-4 py-3">
-                                                {row.type || '-'}
-                                            </td>
-                                            <td className="text-on-surface-variant px-4 py-3">
-                                                {row.model || '-'}
-                                            </td>
-                                            <td className="text-label-small text-error px-4 py-3">
-                                                {row._error && (
-                                                    <span className="flex items-center gap-1">
-                                                        <MaterialIcon name="error" size={12} />{' '}
-                                                        {row._error}
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </TableScrollArea>
-                    </div>
-                </div>
-            )}
-        </FullScreenFormLayout>
+        />
     );
 };
 

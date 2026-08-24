@@ -1213,6 +1213,17 @@ const DocumentationExplorerPage: React.FC = () => {
                             </kbd>
                         </label>
                     </div>
+                    {/* La documentation se monte hors d'AppLayout : sans cette porte, « Aide
+                        et support » du menu de compte (03.1) était un aller simple — plus de
+                        barre du bas, plus de rail, aucun retour hors bouton du navigateur. */}
+                    <a
+                        href="#/"
+                        aria-label="Retour à Tracker"
+                        className="text-label-large text-on-surface-variant hover:text-on-surface flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2"
+                    >
+                        <MaterialIcon name="arrow_back" size={18} />
+                        <span className="hidden sm:inline">Retour à Tracker</span>
+                    </a>
                     <IconButton
                         icon={dark ? 'light_mode' : 'dark_mode'}
                         variant="standard"

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, Warning, X } from '@phosphor-icons/react';
 
 import Icon from './Icon';
@@ -68,6 +68,14 @@ interface ScanViewProps {
     onRetry?: () => void;
     /** Toujours proposé (N2) : un code abîmé ne se scanne pas. */
     onManualEntry?: () => void;
+    /**
+     * La saisie à la main **tenue par la vue**, quand l'appelant n'a pas de surface à
+     * lui pour la porter. Le champ s'ouvre dans le pied, sous le cadre, et ce qui est
+     * tapé ressort par ici — la vue ne décode toujours rien, elle recueille. Sans ce
+     * prop, `onManualEntry` reprend la main (c'est le cas de la campagne d'audit, dont
+     * la saisie accepte aussi le contenu d'un QR et vit dans sa propre feuille).
+     */
+    onManualSubmit?: (code: string) => void;
 
     /** Mode lot — les lectures de la campagne, la plus récente en tête. */
     hits?: ScanHit[];
@@ -142,6 +150,7 @@ const ScanView: React.FC<ScanViewProps> = ({
     onAccept,
     onRetry,
     onManualEntry,
+    onManualSubmit,
     hits = [],
     expected,
     finishLabel = 'Clôturer le lot',
@@ -150,6 +159,16 @@ const ScanView: React.FC<ScanViewProps> = ({
 }) => {
     const lastHitId = useRef<string | null>(null);
     const latest = mode === 'batch' ? hits[0] : hit;
+    const [manualOpen, setManualOpen] = useState(false);
+    const [manualValue, setManualValue] = useState('');
+
+    const submitManual = () => {
+        const value = manualValue.trim();
+        if (!value || !onManualSubmit) return;
+        onManualSubmit(value);
+        setManualValue('');
+        setManualOpen(false);
+    };
 
     // N3 — une lecture se sent, elle ne se lit pas seulement.
     useEffect(() => {
@@ -258,10 +277,50 @@ const ScanView: React.FC<ScanViewProps> = ({
                             </p>
                         )}
 
-                        {onManualEntry && (
-                            <Button variant="text" onClick={onManualEntry} className="mt-1.5 px-0">
-                                Saisir à la main si le code est abîmé
-                            </Button>
+                        {onManualSubmit ? (
+                            manualOpen ? (
+                                <div className="mt-2 flex gap-2">
+                                    <input
+                                        autoFocus
+                                        value={manualValue}
+                                        onChange={(event) => setManualValue(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                submitManual();
+                                            }
+                                        }}
+                                        aria-label="Code lu sur l’étiquette"
+                                        placeholder="le code lu sur l’étiquette"
+                                        className="border-outline-variant bg-surface text-body-large text-on-surface focus:border-primary min-h-12 min-w-0 flex-1 rounded-xs border px-3 outline-none"
+                                    />
+                                    <Button
+                                        variant="tonal"
+                                        onClick={submitManual}
+                                        disabled={!manualValue.trim()}
+                                    >
+                                        Valider
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    variant="text"
+                                    onClick={() => setManualOpen(true)}
+                                    className="mt-1.5 px-0"
+                                >
+                                    Saisir à la main si le code est abîmé
+                                </Button>
+                            )
+                        ) : (
+                            onManualEntry && (
+                                <Button
+                                    variant="text"
+                                    onClick={onManualEntry}
+                                    className="mt-1.5 px-0"
+                                >
+                                    Saisir à la main si le code est abîmé
+                                </Button>
+                            )
                         )}
                     </>
                 ) : (

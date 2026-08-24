@@ -8,6 +8,13 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 interface FullScreenLayoutProps {
     title: string;
+    /**
+     * La ligne sous le titre — le `.aid` des barres de 04.3 : *« Aucun identifiant tant
+     * que la fiche n'est pas créée »*, *« LPT-HQ-01 · fiche existante »*. Elle dit **ce
+     * sur quoi on travaille**, pas ce que fait l'écran ; sans elle, une saisie et une
+     * correction portent exactement le même en-tête.
+     */
+    subtitle?: string;
     onClose: () => void;
     onBack?: () => void;
     headerContent?: React.ReactNode;
@@ -19,6 +26,7 @@ interface FullScreenLayoutProps {
 
 export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
     title,
+    subtitle,
     onClose,
     onBack,
     headerContent,
@@ -63,14 +71,21 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 )}
                             </div>
 
-                            <h1
-                                className={cn(
-                                    'section-title medium:line-clamp-1 line-clamp-2 px-1 text-center leading-snug',
-                                    isCompactLandscape && 'text-title-medium',
+                            <div className="min-w-0 px-1 text-center">
+                                <h1
+                                    className={cn(
+                                        'section-title medium:line-clamp-1 line-clamp-2 leading-snug',
+                                        isCompactLandscape && 'text-title-medium',
+                                    )}
+                                >
+                                    {title}
+                                </h1>
+                                {subtitle && (
+                                    <p className="text-on-surface-variant truncate text-[11px] leading-[15px]">
+                                        {subtitle}
+                                    </p>
                                 )}
-                            >
-                                {title}
-                            </h1>
+                            </div>
 
                             <div className="flex items-center justify-end">
                                 <CloseButton onClick={onClose} />
@@ -90,14 +105,21 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                         <MaterialIcon name="arrow_back" size={24} />
                                     </Button>
                                 )}
-                                <h1
-                                    className={cn(
-                                        'section-title medium:line-clamp-1 line-clamp-2 leading-snug',
-                                        isCompactLandscape && 'text-title-medium',
+                                <div className="min-w-0">
+                                    <h1
+                                        className={cn(
+                                            'section-title medium:line-clamp-1 line-clamp-2 leading-snug',
+                                            isCompactLandscape && 'text-title-medium',
+                                        )}
+                                    >
+                                        {title}
+                                    </h1>
+                                    {subtitle && (
+                                        <p className="text-on-surface-variant truncate text-[11px] leading-[15px]">
+                                            {subtitle}
+                                        </p>
                                     )}
-                                >
-                                    {title}
-                                </h1>
+                                </div>
                             </div>
 
                             <div className="flex items-center gap-2">

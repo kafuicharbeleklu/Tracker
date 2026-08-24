@@ -1,26 +1,21 @@
-import { MEDIA } from '../../../constants/breakpoints';
-import React, { useState, useMemo, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
-import DemoBadge from '../../../components/ui/DemoBadge';
-import { useToast } from '../../../context/ToastContext';
-import { useData } from '../../../context/DataContext';
-import { mockModels } from '../../../data/mockData';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, Check, FileText, Info, MapPin, Package, Scan } from '@phosphor-icons/react';
+
+import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
-import { TextArea } from '../../../components/ui/TextArea';
+import BottomSheet from '../../../components/ui/BottomSheet';
+import SearchField from '../../../components/ui/SearchField';
+import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
-import {
-    formatCurrency,
-    resolveDepreciationConfig,
-    calculateLinearDepreciation,
-} from '../../../lib/financial';
-import Button from '../../../components/ui/Button';
-import Badge from '../../../components/ui/Badge';
+import { useData } from '../../../context/DataContext';
+import { useToast } from '../../../context/ToastContext';
+import { getCategoryLabel } from '../../../constants/glossary';
+import { resolveDepreciationConfig } from '../../../lib/financial';
+import { nextInternalCode, proposeReadableId } from '../lib/assetCode';
 import { cn } from '../../../lib/utils';
-import { GLOSSARY } from '../../../constants/glossary';
-import { APP_CONFIG } from '../../../config';
-import { AppSettings, Equipment } from '../../../types';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { AppSettings, EquipmentDocument, Model } from '../../../types';
 
 interface AddEquipmentPageProps {
     equipmentId?: string; // Optional for Edit Mode
@@ -29,736 +24,832 @@ interface AddEquipmentPageProps {
 }
 
 /**
- * Le troisième palier de la cascade — **fiche → type → défaut global**.
+ * **Saisir la fiche d'un équipement — planche 04.3, colonne 1.**
  *
- * Il était écrit en dur ici, si bien que le réglage « Amortissement par défaut » de
- * Paramètres **n'avait aucun consommateur** : on pouvait le changer sans que rien ne
- * bouge. Relevé au portage de 14.1, qui exige qu'un réglage dise ce qu'il change —
- * encore faut-il qu'il change quelque chose.
+ * *« Créer et modifier ne sont pas deux écrans. »* Mêmes champs, même ordre, même
+ * validation ; seuls changent le titre, la ligne sous le titre et le libellé du
+ * bouton. En faire deux écrans, c'est se garantir qu'ils divergeront.
+ *
+ * ## La règle qui gouverne le formulaire
+ *
+ * **Un écran de saisie ne demande que ce qui ne se déduit pas.** Ce que le catalogue
+ * porte déjà est **posé, pas redemandé** — et les quatre sections suivent l'ordre de
+ * ce qu'on sait au moment où on le saisit : l'objet en main, sa configuration, où il
+ * va, ce qu'il a coûté.
+ *
+ * ## Ce que le portage retire, et pourquoi
+ *
+ * - **Le sélecteur de catégorie.** Le modèle vient du catalogue et emporte son type,
+ *   sa marque et sa durée d'amortissement. Les redemander ouvre la porte à trois
+ *   orthographes du même portable ; une correction se fait **au catalogue**.
+ * - **Le bloc « Règle de dépréciation » et son bouton « Personnaliser ».** *« Le
+ *   pourcentage amorti et la date de renouvellement se calculent à partir du prix, de
+ *   la date et de la catégorie : ils ne se saisissent jamais. »* La cascade
+ *   fiche → type → défaut global reste en place ; l'écran **dit** la règle qui
+ *   s'appliquera, il ne la fait plus saisir.
+ * - **Les deux sélecteurs d'état** — neuf statuts d'inventaire, trois statuts
+ *   opérationnels. À l'enregistrement, un objet est **disponible** ou **attendu** :
+ *   les sept autres valeurs sont produites par un geste (attribution, réparation,
+ *   sortie), pas par une saisie. En correction, un état qui vient d'un geste est
+ *   montré et **non modifiable** — *« un objet change de mains par une attribution,
+ *   jamais par une correction de fiche, sinon le parc perd la trace du geste »*.
+ * - **La carte « Aperçu de la fiche »**, qui portait un titre et **rien** dessous, et
+ *   la carte « Aperçu visuel » de 240 px : la vignette du modèle tient dans la rangée
+ *   de sélection.
+ * - **« Observations »** : la planche ne la porte pas. Les notes déjà écrites sont
+ *   conservées — le formulaire ne les efface pas, il ne les édite plus.
+ *
+ * ## Ce que le portage ajoute
+ *
+ * - **L'identifiant lisible** (`LPT-HQ-15`), qui **n'était pas saisi du tout** : le
+ *   code écrivait `name: formData.model`, si bien qu'une fiche créée ici s'appelait
+ *   « Dell Latitude 7420 » quand tout le parc porte `TYPE-SITE-RANG`. Il est proposé,
+ *   composé du type, du site et du rang, et modifiable — c'est lui qu'on colle sur
+ *   l'objet, et c'est lui que `siteCodeOf` (10.1) relit pour déduire le code d'un site.
+ * - **Le scan du numéro de série** — l'emploi « simple / 04.3 » que 17.3 déclare et
+ *   que personne n'appelait. Il remplace une **simulation qui inventait un numéro**
+ *   (`SN-` + huit caractères au hasard) : un identifiant faux est pire qu'un champ
+ *   vide. La vue ne décode rien par contrat ; la lecture réelle passe par « Saisir à
+ *   la main », comme dans la campagne d'audit.
+ * - **Le code interne**, montré au moment de l'enregistrement et jamais tapé, et les
+ *   **documents** (facture, garantie).
  */
+
+/** Le troisième palier de la cascade — fiche → type → **défaut global** (14.1). */
 const globalDepreciationConfig = (settings: AppSettings) => ({
     method: settings.defaultDepreciationMethod,
     years: settings.defaultDepreciationYears,
     salvagePercent: settings.salvageValuePercent,
 });
 
-const EQUIPMENT_STATUS_OPTIONS = [
-    { value: 'Disponible', label: 'Disponible' },
-    { value: 'Attribué', label: 'Attribué' },
-    { value: 'En attente', label: 'En attente' },
-    { value: 'En réparation', label: 'En réparation' },
-    { value: 'En maintenance préventive', label: 'En maintenance préventive' },
-    { value: 'Manquant', label: 'Manquant' },
-    { value: 'Perdu', label: 'Perdu' },
-    { value: 'Retiré', label: 'Retiré' },
-    { value: 'Réformé', label: 'Réformé' },
+/** Les deux états qu'une saisie peut poser. Les sept autres viennent d'un geste. */
+const CREATION_STATES: Array<{ value: string; title: string; hint: string }> = [
+    {
+        value: 'Disponible',
+        title: 'Disponible',
+        hint: "Entre immédiatement dans les sélecteurs d'attribution",
+    },
+    {
+        value: 'En attente',
+        title: 'En attente de réception',
+        hint: 'Commandé, pas encore physiquement là',
+    },
 ];
 
-const OPERATIONAL_STATUS_OPTIONS = [
-    { value: 'Actif', label: 'Actif' },
-    { value: 'Inactif', label: 'Inactif' },
-    { value: 'Retiré', label: 'Retiré' },
-];
+const SOURCE_LABELS: Record<string, string> = {
+    equipment: 'réglée sur cette fiche',
+    category: 'héritée du type',
+    global: 'le défaut de Paramètres',
+};
+
+/** La carte d'une section — `.fsec` de la planche. */
+const FormSection: React.FC<{
+    title: string;
+    caption?: string;
+    children: React.ReactNode;
+}> = ({ title, caption, children }) => (
+    <section className="rounded-card bg-surface flex flex-col gap-3 p-4">
+        <p className="text-body-medium text-on-surface flex items-baseline gap-2 font-medium">
+            {title}
+            {caption && <span className="text-on-surface-variant text-[11px]">{caption}</span>}
+        </p>
+        {children}
+    </section>
+);
+
+/** `.fnote` — ce que l'écran déduit, dit une fois, jamais redemandé. */
+const FormNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <p className="text-on-surface-variant text-[11px] leading-4">{children}</p>
+);
+
+/** `.warn` — le rappel encadré, sur encart. */
+const FormWarn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <p className="bg-surface-container text-on-surface-variant flex gap-2.5 rounded-xs px-3 py-2.5 text-[12px] leading-[17px]">
+        <Icon glyph={Info} size={18} className="mt-px shrink-0" />
+        <span>{children}</span>
+    </p>
+);
+
+/** `.lab` — l'étiquette d'un champ. */
+const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <p className="text-on-surface-variant mb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
+        {children}
+    </p>
+);
+
+/** `.opt` — un cran de l'échelle, nommé par ce qu'il déclenche. */
+const OptionRow: React.FC<{
+    title: string;
+    hint: string;
+    selected: boolean;
+    onSelect?: () => void;
+    disabled?: boolean;
+}> = ({ title, hint, selected, onSelect, disabled }) => (
+    <button
+        type="button"
+        onClick={onSelect}
+        disabled={disabled}
+        aria-pressed={selected}
+        className={cn(
+            'flex min-h-14 w-full items-center gap-3 rounded-xs border px-3 py-2 text-left',
+            selected ? 'border-on-surface border-[1.5px]' : 'border-outline-variant',
+            disabled ? 'cursor-default' : 'hover:bg-surface-container',
+        )}
+    >
+        <span className="min-w-0 flex-1">
+            <span className="text-on-surface block text-[15px] font-medium">{title}</span>
+            <span className="text-on-surface-variant mt-px block text-[12px]">{hint}</span>
+        </span>
+        <span
+            className={cn(
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
+                selected
+                    ? 'bg-[var(--tk-color-inverse-surface)] text-white'
+                    : 'border-outline border-[1.5px]',
+            )}
+        >
+            {selected && <Icon glyph={Check} size={14} />}
+        </span>
+    </button>
+);
 
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
-    const { locationData, categories, equipment, addEquipment, updateEquipment, settings } =
+    const { locationData, categories, equipment, models, addEquipment, updateEquipment, settings } =
         useData();
-    const isMobile = useMediaQuery(MEDIA.belowExpanded);
 
     const isEditMode = !!equipmentId;
-
-    const [formData, setFormData] = useState({
-        categoryName: '',
-        model: '',
-        serialNumber: '',
-        hostname: '',
-        purchaseDate: new Date().toISOString().split('T')[0],
-        purchasePrice: '',
-        manualMethod: 'linear' as 'linear' | 'degressive',
-        manualYears: '',
-        manualSalvagePercent: '0',
-        supplier: '',
-        invoiceNumber: '',
-        warrantyStart: '',
-        warrantyEnd: '',
-        os: '',
-        ram: '',
-        storage: '',
-        country: '',
-        site: '',
-        department: '',
-        status: 'Disponible',
-        operationalStatus: 'Actif',
-        notes: '',
-    });
-
-    const [isScanning, setIsScanning] = useState(false);
-    const [useCustomDepreciation, setUseCustomDepreciation] = useState(false);
-
-    // Load data for edit mode
-    useEffect(() => {
-        if (equipmentId) {
-            const itemToEdit = equipment.find((e) => e.id === equipmentId);
-            if (itemToEdit) {
-                setFormData({
-                    categoryName: itemToEdit.type || '',
-                    model: itemToEdit.model || '',
-                    serialNumber: itemToEdit.serialNumber || '',
-                    hostname: itemToEdit.hostname || '',
-                    purchaseDate: itemToEdit.financial?.purchaseDate
-                        ? new Date(itemToEdit.financial.purchaseDate).toISOString().split('T')[0]
-                        : new Date().toISOString().split('T')[0],
-                    purchasePrice: itemToEdit.financial?.purchasePrice.toString() || '',
-                    manualMethod: itemToEdit.financial?.depreciationMethod || 'linear',
-                    manualYears: itemToEdit.financial?.depreciationYears.toString() || '',
-                    manualSalvagePercent: '0',
-                    supplier: itemToEdit.financial?.supplier || '',
-                    invoiceNumber: itemToEdit.financial?.invoiceNumber || '',
-                    warrantyStart: '',
-                    warrantyEnd: itemToEdit.warrantyEnd
-                        ? new Date(itemToEdit.warrantyEnd).toISOString().split('T')[0]
-                        : '',
-                    os: itemToEdit.os || '',
-                    ram: itemToEdit.ram || '',
-                    storage: itemToEdit.storage || '',
-                    country: itemToEdit.country || '',
-                    site: itemToEdit.site || '',
-                    department: itemToEdit.department || '',
-                    status: itemToEdit.status,
-                    operationalStatus: itemToEdit.operationalStatus || 'Actif',
-                    notes: itemToEdit.notes || '',
-                });
-
-                const category = categories.find((c) => c.name === itemToEdit.type);
-                if (
-                    category &&
-                    category.defaultDepreciation.years !== itemToEdit.financial?.depreciationYears
-                ) {
-                    setUseCustomDepreciation(true);
-                }
-            }
-        }
-    }, [equipmentId, equipment, categories]);
-
-    // Image inheritance
-    const selectedModelData = useMemo(
-        () => mockModels.find((m) => m.name === formData.model),
-        [formData.model],
+    const existing = useMemo(
+        () => (equipmentId ? equipment.find((item) => item.id === equipmentId) : undefined),
+        [equipmentId, equipment],
     );
 
+    const [formData, setFormData] = useState({
+        model: '',
+        serialNumber: '',
+        readableId: '',
+        ram: '',
+        storage: '',
+        os: '',
+        country: '',
+        site: '',
+        status: 'Disponible',
+        supplier: '',
+        purchaseDate: new Date().toISOString().split('T')[0],
+        purchasePrice: '',
+        warrantyEnd: '',
+    });
+    const [documents, setDocuments] = useState<EquipmentDocument[]>([]);
+    /** L'identifiant a-t-il été retouché à la main ? Alors on ne le repropose plus. */
+    const [readableIdTouched, setReadableIdTouched] = useState(false);
+    const [isModelSheetOpen, setIsModelSheetOpen] = useState(false);
+    const [modelQuery, setModelQuery] = useState('');
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanHit, setScanHit] = useState<ScanHit | null>(null);
+    const invoiceInput = useRef<HTMLInputElement>(null);
+    const warrantyInput = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!existing) return;
+        setFormData({
+            model: existing.model || '',
+            serialNumber: existing.serialNumber || '',
+            readableId: existing.name || '',
+            ram: existing.ram || '',
+            storage: existing.storage || '',
+            os: existing.os || '',
+            country: existing.country || '',
+            site: existing.site || '',
+            status: existing.status,
+            supplier: existing.financial?.supplier || '',
+            purchaseDate: existing.financial?.purchaseDate
+                ? new Date(existing.financial.purchaseDate).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0],
+            purchasePrice: existing.financial?.purchasePrice?.toString() || '',
+            warrantyEnd: existing.warrantyEnd
+                ? new Date(existing.warrantyEnd).toISOString().split('T')[0]
+                : '',
+        });
+        setDocuments(existing.documents || []);
+        setReadableIdTouched(true);
+    }, [existing]);
+
+    const selectedModel = useMemo<Model | undefined>(
+        () => models.find((model) => model.name === formData.model),
+        [models, formData.model],
+    );
+
+    /** Le type ne se saisit pas : il vient du catalogue, avec le modèle. */
+    const type = selectedModel?.type || existing?.type || '';
+
     const selectedCategory = useMemo(
-        () => categories.find((c) => c.name === formData.categoryName),
-        [formData.categoryName, categories],
+        () => categories.find((category) => category.name === type),
+        [categories, type],
+    );
+
+    const effectiveConfig = useMemo(
+        () =>
+            resolveDepreciationConfig(
+                isEditMode && existing?.financial?.depreciationYears
+                    ? {
+                          method: existing.financial.depreciationMethod,
+                          years: existing.financial.depreciationYears,
+                          salvagePercent: 0,
+                      }
+                    : null,
+                selectedCategory?.defaultDepreciation
+                    ? {
+                          method: selectedCategory.defaultDepreciation.method,
+                          years: selectedCategory.defaultDepreciation.years,
+                          salvageValuePercent:
+                              selectedCategory.defaultDepreciation.salvageValuePercent,
+                      }
+                    : null,
+                globalDepreciationConfig(settings),
+            ),
+        [isEditMode, existing, selectedCategory, settings],
+    );
+
+    const availableSites = useMemo(
+        () => (formData.country ? locationData.sites[formData.country] || [] : []),
+        [formData.country, locationData.sites],
+    );
+
+    /* L'identifiant lisible se repropose tant que personne ne l'a retouché : il dépend
+       du type et du site, et les deux se choisissent après lui dans l'ordre de l'écran. */
+    const proposedId = useMemo(
+        () => proposeReadableId(type, formData.site, equipment),
+        [type, formData.site, equipment],
+    );
+
+    useEffect(() => {
+        if (readableIdTouched || !proposedId) return;
+        setFormData((prev) => ({ ...prev, readableId: proposedId }));
+    }, [proposedId, readableIdTouched]);
+
+    /** Le code interne — **généré**, montré, jamais tapé. */
+    const internalCode = useMemo(
+        () => existing?.assetId || nextInternalCode(equipment),
+        [existing, equipment],
     );
 
     const filteredModels = useMemo(() => {
-        if (!formData.categoryName) return mockModels;
-        return mockModels.filter((m) => m.type === formData.categoryName);
-    }, [formData.categoryName]);
-
-    const effectiveConfig = useMemo(() => {
-        return resolveDepreciationConfig(
-            useCustomDepreciation
-                ? {
-                      method: formData.manualMethod,
-                      years: parseInt(formData.manualYears) || 0,
-                      salvagePercent: parseFloat(formData.manualSalvagePercent) || 0,
-                      source: 'equipment',
-                  }
-                : null,
-            selectedCategory?.defaultDepreciation
-                ? {
-                      method: selectedCategory.defaultDepreciation.method,
-                      years: selectedCategory.defaultDepreciation.years,
-                      salvageValuePercent: selectedCategory.defaultDepreciation.salvageValuePercent,
-                  }
-                : null,
-            globalDepreciationConfig(settings),
+        const query = modelQuery.trim().toLowerCase();
+        if (!query) return models;
+        return models.filter((model) =>
+            `${model.name} ${model.brand || ''} ${getCategoryLabel(model.type)}`
+                .toLowerCase()
+                .includes(query),
         );
-    }, [
-        useCustomDepreciation,
-        formData.manualMethod,
-        formData.manualYears,
-        formData.manualSalvagePercent,
-        selectedCategory,
-        settings,
-    ]);
+    }, [models, modelQuery]);
 
-    const financialEstimates = useMemo(() => {
-        const price = parseFloat(formData.purchasePrice) || 0;
-        if (price <= 0 || effectiveConfig.years <= 0) return null;
+    /**
+     * L'état vient-il d'un geste ? Alors il se montre et ne se corrige pas ici — la
+     * fiche n'est pas le lieu où un objet change de mains.
+     */
+    const stateComesFromAGesture =
+        isEditMode && !CREATION_STATES.some((state) => state.value === formData.status);
 
-        return calculateLinearDepreciation(
-            price,
-            formData.purchaseDate,
-            effectiveConfig.years,
-            effectiveConfig.salvagePercent,
-        );
-    }, [formData.purchasePrice, formData.purchaseDate, effectiveConfig]);
-
-    const availableSites = useMemo(() => {
-        return formData.country ? locationData.sites[formData.country] || [] : [];
-    }, [formData.country, locationData.sites]);
-
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    ) => {
-        const { name, value } = e.target;
+    const handleChange = (event: { target: { name: string; value: string } }): void => {
+        const { name, value } = event.target;
         setFormData((prev) => {
-            const newData = { ...prev, [name]: value };
-            if (name === 'country') {
-                newData.site = '';
-            }
-            if (name === 'categoryName') {
-                const fits = mockModels.find((m) => m.name === prev.model && m.type === value);
-                if (!fits) newData.model = '';
-            }
-            return newData;
+            const next = { ...prev, [name]: value };
+            if (name === 'country') next.site = '';
+            return next;
         });
     };
 
-    const handleScanSerial = () => {
-        if (!isMobile) return;
-
-        setIsScanning(true);
-        showToast('Simulation du scan (démo)...', 'info');
-        setTimeout(() => {
-            setIsScanning(false);
-            const mockSerial = 'SN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-            setFormData((prev) => ({ ...prev, serialNumber: mockSerial }));
-            showToast(
-                "Numéro de série d'exemple généré (démo) — vérifiez ou corrigez la valeur.",
-                'info',
-            );
-        }, 1500);
+    const attachDocument = (file: File | undefined, kind: 'Facture' | 'Garantie') => {
+        if (!file) return;
+        setDocuments((prev) => [
+            ...prev.filter((document) => document.type !== kind),
+            {
+                id: `doc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                name: file.name,
+                type: kind,
+                url: '',
+                size: `${Math.max(1, Math.round(file.size / 1024))} Ko`,
+                date: new Date().toISOString(),
+            },
+        ]);
     };
 
     const handleSave = () => {
-        if (!formData.categoryName || !formData.model || !formData.serialNumber) {
+        if (!formData.model) {
             showToast(
-                'Veuillez remplir les champs obligatoires (Catégorie, Modèle, N° Série)',
+                'Choisissez un modèle au catalogue : il porte le type et la marque.',
+                'error',
+            );
+            return;
+        }
+        if (!formData.serialNumber.trim()) {
+            showToast(
+                "Le numéro de série est le seul champ que rien ne connaît : lisez-le sur l'étiquette.",
                 'error',
             );
             return;
         }
 
+        const readableId = formData.readableId.trim() || proposedId || formData.model;
+
         const payload = {
-            name: formData.model,
-            assetId:
-                isEditMode && equipmentId
-                    ? equipment.find((e) => e.id === equipmentId)?.assetId || ''
-                    : `ASSET-${Date.now()}`,
-            type: formData.categoryName,
+            name: readableId,
+            assetId: internalCode,
+            type,
             model: formData.model,
             status: formData.status,
-            serialNumber: formData.serialNumber,
-            hostname: formData.hostname,
+            serialNumber: formData.serialNumber.trim(),
             os: formData.os,
             ram: formData.ram,
             storage: formData.storage,
             country: formData.country,
             site: formData.site,
-            department: formData.department,
             warrantyEnd: formData.warrantyEnd,
-            notes: formData.notes,
-            operationalStatus: formData.operationalStatus as Equipment['operationalStatus'],
-            image:
-                selectedModelData?.image ||
-                'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=100&h=100&fit=crop',
+            documents,
+            image: selectedModel?.image || existing?.image || '',
             financial: {
                 purchasePrice: parseFloat(formData.purchasePrice) || 0,
                 purchaseDate: formData.purchaseDate,
                 supplier: formData.supplier,
-                invoiceNumber: formData.invoiceNumber,
+                invoiceNumber: existing?.financial?.invoiceNumber || '',
                 depreciationMethod: effectiveConfig.method,
                 depreciationYears: effectiveConfig.years,
-                salvageValue: financialEstimates?.salvageValue || 0,
+                salvageValue: existing?.financial?.salvageValue || 0,
             },
         };
 
         if (isEditMode && equipmentId) {
             updateEquipment(equipmentId, payload);
-            showToast(GLOSSARY.SUCCESS_UPDATE(GLOSSARY.EQUIPMENT), 'success');
+            showToast(`${readableId} — fiche mise à jour.`, 'success');
         } else {
             addEquipment({
                 ...payload,
                 id: Date.now().toString(),
                 assignmentStatus: 'NONE',
             });
-            showToast(GLOSSARY.SUCCESS_CREATE(GLOSSARY.EQUIPMENT), 'success');
+            showToast(`${readableId} est entré au parc.`, 'success');
         }
 
         onSave();
     };
 
+    const currencySymbol =
+        settings.currency === 'USD' ? '$' : settings.currency === 'EUR' ? '€' : settings.currency;
+
     return (
-        <FullScreenFormLayout
-            title={isEditMode ? "Modifier l'actif" : 'Nouvel actif'}
-            onCancel={onCancel}
-            onSave={handleSave}
-            saveLabel={isEditMode ? 'Enregistrer les modifications' : "Créer l'équipement"}
-        >
-            <div className="medium:grid-cols-2 expanded:grid-cols-3 mx-auto grid max-w-7xl grid-cols-1 gap-8">
-                {/* COLONNE GAUCHE: IDENTITÉ & APERÇU (1/3) */}
-                <div className="expanded:col-span-1 space-y-6">
-                    {/* Photo Card */}
-                    <section className="bg-surface shadow-elevation-1 border-outline-variant flex flex-col items-center rounded-md border p-6">
-                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 self-start tracking-widest uppercase">
-                            <MaterialIcon name="image" size={14} /> Aperçu visuel
-                        </h3>
-
-                        <div className="relative aspect-square w-full max-w-[240px]">
-                            <div
-                                className={cn(
-                                    'duration-short4 bg-surface-container-low flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-md border-2 transition-all',
-                                    selectedModelData
-                                        ? 'border-tertiary-container shadow-inner'
-                                        : 'border-outline-variant border-dashed',
-                                )}
-                            >
-                                {selectedModelData ? (
-                                    <div className="relative flex h-full w-full items-center justify-center p-6">
-                                        {/* Un modèle sans photo porte **l'initiale de sa marque**,
-                                            jamais un cadre vide ni la photo d'un autre objet (09.2). */}
-                                        {selectedModelData.image ? (
-                                            <img
-                                                src={selectedModelData.image}
-                                                alt={selectedModelData.name}
-                                                className="animate-in zoom-in-95 max-h-full max-w-full object-contain mix-blend-multiply drop-shadow-sm duration-500"
-                                            />
-                                        ) : (
-                                            <span className="bg-surface-container font-brand text-on-surface-variant flex h-20 w-20 items-center justify-center rounded-md text-[32px] font-semibold">
-                                                {(selectedModelData.brand || selectedModelData.name)
-                                                    .trim()
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                            </span>
-                                        )}
-                                        <div className="absolute top-3 right-3">
-                                            <Badge variant="success" className="shadow-none">
-                                                Hérité du modèle
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="p-8 text-center opacity-40">
-                                        <MaterialIcon
-                                            name="select_all"
-                                            size={48}
-                                            className="text-on-surface-variant mx-auto mb-3"
+        <>
+            <FullScreenFormLayout
+                title={isEditMode ? 'Modifier la fiche' : 'Nouvel équipement'}
+                subtitle={
+                    isEditMode
+                        ? `${existing?.name || internalCode} · fiche existante`
+                        : "Aucun identifiant tant que la fiche n'est pas créée"
+                }
+                onCancel={onCancel}
+                onSave={handleSave}
+                saveLabel="Enregistrer"
+                className="bg-background"
+            >
+                <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+                    {/* ── Ce que c'est ─────────────────────────────────────────────── */}
+                    <FormSection title="Ce que c'est">
+                        <div>
+                            <FieldLabel>Modèle</FieldLabel>
+                            <div className="border-outline-variant flex min-h-12 items-center gap-3 rounded-xs border px-3 py-1.5">
+                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                                    {selectedModel?.image ? (
+                                        <img
+                                            src={selectedModel.image}
+                                            alt=""
+                                            className="h-full w-full object-cover"
                                         />
-                                        <p className="text-label-small text-on-surface-variant leading-relaxed tracking-tight uppercase">
-                                            Choisissez un modèle
-                                            <br />
-                                            pour voir l'aperçu
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {selectedModelData && (
-                            <div className="mt-4 w-full text-center">
-                                <p className="text-label-large text-on-surface">
-                                    {selectedModelData.name}
-                                </p>
-                                <p className="text-label-small text-on-surface-variant tracking-tighter uppercase">
-                                    Catalogue {APP_CONFIG.companyName}
-                                </p>
-                            </div>
-                        )}
-                    </section>
-
-                    {/* Identification */}
-                    <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-5 rounded-md border p-6">
-                        <h3 className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
-                            <MaterialIcon name="label" size={14} className="text-primary" />{' '}
-                            Identification
-                        </h3>
-
-                        <SelectField
-                            label="Catégorie d'actif"
-                            name="categoryName"
-                            options={categories.map((c) => ({ value: c.name, label: c.name }))}
-                            value={formData.categoryName}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between px-1">
-                                <label className="text-label-large text-on-surface">
-                                    Numéro de série
-                                </label>
-                                {isMobile && (
-                                    <div className="flex items-center gap-1.5">
-                                        <DemoBadge
-                                            label="Simulation"
-                                            title="Le scan caméra est simulé : il génère un numéro de série d'exemple"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="text"
-                                            onClick={handleScanSerial}
-                                            disabled={isScanning}
-                                            className="bg-primary-container text-on-primary-container hover:text-on-primary-container/80 !text-label-small rounded-xs px-2 py-0.5 uppercase"
-                                        >
-                                            {isScanning ? (
-                                                <MaterialIcon
-                                                    name="sync"
-                                                    size={12}
-                                                    className="animate-spin"
-                                                />
-                                            ) : (
-                                                <MaterialIcon name="qr_code_scanner" size={12} />
-                                            )}
-                                            {isScanning ? 'Analyse...' : 'Scan Caméra'}
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                            <InputField
-                                name="serialNumber"
-                                value={formData.serialNumber}
-                                onChange={handleChange}
-                                placeholder={
-                                    isMobile ? 'Saisir ou scanner le SN...' : 'Saisir le SN...'
-                                }
-                                icon={<MaterialIcon name="inventory_2" size={18} />}
-                                required
-                            />
-                        </div>
-
-                        <InputField
-                            label="Nom de l'hôte (Hostname)"
-                            name="hostname"
-                            value={formData.hostname}
-                            onChange={handleChange}
-                            placeholder="Ex: PC-SENEGAL-001"
-                            icon={<MaterialIcon name="info" size={18} />}
-                        />
-                    </section>
-                </div>
-
-                {/* COLONNE DROITE: SPECS & FINANCE (2/3) */}
-                <div className="expanded:col-span-2 space-y-6">
-                    {/* Spécifications */}
-                    <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
-                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
-                            <MaterialIcon name="memory" size={14} className="text-secondary" />{' '}
-                            Modèle & Spécifications
-                        </h3>
-                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-x-8 gap-y-6">
-                            <SelectField
-                                label="Modèle Exact"
-                                name="model"
-                                options={filteredModels.map((m) => ({
-                                    value: m.name,
-                                    label: m.name,
-                                }))}
-                                value={formData.model}
-                                onChange={handleChange}
-                                required
-                                placeholder={
-                                    formData.categoryName
-                                        ? 'Rechercher un modèle...'
-                                        : "Choisissez d'abord une catégorie"
-                                }
-                                disabled={!formData.categoryName}
-                            />
-                            <InputField
-                                label="OS / Version"
-                                name="os"
-                                value={formData.os}
-                                onChange={handleChange}
-                                placeholder="Windows 11 / macOS / Android"
-                            />
-                            <InputField
-                                label="Mémoire RAM"
-                                name="ram"
-                                value={formData.ram}
-                                onChange={handleChange}
-                                placeholder="Ex: 16 GB"
-                                icon={<MaterialIcon name="layers" size={16} />}
-                            />
-                            <InputField
-                                label="Stockage"
-                                name="storage"
-                                value={formData.storage}
-                                onChange={handleChange}
-                                placeholder="Ex: 512 GB SSD"
-                                icon={<MaterialIcon name="storage" size={16} />}
-                            />
-                        </div>
-                    </section>
-
-                    {/* Finance */}
-                    <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-6 rounded-md border p-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-label-small text-on-surface-variant flex items-center gap-2 tracking-widest uppercase">
-                                <MaterialIcon name="euro" size={14} className="text-tertiary" />{' '}
-                                Acquisition Financière
-                            </h3>
-                            {financialEstimates && (
-                                <div className="bg-tertiary-container border-outline-variant animate-in fade-in zoom-in-95 flex items-center gap-2 rounded-md border px-3 py-1">
-                                    <span className="text-label-small text-on-tertiary-container uppercase">
-                                        Valeur Résiduelle :
-                                    </span>
-                                    <span className="text-label-large text-on-tertiary-container">
-                                        {formatCurrency(
-                                            financialEstimates.salvageValue,
-                                            settings.currency,
-                                        )}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-8">
-                            <InputField
-                                label="Prix d'achat (HT)"
-                                type="number"
-                                name="purchasePrice"
-                                value={formData.purchasePrice}
-                                onChange={handleChange}
-                                placeholder="0.00"
-                                icon={
-                                    <span className="text-on-surface-variant font-medium">
-                                        {settings.currency === 'USD'
-                                            ? '$'
-                                            : settings.currency === 'XOF'
-                                              ? 'XOF'
-                                              : '€'}
-                                    </span>
-                                }
-                                required
-                            />
-                            <InputField
-                                label="Date d'achat"
-                                type="date"
-                                name="purchaseDate"
-                                value={formData.purchaseDate}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        {/* Bloc Amortissement */}
-                        <div
-                            className={cn(
-                                'duration-medium2 ease-emphasized rounded-md border p-6 transition-all',
-                                useCustomDepreciation
-                                    ? 'bg-surface-container-low border-outline-variant'
-                                    : 'bg-secondary-container border-outline-variant',
-                            )}
-                        >
-                            <div className="mb-6 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div
+                                    ) : (
+                                        <Icon glyph={Package} size={20} />
+                                    )}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span
                                         className={cn(
-                                            'duration-short4 rounded-md p-2.5 transition-colors',
-                                            useCustomDepreciation
-                                                ? 'bg-surface-container-highest text-on-surface-variant'
-                                                : 'bg-secondary text-on-secondary shadow-elevation-1',
+                                            'block truncate text-[15px] font-medium',
+                                            selectedModel
+                                                ? 'text-on-surface'
+                                                : 'text-on-surface-variant',
                                         )}
                                     >
-                                        <MaterialIcon name="calculate" size={20} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-label-large text-on-surface">
-                                            Règle de dépréciation
-                                        </h4>
-                                        <p className="text-label-small text-on-surface-variant mt-0.5 tracking-tighter uppercase">
-                                            Source :{' '}
-                                            {effectiveConfig.source === 'category'
-                                                ? 'Paramètres Catégorie'
-                                                : effectiveConfig.source === 'equipment'
-                                                  ? 'Override Manuel'
-                                                  : 'Global System'}
-                                        </p>
-                                    </div>
-                                </div>
+                                        {selectedModel?.name || 'Aucun modèle choisi'}
+                                    </span>
+                                    <span className="text-on-surface-variant mt-0.5 block truncate text-[12px]">
+                                        {selectedModel
+                                            ? `${getCategoryLabel(selectedModel.type)} · catalogue`
+                                            : 'le type et la marque en viennent'}
+                                    </span>
+                                </span>
                                 <Button
                                     type="button"
                                     variant="text"
-                                    onClick={() => setUseCustomDepreciation(!useCustomDepreciation)}
-                                    className="!text-label-small text-secondary hover:text-secondary/80 px-0 py-0 tracking-widest uppercase underline"
+                                    size="sm"
+                                    onClick={() => setIsModelSheetOpen(true)}
+                                    className="shrink-0 px-1 text-[13px] font-medium"
                                 >
-                                    {useCustomDepreciation ? 'Rétablir défauts' : 'Personnaliser'}
+                                    {selectedModel ? 'Changer' : 'Choisir'}
                                 </Button>
                             </div>
+                        </div>
 
-                            {useCustomDepreciation ? (
-                                <div className="medium:grid-cols-2 expanded:grid-cols-3 animate-in slide-in-from-top-2 grid grid-cols-1 gap-6 duration-300">
-                                    <SelectField
-                                        label="Méthode"
-                                        name="manualMethod"
-                                        options={[
-                                            { value: 'linear', label: 'Linéaire' },
-                                            { value: 'degressive', label: 'Dégressif' },
-                                        ]}
-                                        value={formData.manualMethod}
-                                        onChange={handleChange}
-                                    />
-                                    <InputField
-                                        label="Durée (Ans)"
-                                        type="number"
-                                        name="manualYears"
-                                        value={formData.manualYears}
-                                        onChange={handleChange}
-                                        placeholder="Nb ans"
-                                        icon={<MaterialIcon name="calendar_today" size={14} />}
-                                    />
-                                    <InputField
-                                        label="Résiduel (%)"
-                                        type="number"
-                                        name="manualSalvagePercent"
-                                        value={formData.manualSalvagePercent}
-                                        onChange={handleChange}
-                                        placeholder="Ex: 5%"
-                                    />
-                                </div>
+                        <FormWarn>
+                            Le catalogue porte la <b>marque</b>, le <b>type</b> et la{' '}
+                            <b>durée d'amortissement</b> : ils ne sont pas redemandés, et une
+                            correction se fait au catalogue.
+                        </FormWarn>
+
+                        <div>
+                            <FieldLabel>Numéro de série</FieldLabel>
+                            <div className="flex gap-2">
+                                <InputField
+                                    name="serialNumber"
+                                    value={formData.serialNumber}
+                                    onChange={handleChange}
+                                    placeholder="à lire sur l'étiquette"
+                                    containerClassName="flex-1 min-w-0"
+                                />
+                                {/* `.act` de la planche : une pastille sur encart, pas un
+                                    bouton plein — le seul geste appuyé de l'écran est
+                                    « Enregistrer ». */}
+                                <Button
+                                    type="button"
+                                    variant="text"
+                                    onClick={() => {
+                                        setScanHit(null);
+                                        setIsScanning(true);
+                                    }}
+                                    icon={<Icon glyph={Scan} size={18} />}
+                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high h-12 shrink-0 rounded-xs px-3 text-[13px] font-medium"
+                                >
+                                    Scanner
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <FieldLabel>Identifiant lisible</FieldLabel>
+                            <InputField
+                                name="readableId"
+                                value={formData.readableId}
+                                onChange={(event) => {
+                                    setReadableIdTouched(true);
+                                    handleChange(event);
+                                }}
+                                placeholder={proposedId || 'TYPE-SITE-RANG'}
+                            />
+                            <FormNote>
+                                Composé du type, du site et du rang. Modifiable — c'est lui qui sera
+                                collé sur l'objet.
+                            </FormNote>
+                        </div>
+
+                        <div className="border-outline-variant text-on-surface-variant flex items-baseline justify-between gap-3 border-t pt-3 text-[12px]">
+                            <span>
+                                {isEditMode
+                                    ? 'Code interne'
+                                    : "Code interne, attribué à l'enregistrement"}
+                            </span>
+                            <b className="text-on-surface font-medium tabular-nums">
+                                {internalCode}
+                            </b>
+                        </div>
+                    </FormSection>
+
+                    {/* ── Configuration ────────────────────────────────────────────── */}
+                    <FormSection title="Configuration" caption="pré-remplie par le modèle">
+                        <div className="flex gap-2.5">
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Mémoire</FieldLabel>
+                                <InputField
+                                    name="ram"
+                                    value={formData.ram}
+                                    onChange={handleChange}
+                                    placeholder="16 Go"
+                                />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Stockage</FieldLabel>
+                                <InputField
+                                    name="storage"
+                                    value={formData.storage}
+                                    onChange={handleChange}
+                                    placeholder="512 Go SSD"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <FieldLabel>Système</FieldLabel>
+                            <InputField
+                                name="os"
+                                value={formData.os}
+                                onChange={handleChange}
+                                placeholder="Windows 11 Pro"
+                            />
+                        </div>
+                        <FormNote>
+                            Trois champs que la fiche affiche et que rien ne déduit : deux unités du
+                            même modèle peuvent avoir des configurations différentes.
+                        </FormNote>
+                    </FormSection>
+
+                    {/* ── Où, et dans quel état ────────────────────────────────────── */}
+                    <FormSection title="Où, et dans quel état">
+                        <div className="flex gap-2.5">
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Pays</FieldLabel>
+                                <SelectField
+                                    name="country"
+                                    options={locationData.countries.map((country) => ({
+                                        value: country,
+                                        label: country,
+                                    }))}
+                                    value={formData.country}
+                                    onChange={handleChange}
+                                    placeholder="Choisir un pays"
+                                />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Emplacement</FieldLabel>
+                                <SelectField
+                                    name="site"
+                                    options={availableSites.map((site) => ({
+                                        value: site,
+                                        label: site,
+                                    }))}
+                                    value={formData.site}
+                                    onChange={handleChange}
+                                    disabled={!formData.country}
+                                    placeholder={
+                                        formData.country
+                                            ? 'Choisir un site'
+                                            : "Choisissez d'abord un pays"
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <FieldLabel>
+                                {isEditMode ? 'État' : "État à l'enregistrement"}
+                            </FieldLabel>
+                            {stateComesFromAGesture ? (
+                                <>
+                                    <p className="border-outline-variant text-on-surface flex min-h-12 items-center gap-2.5 rounded-xs border px-3 text-[15px]">
+                                        <Icon
+                                            glyph={MapPin}
+                                            size={18}
+                                            className="text-on-surface-variant"
+                                        />
+                                        {formData.status}
+                                    </p>
+                                    <FormNote>
+                                        Cet état vient d'un geste — une attribution, une réparation,
+                                        une sortie. Il ne se corrige pas ici, sinon le parc perd la
+                                        trace du geste.
+                                    </FormNote>
+                                </>
                             ) : (
-                                <div className="medium:flex-row text-on-secondary-container flex flex-col items-center gap-6">
-                                    <div className="medium:w-auto flex w-full gap-4">
-                                        <div className="bg-surface-container-lowest/70 medium:min-w-[100px] border-outline-variant shadow-elevation-1 flex-1 rounded-md border px-4 py-3 text-center backdrop-blur-sm">
-                                            <span className="text-label-small mb-1 block uppercase opacity-40">
-                                                Durée
-                                            </span>
-                                            <span className="text-title-large">
-                                                {effectiveConfig.years} ans
-                                            </span>
-                                        </div>
-                                        <div className="bg-surface-container-lowest/70 medium:min-w-[100px] border-outline-variant shadow-elevation-1 flex-1 rounded-md border px-4 py-3 text-center backdrop-blur-sm">
-                                            <span className="text-label-small mb-1 block uppercase opacity-40">
-                                                Méthode
-                                            </span>
-                                            <span className="text-title-large">
-                                                {effectiveConfig.method === 'linear'
-                                                    ? 'LIN'
-                                                    : 'DEG'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {financialEstimates && (
-                                        <div className="medium:ml-auto medium:text-right bg-secondary/5 border-outline-variant medium:w-auto w-full rounded-md border px-4 py-2 text-center">
-                                            <span className="text-label-small text-secondary mb-1 block tracking-widest uppercase">
-                                                Amortissement Estimé
-                                            </span>
-                                            <span className="text-headline-small text-on-surface">
-                                                {formatCurrency(
-                                                    financialEstimates.monthlyDepreciation,
-                                                    settings.currency,
-                                                )}{' '}
-                                                <span className="text-body-small opacity-60">
-                                                    / mois
-                                                </span>
-                                            </span>
-                                        </div>
-                                    )}
+                                <div className="flex flex-col gap-2">
+                                    {CREATION_STATES.map((state) => (
+                                        <OptionRow
+                                            key={state.value}
+                                            title={state.title}
+                                            hint={state.hint}
+                                            selected={formData.status === state.value}
+                                            onSelect={() =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    status: state.value,
+                                                }))
+                                            }
+                                        />
+                                    ))}
                                 </div>
                             )}
                         </div>
-                    </section>
 
-                    {/* Localisation */}
-                    <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
-                        <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
-                            <MaterialIcon name="location_on" size={14} className="text-error" />{' '}
-                            Emplacement Physique
-                        </h3>
-                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
-                            <SelectField
-                                label="Pays"
-                                name="country"
-                                options={locationData.countries.map((c) => ({
-                                    value: c,
-                                    label: c,
-                                }))}
-                                value={formData.country}
-                                onChange={handleChange}
-                            />
-                            <SelectField
-                                label="Site / Campus"
-                                name="site"
-                                options={availableSites.map((s) => ({ value: s, label: s }))}
-                                value={formData.site}
-                                onChange={handleChange}
-                                disabled={!formData.country}
-                                placeholder={
-                                    !formData.country ? 'Sélectionnez un pays' : 'Choisir un site'
-                                }
-                            />
-                            <SelectField
-                                label="Statut inventaire"
-                                name="status"
-                                options={EQUIPMENT_STATUS_OPTIONS}
-                                value={formData.status}
-                                onChange={handleChange}
-                            />
-                            <SelectField
-                                label="Statut opérationnel"
-                                name="operationalStatus"
-                                options={OPERATIONAL_STATUS_OPTIONS}
-                                value={formData.operationalStatus}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </section>
+                        {isEditMode && (
+                            <FormNote>
+                                <b>Le porteur ne se change pas ici.</b> Un objet change de mains par
+                                une attribution ou une restitution, jamais par une correction de
+                                fiche.
+                            </FormNote>
+                        )}
+                    </FormSection>
 
-                    {/* PREVIEW CARD */}
-                    <div className="sticky top-8">
-                        <div className="bg-surface rounded-card border-outline-variant shadow-elevation-3 border p-6 text-center">
-                            <h3 className="text-title-medium text-on-surface mb-6 font-bold">
-                                Aperçu de la fiche
-                            </h3>
-                        </div>
-                    </div>
-
-                    {/* Garantie & Notes */}
-                    <div className="expanded:grid-cols-2 grid grid-cols-1 gap-8">
-                        <section className="bg-surface shadow-elevation-1 border-outline-variant space-y-5 rounded-md border p-6">
-                            <h3 className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
-                                <MaterialIcon
-                                    name="verified_user"
-                                    size={14}
-                                    className="text-tertiary"
-                                />{' '}
-                                Garantie Constructeur
-                            </h3>
+                    {/* ── Achat et garantie ────────────────────────────────────────── */}
+                    <FormSection title="Achat et garantie">
+                        <div>
+                            <FieldLabel>Fournisseur</FieldLabel>
                             <InputField
-                                label="Date expiration"
+                                name="supplier"
+                                value={formData.supplier}
+                                onChange={handleChange}
+                                placeholder="Dell Technologies"
+                            />
+                        </div>
+                        <div className="flex gap-2.5">
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Date d'achat</FieldLabel>
+                                <InputField
+                                    type="date"
+                                    name="purchaseDate"
+                                    value={formData.purchaseDate}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <FieldLabel>Prix d'achat</FieldLabel>
+                                <InputField
+                                    type="number"
+                                    name="purchasePrice"
+                                    value={formData.purchasePrice}
+                                    onChange={handleChange}
+                                    placeholder="0"
+                                    suffix={currencySymbol}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <FieldLabel>Fin de garantie</FieldLabel>
+                            <InputField
                                 type="date"
                                 name="warrantyEnd"
                                 value={formData.warrantyEnd}
                                 onChange={handleChange}
                             />
-                        </section>
+                        </div>
+                        <FormNote>
+                            Le <b>pourcentage amorti</b> et la <b>date de renouvellement</b> de la
+                            fiche se calculent à partir de ces trois valeurs et de la catégorie :
+                            ils ne se saisissent jamais. Règle appliquée ici —{' '}
+                            <b>
+                                {effectiveConfig.years} ans,{' '}
+                                {effectiveConfig.method === 'linear' ? 'linéaire' : 'dégressif'}
+                            </b>{' '}
+                            ({SOURCE_LABELS[effectiveConfig.source] || effectiveConfig.source}).
+                        </FormNote>
+                    </FormSection>
 
-                        <section className="bg-surface shadow-elevation-1 border-outline-variant rounded-md border p-6">
-                            <h3 className="text-label-small text-on-surface-variant mb-6 flex items-center gap-2 tracking-widest uppercase">
-                                <MaterialIcon
-                                    name="description"
-                                    size={14}
-                                    className="text-primary"
-                                />{' '}
-                                Observations
-                            </h3>
-                            <TextArea
-                                label=""
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                                placeholder="Détails de configuration..."
-                                rows={3}
+                    {/* ── Documents ────────────────────────────────────────────────── */}
+                    <FormSection title="Documents">
+                        <div className="flex flex-wrap gap-2">
+                            {(['Facture', 'Garantie'] as const).map((kind) => {
+                                const attached = documents.find(
+                                    (document) => document.type === kind,
+                                );
+                                const input = kind === 'Facture' ? invoiceInput : warrantyInput;
+                                return (
+                                    <button
+                                        key={kind}
+                                        type="button"
+                                        onClick={() => input.current?.click()}
+                                        className={cn(
+                                            'flex h-14 min-w-[104px] items-center gap-2 rounded-xs px-3 text-left text-[11px] leading-[13px]',
+                                            attached
+                                                ? 'bg-surface-container text-on-surface'
+                                                : 'border-outline text-on-surface-variant hover:bg-surface-container border-[1.5px] border-dashed',
+                                        )}
+                                    >
+                                        <Icon
+                                            glyph={
+                                                attached
+                                                    ? Check
+                                                    : kind === 'Facture'
+                                                      ? Camera
+                                                      : FileText
+                                            }
+                                            size={18}
+                                            className="shrink-0"
+                                        />
+                                        <span className="min-w-0">
+                                            <span className="block font-medium">
+                                                {kind.toLowerCase()}
+                                            </span>
+                                            {attached && (
+                                                <span className="text-on-surface-variant block truncate">
+                                                    {attached.name}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            <input
+                                ref={invoiceInput}
+                                type="file"
+                                className="hidden"
+                                onChange={(event) =>
+                                    attachDocument(event.target.files?.[0], 'Facture')
+                                }
                             />
-                        </section>
+                            <input
+                                ref={warrantyInput}
+                                type="file"
+                                className="hidden"
+                                onChange={(event) =>
+                                    attachDocument(event.target.files?.[0], 'Garantie')
+                                }
+                            />
+                        </div>
+                        <FormNote>
+                            La pièce est rattachée à la fiche par son nom, sa nature et sa taille —
+                            c'est ce que la fiche en affiche.
+                        </FormNote>
+                    </FormSection>
+                </div>
+            </FullScreenFormLayout>
+
+            {/* Le catalogue, en feuille : on y cherche, on n'y saisit pas. */}
+            <BottomSheet
+                open={isModelSheetOpen}
+                onClose={() => setIsModelSheetOpen(false)}
+                title="Choisir un modèle"
+            >
+                <div className="flex flex-col gap-3">
+                    <SearchField
+                        value={modelQuery}
+                        onChange={setModelQuery}
+                        placeholder="Un modèle, une marque, un type"
+                    />
+                    <div className="max-h-[50vh] overflow-y-auto">
+                        {filteredModels.length === 0 ? (
+                            <p className="text-on-surface-variant py-6 text-center text-[13px]">
+                                Aucun modèle ne correspond. Le catalogue se complète depuis
+                                Référentiel.
+                            </p>
+                        ) : (
+                            filteredModels.map((model) => (
+                                <button
+                                    key={model.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData((prev) => ({ ...prev, model: model.name }));
+                                        setIsModelSheetOpen(false);
+                                        setModelQuery('');
+                                    }}
+                                    className="border-outline-variant hover:bg-surface-container flex min-h-14 w-full items-center gap-3 border-t px-1 text-left first:border-t-0"
+                                >
+                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                                        {model.image ? (
+                                            <img
+                                                src={model.image}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <Icon glyph={Package} size={20} />
+                                        )}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="text-on-surface block truncate text-[15px] font-medium">
+                                            {model.name}
+                                        </span>
+                                        <span className="text-on-surface-variant block truncate text-[12px]">
+                                            {getCategoryLabel(model.type)}
+                                            {model.brand ? ` · ${model.brand}` : ''}
+                                        </span>
+                                    </span>
+                                </button>
+                            ))
+                        )}
                     </div>
                 </div>
-            </div>
-        </FullScreenFormLayout>
+            </BottomSheet>
+
+            {/* 17.3, emploi « simple / 04.3 » : le numéro de série. La vue ne décode rien —
+                la lecture réelle du produit passe par la saisie, que le pied porte. */}
+            {isScanning && (
+                <div className="fixed inset-0 z-50 bg-[var(--tk-color-inverse-surface)]">
+                    <ScanView
+                        mode="simple"
+                        onClose={() => setIsScanning(false)}
+                        tip="Cadrez le numéro de série de l'étiquette. Tenez l'appareil à environ 20 cm."
+                        hit={scanHit}
+                        acceptLabel="Utiliser ce numéro"
+                        onAccept={(accepted) => {
+                            setFormData((prev) => ({ ...prev, serialNumber: accepted.code }));
+                            setIsScanning(false);
+                            setScanHit(null);
+                        }}
+                        onRetry={() => setScanHit(null)}
+                        onManualSubmit={(code) =>
+                            setScanHit({
+                                id: `serial_${Date.now()}`,
+                                code,
+                                detail: selectedModel
+                                    ? `Numéro de série · ${selectedModel.name}`
+                                    : 'Numéro de série',
+                            })
+                        }
+                    />
+                </div>
+            )}
+        </>
     );
 };
 

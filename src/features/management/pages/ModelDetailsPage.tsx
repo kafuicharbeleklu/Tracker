@@ -135,10 +135,18 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
 
         requestConfirmation({
             title: `Supprimer « ${model.name} » du catalogue ?`,
+            /* C2 — la conséquence, et ce qui est conservé. L'irréversibilité en
+               sortait : elle a sa ligne, en rouge, sous le corps (C4). La dire deux
+               fois dans deux formes différentes ne la rend pas plus lisible. */
             message:
-                "Aucun actif n'y est rattaché. Le modèle disparaît du catalogue et de la création d'équipement ; cette action est irréversible.",
-            variant: 'danger',
-            confirmKeyword: 'SUPPRIMER',
+                "Aucun actif n'y est rattaché. Le modèle disparaît du catalogue et de la création d'équipement.",
+            tone: 'destructive',
+            irreversible: true,
+            /* **Le dernier mot-clé à recopier du produit.** Il exigeait de taper
+               « SUPPRIMER ». C7 de la planche 16.2 l'a déjà tranché pour la clôture
+               d'audit : *ce n'est pas la friction qui manque à cet acte, c'est la
+               conséquence chiffrée*. Recopier un mot ne fait relire personne — et
+               17.2 ne dessine que deux gestes, jamais un champ. */
             confirmText: 'Supprimer le modèle',
             cancelText: 'Annuler',
             onConfirm: () => {

@@ -6,7 +6,6 @@ import {
     Funnel,
     Keyboard,
     Package,
-    Plus,
     Scan,
     Warning,
 } from '@phosphor-icons/react';
@@ -26,6 +25,7 @@ import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { FabContainer } from '../../../components/ui/FabContainer';
+import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 
@@ -418,19 +418,23 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         if (selection.count === 0) return;
         const ids = [...selection.selectedIds];
 
+        /* C1 — sur une sélection à un, la question porte le nom de l'objet ; « cet
+           équipement » oblige à refermer la feuille pour savoir lequel. */
+        const soleTarget =
+            ids.length === 1 ? equipment.find((item) => item.id === ids[0]) : undefined;
+
         requestConfirmation({
-            title:
-                ids.length > 1
-                    ? `Sortir ${ids.length} équipements du parc ?`
-                    : 'Sortir cet équipement du parc ?',
+            title: soleTarget
+                ? `Sortir ${soleTarget.name} du parc ?`
+                : `Sortir ${ids.length} équipements du parc ?`,
             message: (
                 <>
-                    Ils quittent l’inventaire et les rapports.{' '}
+                    {soleTarget ? 'Il quitte' : 'Ils quittent'} l’inventaire et les rapports.{' '}
                     <strong className="text-on-surface font-medium">
                         Leur historique est conservé
                     </strong>{' '}
-                    et reste consultable depuis le journal d’audit. Les équipements en cours
-                    d’attribution sont ignorés.
+                    et reste consultable depuis le journal d’audit.
+                    {soleTarget ? '' : ' Les équipements en cours d’attribution sont ignorés.'}
                 </>
             ),
             tone: 'destructive',
@@ -675,19 +679,24 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* La barre du bas fait 56 px : le bouton flottant se pose au-dessus,
                    jamais dessus — la planche le place à 76 px du bas. */
                 fab={
+                    /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
+                       copie.** Il était réécrit à la main ici et sur l'autre liste, à
+                       deux fichiers de distance, et les deux copies avaient déjà
+                       divergé : deux jetons de texte pour le même contraste, et un
+                       ancrage retapé par-dessus celui du conteneur. L'ancrage se
+                       calcule une fois — 56 de barre + 20 de gouttière — et il vit
+                       dans `FabContainer`. La feuille, elle, reste à la page : ses
+                       rangées portent une explication que 17.6 ne dessine pas. */
                     isManager && !selection.isActive ? (
-                        <FabContainer
-                            description="Ajouter un équipement"
-                            className="compact:bottom-[76px] right-5 bottom-[76px]"
-                        >
-                            <button
-                                type="button"
+                        <FabContainer description="Ajouter un équipement">
+                            <FloatingActionButton
+                                icon="add"
+                                size="medium"
+                                variant="primary"
+                                className="bg-primary text-on-primary"
                                 aria-label="Ajouter un équipement"
-                                className="bg-primary text-on-primary flex h-14 w-14 cursor-pointer items-center justify-center rounded-xl shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95"
                                 onClick={() => setIsAddSheetOpen(true)}
-                            >
-                                <Icon glyph={Plus} size={24} />
-                            </button>
+                            />
                         </FabContainer>
                     ) : undefined
                 }
@@ -992,11 +1001,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                 <Icon glyph={Package} size={20} />
                             </span>
                             <div className="min-w-0 flex-1">
+                                {/* 17.6 nomme l'acte « Importer un fichier », et c'est ce que
+                                    la destination fait : un CSV, une ligne par unité. « Importer
+                                    une livraison » est l'autre chemin — la file de scan de 04.3,
+                                    colonne 2 — que la planche laisse encore à spécifier. */}
                                 <p className="text-body-large text-on-surface font-medium">
-                                    Importer une livraison
+                                    Importer un fichier
                                 </p>
                                 <p className="text-body-small text-on-surface-variant">
-                                    plusieurs actifs identiques d’un coup
+                                    une ligne par unité, depuis un tableur
                                 </p>
                             </div>
                             <Icon
@@ -1028,8 +1041,24 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                 }
                             }}
                             onRetry={() => setScanHit(null)}
-                            onManualEntry={() => {
-                                setIsScanning(false);
+                            /* La vue ne décode rien (17.3) : sans cette saisie, le viseur
+                               s'ouvrait sur un cadre qui ne pouvait jamais rien lire, et
+                               « Saisir à la main » se contentait de le refermer. */
+                            onManualSubmit={(code) => {
+                                const found = accessibleEquipment.find(
+                                    (item) =>
+                                        item.assetId.toLowerCase() === code.toLowerCase() ||
+                                        item.serialNumber?.toLowerCase() === code.toLowerCase() ||
+                                        item.name.toLowerCase() === code.toLowerCase(),
+                                );
+                                setScanHit({
+                                    id: `scan_${Date.now()}`,
+                                    code,
+                                    detail: found
+                                        ? `${found.name} · ${found.model}`
+                                        : 'Aucun actif ne porte ce code',
+                                    kind: found ? 'expected' : 'exception',
+                                });
                             }}
                         />
                     </div>

@@ -89,6 +89,13 @@ interface SettingsPageProps {
     onLogout: () => void;
     /** La file de collecte vit dans Tâches : cette page y renvoie, elle ne la refait pas. */
     onNavigate?: (view: ViewType) => void;
+    /**
+     * La section ouverte d'emblée, quand on n'arrive pas par l'index. « Mon compte » du
+     * menu de l'avatar (03.1) et « Sécurité et connexion » de Paramètres mènent **au même
+     * écran** — celui de la planche 07.1 — et le second point d'entrée est un renvoi, pas
+     * une copie. L'adresse le porte : `/settings/account`.
+     */
+    initialSection?: 'account';
 }
 
 /** Les vues de l'écran. Chacune est un état de Paramètres, pas une page du produit. */
@@ -216,13 +223,18 @@ const SettingsBar: React.FC<{
     );
 };
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initialSection }) => {
     const { showToast } = useToast();
     const { currentUser } = useAuth();
     const { settings, updateSettings, equipment, categories, detectedDevices, ingestAgentCheckIn } =
         useData();
 
-    const [view, setView] = useState<SettingsView>('index');
+    const [view, setView] = useState<SettingsView>(initialSection ?? 'index');
+
+    /* L'adresse change sans démontage quand on revient sur Paramètres depuis le menu. */
+    useEffect(() => {
+        if (initialSection) setView(initialSection);
+    }, [initialSection]);
     const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
 
     /** La feuille d'une source — le seul endroit de l'écran qui garde un pied. */

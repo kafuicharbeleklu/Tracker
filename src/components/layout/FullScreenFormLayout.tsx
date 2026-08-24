@@ -5,6 +5,8 @@ import { FullScreenLayout } from './FullScreenLayout';
 
 interface FullScreenFormLayoutProps {
     title: string;
+    /** Ce sur quoi on travaille, sous le titre — le `.aid` de 04.3. */
+    subtitle?: string;
     onCancel: () => void;
     onSave: () => void;
     children: React.ReactNode;
@@ -12,10 +14,17 @@ interface FullScreenFormLayoutProps {
     saveLabel?: string;
     isSaving?: boolean;
     submitButtonLocation?: 'header' | 'footer';
+    /**
+     * Passe à la coque. Un écran dont le contenu est fait de **cartes** doit poser sa
+     * toile — `bg-background` : sur la surface blanche du plein écran, une carte
+     * blanche ne se voit pas.
+     */
+    className?: string;
 }
 
 export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
     title,
+    subtitle,
     onCancel,
     onSave,
     children,
@@ -23,6 +32,7 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
     saveLabel = 'Enregistrer',
     isSaving = false,
     submitButtonLocation = 'footer',
+    className,
 }) => {
     const formId = useId().replace(/:/g, '');
 
@@ -75,9 +85,11 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
     return (
         <FullScreenLayout
             title={title}
+            subtitle={subtitle}
             onClose={onCancel}
             headerActions={headerActions}
             footerActions={actions || defaultFooterActions}
+            className={className}
         >
             <form id={formId} onSubmit={handleSubmit} className="space-y-6">
                 {children}

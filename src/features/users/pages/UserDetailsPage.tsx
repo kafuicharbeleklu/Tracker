@@ -176,7 +176,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             title: `Supprimer le compte de ${user.name} ?`,
             message: <p>L'accès sera coupé immédiatement. Aucun matériel n'est attribué.</p>,
             confirmText: 'Supprimer',
-            variant: 'danger',
+            /* C4 — supprimer un compte ne se défait pas : la ligne rouge le dit, et
+               c'est la seule chose qui distingue cet acte d'une suspension. Le
+               `variant` hérité peignait le bouton sans jamais poser l'affirmation. */
+            tone: 'destructive',
+            irreversible: true,
             onConfirm: () => {
                 const decision = deleteUser(user.id);
                 if (decision.allowed) {
@@ -192,13 +196,28 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const handleToggleAccountStatus = async () => {
         const isInactive = user.status === 'inactive';
+        /* C1 — **le sujet est nommé**, et c'est l'exemple littéral de la planche :
+           « Suspendre le compte de Kossi Adjovi ? ». Le titre disait « Suspendre le
+           compte », sans dire lequel ni poser de question — sur une fiche ouverte on
+           croit le savoir, mais la feuille monte par-dessus la fiche et le recouvre. */
+        const held = userEquipment.length;
         requestConfirmation({
-            title: isInactive ? 'Réactiver le compte' : 'Suspendre le compte',
+            title: isInactive
+                ? `Réactiver le compte de ${user.name} ?`
+                : `Suspendre le compte de ${user.name} ?`,
+            /* C2 — la conséquence, **et ce qui est conservé** : la suspension ne
+               restitue rien, et c'est précisément ce qu'on vient vérifier. */
             message: isInactive
-                ? `Le compte de ${user.name} sera réactivé immédiatement.`
-                : `L'accès de ${user.name} sera coupé. Les équipements détenus resteront à son nom.`,
+                ? `${user.name} pourra se reconnecter immédiatement. Ses équipements n'ont pas bougé.`
+                : `${user.name} ne pourra plus se connecter.${
+                      held > 0
+                          ? ` Ses ${held} équipement${held > 1 ? 's' : ''} reste${held > 1 ? 'nt' : ''} à son nom`
+                          : " Aucun équipement n'est à son nom"
+                  } — la suspension ne restitue rien. Vous pourrez rétablir le compte à tout moment.`,
             confirmText: isInactive ? 'Réactiver' : 'Suspendre',
-            variant: isInactive ? 'info' : 'warning',
+            /* C3 — un acte réversible est **sombre**, jamais rouge : le rouge est
+               réservé à l'irréversible, et une suspension se défait d'un tap. */
+            tone: 'neutral',
             onConfirm: async () => {
                 showToast(isInactive ? 'Compte réactivé.' : 'Compte suspendu.', 'success');
             },
@@ -207,9 +226,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const handleResetPin = () => {
         requestConfirmation({
-            title: 'Réinitialiser le code PIN',
-            message: `Un code PIN temporaire sera généré pour ${user.name}. Ses prochaines réceptions passeront par signature.`,
-            confirmText: 'Générer PIN',
+            title: `Réinitialiser le code PIN de ${user.name} ?`,
+            message: `Un code temporaire sera généré. L'ancien code cesse de fonctionner immédiatement, et ${user.name} devra en définir un nouveau à sa prochaine réception.`,
+            confirmText: 'Réinitialiser le code',
+            tone: 'neutral',
             onConfirm: async () => {
                 try {
                     const res = await authService.resetUserPin(user.id);

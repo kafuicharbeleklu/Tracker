@@ -27,92 +27,105 @@ const AppLayout = lazy(() => import('./src/components/layout/AppLayout'));
  * production, la branche entière disparaît et le chunk n'est plus généré.
  */
 const DesignSystemGalleryPage = import.meta.env.DEV
-  ? lazy(() => import('./src/features/dev/pages/DesignSystemGalleryPage'))
-  : null;
+    ? lazy(() => import('./src/features/dev/pages/DesignSystemGalleryPage'))
+    : null;
 const DocumentationExplorerPage = lazy(
-  () => import('./src/features/documentation/pages/DocumentationExplorerPage'),
+    () => import('./src/features/documentation/pages/DocumentationExplorerPage'),
 );
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, accessDenied, needsPasswordChange, logout } = useAuth();
+    const { isAuthenticated, accessDenied, needsPasswordChange, logout } = useAuth();
+    const { routeSegments } = useRouter();
 
+    /*
+     * 0. La documentation — `#/documentation/ui-flow-map`, où mène « Aide et support » du
+     * menu de compte (planche 03.1). Elle se monte DANS l'arbre de providers, avant la
+     * porte d'authentification : hors de l'arbre, l'ouvrir démontait `AuthProvider`, et
+     * comme la session de démonstration ne vit qu'en mémoire, en revenir renvoyait à
+     * l'écran de connexion. Une rangée d'un menu de compte ne déconnecte pas.
+     */
+    if (routeSegments[0] === 'documentation' && routeSegments[1] === 'ui-flow-map') {
+        return (
+            <ErrorBoundary context="documentation" title="La documentation n'a pas pu s'afficher">
+                <Suspense
+                    fallback={
+                        <LoadingSpinner fullScreen text="Chargement de la documentation..." />
+                    }
+                >
+                    <DocumentationExplorerPage />
+                </Suspense>
+            </ErrorBoundary>
+        );
+    }
 
-  // 1. Check Access Denied
-  if (accessDenied) {
-    return <AccessDeniedPage />;
-  }
+    // 1. Check Access Denied
+    if (accessDenied) {
+        return <AccessDeniedPage />;
+    }
 
-  // 2. Check Password Change Required
-  if (needsPasswordChange) {
-    return <ChangePasswordPage />;
-  }
+    // 2. Check Password Change Required
+    if (needsPasswordChange) {
+        return <ChangePasswordPage />;
+    }
 
-  // 3. Main Logic
-  if (!isAuthenticated) {
-    // If not authenticated (and not in special states), show Login
-    return <LoginPage onLoginSuccess={() => { }} />;
-  }
+    // 3. Main Logic
+    if (!isAuthenticated) {
+        // If not authenticated (and not in special states), show Login
+        return <LoginPage onLoginSuccess={() => {}} />;
+    }
 
-  return (
-    <Suspense fallback={<LoadingSpinner fullScreen text="Chargement de l'application..." />}>
-      <AppLayout onLogout={logout} />
-    </Suspense>
-  );
+    return (
+        <Suspense fallback={<LoadingSpinner fullScreen text="Chargement de l'application..." />}>
+            <AppLayout onLogout={logout} />
+        </Suspense>
+    );
 };
 
 const App: React.FC = () => {
-  const { routeSegments } = useRouter();
-  const isDesignSystemRoute =
-    DesignSystemGalleryPage !== null &&
-    routeSegments[0] === 'dev' &&
-    routeSegments[1] === 'design-system';
+    const { routeSegments } = useRouter();
+    const isDesignSystemRoute =
+        DesignSystemGalleryPage !== null &&
+        routeSegments[0] === 'dev' &&
+        routeSegments[1] === 'design-system';
 
-  const isDocumentationRoute =
-    routeSegments[0] === 'documentation' && routeSegments[1] === 'ui-flow-map';
+    if (isDesignSystemRoute) {
+        return (
+            <ErrorBoundary
+                context="design-system"
+                title="La galerie du design system n'a pas pu s'afficher"
+            >
+                <Suspense
+                    fallback={<LoadingSpinner fullScreen text="Chargement du design system..." />}
+                >
+                    <DesignSystemGalleryPage />
+                </Suspense>
+            </ErrorBoundary>
+        );
+    }
 
-  if (isDocumentationRoute) {
     return (
-      <ErrorBoundary context="documentation" title="La documentation n'a pas pu s'afficher">
-        <Suspense fallback={<LoadingSpinner fullScreen text="Chargement de la documentation..." />}>
-          <DocumentationExplorerPage />
-        </Suspense>
-      </ErrorBoundary>
+        // Filet racine (#17) : couvre ce que le boundary par vue d'AppLayout ne peut pas
+        // atteindre — providers, coque, écrans hors session (Login / Accès refusé /
+        // Changement de mot de passe). Volontairement HORS de l'arbre de providers :
+        // son écran de repli ne doit dépendre d'aucun contexte pour s'afficher.
+        <ErrorBoundary
+            context="racine"
+            title="L'application n'a pas pu démarrer"
+            description="Une erreur inattendue a interrompu le chargement. Rechargez la page ; si le problème persiste, signalez-le au support avec l'heure exacte."
+        >
+            <ToastProvider>
+                <AuthProvider>
+                    <DataProvider>
+                        <FinanceDataProvider>
+                            <ConfirmationProvider>
+                                <AppContent />
+                            </ConfirmationProvider>
+                        </FinanceDataProvider>
+                    </DataProvider>
+                </AuthProvider>
+            </ToastProvider>
+        </ErrorBoundary>
     );
-  }
-
-  if (isDesignSystemRoute) {
-    return (
-      <ErrorBoundary context="design-system" title="La galerie du design system n'a pas pu s'afficher">
-        <Suspense fallback={<LoadingSpinner fullScreen text="Chargement du design system..." />}>
-          <DesignSystemGalleryPage />
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
-
-  return (
-    // Filet racine (#17) : couvre ce que le boundary par vue d'AppLayout ne peut pas
-    // atteindre — providers, coque, écrans hors session (Login / Accès refusé /
-    // Changement de mot de passe). Volontairement HORS de l'arbre de providers :
-    // son écran de repli ne doit dépendre d'aucun contexte pour s'afficher.
-    <ErrorBoundary
-      context="racine"
-      title="L'application n'a pas pu démarrer"
-      description="Une erreur inattendue a interrompu le chargement. Rechargez la page ; si le problème persiste, signalez-le au support avec l'heure exacte."
-    >
-      <ToastProvider>
-        <AuthProvider>
-          <DataProvider>
-            <FinanceDataProvider>
-              <ConfirmationProvider>
-                <AppContent />
-              </ConfirmationProvider>
-            </FinanceDataProvider>
-          </DataProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </ErrorBoundary>
-  );
 };
 
 export default App;

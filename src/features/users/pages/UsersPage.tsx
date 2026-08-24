@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CaretDown, EnvelopeSimple, Funnel, Plus, UsersThree } from '@phosphor-icons/react';
+import { CaretDown, EnvelopeSimple, Funnel, UsersThree } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -15,6 +15,7 @@ import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { FabContainer } from '../../../components/ui/FabContainer';
+import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
 
 import { canDeleteUserByRoleRule, getStatusLabel } from '../../../lib/businessRules';
@@ -258,10 +259,28 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
         if (selection.count === 0) return;
         const ids = [...selection.selectedIds];
 
+        /* C1 — **le sujet est nommé.** « Supprimer ce compte ? » est l'anti-exemple
+           que la planche donne en toutes lettres : sur une sélection à un, c'est le
+           nom qui nomme ; au-delà, c'est le compte. */
+        const soleTarget = ids.length === 1 ? allUsers.find((user) => user.id === ids[0]) : null;
+
         requestConfirmation({
-            title: ids.length > 1 ? `Supprimer ${ids.length} comptes ?` : 'Supprimer ce compte ?',
-            message: <p>Les accès seront révoqués. Opération irréversible.</p>,
-            confirmText: 'Supprimer',
+            title: soleTarget
+                ? `Supprimer le compte de ${soleTarget.name} ?`
+                : `Supprimer ${ids.length} comptes ?`,
+            /* C2 — la conséquence, et ce qui est conservé. L'irréversibilité sort du
+               corps : elle a sa ligne rouge (C4), et deux formes pour un même fait
+               n'en font pas un fait plus lu. */
+            message: (
+                <p>
+                    {soleTarget ? 'Son accès est révoqué' : 'Leurs accès sont révoqués'}{' '}
+                    immédiatement. L'historique des mouvements est conservé et reste consultable
+                    depuis le journal d'audit.
+                </p>
+            ),
+            confirmText: soleTarget ? 'Supprimer le compte' : `Supprimer les ${ids.length}`,
+            tone: 'destructive',
+            irreversible: true,
             onConfirm: () => {
                 let deleted = 0;
                 let blocked = 0;
@@ -417,19 +436,24 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         : undefined
                 }
                 fab={
+                    /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
+                       copie.** Il était réécrit à la main ici et sur l'autre liste, à
+                       deux fichiers de distance, et les deux copies avaient déjà
+                       divergé : deux jetons de texte pour le même contraste, et un
+                       ancrage retapé par-dessus celui du conteneur. L'ancrage se
+                       calcule une fois — 56 de barre + 20 de gouttière — et il vit
+                       dans `FabContainer`. La feuille, elle, reste à la page : ses
+                       rangées portent une explication que 17.6 ne dessine pas. */
                     permissions.canManageUsers && !selection.isActive ? (
-                        <FabContainer
-                            description="Ajouter une personne"
-                            className="compact:bottom-[76px] right-5 bottom-[76px]"
-                        >
-                            <button
-                                type="button"
+                        <FabContainer description="Ajouter une personne">
+                            <FloatingActionButton
+                                icon="add"
+                                size="medium"
+                                variant="primary"
+                                className="bg-primary text-on-primary"
                                 aria-label="Ajouter une personne"
-                                className="bg-primary flex h-14 w-14 cursor-pointer items-center justify-center rounded-xl text-[var(--tk-color-brand-text)] shadow-[0_4px_14px_rgba(10,25,29,0.22)] transition-transform active:scale-95"
                                 onClick={() => setIsAddSheetOpen(true)}
-                            >
-                                <Icon glyph={Plus} size={24} />
-                            </button>
+                            />
                         </FabContainer>
                     ) : undefined
                 }
