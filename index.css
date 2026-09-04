@@ -1173,12 +1173,22 @@ body {
     letter-spacing: 0;
 }
 
+/*
+   Le titre d'une surface plein écran ou d'une boîte — cinq emplois : la barre du
+   plein écran, la barre du haut, la modale, le panneau latéral.
+
+   **La graisse 700 n'appartient pas au système.** R15 n'en admet que deux (400 et
+   500) plus l'Archivo 600 des titres, et le socle le dit avant elle : « graisses :
+   trois, jamais plus ». Le 700 en était une quatrième, et sur la fonte de texte là
+   où les planches emploient la fonte d'affichage. Relevé le 04/09.
+*/
 .section-title {
     color: var(--tk-color-text-primary);
+    font-family: var(--tk-type-font-brand);
     font-size: var(--tk-type-section-title-size);
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.3;
-    letter-spacing: 0;
+    letter-spacing: -0.015em;
 }
 
 /* ---- Rôles typographiques de l'ADN MOBILE v1 (DESIGN_BRIEF.md §2) ----

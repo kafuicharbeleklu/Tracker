@@ -136,7 +136,10 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     <label
                         htmlFor={inputId}
                         className={cn(
-                            'duration-short4 mb-1.5 block text-[11px] font-medium tracking-[0.02em] transition-colors',
+                            /* `.lab` — 12 sur 16 en 500, encre secondaire, 8 px
+                               au-dessus du champ. Elle valait 11 px avec une chasse
+                               ouverte : une capitale de plus que l'échelle. */
+                            'duration-short4 mb-2 block text-[12px] leading-4 font-medium transition-colors',
                             error
                                 ? 'text-error'
                                 : isFocused
@@ -156,7 +159,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     {hasLeadingElement && (
                         <div
                             className={cn(
-                                'duration-short4 pointer-events-none absolute inset-y-0 left-4 flex items-center gap-2 transition-colors',
+                                'duration-short4 pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2.5 transition-colors',
                                 error
                                     ? 'text-error'
                                     : isFocused
@@ -194,10 +197,26 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             props.onBlur?.(e);
                         }}
                         className={cn(
-                            'text-title-small text-on-surface min-h-12 w-full px-4 py-3 font-medium',
+                            /*
+                             * `.field` de la passe sobre — **le creux, pas le filet.**
+                             * Cinq planches (03.3, 04.1, 04.3, 05.1, 10.1) écrivent la
+                             * même chose : le fond du creux (`inset` du socle), rayon 4,
+                             * hauteur 48, intérieur 14, **16 sur 24 en chasse
+                             * normale**. Le champ était cerné, en 15 px et en graisse
+                             * 500 : un filet de plus par champ sur des cartes qui en
+                             * portent déjà un, et une graisse d'appui sur une valeur
+                             * saisie, qui n'appuie rien.
+                             *
+                             * Les deux branches `isOutlined` étaient d'ailleurs
+                             * **identiques** — le rempli n'existait pas, la prop ne
+                             * décidait rien. Le filet reste disponible pour le champ
+                             * posé sur `surface-container`, où le creux ne se verrait
+                             * pas.
+                             */
+                            'text-on-surface min-h-12 w-full py-3 text-[16px] leading-6',
                             'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow]',
                             'focus:outline-none',
-                            'placeholder:text-on-surface-variant',
+                            'placeholder:text-text-tertiary',
                             'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
                             isOutlined
                                 ? cn(
@@ -208,14 +227,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                                       'disabled:border-on-surface/[0.12] disabled:bg-surface',
                                   )
                                 : cn(
-                                      'bg-surface rounded-md border',
+                                      'bg-surface-container rounded-md border-0',
                                       error
-                                          ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-2'
-                                          : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-focus-ring focus:ring-2',
-                                      'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]',
+                                          ? 'ring-error focus:ring-error ring-2 focus:ring-2'
+                                          : 'focus:ring-focus-ring focus:ring-2',
+                                      'disabled:bg-on-surface/[0.04]',
                                   ),
-                            hasLeadingElement ? 'pl-12' : 'pl-4',
-                            hasTrailingElement ? 'pr-12' : 'pr-4',
+                            hasLeadingElement ? 'pl-[42px]' : 'px-3.5',
+                            hasTrailingElement ? 'pr-12' : 'pr-3.5',
                             className,
                         )}
                         {...props}

@@ -68,24 +68,50 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
         </Button>
     );
 
-    const defaultFooterActions = (
-        <>
-            <Button variant="outlined" onClick={onCancel} disabled={isSaving}>
-                Annuler
-            </Button>
-            {submitButtonLocation === 'footer' && <SaveButton />}
-        </>
-    );
+    /*
+     * **Quand le geste est dans la barre, il n'y a pas de pied.** 04.3 dessine deux
+     * gabarits : la saisie d'une fiche porte « Enregistrer » en haut et rien en bas ;
+     * l'import porte un bouton pleine largeur en pied et rien en haut. Le pied ne
+     * gardait ici qu'un « Annuler » solitaire — une barre entière pour le geste que la
+     * flèche de retour fait déjà.
+     */
+    const defaultFooterActions =
+        submitButtonLocation === 'footer' ? (
+            <>
+                <Button variant="outlined" onClick={onCancel} disabled={isSaving}>
+                    Annuler
+                </Button>
+                <SaveButton />
+            </>
+        ) : null;
 
+    /*
+     * `.tbar .save` de 04.3 — **un mot, pas un bouton plein.** La planche pose
+     * « Enregistrer » en 16 px sur 500, sans fond ni glyphe, dans la barre du haut :
+     * l'écran n'a qu'un geste, et un aplat de plus n'en fait pas deux. Le pied à deux
+     * boutons reste le gabarit des écrans qui posent une alternative.
+     */
     const headerActions =
         submitButtonLocation === 'header' ? (
-            <SaveButton variant="filled" className="text-label-medium h-9 px-4" /> // Compact button for header
+            <Button
+                type="submit"
+                form={formId}
+                variant="text"
+                disabled={isSaving}
+                className="text-on-surface h-12 px-3 text-[16px] font-medium"
+            >
+                {saveLabel}
+            </Button>
         ) : null;
 
     return (
         <FullScreenLayout
             title={title}
             subtitle={subtitle}
+            /* La barre de 04.3 porte une **flèche de retour** à gauche et rien à
+               droite que son geste : sur un écran plein, on revient d'où l'on vient,
+               on ne « ferme » pas une fenêtre qui n'en est pas une. */
+            onBack={onCancel}
             onClose={onCancel}
             headerActions={headerActions}
             footerActions={actions || defaultFooterActions}

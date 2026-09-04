@@ -66,6 +66,57 @@ export const siteSegment = (site: string, parc: Equipment[]): string => {
     );
 };
 
+/**
+ * **Le code du pays, et l'identifiant qui s'en déduit** — planche 04.3, passe du 03/09.
+ *
+ * *« L'identifiant n'est plus saisi ni proposé : il se déduit du pays de l'emplacement
+ * et du numéro de série (Togo LFW-, Bénin COO-). »* C'est la même lecture que 10.1
+ * donne au code d'un pays, et les deux planches nomment les deux mêmes codes.
+ *
+ * **Deux sources, dans cet ordre.** Le code déclaré par le système d'abord ; à défaut,
+ * le **relevé** sur le parc — le premier segment que *tous* les identifiants du pays
+ * partagent. Rien n'est découpé dans le nom du pays : `countryCodeOf` (10.1) pose déjà
+ * la règle — *ce qui n'est pas relevé n'est pas inventé* —, et trois lettres prises
+ * dans « Sénégal » donneraient un code d'apparence sûre pour une invention.
+ *
+ * **Un pays sans code ne produit pas d'identifiant**, et l'appelant doit le dire.
+ */
+const COUNTRY_CODES: Record<string, string> = {
+    Togo: 'LFW',
+    Bénin: 'COO',
+    Benin: 'COO',
+};
+
+export const countryCode = (country: string, parc: Equipment[]): string | undefined => {
+    if (!country) return undefined;
+    const declared = COUNTRY_CODES[country];
+    if (declared) return declared;
+
+    const segments = parc
+        .filter((item) => item.country === country)
+        .map((item) => (item.name || '').split('-')[0])
+        .filter(Boolean);
+
+    if (segments.length === 0) return undefined;
+    const [first] = segments;
+    return segments.every((segment) => segment === first) ? first : undefined;
+};
+
+/**
+ * `CODE-N° DE SÉRIE`. Rendu seulement quand les deux moitiés existent : c'est ce que
+ * la planche dessine, le préfixe seul suivi du numéro en attente.
+ */
+export const deducedAssetName = (
+    country: string,
+    serialNumber: string,
+    parc: Equipment[],
+): string | undefined => {
+    const code = countryCode(country, parc);
+    const serial = serialNumber.trim().toUpperCase();
+    if (!code || !serial) return undefined;
+    return `${code}-${serial}`;
+};
+
 /** `TYPE-SITE-RANG` — le rang suit le dernier utilisé sur ce couple, jamais le total. */
 export const proposeReadableId = (type: string, site: string, parc: Equipment[]): string => {
     if (!type || !site) return '';

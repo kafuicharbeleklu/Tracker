@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Check, FileText, Info, MapPin, Package, Scan } from '@phosphor-icons/react';
+import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
+import {
+    Camera,
+    Check,
+    Cpu,
+    FileText,
+    Info,
+    MapPin,
+    Package,
+    Scan,
+    ShieldCheck,
+    Tag,
+} from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -13,7 +25,12 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { resolveDepreciationConfig } from '../../../lib/financial';
-import { nextInternalCode, proposeReadableId } from '../lib/assetCode';
+import {
+    countryCode,
+    deducedAssetName,
+    nextInternalCode,
+    proposeReadableId,
+} from '../lib/assetCode';
 import { cn } from '../../../lib/utils';
 import { AppSettings, EquipmentDocument, Model } from '../../../types';
 
@@ -83,16 +100,23 @@ const globalDepreciationConfig = (settings: AppSettings) => ({
 });
 
 /** Les deux états qu'une saisie peut poser. Les sept autres viennent d'un geste. */
-const CREATION_STATES: Array<{ value: string; title: string; hint: string }> = [
+const CREATION_STATES: Array<{
+    value: string;
+    title: string;
+    hint: string;
+    tint: 'vert' | 'ambre';
+}> = [
     {
         value: 'Disponible',
         title: 'Disponible',
-        hint: "Entre immédiatement dans les sélecteurs d'attribution",
+        hint: "Entre dans les sélecteurs d'attribution",
+        tint: 'vert',
     },
     {
         value: 'En attente',
         title: 'En attente de réception',
-        hint: 'Commandé, pas encore physiquement là',
+        hint: 'Commandé, pas encore là',
+        tint: 'ambre',
     },
 ];
 
@@ -102,38 +126,86 @@ const SOURCE_LABELS: Record<string, string> = {
     global: 'le défaut de Paramètres',
 };
 
-/** La carte d'une section — `.fsec` de la planche. */
+/**
+ * Les cinq teintes de section — `.c-bleu`, `.c-vert`, `.c-ambre`, `.c-orange`,
+ * `.c-rouge` du socle. Le fond teinté et son encre vont **par paire** : c'est ce que
+ * `styles.css` déclare, et ce que chaque planche réinventait avant lui.
+ */
+const TINT_CLASS = {
+    bleu: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
+    vert: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
+    ambre: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
+    orange: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
+    rouge: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
+} as const;
+
+type Tint = keyof typeof TINT_CLASS;
+
+/**
+ * La carte d'une section — `.fsec` : surface, rayon 8, **20 d'intérieur, gouttière
+ * 16**, et un en-tête `.sh` qui porte **une tuile teintée par nature**. Les cinq
+ * sections sont les cinq cartes de la fiche 04.2, dans le même ordre et sous les mêmes
+ * teintes : ce qui se saisit ici est ce qui s'affichera là.
+ */
 const FormSection: React.FC<{
     title: string;
+    glyph: PhosphorGlyph;
+    tint: Tint;
     caption?: string;
     children: React.ReactNode;
-}> = ({ title, caption, children }) => (
-    <section className="rounded-card bg-surface flex flex-col gap-3 p-4">
-        <p className="text-body-medium text-on-surface flex items-baseline gap-2 font-medium">
-            {title}
-            {caption && <span className="text-on-surface-variant text-[11px]">{caption}</span>}
-        </p>
+}> = ({ title, glyph, tint, caption, children }) => (
+    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
+        <div className="flex items-center gap-3">
+            <span
+                className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+                    TINT_CLASS[tint],
+                )}
+            >
+                <Icon glyph={glyph} size={18} />
+            </span>
+            <p className="text-on-surface min-w-0 flex-1 text-[17px] leading-6 font-medium">
+                {title}
+                {caption && (
+                    <span className="text-text-tertiary block text-[12px] leading-4 font-normal">
+                        {caption}
+                    </span>
+                )}
+            </p>
+        </div>
         {children}
     </section>
 );
 
-/** `.fnote` — ce que l'écran déduit, dit une fois, jamais redemandé. */
+/** `.fnote` — ce que l'écran déduit, dit une fois, jamais redemandé. 12 sur 16. */
 const FormNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="text-on-surface-variant text-[11px] leading-4">{children}</p>
+    <p className="text-text-tertiary text-[12px] leading-4">{children}</p>
 );
 
-/** `.warn` — le rappel encadré, sur encart. */
-const FormWarn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="bg-surface-container text-on-surface-variant flex gap-2.5 rounded-xs px-3 py-2.5 text-[12px] leading-[17px]">
+/** `.warn` — le rappel encadré : 14 sur 20, rayon 4, sur le creux ou sur une teinte. */
+const FormWarn: React.FC<{ children: React.ReactNode; tint?: Tint }> = ({ children, tint }) => (
+    <p
+        className={cn(
+            'flex gap-3 rounded-md px-4 py-3 text-[14px] leading-5',
+            tint ? TINT_CLASS[tint] : 'bg-surface-container text-on-surface-variant',
+        )}
+    >
         <Icon glyph={Info} size={18} className="mt-px shrink-0" />
         <span>{children}</span>
     </p>
 );
 
-/** `.lab` — l'étiquette d'un champ. */
-const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="text-on-surface-variant mb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
+/**
+ * `.lab` — l'étiquette d'un champ : **12 sur 16 en 500, sur l'encre secondaire**, et
+ * 8 px au-dessus du champ. Elle était en 11 px, en capitales et en chasse ouverte —
+ * un registre de micro-libellé que la passe sobre ne garde nulle part dans un
+ * formulaire. Le suffixe `.rq` dit « facultatif » ou « obligatoire », en chasse
+ * normale sur l'encre tertiaire.
+ */
+const FieldLabel: React.FC<{ children: React.ReactNode; note?: string }> = ({ children, note }) => (
+    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
         {children}
+        {note && <span className="text-text-tertiary font-normal"> {note}</span>}
     </p>
 );
 
@@ -142,33 +214,47 @@ const OptionRow: React.FC<{
     title: string;
     hint: string;
     selected: boolean;
+    /** La teinte du cran choisi — elle dit la conséquence, pas seulement le choix. */
+    tint?: Tint;
     onSelect?: () => void;
     disabled?: boolean;
-}> = ({ title, hint, selected, onSelect, disabled }) => (
+}> = ({ title, hint, selected, tint = 'vert', onSelect, disabled }) => (
     <button
         type="button"
         onClick={onSelect}
         disabled={disabled}
         aria-pressed={selected}
         className={cn(
-            'flex min-h-14 w-full items-center gap-3 rounded-xs border px-3 py-2 text-left',
-            selected ? 'border-on-surface border-[1.5px]' : 'border-outline-variant',
-            disabled ? 'cursor-default' : 'hover:bg-surface-container',
+            'flex min-h-14 w-full items-center gap-3 rounded-md px-3.5 py-2 text-left',
+            selected
+                ? TINT_CLASS[tint]
+                : cn(
+                      'bg-surface-container text-on-surface',
+                      !disabled && 'hover:bg-surface-container-high',
+                  ),
+            disabled && 'cursor-default',
         )}
     >
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block text-[15px] font-medium">{title}</span>
-            <span className="text-on-surface-variant mt-px block text-[12px]">{hint}</span>
+            <span className="block text-[16px] leading-6">{title}</span>
+            <span
+                className={cn(
+                    'block text-[14px] leading-5',
+                    selected ? 'opacity-80' : 'text-on-surface-variant',
+                )}
+            >
+                {hint}
+            </span>
         </span>
+        {/* `.rd` — le point de choix : cerné au repos, **plein de l'encre du cran**
+            une fois pris, avec sa coche en négatif. */}
         <span
             className={cn(
                 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
-                selected
-                    ? 'bg-[var(--tk-color-inverse-surface)] text-white'
-                    : 'border-outline border-[1.5px]',
+                selected ? 'bg-current' : 'border-outline border-[1.5px]',
             )}
         >
-            {selected && <Icon glyph={Check} size={14} />}
+            {selected && <Icon glyph={Check} size={14} className="text-surface" />}
         </span>
     </button>
 );
@@ -187,7 +273,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
     const [formData, setFormData] = useState({
         model: '',
         serialNumber: '',
-        readableId: '',
         ram: '',
         storage: '',
         os: '',
@@ -200,8 +285,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         warrantyEnd: '',
     });
     const [documents, setDocuments] = useState<EquipmentDocument[]>([]);
-    /** L'identifiant a-t-il été retouché à la main ? Alors on ne le repropose plus. */
-    const [readableIdTouched, setReadableIdTouched] = useState(false);
     const [isModelSheetOpen, setIsModelSheetOpen] = useState(false);
     const [modelQuery, setModelQuery] = useState('');
     const [isScanning, setIsScanning] = useState(false);
@@ -214,7 +297,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         setFormData({
             model: existing.model || '',
             serialNumber: existing.serialNumber || '',
-            readableId: existing.name || '',
             ram: existing.ram || '',
             storage: existing.storage || '',
             os: existing.os || '',
@@ -231,7 +313,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 : '',
         });
         setDocuments(existing.documents || []);
-        setReadableIdTouched(true);
     }, [existing]);
 
     const selectedModel = useMemo<Model | undefined>(
@@ -275,17 +356,37 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         [formData.country, locationData.sites],
     );
 
-    /* L'identifiant lisible se repropose tant que personne ne l'a retouché : il dépend
-       du type et du site, et les deux se choisissent après lui dans l'ordre de l'écran. */
+    /*
+     * **L'identifiant ne se saisit plus : il se déduit** (04.3, passe du 03/09) — code
+     * du pays de l'emplacement, puis numéro de série. Le champ de texte a disparu avec
+     * la règle : ce qui se calcule ne se tape pas, et un identifiant tapé est un
+     * doublon en puissance.
+     *
+     * `countryPrefix` est vide quand le pays n'a pas de code — ni déclaré par le
+     * système, ni relevé sur le parc. La planche ne dessine pas ce cas : elle montre
+     * « LFW- » suivi du numéro en attente. On garde alors l'ancienne composition
+     * `TYPE-SITE-RANG`, en le disant à l'écran, plutôt que d'inventer trois lettres
+     * dans le nom du pays ou d'interdire la création. **À arbitrer** : le référentiel
+     * (10.1) annonce « un nom et son code à trois lettres » pour un pays, mais
+     * `LocationData.countries` reste un `string[]` qui ne porte pas ce champ.
+     */
+    const countryPrefix = useMemo(
+        () => countryCode(formData.country, equipment),
+        [formData.country, equipment],
+    );
+
+    const deducedId = useMemo(
+        () => deducedAssetName(formData.country, formData.serialNumber, equipment),
+        [formData.country, formData.serialNumber, equipment],
+    );
+
     const proposedId = useMemo(
         () => proposeReadableId(type, formData.site, equipment),
         [type, formData.site, equipment],
     );
 
-    useEffect(() => {
-        if (readableIdTouched || !proposedId) return;
-        setFormData((prev) => ({ ...prev, readableId: proposedId }));
-    }, [proposedId, readableIdTouched]);
+    /** Ce qui sera écrit dans `name` : le déduit, sinon l'ancienne composition. */
+    const resolvedId = deducedId || existing?.name || proposedId;
 
     /** Le code interne — **généré**, montré, jamais tapé. */
     const internalCode = useMemo(
@@ -350,7 +451,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             return;
         }
 
-        const readableId = formData.readableId.trim() || proposedId || formData.model;
+        const readableId = resolvedId || formData.model;
 
         const payload = {
             name: readableId,
@@ -403,20 +504,23 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 subtitle={
                     isEditMode
                         ? `${existing?.name || internalCode} · fiche existante`
-                        : "Aucun identifiant tant que la fiche n'est pas créée"
+                        : "L'identifiant se déduit à l'enregistrement"
                 }
                 onCancel={onCancel}
                 onSave={handleSave}
                 saveLabel="Enregistrer"
+                submitButtonLocation="header"
                 className="bg-background"
             >
                 <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
-                    {/* ── Ce que c'est ─────────────────────────────────────────────── */}
-                    <FormSection title="Ce que c'est">
+                    {/* ── Référence ───────────────────────────────────────────────── */}
+                    <FormSection title="Référence" glyph={Package} tint="bleu">
                         <div>
                             <FieldLabel>Modèle</FieldLabel>
-                            <div className="border-outline-variant flex min-h-12 items-center gap-3 rounded-xs border px-3 py-1.5">
-                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                            {/* `.pick` — 56 de haut, sur le creux, rayon 4 : la même
+                                forme que les champs qui l'entourent. */}
+                            <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-md px-3.5 py-2">
+                                <span className="bg-surface text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
                                     {selectedModel?.image ? (
                                         <img
                                             src={selectedModel.image}
@@ -430,7 +534,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 <span className="min-w-0 flex-1">
                                     <span
                                         className={cn(
-                                            'block truncate text-[15px] font-medium',
+                                            'block truncate text-[16px] leading-6 font-medium',
                                             selectedModel
                                                 ? 'text-on-surface'
                                                 : 'text-on-surface-variant',
@@ -438,7 +542,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     >
                                         {selectedModel?.name || 'Aucun modèle choisi'}
                                     </span>
-                                    <span className="text-on-surface-variant mt-0.5 block truncate text-[12px]">
+                                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
                                         {selectedModel
                                             ? `${getCategoryLabel(selectedModel.type)} · catalogue`
                                             : 'le type et la marque en viennent'}
@@ -449,18 +553,12 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     variant="text"
                                     size="sm"
                                     onClick={() => setIsModelSheetOpen(true)}
-                                    className="shrink-0 px-1 text-[13px] font-medium"
+                                    className="shrink-0 px-1 text-[15px] font-medium"
                                 >
                                     {selectedModel ? 'Changer' : 'Choisir'}
                                 </Button>
                             </div>
                         </div>
-
-                        <FormWarn>
-                            Le catalogue porte la <b>marque</b>, le <b>type</b> et la{' '}
-                            <b>durée d'amortissement</b> : ils ne sont pas redemandés, et une
-                            correction se fait au catalogue.
-                        </FormWarn>
 
                         <div>
                             <FieldLabel>Numéro de série</FieldLabel>
@@ -469,7 +567,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     name="serialNumber"
                                     value={formData.serialNumber}
                                     onChange={handleChange}
-                                    placeholder="à lire sur l'étiquette"
+                                    placeholder="tel qu'il figure sur l'étiquette"
                                     containerClassName="flex-1 min-w-0"
                                 />
                                 {/* `.act` de la planche : une pastille sur encart, pas un
@@ -483,44 +581,63 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         setIsScanning(true);
                                     }}
                                     icon={<Icon glyph={Scan} size={18} />}
-                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high h-12 shrink-0 rounded-xs px-3 text-[13px] font-medium"
+                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high h-12 shrink-0 rounded-md px-3.5 text-[15px] font-medium"
                                 >
                                     Scanner
                                 </Button>
                             </div>
                         </div>
 
-                        <div>
-                            <FieldLabel>Identifiant lisible</FieldLabel>
-                            <InputField
-                                name="readableId"
-                                value={formData.readableId}
-                                onChange={(event) => {
-                                    setReadableIdTouched(true);
-                                    handleChange(event);
-                                }}
-                                placeholder={proposedId || 'TYPE-SITE-RANG'}
-                            />
-                            <FormNote>
-                                Composé du type, du site et du rang. Modifiable — c'est lui qui sera
-                                collé sur l'objet.
-                            </FormNote>
+                        {/* `.idrow` — l'identifiant **déduit**, montré et jamais tapé.
+                            La planche l'écrit en Archivo 600 sur 22, sur la teinte
+                            bleue de la section, avec la règle en dessous. */}
+                        <div
+                            className={cn(
+                                'flex items-center gap-3 rounded-md px-3.5 py-3',
+                                countryPrefix
+                                    ? TINT_CLASS.bleu
+                                    : 'bg-surface-container text-on-surface-variant',
+                            )}
+                        >
+                            <Icon glyph={Tag} size={20} className="shrink-0" />
+                            <span className="min-w-0 flex-1">
+                                <span className="font-brand block truncate text-[22px] leading-7 font-semibold tracking-[-0.01em] tabular-nums">
+                                    {countryPrefix ? (
+                                        <>
+                                            {countryPrefix}-
+                                            {formData.serialNumber.trim() ? (
+                                                formData.serialNumber.trim().toUpperCase()
+                                            ) : (
+                                                <span className="opacity-50">n° de série</span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        resolvedId || '—'
+                                    )}
+                                </span>
+                                <span className="mt-0.5 block text-[12px] leading-4 opacity-85">
+                                    {countryPrefix
+                                        ? "Pays de l'emplacement + numéro de série"
+                                        : formData.country
+                                          ? `${formData.country} n'a pas de code : composition par type, site et rang`
+                                          : "Choisissez un pays : son code ouvre l'identifiant"}
+                                </span>
+                            </span>
                         </div>
 
-                        <div className="border-outline-variant text-on-surface-variant flex items-baseline justify-between gap-3 border-t pt-3 text-[12px]">
-                            <span>
-                                {isEditMode
-                                    ? 'Code interne'
-                                    : "Code interne, attribué à l'enregistrement"}
-                            </span>
-                            <b className="text-on-surface font-medium tabular-nums">
-                                {internalCode}
-                            </b>
-                        </div>
+                        <FormWarn>
+                            Marque, type et amortissement viennent du <b>catalogue</b> : ils ne sont
+                            pas redemandés, et une correction se fait là-bas.
+                        </FormWarn>
                     </FormSection>
 
                     {/* ── Configuration ────────────────────────────────────────────── */}
-                    <FormSection title="Configuration" caption="pré-remplie par le modèle">
+                    <FormSection
+                        title="Configuration"
+                        glyph={Cpu}
+                        tint="vert"
+                        caption="pré-remplie par le modèle"
+                    >
                         <div className="flex gap-2.5">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Mémoire</FieldLabel>
@@ -557,7 +674,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Où, et dans quel état ────────────────────────────────────── */}
-                    <FormSection title="Où, et dans quel état">
+                    <FormSection title="Où, et dans quel état" glyph={MapPin} tint="ambre">
                         <div className="flex gap-2.5">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Pays</FieldLabel>
@@ -598,7 +715,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             </FieldLabel>
                             {stateComesFromAGesture ? (
                                 <>
-                                    <p className="border-outline-variant text-on-surface flex min-h-12 items-center gap-2.5 rounded-xs border px-3 text-[15px]">
+                                    <p className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
                                         <Icon
                                             glyph={MapPin}
                                             size={18}
@@ -619,6 +736,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                             key={state.value}
                                             title={state.title}
                                             hint={state.hint}
+                                            tint={state.tint}
                                             selected={formData.status === state.value}
                                             onSelect={() =>
                                                 setFormData((prev) => ({
@@ -642,7 +760,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Achat et garantie ────────────────────────────────────────── */}
-                    <FormSection title="Achat et garantie">
+                    <FormSection title="Achat et garantie" glyph={ShieldCheck} tint="orange">
                         <div>
                             <FieldLabel>Fournisseur</FieldLabel>
                             <InputField
@@ -696,7 +814,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Documents ────────────────────────────────────────────────── */}
-                    <FormSection title="Documents">
+                    <FormSection title="Documents" glyph={FileText} tint="bleu">
                         <div className="flex flex-wrap gap-2">
                             {(['Facture', 'Garantie'] as const).map((kind) => {
                                 const attached = documents.find(
@@ -708,10 +826,20 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         key={kind}
                                         type="button"
                                         onClick={() => input.current?.click()}
-                                        className={cn(
-                                            'flex h-14 min-w-[104px] items-center gap-2 rounded-xs px-3 text-left text-[11px] leading-[13px]',
+                                        aria-label={
                                             attached
-                                                ? 'bg-surface-container text-on-surface'
+                                                ? `${kind} jointe : ${attached.name} — remplacer`
+                                                : `Joindre la ${kind.toLowerCase()}`
+                                        }
+                                        title={attached ? attached.name : undefined}
+                                        /* `.shot` — un carré de 56, rayon 4 : la même
+                                           case qu'une photo. Vide, elle est pointillée
+                                           et porte le mot ; remplie, elle porte la
+                                           coche sur la teinte verte. */
+                                        className={cn(
+                                            'flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-center text-[12px] leading-[14px]',
+                                            attached
+                                                ? TINT_CLASS.vert
                                                 : 'border-outline text-on-surface-variant hover:bg-surface-container border-[1.5px] border-dashed',
                                         )}
                                     >
@@ -723,19 +851,10 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                                       ? Camera
                                                       : FileText
                                             }
-                                            size={18}
+                                            size={attached ? 20 : 18}
                                             className="shrink-0"
                                         />
-                                        <span className="min-w-0">
-                                            <span className="block font-medium">
-                                                {kind.toLowerCase()}
-                                            </span>
-                                            {attached && (
-                                                <span className="text-on-surface-variant block truncate">
-                                                    {attached.name}
-                                                </span>
-                                            )}
-                                        </span>
+                                        {!attached && <span>{kind.toLowerCase()}</span>}
                                     </button>
                                 );
                             })}

@@ -35,7 +35,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 03.3 | Tâches | `TasksPage` | **porté** |
 | 04.1 | Liste équipements | `InventoryPage` | **portée** (mesurée) |
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
-| 04.3 | Créer, corriger, sortir | `AddEquipmentPage` | **non porté** |
+| 04.3 | Créer, corriger, sortir | `AddEquipmentPage` | **colonne 1 portée** — reste l'import, l'incident, la sortie |
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
 | 05.1 | Liste utilisateurs | `UsersPage` | **porté** |
 | 05.2 | Fiche d'une personne | `UserDetailsPage` | **porté** |

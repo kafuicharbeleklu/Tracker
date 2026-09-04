@@ -49,8 +49,11 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
             <div className="bg-surface border-outline-variant shadow-elevation-1 relative z-20 flex-shrink-0 border-b">
                 <div
                     className={cn(
-                        'px-page-sm medium:px-page mx-auto max-w-5xl',
-                        isCompactLandscape ? 'py-2' : 'py-3',
+                        /* `.tbar` de 04.3 — une barre de **56 tout compris**, et non
+                           12 px d'intérieur autour d'un titre : les gestes qu'elle
+                           porte font 48, la barre s'aligne dessus. */
+                        'px-page-sm medium:px-page mx-auto flex max-w-5xl items-center',
+                        isCompactLandscape ? 'min-h-12 py-1' : 'min-h-14',
                     )}
                 >
                     {useSymmetricHeader ? (
@@ -74,14 +77,15 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                             <div className="min-w-0 px-1 text-center">
                                 <h1
                                     className={cn(
-                                        'section-title medium:line-clamp-1 line-clamp-2 leading-snug',
-                                        isCompactLandscape && 'text-title-medium',
+                                        /* 17 sur 24 en Archivo 600 — `.tbar h2`. */
+                                        'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[17px] leading-6 font-semibold tracking-[-0.015em]',
+                                        isCompactLandscape && 'text-[15px] leading-5',
                                     )}
                                 >
                                     {title}
                                 </h1>
                                 {subtitle && (
-                                    <p className="text-on-surface-variant truncate text-[11px] leading-[15px]">
+                                    <p className="text-on-surface-variant truncate text-[12px] leading-4">
                                         {subtitle}
                                     </p>
                                 )}
@@ -108,14 +112,14 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <div className="min-w-0">
                                     <h1
                                         className={cn(
-                                            'section-title medium:line-clamp-1 line-clamp-2 leading-snug',
-                                            isCompactLandscape && 'text-title-medium',
+                                            'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[17px] leading-6 font-semibold tracking-[-0.015em]',
+                                            isCompactLandscape && 'text-[15px] leading-5',
                                         )}
                                     >
                                         {title}
                                     </h1>
                                     {subtitle && (
-                                        <p className="text-on-surface-variant truncate text-[11px] leading-[15px]">
+                                        <p className="text-on-surface-variant truncate text-[12px] leading-4">
                                             {subtitle}
                                         </p>
                                     )}
@@ -124,7 +128,8 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
 
                             <div className="flex items-center gap-2">
                                 {headerActions}
-                                <CloseButton onClick={onClose} />
+                                {/* Deux sorties pour un seul geste : la flèche suffit. */}
+                                {!onBack && <CloseButton onClick={onClose} />}
                             </div>
                         </div>
                     )}

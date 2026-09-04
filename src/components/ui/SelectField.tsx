@@ -204,7 +204,8 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 <label
                     id={labelId}
                     className={cn(
-                        'duration-short4 mb-1.5 block text-[11px] font-medium tracking-[0.02em] transition-colors',
+                        /* `.lab` — même mesure que sur `InputField` : 12 sur 16 en 500. */
+                        'duration-short4 mb-2 block text-[12px] leading-4 font-medium transition-colors',
                         error
                             ? 'text-error'
                             : isFocused
@@ -237,7 +238,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 aria-required={required || undefined}
                 aria-describedby={resolvedAriaDescribedBy}
                 className={cn(
-                    'text-title-small relative min-h-12 w-full px-4 py-3 pr-12 text-left font-medium',
+                    /* `.val` de la passe sobre — le même creux que `.field`, et la
+                       même marche : 16 sur 24, hauteur 48, intérieur 14, rayon 4. */
+                    'relative min-h-12 w-full py-3 pr-12 pl-3.5 text-left text-[16px] leading-6',
                     'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow] outline-none',
                     'disabled:text-on-surface/[0.38] disabled:cursor-not-allowed',
                     variant === 'outlined'
@@ -253,18 +256,13 @@ const SelectField: React.FC<SelectFieldProps> = ({
                               'disabled:border-on-surface/[0.12] disabled:bg-surface',
                           )
                         : cn(
-                              'bg-surface rounded-md border',
-                              error
-                                  ? 'border-error hover:border-error'
-                                  : 'border-outline hover:border-outline',
-                              isFocused &&
-                                  (error
-                                      ? 'border-error ring-error ring-2'
-                                      : 'border-focus-ring ring-focus-ring ring-2'),
-                              'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]',
+                              'bg-surface-container rounded-md border-0',
+                              error && 'ring-error ring-2',
+                              isFocused && (error ? 'ring-error ring-2' : 'ring-focus-ring ring-2'),
+                              'disabled:bg-on-surface/[0.04]',
                           ),
                     disabled ? 'pointer-events-none' : 'cursor-pointer',
-                    !value && 'text-on-surface-variant',
+                    !value && 'text-text-tertiary',
                 )}
             >
                 <span
