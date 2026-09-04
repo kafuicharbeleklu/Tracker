@@ -168,7 +168,10 @@ const ListRow: React.FC<ListRowProps> = ({
                 </span>
             ) : (
                 vignette && (
-                    <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden">
+                    /* `.vig` — 40 de côté, et **les initiales en Archivo 600 sur 15**
+                       quand la vignette n'a pas d'image : c'est ce que 05.1 déclare,
+                       et elles sortaient en Inter 400 sur 14. */
+                    <span className="font-brand rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-[15px] font-semibold">
                         {vignette}
                     </span>
                 )

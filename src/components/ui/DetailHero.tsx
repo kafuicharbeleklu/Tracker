@@ -131,7 +131,9 @@ const DetailHero: React.FC<DetailHeroProps> = ({
 }) => (
     <section
         className={cn(
-            'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-4 pt-5 pb-4',
+            /* `.hero` — intérieur `22 / 20 / 20`. Il valait `20 / 16 / 16` : la carte
+               était plus étroite que les cartes qu'elle surmonte. */
+            'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-5 pt-[22px] pb-5',
             className,
         )}
     >
@@ -161,7 +163,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     {avatar}
                 </span>
                 {label && (
-                    <p className="text-label-small text-on-nav-surface-variant font-medium tracking-[0.07em] uppercase">
+                    <p className="text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                         {label}
                     </p>
                 )}
@@ -173,7 +175,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             <>
                 {status && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-body-small inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5">
+                        <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[12px] leading-4 font-medium">
                             <Icon
                                 glyph={status.icon}
                                 size={18}
@@ -211,8 +213,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             /* `statusDetail` se pose ici aussi, pas seulement dans la variante à image :
                sur une fiche de personne (05.2) c'est la ligne « Départ le … », et un héro
                à avatar l'avalait en silence. Lot 2. */
-            <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                <span className="text-inverse-on-surface inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5 text-[12px]">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-inverse-on-surface inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[12px] leading-4 font-medium">
                     <Icon
                         glyph={status.icon}
                         size={18}
@@ -221,9 +223,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     {status.label}
                 </span>
                 {statusDetail && (
-                    <span className="text-on-nav-surface-variant text-[12px]">
-                        {statusDetail}
-                    </span>
+                    <span className="text-on-nav-surface-variant text-[12px]">{statusDetail}</span>
                 )}
             </div>
         )}
@@ -263,7 +263,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
                une règle de plus. Le seul filet du héro sépare la rangée de relation
                (planche 04.2 : `.hrow` porte une bordure, `.hact` n'a qu'une marge). */
-            <div className="mt-[18px] flex flex-col gap-2.5 [&>*]:w-full">{actions}</div>
+            <div className="mt-5 flex flex-col gap-3 [&>*]:w-full">{actions}</div>
         )}
 
         {note && (

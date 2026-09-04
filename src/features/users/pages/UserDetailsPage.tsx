@@ -31,6 +31,7 @@ import type { AppUser, Equipment, HistoryEvent, ViewType } from '../../../types'
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import RuleGroup from '../../../components/ui/RuleGroup';
+import { getCategoryLabel } from '../../../constants/glossary';
 import DetailHero from '../../../components/ui/DetailHero';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -774,8 +775,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     // --- Rangées -----------------------------------------------------------------
 
+    /* `.row` de la carte — 60 de haut, gouttière 16, intérieur vertical 10. La carte
+       porte désormais sa gouttière de 20 : la rangée n'a plus la sienne, et son
+       survol la déborde pour ne pas paraître coupée. */
     const rowClass =
-        'border-outline-variant hover:bg-surface-container flex min-h-[56px] w-full cursor-pointer items-center gap-3 border-t px-4 py-2.5 text-left transition-colors';
+        'border-outline-variant hover:bg-surface-container hover:shadow-[-20px_0_0_var(--tk-color-surface-container),20px_0_0_var(--tk-color-surface-container)] flex min-h-[60px] w-full cursor-pointer items-center gap-4 border-t py-2.5 text-left transition-colors';
 
     const alertLabel = (item: Equipment): string | null => {
         const alert = item.holderAlert;
@@ -912,29 +916,36 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                             <span className="rounded-vignette bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center">
                                                 <Icon glyph={EqIcon} size={20} />
                                             </span>
+                                            {/* **La rangée porte le code lisible, pas
+                                                l'identifiant interne** : c'est lui
+                                                qu'on lit sur l'objet et dans la liste
+                                                du parc. Le modèle et la date depuis
+                                                laquelle il est à elle tiennent sur la
+                                                seconde ligne — le type brut (« Mouse »)
+                                                y sortait non traduit, et la date
+                                                occupait une colonne pour un fait qui
+                                                se dit dans la phrase. */}
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-label-large text-on-surface truncate font-medium">
-                                                    {item.assetId || item.name}
+                                                <p className="text-on-surface truncate text-[16px] leading-6 tabular-nums">
+                                                    {item.name || item.assetId}
                                                 </p>
-                                                <p className="text-body-small text-text-secondary mt-px truncate">
-                                                    {item.type || item.model || 'Équipement'}
+                                                <p className="text-on-surface-variant truncate text-[14px] leading-5">
+                                                    {[
+                                                        item.model || getCategoryLabel(item.type),
+                                                        since ? `depuis le ${since}` : undefined,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
                                                 </p>
-                                                {alert && (
-                                                    <p className="mt-0.5 flex items-center gap-1.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
-                                                        <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
-                                                        {alert}
-                                                    </p>
-                                                )}
                                             </div>
-                                            <span
-                                                className={
-                                                    since
-                                                        ? 'text-body-medium text-on-surface shrink-0 font-medium tabular-nums'
-                                                        : 'text-body-medium text-text-muted shrink-0'
-                                                }
-                                            >
-                                                {since ?? '—'}
-                                            </span>
+                                            {/* `.st` — le signal « À récupérer », en
+                                                pastille teintée à droite de la rangée
+                                                et non en troisième ligne. */}
+                                            {alert && (
+                                                <span className="shrink-0 rounded-sm bg-[var(--tk-color-tint-ambre)] px-2 py-1 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                    {alert}
+                                                </span>
+                                            )}
                                             <Icon
                                                 glyph={CaretRight}
                                                 size={20}
@@ -945,9 +956,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 })}
                             </div>
                         ) : (
-                            <div className="text-body-medium text-text-muted px-4 py-3">
-                                Aucun équipement à son nom.
-                            </div>
+                            /* `.emp` — 14 sur 20 sur l'encre secondaire, et il nomme
+                               la personne : « Aucun mouvement au nom de Marc ». */
+                            <p className="border-outline-variant text-on-surface-variant border-t pt-1 pb-3 text-[14px] leading-5">
+                                Aucun équipement au nom de {firstName}.
+                            </p>
                         )}
                         {userApprovals.map((a) => (
                             <button

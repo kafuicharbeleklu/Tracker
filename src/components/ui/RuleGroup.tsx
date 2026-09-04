@@ -66,12 +66,26 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
     children,
     className,
 }) => (
-    <section className={cn('rounded-card bg-surface overflow-hidden', className)}>
+    /*
+     * `.card` de la passe sobre — surface, rayon 8, **intérieur `8 / 20`**. La carte
+     * portait 16 de gouttière : ses rangées étaient donc plus rentrées que celles des
+     * listes, sur des écrans qui alternent les deux.
+     */
+    <section className={cn('rounded-card bg-surface overflow-hidden px-5 py-2', className)}>
         {header && (
-            <div className="text-text-secondary flex items-baseline justify-between gap-3 px-4 pt-3.5 pb-2 text-[11px] font-medium tracking-[0.06em] uppercase">
-                <span className="min-w-0">{header}</span>
+            /*
+             * `.ch` — **un vrai titre de carte, pas un micro-libellé.** 17 sur 24 en
+             * 500 sur l'encre pleine, et son décompte à droite en 14 sur 20. Il était
+             * en 11 px, capitales espacées, sur l'encre secondaire : le registre des
+             * étiquettes de champ, appliqué à ce qui nomme une section entière. Deux
+             * marches sous l'échelle de R15, qui n'a pas de 11.
+             */
+            <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                <span className="text-on-surface min-w-0 text-[17px] leading-6 font-medium">
+                    {header}
+                </span>
                 {headerTrailing && (
-                    <span className="text-text-muted shrink-0 text-[12px] font-normal tracking-normal normal-case">
+                    <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
                         {headerTrailing}
                     </span>
                 )}
@@ -81,7 +95,7 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
             et non l'en-tête : `.grp>.gh+.row{border-top:0}` de 14.1. */}
         <div>{children}</div>
         {note && (
-            <p className="border-outline-variant bg-surface-container text-text-muted border-t px-4 py-2.5 text-[11px] leading-4">
+            <p className="border-outline-variant text-on-surface-variant -mx-5 border-t px-5 py-2.5 text-[12px] leading-4">
                 {note}
             </p>
         )}
@@ -128,9 +142,11 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     const content = (
         <>
             <span className="min-w-0 flex-1">
-                <span className="text-on-surface block text-[14px] font-medium">{title}</span>
+                {/* `.row .t` — 16 sur 24, **chasse normale** : c'est le sujet de la
+                    rangée, pas son appui. `.row .s` le qualifie en 14 sur 20. */}
+                <span className="text-on-surface block text-[16px] leading-6">{title}</span>
                 {subtitle && (
-                    <span className="text-text-secondary mt-px block text-[12px] leading-[17px]">
+                    <span className="text-on-surface-variant block text-[14px] leading-5">
                         {subtitle}
                     </span>
                 )}
@@ -147,7 +163,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             {value !== undefined && value !== null && (
                 <span
                     className={cn(
-                        'shrink-0 text-right text-[13px] font-medium whitespace-nowrap',
+                        'shrink-0 text-right text-[16px] leading-6 font-medium whitespace-nowrap',
                         valueTone ? TONE_CLASS[valueTone] : 'text-on-surface',
                     )}
                 >
@@ -167,8 +183,10 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
         </>
     );
 
+    /* `.row` — 60 de haut, gouttière 16, intérieur vertical 10, et le filet qui la
+       sépare de la précédente. Elle valait 56 avec 12 de gouttière. */
     const shell = cn(
-        'flex min-h-14 w-full items-center gap-3 border-t border-outline-variant px-4 py-2.5 text-left first:border-t-0',
+        'flex min-h-[60px] w-full items-center gap-4 border-t border-outline-variant py-2.5 text-left first:border-t-0',
         className,
     );
 
@@ -182,7 +200,9 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             onClick={onOpen}
             className={cn(
                 shell,
-                'hover:bg-surface-container focus-visible:ring-focus-ring transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                /* Le survol déborde la gouttière de la carte : sinon la rangée
+                   paraît coupée à 20 px de chaque bord. */
+                'hover:bg-surface-container focus-visible:ring-focus-ring transition-colors outline-none hover:shadow-[-20px_0_0_var(--tk-color-surface-container),20px_0_0_var(--tk-color-surface-container)] focus-visible:ring-2 focus-visible:ring-inset',
             )}
         >
             {content}

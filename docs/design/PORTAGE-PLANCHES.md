@@ -37,8 +37,8 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
 | 04.3 | Créer, corriger, sortir | `AddEquipmentPage`, `ImportEquipmentPage`, `IncidentSheet`, `RetireSheet` | **portée** (mesurée) |
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
-| 05.1 | Liste utilisateurs | `UsersPage` | **porté** |
-| 05.2 | Fiche d'une personne | `UserDetailsPage` | **porté** |
+| 05.1 | Liste utilisateurs | `UsersPage` | **portée** (repassée à la mesure) |
+| 05.2 | Fiche d'une personne | `UserDetailsPage` | **portée** (repassée à la mesure) |
 | 05.3 | Créer un compte | `InviteSheet`, `AddUserPage`, `ImportUsersPage` | **portée** — création par invitation |
 | 06.1 | Le parcours complet | `AssignmentWizardPage`, `ReturnWizardPage` | **non porté** |
 | 06.2 | L'attestation | l'étape d'attestation des deux assistants | **non porté** |
