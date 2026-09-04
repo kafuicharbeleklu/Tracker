@@ -38,7 +38,11 @@ const FilterButton: React.FC<FilterButtonProps> = ({
     <button
         type="button"
         onClick={onClick}
-        aria-label={count > 0 ? `${label} — ${count} filtre${count > 1 ? 's' : ''} posé${count > 1 ? 's' : ''}` : label}
+        aria-label={
+            count > 0
+                ? `${label} — ${count} filtre${count > 1 ? 's' : ''} posé${count > 1 ? 's' : ''}`
+                : label
+        }
         className={cn(
             'bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
             className,

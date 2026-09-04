@@ -229,57 +229,55 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     const seekBand = (
         <div className={cn('flex flex-col gap-2.5', !isCompact && 'px-page pt-4')}>
-                    {(search || (filter && !(facets && facets.length > 0 && !search))) && (
-                        <Reading className="flex items-center gap-2">
-                            {search && (
-                                <SearchField
-                                    value={search.value}
-                                    onChange={search.onChange}
-                                    placeholder={search.placeholder}
-                                    className="flex-1"
-                                />
-                            )}
-                            {filter}
-                        </Reading>
+            {(search || (filter && !(facets && facets.length > 0 && !search))) && (
+                <Reading className="flex items-center gap-2">
+                    {search && (
+                        <SearchField
+                            value={search.value}
+                            onChange={search.onChange}
+                            placeholder={search.placeholder}
+                            className="flex-1"
+                        />
                     )}
+                    {filter}
+                </Reading>
+            )}
 
-                    {facets && facets.length > 0 && (
-                        <Reading
-                            className={cn(
-                                'overflow-hidden',
-                                !search && filter ? 'flex items-center gap-2' : undefined,
-                            )}
-                        >
-                            {/* À 393 px les puces défilent ; dès 600 elles tiennent toutes,
-                                et un filtre qu'on ne voit pas se choisit à l'aveugle. */}
-                            {!search && filter && <span className="shrink-0">{filter}</span>}
-                            <div
-                                className={cn(
-                                    'flex [scrollbar-width:none] gap-2 overflow-x-auto',
-                                    !search && filter && 'min-w-0 flex-1',
-                                    isCompact ? 'pr-1' : 'flex-wrap',
-                                )}
-                            >
-                                {facets.map((facet) => (
-                                    <FacetChip
-                                        key={facet.id}
-                                        label={facet.label}
-                                        count={facet.count}
-                                        icon={facet.icon}
-                                        tone={facet.tone}
-                                        selected={facet.id === activeFacetId}
-                                        onClick={() => onFacetSelect?.(facet.id)}
-                                        onClear={
-                                            facet.id === activeFacetId
-                                                ? onActiveFacetClear
-                                                : undefined
-                                        }
-                                        clearLabel={activeFacetClearLabel}
-                                    />
-                                ))}
-                            </div>
-                        </Reading>
+            {facets && facets.length > 0 && (
+                <Reading
+                    className={cn(
+                        'overflow-hidden',
+                        !search && filter ? 'flex items-center gap-2' : undefined,
                     )}
+                >
+                    {/* À 393 px les puces défilent ; dès 600 elles tiennent toutes,
+                                et un filtre qu'on ne voit pas se choisit à l'aveugle. */}
+                    {!search && filter && <span className="shrink-0">{filter}</span>}
+                    <div
+                        className={cn(
+                            'flex [scrollbar-width:none] gap-2 overflow-x-auto',
+                            !search && filter && 'min-w-0 flex-1',
+                            isCompact ? 'pr-1' : 'flex-wrap',
+                        )}
+                    >
+                        {facets.map((facet) => (
+                            <FacetChip
+                                key={facet.id}
+                                label={facet.label}
+                                count={facet.count}
+                                icon={facet.icon}
+                                tone={facet.tone}
+                                selected={facet.id === activeFacetId}
+                                onClick={() => onFacetSelect?.(facet.id)}
+                                onClear={
+                                    facet.id === activeFacetId ? onActiveFacetClear : undefined
+                                }
+                                clearLabel={activeFacetClearLabel}
+                            />
+                        ))}
+                    </div>
+                </Reading>
+            )}
         </div>
     );
 
@@ -308,20 +306,25 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 <div
                     className={cn(
                         'border-outline-variant bg-surface flex flex-col border-b px-4',
-                        hasSeekBand ? 'gap-3 pt-2 pb-4' : 'py-1',
+                        /* Avec sa bande : `.top` des planches — 8 en haut, gouttière
+                           12, 16 en bas. Sans elle : `.tbar.plain`, une barre de **56
+                           tout compris** (04.1 colonne 3, 17.8 colonne 4). Les 8 px
+                           qu'on ajoutait faisaient un en-tête de 64 sur un écran qui
+                           n'a qu'un titre à porter. */
+                        hasSeekBand ? 'gap-3 pt-2 pb-4' : '',
                     )}
                 >
                     <div className="flex min-h-14 items-center justify-between gap-1">
-                    {onBack && (
-                        <button
-                            type="button"
-                            aria-label="Retour"
-                            onClick={onBack}
-                            className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                        >
-                            <Icon glyph={ArrowLeft} size={24} />
-                        </button>
-                    )}
+                        {onBack && (
+                            <button
+                                type="button"
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                            >
+                                <Icon glyph={ArrowLeft} size={24} />
+                            </button>
+                        )}
                         <h1 className="font-brand text-on-surface min-w-0 flex-1 pt-2 pb-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                             {title}
                         </h1>
@@ -350,7 +353,18 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
             {!isCompact && hasSeekBand && seekBand}
 
-            <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
+            {/* `.page` — cinq planches de la passe sobre l'écrivent à l'identique :
+                gouttière 16, intérieur `16 / 16 / 24`. Et **96 px de pied quand un
+                bouton flottant est posé** (`.phone:has(.fab) .page`), sans quoi le
+                bouton recouvre la dernière rangée de la liste. Le gabarit tenait
+                20 / 20 / 20, si bien que la carte était plus rentrée que l'en-tête
+                qui la surmonte, de 4 px. */}
+            <div
+                className={cn(
+                    'medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4',
+                    fab && !selection?.active ? 'pb-24' : 'pb-6',
+                )}
+            >
                 {origin && origin.from && (
                     <Reading>
                         <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">

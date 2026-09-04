@@ -1134,16 +1134,27 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.tracking-tight,
-.tracking-tighter {
-    letter-spacing: 0 !important;
-}
+/*
+   **L'approche des titres se déclare, elle ne s'annule pas.** Cette règle portait
+   `letter-spacing: 0 !important` sur les six niveaux de titre *et* sur les deux
+   utilitaires d'approche : aucune des chasses négatives du système ne pouvait donc
+   s'appliquer. Les planches de la passe sobre en déclarent trois — `-.02em` sur le
+   titre de liste de 28, `-.015em` sur le titre de feuille de 22, `-.01em` sur le
+   code d'une rangée — et l'échelle MD3 (`--tk-type-*-tracking`) en porte une par
+   palier. Toutes tombaient sur ce `!important`, y compris les douze emplois de
+   `tracking-tight`, qui ne serraient rien.
+
+   Retirer le `!important` **ne suffisait pas** : les utilitaires Tailwind vivent
+   dans `@layer utilities`, et une règle **sans couche** l'emporte sur n'importe
+   quelle couche, `!important` ou non. Tant qu'une déclaration `h1 {…}` existait
+   ici, aucune classe d'approche ne pouvait la reprendre. Or elle ne servait à
+   rien : l'approche initiale d'un titre est déjà `normal` dans tous les
+   navigateurs — la règle n'annulait pas un défaut, elle annulait le système.
+
+   Relevé le 04/09 en mesurant `getComputedStyle` sur le titre de 04.1 :
+   `letterSpacing: normal` là où la planche demande `-0.56px`, et un `<h1>` nu
+   portant `tracking-[-0.02em]` mesurait la même chose.
+*/
 
 .section-label {
     font-size: 0.6875rem;

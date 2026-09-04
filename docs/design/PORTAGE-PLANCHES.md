@@ -4,7 +4,7 @@
 (40 cartes). Ce fichier se tient à jour à chaque planche portée : c'est la seule carte
 qui dise ce qui reste, et elle a déjà démenti une estimation faite de tête.
 
-**6 portées · 1 partielle · 33 restantes.**
+**7 portées · 1 partielle · 32 restantes.**
 
 Une planche est dite **portée** quand sa forme a été relevée sur la planche elle-même
 (pas sur un lot), appliquée, et vérifiée à l'écran à 393 px.
@@ -33,7 +33,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 03.1 | Tableau de bord | `DashboardPage` | **porté** |
 | 03.2 | « À traiter » | zone du tableau de bord | porté avec 03.1 |
 | 03.3 | Tâches | `TasksPage` | **porté** |
-| 04.1 | Liste équipements | `InventoryPage` | **non porté** |
+| 04.1 | Liste équipements | `InventoryPage` | **portée** (mesurée) |
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
 | 04.3 | Créer, corriger, sortir | `AddEquipmentPage` | **non porté** |
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
@@ -68,10 +68,24 @@ Ils portent la moitié du produit : une décision y vaut pour N écrans.
 | 17.5 | Le retour transitoire (168 messages) | `Snackbar`, `InlineError` | **non porté** |
 | 17.6 | Le geste d'ajout (6 emplois) | `FabContainer` | **non porté** |
 | 17.7 | La barre du bas (28 écrans) | `NavigationBar` | **non porté** |
-| 17.8 | L'en-tête de liste (6 emplois) | `ListTemplate` | **partiel** — titre + recherche en un bloc, 28 px |
+| 17.8 | L'en-tête de liste (6 emplois) | `ListTemplate` | **partiel** — et **antérieure à la passe sobre** (voir ci-dessous) |
 | 17.9 | La donnée et son explication | `InfoTip` | **non porté** |
 
 ---
+
+## Deux arbitrages tranchés le 04/09
+
+**17.8 est antérieure à la passe sobre, et 04.1 l'emporte.** La planche du composant
+décrit un en-tête à titre de 20 px et un champ de recherche **cerné** ; les quatre
+planches de pages de la passe sobre (03.3, 04.1, 05.1, 10.1) donnent 28 px et un champ
+**rempli**. 17.8 garde par ailleurs les pastilles d'état dans la bande, que 04.1 déplace
+dans la feuille de filtre. Sa matrice des six slots reste juste — c'est son dessin qui a
+vieilli. À reprendre quand la planche sera rejouée.
+
+**Le rayon de vignette reste à 6.** 04.1 et 05.1 écrivent `border-radius:4px` sur la
+vignette de rangée, mais le socle (`styles.css`) déclare « 6 pour les héros et les
+vignettes », et `CORRESPONDANCE-ICONES.md` §6 le redit — « vignette de rangée (40 px,
+rayon 6) ». Deux sources transverses contre deux pages : le jeton ne bouge pas.
 
 ## Ce que le compte apprend
 

@@ -2,8 +2,8 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 export type CanonicalButtonVariant =
-    'filled' | 'tonal' | 'outlined' | 'text' | 'elevated' | 'danger' | 'nav';
-type LegacyButtonVariant = 'primary' | 'secondary' | 'ghost';
+    'filled' | 'tonal' | 'outlined' | 'ghost' | 'text' | 'elevated' | 'danger' | 'nav';
+type LegacyButtonVariant = 'primary' | 'secondary';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     /** MD3 button variants (legacy aliases still accepted for backward compatibility) */
@@ -36,7 +36,6 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const LEGACY_VARIANT_MAP: Record<LegacyButtonVariant, CanonicalButtonVariant> = {
     primary: 'filled',
     secondary: 'tonal',
-    ghost: 'outlined',
 };
 
 const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
@@ -44,6 +43,12 @@ const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
     tonal: 'bg-neutral-fill text-inverse-on-surface shadow-sm hover:bg-neutral-fill-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]',
     outlined:
         'bg-surface text-on-surface border border-outline-variant shadow-sm hover:bg-background hover:border-outline disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]',
+    /* `.btn-ghost` des planches — **le creux, pas le filet.** Quatre écrans le
+       demandent, tous pour le même acte : « Tout effacer » à gauche du pied d'une
+       feuille de filtre. `ghost` était un alias vers `outlined`, donc du blanc cerné
+       posé sur une feuille blanche : deux formes concurrentes dans un pied qui n'en
+       montre qu'une, et un filet de plus que la planche. */
+    ghost: 'bg-surface-container text-on-surface hover:bg-surface-container-high disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]',
     text: 'bg-transparent text-text-secondary hover:text-on-surface hover:bg-surface-container disabled:text-on-surface/[0.38]',
     elevated:
         'bg-surface text-on-surface border border-outline-variant shadow-sm hover:bg-background disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38] disabled:shadow-elevation-0',

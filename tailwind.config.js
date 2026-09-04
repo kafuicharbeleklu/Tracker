@@ -92,6 +92,16 @@ module.exports = {
                 // Rôle de texte CAT sans équivalent dans l'échelle de surface (Chantier B §4.3,
                 // 7,83:1) — text-primary ≡ on-surface, text-muted ≡ on-surface-variant, eux, en ont un
                 'text-secondary': 'var(--tk-color-text-secondary)',
+                /* **Deux rôles nommés dans le code sans exister dans le thème.** Le
+                   commentaire ci-dessus dit vrai — `text-muted` a bien un synonyme,
+                   `on-surface-variant` — mais le code, lui, écrit `text-text-muted`
+                   **57 fois**, et cette classe n'était générée nulle part : les 57
+                   textes rendaient l'encre pleine au lieu de `--ink2`. Même chose pour
+                   `text-tertiary` (`--ink3`), que 04.1 emploie pour la référence d'une
+                   rangée. Une classe qui ne produit rien ne se voit pas en relecture ;
+                   elle se voit en mesurant. Relevé le 04/09. */
+                'text-muted': 'var(--tk-color-text-muted)',
+                'text-tertiary': 'var(--tk-color-text-tertiary)',
                 // Statuts (adossés aux tokens --tk-color-*)
                 success: {
                     DEFAULT: 'var(--tk-color-success)',

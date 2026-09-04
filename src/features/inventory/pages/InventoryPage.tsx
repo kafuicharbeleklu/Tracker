@@ -600,12 +600,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                        pied de liste — qui **nomme sa destination**, jamais « effacer
                        les filtres ». Le bandeau faisait une quatrième marque pour la
                        même chose, au-dessus des rangées qu'on est venu lire. */
-                    arrivedFiltered &&
-                    (statusFilter || (initialSite && locationFilter !== 'Tous'))
+                    arrivedFiltered && (statusFilter || (initialSite && locationFilter !== 'Tous'))
                         ? {
-                              token: statusFilter
-                                  ? getStatusLabel(statusFilter)
-                                  : locationFilter,
+                              token: statusFilter ? getStatusLabel(statusFilter) : locationFilter,
                               clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
                               onClear: clearArrivalFilter,
                               displayToken: false,
@@ -713,10 +710,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         // Vue Utilisateur final (Colonne 3)
                         const isRep = item.status === 'En réparation';
                         const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
+                        const repairDays = getDaysSince(item.repairStartDate || item.updatedAt);
+                        /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
+                           mouvement. La planche n'écrit jamais une date absente ;
+                           sans date, la rangée dit l'état, qui reste vrai. */
+                        const sinceDate = formatDate(item.confirmedAt || item.updatedAt);
 
                         const userStatus = isRep
                             ? {
-                                  label: `En réparation · ${getDaysSince(item.repairStartDate || item.updatedAt)} j`,
+                                  label:
+                                      repairDays > 0
+                                          ? `En réparation · ${repairDays} j`
+                                          : 'En réparation',
                                   icon: Warning,
                                   tone: 'attention' as const,
                               }
@@ -727,7 +732,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     tone: 'pending' as const,
                                 }
                               : {
-                                    label: `Depuis le ${formatDate(item.confirmedAt || item.updatedAt)}`,
+                                    label:
+                                        sinceDate === '—' ? 'Attribué' : `Depuis le ${sinceDate}`,
                                     icon: ArrowCircleRight,
                                     tone: 'info' as const,
                                 };
@@ -764,12 +770,21 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         }),
                     );
 
+                    /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
+                       « Disponible » sous le code d'un actif libre — pas son site :
+                       un actif disponible à Paris se lit d'abord *disponible*, et le
+                       site n'ajoute rien qu'on soit venu chercher. Le porteur prend
+                       la place dès qu'il existe, et un local en tient lieu quand
+                       l'objet est attribué à une pièce (« Salle serveurs »). */
+                    const repairDays = getDaysSince(item.repairStartDate || item.updatedAt);
                     const holderText =
                         item.status === 'En réparation'
-                            ? `En réparation · ${getDaysSince(item.repairStartDate || item.updatedAt)} j`
-                            : item.user?.name
-                              ? item.user.name
-                              : item.site || 'Disponible';
+                            ? repairDays > 0
+                                ? `En réparation · ${repairDays} j`
+                                : 'En réparation'
+                            : (item.user?.name ??
+                              (item.status === 'Attribué' ? item.site : undefined) ??
+                              status.label);
 
                     return (
                         <ListRow
@@ -832,7 +847,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     icon={facet.icon}
                                     tone={facet.tone}
                                     selected={
-                                        facet.id === 'tous' ? !statusFilter : facet.id === statusFilter
+                                        facet.id === 'tous'
+                                            ? !statusFilter
+                                            : facet.id === statusFilter
                                     }
                                     onClick={() => {
                                         setStatusFilter(facet.id === 'tous' ? '' : facet.id);
