@@ -142,6 +142,8 @@ interface DataContextType {
     ) => BusinessRuleDecision;
     /** La réception d'un objet par son porteur, appelée par la fiche, la file et l'accueil. */
     confirmEquipmentReception: (equipmentId: string) => BusinessRuleDecision;
+    /** Relancer une demande qu'on attend — elle date l'insistance, elle ne notifie personne. */
+    remindApproval: (approvalId: string) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
     logEvent: (event: Omit<HistoryEvent, 'id' | 'timestamp'>) => void;
 
@@ -2885,6 +2887,57 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [equipment, approvals, users, currentUser, updateApproval, applyEquipmentWrite],
     );
 
+    /**
+     * **Relancer une demande** — planche 03.3, « À suivre » : le seul geste de cette
+     * partition, et seulement au-delà du délai.
+     *
+     * Il n'y a pas de courrier dans ce produit : une relance ne prévient personne. Ce
+     * qu'elle fait est plus modeste et vrai — elle **date l'insistance**, la rangée
+     * l'affiche, le journal la garde. Un bouton qui prétendrait notifier serait un
+     * mécanisme simulé ; celui-ci dit exactement ce qu'il fait.
+     *
+     * Seule la personne qui attend relance : le demandeur, ou le bénéficiaire d'une
+     * demande déposée pour lui. On ne relance pas la demande d'un tiers.
+     */
+    const remindApproval = useCallback(
+        (approvalId: string): BusinessRuleDecision => {
+            const approval = approvals.find((a) => a.id === approvalId);
+            if (!approval) return { allowed: false, reason: 'Demande introuvable.' };
+            if (!isApprovalActiveStatus(approval.status))
+                return { allowed: false, reason: 'Cette demande est close.' };
+            const mine =
+                !!currentUser &&
+                (approval.requesterId === currentUser.id ||
+                    approval.beneficiaryId === currentUser.id);
+            if (!mine)
+                return { allowed: false, reason: 'On ne relance que sa propre demande.' };
+
+            const now = new Date().toISOString();
+            setApprovals((prev) =>
+                prev.map((a) =>
+                    a.id === approvalId
+                        ? { ...a, remindedAt: now, remindedBy: currentUser?.name }
+                        : a,
+                ),
+            );
+            logEvent({
+                type: 'UPDATE',
+                actorId: currentUser?.id || 'system',
+                actorName: currentUser?.name || 'Système',
+                actorRole: currentUser?.role || 'User',
+                targetType: 'APPROVAL',
+                targetId: approvalId,
+                targetName: approval.equipmentCategory,
+                description: `Demande relancée par ${currentUser?.name || 'le demandeur'}`,
+                metadata: { remindedAt: now, status: approval.status },
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { allowed: true };
+        },
+        [approvals, currentUser, logEvent],
+    );
+
     const addApproval = useCallback(
         (approval: Omit<Approval, 'id'>) => {
             const newId = Date.now().toString();
@@ -3132,6 +3185,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             removeEquipmentFromServiceAfterAudit,
             updateApproval,
             confirmEquipmentReception,
+            remindApproval,
             addApproval,
             logEvent,
             addLocation,
@@ -3183,6 +3237,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             removeEquipmentFromServiceAfterAudit,
             updateApproval,
             confirmEquipmentReception,
+            remindApproval,
             addApproval,
             logEvent,
             addLocation,

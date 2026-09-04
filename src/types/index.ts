@@ -419,6 +419,15 @@ export interface Approval {
     // Dernier verdict négatif (refus, renvoi, annulation) — dernier état seulement,
     // purgé sur toute transition « en avant » ; l'historique exhaustif des motifs
     // vit dans le journal (HistoryEvent.metadata.reason).
+    /**
+     * La dernière relance du demandeur — planche 03.3, colonne « À suivre » : *« aucun
+     * acte, sauf la cloche au-delà du délai »*. Elle ne notifie personne (il n'y a pas
+     * de courrier dans ce produit) : elle **date l'insistance**, la rangée la montre,
+     * et le journal la garde. C'est ce qui distingue un geste d'un bouton mort.
+     */
+    remindedAt?: string;
+    remindedBy?: string;
+
     decisionNote?: {
         kind: DecisionNoteKind;
         reason: string;

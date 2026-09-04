@@ -2,6 +2,7 @@ import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowCounterClockwise,
+    BellRinging,
     Check,
     ClipboardText,
     Funnel,
@@ -18,6 +19,7 @@ import Button from '../../../components/ui/Button';
 import { rowActivation } from '../../../lib/a11y';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import CloseButton from '../../../components/ui/CloseButton';
 import SecurityGate from '../../../components/security/SecurityGate';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -103,6 +105,14 @@ interface Task {
      * plus. Planche 03.3, onglet « À suivre » — lot 6.
      */
     cancel?: { approvalId: string };
+    /**
+     * Ma demande, que j'attends de quelqu'un d'autre depuis trop longtemps : je peux
+     * la relancer. **Le seul acte de « À suivre »** (planche 03.3), et seulement
+     * au-delà du délai — une relance qui s'offre au premier jour n'est pas une relance.
+     */
+    remind?: { approvalId: string; remindedAt?: string };
+    /** « demandé par Kossi Adjovi » — la sous-ligne de l'en-tête de la feuille. */
+    askedBy?: string;
     /** Le motif écrit par le demandeur — cité tel quel dans la feuille (planche 03.3). */
     reason?: string;
     /** Ce qui situe la demande sans l'ouvrir : ce qu'il détient, l'urgence. */
@@ -302,6 +312,13 @@ const historyOutcome = (
     }
 };
 
+/**
+ * Au-delà de combien de jours une demande se relance. La planche montre la cloche sur
+ * une rangée de 9 jours et pas sur celles de 1 à 3 : **sept jours est une convention
+ * lue sur le dessin**, pas une mesure. Elle vaut ce que vaut l'usage.
+ */
+const RELANCE_APRES_JOURS = 7;
+
 const getApprovalActionLabel = (status: ApprovalStatus): string | undefined => {
     switch (status) {
         // Court : le verbe s'écrit dans la feuille de la tâche, à côté du refus, et
@@ -371,6 +388,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         detectedDevices,
         updateApproval,
         confirmEquipmentReception,
+        remindApproval,
         promoteDetectedDeviceToInventory,
         markDetectedDeviceAsIgnored,
     } = useData();
@@ -408,6 +426,37 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 ? users.filter((user) => user.managerId === currentUser.id).map((user) => user.id)
                 : [],
         );
+        /**
+         * La ligne de contexte de la feuille — *« Kossi détient 3 objets · aucun
+         * portable · urgence normale »* (planche 03.3). Trois faits, et trois
+         * seulement : ce qu'il a, s'il a déjà ce qu'il demande, et l'urgence. Elle
+         * évite d'ouvrir la fiche pour trancher.
+         */
+        const requestContext = (approval: (typeof approvals)[number]): string => {
+            const held = equipment.filter(
+                (item) =>
+                    item.user?.id === approval.beneficiaryId ||
+                    item.user?.name === approval.beneficiaryName,
+            );
+            const wanted = getCategoryLabel(approval.equipmentCategory).toLowerCase();
+            const hasSame = held.some(
+                (item) => getCategoryLabel(item.type).toLowerCase() === wanted,
+            );
+            const urgency =
+                approval.urgency === 'high'
+                    ? 'urgence signalée'
+                    : approval.urgency === 'low'
+                      ? 'sans urgence'
+                      : 'urgence normale';
+            return [
+                held.length > 0
+                    ? `détient ${held.length} objet${held.length > 1 ? 's' : ''}`
+                    : 'ne détient rien',
+                hasSame ? `déjà un ${wanted}` : `aucun ${wanted}`,
+                urgency,
+            ].join(' · ');
+        };
+
         const isRelatedApproval = (approval: (typeof approvals)[number]) => {
             if (role === 'Admin' || role === 'SuperAdmin') return true;
             if (role === 'Manager') {
@@ -507,7 +556,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     assign,
                     refusal,
                     reason: approval.reason,
-                    detail: approval.urgency === 'urgent' ? 'urgence signalée' : undefined,
+                    detail: requestContext(approval),
+                    askedBy: approval.isDelegated
+                        ? `demandé par ${approval.requesterName} pour ${approval.beneficiaryName}`
+                        : `demandé par ${approval.beneficiaryName || approval.requesterName}`,
                     ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
@@ -534,6 +586,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     ...approvalTarget(approval),
                     cancel,
                     reason: approval.reason,
+                    // Seule ma demande se relance, et seulement passé le délai.
+                    remind:
+                        mine && (daysSince(approval.createdAt ?? null) ?? 0) >= RELANCE_APRES_JOURS
+                            ? { approvalId: approval.id, remindedAt: approval.remindedAt }
+                            : undefined,
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
                 });
@@ -743,17 +800,36 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         }
     };
 
+    /**
+     * La relance ne prévient personne — il n'y a pas de courrier ici. Elle **date
+     * l'insistance**, la rangée l'affiche ensuite, et le journal la garde. Le message
+     * dit exactement cela, sans promettre une notification qui n'existe pas.
+     */
+    const remindTask = (task: Task) => {
+        if (!task.remind) return;
+        const decision = remindApproval(task.remind.approvalId);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Relance impossible.', 'error');
+            return;
+        }
+        showToast('Relance notée sur la demande.', 'success');
+    };
+
+    /**
+     * **Toute rangée ouvre la feuille** — la planche ne fait pas d'exception : *« son
+     * tap ouvre la feuille de la tâche »*. Une rangée sans décision y trouve son
+     * contexte et une porte vers l'objet ; ouvrir la feuille pour les unes et partir
+     * ailleurs pour les autres ferait deux comportements pour un même geste.
+     *
+     * La seule exception est la machine remontée par la collecte : elle s'examine dans
+     * sa propre feuille (14.1), qui n'est pas celle-ci.
+     */
     const openTask = (task: Task) => {
-        // Une machine détectée s'examine dans sa propre feuille, elle n'a pas de décision.
         if (task.deviceId) {
             setReviewDeviceId(task.deviceId);
             return;
         }
-        if (task.transition || task.assign || task.reception || task.refusal || task.cancel) {
-            setOpenedTask(task);
-            return;
-        }
-        navigateToTask(task);
+        setOpenedTask(task);
     };
 
     /**
@@ -924,6 +1000,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         className={cn(
                             'border-outline-variant hover:bg-surface-container/50 -mx-4 flex min-h-[68px] cursor-pointer gap-4 rounded-md border-t px-4 py-3 transition-colors first:border-t-0',
                             task.quote ? 'items-start' : 'items-center',
+                            /* `.trow.on` — la rangée tapée reste marquée sous la feuille :
+                               en revenant, on retrouve où l'on était. */
+                            openedTask?.id === task.id && 'bg-surface-container',
                         )}
                     >
                         {/*
@@ -991,6 +1070,27 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         {task.decidedBy}
                                     </span>
                                 )}
+                            </span>
+                        ) : task.remind ? (
+                            /* `.rt.bell` — l'âge et la cloche, centrés ensemble. C'est le
+                               seul acte de « À suivre », et il n'apparaît qu'au-delà du
+                               délai (planche 03.3). */
+                            <span
+                                className="flex shrink-0 items-center gap-1 self-center"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <span className="text-on-surface-variant text-right text-[12px] leading-4 tabular-nums">
+                                    {ageLabel(task.since)}
+                                </span>
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    size="sm"
+                                    aria-label={`Relancer — ${task.title}`}
+                                    onClick={() => remindTask(task)}
+                                >
+                                    <Icon glyph={BellRinging} size={20} />
+                                </Button>
                             </span>
                         ) : (
                             <span className="text-on-surface-variant mt-1 min-w-8 shrink-0 self-start text-right text-[12px] leading-4 tabular-nums">
@@ -1215,43 +1315,71 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             </BottomSheet>
 
             {/*
-              La feuille d'une tâche — **le logement des décisions depuis le 02/09**.
-              La planche 03.3 la décrit en trois temps : le sujet en tête, le contexte
-              (« le motif, ce qu'il détient »), puis les deux décisions de même largeur.
-              Le oui conduit à l'attestation, la feuille ne l'embarque pas.
+              **La feuille d'une tâche** — planche 03.3, colonne « État — la feuille d'une
+              demande ». Un tap sur la rangée l'ouvre, et elle tient en trois temps :
+              l'en-tête dit le sujet et qui l'a demandé, le contexte donne les trois faits
+              qui évitent d'ouvrir la fiche, et les deux décisions ont la même largeur.
+              Le oui ne décide pas seul : il **conduit à l'attestation** (06.2), la feuille
+              ne l'embarque pas.
             */}
-            <BottomSheet
-                open={!!openedTask}
-                onClose={() => setOpenedTask(null)}
-                title={openedTask?.title ?? ''}
-            >
+            <BottomSheet open={!!openedTask} onClose={() => setOpenedTask(null)}>
                 {openedTask && (
-                    <div className="space-y-4 px-1 pb-4">
-                        <p className="text-body-medium text-text-secondary">
-                            {openedTask.context}
-                            {openedTask.since ? ` · ${ageLabel(openedTask.since)}` : ''}
-                        </p>
+                    <div className="-mx-1 -my-2">
+                        {/* `.sttl` — la vignette reprend la teinte de la nature, comme
+                            dans la rangée : on retrouve la tâche qu'on vient de taper. */}
+                        <div className="flex items-start gap-3 pb-3">
+                            <span
+                                className={cn(
+                                    'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold',
+                                    VIG_TINT[openedTask.nature],
+                                )}
+                            >
+                                {openedTask.initials ?? (
+                                    <Icon glyph={openedTask.icon ?? ClipboardText} size={20} />
+                                )}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-on-surface text-[17px] leading-6 font-medium">
+                                    {openedTask.title}
+                                </p>
+                                <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
+                                    {openedTask.askedBy ?? openedTask.context}
+                                    {/* Une décision se date, elle ne se compte pas en jours :
+                                        « le 14 août », pas « il y a 21 j » (planche 03.3). */}
+                                    {openedTask.since
+                                        ? openedTask.scope === 'history'
+                                            ? ` · le ${dateLabel(openedTask.since)}`
+                                            : ` · il y a ${ageLabel(openedTask.since)}`
+                                        : ''}
+                                </p>
+                            </div>
+                            <CloseButton onClick={() => setOpenedTask(null)} />
+                        </div>
 
                         {(openedTask.reason || openedTask.detail) && (
                             <div className="bg-surface-container flex flex-col gap-2 rounded-md p-4">
                                 {openedTask.reason && (
-                                    <p className="text-label-large text-on-surface italic">
-                                        « {openedTask.reason} »
+                                    <p className="text-on-surface text-[16px] leading-6 italic">
+                                        «&nbsp;{openedTask.reason}&nbsp;»
                                     </p>
                                 )}
                                 {openedTask.detail && (
-                                    <p className="text-body-medium text-text-secondary">
+                                    <p className="text-text-secondary text-[14px] leading-5">
+                                        {openedTask.who ? `${openedTask.who} ` : ''}
                                         {openedTask.detail}
                                     </p>
                                 )}
                             </div>
                         )}
 
-                        {/* Les décisions, de même largeur : le non à gauche, le oui à droite. */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* `.sfoot` — deux décisions de même largeur. Le non est sombre,
+                            le oui porte le seul jaune de la feuille. */}
+                        <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t pt-4">
                             {openedTask.refusal ? (
                                 <Button
-                                    variant="outlined"
+                                    variant="filled"
+                                    icon={<Icon glyph={X} size={20} />}
+                                    className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
                                     onClick={() => {
                                         setRefusalReason('');
                                         setRefusing(openedTask);
@@ -1260,21 +1388,23 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 >
                                     {openedTask.refusal.nextStatus === 'Rejected'
                                         ? 'Refuser'
-                                        : 'Renvoyer à l’IT'}
+                                        : 'Renvoyer'}
                                 </Button>
                             ) : openedTask.cancel ? (
                                 <Button
-                                    variant="outlined"
+                                    variant="filled"
+                                    icon={<Icon glyph={X} size={20} />}
+                                    className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
                                     onClick={() => {
                                         setRefusalReason('');
                                         setCancelling(openedTask);
                                         setOpenedTask(null);
                                     }}
                                 >
-                                    Annuler ma demande
+                                    Annuler
                                 </Button>
                             ) : (
-                                <Button variant="text" onClick={() => setOpenedTask(null)}>
+                                <Button variant="outlined" onClick={() => setOpenedTask(null)}>
                                     Fermer
                                 </Button>
                             )}
@@ -1289,7 +1419,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     entityId={openedTask.transition.approvalId}
                                     entityName={openedTask.title}
                                     trigger={
-                                        <Button variant="filled">{openedTask.action}</Button>
+                                        <Button variant="filled" icon={<Icon glyph={Check} size={20} />}>
+                                            {openedTask.action}
+                                        </Button>
                                     }
                                 />
                             ) : openedTask.reception ? (
@@ -1302,39 +1434,31 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     entityId={openedTask.reception.equipmentId}
                                     entityName={openedTask.title}
                                     trigger={
-                                        <Button variant="filled">{openedTask.action}</Button>
+                                        <Button variant="filled" icon={<Icon glyph={Check} size={20} />}>
+                                            {openedTask.action}
+                                        </Button>
                                     }
                                 />
-                            ) : openedTask.assign ? (
+                            ) : openedTask.assign || openedTask.target ? (
                                 <Button
                                     variant="filled"
+                                    icon={<Icon glyph={Check} size={20} />}
                                     onClick={() => {
                                         const task = openedTask;
                                         setOpenedTask(null);
                                         navigateToTask(task);
                                     }}
                                 >
-                                    {openedTask.action}
+                                    {openedTask.action ?? 'Ouvrir'}
                                 </Button>
-                            ) : (
-                                openedTask.target && (
-                                    <Button
-                                        variant="filled"
-                                        onClick={() => {
-                                            const task = openedTask;
-                                            setOpenedTask(null);
-                                            navigateToTask(task);
-                                        }}
-                                    >
-                                        Ouvrir
-                                    </Button>
-                                )
-                            )}
+                            ) : null}
                         </div>
 
+                        {/* `.pinl` — le oui ne signe pas ici : il ouvre l'attestation. */}
                         {(openedTask.transition || openedTask.reception) && (
-                            <p className="text-body-small text-text-secondary text-center">
-                                Le geste passe par votre code personnel.
+                            <p className="text-text-secondary mt-3 text-center text-[14px] leading-5">
+                                {openedTask.action} ouvre l'attestation — signature ou code
+                                personnel, au choix.
                             </p>
                         )}
                     </div>
