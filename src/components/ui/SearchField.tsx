@@ -44,7 +44,13 @@ const SearchField: React.FC<SearchFieldProps> = ({
     return (
         <div
             className={cn(
-                'border-outline bg-surface flex h-12 min-w-0 items-center gap-2.5 rounded-md border px-3',
+                /* `.srch` des planches (03.3, 05.1, 10.1) : un **creux**, pas un
+                   cerné — fond `--inset`, aucun filet, rayon 4, 48 de haut,
+                   14 de remplissage, gouttière 10, texte 16, invite en encre
+                   tertiaire. Le filet doublait la lecture : le champ se voit déjà
+                   à son fond, et deux signaux pour une même chose alourdissent la
+                   bande du haut, que la passe sobre veut calme. */
+                'bg-surface-container flex h-12 min-w-0 items-center gap-2.5 rounded-[4px] px-3.5',
                 'focus-within:ring-focus-ring focus-within:ring-2',
                 className,
             )}
@@ -59,7 +65,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
-                className="text-body-large text-on-surface placeholder:text-on-surface-variant min-w-0 flex-1 bg-transparent outline-none"
+                className="text-on-surface placeholder:text-[var(--tk-color-text-tertiary)] min-w-0 flex-1 bg-transparent text-[16px] leading-6 outline-none"
             />
         </div>
     );

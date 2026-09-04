@@ -418,9 +418,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 )}
 
                 {count && !selection?.active && (
-                    <Reading className="text-text-secondary flex min-h-11 items-center justify-between gap-3 text-[13px]">
+                    /* `.ord` — 14 sur 20, encre secondaire, et **le seul appui est le
+                       nombre** : graisse 500 sur l'encre pleine. La ligne était à 13 px
+                       en 600, deux crans hors de l'échelle de R15. */
+                    <Reading className="flex min-h-11 items-center justify-between gap-3 text-[14px] leading-5 text-[var(--tk-color-text-muted)]">
                         <span className="whitespace-nowrap">
-                            <b className="text-on-surface font-semibold tabular-nums">
+                            <b className="text-on-surface font-medium tabular-nums">
                                 {count.total}
                             </b>{' '}
                             {count.noun}

@@ -714,7 +714,20 @@ body {
     --tk-color-surface-muted-strong: #edeae3;
     --tk-color-text-primary: #1a1917; /* 15,42:1 sur le canevas (avant : #1C1917) */
     --tk-color-text-secondary: #57514a;
-    --tk-color-text-muted: #6e675f;
+    /* Aligné sur `--ink2` du socle des planches (#6C6862, était #6E675F). Le design
+       system a arrêté cette valeur pour le contraste — « AA 4,86:1 sur canvas ; le
+       #726E66 employé sur 32 planches tombait à 4,45:1 » — et c'est l'encre que
+       portent les sous-lignes de rangée, les âges et les lignes de contexte. L'écart
+       était de deux points par canal : invisible à l'œil, faux au relevé. */
+    --tk-color-text-muted: #6c6862;
+    /* `--ink-note` du socle : la quatrième encre de texte, 188 emplois sur 39 planches.
+       Elle porte la note explicative — plus sombre que l'encre secondaire, parce
+       qu'une note se lit, elle ne se devine pas. Déclarée ici pour que les écrans
+       puissent l'atteindre ; sans elle ils prennent l'encre d'à côté. */
+    --tk-color-text-note: #4a453e;
+    /* `--ink3` du socle : l'encre tertiaire — les valeurs absentes (« à désigner »,
+       « jamais »), les chevrons, les invites de champ. */
+    --tk-color-text-tertiary: #8a847a;
     /* Nuance d'attente — planche 17.3, règle A3 : le squelette porte UNE nuance,
        sans pulsation ni vague brillante. Rôle neuf (aucun équivalent canonique),
        donc déjà à son nom définitif. Il ne crée aucune valeur : la planche demande
