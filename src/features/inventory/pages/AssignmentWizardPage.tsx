@@ -1,12 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     CalendarBlank,
     Check,
-    Fingerprint,
     Info,
-    Key,
     Package,
-    PenNib,
     User as UserIcon,
     Warning,
 } from '@phosphor-icons/react';
@@ -16,6 +13,7 @@ import { useToast } from '../../../context/ToastContext';
 import Pagination from '../../../components/ui/Pagination';
 import { WizardLayout, WizardStep } from '../../../components/layout/WizardLayout';
 import Button from '../../../components/ui/Button';
+import Attestation from '../../../components/ui/Attestation';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Badge from '../../../components/ui/Badge';
@@ -26,7 +24,6 @@ import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
-import InputField from '../../../components/ui/InputField';
 import Icon from '../../../components/ui/Icon';
 
 /**
@@ -56,7 +53,8 @@ import Icon from '../../../components/ui/Icon';
  *   usage unique ? »). Trancher ici reviendrait à inventer la donnée.
  */
 
-type ValidationMethod = 'signature' | 'pin' | 'fingerprint';
+/** Deux méthodes, et deux seulement : l'empreinte est hors périmètre (06.2). */
+type ValidationMethod = 'signature' | 'pin';
 type WizardContextMode = 'generic' | 'fromEquipment' | 'fromUser';
 type WizardStage = 'equipment' | 'user' | 'validation' | 'summary';
 
@@ -82,12 +80,10 @@ const AssignmentWizardPage: React.FC<{
     const [step, setStep] = useState(1);
     const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [validationMethod, setValidationMethod] = useState<ValidationMethod>('signature');
     const [isValidated, setIsValidated] = useState(false);
     const [validatedBy, setValidatedBy] = useState<ValidationMethod | null>(null);
 
     const [isImmediateHandover, setIsImmediateHandover] = useState(false);
-    const [signatureCaptured, setSignatureCaptured] = useState(false);
 
     const [equipmentSearch, setEquipmentSearch] = useState('');
     const [equipmentPage, setEquipmentPage] = useState(1);
@@ -97,12 +93,6 @@ const AssignmentWizardPage: React.FC<{
     const [approvalId, setApprovalId] = useState<string | null>(null);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
     const [contextMode, setContextMode] = useState<WizardContextMode>('generic');
-
-    const [pin, setPin] = useState(['', '', '', '']);
-    const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
         const hash = window.location.hash;
@@ -217,82 +207,6 @@ const AssignmentWizardPage: React.FC<{
         return parts[0].slice(0, 2).toUpperCase();
     }, [selectedUser?.name]);
 
-    const handlePinDigitChange = (index: number, value: string) => {
-        if (!/^\d?$/.test(value)) return;
-        const newPin = [...pin];
-        newPin[index] = value;
-        setPin(newPin);
-
-        if (value !== '' && index < 3) {
-            pinRefs.current[index + 1]?.focus();
-        }
-
-        if (newPin.every((d) => d !== '')) {
-            setValidatedBy('pin');
-            setIsValidated(true);
-        }
-    };
-
-    const handleClearSignature = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        setSignatureCaptured(false);
-        setIsValidated(false);
-    };
-
-    const handleCanvasMouseDown = (
-        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
-    ) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-        ctx.strokeStyle = 'rgb(26, 25, 23)';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(clientX - rect.left, clientY - rect.top);
-        setIsDrawing(true);
-        setSignatureCaptured(true);
-        setValidatedBy('signature');
-        setIsValidated(true);
-    };
-
-    const handleCanvasMouseMove = (
-        e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
-    ) => {
-        if (!isDrawing) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-        ctx.lineTo(clientX - rect.left, clientY - rect.top);
-        ctx.stroke();
-    };
-
-    const handleCanvasMouseUp = () => {
-        setIsDrawing(false);
-    };
-
-    const handleFingerprintConfirm = () => {
-        setValidatedBy('fingerprint');
-        setIsValidated(true);
-    };
-
     const handleNext = () => {
         setRefus(null);
         if (!isLastStep) {
@@ -322,6 +236,10 @@ const AssignmentWizardPage: React.FC<{
                         assignedAt: new Date().toISOString(),
                         assignedBy: adminUser?.id || '1',
                         assignedByName: adminUser?.name || 'Admin',
+                        /* « Qui, quand, **par quelle méthode** » (06.2) : c'est ce qui
+                           rend le passage de main relisible deux ans après. La méthode
+                           était choisie à l'écran et jetée à l'enregistrement. */
+                        handoverProof: validatedBy === 'pin' ? 'code PIN' : 'signature',
                         user: {
                             id: selectedUser.id,
                             name: selectedUser.name,
@@ -463,8 +381,13 @@ const AssignmentWizardPage: React.FC<{
                     </Button>
                     <div className="flex items-center gap-3">
                         {currentStage === 'validation' && (
+                            /* **L'attestation garde le passage.** Elle était calculée
+                               et jamais lue : on pouvait remettre un objet sans avoir
+                               rien attesté, et le pas suivant s'ouvrait de toute façon.
+                               Une preuve facultative n'est pas une preuve. */
                             <Button
                                 variant="primary"
+                                disabled={!isValidated}
                                 onClick={() => setStep(stageSequence.indexOf('summary') + 1)}
                             >
                                 Continuer vers la synthèse
@@ -725,145 +648,28 @@ const AssignmentWizardPage: React.FC<{
                         </div>
                     </div>
 
-                    {/* Attestation — Planche 06.2 */}
-                    <div>
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                            <p className="text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
-                                Votre attestation
-                            </p>
-                        </div>
+                    {/*
+                      **L'attestation — planche 06.2.** *Un fait décide, pas un choix
+                      au moment du geste.* Trois onglets demandaient ici à celui qui
+                      remet de choisir comment il allait prouver ; la planche répond
+                      que la méthode se lit dans le compte de celui qui atteste.
 
-                        {/* Onglets de méthode d'attestation */}
-                        <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-lg bg-[var(--tk-color-surface-muted)] p-1">
-                            <Button
-                                variant={validationMethod === 'signature' ? 'tonal' : 'text'}
-                                size="sm"
-                                onClick={() => setValidationMethod('signature')}
-                                className={cn(
-                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
-                                    validationMethod === 'signature' &&
-                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
-                                )}
-                            >
-                                <Icon glyph={PenNib} size={18} />
-                                <span>Signature</span>
-                            </Button>
-                            <Button
-                                variant={validationMethod === 'pin' ? 'tonal' : 'text'}
-                                size="sm"
-                                onClick={() => setValidationMethod('pin')}
-                                className={cn(
-                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
-                                    validationMethod === 'pin' &&
-                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
-                                )}
-                            >
-                                <Icon glyph={Key} size={18} />
-                                <span>Code PIN</span>
-                            </Button>
-                            <Button
-                                variant={validationMethod === 'fingerprint' ? 'tonal' : 'text'}
-                                size="sm"
-                                onClick={() => setValidationMethod('fingerprint')}
-                                className={cn(
-                                    'flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium',
-                                    validationMethod === 'fingerprint' &&
-                                        'bg-surface text-[var(--tk-color-text-primary)] shadow-xs',
-                                )}
-                            >
-                                <Icon glyph={Fingerprint} size={18} />
-                                <span>Empreinte</span>
-                            </Button>
-                        </div>
-
-                        {/* Méthode : Signature (.sig) */}
-                        {validationMethod === 'signature' && (
-                            <div className="bg-surface relative flex h-[140px] items-end justify-center overflow-hidden rounded-md border border-[var(--tk-color-border-default)] pb-2.5 text-[12px] text-[var(--tk-color-text-muted)]">
-                                <canvas
-                                    ref={canvasRef}
-                                    width={480}
-                                    height={140}
-                                    onMouseDown={handleCanvasMouseDown}
-                                    onMouseMove={handleCanvasMouseMove}
-                                    onMouseUp={handleCanvasMouseUp}
-                                    onTouchStart={handleCanvasMouseDown}
-                                    onTouchMove={handleCanvasMouseMove}
-                                    onTouchEnd={handleCanvasMouseUp}
-                                    className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
-                                />
-                                {!signatureCaptured && (
-                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-[var(--tk-color-text-muted)]">
-                                        Signez dans cette zone
-                                    </div>
-                                )}
-                                <span className="relative z-10 font-medium text-[var(--tk-color-text-secondary)]">
-                                    {adminUser?.name || 'Clara Admin'}
-                                </span>
-                                {signatureCaptured && (
-                                    <Button
-                                        variant="outlined"
-                                        size="sm"
-                                        onClick={handleClearSignature}
-                                        className="absolute top-2 right-2 z-10 h-7 px-2 text-[11px]"
-                                    >
-                                        Effacer
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Méthode : Code PIN (.pin) */}
-                        {validationMethod === 'pin' && (
-                            <div className="flex flex-col items-center gap-2 py-1">
-                                <div className="flex justify-center gap-3">
-                                    {pin.map((digit, idx) => (
-                                        <InputField
-                                            key={idx}
-                                            ref={(el) => {
-                                                pinRefs.current[idx] = el;
-                                            }}
-                                            type="password"
-                                            inputMode="numeric"
-                                            maxLength={1}
-                                            value={digit}
-                                            onChange={(e) =>
-                                                handlePinDigitChange(idx, e.target.value)
-                                            }
-                                            aria-label={`Chiffre PIN ${idx + 1}`}
-                                            className="font-brand h-[76px] w-[64px] text-center text-[34px] font-semibold"
-                                            containerClassName="w-auto"
-                                        />
-                                    ))}
-                                </div>
-                                <p className="text-center text-[12px] text-[var(--tk-color-text-secondary)]">
-                                    Code PIN à 4 chiffres ({adminUser?.name || 'Clara Admin'})
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Méthode : Empreinte (.bio) */}
-                        {validationMethod === 'fingerprint' && (
-                            <div className="flex h-[148px] flex-col items-center justify-center gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] text-[var(--tk-color-text-secondary)]">
-                                <Button
-                                    variant="outlined"
-                                    onClick={handleFingerprintConfirm}
-                                    className={cn(
-                                        'flex h-16 w-16 items-center justify-center rounded-full p-0',
-                                        isValidated && validatedBy === 'fingerprint'
-                                            ? 'border-transparent bg-[var(--tk-color-success)] text-white'
-                                            : 'bg-surface text-[var(--tk-color-text-primary)]',
-                                    )}
-                                >
-                                    <Icon glyph={Fingerprint} size={32} />
-                                </Button>
-                                <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
-                                    {isValidated && validatedBy === 'fingerprint'
-                                        ? 'Empreinte reconnue'
-                                        : 'Posez votre doigt pour valider'}
-                                </span>
-                            </div>
-                        )}
-                    </div>
+                      Deux mécanismes simulés tombent avec eux. L'**empreinte**
+                      « reconnaissait » n'importe quel doigt — `SecurityGate` l'avait
+                      retirée pour cette raison, l'assistant la gardait. Et le pavé de
+                      code **ne vérifiait rien** : quatre chiffres quelconques
+                      validaient, puis « code PIN » partait au journal comme une
+                      preuve. Une preuve qui ne prouve rien est pire qu'une preuve
+                      absente : elle se consigne comme les autres.
+                    */}
+                    <Attestation
+                        signerName={adminUser?.name || 'Clara Admin'}
+                        signerPin={adminUser?.pin}
+                        onChange={({ method, done }) => {
+                            setValidatedBy(done ? method : null);
+                            setIsValidated(done);
+                        }}
+                    />
 
                     {/* Bannière explicative (.warn) */}
                     <div className="flex gap-2.5 rounded-md bg-[var(--tk-color-surface-muted)] p-3 text-[12px] leading-[17px] text-[var(--tk-color-text-primary)]">
@@ -923,7 +729,11 @@ const AssignmentWizardPage: React.FC<{
                                     {adminUser?.name || 'Clara Admin'} atteste avoir remis
                                 </div>
                                 <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
-                                    Aujourd'hui · Méthode {validationMethod}
+                                    {/* « Qui, quand, par quelle méthode » : la synthèse
+                                        dit la méthode **employée**, pas l'onglet ouvert
+                                        — elle nommait le second, qui pouvait n'avoir
+                                        rien produit. */}
+                                    Aujourd'hui · {validatedBy === 'pin' ? 'code PIN' : 'signature'}
                                 </div>
                             </div>
                         </div>

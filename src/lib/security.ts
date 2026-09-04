@@ -10,12 +10,26 @@
 // Configurable via VITE_ADMIN_PIN ; fallback dev uniquement.
 // Cible : vérification côté backend (hash) — cf. docs/AUDIT_MECANISMES_SIMULES.md (E-A1).
 //
-// **Quatre chiffres** depuis l'alignement sur REGLES-TRANSVERSES.md §2.1 : le pavé de
-// SecurityGate est passé de six cases à quatre, et un code de six ne pouvait plus s'y
-// saisir. La valeur reste volontairement triviale — c'est un contrôle de démonstration,
-// vérifié côté client et écrit en clair dans la source livrée : la faire ressembler à un
-// secret ferait croire qu'elle en est un. Le risque est consigné, pas masqué.
-const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '1234').toString();
+// **Six chiffres.** Le registre a tranché deux fois. §2.1 disait « quatre, sans
+// exception », et le produit s'y était rangé ; son journal l'a **renégocié le 02/09** :
+// « le code PIN passe à six chiffres partout (02.2, 06.2, 07.1, SecurityGate, lot 25).
+// Une seule longueur, la nouvelle. » La planche 06.2 du 03/09 dessine six cases et
+// titre sa section « Six chiffres ». Le titre de §2.1 n'a pas suivi la renégociation
+// que son propre journal enregistre — **à faire corriger dans le registre**, la valeur
+// appliquée ici étant la plus récente et la seule que les planches dessinent.
+//
+// La valeur reste volontairement triviale — c'est un contrôle de démonstration, vérifié
+// côté client et écrit en clair dans la source livrée : la faire ressembler à un secret
+// ferait croire qu'elle en est un. Le risque est consigné, pas masqué.
+const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
+
+/**
+ * **La longueur d'un code PIN, nommée une fois.** Le pavé, la remise à zéro, le
+ * déclenchement de la vérification et la génération d'un code temporaire en dérivent —
+ * elle était écrite en dur à cinq endroits, ce qui est exactement pourquoi elle avait
+ * pu diverger sans que personne le voie.
+ */
+export const PIN_LENGTH = 6;
 
 export function validateAdminPIN(pin: string): boolean {
     return pin === ADMIN_PIN;

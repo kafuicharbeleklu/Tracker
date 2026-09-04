@@ -1,12 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import MaterialIcon from '../ui/MaterialIcon';
 import { validateAdminPIN, logSecurityAction } from '../../lib/security';
+import PinField from '../ui/PinField';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import SideSheet from '../ui/SideSheet';
 import Button from '../ui/Button';
-import InputField from '../ui/InputField';
 import { TextArea } from '../ui/TextArea';
 import DemoBadge from '../ui/DemoBadge';
 
@@ -33,23 +33,14 @@ interface SecurityGateProps {
 }
 
 /**
- * Longueur du code PIN — **quatre, sans exception** (REGLES-TRANSVERSES.md §2.1,
- * référence dessinée planche 06.2).
+ * **La longueur vient du registre, et le pavé du composant partagé.**
  *
- * Cette garde en déclarait **six**, seule dans le produit : les deux assistants
- * d'attribution et de retour étaient déjà à quatre. Le registre avait pourtant
- * prévu le cas de figure — « un autre code (application d'authentification, code
- * de secours, code à usage unique) **n'emprunte pas ce composant** : il se saisit
- * dans un champ ordinaire ». Or ceci *est* un code PIN, celui de l'administrateur :
- * il tombe donc sous la règle, et non sous l'exception.
- *
- * La longueur est nommée une fois et tout en dérive — le pavé, la remise à zéro et
- * le déclenchement de la vérification. Six était écrit à cinq endroits, ce qui est
- * exactement pourquoi la valeur avait pu diverger sans que personne le voie.
+ * La garde tenait son propre pavé, sa propre géométrie et sa propre longueur. Elle a
+ * suivi §2.1 vers quatre ; le journal du registre a **renégocié à six le 02/09**
+ * (« partout : 02.2, 06.2, 07.1, SecurityGate »), et 06.2 dessine six cases depuis le
+ * 03/09. Ni la longueur ni la géométrie ne se décident plus ici : `PIN_LENGTH` vit
+ * dans `lib/security`, et `PinField` porte les mesures de la planche.
  */
-const PIN_LENGTH = 4;
-
-const emptyPin = (): string[] => Array<string>(PIN_LENGTH).fill('');
 
 /**
  * Portail de validation (step-up) pour actions sensibles.
@@ -74,8 +65,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
     const [isValidated, setIsValidated] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
-    const [pin, setPin] = useState(emptyPin);
-    const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const [pin, setPin] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [reason, setReason] = useState('');
 
@@ -87,7 +77,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
         setTimeout(() => {
             setIsValidated(false);
             setIsVerifying(false);
-            setPin(emptyPin());
+            setPin('');
             setAttempts(0);
             setReason('');
         }, 300);
@@ -133,8 +123,7 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
 
             const newAttempts = attempts + 1;
             setAttempts(newAttempts);
-            setPin(emptyPin());
-            pinRefs.current[0]?.focus();
+            setPin('');
             showToast(`Code incorrect. Tentative ${newAttempts}/3`, 'error');
             logSecurityAction(
                 title,
@@ -146,17 +135,6 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
             );
             if (newAttempts >= 3) handleClose();
         }, 600);
-    };
-
-    const handlePinChange = (index: number, value: string) => {
-        if (value.length > 1) return;
-        const newPin = [...pin];
-        newPin[index] = value;
-        setPin(newPin);
-        if (value !== '' && index < PIN_LENGTH - 1) pinRefs.current[index + 1]?.focus();
-        if (index === PIN_LENGTH - 1 && value !== '') {
-            verifyPin(newPin.join(''));
-        }
     };
 
     return (
@@ -206,33 +184,17 @@ const SecurityGate: React.FC<SecurityGateProps> = ({
                                     />
                                 </div>
                             )}
-                            {/* Pavé §2.1 : quatre cases de 64 × 76, écart de 12 px, chiffre à 34 px en
-                  Archivo. Mêmes valeurs que les pavés des assistants d'attribution et de
-                  retour — « un seul composant `.pin` » veut dire une seule géométrie, pas
-                  seulement un même nombre de cases. Le pavé faisait ici 6 cases de 48 px
-                  de haut, à 6 px d'écart. */}
-                            <div className="flex justify-center gap-3">
-                                {pin.map((digit, idx) => (
-                                    <InputField
-                                        key={idx}
-                                        ref={(el) => {
-                                            pinRefs.current[idx] = el;
-                                        }}
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={1}
-                                        value={digit}
-                                        disabled={isVerifying || reasonMissing}
-                                        onChange={(e) => handlePinChange(idx, e.target.value)}
-                                        aria-label={`Chiffre PIN ${idx + 1}`}
-                                        className="input-pin duration-short4 ease-emphasized h-[76px] w-[64px] px-0 text-center font-['Archivo'] text-[34px] font-semibold transition-all"
-                                        containerClassName="w-auto"
-                                    />
-                                ))}
-                            </div>
+                            <PinField
+                                value={pin}
+                                onChange={setPin}
+                                onComplete={verifyPin}
+                                state={attempts > 0 ? 'error' : 'idle'}
+                                disabled={isVerifying || reasonMissing}
+                                label="Code PIN administrateur"
+                            />
                             {attempts > 0 && (
-                                <p className="text-error text-body-small">
-                                    PIN incorrect ({attempts}/3)
+                                <p className="text-error text-[14px] leading-5">
+                                    Code incorrect ({attempts}/3)
                                 </p>
                             )}
                             <Button

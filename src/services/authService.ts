@@ -1,3 +1,4 @@
+import { PIN_LENGTH } from '../lib/security';
 import { AppUser } from '../types';
 
 const MOCK_AUTH_BACKEND_ENABLED =
@@ -32,15 +33,16 @@ const generateTempPassword = (): string => {
 };
 
 /**
- * Code PIN remis à une nouvelle personne — **quatre chiffres** (REGLES-TRANSVERSES.md
- * §2.1). Il en produisait six, alors que tous les pavés du produit en acceptent quatre :
- * un PIN attribué était donc insaisissable là où on le demande.
+ * Code PIN remis à une nouvelle personne — **six chiffres**, la longueur unique du
+ * produit (`PIN_LENGTH`, renégociée le 02/09). Un code d'une autre longueur est
+ * insaisissable là où on le demande : c'est déjà arrivé dans les deux sens.
  */
 const generateTempPin = (): string => {
     const fromEnv = import.meta.env.VITE_DEMO_TEMP_PIN?.trim();
     if (fromEnv) return fromEnv;
-    if (import.meta.env.DEV) return '1234';
-    return String(Math.floor(1000 + Math.random() * 9000));
+    if (import.meta.env.DEV) return '123456';
+    const floor = 10 ** (PIN_LENGTH - 1);
+    return String(Math.floor(floor + Math.random() * (floor * 9)));
 };
 
 // MOCK DATABASE (Simulating SharePoint List "AppUsers")

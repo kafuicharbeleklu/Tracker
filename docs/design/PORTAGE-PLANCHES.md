@@ -4,7 +4,7 @@
 (40 cartes). Ce fichier se tient à jour à chaque planche portée : c'est la seule carte
 qui dise ce qui reste, et elle a déjà démenti une estimation faite de tête.
 
-**9 portées · 1 partielle · 30 restantes.**
+**10 portées · 1 partielle · 29 restantes.**
 
 Une planche est dite **portée** quand sa forme a été relevée sur la planche elle-même
 (pas sur un lot), appliquée, et vérifiée à l'écran à 393 px.
@@ -41,7 +41,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 05.2 | Fiche d'une personne | `UserDetailsPage` | **portée** (repassée à la mesure) |
 | 05.3 | Créer un compte | `InviteSheet`, `AddUserPage`, `ImportUsersPage` | **portée** — création par invitation |
 | 06.1 | Le parcours complet | `AssignmentWizardPage`, `ReturnWizardPage` | **non porté** |
-| 06.2 | L'attestation | l'étape d'attestation des deux assistants | **non porté** |
+| 06.2 | L'attestation | `Attestation`, `PinField`, `SignaturePad` | **portée** — sauf « définir son code », qui vit en 07.1 et 02.2 |
 | 06.3 | Fins de flux | les clôtures | **non porté** |
 | 06.4 | Demander un équipement | `NewRequestPage` | **non porté** |
 | 06.5 | Arbitrer une demande | détail d'arbitrage | **non porté** — la planche dit qu'elle cesse d'être une file |
