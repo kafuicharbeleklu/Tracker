@@ -109,7 +109,7 @@ interface ReturnWorkflowContext {
     nowISO: string;
 }
 
-type ReturnInspectionCondition =
+export type ReturnInspectionCondition =
     'Excellent' | 'Bon' | 'Moyen' | 'Mauvais' | 'Dégradé' | 'Hors service';
 
 const APPROVAL_TRANSITIONS: Partial<Record<ApprovalStatus, readonly ApprovalStatus[]>> = {

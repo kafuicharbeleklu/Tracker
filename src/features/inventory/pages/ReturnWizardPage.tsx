@@ -22,13 +22,20 @@ import { formatDate } from '../../../lib/financial';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { cn } from '../../../lib/utils';
 import { useAccessControl } from '../../../hooks/useAccessControl';
-import { getEquipmentUpdatesForReturnWorkflow } from '../../../lib/businessRules';
+import {
+    getEquipmentUpdatesForReturnWorkflow,
+    type ReturnInspectionCondition,
+} from '../../../lib/businessRules';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import InputField from '../../../components/ui/InputField';
 import Icon from '../../../components/ui/Icon';
 
-type ReturnCondition = 'Excellent' | 'Bon' | 'Moyen' | 'Mauvais';
+/* Les crans de l'écran sont des **décisions** (« ce que l'objet devient »), pas des
+   degrés d'usure : ils doivent pointer les entrées de `RETURN_STATUS_BY_CONDITION`
+   qui produisent le statut annoncé. Le dictionnaire de la règle fait foi ; l'écran
+   n'en expose que trois crans. Zone d'ombre n° 6, tranchée le 02/09 — lot 3. */
+type ReturnCondition = ReturnInspectionCondition;
 /**
  * Restituer l'équipement — porté sur la planche **06.1**, colonnes « la personne rend
  * et atteste » et « l'informatique réceptionne et constate ».
@@ -286,12 +293,30 @@ const ReturnWizardPage: React.FC<{
         { id: 4, title: 'Synthèse' },
     ];
 
+    /* Le sous-titre lisait « hier à 17:20 » et un nom de démonstration : il lit
+       désormais `returnRequestedAt` et le porteur. Sans donnée, il ne dit rien
+       plutôt que d'inventer. Lot 3, R4. */
+    const returnedAt = selectedEquipment?.returnRequestedAt
+        ? new Date(selectedEquipment.returnRequestedAt).toLocaleString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+          })
+        : null;
+    const returnedBy = selectedEquipment?.user?.name;
+
     return (
         <WizardLayout
             title={isInspectionFlow ? 'Réceptionner le retour' : 'Restituer un équipement'}
             subtitle={
                 isInspectionFlow
-                    ? `Rendu par ${selectedEquipment?.user?.name || 'Karim Diallo'}, hier à 17:20.`
+                    ? `${[
+                          returnedBy ? `Rendu par ${returnedBy}` : 'Retour à réceptionner',
+                          returnedAt ? `le ${returnedAt}` : null,
+                      ]
+                          .filter(Boolean)
+                          .join(', ')}.`
                     : "Vous attestez rendre. L'informatique attestera recevoir."
             }
             currentStep={step}
@@ -471,14 +496,14 @@ const ReturnWizardPage: React.FC<{
                                     sub: 'Rien à signaler',
                                 },
                                 {
-                                    value: 'Moyen' as ReturnCondition,
+                                    value: 'Mauvais' as ReturnCondition,
                                     label: 'À réviser d’abord',
                                     sub: 'Ne sera pas proposé avant l’intervention',
                                 },
                                 {
-                                    value: 'Mauvais' as ReturnCondition,
+                                    value: 'Hors service' as ReturnCondition,
                                     label: 'Hors service',
-                                    sub: 'Sortie d’inventaire — une validation est demandée',
+                                    sub: 'Sortie d’inventaire — passe « Retiré », l’historique reste',
                                 },
                             ].map((opt) => (
                                 <Button
@@ -536,17 +561,17 @@ const ReturnWizardPage: React.FC<{
                                         pourra être réattribué sans délai.
                                     </>
                                 )}
-                                {condition === 'Moyen' && (
+                                {condition === 'Mauvais' && (
                                     <>
                                         L’objet passe <strong>en réparation</strong> et une tâche
                                         est ouverte. Il <strong>ne rejoint pas</strong> les
                                         disponibles.
                                     </>
                                 )}
-                                {condition === 'Mauvais' && (
+                                {condition === 'Hors service' && (
                                     <>
-                                        L’objet passe <strong>hors service</strong> et une demande
-                                        de sortie de parc est ouverte.
+                                        L’objet passe <strong>« Retiré »</strong> : il sort des
+                                        disponibles, son historique et ses attestations restent.
                                     </>
                                 )}
                             </span>
@@ -617,7 +642,7 @@ const ReturnWizardPage: React.FC<{
                     <div>
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                             <p className="text-[11px] font-medium tracking-[0.06em] text-[var(--tk-color-text-muted)] uppercase">
-                                Votre attestation ({actor?.name || 'Karim Diallo'})
+                                Votre attestation ({actor?.name || 'Vous'})
                             </p>
                         </div>
 
@@ -685,7 +710,7 @@ const ReturnWizardPage: React.FC<{
                                     </div>
                                 )}
                                 <span className="relative z-10 font-medium text-[var(--tk-color-text-secondary)]">
-                                    {actor?.name || 'Karim Diallo'}
+                                    {actor?.name || 'Vous'}
                                 </span>
                                 {signatureCaptured && (
                                     <Button
@@ -724,7 +749,7 @@ const ReturnWizardPage: React.FC<{
                                     ))}
                                 </div>
                                 <p className="text-center text-[12px] text-[var(--tk-color-text-secondary)]">
-                                    Code PIN à 4 chiffres ({actor?.name || 'Karim Diallo'})
+                                    Code PIN à 4 chiffres ({actor?.name || 'Vous'})
                                 </p>
                             </div>
                         )}
@@ -779,7 +804,7 @@ const ReturnWizardPage: React.FC<{
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="text-[14px] font-medium text-[var(--tk-color-text-primary)]">
-                                    {selectedEquipment.user?.name || actor?.name || 'Karim Diallo'}{' '}
+                                    {selectedEquipment.user?.name || actor?.name || '—'}{' '}
                                     atteste avoir rendu
                                 </div>
                                 <div className="mt-0.5 text-[12px] text-[var(--tk-color-text-secondary)]">
@@ -852,9 +877,11 @@ const ReturnWizardPage: React.FC<{
                             </span>
                             <span className="text-[13px] font-medium text-[var(--tk-color-text-primary)]">
                                 {isInspectionFlow
-                                    ? condition === 'Mauvais'
-                                        ? 'En réparation'
-                                        : 'Disponible'
+                                    ? condition === 'Hors service'
+                                        ? 'Retiré'
+                                        : condition === 'Mauvais'
+                                          ? 'En réparation'
+                                          : 'Disponible'
                                     : 'En attente de réception IT'}
                             </span>
                         </div>

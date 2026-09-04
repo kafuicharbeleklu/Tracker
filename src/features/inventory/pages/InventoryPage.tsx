@@ -495,7 +495,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     );
 
     const hasPendingConfirmation = useMemo(
-        () => userEquipment.some((item) => item.assignmentStatus === 'PENDING_CONFIRMATION'),
+        () => userEquipment.some((item) => item.assignmentStatus === 'PENDING_DELIVERY'),
         [userEquipment],
     );
 
@@ -705,7 +705,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     if (!isManager) {
                         // Vue Utilisateur final (Colonne 3)
                         const isRep = item.status === 'En réparation';
-                        const isPending = item.assignmentStatus === 'PENDING_CONFIRMATION';
+                        const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
 
                         const userStatus = isRep
                             ? {

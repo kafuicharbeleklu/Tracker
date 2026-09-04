@@ -151,6 +151,17 @@ export interface User {
 
     // SharePoint Fields (merged)
     status?: 'active' | 'inactive' | 'pending';
+    /** `status === 'inactive'` : quand, par qui, pourquoi. Effacés à la réactivation. */
+    suspendedAt?: string;
+    suspendedBy?: string;
+    suspensionReason?: string;
+    /**
+     * Dernier jour dans l'entreprise (ISO). **Indépendant de `status`** : on part sans
+     * être suspendu, on est suspendu sans partir. Planche 05.2, passe du 02/09.
+     */
+    departureDate?: string;
+    /** Note de gestionnaire, visible des gestionnaires seulement. Un champ, pas un état d'écran. */
+    managerNote?: { text: string; authorId: string; authorName: string; updatedAt: string };
     mustChangePassword?: boolean;
 
     // RBAC Overrides (optional, phase 1)
@@ -255,6 +266,12 @@ export interface Equipment {
     returnRequestedAt?: string;
     returnInspectedAt?: string;
     lastReturnCondition?: string;
+    /**
+     * Le porteur n'a plus d'accès (`suspended`) ou plus de poste à `until` (`departure`) :
+     * l'objet est **à récupérer**. Écrit et levé par `DataContext.updateUser`, jamais à la main.
+     * Hypothèse retenue le 02/09 (traçabilité des détenteurs) — voir CARTE_PROJET.md.
+     */
+    holderAlert?: { kind: 'suspended' | 'departure'; since: string; until?: string; userId: string };
 
     operationalStatus?: 'Actif' | 'Inactif' | 'Retiré';
     image: string;

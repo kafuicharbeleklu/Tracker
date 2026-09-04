@@ -411,6 +411,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onBack={() => handleViewChange('users')}
                         onViewChange={handleViewChange}
                         onEquipmentClick={(id) => handleItemClick('equipment_details', id)}
+                        onEditUser={(id) => handleItemClick('edit_user', id)}
                     />
                 ) : (
                     <UsersPage
@@ -471,6 +472,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <CategoryDetailsPage
                         categoryId={selectedItemId}
                         onBack={() => handleViewChange('management')}
+                        onModelClick={(id) => handleItemClick('model_details', id)}
                     />
                 ) : (
                     <ManagementPage onViewChange={handleViewChange} />

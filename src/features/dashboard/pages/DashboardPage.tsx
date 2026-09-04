@@ -849,7 +849,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                             <Button
                                                 variant="text"
                                                 size="sm"
-                                                onClick={() => onViewChange('return_wizard')}
+                                                onClick={() =>
+                                                    onNavigate?.(
+                                                        `/wizards/return?equipmentId=${encodeURIComponent(entry.id.replace(/^return-/, ''))}`,
+                                                    )
+                                                }
                                                 className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] hover:bg-white/20"
                                             >
                                                 Réceptionner

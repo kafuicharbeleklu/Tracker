@@ -207,7 +207,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {avatar && status && (
-            <div className="mt-3.5">
+            /* `statusDetail` se pose ici aussi, pas seulement dans la variante à image :
+               sur une fiche de personne (05.2) c'est la ligne « Départ le … », et un héro
+               à avatar l'avalait en silence. Lot 2. */
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
                 <span className="text-inverse-on-surface inline-flex h-[26px] items-center gap-[7px] rounded-md bg-white/10 px-2.5 text-[12px]">
                     <Icon
                         glyph={status.icon}
@@ -216,6 +219,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     />
                     {status.label}
                 </span>
+                {statusDetail && (
+                    <span className="text-on-nav-surface-variant text-[12px]">
+                        {statusDetail}
+                    </span>
+                )}
             </div>
         )}
 

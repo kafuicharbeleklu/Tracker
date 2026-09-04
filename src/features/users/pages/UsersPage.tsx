@@ -179,8 +179,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             const matchesStatus =
                 statusFilter === 'Tous' ||
                 (statusFilter === 'Actif' && user.status === 'active') ||
+                (statusFilter === 'Invité' && user.status === 'pending') ||
                 (statusFilter === 'Suspendu' && user.status === 'inactive') ||
-                (statusFilter === 'Départ prévu' && user.status === 'pending');
+                // `pending` = invité, mot de passe à définir (sens d'`authService`). Le départ
+                // est un champ à part, et peut se cumuler avec « Actif ». Lot 2, D5.
+                (statusFilter === 'Départ prévu' && !!user.departureDate);
 
             return matchesSearch && matchesRole && matchesDept && matchesSite && matchesStatus;
         });
@@ -548,7 +551,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">
-                            {['Tous', 'Actif', 'Suspendu', 'Départ prévu'].map((st) => (
+                            {['Tous', 'Actif', 'Invité', 'Suspendu', 'Départ prévu'].map((st) => (
                                 <button
                                     key={st}
                                     type="button"

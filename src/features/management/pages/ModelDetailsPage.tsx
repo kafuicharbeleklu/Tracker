@@ -343,11 +343,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                                     key={item.id}
                                     role="button"
                                     tabIndex={0}
-                                    onClick={() => navigateToItem('equipment', item.id)}
+                                    onClick={() => navigateToItem('equipment_details', item.id)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
                                             e.preventDefault();
-                                            navigateToItem('equipment', item.id);
+                                            navigateToItem('equipment_details', item.id);
                                         }
                                     }}
                                     className="hover:bg-surface-container flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-md px-1 py-2 text-left transition-colors"

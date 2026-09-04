@@ -1673,6 +1673,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return updateDecision;
             }
 
+            const now = new Date().toISOString();
+            const merged: User = { ...oldUser, ...finalUpdates };
+            const statusChanged =
+                finalUpdates.status !== undefined && finalUpdates.status !== oldUser.status;
+            const departureChanged =
+                'departureDate' in finalUpdates &&
+                finalUpdates.departureDate !== oldUser.departureDate;
+            const noteChanged = 'managerNote' in finalUpdates;
+
+            // Le journal dit l'acte, pas « mise à jour du profil ».
+            const description = statusChanged
+                ? finalUpdates.status === 'inactive'
+                    ? `Compte de ${oldUser.name} suspendu`
+                    : finalUpdates.status === 'active'
+                      ? `Compte de ${oldUser.name} réactivé`
+                      : `Compte de ${oldUser.name} : invitation en attente`
+                : departureChanged
+                  ? finalUpdates.departureDate
+                      ? `Départ de ${oldUser.name} fixé au ${new Date(finalUpdates.departureDate).toLocaleDateString('fr-FR')}`
+                      : `Date de départ de ${oldUser.name} retirée`
+                  : noteChanged
+                    ? finalUpdates.managerNote
+                        ? `Note de gestionnaire mise à jour pour ${oldUser.name}`
+                        : `Note de gestionnaire supprimée pour ${oldUser.name}`
+                    : `Mise à jour du profil de ${oldUser.name}`;
+
             logEvent({
                 type: 'UPDATE',
                 actorId: currentUser?.id || 'system',
@@ -1681,9 +1707,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: id,
                 targetName: oldUser.name,
-                description: `Mise à jour du profil de ${oldUser.name}`,
+                description,
+                metadata: {
+                    ...(statusChanged
+                        ? {
+                              accountStatus: finalUpdates.status,
+                              reason: finalUpdates.suspensionReason,
+                          }
+                        : {}),
+                    ...(departureChanged
+                        ? { departureDate: finalUpdates.departureDate ?? null }
+                        : {}),
+                },
                 isSystem: false,
-                isSensitive: false,
+                // Le texte de la note n'entre pas au journal ; l'événement, oui.
+                isSensitive: noteChanged,
             });
 
             // Nouvelle notif si changement de département/manager
@@ -1704,10 +1742,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     });
                 }
             }
-            setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...finalUpdates } : u)));
+            setUsers((prev) => prev.map((u) => (u.id === id ? merged : u)));
+
+            /* Hypothèse retenue le 02/09 : suspension et départ **signalent** les objets encore
+               détenus. Écriture système, hors `updateEquipment` (qui porte la garde d'un acteur) :
+               c'est une conséquence du compte, pas un acte sur l'objet. */
+            if (statusChanged || departureChanged) {
+                const kindOf = (u: User): 'suspended' | 'departure' | null =>
+                    u.status === 'inactive' ? 'suspended' : u.departureDate ? 'departure' : null;
+                const kind = kindOf(merged);
+                const held = equipment.filter(
+                    (e) => e.user?.id === id || e.user?.name === oldUser.name,
+                );
+                if (held.length > 0) {
+                    const heldIds = new Set(held.map((e) => e.id));
+                    setEquipment((prev) =>
+                        prev.map((e) =>
+                            heldIds.has(e.id)
+                                ? {
+                                      ...e,
+                                      holderAlert: kind
+                                          ? {
+                                                kind,
+                                                since: now,
+                                                until:
+                                                    kind === 'departure'
+                                                        ? merged.departureDate
+                                                        : undefined,
+                                                userId: id,
+                                            }
+                                          : undefined,
+                                  }
+                                : e,
+                        ),
+                    );
+                    held.forEach((e) =>
+                        logEvent({
+                            type: 'UPDATE',
+                            actorId: 'system',
+                            actorName: 'Système',
+                            actorRole: 'SuperAdmin',
+                            targetType: 'EQUIPMENT',
+                            targetId: e.id,
+                            targetName: e.assetId || e.name,
+                            description:
+                                kind === 'suspended'
+                                    ? `${e.assetId || e.name} : porteur suspendu, à récupérer`
+                                    : kind === 'departure'
+                                      ? `${e.assetId || e.name} : à récupérer avant le départ de ${oldUser.name}`
+                                      : `${e.assetId || e.name} : signal « à récupérer » levé`,
+                            metadata: {
+                                holderAlert: kind,
+                                holderId: id,
+                                holderName: oldUser.name,
+                            },
+                            isSystem: true,
+                            isSensitive: false,
+                        }),
+                    );
+                }
+            }
             return { allowed: true };
         },
-        [users, approvals, currentUser, logEvent, serviceManagers],
+        [users, equipment, approvals, currentUser, logEvent, serviceManagers],
     );
 
     const deleteUser = useCallback(
@@ -1798,8 +1895,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const applyEquipmentWrite = useCallback(
         (id: string, updates: Partial<Equipment>, logMetadata?: Record<string, unknown>) => {
             const oldItem = equipment.find((e) => e.id === id);
+            /* Le signal « à récupérer » appartient au couple objet ↔ porteur : dès que l'objet
+               change de mains ou en sort, il tombe de lui-même (lot 2, D2). */
+            const holderChanges =
+                'user' in updates && (updates.user?.id ?? null) !== (oldItem?.user?.id ?? null);
+            const writeUpdates: Partial<Equipment> = holderChanges
+                ? { ...updates, holderAlert: undefined }
+                : updates;
             if (oldItem) {
-                const nextItem = { ...oldItem, ...updates };
+                const nextItem = { ...oldItem, ...writeUpdates };
                 const oldUserId = oldItem.user?.id;
                 const nextUserId = nextItem.user?.id;
                 const nextUserName = nextItem.user?.name || 'utilisateur';
@@ -1911,7 +2015,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
             }
             setEquipment((prev) =>
-                prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+                prev.map((item) => (item.id === id ? { ...item, ...writeUpdates } : item)),
             );
         },
         [equipment, currentUser, logEvent],

@@ -337,7 +337,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         variant="tonal"
                         className="w-full"
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
-                        onClick={() => navigate('/wizards/return')}
+                        onClick={() => navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)}
                     >
                         Restituer
                     </Button>
@@ -363,7 +363,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     variant="filled"
                     className="w-full"
                     icon={<Icon glyph={ArrowUUpLeft} size={20} />}
-                    onClick={() => navigate('/wizards/return')}
+                    onClick={() => navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)}
                 >
                     Restituer
                 </Button>
@@ -381,7 +381,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 </Button>
             );
         }
-        if (item.assignmentStatus === 'PENDING_CONFIRMATION' || item.status === 'En attente') {
+        if (item.assignmentStatus === 'PENDING_DELIVERY') {
             return (
                 <Button
                     variant="filled"
@@ -497,7 +497,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                   title: item.repairReason || 'En réparation',
                                   detail: `signalé le ${formatDate(item.repairStartDate || item.updatedAt)} · en atelier`,
                               }
-                            : item.assignmentStatus === 'PENDING_CONFIRMATION' && holder
+                            : item.assignmentStatus === 'PENDING_DELIVERY' && holder
                               ? {
                                     vignette: initials(holder.name),
                                     title: `En attente de ${holder.name}`,
@@ -508,9 +508,25 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 ? {
                                       vignette: initials(holder.name),
                                       title: holder.name,
-                                      detail: item.confirmedAt
-                                          ? `porteur depuis le ${formatDate(item.confirmedAt)} · réception confirmée`
-                                          : 'réception non confirmée',
+                                      /* Le porteur peut être suspendu ou sur le départ : le
+                                         signal posé par `updateUser` se lit ici, sous la
+                                         rangée du porteur. Planche 04.2, réglage « Porteur »
+                                         — lot 2, D7. */
+                                      detail: (
+                                          <>
+                                              {item.confirmedAt
+                                                  ? `porteur depuis le ${formatDate(item.confirmedAt)} · réception confirmée`
+                                                  : 'réception non confirmée'}
+                                              {item.holderAlert && (
+                                                  <span className="mt-0.5 flex items-center gap-1.5 text-[12px] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
+                                                      <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
+                                                      {item.holderAlert.kind === 'suspended'
+                                                          ? `À récupérer — porteur suspendu le ${formatDate(item.holderAlert.since)}`
+                                                          : `À récupérer avant son départ le ${formatDate(item.holderAlert.until)}`}
+                                                  </span>
+                                              )}
+                                          </>
+                                      ),
                                       onOpen: () => navigate(`/users/${holder.id}`),
                                   }
                                 : {
@@ -661,9 +677,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             <Button
                                 variant="text"
                                 className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
-                                onClick={() =>
-                                    navigate(`/audit?targetId=${encodeURIComponent(item.id)}`)
-                                }
+                                onClick={() => navigate('/audit/overview')}
                             >
                                 <span>
                                     {history.length > 0
@@ -671,7 +685,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         : 'Tout l’historique'}
                                 </span>
                                 <span className="text-body-medium text-text-secondary ml-auto font-normal">
-                                    dans Audit, filtré sur cet actif
+                                    dans Audit
                                 </span>
                                 <Icon glyph={CaretDown} size={18} className="-rotate-90" />
                             </Button>

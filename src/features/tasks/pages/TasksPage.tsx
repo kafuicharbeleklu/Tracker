@@ -71,6 +71,12 @@ interface Task {
     initials?: string;
     icon?: PhosphorGlyph;
     transition?: { approvalId: string; nextStatus: ApprovalStatus };
+    /**
+     * Une demande arrivée chez l'informatique n'a pas de transition : son geste est
+     * de **remettre**, et cela ouvre l'assistant avec la demande. Sans cette clé, la
+     * rangée n'avait ni verbe ni destination (planche 03.3).
+     */
+    assign?: { approvalId: string };
 }
 
 const NATURE_LABEL: Record<TaskNature, string> = {
@@ -305,6 +311,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     primary?.kind === 'transition' && primary.nextStatus
                         ? { approvalId: approval.id, nextStatus: primary.nextStatus }
                         : undefined;
+                const assign = primary?.kind === 'assign' ? { approvalId: approval.id } : undefined;
 
                 out.push({
                     id: `approval-${approval.id}`,
@@ -313,8 +320,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     title,
                     context: getApprovalContext(approval.status),
                     since: approval.createdAt ?? null,
-                    action: transition ? getApprovalActionLabel(approval.status) : undefined,
+                    action: transition
+                        ? getApprovalActionLabel(approval.status)
+                        : assign
+                          ? 'Remettre'
+                          : undefined,
                     transition,
+                    assign,
                     ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
@@ -528,6 +540,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const openTask = (task: Task) => {
         if (task.deviceId) {
             setReviewDeviceId(task.deviceId);
+        } else if (task.assign) {
+            window.location.hash = `/wizards/assignment?approvalId=${encodeURIComponent(task.assign.approvalId)}`;
         } else if (task.target && task.targetId) {
             onItemClick(task.target, task.targetId);
         } else if (task.target) {

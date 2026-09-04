@@ -157,7 +157,7 @@ const NewRequestPage = () => {
                   : "Votre demande a été transmise à l'équipe IT";
 
             showToast(successMsg, 'success');
-            navigate('/approvals');
+            navigate('/tasks');
             setIsSubmitting(false);
         }, 800);
     };
@@ -165,7 +165,7 @@ const NewRequestPage = () => {
     return (
         <FullScreenFormLayout
             title="Demander un équipement"
-            onCancel={() => navigate('/approvals')}
+            onCancel={() => navigate('/tasks')}
             onSave={handleSubmit}
             saveLabel={isSubmitting ? 'Envoi en cours' : 'Envoyer la demande'}
             isSaving={isSubmitting}

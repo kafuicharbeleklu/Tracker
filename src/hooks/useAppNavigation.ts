@@ -190,8 +190,13 @@ export const useAppNavigation = () => {
                 edit_user: (id) => `/users/edit/${id}`,
                 category_details: (id) => `/management/categories/${id}`,
                 model_details: (id) => `/management/models/${id}`,
-                audit_details: (id) => `/audit/details/${id}`, // Assuming this path
+                audit_details: () => `/audit/details`,
                 site_details: (id) => `/locations/site/${encodeURIComponent(id)}`,
+                // Les rangées « Remettre » / « Réceptionner » / « Restituer » de la file (TasksPage)
+                // arrivent ici avec l'identifiant de l'équipement ; les deux assistants lisent
+                // `equipmentId` dans le hash. Sans ces deux clés, le tap ne faisait rien.
+                assignment_wizard: (id) => `/wizards/assignment?equipmentId=${encodeURIComponent(id)}`,
+                return_wizard: (id) => `/wizards/return?equipmentId=${encodeURIComponent(id)}`,
             };
 
             if (routeMap[view]) {

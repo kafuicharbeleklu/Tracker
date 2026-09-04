@@ -192,10 +192,13 @@ const AssignmentWizardPage: React.FC<{
         safeEquipmentPage * itemsPerPage,
     );
 
+    // La feuille « Suspendre » (05.2) promet que le nom disparaît des sélecteurs
+    // d'attribution ; sans ce cran, la promesse était fausse. Lot 2, D4.
     const filteredUsers = users.filter(
         (u) =>
-            u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            u.department.toLowerCase().includes(userSearch.toLowerCase()),
+            u.status !== 'inactive' &&
+            (u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                u.department.toLowerCase().includes(userSearch.toLowerCase())),
     );
 
     const totalUserPages = Math.ceil(filteredUsers.length / itemsPerPage);
