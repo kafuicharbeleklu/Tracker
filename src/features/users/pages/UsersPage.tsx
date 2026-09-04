@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CaretDown, EnvelopeSimple, Funnel, UsersThree } from '@phosphor-icons/react';
+import {
+    CaretRight,
+    EnvelopeSimple,
+    FileCsv,
+    Funnel,
+    Prohibit,
+    SignOut,
+    UsersThree,
+} from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -7,10 +15,10 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useDebounce } from '../../../hooks/useDebounce';
 import useSelection from '../../../hooks/useSelection';
-import { ViewType, UserRole } from '../../../types';
+import { ViewType, UserRole, type User } from '../../../types';
 
-import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
-import ListRow from '../../../components/ui/ListRow';
+import ListTemplate from '../../../components/layout/ListTemplate';
+import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -18,9 +26,10 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
 
-import { canDeleteUserByRoleRule, getStatusLabel } from '../../../lib/businessRules';
+import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
 import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
+import { cn } from '../../../lib/utils';
 
 /**
  * Annuaire des personnes — **porté sur la planche 05.1** (gabarit `ListTemplate`).
@@ -41,9 +50,7 @@ import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
  *   noms.
  * - **les badges de rôle en majuscules colorées** — deux interdits d'un coup : les
  *   capitales (§8.4), et **la couleur qui code une catégorie** (§8.8). Un rôle n'est
- *   pas un état ; le peindre, c'est le défaut corrigé au tableau de bord. Le rôle
- *   devient **un mot**, en fin de première ligne, à la place qu'occupe le type sur la
- *   liste des actifs.
+ *   pas un état ; le peindre, c'est le défaut corrigé au tableau de bord.
  * - **la corbeille de rangée** et **la pagination** — même arbitrage que 04.1.
  * - **l'e-mail de la rangée.** Il reste **clé de recherche** — le champ l'annonce —
  *   mais trente caractères écrasaient le nom qu'ils accompagnaient. Écart assumé avec
@@ -53,20 +60,75 @@ import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
  * **Le tri est dit.** Il n'y a pas d'ordre naturel pour des personnes : la liste
  * actuelle rangeait sans le dire. Il est alphabétique, il partage la ligne du
  * décompte, et il se renverse.
+ *
+ * ## Passe sobre du 03/09 — ce que la planche rééditée change
+ *
+ * Même contenu, moins de texte, plus d'air (R15 : quatre marches 28 · 17 · 16 · 12,
+ * deux graisses, **aucune note dans l'écran**). Quatre décisions, toutes prises par
+ * la planche :
+ *
+ * 1. **La rangée dit qui c'est, puis deux faits** — le lieu et la charge
+ *    (« Lomé Siège · 2 objets »). Le rôle **quitte la première ligne** : le mot
+ *    n'était lu par personne, et la vignette le porte maintenant par sa teinte. Le
+ *    service quitte lui aussi la rangée : il se filtre, et il se lit sur la fiche.
+ * 2. **L'état du compte passe à droite de la rangée**, et seulement quand il n'est
+ *    pas « actif ». C'est le « état en rangée » du lot 14 : trois crans visibles
+ *    (invité · suspendu · départ), alignés d'une rangée à l'autre.
+ * 3. **Plus de ligne de pastilles sous la recherche.** Le rôle rejoint le site et
+ *    l'état **dans la feuille de filtre** — un seul endroit où l'on restreint, et le
+ *    compteur du bouton dit combien d'axes sont posés.
+ * 4. **Plus de pied de liste.** « 7 des 14 actifs sont portés par 5 personnes » était
+ *    exactement la note que R15 interdit : un commentaire sur la liste, pas un fait
+ *    de la liste.
+ *
+ * *La couleur qui code une catégorie revient par la vignette — c'est un retournement
+ * assumé de l'arbitrage d'août rappelé plus haut, et il est tenable : la teinte ne
+ * porte plus l'information seule (le rôle reste lisible en filtre et sur la fiche),
+ * elle ne fait que **grouper le regard**.*
  */
 
 const STORAGE_KEY_SEARCH = 'users_search';
 const STORAGE_KEY_ROLE = 'users_role';
 
 /** L'ordre de lecture des rôles, du plus nombreux au plus rare (05.1). */
-const FACET_ORDER: UserRole[] = ['User', 'Manager', 'Admin', 'SuperAdmin'];
+const ROLE_ORDER: UserRole[] = ['User', 'Manager', 'Admin', 'SuperAdmin'];
 
-/** Le pluriel du rôle, tel que la planche l'écrit en tête d'écran. */
-const FACET_LABEL: Record<UserRole, string> = {
+/** Le pluriel du rôle, tel que la planche l'écrit sur les puces de la feuille. */
+const ROLE_LABEL: Record<UserRole, string> = {
     User: 'Utilisateurs',
     Manager: 'Managers',
     Admin: 'Admins',
     SuperAdmin: 'Super admin',
+};
+
+/**
+ * **La vignette teinte le rôle** (`.vig.m` / `.vig.a` / `.vig.sa` de la planche). Le
+ * rôle n'a plus son mot en rangée : trois teintes le rendent d'un coup d'œil, et le
+ * rôle courant — celui de la plupart des gens — garde la vignette neutre du gabarit.
+ * Une teinte de moins à peindre, c'est une liste de moins à décoder.
+ */
+const VIGNETTE_TONE: Partial<Record<UserRole, string>> = {
+    Manager: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
+    Admin: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
+    SuperAdmin: 'bg-[var(--tk-color-dark)] text-[var(--tk-color-on-dark)]',
+};
+
+/**
+ * L'état du compte à droite de la rangée — les trois crans que la planche peint, et
+ * rien d'autre : un compte actif ne porte pas de marque, sans quoi onze rangées
+ * répètent onze fois la normale.
+ *
+ * Les crans suivent le lot 2 : `pending` = **invité** (mot de passe à définir), le
+ * départ est le champ `departureDate` et se cumule avec « actif ».
+ *
+ * *La planche accorde le mot au genre de la personne (« Invitée », « Suspendue ») ;
+ * la donnée ne porte pas le genre, le libellé reste donc au masculin générique.*
+ */
+const accountMark = (user: User): ListRowStatus | undefined => {
+    if (user.status === 'inactive') return { icon: Prohibit, label: 'Suspendu', tone: 'refused' };
+    if (user.status === 'pending') return { icon: EnvelopeSimple, label: 'Invité', tone: 'info' };
+    if (user.departureDate) return { icon: SignOut, label: 'Départ', tone: 'pending' };
+    return undefined;
 };
 
 const initials = (name: string) =>
@@ -77,6 +139,42 @@ const initials = (name: string) =>
         .slice(0, 2)
         .join('')
         .toUpperCase();
+
+/**
+ * La puce de la feuille de filtre — `.chip` de la planche : 40 px de haut, 14 px de
+ * gouttière, rayon 4, et l'aplat sombre pour l'axe posé. Quatre groupes la
+ * partagent ; elle était recopiée trois fois avant que le rôle ne les rejoigne.
+ */
+const FilterChip: React.FC<{
+    selected: boolean;
+    onClick: () => void;
+    /** Le décompte, quand l'axe en a un — seul le rôle le porte sur la planche. */
+    count?: number;
+    children: React.ReactNode;
+}> = ({ selected, onClick, count, children }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+            'inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 text-[15px] leading-5 transition-colors',
+            selected
+                ? 'bg-inverse-surface text-inverse-on-surface font-medium'
+                : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
+        )}
+    >
+        {children}
+        {typeof count === 'number' && (
+            <b
+                className={cn(
+                    'font-medium tabular-nums',
+                    selected ? 'text-[var(--tk-color-on-dark-2)]' : 'text-text-secondary',
+                )}
+            >
+                {count}
+            </b>
+        )}
+    </button>
+);
 
 interface UsersPageProps {
     onUserClick?: (id: string) => void;
@@ -158,13 +256,19 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
         return ['Tous', ...Array.from(new Set(allSites))];
     }, [locationData.sites]);
 
+    /**
+     * Le compteur du bouton de filtre. **Le rôle y entre** : la passe sobre retire la
+     * ligne de pastilles, donc le seul endroit qui dit « un rôle est posé » est ce
+     * chiffre. L'oublier laisserait une liste réduite sans rien qui l'annonce.
+     */
     const activeSheetFiltersCount = useMemo(() => {
         let count = 0;
+        if (roleFilter) count += 1;
         if (departmentFilter !== 'Tous') count += 1;
         if (siteFilter !== 'Tous') count += 1;
         if (statusFilter !== 'Tous') count += 1;
         return count;
-    }, [departmentFilter, siteFilter, statusFilter]);
+    }, [roleFilter, departmentFilter, siteFilter, statusFilter]);
 
     const filteredUsers = useMemo(() => {
         const searchLower = debouncedSearch.toLowerCase();
@@ -194,15 +298,16 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             .sort((a, b) => (ascending ? 1 : -1) * a.name.localeCompare(b.name, 'fr'));
     }, [users, debouncedSearch, roleFilter, departmentFilter, siteFilter, statusFilter, ascending]);
 
-    const facets = useMemo<ListFacet[]>(() => {
+    /** Les puces de rôle — descendues de la bande de tête dans la feuille (05.1). */
+    const roleOptions = useMemo(() => {
         const counts = new Map<string, number>();
         users.forEach((user) => counts.set(user.role, (counts.get(user.role) ?? 0) + 1));
 
         return [
-            { id: 'tous', label: 'Tous', count: users.length },
-            ...FACET_ORDER.filter((role) => counts.has(role)).map((role) => ({
-                id: role,
-                label: FACET_LABEL[role],
+            { id: '', label: 'Tous', count: users.length },
+            ...ROLE_ORDER.filter((role) => counts.has(role)).map((role) => ({
+                id: role as string,
+                label: ROLE_LABEL[role],
                 count: counts.get(role) ?? 0,
             })),
         ];
@@ -328,8 +433,6 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
         siteFilter !== 'Tous' ||
         statusFilter !== 'Tous',
     );
-    const holdersCount = users.filter((user) => holdings(user) > 0).length;
-    const heldCount = users.reduce((total, user) => total + holdings(user), 0);
 
     return (
         <>
@@ -361,27 +464,30 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                     onChange: setSearchQuery,
                     placeholder: 'Nom, e-mail, département',
                 }}
+                /* `.fbtn` : un carré plein sur l'aplat de la recherche, pas un bouton
+                   cerné — la planche donne au filtre le même fond que le champ qu'il
+                   accompagne, et le filet en trop faisait deux formes là où il n'y a
+                   qu'une bande. Sa pastille de compte est carrée (rayon 2). */
                 filter={
                     <button
                         type="button"
                         onClick={() => setIsFilterSheetOpen(true)}
                         aria-label="Filtrer"
-                        className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+                        className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
                     >
                         <Icon glyph={Funnel} size={20} />
                         {activeSheetFiltersCount > 0 && (
-                            <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
+                            <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-sm px-1 text-[11px] leading-[18px] font-medium tabular-nums">
                                 {activeSheetFiltersCount}
                             </span>
                         )}
                     </button>
                 }
-                facets={facets}
-                activeFacetId={roleFilter || 'tous'}
-                onFacetSelect={(id) => setRoleFilter(id === 'tous' ? '' : id)}
                 count={{ total: users.length, shown: filteredUsers.length, noun: 'personnes' }}
+                /* « Nom » suffit : la planche n'écrit pas le sens du tri sur la ligne du
+                   décompte, elle le laisse au glyphe. */
                 sort={{
-                    label: ascending ? 'Nom (A → Z)' : 'Nom (Z → A)',
+                    label: 'Nom',
                     onClick: () => setAscending((previous) => !previous),
                 }}
                 selection={{
@@ -433,11 +539,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         }
                     />
                 }
-                footer={
-                    filteredUsers.length > 0 && heldCount > 0
-                        ? `${heldCount} des ${equipment.length} actifs sont portés par ${holdersCount} personne${holdersCount > 1 ? 's' : ''}.`
-                        : undefined
-                }
+                /* Pas de pied de liste : R15 interdit la note dans l'écran, et le
+                   décompte des porteurs se lit déjà rangée par rangée. */
                 fab={
                     /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
                        copie.** Il était réécrit à la main ici et sur l'autre liste, à
@@ -463,25 +566,32 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             >
                 {filteredUsers.map((user) => {
                     const held = holdings(user);
+                    /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
+                       À défaut de site, le service prend sa place : c'est déjà la
+                       substitution que la planche dessine sur la vue « choisir un
+                       destinataire », où le site est l'en-tête du groupe. */
+                    const place = user.site || user.department || '—';
                     return (
                         <ListRow
                             key={user.id}
                             vignette={
-                                <span className="font-brand text-body-large font-semibold">
+                                <span
+                                    className={cn(
+                                        'font-brand flex h-full w-full items-center justify-center text-[15px] font-semibold',
+                                        VIGNETTE_TONE[user.role],
+                                    )}
+                                >
                                     {initials(user.name)}
                                 </span>
                             }
                             title={user.name}
-                            type={getStatusLabel(user.role)}
-                            holder={user.department || user.site || '—'}
-                            reference={
-                                held > 0
-                                    ? `${held} équipement${held > 1 ? 's' : ''}`
-                                    : 'aucun équipement'
+                            /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
+                               La charge disparaît quand elle est nulle — « aucun
+                               équipement » sur six rangées sur onze était du bruit. */
+                            holder={
+                                held > 0 ? `${place} · ${held} objet${held > 1 ? 's' : ''}` : place
                             }
-                            referenceClassName={
-                                held > 0 ? 'text-text-secondary' : 'text-text-muted'
-                            }
+                            mark={accountMark(user)}
                             onOpen={() => onUserClick?.(user.id)}
                             selectionActive={selection.isActive}
                             selected={selection.isSelected(user.id)}
@@ -498,95 +608,105 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 onClose={() => setIsFilterSheetOpen(false)}
                 title="Filtrer"
             >
-                <div className="space-y-4 px-1 pb-2">
-                    {/* Département */}
+                <div className="space-y-5 px-1 pb-2">
+                    {/* Rôle — descendu de la bande de tête : c'est la feuille qui porte
+                        désormais les trois axes de restriction (05.1). */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
+                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
+                            Rôle
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {roleOptions.map((option) => (
+                                <FilterChip
+                                    key={option.id || 'tous'}
+                                    selected={roleFilter === option.id}
+                                    count={option.count}
+                                    onClick={() => setRoleFilter(option.id)}
+                                >
+                                    {option.label}
+                                </FilterChip>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Département — la planche ne dessine pas ce groupe, mais son intro
+                        dit que le service « se filtre » depuis qu'il a quitté la rangée :
+                        le retirer supprimerait l'axe que la rangée vient de céder. */}
+                    <div>
+                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
                             Département
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {departments.map((dept) => (
-                                <button
+                                <FilterChip
                                     key={dept}
-                                    type="button"
+                                    selected={departmentFilter === dept}
                                     onClick={() => setDepartmentFilter(dept)}
-                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
-                                        departmentFilter === dept
-                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                    }`}
                                 >
                                     {dept}
-                                </button>
+                                </FilterChip>
                             ))}
                         </div>
                     </div>
 
                     {/* Site */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
+                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
                             Site
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {sites.map((s) => (
-                                <button
+                                <FilterChip
                                     key={s}
-                                    type="button"
+                                    selected={siteFilter === s}
                                     onClick={() => setSiteFilter(s)}
-                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
-                                        siteFilter === s
-                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                    }`}
                                 >
                                     {s}
-                                </button>
+                                </FilterChip>
                             ))}
                         </div>
                     </div>
 
                     {/* État du compte */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-1.5 tracking-[0.06em] uppercase">
+                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {['Tous', 'Actif', 'Invité', 'Suspendu', 'Départ prévu'].map((st) => (
-                                <button
+                                <FilterChip
                                     key={st}
-                                    type="button"
+                                    selected={statusFilter === st}
                                     onClick={() => setStatusFilter(st)}
-                                    className={`text-body-medium inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 transition-colors ${
-                                        statusFilter === st
-                                            ? 'bg-inverse-surface text-inverse-on-surface font-medium'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                    }`}
                                 >
                                     {st}
-                                </button>
+                                </FilterChip>
                             ))}
                         </div>
                     </div>
 
-                    {/* Actions de pied */}
-                    <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3.5">
+                    {/* Le pied de la feuille : deux boutons de même largeur, sans filet
+                        (`.sfoot`, grille 1fr 1fr). L'effacement porte maintenant le rôle
+                        aussi, sinon « Tout effacer » mentirait sur un axe. */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
                         <button
                             type="button"
                             onClick={() => {
+                                setRoleFilter('');
                                 setDepartmentFilter('Tous');
                                 setSiteFilter('Tous');
                                 setStatusFilter('Tous');
                             }}
-                            className="text-label-large text-on-surface hover:text-text-secondary cursor-pointer font-medium"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high flex h-12 cursor-pointer items-center justify-center rounded-md text-[16px] font-medium transition-colors"
                         >
                             Tout effacer
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="bg-inverse-surface text-inverse-on-surface text-label-large hover:bg-inverse-surface/90 flex h-12 max-w-[240px] flex-1 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex h-12 cursor-pointer items-center justify-center rounded-md text-[16px] font-medium transition-colors"
                         >
-                            Voir les {filteredUsers.length} personnes
+                            Voir {filteredUsers.length} personnes
                         </button>
                     </div>
                 </div>
@@ -598,31 +718,32 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 onClose={() => setIsAddSheetOpen(false)}
                 title="Ajouter une personne"
             >
-                <div className="space-y-2 px-1 pb-4">
+                {/* Deux rangées `.si` séparées d'un filet, pas deux blocs à survol : la
+                    planche les traite comme une liste de chemins, et leurs vignettes
+                    prennent la teinte de ce qu'elles ouvrent (bleu la saisie, vert le
+                    fichier). Les sous-titres disent le contrat d'entrée, pas la
+                    mécanique : « Une adresse, un rôle, un site. » */}
+                <div className="px-1 pb-4">
                     <button
                         type="button"
                         onClick={() => {
                             setIsAddSheetOpen(false);
                             onViewChange('add_user');
                         }}
-                        className="hover:bg-surface-container flex min-h-16 w-full cursor-pointer items-center gap-3.5 rounded-lg p-2 text-left transition-colors"
+                        className="flex min-h-16 w-full cursor-pointer items-center gap-4 py-2 text-left"
                     >
-                        <span className="bg-surface-container text-on-surface flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]">
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-body-large text-on-surface font-medium">
-                                Inviter par e-mail
+                            <p className="text-on-surface text-[17px] leading-6 font-medium">
+                                Inviter une personne
                             </p>
-                            <p className="text-label-small text-text-muted">
-                                La personne choisit son mot de passe à la première connexion.
+                            <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
+                                Une adresse, un rôle, un site.
                             </p>
                         </div>
-                        <Icon
-                            glyph={CaretDown}
-                            size={18}
-                            className="text-text-muted shrink-0 -rotate-90"
-                        />
+                        <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                     </button>
 
                     <button
@@ -631,24 +752,20 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             setIsAddSheetOpen(false);
                             onViewChange('import_users');
                         }}
-                        className="hover:bg-surface-container flex min-h-16 w-full cursor-pointer items-center gap-3.5 rounded-lg p-2 text-left transition-colors"
+                        className="border-outline-variant flex min-h-16 w-full cursor-pointer items-center gap-4 border-t py-2 text-left"
                     >
-                        <span className="bg-surface-container text-on-surface flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                            <Icon glyph={UsersThree} size={20} />
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]">
+                            <Icon glyph={FileCsv} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-body-large text-on-surface font-medium">
-                                Importer depuis l’annuaire
+                            <p className="text-on-surface text-[17px] leading-6 font-medium">
+                                Importer une équipe
                             </p>
-                            <p className="text-label-small text-text-muted">
-                                Le compte existe déjà côté entreprise : rien à saisir.
+                            <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
+                                Un fichier : Nom, E-mail, Rôle, Service.
                             </p>
                         </div>
-                        <Icon
-                            glyph={CaretDown}
-                            size={18}
-                            className="text-text-muted shrink-0 -rotate-90"
-                        />
+                        <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                     </button>
                 </div>
             </BottomSheet>
