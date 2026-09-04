@@ -40,7 +40,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 05.1 | Liste utilisateurs | `UsersPage` | **portée** (repassée à la mesure) |
 | 05.2 | Fiche d'une personne | `UserDetailsPage` | **portée** (repassée à la mesure) |
 | 05.3 | Créer un compte | `InviteSheet`, `AddUserPage`, `ImportUsersPage` | **portée** — création par invitation |
-| 06.1 | Le parcours complet | `AssignmentWizardPage`, `ReturnWizardPage` | **non porté** |
+| 06.1 | Le parcours complet | `HandoverTrail`, les deux assistants | **partiel** — le fil et l'attente sont portés ; les quatre feuilles restent |
 | 06.2 | L'attestation | `Attestation`, `PinField`, `SignaturePad` | **portée** — sauf « définir son code », qui vit en 07.1 et 02.2 |
 | 06.3 | Fins de flux | les clôtures | **non porté** |
 | 06.4 | Demander un équipement | `NewRequestPage` | **non porté** |
@@ -111,6 +111,22 @@ d'écran) touchent les 28 écrans à eux deux.
 
 **Et tout ce qui précède ne concerne que le téléphone.** 00.3 à 00.5 tiennent le rail et le
 bureau, et rien n'a été relevé de ce côté.
+
+## Ce que 06.1 demande encore
+
+La planche remplace **les deux assistants par quatre feuilles**, une par acte, posées
+sur la page d'où le geste part : l'informatique remet (fiche de l'objet), la personne
+confirme (Tâches), la personne rend (sa fiche), l'informatique réceptionne (Tâches).
+Chacune ne pose que la question restée ouverte, puis demande une attestation.
+
+Ce qui est fait : le **fil à deux lignes** (`.ack`), l'attente comme état visible avec
+son propriétaire et ses deux gestes, et la méthode d'attestation écrite sur la remise.
+
+Ce qui reste : les quatre feuilles elles-mêmes. Attention en les portant — la planche
+suppose que **le contexte fournit les deux côtés** (l'objet vient de la fiche, le
+destinataire de la demande validée). Le chemin générique — « Attribuer » depuis la
+fiche d'une personne ou depuis rien — a encore besoin d'une sélection, que la planche
+ne dessine pas. À signaler plutôt qu'à inventer.
 
 ## Ordre proposé
 

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
     ArrowCircleRight,
     ArrowUUpLeft,
+    BellRinging,
     CaretDown,
     Check,
     ClockCounterClockwise,
@@ -27,6 +28,8 @@ import { useAppNavigation } from '../../../hooks/useAppNavigation';
 
 import { RETIREMENT_REASON_LABELS, type RetirementReason } from '../../../types';
 import { getCategoryLabel } from '../../../constants/glossary';
+import HandoverTrail, { type TrailStep } from '../../../components/ui/HandoverTrail';
+import RuleGroup from '../../../components/ui/RuleGroup';
 import IncidentSheet from '../components/IncidentSheet';
 import RetireSheet from '../components/RetireSheet';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
@@ -108,9 +111,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         equipment,
         users,
         events,
+        approvals,
         updateEquipment,
         deleteEquipment,
         declareIncident,
+        remindApproval,
         confirmEquipmentReception,
         settings,
     } = useData();
@@ -194,11 +199,17 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     /* Qui peut confirmer une réception : celui qui reçoit, son manager, ou un
        gestionnaire. Même règle que `confirmEquipmentReception` dans le store — lue
        ici pour ne pas offrir un geste qui serait refusé après le tap. Lot 7, S2. */
-    const canConfirmReception =
+    /**
+     * **Qui confirme, et qui relance** (06.1). La confirmation appartient à celui qui
+     * reçoit — ou à son manager, qui répond de lui. Un gestionnaire de parc qui n'est
+     * ni l'un ni l'autre **n'atteste pas à la place d'un tiers** : il relance, ou il
+     * reprend l'objet. Le store l'autorise à confirmer (il peut avoir la personne en
+     * face de lui), mais le héro ne lui propose plus de le faire à l'aveugle.
+     */
+    const isReceivingParty =
         (!!currentUser &&
             (item.user?.id === currentUser.id || item.user?.email === currentUser.email)) ||
-        (!!currentUser && !!holder && holder.managerId === currentUser.id) ||
-        permissions.canManageInventory;
+        (!!currentUser && !!holder && holder.managerId === currentUser.id);
 
     // ---- les trois qualifiants du voile (R3) -----------------------------------
     const purchaseDate = item.financial?.purchaseDate;
@@ -283,6 +294,63 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     const handleDeclareIncident = () => setIsIncidentSheetOpen(true);
 
+    /**
+     * **Relancer** — la même honnêteté que sur « À suivre » (03.3) : le produit
+     * n'envoie rien, il **date l'insistance**. Quand une demande porte l'objet, c'est
+     * elle qu'on relance, et le journal la garde ; sans demande — une remise directe
+     * — il n'y a rien à dater, et le dire vaut mieux qu'un accusé sans destinataire.
+     */
+    const handleRemindHolder = () => {
+        const linked = approvals.find(
+            (approval) =>
+                approval.assignedEquipmentId === item.id && approval.status === 'PENDING_DELIVERY',
+        );
+        if (!linked) {
+            showToast(
+                'Remise directe : aucune demande à relancer. Prévenez la personne de vive voix.',
+                'info',
+            );
+            return;
+        }
+        const decision = remindApproval(linked.id);
+        showToast(
+            decision.allowed
+                ? `${item.user?.name || 'La personne'} est relancée — la date est au journal.`
+                : decision.reason || 'Relance impossible.',
+            decision.allowed ? 'success' : 'error',
+        );
+    };
+
+    /**
+     * **Annuler la remise** — l'objet revient disponible et personne n'en répond plus.
+     * C'est l'inverse exact du geste de remise, et il laisse sa trace : une remise
+     * annulée n'est pas une remise qui n'a pas eu lieu.
+     */
+    const handleCancelHandover = () => {
+        requestConfirmation({
+            title: `Annuler la remise de ${item.name} ?`,
+            message: (
+                <>
+                    L’objet redevient{' '}
+                    <strong className="text-on-surface font-medium">disponible</strong> et sort de
+                    la file de {item.user?.name || 'la personne'}. L’attestation déjà donnée reste
+                    au journal.
+                </>
+            ),
+            confirmText: 'Annuler la remise',
+            onConfirm: () => {
+                updateEquipment(item.id, {
+                    status: 'Disponible',
+                    assignmentStatus: 'NONE',
+                    user: null,
+                    assignedAt: undefined,
+                    handoverProof: undefined,
+                });
+                showToast('Remise annulée. L’objet est de nouveau disponible.', 'success');
+            },
+        });
+    };
+
     const handleTakeCharge = () => {
         showToast('Prise en charge de l’intervention enregistrée.', 'info');
     };
@@ -336,6 +404,52 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         showToast('La sortie du parc a échoué.', 'error');
     };
 
+    /**
+     * **Les deux lignes d'un passage de main en cours** (06.1). Elles se lisent sur
+     * l'objet lui-même — qui a remis, quand, par quelle méthode ; qui doit confirmer,
+     * et depuis combien de temps. Rien n'est déduit : ce que la fiche ne porte pas
+     * n'est pas affiché.
+     */
+    const handoverTrail: TrailStep[] | null = (() => {
+        if (item.assignmentStatus !== 'PENDING_DELIVERY' || !item.user?.name) return null;
+
+        const handedAt = item.assignedAt ? new Date(item.assignedAt) : undefined;
+        const waitingDays = handedAt
+            ? Math.floor((Date.now() - handedAt.getTime()) / 86400000)
+            : undefined;
+
+        return [
+            {
+                state: 'done',
+                title: `${item.assignedByName || 'L’informatique'} atteste avoir remis`,
+                detail: [
+                    handedAt
+                        ? handedAt.toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                          })
+                        : undefined,
+                    item.handoverProof,
+                ]
+                    .filter(Boolean)
+                    .join(' · '),
+            },
+            {
+                /* Ambre passé trois jours : l'attente cesse d'être normale et le dit
+                   d'elle-même, sans qu'on ait à comparer deux dates de tête. */
+                state: typeof waitingDays === 'number' && waitingDays >= 3 ? 'late' : 'wait',
+                title:
+                    typeof waitingDays === 'number' && waitingDays >= 3
+                        ? `${item.user.name} n’a pas confirmé`
+                        : `${item.user.name} doit confirmer la réception`,
+                detail:
+                    typeof waitingDays === 'number' && waitingDays > 0
+                        ? `dans sa file depuis ${waitingDays} jour${waitingDays > 1 ? 's' : ''}`
+                        : 'c’est ce qui reste',
+            },
+        ];
+    })();
+
     /** Le geste primaire **suit l'état** — c'est la règle du héro (04.2). */
     const primaryAction = (() => {
         /* Une réception en attente passe **avant** la branche du porteur : le
@@ -345,7 +459,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
            moitié UI du défaut que le lot 7 corrige côté écriture (§9.0/D15).
            La confirmation passe par l'écriture unique du store, qui synchronise
            l'approbation liée que la fiche oubliait. Lot 7, S2. */
-        if (item.assignmentStatus === 'PENDING_DELIVERY' && canConfirmReception) {
+        if (item.assignmentStatus === 'PENDING_DELIVERY' && isReceivingParty) {
             return (
                 <Button
                     variant="filled"
@@ -363,6 +477,27 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 >
                     Confirmer la réception
                 </Button>
+            );
+        }
+
+        /* **Une remise en attente donne deux gestes au gestionnaire** (06.1,
+           colonne 5) : relancer celui qui doit confirmer, ou reprendre l'objet.
+           L'attente n'était qu'un mot dans le héro — on la constatait sans pouvoir
+           rien en faire, et l'objet restait ainsi des semaines. */
+        if (item.assignmentStatus === 'PENDING_DELIVERY' && permissions.canManageInventory) {
+            return (
+                <div className="grid w-full grid-cols-2 gap-3">
+                    <Button
+                        variant="filled"
+                        icon={<Icon glyph={BellRinging} size={20} />}
+                        onClick={handleRemindHolder}
+                    >
+                        Relancer
+                    </Button>
+                    <Button variant="tonal" onClick={handleCancelHandover}>
+                        Annuler la remise
+                    </Button>
+                </div>
             );
         }
 
@@ -721,6 +856,21 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             </>
                         )}
                     </section>
+                )}
+
+                {/*
+                  **« Où en est la remise »** — planche 06.1, colonne 5.
+
+                  *« Entre deux attestations, l'objet est en attente : un état visible
+                  avec un propriétaire, pas une erreur. »* La fiche disait « En
+                  attente » et rien d'autre — ni de qui on attend, ni depuis quand, ni
+                  par quelle méthode le premier geste a été attesté. Le lecteur ne
+                  pouvait donc ni relancer, ni comprendre.
+                */}
+                {handoverTrail && (
+                    <RuleGroup header="Où en est la remise">
+                        <HandoverTrail steps={handoverTrail} />
+                    </RuleGroup>
                 )}
 
                 {permissions.canManageInventory && (

@@ -271,6 +271,8 @@ const AssignmentWizardPage: React.FC<{
                         assignmentStatus: 'PENDING_DELIVERY',
                         assignedAt: new Date().toISOString(),
                         assignedBy: adminUser?.id,
+                        assignedByName: adminUser?.name,
+                        handoverProof: validatedBy === 'pin' ? 'code PIN' : 'signature',
                         user: {
                             id: selectedUser.id,
                             name: selectedUser.name,
@@ -321,6 +323,7 @@ const AssignmentWizardPage: React.FC<{
                     assignedAt: new Date().toISOString(),
                     assignedBy: adminUser?.id || '1',
                     assignedByName: adminUser?.name || 'Admin',
+                    handoverProof: validatedBy === 'pin' ? 'code PIN' : 'signature',
                     user: {
                         id: selectedUser.id,
                         name: selectedUser.name,
