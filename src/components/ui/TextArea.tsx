@@ -85,19 +85,25 @@ export const TextArea: React.FC<TextAreaProps> = ({
                 aria-required={resolvedAriaRequired}
                 aria-describedby={resolvedAriaDescribedBy}
                 className={cn(
-                    'min-h-24 w-full px-4 py-3',
+                    /*
+                     * `.free` de 04.3 — **96 de haut, sur le creux**, intérieur
+                     * `12 / 14`, 16 sur 24, l'invite en encre tertiaire. Ici encore
+                     * les deux branches de `variant` étaient **identiques** : le
+                     * rempli n'existait pas, exactement comme sur `InputField`.
+                     */
+                    'min-h-24 w-full px-3.5 py-3',
                     'focus:outline-none',
                     'duration-short4 ease-emphasized resize-none transition-[color,background-color,border-color,box-shadow]',
-                    'text-on-surface text-body-medium',
-                    'placeholder:text-on-surface-variant',
+                    'text-on-surface text-[16px] leading-6',
+                    'placeholder:text-text-tertiary',
                     'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
                     variant === 'filled'
                         ? cn(
-                              'bg-surface rounded-md border',
+                              'bg-surface-container rounded-md border-0',
                               error
-                                  ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-2'
-                                  : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-focus-ring focus:ring-2',
-                              'disabled:bg-on-surface/[0.04] disabled:border-on-surface/[0.12]',
+                                  ? 'ring-error focus:ring-error ring-2 focus:ring-2'
+                                  : 'focus:ring-focus-ring focus:ring-2',
+                              'disabled:bg-on-surface/[0.04]',
                           )
                         : cn(
                               'bg-surface rounded-md border',

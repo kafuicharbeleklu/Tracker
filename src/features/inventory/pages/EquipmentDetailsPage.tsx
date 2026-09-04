@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     ArrowCircleRight,
     ArrowUUpLeft,
@@ -14,7 +14,6 @@ import {
     Package,
     ShieldCheck,
     ShieldWarning,
-    User,
     Warning,
     Wrench,
     type Icon as PhosphorGlyph,
@@ -26,14 +25,13 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 
+import { RETIREMENT_REASON_LABELS, type RetirementReason } from '../../../types';
 import { getCategoryLabel } from '../../../constants/glossary';
+import IncidentSheet from '../components/IncidentSheet';
+import RetireSheet from '../components/RetireSheet';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
-import TintedTile, {
-    TintedTileRow,
-    type TintedTileTone,
-} from '../../../components/ui/TintedTile';
-import DetailHero, {
-} from '../../../components/ui/DetailHero';
+import TintedTile, { TintedTileRow, type TintedTileTone } from '../../../components/ui/TintedTile';
+import DetailHero from '../../../components/ui/DetailHero';
 import ReferenceRow from '../../../components/ui/ReferenceRow';
 import ProportionRow from '../../../components/ui/ProportionRow';
 import Button from '../../../components/ui/Button';
@@ -106,14 +104,28 @@ const formatDate = (value?: string) =>
         : 'N/A';
 
 const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId, onBack }) => {
-    const { equipment, users, events, updateEquipment, deleteEquipment, confirmEquipmentReception, settings } =
-        useData();
+    const {
+        equipment,
+        users,
+        events,
+        updateEquipment,
+        deleteEquipment,
+        declareIncident,
+        confirmEquipmentReception,
+        settings,
+    } = useData();
     const { showToast } = useToast();
     const { permissions, user: currentUser } = useAccessControl();
     const { navigate } = useAppNavigation();
     const { requestConfirmation } = useConfirmation();
 
     const item = equipment.find((entry) => entry.id === equipmentId);
+
+    /* Les deux feuilles d'acte de 04.3 (colonnes 3 et 4). Elles remplacent deux
+       confirmations : l'une passait l'objet en réparation sans rien demander, l'autre
+       demandait de taper « SUPPRIMER » sans jamais demander pourquoi. */
+    const [isIncidentSheetOpen, setIsIncidentSheetOpen] = useState(false);
+    const [isRetireSheetOpen, setIsRetireSheetOpen] = useState(false);
 
     const financialStats = useMemo(() => {
         if (!item?.financial) return null;
@@ -269,26 +281,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             `/wizards/assignment?context=equipment_details&equipmentId=${encodeURIComponent(item.id)}`,
         );
 
-    const handleDeclareIncident = () => {
-        requestConfirmation({
-            title: `Déclarer un incident sur ${item.name} ?`,
-            message: (
-                <>
-                    L’équipement passera en statut{' '}
-                    <strong className="text-on-surface font-medium">En réparation</strong> et une
-                    tâche de maintenance sera ouverte.
-                </>
-            ),
-            confirmText: 'Déclarer l’incident',
-            onConfirm: () => {
-                updateEquipment(item.id, {
-                    status: 'En réparation',
-                    repairStartDate: new Date().toISOString(),
-                });
-                showToast('Incident déclaré. L’équipement est passé en réparation.', 'info');
-            },
-        });
-    };
+    const handleDeclareIncident = () => setIsIncidentSheetOpen(true);
 
     const handleTakeCharge = () => {
         showToast('Prise en charge de l’intervention enregistrée.', 'info');
@@ -327,43 +320,20 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             return;
         }
 
-        requestConfirmation({
-            title: `Sortir ${item.name} du parc ?`,
-            message: (
-                <>
-                    L’équipement disparaît de l’inventaire et des rapports.{' '}
-                    <strong className="text-on-surface font-medium">
-                        Son historique est conservé
-                    </strong>{' '}
-                    et restera consultable depuis le journal d’audit.
-                </>
-            ),
-            tone: 'destructive',
-            irreversible: true,
-            confirmText: 'Sortir du parc',
-            confirmKeyword: 'SUPPRIMER',
-            details: [
-                ...(holder ? [{ icon: User, label: 'Détenu par', value: holder.name }] : []),
-                ...(financialStats
-                    ? [
-                          {
-                              icon: ShieldWarning,
-                              label: 'Valeur résiduelle',
-                              value: formatCurrency(financialStats.currentValue, settings.currency),
-                          },
-                      ]
-                    : []),
-            ],
-            onConfirm: () => {
-                if (deleteEquipment(item.id)) {
-                    showToast(`${item.name} est sorti du parc.`, 'success');
-                    if (isDemoSeedEquipment(item.id)) showToast(DEMO_RESEED_NOTICE, 'info');
-                    onBack();
-                    return;
-                }
-                showToast('La sortie du parc a échoué.', 'error');
-            },
-        });
+        setIsRetireSheetOpen(true);
+    };
+
+    const handleRetireConfirmed = (reason: RetirementReason) => {
+        if (deleteEquipment(item.id, reason)) {
+            showToast(
+                `${item.name} est sorti du parc — ${RETIREMENT_REASON_LABELS[reason]}.`,
+                'success',
+            );
+            if (isDemoSeedEquipment(item.id)) showToast(DEMO_RESEED_NOTICE, 'info');
+            onBack();
+            return;
+        }
+        showToast('La sortie du parc a échoué.', 'error');
     };
 
     /** Le geste primaire **suit l'état** — c'est la règle du héro (04.2). */
@@ -411,7 +381,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         variant="tonal"
                         className="w-full"
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
-                        onClick={() => navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)}
+                        onClick={() =>
+                            navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)
+                        }
                     >
                         Restituer
                     </Button>
@@ -437,7 +409,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     variant="filled"
                     className="w-full"
                     icon={<Icon glyph={ArrowUUpLeft} size={20} />}
-                    onClick={() => navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)}
+                    onClick={() =>
+                        navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)
+                    }
                 >
                     Restituer
                 </Button>
@@ -517,283 +491,342 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             : null;
 
     return (
-        <DetailTemplate
-            code={item.name}
-            reference={item.assetId}
-            onBack={onBack}
-            menu={
-                menuItems.length > 0 ? (
-                    <Menu
-                        align="end"
-                        items={menuItems}
-                        trigger={
-                            <Button variant="text" iconOnly aria-label="Autres actions">
-                                <Icon glyph={DotsThreeVertical} />
-                            </Button>
-                        }
-                    />
-                ) : undefined
-            }
-            hero={
-                <DetailHero
-                    status={{
-                        icon: status.icon,
-                        label: status.label,
-                        tone: statusHeroTone(status.tone),
-                    }}
-                    /* Le site rejoint l'étiquette — « Ordinateur portable · Bureau Paris » —
+        <>
+            <DetailTemplate
+                code={item.name}
+                reference={item.assetId}
+                onBack={onBack}
+                menu={
+                    menuItems.length > 0 ? (
+                        <Menu
+                            align="end"
+                            items={menuItems}
+                            trigger={
+                                <Button variant="text" iconOnly aria-label="Autres actions">
+                                    <Icon glyph={DotsThreeVertical} />
+                                </Button>
+                            }
+                        />
+                    ) : undefined
+                }
+                hero={
+                    <DetailHero
+                        status={{
+                            icon: status.icon,
+                            label: status.label,
+                            tone: statusHeroTone(status.tone),
+                        }}
+                        /* Le site rejoint l'étiquette — « Ordinateur portable · Bureau Paris » —
                        au lieu d'occuper une rangée de fait à lui seul (planche 04.2, `.ty`). */
-                    label={
-                        item.site
-                            ? `${getCategoryLabel(item.type)} · ${item.site}`
-                            : getCategoryLabel(item.type)
-                    }
-                    subject={item.model || item.name}
-                    image={item.image || undefined}
-                    relation={
-                        item.status === 'En réparation'
-                            ? {
-                                  vignette: <Icon glyph={Wrench} size={20} />,
-                                  title: item.repairReason || 'En réparation',
-                                  detail: `signalé le ${formatDate(item.repairStartDate || item.updatedAt)} · en atelier`,
-                              }
-                            : item.assignmentStatus === 'PENDING_DELIVERY' && holder
-                              ? {
-                                    vignette: initials(holder.name),
-                                    title: `En attente de ${holder.name}`,
-                                    detail: 'attribué, réception non confirmée',
-                                    onOpen: () => navigate(`/users/${holder.id}`),
-                                }
-                              : holder
+                        label={
+                            item.site
+                                ? `${getCategoryLabel(item.type)} · ${item.site}`
+                                : getCategoryLabel(item.type)
+                        }
+                        subject={item.model || item.name}
+                        image={item.image || undefined}
+                        relation={
+                            item.status === 'En réparation'
                                 ? {
-                                      vignette: initials(holder.name),
-                                      title: holder.name,
-                                      /* Le porteur peut être suspendu ou sur le départ : le
+                                      vignette: <Icon glyph={Wrench} size={20} />,
+                                      title: item.repairReason || 'En réparation',
+                                      detail: `signalé le ${formatDate(item.repairStartDate || item.updatedAt)} · en atelier`,
+                                  }
+                                : item.assignmentStatus === 'PENDING_DELIVERY' && holder
+                                  ? {
+                                        vignette: initials(holder.name),
+                                        title: `En attente de ${holder.name}`,
+                                        detail: 'attribué, réception non confirmée',
+                                        onOpen: () => navigate(`/users/${holder.id}`),
+                                    }
+                                  : holder
+                                    ? {
+                                          vignette: initials(holder.name),
+                                          title: holder.name,
+                                          /* Le porteur peut être suspendu ou sur le départ : le
                                          signal posé par `updateUser` se lit ici, sous la
                                          rangée du porteur. Planche 04.2, réglage « Porteur »
                                          — lot 2, D7. */
-                                      detail: (
-                                          <>
-                                              {item.confirmedAt
-                                                  ? `porteur depuis le ${formatDate(item.confirmedAt)} · réception confirmée`
-                                                  : 'réception non confirmée'}
-                                              {item.holderAlert && (
-                                                  <span className="mt-0.5 flex items-center gap-1.5 text-[12px] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
-                                                      <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
-                                                      {item.holderAlert.kind === 'suspended'
-                                                          ? `À récupérer — porteur suspendu le ${formatDate(item.holderAlert.since)}`
-                                                          : `À récupérer avant son départ le ${formatDate(item.holderAlert.until)}`}
-                                                  </span>
-                                              )}
-                                          </>
-                                      ),
-                                      onOpen: () => navigate(`/users/${holder.id}`),
-                                  }
-                                : {
-                                      vignette: <Icon glyph={Package} size={20} />,
-                                      title: 'Non attribué',
-                                      detail: item.site ? `en stock au ${item.site}` : 'en stock',
-                                  }
-                    }
-                    actions={primaryAction}
-                />
-            }
-            aside={
-                tiles.length > 0 ? (
-                    <TintedTileRow>
-                        {tiles.map((tile) => (
-                            <TintedTile
-                                key={tile.key}
-                                tone={tile.tone}
-                                glyph={tile.glyph}
-                                value={tile.value}
-                                label={tile.label}
-                                wide={tile.wide}
-                            />
-                        ))}
-                    </TintedTileRow>
-                ) : undefined
-            }
-        >
-            <section className="rounded-card bg-surface p-4">
-                <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                    <Icon glyph={Laptop} size={18} className="text-on-surface-variant" />
-                    Référence technique
-                </p>
-                <div className="mt-3">
-                    {/* Le numéro de série passe en premier, et il est copiable : c'est le
-                        seul champ qu'on lit à voix haute au téléphone avec le support. */}
-                    <ReferenceRow
-                        label="Numéro de série"
-                        value={item.serialNumber || '—'}
-                        copyable={Boolean(item.serialNumber)}
+                                          detail: (
+                                              <>
+                                                  {item.confirmedAt
+                                                      ? `porteur depuis le ${formatDate(item.confirmedAt)} · réception confirmée`
+                                                      : 'réception non confirmée'}
+                                                  {item.holderAlert && (
+                                                      <span className="mt-0.5 flex items-center gap-1.5 text-[12px] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
+                                                          <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
+                                                          {item.holderAlert.kind === 'suspended'
+                                                              ? `À récupérer — porteur suspendu le ${formatDate(item.holderAlert.since)}`
+                                                              : `À récupérer avant son départ le ${formatDate(item.holderAlert.until)}`}
+                                                      </span>
+                                                  )}
+                                              </>
+                                          ),
+                                          onOpen: () => navigate(`/users/${holder.id}`),
+                                      }
+                                    : {
+                                          vignette: <Icon glyph={Package} size={20} />,
+                                          title: 'Non attribué',
+                                          detail: item.site
+                                              ? `en stock au ${item.site}`
+                                              : 'en stock',
+                                      }
+                        }
+                        actions={primaryAction}
                     />
-                    <ReferenceRow label="Modèle" value={item.model || '—'} quiet={!item.model} />
-                    <ReferenceRow label="Mémoire" value={item.ram || '—'} quiet={!item.ram} />
-                    <ReferenceRow
-                        label="Stockage"
-                        value={item.storage || '—'}
-                        quiet={!item.storage}
-                    />
-                    <ReferenceRow label="Système" value={item.os || '—'} quiet={!item.os} />
-                    {item.lastReturnCondition && (
-                        <ReferenceRow label="Réserve d’usage" value={item.lastReturnCondition} />
-                    )}
-                </div>
-            </section>
-
-            {(warrantyPercent !== null || (financialStats && permissions.canManageInventory)) && (
+                }
+                aside={
+                    tiles.length > 0 ? (
+                        <TintedTileRow>
+                            {tiles.map((tile) => (
+                                <TintedTile
+                                    key={tile.key}
+                                    tone={tile.tone}
+                                    glyph={tile.glyph}
+                                    value={tile.value}
+                                    label={tile.label}
+                                    wide={tile.wide}
+                                />
+                            ))}
+                        </TintedTileRow>
+                    ) : undefined
+                }
+            >
                 <section className="rounded-card bg-surface p-4">
                     <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                        <Icon glyph={ShieldWarning} size={18} className="text-on-surface-variant" />
-                        {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
+                        <Icon glyph={Laptop} size={18} className="text-on-surface-variant" />
+                        Référence technique
                     </p>
-
-                    {warrantyPercent !== null && (
-                        <ProportionRow
-                            value={`${Math.round(warrantyPercent)} %`}
-                            label="de la garantie écoulée"
-                            percent={warrantyPercent}
-                            tone={warrantyPercent < 100 ? 'positive' : 'neutral'}
-                            note={
-                                warrantyPercent < 100 ? (
-                                    <>
-                                        Toute réparation est{' '}
-                                        <strong className="text-on-surface font-medium">
-                                            prise en charge par le fournisseur
-                                        </strong>{' '}
-                                        jusqu’au{' '}
-                                        <strong className="text-on-surface font-medium">
-                                            {formatDate(item.warrantyEnd)}
-                                        </strong>
-                                        .
-                                    </>
-                                ) : (
-                                    <>
-                                        La garantie a expiré le {formatDate(item.warrantyEnd)} : une
-                                        réparation s’impute désormais sur le budget du service.
-                                    </>
-                                )
-                            }
+                    <div className="mt-3">
+                        {/* Le numéro de série passe en premier, et il est copiable : c'est le
+                        seul champ qu'on lit à voix haute au téléphone avec le support. */}
+                        <ReferenceRow
+                            label="Numéro de série"
+                            value={item.serialNumber || '—'}
+                            copyable={Boolean(item.serialNumber)}
                         />
-                    )}
+                        <ReferenceRow
+                            label="Modèle"
+                            value={item.model || '—'}
+                            quiet={!item.model}
+                        />
+                        <ReferenceRow label="Mémoire" value={item.ram || '—'} quiet={!item.ram} />
+                        <ReferenceRow
+                            label="Stockage"
+                            value={item.storage || '—'}
+                            quiet={!item.storage}
+                        />
+                        <ReferenceRow label="Système" value={item.os || '—'} quiet={!item.os} />
+                        {item.lastReturnCondition && (
+                            <ReferenceRow
+                                label="Réserve d’usage"
+                                value={item.lastReturnCondition}
+                            />
+                        )}
+                    </div>
+                </section>
 
-                    {financialStats && item.financial && permissions.canManageInventory && (
-                        <>
+                {(warrantyPercent !== null ||
+                    (financialStats && permissions.canManageInventory)) && (
+                    <section className="rounded-card bg-surface p-4">
+                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
+                            <Icon
+                                glyph={ShieldWarning}
+                                size={18}
+                                className="text-on-surface-variant"
+                            />
+                            {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
+                        </p>
+
+                        {warrantyPercent !== null && (
                             <ProportionRow
-                                className={
-                                    warrantyPercent !== null
-                                        ? 'border-outline-variant mt-4 border-t pt-1'
-                                        : undefined
-                                }
-                                value={`${Math.round(financialStats.progressPercent)} %`}
-                                label={`de la valeur amortie — ${formatCurrency(
-                                    financialStats.currentValue,
-                                    settings.currency,
-                                )} restent à amortir`}
-                                percent={financialStats.progressPercent}
-                                tone={financialStats.progressPercent > 80 ? 'attention' : 'neutral'}
+                                value={`${Math.round(warrantyPercent)} %`}
+                                label="de la garantie écoulée"
+                                percent={warrantyPercent}
+                                tone={warrantyPercent < 100 ? 'positive' : 'neutral'}
                                 note={
-                                    financialStats.progressPercent > 80 ? (
-                                        <strong className="text-on-surface font-medium">
-                                            À renouveler cette année.
-                                        </strong>
+                                    warrantyPercent < 100 ? (
+                                        <>
+                                            Toute réparation est{' '}
+                                            <strong className="text-on-surface font-medium">
+                                                prise en charge par le fournisseur
+                                            </strong>{' '}
+                                            jusqu’au{' '}
+                                            <strong className="text-on-surface font-medium">
+                                                {formatDate(item.warrantyEnd)}
+                                            </strong>
+                                            .
+                                        </>
                                     ) : (
                                         <>
-                                            Renouvellement à prévoir pour{' '}
-                                            <strong className="text-on-surface font-medium">
-                                                {new Date(
-                                                    item.financial.purchaseDate,
-                                                ).getFullYear() + item.financial.depreciationYears}
-                                            </strong>
-                                            , fin d’amortissement.
+                                            La garantie a expiré le {formatDate(item.warrantyEnd)} :
+                                            une réparation s’impute désormais sur le budget du
+                                            service.
                                         </>
                                     )
                                 }
-                                source="Amortissement issu du paramétrage par catégorie, pas d’une réévaluation."
                             />
-                            <Button
-                                variant="text"
-                                className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
-                                onClick={() => navigate('/finance')}
-                            >
-                                <span>Prix d’achat et amortissement</span>
-                                <span className="text-body-medium text-text-secondary ml-auto font-normal">
-                                    dans Finances
-                                </span>
-                                <Icon glyph={CaretDown} size={18} className="-rotate-90" />
-                            </Button>
-                        </>
-                    )}
-                </section>
-            )}
+                        )}
 
-            {permissions.canManageInventory && (
-                <section className="rounded-card bg-surface p-4">
-                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                        <Icon
-                            glyph={ClockCounterClockwise}
-                            size={18}
-                            className="text-on-surface-variant"
-                        />
-                        Historique
-                    </p>
-                    {history.length > 0 ? (
-                        <>
-                            <div className="mt-3">
-                                {history.map((event) => (
-                                    <ReferenceRow
-                                        key={event.id}
-                                        label={event.title}
-                                        value={event.date}
-                                        quiet
-                                    />
-                                ))}
-                            </div>
-                            <Button
-                                variant="text"
-                                className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
-                                onClick={() => navigate('/audit/overview')}
-                            >
-                                <span>
-                                    {history.length > 0
-                                        ? `Les ${history.length} événements`
-                                        : 'Tout l’historique'}
-                                </span>
-                                <span className="text-body-medium text-text-secondary ml-auto font-normal">
-                                    dans Audit
-                                </span>
-                                <Icon glyph={CaretDown} size={18} className="-rotate-90" />
-                            </Button>
-                        </>
-                    ) : (
-                        <p className="text-body-medium text-text-secondary mt-3">
-                            Aucun mouvement enregistré pour cet équipement.
+                        {financialStats && item.financial && permissions.canManageInventory && (
+                            <>
+                                <ProportionRow
+                                    className={
+                                        warrantyPercent !== null
+                                            ? 'border-outline-variant mt-4 border-t pt-1'
+                                            : undefined
+                                    }
+                                    value={`${Math.round(financialStats.progressPercent)} %`}
+                                    label={`de la valeur amortie — ${formatCurrency(
+                                        financialStats.currentValue,
+                                        settings.currency,
+                                    )} restent à amortir`}
+                                    percent={financialStats.progressPercent}
+                                    tone={
+                                        financialStats.progressPercent > 80
+                                            ? 'attention'
+                                            : 'neutral'
+                                    }
+                                    note={
+                                        financialStats.progressPercent > 80 ? (
+                                            <strong className="text-on-surface font-medium">
+                                                À renouveler cette année.
+                                            </strong>
+                                        ) : (
+                                            <>
+                                                Renouvellement à prévoir pour{' '}
+                                                <strong className="text-on-surface font-medium">
+                                                    {new Date(
+                                                        item.financial.purchaseDate,
+                                                    ).getFullYear() +
+                                                        item.financial.depreciationYears}
+                                                </strong>
+                                                , fin d’amortissement.
+                                            </>
+                                        )
+                                    }
+                                    source="Amortissement issu du paramétrage par catégorie, pas d’une réévaluation."
+                                />
+                                <Button
+                                    variant="text"
+                                    className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
+                                    onClick={() => navigate('/finance')}
+                                >
+                                    <span>Prix d’achat et amortissement</span>
+                                    <span className="text-body-medium text-text-secondary ml-auto font-normal">
+                                        dans Finances
+                                    </span>
+                                    <Icon glyph={CaretDown} size={18} className="-rotate-90" />
+                                </Button>
+                            </>
+                        )}
+                    </section>
+                )}
+
+                {permissions.canManageInventory && (
+                    <section className="rounded-card bg-surface p-4">
+                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
+                            <Icon
+                                glyph={ClockCounterClockwise}
+                                size={18}
+                                className="text-on-surface-variant"
+                            />
+                            Historique
                         </p>
-                    )}
-                </section>
-            )}
+                        {history.length > 0 ? (
+                            <>
+                                <div className="mt-3">
+                                    {history.map((event) => (
+                                        <ReferenceRow
+                                            key={event.id}
+                                            label={event.title}
+                                            value={event.date}
+                                            quiet
+                                        />
+                                    ))}
+                                </div>
+                                <Button
+                                    variant="text"
+                                    className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
+                                    onClick={() => navigate('/audit/overview')}
+                                >
+                                    <span>
+                                        {history.length > 0
+                                            ? `Les ${history.length} événements`
+                                            : 'Tout l’historique'}
+                                    </span>
+                                    <span className="text-body-medium text-text-secondary ml-auto font-normal">
+                                        dans Audit
+                                    </span>
+                                    <Icon glyph={CaretDown} size={18} className="-rotate-90" />
+                                </Button>
+                            </>
+                        ) : (
+                            <p className="text-body-medium text-text-secondary mt-3">
+                                Aucun mouvement enregistré pour cet équipement.
+                            </p>
+                        )}
+                    </section>
+                )}
 
-            {item.documents && item.documents.length > 0 && (
-                <section className="rounded-card bg-surface p-4">
-                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                        <Icon glyph={FileText} size={18} className="text-on-surface-variant" />
-                        Documents
-                        <DemoBadge className="ml-auto" />
-                    </p>
-                    <div className="mt-3">
-                        {item.documents.map((document) => (
-                            <ReferenceRow
-                                key={document.id}
-                                label={document.name}
-                                value={`${document.type}${document.size ? ` · ${document.size}` : ''}`}
-                                quiet
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-        </DetailTemplate>
+                {item.documents && item.documents.length > 0 && (
+                    <section className="rounded-card bg-surface p-4">
+                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
+                            <Icon glyph={FileText} size={18} className="text-on-surface-variant" />
+                            Documents
+                            <DemoBadge className="ml-auto" />
+                        </p>
+                        <div className="mt-3">
+                            {item.documents.map((document) => (
+                                <ReferenceRow
+                                    key={document.id}
+                                    label={document.name}
+                                    value={`${document.type}${document.size ? ` · ${document.size}` : ''}`}
+                                    quiet
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </DetailTemplate>
+
+            {/* Les deux feuilles d'acte de 04.3. Elles se montent **hors du gabarit** :
+            une feuille est une couche de l'écran, pas une section de la fiche. */}
+            <IncidentSheet
+                open={isIncidentSheetOpen}
+                item={item}
+                declarerName={currentUser?.name || 'un gestionnaire'}
+                onClose={() => setIsIncidentSheetOpen(false)}
+                onDeclare={(payload) => {
+                    const decision = declareIncident(item.id, payload);
+                    if (!decision.allowed) {
+                        showToast(decision.reason || 'Déclaration refusée.', 'error');
+                        return;
+                    }
+                    showToast(
+                        payload.outcome === 'serves'
+                            ? 'Incident déclaré. L’objet reste chez son porteur.'
+                            : payload.outcome === 'immobilised'
+                              ? 'Incident déclaré. L’équipement est passé en réparation.'
+                              : 'Incident déclaré. L’équipement est hors service.',
+                        'info',
+                    );
+                }}
+            />
+
+            <RetireSheet
+                open={isRetireSheetOpen}
+                item={item}
+                historyCount={events.filter((event) => event.targetId === item.id).length}
+                residualValue={
+                    financialStats
+                        ? formatCurrency(financialStats.currentValue, settings.currency)
+                        : undefined
+                }
+                onClose={() => setIsRetireSheetOpen(false)}
+                onRetire={handleRetireConfirmed}
+            />
+        </>
     );
 };
 

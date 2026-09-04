@@ -7,7 +7,7 @@ import ReferentialImportTemplate, {
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
-import { nextInternalCode, proposeReadableId } from '../lib/assetCode';
+import { deducedAssetName, nextInternalCode, proposeReadableId } from '../lib/assetCode';
 
 interface ImportEquipmentPageProps {
     onCancel: () => void;
@@ -20,8 +20,14 @@ interface EquipmentDraft {
     serial: string;
     country: string;
     site: string;
+    ram: string;
+    storage: string;
+    os: string;
+    supplier: string;
     purchaseDate: string;
     purchasePrice: number;
+    warrantyEnd: string;
+    notes: string;
 }
 
 /**
@@ -53,6 +59,22 @@ interface EquipmentDraft {
  * porte le type, la marque et la durée d'amortissement. Les **deux codes** ne se
  * lisent pas dans le fichier : l'identifiant lisible et le code interne sont
  * **générés**, par les mêmes règles que la saisie d'une fiche.
+ *
+ * ## Ce que la passe du 03/09 change au contrat
+ *
+ * *« Les quatre premières sont requises. »* Le pays et l'emplacement passent de
+ * facultatifs à **requis**, et ce n'est pas un durcissement de goût : l'identifiant se
+ * déduit désormais du **code du pays** et du numéro de série, et une ligne sans pays
+ * ne peut plus produire d'identifiant. La règle de composition entraîne le contrat.
+ *
+ * Huit colonnes facultatives s'ajoutent — la configuration, l'achat, la garantie, la
+ * réserve — parce que la fiche les affiche : *« la fiche de saisie porte exactement ce
+ * que la fiche de détail affiche »*, et l'import écrit la même fiche.
+ *
+ * **Le dessin de l'écran reste celui de 09.2**, le gabarit d'import partagé par les
+ * trois écrans qui importent. 04.3 colonne 2 dessine deux cartes à tuile teintée, une
+ * barre de progression et un pied jaune pleine largeur ; les reprendre ici seul
+ * ferait diverger les trois imports. À arbitrer en portant 09.2.
  */
 
 /** Le contrat, montré avant d'aller chercher un fichier — 09.2. */
@@ -69,27 +91,43 @@ const COLUMNS: ImportColumn[] = [
         requirement: 'requis',
         required: true,
     },
-    { key: 'Country', description: 'Le pays du référentiel', requirement: 'facultatif' },
+    {
+        key: 'Country',
+        description: "Le pays du référentiel — son code ouvre l'identifiant",
+        requirement: 'requis',
+        required: true,
+    },
     {
         key: 'Site',
-        description: "L'emplacement — il compose le code lisible de l'actif",
-        requirement: 'facultatif',
+        description: "L'emplacement de la ligne — la fiche y naît",
+        requirement: 'requis',
+        required: true,
     },
+    { key: 'Memory', description: 'Mémoire — « 16 Go »', requirement: 'facultatif' },
+    { key: 'Storage', description: 'Stockage — « 512 Go SSD »', requirement: 'facultatif' },
+    { key: 'OS', description: 'Système — « Windows 11 Pro »', requirement: 'facultatif' },
+    { key: 'Supplier', description: 'Fournisseur', requirement: 'facultatif' },
     {
         key: 'PurchaseDate',
         description: "Date d'achat, au format AAAA-MM-JJ",
         requirement: 'facultatif',
     },
     { key: 'PurchasePrice', description: "Prix d'achat, en chiffres", requirement: 'facultatif' },
+    { key: 'WarrantyEnd', description: 'Fin de garantie, AAAA-MM-JJ', requirement: 'facultatif' },
+    {
+        key: 'Reserve',
+        description: 'Réserve — un défaut connu, une pièce manquante',
+        requirement: 'facultatif',
+    },
 ];
 
 const SAMPLE = {
     fileName: 'equipements-exemple.csv',
     content: [
-        'Model,Serial,Country,Site,PurchaseDate,PurchasePrice',
-        'Dell Latitude 7420,5CG1234ABC,France,Paris HQ,2026-01-05,1250',
-        'Dell U2721DE,CN0J8K2L,France,Paris HQ,2026-01-05,320',
-        'Logitech MX Keys,2145LZ0A9,Togo,Lomé,2026-02-11,95',
+        'Model,Serial,Country,Site,Memory,Storage,OS,Supplier,PurchaseDate,PurchasePrice,WarrantyEnd,Reserve',
+        'Dell Latitude 7420,PF5XK2M,Togo,Lomé Siège,16 Go,512 Go SSD,Windows 11 Pro,Dell Technologies,2026-01-05,1250,2028-01-05,',
+        'Dell U2721DE,CN0J8K2L,Togo,Lomé Siège,,,,Dell Technologies,2026-01-05,320,2028-01-05,',
+        'Logitech MX Keys,2145LZ0A9,Togo,Lomé Siège,,,,,2026-02-11,95,,Touche F5 dure',
     ].join('\n'),
 };
 
@@ -127,8 +165,14 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 serial = '',
                 country = '',
                 site = '',
+                ram = '',
+                storage = '',
+                os = '',
+                supplier = '',
                 purchaseDate = '',
                 rawPrice = '',
+                warrantyEnd = '',
+                notes = '',
             ] = values;
             const model = modelByName.get(rawModel.toLowerCase());
 
@@ -138,6 +182,8 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             else if (!serial) error = 'Numéro de série absent';
             else if (knownSerials.has(serial.toLowerCase()))
                 error = `Le numéro de série ${serial} est déjà au parc`;
+            else if (!country) error = "Pays absent — l'identifiant s'en déduit";
+            else if (!site) error = 'Emplacement absent';
 
             if (!error) knownSerials.add(serial.toLowerCase());
 
@@ -155,8 +201,14 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                           serial,
                           country,
                           site,
+                          ram,
+                          storage,
+                          os,
+                          supplier,
                           purchaseDate,
                           purchasePrice: parseFloat(rawPrice.replace(',', '.')) || 0,
+                          warrantyEnd,
+                          notes,
                       },
             };
         });
@@ -170,9 +222,16 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
 
         drafts.forEach((draft, index) => {
             const category = categories.find((item) => item.name === draft.type);
+            /* **L'identifiant est déduit ligne par ligne** (04.3) : code du pays,
+               puis numéro de série. Un pays sans code garde l'ancienne composition,
+               comme à la saisie d'une fiche — même règle, même repli, un seul
+               endroit où elle est écrite. */
             const created: Equipment = {
                 id: `${Date.now()}_${index}`,
-                name: proposeReadableId(draft.type, draft.site, parc) || draft.serial,
+                name:
+                    deducedAssetName(draft.country, draft.serial, parc) ||
+                    proposeReadableId(draft.type, draft.site, parc) ||
+                    draft.serial,
                 assetId: nextInternalCode(parc),
                 type: draft.type,
                 model: draft.model,
@@ -181,10 +240,16 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 serialNumber: draft.serial,
                 country: draft.country,
                 site: draft.site,
+                ram: draft.ram || undefined,
+                storage: draft.storage || undefined,
+                os: draft.os || undefined,
+                warrantyEnd: draft.warrantyEnd || undefined,
+                notes: draft.notes || undefined,
                 image: models.find((item) => item.name === draft.model)?.image || '',
                 financial: {
                     purchasePrice: draft.purchasePrice,
                     purchaseDate: draft.purchaseDate || new Date().toISOString().split('T')[0],
+                    supplier: draft.supplier || undefined,
                     depreciationMethod:
                         category?.defaultDepreciation.method || settings.defaultDepreciationMethod,
                     depreciationYears:
@@ -212,15 +277,16 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             noun={{ one: 'équipement', many: 'équipements' }}
             parse={parse}
             onImport={handleImport}
-            dropSubLabel="Une ligne par unité — un modèle, un numéro de série"
+            dropSubLabel="CSV ou XLSX · une ligne par objet, l'identifiant déduit"
             rejectionNote={
                 /* Le gabarit pose la note en `flex` : elle doit lui arriver en **un**
                    enfant, sinon chaque fragment devient une colonne. */
                 <span>
                     Un modèle absent du catalogue se crée d'abord au{' '}
                     <b className="font-medium">Référentiel</b>. L'identifiant lisible et le code
-                    interne, eux, ne se lisent pas dans le fichier — ils sont générés à l'écriture,
-                    par les règles de la saisie d'une fiche.
+                    interne, eux, ne se lisent pas dans le fichier — ils sont déduits à l'écriture,
+                    du code du pays et du numéro de série. Les fiches naissent{' '}
+                    <b className="font-medium">Disponibles</b> sur l'emplacement de leur ligne.
                 </span>
             }
         />

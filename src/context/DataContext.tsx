@@ -23,6 +23,10 @@ import {
     AgentCheckInResult,
     AssignmentStatus,
     DetectedDevice,
+    EquipmentIncident,
+    IncidentOutcome,
+    RetirementReason,
+    RETIREMENT_REASON_LABELS,
 } from '../types';
 import {
     mockAllUsersExtended,
@@ -120,7 +124,13 @@ interface DataContextType {
         updates: Partial<Equipment>,
         logMetadata?: Record<string, unknown>,
     ) => BusinessRuleDecision;
-    deleteEquipment: (id: string) => boolean;
+    /** Le motif est celui de 04.3 colonne 4 : il part avec l'événement du journal. */
+    deleteEquipment: (id: string, reason?: RetirementReason) => boolean;
+    /** Déclarer un incident — 04.3 colonne 3. */
+    declareIncident: (
+        equipmentId: string,
+        payload: { outcome: IncidentOutcome; photos: string[]; comment?: string },
+    ) => BusinessRuleDecision;
     upsertEquipmentFromAuditScan: (
         payload: AuditScanPayload,
         scope: { country: string; site: string; service: string },
@@ -2042,20 +2052,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     const deleteEquipment = useCallback(
-        (id: string) => {
+        (id: string, reason?: RetirementReason) => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) return false;
 
             const itemToDelete = equipment.find((e) => e.id === id);
             if (!itemToDelete) return false;
 
-            const hasBusinessHistory = events.some(
-                (event) =>
-                    event.targetType === 'EQUIPMENT' &&
-                    event.targetId === id &&
-                    event.type !== 'CREATE',
-            );
-            const decision = canDeleteEquipmentByBusinessRule(itemToDelete, hasBusinessHistory);
+            const decision = canDeleteEquipmentByBusinessRule(itemToDelete);
             if (!decision.allowed) return false;
 
             setEquipment((prev) => prev.filter((e) => e.id !== id));
@@ -2067,13 +2071,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'EQUIPMENT',
                 targetId: id,
                 targetName: itemToDelete.name,
-                description: `Suppression de l'équipement ${itemToDelete.name}`,
+                /* **Le motif est le seul champ obligatoire de la sortie** (04.3, colonne
+                   4), et il ne peut pas vivre sur l'objet, qui quitte la liste. Il part
+                   donc avec l'événement : c'est là que l'historique reste consultable,
+                   et c'est ce que la feuille promet en disant « l'historique, lui, est
+                   conservé ». */
+                description: reason
+                    ? `Sortie du parc de ${itemToDelete.name} — ${RETIREMENT_REASON_LABELS[reason]}`
+                    : `Suppression de l'équipement ${itemToDelete.name}`,
+                metadata: reason ? { retirementReason: reason } : undefined,
                 isSystem: false,
                 isSensitive: false,
             });
             return true;
         },
-        [equipment, events, currentUser, logEvent],
+        [equipment, currentUser, logEvent],
+    );
+
+    /**
+     * **Déclarer un incident** — planche 04.3, colonne 3.
+     *
+     * *« La photo d'abord, le commentaire second. Trois crans nommés par leur
+     * conséquence, et teintés par elle. »* Ce que la feuille écrit :
+     *
+     * - **Continue de servir** — rien ne bouge sur l'objet. La déclaration est datée,
+     *   signée, et rangée sur la fiche : c'est tout ce que la planche promet.
+     * - **Immobilisé, à réviser** — `En réparation`, date d'entrée, et **l'objet quitte
+     *   le poste** : le porteur est détaché, ce que la planche dit en toutes lettres
+     *   (« Alice sans poste : proposer un remplacement »). L'ancienne confirmation
+     *   changeait le statut et laissait le porteur attaché.
+     * - **Hors service** — `Réformé`. La planche annonce « Sortie du parc, validation
+     *   demandée » ; **le produit n'a pas d'entité de validation de sortie** — les
+     *   approbations portent des demandes d'équipement, pas des retraits. L'objet
+     *   cesse donc de servir, et la sortie du parc reste l'acte délibéré de la
+     *   colonne 4. À reprendre le jour où la validation existe, plutôt que de la
+     *   simuler ici.
+     */
+    const declareIncident = useCallback(
+        (
+            equipmentId: string,
+            payload: { outcome: IncidentOutcome; photos: string[]; comment?: string },
+        ): BusinessRuleDecision => {
+            const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
+            if (!permissionDecision.allowed) return permissionDecision;
+
+            const item = equipment.find((e) => e.id === equipmentId);
+            if (!item) return { allowed: false, reason: 'Équipement introuvable.' };
+
+            const now = new Date().toISOString();
+            const incident: EquipmentIncident = {
+                id: `inc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                declaredAt: now,
+                declaredBy: currentUser?.id || 'system',
+                declaredByName: currentUser?.name || 'Système',
+                outcome: payload.outcome,
+                photos: payload.photos,
+                comment: payload.comment?.trim() || undefined,
+            };
+
+            const updates: Partial<Equipment> = {
+                incidents: [incident, ...(item.incidents || [])],
+            };
+
+            if (payload.outcome === 'immobilised') {
+                updates.status = 'En réparation';
+                updates.repairStartDate = now;
+                updates.repairEndDate = undefined;
+                updates.user = null;
+                updates.assignmentStatus = 'NONE';
+            } else if (payload.outcome === 'out_of_service') {
+                updates.status = 'Réformé';
+                updates.user = null;
+                updates.assignmentStatus = 'NONE';
+            }
+
+            applyEquipmentWrite(equipmentId, updates, {
+                source: 'incident',
+                outcome: payload.outcome,
+                photos: payload.photos.length,
+            });
+            return { allowed: true };
+        },
+        [equipment, currentUser, applyEquipmentWrite],
     );
 
     const upsertEquipmentFromAuditScan = useCallback(
@@ -2909,8 +2988,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 !!currentUser &&
                 (approval.requesterId === currentUser.id ||
                     approval.beneficiaryId === currentUser.id);
-            if (!mine)
-                return { allowed: false, reason: 'On ne relance que sa propre demande.' };
+            if (!mine) return { allowed: false, reason: 'On ne relance que sa propre demande.' };
 
             const now = new Date().toISOString();
             setApprovals((prev) =>
@@ -3178,6 +3256,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addEquipment,
             updateEquipment,
             deleteEquipment,
+            declareIncident,
             upsertEquipmentFromAuditScan,
             ingestAgentCheckIn,
             promoteDetectedDeviceToInventory,
@@ -3230,6 +3309,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addEquipment,
             updateEquipment,
             deleteEquipment,
+            declareIncident,
             upsertEquipmentFromAuditScan,
             ingestAgentCheckIn,
             promoteDetectedDeviceToInventory,

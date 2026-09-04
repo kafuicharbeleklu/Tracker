@@ -4,7 +4,7 @@
 (40 cartes). Ce fichier se tient à jour à chaque planche portée : c'est la seule carte
 qui dise ce qui reste, et elle a déjà démenti une estimation faite de tête.
 
-**7 portées · 1 partielle · 32 restantes.**
+**8 portées · 1 partielle · 31 restantes.**
 
 Une planche est dite **portée** quand sa forme a été relevée sur la planche elle-même
 (pas sur un lot), appliquée, et vérifiée à l'écran à 393 px.
@@ -35,7 +35,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 03.3 | Tâches | `TasksPage` | **porté** |
 | 04.1 | Liste équipements | `InventoryPage` | **portée** (mesurée) |
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
-| 04.3 | Créer, corriger, sortir | `AddEquipmentPage` | **colonne 1 portée** — reste l'import, l'incident, la sortie |
+| 04.3 | Créer, corriger, sortir | `AddEquipmentPage`, `ImportEquipmentPage`, `IncidentSheet`, `RetireSheet` | **portée** (mesurée) |
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
 | 05.1 | Liste utilisateurs | `UsersPage` | **porté** |
 | 05.2 | Fiche d'une personne | `UserDetailsPage` | **porté** |
@@ -81,6 +81,12 @@ planches de pages de la passe sobre (03.3, 04.1, 05.1, 10.1) donnent 28 px et un
 **rempli**. 17.8 garde par ailleurs les pastilles d'état dans la bande, que 04.1 déplace
 dans la feuille de filtre. Sa matrice des six slots reste juste — c'est son dessin qui a
 vieilli. À reprendre quand la planche sera rejouée.
+
+**Le dessin de l'import reste celui de 09.2.** 04.3 colonne 2 dessine l'import du parc
+en deux cartes à tuile teintée, avec sa barre de progression et son pied jaune ; le
+gabarit `ReferentialImportTemplate` sert **trois** écrans, et le redessiner pour un
+seul les ferait diverger. Le **contrat** de 04.3 est porté (pays et emplacement
+requis, identifiant déduit, huit colonnes facultatives) ; sa **forme** attend 09.2.
 
 **Le rayon de vignette reste à 6.** 04.1 et 05.1 écrivent `border-radius:4px` sur la
 vignette de rangée, mais le socle (`styles.css`) déclare « 6 pour les héros et les

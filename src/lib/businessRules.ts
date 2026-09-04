@@ -675,21 +675,32 @@ export const getEquipmentUpdatesForApprovalStatus = ({
     return null;
 };
 
-export const canDeleteEquipmentByBusinessRule = (
-    equipment: Equipment,
-    hasBusinessHistory: boolean,
-): BusinessRuleDecision => {
+/**
+ * **Sortir un actif du parc** — planche 04.3, colonne 4.
+ *
+ * *« Ce qui disparaît, ce qui reste : l'historique, lui, est conservé. »*
+ *
+ * La règle en interdisait la moitié du parc. Elle bloquait tout actif portant un
+ * **historique métier** — un mouvement, une attribution, une réparation —, c'est-à-dire
+ * exactement les objets qu'on retire : un actif qui n'a jamais bougé n'est pas en fin
+ * de vie. Le geste échouait donc en silence après qu'on ait tapé « SUPPRIMER », et
+ * l'écran répondait « La sortie du parc a échoué » sans dire pourquoi.
+ *
+ * Le malentendu est dans le mot. La règle avait été écrite pour **effacer** — et
+ * effacer un objet qui a une histoire ferait mentir le journal. 04.3 renomme l'acte :
+ * on ne supprime pas, on **sort du parc**, l'objet quitte la liste et les sélecteurs,
+ * et *son histoire reste dans le journal* — c'est ce que la feuille promet et ce que
+ * `deleteEquipment` écrit, motif compris.
+ *
+ * **Il reste donc un seul garde-fou, et c'est celui que la planche nomme** : un objet
+ * attribué ou attendu ne sort pas d'ici. *« L'entrée devient Organiser la
+ * restitution. »* On récupère avant de retirer.
+ */
+export const canDeleteEquipmentByBusinessRule = (equipment: Equipment): BusinessRuleDecision => {
     if (equipment.status === 'Attribué' || equipment.status === 'En attente') {
         return {
             allowed: false,
-            reason: 'Impossible de supprimer un actif attribué ou en attente.',
-        };
-    }
-
-    if (hasBusinessHistory) {
-        return {
-            allowed: false,
-            reason: 'Suppression bloquée: actif avec historique métier existant.',
+            reason: 'Un actif attribué ou attendu se récupère avant de sortir du parc.',
         };
     }
 

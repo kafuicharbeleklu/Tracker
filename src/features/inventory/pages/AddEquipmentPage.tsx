@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     Camera,
     Check,
@@ -33,6 +32,17 @@ import {
 } from '../lib/assetCode';
 import { cn } from '../../../lib/utils';
 import { AppSettings, EquipmentDocument, Model } from '../../../types';
+import {
+    FieldLabel,
+    FormNote,
+    FormSection,
+    FormWarn,
+    OptionRow,
+    ShotBox,
+    TINT_CLASS,
+} from '../../../components/ui/FormParts';
+import FilePicker from '../../../components/ui/FilePicker';
+import ListRow from '../../../components/ui/ListRow';
 
 interface AddEquipmentPageProps {
     equipmentId?: string; // Optional for Edit Mode
@@ -125,139 +135,6 @@ const SOURCE_LABELS: Record<string, string> = {
     category: 'héritée du type',
     global: 'le défaut de Paramètres',
 };
-
-/**
- * Les cinq teintes de section — `.c-bleu`, `.c-vert`, `.c-ambre`, `.c-orange`,
- * `.c-rouge` du socle. Le fond teinté et son encre vont **par paire** : c'est ce que
- * `styles.css` déclare, et ce que chaque planche réinventait avant lui.
- */
-const TINT_CLASS = {
-    bleu: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
-    vert: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
-    ambre: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
-    orange: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
-    rouge: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
-} as const;
-
-type Tint = keyof typeof TINT_CLASS;
-
-/**
- * La carte d'une section — `.fsec` : surface, rayon 8, **20 d'intérieur, gouttière
- * 16**, et un en-tête `.sh` qui porte **une tuile teintée par nature**. Les cinq
- * sections sont les cinq cartes de la fiche 04.2, dans le même ordre et sous les mêmes
- * teintes : ce qui se saisit ici est ce qui s'affichera là.
- */
-const FormSection: React.FC<{
-    title: string;
-    glyph: PhosphorGlyph;
-    tint: Tint;
-    caption?: string;
-    children: React.ReactNode;
-}> = ({ title, glyph, tint, caption, children }) => (
-    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
-        <div className="flex items-center gap-3">
-            <span
-                className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
-                    TINT_CLASS[tint],
-                )}
-            >
-                <Icon glyph={glyph} size={18} />
-            </span>
-            <p className="text-on-surface min-w-0 flex-1 text-[17px] leading-6 font-medium">
-                {title}
-                {caption && (
-                    <span className="text-text-tertiary block text-[12px] leading-4 font-normal">
-                        {caption}
-                    </span>
-                )}
-            </p>
-        </div>
-        {children}
-    </section>
-);
-
-/** `.fnote` — ce que l'écran déduit, dit une fois, jamais redemandé. 12 sur 16. */
-const FormNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="text-text-tertiary text-[12px] leading-4">{children}</p>
-);
-
-/** `.warn` — le rappel encadré : 14 sur 20, rayon 4, sur le creux ou sur une teinte. */
-const FormWarn: React.FC<{ children: React.ReactNode; tint?: Tint }> = ({ children, tint }) => (
-    <p
-        className={cn(
-            'flex gap-3 rounded-md px-4 py-3 text-[14px] leading-5',
-            tint ? TINT_CLASS[tint] : 'bg-surface-container text-on-surface-variant',
-        )}
-    >
-        <Icon glyph={Info} size={18} className="mt-px shrink-0" />
-        <span>{children}</span>
-    </p>
-);
-
-/**
- * `.lab` — l'étiquette d'un champ : **12 sur 16 en 500, sur l'encre secondaire**, et
- * 8 px au-dessus du champ. Elle était en 11 px, en capitales et en chasse ouverte —
- * un registre de micro-libellé que la passe sobre ne garde nulle part dans un
- * formulaire. Le suffixe `.rq` dit « facultatif » ou « obligatoire », en chasse
- * normale sur l'encre tertiaire.
- */
-const FieldLabel: React.FC<{ children: React.ReactNode; note?: string }> = ({ children, note }) => (
-    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
-        {children}
-        {note && <span className="text-text-tertiary font-normal"> {note}</span>}
-    </p>
-);
-
-/** `.opt` — un cran de l'échelle, nommé par ce qu'il déclenche. */
-const OptionRow: React.FC<{
-    title: string;
-    hint: string;
-    selected: boolean;
-    /** La teinte du cran choisi — elle dit la conséquence, pas seulement le choix. */
-    tint?: Tint;
-    onSelect?: () => void;
-    disabled?: boolean;
-}> = ({ title, hint, selected, tint = 'vert', onSelect, disabled }) => (
-    <button
-        type="button"
-        onClick={onSelect}
-        disabled={disabled}
-        aria-pressed={selected}
-        className={cn(
-            'flex min-h-14 w-full items-center gap-3 rounded-md px-3.5 py-2 text-left',
-            selected
-                ? TINT_CLASS[tint]
-                : cn(
-                      'bg-surface-container text-on-surface',
-                      !disabled && 'hover:bg-surface-container-high',
-                  ),
-            disabled && 'cursor-default',
-        )}
-    >
-        <span className="min-w-0 flex-1">
-            <span className="block text-[16px] leading-6">{title}</span>
-            <span
-                className={cn(
-                    'block text-[14px] leading-5',
-                    selected ? 'opacity-80' : 'text-on-surface-variant',
-                )}
-            >
-                {hint}
-            </span>
-        </span>
-        {/* `.rd` — le point de choix : cerné au repos, **plein de l'encre du cran**
-            une fois pris, avec sa coche en négatif. */}
-        <span
-            className={cn(
-                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
-                selected ? 'bg-current' : 'border-outline border-[1.5px]',
-            )}
-        >
-            {selected && <Icon glyph={Check} size={14} className="text-surface" />}
-        </span>
-    </button>
-);
 
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
@@ -625,7 +502,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             </span>
                         </div>
 
-                        <FormWarn>
+                        <FormWarn glyph={Info}>
                             Marque, type et amortissement viennent du <b>catalogue</b> : ils ne sont
                             pas redemandés, et une correction se fait là-bas.
                         </FormWarn>
@@ -815,6 +692,10 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                     {/* ── Documents ────────────────────────────────────────────────── */}
                     <FormSection title="Documents" glyph={FileText} tint="bleu">
+                        {/* `.shots` — les deux pièces de la planche, chacune dans sa
+                            case de 56. La case et le champ caché sont des primitives :
+                            trois écrans joignent des pièces, et chacun réécrivait sa
+                            lecture de `FileList`. */}
                         <div className="flex flex-wrap gap-2">
                             {(['Facture', 'Garantie'] as const).map((kind) => {
                                 const attached = documents.find(
@@ -822,57 +703,34 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 );
                                 const input = kind === 'Facture' ? invoiceInput : warrantyInput;
                                 return (
-                                    <button
+                                    <ShotBox
                                         key={kind}
-                                        type="button"
-                                        onClick={() => input.current?.click()}
+                                        glyph={
+                                            attached
+                                                ? Check
+                                                : kind === 'Facture'
+                                                  ? Camera
+                                                  : FileText
+                                        }
+                                        label={kind.toLowerCase()}
+                                        filled={Boolean(attached)}
+                                        title={attached?.name}
                                         aria-label={
                                             attached
                                                 ? `${kind} jointe : ${attached.name} — remplacer`
                                                 : `Joindre la ${kind.toLowerCase()}`
                                         }
-                                        title={attached ? attached.name : undefined}
-                                        /* `.shot` — un carré de 56, rayon 4 : la même
-                                           case qu'une photo. Vide, elle est pointillée
-                                           et porte le mot ; remplie, elle porte la
-                                           coche sur la teinte verte. */
-                                        className={cn(
-                                            'flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-center text-[12px] leading-[14px]',
-                                            attached
-                                                ? TINT_CLASS.vert
-                                                : 'border-outline text-on-surface-variant hover:bg-surface-container border-[1.5px] border-dashed',
-                                        )}
-                                    >
-                                        <Icon
-                                            glyph={
-                                                attached
-                                                    ? Check
-                                                    : kind === 'Facture'
-                                                      ? Camera
-                                                      : FileText
-                                            }
-                                            size={attached ? 20 : 18}
-                                            className="shrink-0"
-                                        />
-                                        {!attached && <span>{kind.toLowerCase()}</span>}
-                                    </button>
+                                        onClick={() => input.current?.click()}
+                                    />
                                 );
                             })}
-                            <input
+                            <FilePicker
                                 ref={invoiceInput}
-                                type="file"
-                                className="hidden"
-                                onChange={(event) =>
-                                    attachDocument(event.target.files?.[0], 'Facture')
-                                }
+                                onFiles={(_names, files) => attachDocument(files[0], 'Facture')}
                             />
-                            <input
+                            <FilePicker
                                 ref={warrantyInput}
-                                type="file"
-                                className="hidden"
-                                onChange={(event) =>
-                                    attachDocument(event.target.files?.[0], 'Garantie')
-                                }
+                                onFiles={(_names, files) => attachDocument(files[0], 'Garantie')}
                             />
                         </div>
                         <FormNote>
@@ -903,18 +761,13 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             </p>
                         ) : (
                             filteredModels.map((model) => (
-                                <button
+                                /* La rangée d'une liste est une primitive : celle-ci
+                                   était retapée à la main, avec sa propre hauteur et
+                                   sa propre échelle. */
+                                <ListRow
                                     key={model.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setFormData((prev) => ({ ...prev, model: model.name }));
-                                        setIsModelSheetOpen(false);
-                                        setModelQuery('');
-                                    }}
-                                    className="border-outline-variant hover:bg-surface-container flex min-h-14 w-full items-center gap-3 border-t px-1 text-left first:border-t-0"
-                                >
-                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
-                                        {model.image ? (
+                                    vignette={
+                                        model.image ? (
                                             <img
                                                 src={model.image}
                                                 alt=""
@@ -922,18 +775,16 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                             />
                                         ) : (
                                             <Icon glyph={Package} size={20} />
-                                        )}
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface block truncate text-[15px] font-medium">
-                                            {model.name}
-                                        </span>
-                                        <span className="text-on-surface-variant block truncate text-[12px]">
-                                            {getCategoryLabel(model.type)}
-                                            {model.brand ? ` · ${model.brand}` : ''}
-                                        </span>
-                                    </span>
-                                </button>
+                                        )
+                                    }
+                                    title={model.name}
+                                    holder={`${getCategoryLabel(model.type)}${model.brand ? ` · ${model.brand}` : ''}`}
+                                    onOpen={() => {
+                                        setFormData((prev) => ({ ...prev, model: model.name }));
+                                        setIsModelSheetOpen(false);
+                                        setModelQuery('');
+                                    }}
+                                />
                             ))
                         )}
                     </div>

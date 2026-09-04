@@ -271,7 +271,12 @@ export interface Equipment {
      * l'objet est **à récupérer**. Écrit et levé par `DataContext.updateUser`, jamais à la main.
      * Hypothèse retenue le 02/09 (traçabilité des détenteurs) — voir CARTE_PROJET.md.
      */
-    holderAlert?: { kind: 'suspended' | 'departure'; since: string; until?: string; userId: string };
+    holderAlert?: {
+        kind: 'suspended' | 'departure';
+        since: string;
+        until?: string;
+        userId: string;
+    };
 
     operationalStatus?: 'Actif' | 'Inactif' | 'Retiré';
     image: string;
@@ -308,9 +313,53 @@ export interface Equipment {
     // Notes
     notes?: string;
 
+    /**
+     * **Les incidents déclarés sur l'objet** — planche 04.3, colonne 3.
+     *
+     * La feuille de déclaration écrit ici : ce qu'on voit (les photos), ce que ça
+     * change pour l'objet, et ce qu'on en dit. Sans cette trace, le formulaire de la
+     * planche serait un écran qui jette ce qu'on lui donne.
+     *
+     * C'est la matière que **04.4 « La suite de l'incident »** reprendra ; elle n'est
+     * pas encore l'entité `Incident` que ce lot demande, et n'en préjuge pas.
+     */
+    incidents?: EquipmentIncident[];
+
     // Files
     documents?: EquipmentDocument[];
 }
+
+/**
+ * Ce qu'un incident change pour l'objet — **les trois crans de 04.3, nommés par leur
+ * conséquence et non par leur gravité.** « Cassé » ne dit pas ce qui va se passer ;
+ * « Immobilisé, à réviser » le dit.
+ */
+export type IncidentOutcome = 'serves' | 'immobilised' | 'out_of_service';
+
+export interface EquipmentIncident {
+    id: string;
+    declaredAt: string;
+    declaredBy: string;
+    declaredByName: string;
+    outcome: IncidentOutcome;
+    /** Ce qu'on voit. Les noms des pièces ; le produit ne stocke pas les fichiers. */
+    photos: string[];
+    /** « Décrire, si la photo ne suffit pas. » */
+    comment?: string;
+}
+
+/**
+ * Le motif d'une sortie du parc — **le seul champ obligatoire de la feuille** (04.3,
+ * colonne 4). Il ne vit pas sur l'objet, qui quitte la liste : il part avec
+ * l'événement du journal, où l'historique de l'objet reste consultable.
+ */
+export type RetirementReason = 'end_of_life' | 'sold' | 'lost';
+
+export const RETIREMENT_REASON_LABELS: Record<RetirementReason, string> = {
+    end_of_life: 'Fin de vie',
+    sold: 'Vendu ou cédé',
+    lost: 'Volé ou perdu',
+};
 
 // Management
 /**
