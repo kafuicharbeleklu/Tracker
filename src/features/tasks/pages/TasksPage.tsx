@@ -1,6 +1,7 @@
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    ArrowCounterClockwise,
     CaretRight,
     Check,
     CheckCircle,
@@ -86,6 +87,12 @@ interface Task {
      * (zone d'ombre n° 8). Planches 03.3 et 06.5 — lot 5.
      */
     refusal?: { approvalId: string; nextStatus: ApprovalStatus; requesterName: string };
+    /**
+     * Ma propre demande, **encore en amont de la remise** : je peux la retirer. Une
+     * fois l'objet remis (`PENDING_DELIVERY`), on refuse la réception — on n'annule
+     * plus. Planche 03.3, onglet « À suivre » — lot 6.
+     */
+    cancel?: { approvalId: string };
 }
 
 const NATURE_LABEL: Record<TaskNature, string> = {
@@ -253,6 +260,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     // Feuille de motif du refus : la tâche visée, et le texte que le demandeur lira.
     const [refusing, setRefusing] = useState<Task | null>(null);
     const [refusalReason, setRefusalReason] = useState('');
+    const [cancelling, setCancelling] = useState<Task | null>(null);
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
     const tasks = useMemo<Task[]>(() => {
@@ -297,12 +305,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             if (isApprovalHistoryStatus(approval.status)) {
                 if (isRelatedApproval(approval)) {
+                    const decidedBy = approval.decisionNote?.actorName;
                     out.push({
                         id: `history-${approval.id}`,
                         nature: 'validation',
                         scope: 'history',
                         title,
-                        context: getApprovalContext(approval.status),
+                        context: decidedBy
+                            ? `${getApprovalContext(approval.status)} · ${decidedBy}`
+                            : getApprovalContext(approval.status),
                         since: approval.updatedAt || approval.createdAt,
                         ...approvalTarget(approval),
                         initials: extractInitials(beneficiary),
@@ -356,6 +367,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     icon: ClipboardText,
                 });
             } else if (isRelatedApproval(approval)) {
+                const { cancel: cancelAction } = getAvailableApprovalActions({
+                    approval,
+                    actorRole: role,
+                    actorId: currentUser.id,
+                    users,
+                });
+                const cancel =
+                    cancelAction && approval.status !== 'PENDING_DELIVERY'
+                        ? { approvalId: approval.id }
+                        : undefined;
                 out.push({
                     id: `following-${approval.id}`,
                     nature: approval.status === 'PENDING_DELIVERY' ? 'reception' : 'validation',
@@ -364,6 +385,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     context: `${getApprovalContext(approval.status)} · en attente d’un autre intervenant`,
                     since: approval.createdAt ?? null,
                     ...approvalTarget(approval),
+                    cancel,
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
                 });
@@ -596,6 +618,24 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         );
     };
 
+    /**
+     * Une annulation n'engage personne d'autre que moi : pas de `SecurityGate`, et le
+     * motif est facultatif. Le step-up signe des décisions sur autrui, pas sur soi.
+     * Lot 6, A3.
+     */
+    const cancelApprovalTask = (task: Task) => {
+        if (!task.cancel) return;
+        const decision = updateApproval(task.cancel.approvalId, 'Cancelled', {
+            reason: refusalReason.trim() || undefined,
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Annulation impossible.', 'error');
+            return;
+        }
+        setCancelling(null);
+        showToast('Demande annulée.', 'success');
+    };
+
     const completeApprovalTask = (task: Task): boolean => {
         if (!task.transition) return false;
         const decision = updateApproval(task.transition.approvalId, task.transition.nextStatus);
@@ -806,6 +846,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 <span className="text-on-surface shrink-0 font-medium">
                                     {ageLabel(task.since)}
                                 </span>
+                                {/*
+                                  Sur « À faire » et « À suivre », la pastille de nature dit
+                                  déjà tout et le contexte doublerait — c'est l'arbitrage
+                                  d'origine. Mais dans l'historique, la pastille ne peut pas
+                                  porter l'**issue** : validée, refusée, annulée, et par qui.
+                                  Là, et là seulement, le contexte se lit. Lot 6.
+                                */}
+                                {task.scope === 'history' && (
+                                    <span className="truncate">{task.context}</span>
+                                )}
                             </span>
                         </div>
 
@@ -890,6 +940,43 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         }
                                     />
                                 )}
+                            </div>
+                        ) : task.cancel ? (
+                            /* Ma demande en attente : le chevron laisse la place au ⋮, qui
+                               porte le seul geste que j'ai sur elle — la retirer. Lot 6, A2. */
+                            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                                <Menu
+                                    align="end"
+                                    items={[
+                                        {
+                                            id: 'open',
+                                            label: 'Ouvrir la demande',
+                                            onSelect: () => openTask(task),
+                                        },
+                                        {
+                                            id: 'cancel',
+                                            label: 'Annuler ma demande…',
+                                            description:
+                                                'Motif facultatif. Elle passe dans « Historique ».',
+                                            destructive: true,
+                                            dividerBefore: true,
+                                            onSelect: () => {
+                                                setRefusalReason('');
+                                                setCancelling(task);
+                                            },
+                                        },
+                                    ]}
+                                    trigger={
+                                        <Button
+                                            variant="text"
+                                            iconOnly
+                                            size="sm"
+                                            aria-label={`Autres actions — ${task.title}`}
+                                        >
+                                            <Icon glyph={DotsThreeVertical} size={20} />
+                                        </Button>
+                                    }
+                                />
                             </div>
                         ) : (
                             <Button
@@ -1182,6 +1269,48 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     </Button>
                                 }
                             />
+                        </div>
+                    </div>
+                )}
+            </BottomSheet>
+
+            {/* Feuille — annuler ma demande. Motif facultatif, aucun code : je ne signe
+                pas une décision sur autrui, je retire la mienne. Lot 6, A3. */}
+            <BottomSheet
+                open={!!cancelling}
+                onClose={() => setCancelling(null)}
+                title="Annuler ma demande"
+            >
+                {cancelling?.cancel && (
+                    <div className="space-y-3 px-1 pb-4">
+                        <p className="text-body-medium text-text-secondary">{cancelling.title}</p>
+                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                            <Icon glyph={ArrowCounterClockwise} size={18} />
+                            Rien n'est perdu — vous pourrez redemander. La personne qui l'examinait
+                            ne la verra plus.
+                        </p>
+                        <label className="block">
+                            <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                                Motif{' '}
+                                <span className="text-text-secondary font-normal tracking-normal normal-case">
+                                    — facultatif
+                                </span>
+                            </span>
+                            <textarea
+                                value={refusalReason}
+                                onChange={(e) => setRefusalReason(e.target.value)}
+                                rows={2}
+                                placeholder="Plus besoin, j'ai trouvé un poste libre…"
+                                className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border p-3 focus:outline-hidden"
+                            />
+                        </label>
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Button variant="text" onClick={() => setCancelling(null)}>
+                                Garder la demande
+                            </Button>
+                            <Button variant="danger" onClick={() => cancelApprovalTask(cancelling)}>
+                                Annuler la demande
+                            </Button>
                         </div>
                     </div>
                 )}
