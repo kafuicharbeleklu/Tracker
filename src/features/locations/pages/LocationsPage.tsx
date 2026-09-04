@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     CaretRight,
-    Clock,
     DoorOpen,
-    Flag,
+    FileCsv,
     GlobeHemisphereWest,
     MapPin,
     Plus,
-    SortAscending,
     UploadSimple,
 } from '@phosphor-icons/react';
 
@@ -16,7 +14,6 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import { FabContainer } from '../../../components/ui/FabContainer';
-import FacetChip from '../../../components/ui/FacetChip';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import ListRow from '../../../components/ui/ListRow';
@@ -32,17 +29,25 @@ import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
 import { ViewType } from '../../../types';
-import { siteCodeOf } from '../lib/siteCode';
-
-const ALL_COUNTRIES = 'Tous';
-
-const SORT_OPTIONS = [
-    { id: 'pays', label: 'Par pays' },
-    { id: 'actifs', label: "Par nombre d'actifs" },
-    { id: 'nom', label: 'Par nom' },
-] as const;
+import { countryCodeOf } from '../lib/siteCode';
 
 type NewLocationKind = 'site' | 'local' | 'country';
+
+/**
+ * **La pastille de code d'un pays** (planche 10.1, `.fh .si` — 32 px, rayon 4,
+ * Archivo 600 à 13 px, interlettrage +0,02 em).
+ *
+ * La teinte **distingue une famille de la suivante**, elle ne qualifie rien : un pays
+ * n'a ni humeur ni état. Elle est donc prise dans l'ordre du référentiel, jamais
+ * déduite d'un chiffre — la règle « une teinte par nature de chiffre » de la passe
+ * sobre ne s'applique qu'aux tuiles qui portent un nombre.
+ */
+const COUNTRY_TINT = [
+    'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
+    'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
+    'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
+    'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
+] as const;
 
 interface LocationsPageProps {
     onViewChange?: (view: ViewType) => void;
@@ -50,27 +55,54 @@ interface LocationsPageProps {
 }
 
 /**
- * **Emplacements — une liste, pas trois cascades** (planche 10.1).
+ * **Emplacements — une liste, pas trois cascades** (planche 10.1, **passe sobre du
+ * 03/09**).
  *
  * L'écran empilait trois cartes à choisir dans l'ordre — Pays, puis Sites, puis
- * Services, les deux dernières grisées tant que la précédente n'était pas prise — et
- * un récapitulatif qui ne s'allumait qu'une fois un **service** désigné. *« 2 142 px,
- * trois écrans […] Rien ne se choisit pour lire : on ouvre. »*
- *
- * Ici : **une** liste de sites, groupée par pays avec l'en-tête de famille de 09.1, et
- * le récapitulatif descend sur la fiche du site, où il a un sujet.
+ * Services — et un récapitulatif qui ne s'allumait qu'une fois un **service**
+ * désigné. La planche d'août avait déjà remplacé cela par **une** liste de sites
+ * groupée par pays ; la passe sobre du 03/09 rejoue la même page avec moins de
+ * texte et plus d'air.
  *
  * **A2 — l'arbre ne garde que la géographie : pays → site → local.** Le service en
- * sort, parce que ce n'est pas un lieu : *« un axe se juge à ce qu'il porte — pays et
- * site portent des actifs, des utilisateurs et une campagne d'audit ; le service,
- * rien »*. L'écran l'avouait lui-même, en suffixant ses deux compteurs de « au site —
- * service non renseigné ». Il reste dans la donnée, comme périmètre de relevé d'une
- * campagne d'audit, et se tient depuis la fiche du site.
+ * sort, parce que ce n'est pas un lieu : il reste un attribut de la **personne**.
  *
- * **Il n'y a pas d'écran de pays, et c'est une décision.** Trois pays, quatre sites :
- * un écran qui n'offre que *France · Sénégal · Togo* fait payer une frappe pour
- * n'apprendre rien — c'est la cascade qu'on retire. Le pays reste un **groupe**, avec
- * son glyphe et son décompte.
+ * **Il n'y a pas d'écran de pays, et c'est une décision.** *« Le pays est un groupe,
+ * pas un passage obligé. »* Il porte son **code** — celui qui préfixe les
+ * identifiants, Togo → LFW, Bénin → COO — dans une pastille de 32 px, son nom à
+ * 17 px et son décompte de sites.
+ *
+ * ## Ce que la passe sobre change, et pourquoi la planche le veut
+ *
+ * - **Le titre passe de 20 à 28 px** (`--t1`, Archivo 600/32, −0,02 em) et **la
+ *   recherche entre dans le même bloc que lui** (`.top`, un seul fond de surface,
+ *   `8px 16px 12px`, gouttière de 12). Le porte-voix de la planche d'août — le
+ *   « 4 sites » à 28 px posé dans la page — **disparaît** : il est absorbé par le
+ *   titre, qui dit déjà où l'on est.
+ * - **Les pastilles de facette par pays disparaissent.** La planche n'en dessine
+ *   aucune : la liste est *déjà* groupée par pays, et le champ cherche « Site,
+ *   local, pays ». Un filtre qui redit le groupement fait payer une frappe pour ne
+ *   rien apprendre — c'est la cascade qu'on retire, sous une autre forme.
+ * - **Le bouton de tri disparaît** lui aussi. L'ordre est fixe : les sites qui
+ *   servent d'abord, puis les autres, chacun par ordre alphabétique.
+ * - **Les locaux quittent la liste** : ils vivent dans la fiche du site (`.colnote` :
+ *   *« Les locaux sont dans la fiche du site, pas dans la liste »*).
+ * - **Une rangée ne porte plus de nombre à droite.** Ses chiffres descendent dans la
+ *   sous-ligne — « 8 actifs · 8 personnes · 1 local » — et la droite n'a plus qu'un
+ *   chevron.
+ * - **Aucune note dans l'écran** (R15). Les deux paragraphes qui expliquaient qu'un
+ *   site s'ouvre avant d'être équipé, et que six actifs sur quatorze ne sont pas
+ *   ventilés, sont partis : le premier ne disait rien que la rangée ne dise déjà,
+ *   le second est devenu la ligne `.ord` du haut de page.
+ * - **La feuille d'ajout gagne un quatrième chemin** : importer un fichier (09.2).
+ *
+ * ## L'écart que la planche ne peut pas lever seule
+ *
+ * La feuille annonce un pays comme *« un nom et son code à trois lettres »*. Le store
+ * ne porte pas ce champ — `LocationData.countries` est un `string[]` —, si bien que
+ * le code affiché est **relevé** sur les identifiants d'actifs (`countryCodeOf`), et
+ * que la modale de création ne le demande pas. Le champ manque dans
+ * `src/context/DataContext.tsx`, hors du périmètre de ce portage.
  */
 const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick }) => {
     const { locationData, equipment, users, addLocation } = useData();
@@ -78,8 +110,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     const isCompact = useMediaQuery(MEDIA.compact);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [countryFilter, setCountryFilter] = useState<string>(ALL_COUNTRIES);
-    const [sortIndex, setSortIndex] = useState(0);
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
     const [newKind, setNewKind] = useState<NewLocationKind | null>(null);
     const [newName, setNewName] = useState('');
@@ -87,7 +117,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
-    /** Les sites, à plat, avec ce qui décide d'eux : actifs, utilisateurs, locaux. */
+    /** Les sites, à plat, avec ce qui décide d'eux : actifs, personnes, locaux. */
     const sites = useMemo(() => {
         return Object.entries(locationData.sites).flatMap(([country, siteNames]) =>
             (siteNames as string[]).map((name) => {
@@ -100,14 +130,16 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     locals,
                     assetCount: siteEquipment.length,
                     userCount: siteUsers.length,
-                    code: siteCodeOf(siteEquipment),
                     neverServed: siteEquipment.length === 0 && siteUsers.length === 0,
                 };
             }),
         );
     }, [locationData.sites, locationData.locals, equipment, users]);
 
-    const matchingSites = useMemo(() => {
+    /* La recherche est le seul filtre de l'écran : la planche ne dessine aucune
+       pastille de facette. Elle porte sur le site, son pays et ses locaux — c'est
+       ce que le champ annonce. */
+    const visibleSites = useMemo(() => {
         const query = debouncedSearch.trim().toLowerCase();
         if (!query) return sites;
         return sites.filter(
@@ -118,61 +150,45 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
         );
     }, [sites, debouncedSearch]);
 
-    const visibleSites = useMemo(
-        () =>
-            countryFilter === ALL_COUNTRIES
-                ? matchingSites
-                : matchingSites.filter((site) => site.country === countryFilter),
-        [matchingSites, countryFilter],
-    );
-
-    /** Les pastilles de pays — le seul filtre de l'écran, et il est borné. */
-    const countryFacets = useMemo(() => {
-        const counts = new Map<string, number>();
-        matchingSites.forEach((site) =>
-            counts.set(site.country, (counts.get(site.country) ?? 0) + 1),
-        );
-        return [
-            { id: ALL_COUNTRIES, label: ALL_COUNTRIES, count: matchingSites.length },
-            ...locationData.countries
-                .filter((country) => counts.has(country))
-                .map((country) => ({
-                    id: country,
-                    label: country,
-                    count: counts.get(country) as number,
-                })),
-        ];
-    }, [matchingSites, locationData.countries]);
-
-    const sitesByCountry = useMemo(() => {
-        const sortOption = SORT_OPTIONS[sortIndex].id;
+    /**
+     * Les familles de la liste — une par pays, dans l'ordre du référentiel.
+     *
+     * L'ordre **à l'intérieur** d'une famille est fixe, la planche ayant retiré le
+     * bouton de tri : ce qui sert passe devant ce qui n'a jamais servi, puis
+     * l'alphabet. C'est l'ordre que la planche dessine — *Lomé Siège* avant *Kara*,
+     * qui le précéderait pourtant à l'alphabet.
+     */
+    const families = useMemo(() => {
         const buckets = new Map<string, typeof visibleSites>();
         visibleSites.forEach((site) => {
             buckets.set(site.country, [...(buckets.get(site.country) || []), site]);
         });
         return locationData.countries
             .filter((country) => buckets.has(country))
-            .map((country) => {
+            .map((country, index) => {
                 const items = [...(buckets.get(country) as typeof visibleSites)];
                 items.sort((a, b) => {
-                    if (sortOption === 'actifs') return b.assetCount - a.assetCount;
+                    if (a.neverServed !== b.neverServed) return a.neverServed ? 1 : -1;
                     return a.name.localeCompare(b.name, 'fr');
                 });
-                return { country, items };
+                const countrySites = new Set(
+                    ((locationData.sites[country] || []) as string[]).map((name) => name),
+                );
+                return {
+                    country,
+                    items,
+                    code: countryCodeOf(equipment.filter((item) => countrySites.has(item.site))),
+                    tint: COUNTRY_TINT[index % COUNTRY_TINT.length],
+                };
             });
-    }, [visibleSites, locationData.countries, sortIndex]);
+    }, [visibleSites, locationData.countries, locationData.sites, equipment]);
 
-    const totalLocals = useMemo(
-        () => sites.reduce((sum, site) => sum + site.locals.length, 0),
-        [sites],
-    );
     const localisedAssets = useMemo(
         () => equipment.filter((item) => Boolean(item.site)).length,
         [equipment],
     );
-    const neverServedSites = useMemo(() => sites.filter((site) => site.neverServed), [sites]);
 
-    const isFiltered = Boolean(debouncedSearch) || countryFilter !== ALL_COUNTRIES;
+    const isFiltered = Boolean(debouncedSearch);
     const isReferentialEmpty = sites.length === 0 && locationData.countries.length === 0;
 
     /* Le parent possible du nouvel emplacement : un pays pour un site, un site pour
@@ -233,58 +249,90 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
 
     const kindLabel = newKind === 'country' ? 'pays' : newKind === 'local' ? 'local' : 'site';
 
+    const searchField = (
+        <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Site, local, pays"
+        />
+    );
+
     return (
         <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
-            {/* « Ajouter un emplacement » — la feuille de 10.1 : on demande ce qu'on
-                ajoute. Un site est une adresse, un local précise un site sans en être
-                un, un pays ne sert qu'à grouper. */}
+            {/* « Ajouter un emplacement » — la feuille de 10.1 : **quatre chemins, pas
+                de pied**. Chaque rangée fait 64 px, porte sa vignette de 40, un titre à
+                16/24, une sous-ligne à 14/20 et un chevron. Les sous-lignes de la
+                planche disent ce que l'objet *est*, en cinq mots ; elles ne plaident
+                plus (R15 : aucune note dans l'écran). */}
             <BottomSheet
                 open={isAddSheetOpen}
                 onClose={() => setIsAddSheetOpen(false)}
                 title="Ajouter un emplacement"
             >
-                <div className="flex flex-col py-2">
+                <div className="divide-outline-variant flex flex-col divide-y">
                     {[
                         {
-                            kind: 'site' as NewLocationKind,
+                            key: 'site',
                             glyph: MapPin,
+                            tint: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
                             title: 'Un site',
-                            note: "une adresse : c'est lui qui décide si une remise demande un transport",
+                            sub: 'Une adresse, dans un pays existant',
+                            onSelect: () => openCreate('site'),
                         },
                         {
-                            kind: 'local' as NewLocationKind,
+                            key: 'local',
                             glyph: DoorOpen,
+                            tint: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
                             title: 'Un local',
-                            note: 'il précise un site sans en être un — la salle serveurs est dans le Bureau Paris',
+                            sub: 'Une salle dans un site',
+                            onSelect: () => openCreate('local'),
                         },
                         {
-                            kind: 'country' as NewLocationKind,
-                            glyph: Flag,
+                            key: 'country',
+                            glyph: GlobeHemisphereWest,
+                            tint: 'bg-surface-container text-on-surface-variant',
                             title: 'Un pays',
-                            note: "il ne sert qu'à grouper les sites",
+                            sub: 'Un nom, pour grouper les sites',
+                            onSelect: () => openCreate('country'),
+                        },
+                        {
+                            key: 'import',
+                            glyph: FileCsv,
+                            tint: 'bg-surface-container text-on-surface-variant',
+                            title: 'Importer un fichier',
+                            sub: 'Pays, sites, locaux, une ligne chacun',
+                            onSelect: () => {
+                                setIsAddSheetOpen(false);
+                                onViewChange?.('import_locations');
+                            },
                         },
                     ].map((option) => (
                         <Button
-                            key={option.kind}
+                            key={option.key}
                             variant="text"
-                            className="flex min-h-16 w-full items-center justify-start gap-3.5 rounded-none px-5 py-2.5 text-left"
-                            onClick={() => openCreate(option.kind)}
+                            className="flex min-h-16 w-full items-center justify-start gap-3 rounded-none px-5 py-2 text-left"
+                            onClick={option.onSelect}
                         >
-                            <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
+                            <span
+                                className={cn(
+                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                                    option.tint,
+                                )}
+                            >
                                 <Icon glyph={option.glyph} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block text-[15px] font-medium">
+                                <span className="text-on-surface block truncate text-[16px] leading-6">
                                     {option.title}
                                 </span>
-                                <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                    {option.note}
+                                <span className="text-text-secondary block truncate text-[14px] leading-5">
+                                    {option.sub}
                                 </span>
                             </span>
                             <Icon
                                 glyph={CaretRight}
-                                size={18}
-                                className="text-text-secondary shrink-0"
+                                size={20}
+                                className="text-text-muted shrink-0"
                             />
                         </Button>
                     ))}
@@ -327,102 +375,55 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                 </div>
             </Modal>
 
-            {/* LA BARRE — `.tbar`, reprise au caractère de 04.1. */}
+            {/* `.top` — **un seul bloc** : le titre à 28 px et la recherche sous lui,
+                sur le même fond de surface, séparés de 12. La planche ne met plus de
+                bande de filtres entre les deux. */}
             {isCompact ? (
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center justify-between border-b px-5 py-1">
-                    <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
+                <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+                    <h1 className="font-brand text-on-surface min-w-0 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                         {GLOSSARY.LOCATIONS}
                     </h1>
+                    {!isReferentialEmpty && searchField}
                 </div>
             ) : (
-                <div className="px-page flex items-center gap-3 pt-5">
-                    <div className="flex min-w-0 items-baseline gap-2.5">
-                        <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
+                <div className="px-page flex flex-col gap-3 pt-5">
+                    <div className="flex items-center gap-3">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
-                        <span className="text-text-secondary min-w-0 truncate text-[13px] leading-5">
-                            <b className="font-brand text-on-surface font-semibold tabular-nums">
-                                {sites.length} site{sites.length > 1 ? 's' : ''}
-                            </b>
-                            {` dans ${locationData.countries.length} pays`}
-                        </span>
+                        <Button
+                            variant="outlined"
+                            icon={<Icon glyph={UploadSimple} size={18} />}
+                            onClick={() => onViewChange?.('import_locations')}
+                        >
+                            Importer
+                        </Button>
+                        <Button
+                            variant="filled"
+                            icon={<Icon glyph={Plus} size={18} />}
+                            onClick={() => setIsAddSheetOpen(true)}
+                        >
+                            Ajouter un emplacement
+                        </Button>
                     </div>
-                    <span className="flex-1" />
-                    <Button
-                        variant="outlined"
-                        icon={<Icon glyph={UploadSimple} size={18} />}
-                        onClick={() => onViewChange?.('import_locations')}
-                    >
-                        Importer
-                    </Button>
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={Plus} size={18} />}
-                        onClick={() => setIsAddSheetOpen(true)}
-                    >
-                        Ajouter un emplacement
-                    </Button>
+                    {!isReferentialEmpty && <Reading>{searchField}</Reading>}
                 </div>
             )}
 
             <OfflineBanner />
 
-            {!isReferentialEmpty && (
-                <div
-                    className={cn(
-                        'flex flex-col gap-2.5',
-                        isCompact
-                            ? 'border-outline-variant bg-surface border-b px-5 py-3'
-                            : 'px-page pt-4',
-                    )}
-                >
-                    <Reading>
-                        <SearchField
-                            value={searchQuery}
-                            onChange={setSearchQuery}
-                            placeholder="Site, local, pays"
-                        />
-                    </Reading>
-                    <Reading className="overflow-hidden">
-                        <div
-                            className={cn(
-                                'flex [scrollbar-width:none] gap-2 overflow-x-auto',
-                                isCompact ? 'pr-1' : 'flex-wrap',
-                            )}
-                        >
-                            {countryFacets.map((facet) => (
-                                <FacetChip
-                                    key={facet.id}
-                                    label={facet.label}
-                                    count={facet.count}
-                                    selected={facet.id === countryFilter}
-                                    onClick={() => setCountryFilter(facet.id)}
-                                />
-                            ))}
-                        </div>
-                    </Reading>
-                </div>
-            )}
-
+            {/* `.page` — gouttière de 16, et 96 px de pied quand le FAB est là. */}
             <div
                 className={cn(
-                    'medium:px-page flex flex-1 flex-col px-5 pt-4 pb-5',
-                    isCompact && !isReferentialEmpty && 'pb-9',
+                    'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
+                    isCompact && !isReferentialEmpty && 'pb-24',
                 )}
             >
                 {isReferentialEmpty ? (
                     <ScreenState
                         icon={GlobeHemisphereWest}
                         title="Aucun emplacement"
-                        description={
-                            <>
-                                Sans pays ni site,{' '}
-                                <b className="text-on-surface font-medium">
-                                    aucun actif ne peut être localisé
-                                </b>{' '}
-                                : un équipement tire son lieu d'ici.
-                            </>
-                        }
+                        description="Sans pays ni site, aucun actif ne peut être localisé."
                         actions={
                             <Button
                                 variant="filled"
@@ -434,202 +435,109 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                         }
                     />
                 ) : (
-                    <Reading className="flex flex-col">
-                        {/* LE PORTE-VOIX — `.pv` : le niveau courant, à 28 px. */}
-                        {isCompact && (
-                            <div className="flex items-start gap-2.5 px-0.5 pb-0.5">
-                                <Icon
-                                    glyph={GlobeHemisphereWest}
-                                    size={20}
-                                    className="text-text-muted mt-1.5"
-                                />
-                                <span className="min-w-0">
-                                    <b className="font-brand text-on-surface block text-[28px] leading-8 font-semibold tracking-[-0.02em] tabular-nums">
-                                        {sites.length} site{sites.length > 1 ? 's' : ''}
-                                    </b>
-                                    <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                        dans {locationData.countries.length} pays, portant{' '}
-                                        {localisedAssets} actif
-                                        {localisedAssets > 1 ? 's' : ''} — le niveau courant est le
-                                        référentiel entier.
-                                    </span>
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="text-text-secondary flex min-h-11 items-center justify-between gap-3 px-0.5 text-[13px]">
-                            <span className="whitespace-nowrap">
-                                <b className="text-on-surface font-semibold tabular-nums">
-                                    {totalLocals}
-                                </b>{' '}
-                                local
-                                {totalLocals > 1 ? 'aux' : ''} déclaré{totalLocals > 1 ? 's' : ''}
+                    <Reading className="flex flex-col gap-4">
+                        {/* `.ord` — deux faits, un de chaque côté, à 12/16. C'est ce qui
+                            reste du porte-voix et de la note de pied réunis. */}
+                        <div className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
+                            <span className="truncate tabular-nums">
+                                {sites.length} site{sites.length > 1 ? 's' : ''} ·{' '}
+                                {locationData.countries.length} pays
                             </span>
-                            <Button
-                                variant="text"
-                                onClick={() =>
-                                    setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
-                                }
-                                className="text-on-surface -mr-2 flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium"
-                            >
-                                <Icon
-                                    glyph={SortAscending}
-                                    size={18}
-                                    className="text-text-secondary"
-                                />
-                                {SORT_OPTIONS[sortIndex].label}
-                            </Button>
+                            <span className="shrink-0 tabular-nums">
+                                {localisedAssets} actif{localisedAssets > 1 ? 's' : ''}
+                            </span>
                         </div>
 
                         {visibleSites.length > 0 ? (
-                            <>
-                                <div className="flex flex-col gap-5">
-                                    {sitesByCountry.map(({ country, items }) => (
-                                        <section key={country}>
-                                            {/* `.fh` — l'en-tête de pays coiffe la carte sans être
-                                                dedans (§2.36), et porte son glyphe. */}
-                                            <div className="text-on-surface flex items-baseline justify-between gap-3 px-0.5 pb-2 text-[13px] font-medium">
-                                                <span className="flex min-w-0 items-center gap-2">
-                                                    <Icon
-                                                        glyph={Flag}
-                                                        size={18}
-                                                        className="text-text-muted"
-                                                    />
-                                                    <span className="truncate">{country}</span>
+                            families.map(({ country, items, code, tint }) => (
+                                /* `.fam` — l'en-tête coiffe la carte sans être dedans
+                                   (§2.36), et n'en est séparé que de 8. */
+                                <section key={country} className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-3 px-1">
+                                        {/* `.fh .si` — la pastille de code. Sans code relevé,
+                                            le globe : *ce qui n'est pas relevé n'est pas
+                                            inventé*, et trois lettres tirées du nom du pays
+                                            en seraient une. */}
+                                        <span
+                                            className={cn(
+                                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]',
+                                                code
+                                                    ? tint
+                                                    : 'bg-surface-container text-on-surface-variant',
+                                            )}
+                                        >
+                                            {code ? (
+                                                <span className="font-brand text-[13px] font-semibold tracking-[0.02em]">
+                                                    {code}
                                                 </span>
-                                                <span className="text-text-secondary shrink-0 text-[12px] font-normal tabular-nums">
-                                                    {items.length} site{items.length > 1 ? 's' : ''}
-                                                </span>
-                                            </div>
-                                            <div className="rounded-card bg-surface p-4">
-                                                {items.map((site) => (
-                                                    <React.Fragment key={site.name}>
-                                                        <ListRow
-                                                            vignette={
-                                                                <span
-                                                                    className={
-                                                                        site.neverServed
-                                                                            ? 'text-text-muted'
-                                                                            : undefined
-                                                                    }
-                                                                >
-                                                                    <Icon
-                                                                        glyph={MapPin}
-                                                                        size={20}
-                                                                    />
-                                                                </span>
-                                                            }
-                                                            title={
-                                                                site.neverServed ? (
-                                                                    <span className="text-text-secondary">
-                                                                        {site.name}
-                                                                    </span>
-                                                                ) : (
-                                                                    site.name
-                                                                )
-                                                            }
-                                                            type={
-                                                                site.neverServed ? (
-                                                                    <span className="text-text-muted text-[13px] font-normal">
-                                                                        0 actif
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-on-surface text-[13px] font-medium tabular-nums">
-                                                                        {site.assetCount} actif
-                                                                        {site.assetCount > 1
-                                                                            ? 's'
-                                                                            : ''}
-                                                                    </span>
-                                                                )
-                                                            }
-                                                            status={
-                                                                site.neverServed
-                                                                    ? {
-                                                                          icon: Clock,
-                                                                          label: 'jamais servi',
-                                                                          tone: 'pending',
-                                                                      }
-                                                                    : undefined
-                                                            }
-                                                            holder={
-                                                                site.neverServed
-                                                                    ? 'Jamais servi · aucun utilisateur'
-                                                                    : `${site.userCount} utilisateur${site.userCount > 1 ? 's' : ''}${
-                                                                          site.locals.length > 0
-                                                                              ? ` · ${site.locals.length} local${site.locals.length > 1 ? 'aux' : ''}`
-                                                                              : ''
-                                                                      }`
-                                                            }
-                                                            reference={site.code}
-                                                            onOpen={() => onSiteClick?.(site.name)}
-                                                        />
-                                                        {/* Les locaux apparaissent **sous leur site**, en
-                                                            retrait, et seulement là où il y en a. */}
-                                                        {site.locals.map((local) => {
-                                                            const localAssets = equipment.filter(
-                                                                (item) =>
-                                                                    item.site === site.name &&
-                                                                    item.service === local,
-                                                            ).length;
-                                                            return (
-                                                                <div
-                                                                    key={`${site.name}-${local}`}
-                                                                    className="pl-8"
-                                                                >
-                                                                    <ListRow
-                                                                        vignette={
-                                                                            <Icon
-                                                                                glyph={DoorOpen}
-                                                                                size={20}
-                                                                            />
-                                                                        }
-                                                                        title={local}
-                                                                        type={
-                                                                            <span className="text-on-surface text-[13px] font-medium tabular-nums">
-                                                                                {localAssets} actif
-                                                                                {localAssets > 1
-                                                                                    ? 's'
-                                                                                    : ''}
-                                                                            </span>
-                                                                        }
-                                                                        holder={`Local du ${site.name}`}
-                                                                        onOpen={() =>
-                                                                            onSiteClick?.(site.name)
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </React.Fragment>
-                                                ))}
-                                            </div>
-                                        </section>
-                                    ))}
-                                </div>
-
-                                {neverServedSites.length > 0 && (
-                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[12px] leading-[17px]">
-                                        <b className="text-on-surface font-medium">
-                                            {neverServedSites.map((site) => site.name).join(', ')}
-                                            {neverServedSites.length > 1
-                                                ? ' ne portent rien'
-                                                : ' ne porte rien'}
-                                        </b>
-                                        {
-                                            " — ni actif, ni utilisateur. Ce n'est pas une panne : un site s'ouvre avant d'être équipé."
-                                        }
-                                    </p>
-                                )}
-
-                                {localisedAssets < equipment.length && (
-                                    <p className="text-text-muted mt-1.5 px-0.5 text-center text-[12px] leading-[17px] tabular-nums">
-                                        {localisedAssets} actifs sur {equipment.length} sont
-                                        localisés. La ventilation des{' '}
-                                        {equipment.length - localisedAssets} autres n'est pas
-                                        relevée.
-                                    </p>
-                                )}
-                            </>
+                                            ) : (
+                                                <Icon glyph={GlobeHemisphereWest} size={18} />
+                                            )}
+                                        </span>
+                                        <span className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                            {country}
+                                        </span>
+                                        <span className="text-text-secondary shrink-0 text-[14px] leading-5 tabular-nums">
+                                            {items.length} site{items.length > 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <div className="rounded-card bg-surface px-4 py-1">
+                                        {items.map((site) => (
+                                            <ListRow
+                                                key={site.name}
+                                                vignette={
+                                                    /* `.lrow.mute` éteint aussi la vignette :
+                                                       un site qui n'a jamais servi se lit
+                                                       d'un coup d'œil, sans qu'on ait à
+                                                       chercher le mot. */
+                                                    <span
+                                                        className={
+                                                            site.neverServed
+                                                                ? 'text-text-muted'
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        <Icon glyph={MapPin} size={20} />
+                                                    </span>
+                                                }
+                                                title={
+                                                    site.neverServed ? (
+                                                        <span className="text-text-secondary">
+                                                            {site.name}
+                                                        </span>
+                                                    ) : (
+                                                        site.name
+                                                    )
+                                                }
+                                                /* Une seule sous-ligne, et elle porte tous les
+                                                   chiffres du site : la planche a vidé la droite
+                                                   de la rangée pour n'y laisser que le chevron.
+                                                   Un site qui n'a jamais servi le dit là, en
+                                                   ambre — pas par une pastille d'état, que la
+                                                   planche ne dessine plus. */
+                                                holder={
+                                                    site.neverServed ? (
+                                                        <b className="font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                            Jamais servi
+                                                        </b>
+                                                    ) : (
+                                                        [
+                                                            `${site.assetCount} actif${site.assetCount > 1 ? 's' : ''}`,
+                                                            `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
+                                                            site.locals.length > 0
+                                                                ? `${site.locals.length} local${site.locals.length > 1 ? 'aux' : ''}`
+                                                                : null,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' · ')
+                                                    )
+                                                }
+                                                onOpen={() => onSiteClick?.(site.name)}
+                                            />
+                                        ))}
+                                    </div>
+                                </section>
+                            ))
                         ) : (
                             <ScreenState
                                 icon={MapPin}
@@ -637,13 +545,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 description="Élargissez la recherche, ou revenez à la totalité du référentiel."
                                 actions={
                                     isFiltered ? (
-                                        <Button
-                                            variant="filled"
-                                            onClick={() => {
-                                                setSearchQuery('');
-                                                setCountryFilter(ALL_COUNTRIES);
-                                            }}
-                                        >
+                                        <Button variant="filled" onClick={() => setSearchQuery('')}>
                                             Voir les {sites.length} sites
                                         </Button>
                                     ) : undefined
@@ -657,7 +559,9 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             {isCompact && !isReferentialEmpty && (
                 <FabContainer
                     description="Ajouter un emplacement"
-                    className="compact:bottom-[76px] right-5 bottom-[76px]"
+                    /* `.fab` : 16 à droite, 80 en bas — la mesure de la planche, posée
+                       par-dessus l'encoche et non à sa place. */
+                    className="compact:bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)]"
                 >
                     <Button
                         variant="filled"
