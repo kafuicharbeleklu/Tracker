@@ -1,5 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import {
+    Buildings,
+    EnvelopeSimple,
+    Eye,
+    Key,
+    LockSimple,
+    NotePencil,
+    User as UserGlyph,
+} from '@phosphor-icons/react';
+
+import Button from '../../../components/ui/Button';
+import Icon from '../../../components/ui/Icon';
+import ScreenState from '../../../components/ui/ScreenState';
+import { TextArea } from '../../../components/ui/TextArea';
+import { FieldLabel, FormNote, FormSection } from '../../../components/ui/FormParts';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { UserRole } from '../../../types';
@@ -22,8 +36,10 @@ interface AddUserPageProps {
 
 const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) => {
     const { showToast } = useToast();
-    const { addUser, updateUser, users, locationData, serviceManagers } = useData();
-    const { role: currentRole } = useAccessControl();
+    const { addUser, updateUser, users, events, locationData, serviceManagers } = useData();
+    const { role: currentRole, user: currentUser } = useAccessControl();
+    const currentUserId = currentUser?.id;
+    const currentUserName = currentUser?.name;
 
     const [formData, setFormData] = useState({
         name: '',
@@ -34,9 +50,48 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         country: '',
         site: '',
         managerId: '',
+        note: '',
     });
 
     const isEditMode = !!userId;
+    const editedUser = useMemo(
+        () => (userId ? users.find((entry) => entry.id === userId) : undefined),
+        [userId, users],
+    );
+
+    const formatDay = (value?: string) =>
+        value
+            ? new Date(value).toLocaleDateString('fr-FR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+              })
+            : undefined;
+
+    /* « Observé — jamais saisi » : deux faits que l'application constate. La date de
+       création n'est **pas un champ du compte** — elle se relève sur le journal, où
+       l'événement de création la porte ; à défaut, sur la date d'invitation. Ce qui
+       n'est ni écrit ni relevé s'affiche vide, plutôt qu'inventé. */
+    const createdEvent = useMemo(
+        () =>
+            userId
+                ? events
+                      .filter(
+                          (event) =>
+                              event.targetType === 'USER' &&
+                              event.targetId === userId &&
+                              event.type === 'CREATE',
+                      )
+                      .sort(
+                          (a, b) =>
+                              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+                      )[0]
+                : undefined,
+        [events, userId],
+    );
+
+    const createdOn = formatDay(createdEvent?.timestamp) ?? formatDay(editedUser?.invitedAt) ?? '—';
+    const lastAccess = formatDay(editedUser?.lastLogin) ?? 'Jamais';
 
     // Chargement des données si édition
     useEffect(() => {
@@ -52,6 +107,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                     country: userToEdit.country || '',
                     site: userToEdit.site || '',
                     managerId: userToEdit.managerId || '',
+                    note: userToEdit.managerNote?.text || '',
                 });
             }
         }
@@ -105,13 +161,6 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         }
     };
 
-    // Calcul du nom du manager pour l'affichage (car le champ est désactivé)
-    const assignedManagerName = useMemo(() => {
-        if (!formData.managerId) return '';
-        const mgr = users.find((u) => u.id === formData.managerId);
-        return mgr ? mgr.name : '';
-    }, [formData.managerId, users]);
-
     const validate = () => {
         const newErrors: Record<string, string> = {};
         if (!formData.name) newErrors.name = 'Le nom est requis';
@@ -136,16 +185,29 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         }
 
         if (isEditMode && userId) {
+            const trimmedNote = formData.note.trim();
             const decision = updateUser(userId, {
                 name: formData.name,
-                email: formData.email,
                 phone: formData.phone,
                 department: formData.department,
                 role: formData.role,
                 country: formData.country,
                 site: formData.site,
                 managerId: formData.managerId,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`,
+                /* La note de gestionnaire est datée et signée : sans auteur, une note
+                   ne se discute pas — on ne sait pas à qui la reprocher ni la
+                   demander. Vidée, elle disparaît plutôt que de rester en coquille. */
+                managerNote: trimmedNote
+                    ? {
+                          text: trimmedNote,
+                          authorId: currentUserId || '',
+                          authorName: currentUserName || '',
+                          updatedAt: new Date().toISOString(),
+                      }
+                    : undefined,
+                avatar:
+                    editedUser?.avatar ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`,
             });
             if (!decision.allowed) {
                 showToast(
@@ -235,212 +297,215 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         }
     };
 
+    /* **Créer un compte ne passe plus par cet écran.** 05.3 le remplace par une
+       feuille de trois réponses, ouverte depuis la liste : l'adresse, le rôle, le
+       site. Le reste, la personne le porte. Cet écran reste ce qu'il est devenu —
+       **compléter une fiche** —, et le dit quand on y arrive sans fiche. */
+    if (!isEditMode) {
+        return (
+            <ScreenState
+                icon={EnvelopeSimple}
+                title="Un compte se crée par invitation"
+                description="Trois réponses suffisent — l'adresse, le rôle, le site. La personne complète le reste à sa première connexion."
+                actions={
+                    <Button variant="filled" onClick={onCancel}>
+                        Revenir à l'équipe
+                    </Button>
+                }
+            />
+        );
+    }
+
     return (
         <FullScreenFormLayout
-            title={isEditMode ? `Modifier le profil : ${formData.name}` : 'Nouveau collaborateur'}
+            title="Modifier la fiche"
+            subtitle={`${formData.name || 'Compte'}${editedUser?.status === 'pending' ? ' · en attente' : ''}`}
             onCancel={onCancel}
             onSave={handleSubmit}
-            saveLabel={isEditMode ? 'Mettre à jour' : 'Créer le compte'}
+            saveLabel="Enregistrer"
+            submitButtonLocation="header"
+            className="bg-background"
         >
-            <div className="medium:grid-cols-2 expanded:grid-cols-3 mx-auto grid max-w-6xl grid-cols-1 gap-8">
-                {/* COLONNE GAUCHE : IDENTITÉ */}
-                <div className="expanded:col-span-2 space-y-6">
-                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
-                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
-                            <div className="bg-primary/10 text-primary rounded-md p-2">
-                                <MaterialIcon name="person" size={20} />
-                            </div>
-                            <h2 className="text-on-surface text-title-medium font-bold">
-                                Informations d'identité
-                            </h2>
-                        </div>
+            <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+                {/* ── Identité ─────────────────────────────────────────────────── */}
+                <FormSection title="Identité" glyph={UserGlyph} tint="bleu">
+                    <div>
+                        <FieldLabel>Nom</FieldLabel>
+                        <InputField
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Prénom et nom"
+                            error={errors.name}
+                        />
+                    </div>
 
-                        <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
-                            <InputField
-                                label="Nom et Prénom"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="Ex: Deen TOURE"
-                                required
-                                error={errors.name}
-                                icon={<MaterialIcon name="person_add" size={18} />}
-                            />
+                    {/* **L'adresse est l'identifiant de connexion : lecture seule.**
+                        La changer déplacerait le compte sans déplacer la personne —
+                        et rien ne relierait plus l'ancienne connexion à la fiche. */}
+                    <div>
+                        <FieldLabel note="identifiant de connexion">Adresse</FieldLabel>
+                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
+                            <Icon glyph={LockSimple} size={18} />
+                            {formData.email}
+                        </p>
+                    </div>
 
-                            <InputField
-                                label="Adresse e-mail"
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="deen.toure@tracker.app"
-                                required
-                                error={errors.email}
-                                icon={<MaterialIcon name="mail" size={18} />}
-                            />
+                    <div>
+                        <FieldLabel note="facultatif">Téléphone</FieldLabel>
+                        <InputField
+                            name="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="+228"
+                        />
+                    </div>
+                </FormSection>
 
-                            <InputField
-                                label="Numéro de téléphone"
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="+221 77 000 00 00"
-                                icon={<MaterialIcon name="phone" size={18} />}
-                            />
-                        </div>
-                    </section>
-
-                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
-                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
-                            <div className="bg-secondary-container text-secondary rounded-md p-2">
-                                <MaterialIcon name="location_on" size={20} />
-                            </div>
-                            <h2 className="text-on-surface text-title-medium font-bold">
-                                Affectation géographique
-                            </h2>
-                        </div>
-
-                        <div className="medium:grid-cols-2 large:grid-cols-3 grid grid-cols-1 gap-6">
+                {/* ── Organisation ─────────────────────────────────────────────── */}
+                <FormSection title="Organisation" glyph={Buildings} tint="vert">
+                    <div className="flex gap-3">
+                        <div className="min-w-0 flex-1">
+                            <FieldLabel>Pays</FieldLabel>
                             <SelectField
-                                label="Pays"
                                 name="country"
-                                options={locationData.countries.map((c) => ({
-                                    value: c,
-                                    label: c,
+                                options={locationData.countries.map((entry) => ({
+                                    value: entry,
+                                    label: entry,
                                 }))}
                                 value={formData.country}
                                 onChange={handleChange}
-                                required
+                                placeholder="Choisir"
                                 error={errors.country}
                             />
-
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <FieldLabel>Site</FieldLabel>
                             <SelectField
-                                label="Site"
                                 name="site"
-                                options={availableSites.map((s) => ({ value: s, label: s }))}
+                                options={availableSites.map((entry) => ({
+                                    value: entry,
+                                    label: entry,
+                                }))}
                                 value={formData.site}
                                 onChange={handleChange}
                                 disabled={!formData.country}
-                                placeholder="Choisir site"
-                                required
+                                placeholder={formData.country ? 'Choisir' : "D'abord un pays"}
                                 error={errors.site}
                             />
-
-                            <SelectField
-                                label="Service"
-                                name="department"
-                                options={availableDepartments.map((d) => ({ value: d, label: d }))}
-                                value={formData.department}
-                                onChange={handleChange}
-                                disabled={!formData.site}
-                                placeholder="Choisir service"
-                            />
-
-                            <div className="medium:col-span-2 large:col-span-3">
-                                <InputField
-                                    label="Manager direct (N+1)"
-                                    name="managerId"
-                                    value={
-                                        formData.department
-                                            ? assignedManagerName || 'Aucun manager configuré'
-                                            : 'Sélectionnez un service'
-                                    }
-                                    disabled
-                                    icon={<MaterialIcon name="account_tree" size={18} />}
-                                    supportingText="Ce champ est alimenté automatiquement selon le service sélectionné."
-                                />
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                {/* COLONNE DROITE : APERÇU ET RÔLE */}
-                <div className="space-y-6">
-                    {/* AVATAR PREVIEW CARD */}
-                    <div className="bg-surface-container-high rounded-card shadow-elevation-3 group relative overflow-hidden p-8 text-center">
-                        <div className="bg-primary/10 absolute top-0 right-0 -mt-16 -mr-16 h-32 w-32 rounded-full blur-2xl"></div>
-                        <div className="relative z-10">
-                            <div className="from-primary to-primary-container shadow-elevation-2 mb-4 inline-block rounded-full bg-gradient-to-tr p-1 transition-transform duration-500 group-hover:scale-105">
-                                <div className="bg-surface-container-low border-on-surface h-24 w-24 overflow-hidden rounded-full border-4">
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name || 'User')}`}
-                                        alt="Aperçu"
-                                        className="h-full w-full object-cover"
-                                    />
-                                </div>
-                            </div>
-                            <h3 className="text-inverse-on-surface text-title-medium line-clamp-2 px-4 font-bold break-words">
-                                {formData.name || (isEditMode ? 'Utilisateur' : 'Nouveau Profil')}
-                            </h3>
-                            <p className="text-on-surface-variant text-label-medium mt-1 font-black tracking-widest uppercase">
-                                {formData.role}
-                            </p>
                         </div>
                     </div>
 
-                    {/* ROLE SELECTION CARD */}
-                    <section className="bg-surface rounded-card shadow-elevation-1 border-outline-variant border p-6">
-                        <div className="border-outline-variant/30 mb-6 flex items-center gap-3 border-b pb-4">
-                            <div className="bg-tertiary-container text-tertiary rounded-md p-2">
-                                <MaterialIcon name="shield" size={20} />
-                            </div>
-                            <h2 className="text-on-surface text-title-medium font-bold">
-                                Accès Système
-                            </h2>
+                    <div>
+                        <FieldLabel>Service</FieldLabel>
+                        <SelectField
+                            name="department"
+                            options={availableDepartments.map((entry) => ({
+                                value: entry,
+                                label: entry,
+                            }))}
+                            value={formData.department}
+                            onChange={handleChange}
+                            disabled={!formData.site}
+                            placeholder={formData.site ? 'Choisir' : "D'abord un site"}
+                        />
+                    </div>
+
+                    {/* Le manager est **proposé** par le service, et se change : la
+                        proposition n'est pas une décision. Il était affiché dans un
+                        champ désactivé, donc impossible à corriger quand le service
+                        n'en portait pas. */}
+                    <div>
+                        <FieldLabel note="proposé par le service">Manager</FieldLabel>
+                        <SelectField
+                            name="managerId"
+                            options={[
+                                { value: '', label: 'Aucun manager' },
+                                ...users
+                                    .filter((entry) => entry.id !== userId)
+                                    .map((entry) => ({
+                                        value: entry.id,
+                                        label: `${entry.name} · ${entry.department || entry.site || '—'}`,
+                                    })),
+                            ]}
+                            value={formData.managerId}
+                            onChange={handleChange}
+                            placeholder="Aucun manager"
+                        />
+                    </div>
+                </FormSection>
+
+                {/* ── Accès ────────────────────────────────────────────────────── */}
+                <FormSection title="Accès" glyph={Key} tint="ambre">
+                    <div>
+                        <FieldLabel>Rôle</FieldLabel>
+                        <SelectField
+                            name="role"
+                            options={roles}
+                            value={formData.role}
+                            onChange={handleChange}
+                        />
+                        <FormNote>{getRoleDescription(formData.role)}</FormNote>
+                    </div>
+
+                    {/* Le code personnel ne se saisit pas ici : il se pose par la
+                        personne, et se réinitialise depuis sa fiche. L'écran dit son
+                        état, comme la planche. */}
+                    <div>
+                        <FieldLabel>Code PIN</FieldLabel>
+                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
+                            <Icon glyph={LockSimple} size={18} />
+                            {editedUser?.pin ? 'Défini' : 'Non défini'}
+                        </p>
+                        <FormNote>
+                            Il se réinitialise depuis la fiche. Sans lui, une remise se prouve par
+                            signature.
+                        </FormNote>
+                    </div>
+                </FormSection>
+
+                {/* ── Note ─────────────────────────────────────────────────────── */}
+                <FormSection
+                    title="Note"
+                    glyph={NotePencil}
+                    tint="orange"
+                    caption="gestionnaires seulement"
+                >
+                    <TextArea
+                        value={formData.note}
+                        onChange={(event) =>
+                            setFormData((prev) => ({ ...prev, note: event.target.value }))
+                        }
+                        rows={3}
+                        aria-label="Note de gestionnaire"
+                        placeholder="Un mot sur ce compte."
+                    />
+                </FormSection>
+
+                {/* ── Observé ──────────────────────────────────────────────────── */}
+                <FormSection title="Observé" glyph={Eye} tint="bleu" caption="jamais saisi">
+                    <div className="flex flex-col">
+                        <div className="flex min-h-12 items-center justify-between gap-4 py-3 text-[16px] leading-6">
+                            <span className="text-on-surface-variant">Créé le</span>
+                            <span className="text-on-surface font-medium tabular-nums">
+                                {createdOn}
+                            </span>
                         </div>
-
-                        <div className="space-y-4">
-                            <SelectField
-                                label="Niveau de permissions"
-                                name="role"
-                                options={roles}
-                                value={formData.role}
-                                onChange={handleChange}
-                                required
-                            />
-
-                            <div className="bg-surface-container border-outline-variant rounded-lg border p-4">
-                                <div className="flex items-start gap-2">
-                                    <MaterialIcon
-                                        name="info"
-                                        size={14}
-                                        className="text-on-surface-variant mt-0.5 shrink-0"
-                                    />
-                                    <p className="text-body-small text-on-surface-variant leading-relaxed italic">
-                                        {getRoleDescription(formData.role)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 pt-4">
-                                <div className="text-label-medium text-tertiary flex items-center gap-2 font-bold">
-                                    <MaterialIcon name="check_circle" size={14} />
-                                    Compte actif
-                                </div>
-                                {isEditMode ? (
-                                    <div className="text-label-medium text-secondary flex items-center gap-2 font-bold">
-                                        <MaterialIcon name="sync" size={14} />
-                                        Historique conservé
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="text-label-medium text-secondary flex items-center gap-2 font-bold">
-                                            <MaterialIcon name="check_circle" size={14} />
-                                            Invitation e-mail envoyée
-                                        </div>
-                                        {formData.managerId && (
-                                            <div className="text-label-medium text-tertiary flex animate-pulse items-center gap-2 font-bold">
-                                                <MaterialIcon name="check_circle" size={14} />
-                                                Notification manager (Dotation)
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                            <span className="text-on-surface-variant">Dernier accès</span>
+                            <span
+                                className={
+                                    editedUser?.lastLogin
+                                        ? 'text-on-surface font-medium tabular-nums'
+                                        : 'text-text-tertiary'
+                                }
+                            >
+                                {lastAccess}
+                            </span>
                         </div>
-                    </section>
-                </div>
+                    </div>
+                </FormSection>
             </div>
         </FullScreenFormLayout>
     );

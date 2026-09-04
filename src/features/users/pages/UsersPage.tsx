@@ -25,6 +25,7 @@ import Icon from '../../../components/ui/Icon';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import InviteSheet from '../components/InviteSheet';
 
 import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
@@ -216,6 +217,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
 
     // Feuille montante d'ajout (05.1)
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+    const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -532,7 +534,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                     {`Voir les ${users.length} personnes`}
                                 </Button>
                             ) : permissions.canManageUsers ? (
-                                <Button variant="filled" onClick={() => onViewChange('add_user')}>
+                                <Button variant="filled" onClick={() => setIsInviteSheetOpen(true)}>
                                     Inviter une personne
                                 </Button>
                             ) : undefined
@@ -712,11 +714,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 </div>
             </BottomSheet>
 
-            {/* Feuille montante d'ajout (05.1) */}
+            {/* Feuille montante d'ajout (05.1 et 05.3, colonne 1). Le pluriel est
+                celui de la planche : la feuille ouvre deux chemins, dont l'un en
+                crée plusieurs d'un coup. */}
             <BottomSheet
                 open={isAddSheetOpen}
                 onClose={() => setIsAddSheetOpen(false)}
-                title="Ajouter une personne"
+                title="Ajouter des personnes"
             >
                 {/* Deux rangées `.si` séparées d'un filet, pas deux blocs à survol : la
                     planche les traite comme une liste de chemins, et leurs vignettes
@@ -728,18 +732,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         type="button"
                         onClick={() => {
                             setIsAddSheetOpen(false);
-                            onViewChange('add_user');
+                            setIsInviteSheetOpen(true);
                         }}
-                        className="flex min-h-16 w-full cursor-pointer items-center gap-4 py-2 text-left"
+                        className="flex min-h-[60px] w-full cursor-pointer items-center gap-3 py-2 text-left"
                     >
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]">
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[17px] leading-6 font-medium">
+                            <p className="text-on-surface text-[16px] leading-6">
                                 Inviter une personne
                             </p>
-                            <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
+                            <p className="text-on-surface-variant text-[14px] leading-5">
                                 Une adresse, un rôle, un site.
                             </p>
                         </div>
@@ -752,23 +756,33 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             setIsAddSheetOpen(false);
                             onViewChange('import_users');
                         }}
-                        className="border-outline-variant flex min-h-16 w-full cursor-pointer items-center gap-4 border-t py-2 text-left"
+                        className="border-outline-variant flex min-h-[60px] w-full cursor-pointer items-center gap-3 border-t py-2 text-left"
                     >
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]">
                             <Icon glyph={FileCsv} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[17px] leading-6 font-medium">
+                            <p className="text-on-surface text-[16px] leading-6">
                                 Importer une équipe
                             </p>
-                            <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
-                                Un fichier : Nom, E-mail, Rôle, Service.
+                            <p className="text-on-surface-variant text-[14px] leading-5">
+                                Un fichier, une ligne par personne.
                             </p>
                         </div>
                         <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
                     </button>
                 </div>
             </BottomSheet>
+
+            {/* 05.3 colonne 2 — inviter tient en trois réponses, dans une feuille.
+                L'écran plein de huit champs reste accessible en **édition** : il sert
+                à compléter une fiche, plus à en créer une. */}
+            <InviteSheet
+                open={isInviteSheetOpen}
+                onClose={() => setIsInviteSheetOpen(false)}
+                onInvited={(user) => onUserClick?.(user.id)}
+                onOpenExisting={(user) => onUserClick?.(user.id)}
+            />
         </>
     );
 };

@@ -178,6 +178,13 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 // Invité au sens d'authService : le mot de passe se définit à l'arrivée.
                 status: 'pending',
                 mustChangePassword: true,
+                /* **Chaque ligne importée reçoit son lien**, comme une invitation à
+                   l'unité (05.3) : sans jeton, la fiche des personnes créées ici
+                   n'aurait rien à copier, et le gestionnaire n'aurait aucun moyen de
+                   les faire entrer — le produit n'envoie pas de courriel. */
+                invitedAt: new Date().toISOString(),
+                invitedBy: currentUser?.name,
+                invitationToken: `${Date.now().toString().slice(-4)}${Math.random().toString(16).slice(2, 10)}`,
             };
             const decision = addUser(user);
             if (!decision.allowed) {
@@ -372,8 +379,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                             onChange={(e) => setDefaultRole(e.target.value as UserRole)}
                             options={ROLE_OPTIONS.filter(
                                 (o) =>
-                                    o.value !== 'SuperAdmin' ||
-                                    currentUser?.role === 'SuperAdmin',
+                                    o.value !== 'SuperAdmin' || currentUser?.role === 'SuperAdmin',
                             )}
                             supportingText="Une colonne Rôle renseignée dans le fichier l'emporte, ligne par ligne."
                         />

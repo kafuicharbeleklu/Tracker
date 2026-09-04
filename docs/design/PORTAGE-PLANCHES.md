@@ -4,7 +4,7 @@
 (40 cartes). Ce fichier se tient à jour à chaque planche portée : c'est la seule carte
 qui dise ce qui reste, et elle a déjà démenti une estimation faite de tête.
 
-**8 portées · 1 partielle · 31 restantes.**
+**9 portées · 1 partielle · 30 restantes.**
 
 Une planche est dite **portée** quand sa forme a été relevée sur la planche elle-même
 (pas sur un lot), appliquée, et vérifiée à l'écran à 393 px.
@@ -39,7 +39,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
 | 05.1 | Liste utilisateurs | `UsersPage` | **porté** |
 | 05.2 | Fiche d'une personne | `UserDetailsPage` | **porté** |
-| 05.3 | Créer un compte | `AddUserPage`, `ImportUsersPage` | **non porté** (l'import écrit, lot 4) |
+| 05.3 | Créer un compte | `InviteSheet`, `AddUserPage`, `ImportUsersPage` | **portée** — création par invitation |
 | 06.1 | Le parcours complet | `AssignmentWizardPage`, `ReturnWizardPage` | **non porté** |
 | 06.2 | L'attestation | l'étape d'attestation des deux assistants | **non porté** |
 | 06.3 | Fins de flux | les clôtures | **non porté** |

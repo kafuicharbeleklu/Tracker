@@ -12,7 +12,9 @@ import {
     Laptop,
     Mouse,
     Package,
+    PaperPlaneTilt,
     Plus,
+    Signature,
     Prohibit,
     SignOut,
     User,
@@ -159,6 +161,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         approvals,
         updateUser,
         deleteUser,
+        resendInvitation,
         rbacRoles,
         rbacGroups,
         getEffectiveAccessForUser,
@@ -323,8 +326,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     const hasActiveApprovals = userApprovals.length > 0;
     const departure = formatDate(user.departureDate);
     const departureShort = formatShortDate(user.departureDate);
-    const canDelete =
-        permissions.canManageUsers && !isSelf && held === 0 && !hasActiveApprovals;
+    const canDelete = permissions.canManageUsers && !isSelf && held === 0 && !hasActiveApprovals;
     const firstName = user.name.split(' ')[0];
     const initials = user.name
         .split(' ')
@@ -542,6 +544,28 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     // --- Héro ----------------------------------------------------------------
 
+    /**
+     * **L'âge de l'invitation, et sa validité — mesurés, pas annoncés.**
+     *
+     * La planche écrit « valable 7 jours » en tête de carte. Sept jours après quoi se
+     * lit sur `invitedAt`, et c'est ce qu'on affiche : la date où le lien cesse de
+     * valoir, ou le fait qu'elle est passée. **Rien ne refuse encore un lien
+     * périmé** — la porte de première connexion est la planche 02.2, qui n'est pas
+     * portée : la carte dit donc au gestionnaire de renvoyer, ce qui refait le jeton
+     * et rouvre la fenêtre. Une mention « valable 7 jours » posée en dur aurait
+     * annoncé une règle que rien n'applique.
+     */
+    const invitationAgeDays = user.invitedAt
+        ? Math.floor((Date.now() - new Date(user.invitedAt).getTime()) / 86400000)
+        : undefined;
+    const invitationExpired = typeof invitationAgeDays === 'number' && invitationAgeDays >= 7;
+    const invitationValidity =
+        typeof invitationAgeDays !== 'number'
+            ? undefined
+            : invitationExpired
+              ? 'passé 7 jours — à renvoyer'
+              : `valable ${7 - invitationAgeDays} jour${7 - invitationAgeDays > 1 ? 's' : ''}`;
+
     const suspendedAt = formatDate(user.suspendedAt);
     const accountStatus = isSuspended
         ? {
@@ -552,10 +576,47 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                   : 'Compte suspendu',
           }
         : isInvited
-          ? { icon: Clock, tone: 'pending' as const, label: 'Invité · mot de passe à définir' }
+          ? {
+                icon: Clock,
+                tone: 'pending' as const,
+                /* `.bst` de la planche : « Invité il y a 2 jours ». L'âge se compte,
+                   il ne se devine pas — et c'est lui qui dit s'il faut relancer. */
+                label:
+                    typeof invitationAgeDays === 'number'
+                        ? invitationAgeDays === 0
+                            ? "Invité aujourd'hui"
+                            : `Invité il y a ${invitationAgeDays} jour${invitationAgeDays > 1 ? 's' : ''}`
+                        : 'Invité · mot de passe à définir',
+            }
           : { icon: CheckCircle, tone: 'positive' as const, label: 'Compte actif' };
 
     const lastLogin = formatShortDate(user.lastLogin);
+
+    /* Le lien porte le jeton du compte et mène à la connexion : c'est là que la
+       personne définit son mot de passe. Il vaut ce qu'il dit — rien de plus. */
+    const invitationLink = user.invitationToken
+        ? `${window.location.origin}/#/invite/${user.invitationToken}`
+        : '';
+
+    const handleCopyInvitation = async () => {
+        try {
+            await navigator.clipboard.writeText(invitationLink);
+            showToast('Lien copié. Transmettez-le à la personne invitée.', 'success');
+        } catch {
+            /* Le presse-papier est refusé hors contexte sûr : le lien reste lisible
+               à l'écran, et le dire vaut mieux qu'un succès qui n'a pas eu lieu. */
+            showToast('Copie refusée par le navigateur — le lien reste affiché.', 'warning');
+        }
+    };
+
+    const handleResendInvitation = () => {
+        const decision = resendInvitation(user.id);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Renvoi impossible.', 'error');
+            return;
+        }
+        showToast('Nouveau lien créé. Le précédent ne vaut plus.', 'success');
+    };
 
     const roleLabel = `${getStatusLabel(user.role)} · ${user.department || user.site || '—'}`;
 
@@ -582,9 +643,25 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             className={primaryButtonClass}
         >
             <Icon glyph={Plus} size={18} />
-            Attribuer un équipement
+            {/* Deux gestes sur une ligne : le libellé long déborde le demi-bouton à
+                393 px. Le sujet est déjà nommé par le héro qui le surmonte. */}
+            {isInvited ? 'Attribuer' : 'Attribuer un équipement'}
         </Button>
     );
+
+    /* `.hact` de la planche : deux boutons sur un compte en attente — le geste
+       primaire, et « Renvoyer » qui refait le lien. */
+    const heroSecondaryAction =
+        isInvited && permissions.canManageUsers ? (
+            <Button
+                variant="ghost"
+                onClick={handleResendInvitation}
+                className="w-full !bg-white/12 !text-[var(--tk-color-inverse-on-surface)] hover:!bg-white/20"
+            >
+                <Icon glyph={PaperPlaneTilt} size={18} />
+                Renvoyer
+            </Button>
+        ) : undefined;
 
     const heroNote =
         isSuspended && held > 0 ? (
@@ -603,8 +680,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         ) : departure && held > 0 ? (
             <p className="text-body-small text-on-nav-surface-variant">
                 {heldLabel} {held > 1 ? 'doivent' : 'doit'} être récupéré{held > 1 ? 's' : ''} avant
-                le {departureShort}, sinon {held > 1 ? 'ils resteront attribués' : 'il restera attribué'}{' '}
-                à un compte fermé.
+                le {departureShort}, sinon{' '}
+                {held > 1 ? 'ils resteront attribués' : 'il restera attribué'} à un compte fermé.
             </p>
         ) : undefined;
 
@@ -702,8 +779,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const alertLabel = (item: Equipment): string | null => {
         const alert = item.holderAlert;
-        const kind =
-            alert?.kind ?? (isSuspended ? 'suspended' : departure ? 'departure' : null);
+        const kind = alert?.kind ?? (isSuspended ? 'suspended' : departure ? 'departure' : null);
         if (!kind) return null;
         const inHand = item.user ? true : false;
         const verb = inHand ? 'À récupérer' : 'À réattribuer';
@@ -714,7 +790,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const visibleEvents = showAllHistory ? userEvents : userEvents.slice(0, 3);
 
-    const pinValue = authUser === undefined ? '…' : authUser ? PIN_LABEL[authUser.PinStatus ?? 'not_set'] : '—';
+    const pinValue =
+        authUser === undefined ? '…' : authUser ? PIN_LABEL[authUser.PinStatus ?? 'not_set'] : '—';
     const passwordValue =
         authUser === undefined
             ? '…'
@@ -749,14 +826,31 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     statusDetail={
                         departure ? (
                             <span className="inline-flex items-center gap-1.5">
-                                <Icon glyph={SignOut} size={16} className="text-[var(--tk-color-live-ambre)]" />
+                                <Icon
+                                    glyph={SignOut}
+                                    size={16}
+                                    className="text-[var(--tk-color-live-ambre)]"
+                                />
                                 Départ le {departure}
                             </span>
                         ) : undefined
                     }
-                    actions={heroAction}
+                    actions={
+                        /* `.hact` — deux colonnes égales quand il y a deux gestes ;
+                           un seul bouton reste pleine largeur. */
+                        heroSecondaryAction ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                {heroAction}
+                                {heroSecondaryAction}
+                            </div>
+                        ) : (
+                            heroAction
+                        )
+                    }
                     note={heroNote}
-                    className={isSuspended ? '!bg-surface-container-highest !text-on-surface' : undefined}
+                    className={
+                        isSuspended ? '!bg-surface-container-highest !text-on-surface' : undefined
+                    }
                 />
             }
             aside={
@@ -770,15 +864,35 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             value={held}
                             label={held > 1 ? 'objets détenus' : 'objet détenu'}
                         />
-                        <TintedTile
-                            tone="ambre"
-                            glyph={Bell}
-                            value={userApprovals.length}
-                            label={userApprovals.length > 1 ? 'demandes en cours' : 'demande en cours'}
-                            onClick={
-                                userApprovals.length > 0 ? () => onViewChange?.('tasks') : undefined
-                            }
-                        />
+                        {/* **Sur un compte en attente, la seconde tuile dit la preuve**
+                            (05.3, colonne 4) : sans code personnel, une remise se
+                            signera. C'est le fait qui compte à ce moment-là — le
+                            compteur de demandes d'un compte qui n'a jamais ouvert
+                            l'application vaut toujours zéro. */}
+                        {isInvited && !user.pin ? (
+                            <TintedTile
+                                tone="ambre"
+                                glyph={Signature}
+                                value="Signature"
+                                label="preuve à la remise"
+                            />
+                        ) : (
+                            <TintedTile
+                                tone="ambre"
+                                glyph={Bell}
+                                value={userApprovals.length}
+                                label={
+                                    userApprovals.length > 1
+                                        ? 'demandes en cours'
+                                        : 'demande en cours'
+                                }
+                                onClick={
+                                    userApprovals.length > 0
+                                        ? () => onViewChange?.('tasks')
+                                        : undefined
+                                }
+                            />
+                        )}
                     </TintedTileRow>
 
                     <RuleGroup header="Équipements détenus">
@@ -821,7 +935,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                             >
                                                 {since ?? '—'}
                                             </span>
-                                            <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                                            <Icon
+                                                glyph={CaretRight}
+                                                size={20}
+                                                className="text-text-muted shrink-0"
+                                            />
                                         </button>
                                     );
                                 })}
@@ -838,17 +956,27 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 onClick={() => onViewChange?.('tasks')}
                                 className={rowClass}
                             >
-                                <Icon glyph={Bell} size={20} className="shrink-0 text-[var(--tk-color-st-ambre)]" />
+                                <Icon
+                                    glyph={Bell}
+                                    size={20}
+                                    className="shrink-0 text-[var(--tk-color-st-ambre)]"
+                                />
                                 <div className="min-w-0 flex-1">
                                     <p className="text-label-large text-on-surface truncate font-medium">
-                                        {a.beneficiaryId === user.id ? 'Sa demande' : 'Demande déposée'} ·{' '}
-                                        {a.equipmentCategory}
+                                        {a.beneficiaryId === user.id
+                                            ? 'Sa demande'
+                                            : 'Demande déposée'}{' '}
+                                        · {a.equipmentCategory}
                                     </p>
                                     <p className="text-body-small text-text-secondary mt-px truncate">
                                         {getStatusLabel(a.status)} · dans les Tâches
                                     </p>
                                 </div>
-                                <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                                <Icon
+                                    glyph={CaretRight}
+                                    size={20}
+                                    className="text-text-muted shrink-0"
+                                />
                             </button>
                         ))}
                     </RuleGroup>
@@ -859,8 +987,12 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             headerTrailing={`${user.managerNote.authorName} · ${formatDate(user.managerNote.updatedAt) ?? ''}`}
                             note="Visible par les gestionnaires uniquement."
                         >
-                            <button type="button" onClick={openNote} className="w-full px-4 py-2.5 text-left">
-                                <p className="text-label-large text-on-surface whitespace-pre-wrap font-normal">
+                            <button
+                                type="button"
+                                onClick={openNote}
+                                className="w-full px-4 py-2.5 text-left"
+                            >
+                                <p className="text-label-large text-on-surface font-normal whitespace-pre-wrap">
                                     {user.managerNote.text}
                                 </p>
                             </button>
@@ -869,6 +1001,37 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 </>
             }
         >
+            {/*
+              **L'invitation, et son lien à copier** — planche 05.3, colonne 4.
+
+              *« Pas de courriel sans serveur : le lien d'invitation s'affiche, à
+              copier. »* La création annonçait « invitation envoyée par e-mail » et
+              n'envoyait rien : le produit n'a pas de serveur de courrier. Ce qu'il
+              peut faire, il le fait — fabriquer une adresse, la montrer, la mettre
+              dans le presse-papier — et le gestionnaire la transmet comme il veut.
+            */}
+            {isInvited && user.invitationToken && (
+                <RuleGroup header="Invitation" headerTrailing={invitationValidity}>
+                    <RuleGroup.Row
+                        title={
+                            <span className="text-on-surface-variant block truncate tabular-nums">
+                                {invitationLink}
+                            </span>
+                        }
+                        trailing={
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleCopyInvitation}
+                                className="h-10 shrink-0 px-3.5 text-[15px] font-medium"
+                            >
+                                Copier
+                            </Button>
+                        }
+                    />
+                </RuleGroup>
+            )}
+
             {/* Une seule carte « Compte » : l'adresse, le téléphone, le code, le dernier
                 accès. La planche du 03/09 a replié « Coordonnées » dedans — deux cartes
                 pour quatre rangées disaient deux fois le même sujet. */}
@@ -905,9 +1068,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         external
                     />
                     <RuleGroup.Row
-                        title={
-                            access.groups.length ? access.groups.join(' · ') : 'Aucun groupe'
-                        }
+                        title={access.groups.length ? access.groups.join(' · ') : 'Aucun groupe'}
                         subtitle="un groupe borne un rôle à un pays ou un service"
                         onOpen={() => onViewChange?.('rbac')}
                         external
@@ -932,9 +1093,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 <div>
                     {userEvents.length === 0 && (
                         <p className="text-body-medium text-text-secondary px-4 pt-3.5 pb-4">
-                            <strong className="text-on-surface font-medium">Aucun mouvement enregistré</strong>{' '}
-                            pour {firstName}. Le journal n'a ni attribution, ni retour, ni changement de
-                            compte à son nom.
+                            <strong className="text-on-surface font-medium">
+                                Aucun mouvement enregistré
+                            </strong>{' '}
+                            pour {firstName}. Le journal n'a ni attribution, ni retour, ni
+                            changement de compte à son nom.
                         </p>
                     )}
                     {visibleEvents.map((evt, i) => {
@@ -949,10 +1112,14 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     <Icon glyph={EvIcon} size={18} />
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-label-large text-on-surface truncate">{evt.description}</p>
+                                    <p className="text-label-large text-on-surface truncate">
+                                        {evt.description}
+                                    </p>
                                     <p className="text-body-small text-text-secondary mt-px tabular-nums">
                                         {when ?? '—'}
-                                        {evt.actorName && !evt.isSystem ? ` · ${evt.actorName}` : ''}
+                                        {evt.actorName && !evt.isSystem
+                                            ? ` · ${evt.actorName}`
+                                            : ''}
                                     </p>
                                 </div>
                             </div>
@@ -964,7 +1131,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             onClick={() => setShowAllHistory((v) => !v)}
                             className={rowClass}
                         >
-                            <Icon glyph={ClockCounterClockwise} size={20} className="text-text-secondary shrink-0" />
+                            <Icon
+                                glyph={ClockCounterClockwise}
+                                size={20}
+                                className="text-text-secondary shrink-0"
+                            />
                             <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
                                 {showAllHistory
                                     ? 'Replier'
@@ -973,12 +1144,24 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         </button>
                     )}
                     {userEvents.length === 0 && (
-                        <button type="button" onClick={() => onViewChange?.('audit')} className={rowClass}>
-                            <Icon glyph={ClockCounterClockwise} size={20} className="text-text-secondary shrink-0" />
+                        <button
+                            type="button"
+                            onClick={() => onViewChange?.('audit')}
+                            className={rowClass}
+                        >
+                            <Icon
+                                glyph={ClockCounterClockwise}
+                                size={20}
+                                className="text-text-secondary shrink-0"
+                            />
                             <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
                                 Ouvrir l'Audit
                             </p>
-                            <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                            <Icon
+                                glyph={CaretRight}
+                                size={20}
+                                className="text-text-muted shrink-0"
+                            />
                         </button>
                     )}
                 </div>
@@ -1004,8 +1187,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     {user.managerNote && (
                         <p className="text-body-small text-text-muted">
                             Dernière écriture : {user.managerNote.authorName} ·{' '}
-                            {formatDate(user.managerNote.updatedAt)}. L'enregistrement remplace l'auteur
-                            et la date par les vôtres.
+                            {formatDate(user.managerNote.updatedAt)}. L'enregistrement remplace
+                            l'auteur et la date par les vôtres.
                         </p>
                     )}
                     <div className="flex items-center justify-between gap-2">
@@ -1020,7 +1203,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             <Button variant="text" onClick={() => setSheet(null)}>
                                 Annuler
                             </Button>
-                            <Button variant="filled" onClick={saveNote} disabled={!noteDraft.trim()}>
+                            <Button
+                                variant="filled"
+                                onClick={saveNote}
+                                disabled={!noteDraft.trim()}
+                            >
                                 Enregistrer
                             </Button>
                         </div>
@@ -1029,21 +1216,37 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             </BottomSheet>
 
             {/* Feuille — suspendre */}
-            <BottomSheet open={sheet === 'suspend'} onClose={() => setSheet(null)} title="Suspendre le compte">
+            <BottomSheet
+                open={sheet === 'suspend'}
+                onClose={() => setSheet(null)}
+                title="Suspendre le compte"
+            >
                 <div className="space-y-3 px-1 pb-4">
                     <p className="text-body-medium text-text-secondary">{user.name}</p>
                     <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
                         <Icon glyph={ArrowCounterClockwise} size={18} />
-                        Réversible — « Réactiver le compte » redevient le geste primaire de la fiche.
+                        Réversible — « Réactiver le compte » redevient le geste primaire de la
+                        fiche.
                     </p>
                     <ul className="bg-surface-container text-body-medium text-text-secondary space-y-2 rounded-md px-3.5 py-3">
-                        <li>L'accès est coupé <strong className="text-on-surface font-medium">immédiatement</strong>.</li>
-                        <li>Le nom <strong className="text-on-surface font-medium">disparaît des sélecteurs d'attribution</strong>.</li>
+                        <li>
+                            L'accès est coupé{' '}
+                            <strong className="text-on-surface font-medium">immédiatement</strong>.
+                        </li>
+                        <li>
+                            Le nom{' '}
+                            <strong className="text-on-surface font-medium">
+                                disparaît des sélecteurs d'attribution
+                            </strong>
+                            .
+                        </li>
                         {held > 0 && (
                             <li>
                                 {heldLabel}{' '}
                                 <strong className="text-on-surface font-medium">
-                                    reste{held > 1 ? 'nt' : ''} à son nom et {held > 1 ? 'sont' : 'est'} signalé{held > 1 ? 's' : ''} « à récupérer »
+                                    reste{held > 1 ? 'nt' : ''} à son nom et{' '}
+                                    {held > 1 ? 'sont' : 'est'} signalé{held > 1 ? 's' : ''} « à
+                                    récupérer »
                                 </strong>
                                 , ici et sur {held > 1 ? 'leur' : 'sa'} fiche.
                             </li>
@@ -1051,7 +1254,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     </ul>
                     <label className="block">
                         <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
-                            Motif <span className="text-text-secondary font-normal tracking-normal normal-case">— optionnel, écrit au journal</span>
+                            Motif{' '}
+                            <span className="text-text-secondary font-normal tracking-normal normal-case">
+                                — optionnel, écrit au journal
+                            </span>
                         </span>
                         <input
                             value={reasonDraft}
@@ -1072,7 +1278,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             </BottomSheet>
 
             {/* Feuille — date de départ */}
-            <BottomSheet open={sheet === 'departure'} onClose={() => setSheet(null)} title="Date de départ">
+            <BottomSheet
+                open={sheet === 'departure'}
+                onClose={() => setSheet(null)}
+                title="Date de départ"
+            >
                 <div className="space-y-3 px-1 pb-4">
                     <p className="text-body-medium text-text-secondary">{user.name}</p>
                     <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-bleu)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-bleu)]">
@@ -1095,12 +1305,17 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             <li>
                                 {heldLabel}{' '}
                                 <strong className="text-on-surface font-medium">
-                                    {held > 1 ? 'sont signalés' : 'est signalé'} « à récupérer avant cette date »
+                                    {held > 1 ? 'sont signalés' : 'est signalé'} « à récupérer avant
+                                    cette date »
                                 </strong>
                                 , ici et sur {held > 1 ? 'leur' : 'sa'} fiche.
                             </li>
                             <li>
-                                « <strong className="text-on-surface font-medium">Organiser la restitution</strong> » devient le geste primaire.
+                                «{' '}
+                                <strong className="text-on-surface font-medium">
+                                    Organiser la restitution
+                                </strong>{' '}
+                                » devient le geste primaire.
                             </li>
                         </ul>
                     )}
@@ -1116,7 +1331,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             <Button variant="text" onClick={() => setSheet(null)}>
                                 Annuler
                             </Button>
-                            <Button variant="filled" onClick={saveDeparture} disabled={!departureDraft}>
+                            <Button
+                                variant="filled"
+                                onClick={saveDeparture}
+                                disabled={!departureDraft}
+                            >
                                 Enregistrer la date
                             </Button>
                         </div>
@@ -1125,7 +1344,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             </BottomSheet>
 
             {/* Feuille — organiser la restitution : la liste de ce qui reste, un assistant par objet */}
-            <BottomSheet open={sheet === 'restitution'} onClose={() => setSheet(null)} title="Organiser la restitution">
+            <BottomSheet
+                open={sheet === 'restitution'}
+                onClose={() => setSheet(null)}
+                title="Organiser la restitution"
+            >
                 <div className="space-y-3 px-1 pb-4">
                     <p className="text-body-medium text-text-secondary">
                         {heldLabel} à récupérer{departure ? ` avant le ${departure}` : ''}.
@@ -1155,7 +1378,9 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                         variant="outlined"
                                         onClick={() => {
                                             setSheet(null);
-                                            go(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`);
+                                            go(
+                                                `/wizards/return?equipmentId=${encodeURIComponent(item.id)}`,
+                                            );
                                         }}
                                     >
                                         Restituer
@@ -1165,8 +1390,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         })}
                     </div>
                     <p className="text-body-small text-text-muted">
-                        Chaque restitution passe par l'assistant : état constaté, attestation. Rien ne se
-                        rend depuis cette liste.
+                        Chaque restitution passe par l'assistant : état constaté, attestation. Rien
+                        ne se rend depuis cette liste.
                     </p>
                     <div className="flex justify-end">
                         <Button variant="text" onClick={() => setSheet(null)}>

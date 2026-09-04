@@ -164,6 +164,27 @@ export interface User {
     managerNote?: { text: string; authorId: string; authorName: string; updatedAt: string };
     mustChangePassword?: boolean;
 
+    /**
+     * **L'invitation** — planche 05.3, passe du 03/09.
+     *
+     * *« Pas de courriel sans serveur : le lien d'invitation s'affiche, à copier. »*
+     * Le produit n'envoie rien ; il fabrique une adresse que le gestionnaire transmet
+     * comme il veut. Le jeton est ce que cette adresse porte, et c'est lui qui relie
+     * le lien au compte en attente.
+     *
+     * `invitedAt` date l'envoi — c'est ce que la fiche affiche (« Invité il y a
+     * 2 jours ») et ce que « Renvoyer » remet à jour.
+     */
+    invitedAt?: string;
+    invitedBy?: string;
+    invitationToken?: string;
+
+    /**
+     * Le code personnel, second moyen de preuve à la remise (06.2). Tant qu'il n'est
+     * pas défini, la fiche l'annonce — *« la remise se prouvera par signature »*.
+     */
+    pin?: string;
+
     // RBAC Overrides (optional, phase 1)
     rbacRoleIds?: string[];
     rbacGroupIds?: string[];

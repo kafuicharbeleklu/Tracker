@@ -23,6 +23,7 @@ import {
     AgentCheckInResult,
     AssignmentStatus,
     DetectedDevice,
+    UserRole,
     EquipmentIncident,
     IncidentOutcome,
     RetirementReason,
@@ -114,6 +115,16 @@ interface DataContextType {
     rbacWorkflows: WorkflowDefinition[];
 
     addUser: (user: User) => BusinessRuleDecision;
+    /** Inviter une personne — 05.3. Rend le compte créé, avec son jeton. */
+    inviteUser: (payload: {
+        email: string;
+        role: UserRole;
+        country: string;
+        site: string;
+        department?: string;
+    }) => { decision: BusinessRuleDecision; user?: User };
+    /** Refaire le lien et redater l'envoi — le geste « Renvoyer » de la fiche. */
+    resendInvitation: (userId: string) => BusinessRuleDecision;
     updateUser: (id: string, updates: Partial<User>) => BusinessRuleDecision;
     deleteUser: (id: string) => BusinessRuleDecision;
     addEquipment: (item: Equipment) => void;
@@ -1630,6 +1641,146 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { allowed: true };
         },
         [currentUser, logEvent, users, serviceManagers],
+    );
+
+    /**
+     * **Inviter une personne** — planche 05.3, colonne 2.
+     *
+     * *« Inviter tient en trois réponses (l'adresse, le rôle, le site) ; le reste, la
+     * personne le porte. »* Ni nom, ni téléphone, ni service : ils ne sont pas connus
+     * de celui qui invite, et les demander produit des fiches à moitié fausses que
+     * personne ne corrige.
+     *
+     * **Le compte naît « en attente »**, et il porte son jeton. Le produit n'envoie
+     * aucun courriel — il n'a pas de serveur pour cela : il fabrique une adresse que
+     * la fiche affiche et que le gestionnaire transmet. L'ancienne création annonçait
+     * « invitation envoyée par e-mail » et « notification manager transmise » : deux
+     * phrases pour deux gestes qui n'avaient pas lieu.
+     *
+     * Le nom affiché est tiré de l'adresse tant que la personne n'a pas complété sa
+     * fiche — c'est tout ce qu'on sait d'elle, et c'est déjà lisible dans une liste.
+     */
+    const inviteUser = useCallback(
+        (payload: {
+            email: string;
+            role: UserRole;
+            country: string;
+            site: string;
+            department?: string;
+        }): { decision: BusinessRuleDecision; user?: User } => {
+            const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
+            if (!permissionDecision.allowed) return { decision: permissionDecision };
+
+            const email = payload.email.trim().toLowerCase();
+            if (!/^\S+@\S+\.\S+$/.test(email))
+                return {
+                    decision: { allowed: false, reason: 'Adresse professionnelle invalide.' },
+                };
+
+            const existing = users.find((u) => u.email.toLowerCase() === email);
+            if (existing)
+                return {
+                    decision: { allowed: false, reason: 'Cette adresse a déjà un compte.' },
+                    user: existing,
+                };
+
+            if (payload.role === 'SuperAdmin' && currentUser?.role !== 'SuperAdmin')
+                return {
+                    decision: {
+                        allowed: false,
+                        reason: 'Seul un SuperAdmin peut accorder ce rôle.',
+                    },
+                };
+
+            const now = new Date().toISOString();
+            const id = Date.now().toString();
+            /* Un nom lisible à partir de l'adresse : « karim.diallo@… » devient
+               « Karim Diallo ». La personne le corrigera à sa première connexion. */
+            const guessedName = email
+                .split('@')[0]
+                .split(/[._-]+/)
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+
+            const invited: User = {
+                id,
+                name: guessedName || email,
+                email,
+                role: payload.role,
+                department: payload.department || '',
+                country: payload.country,
+                site: payload.site,
+                managerId: payload.department ? serviceManagers[payload.department] : undefined,
+                avatar: '',
+                status: 'pending',
+                mustChangePassword: true,
+                invitedAt: now,
+                invitedBy: currentUser?.name,
+                invitationToken: `${id.slice(-4)}${Math.random().toString(16).slice(2, 10)}`,
+            };
+
+            setUsers((prev) => [...prev, invited]);
+            logEvent({
+                type: 'CREATE',
+                actorId: currentUser?.id || 'system',
+                actorName: currentUser?.name || 'Système',
+                actorRole: currentUser?.role || 'SuperAdmin',
+                targetType: 'USER',
+                targetId: id,
+                targetName: invited.name,
+                description: `Invitation de ${invited.email} — ${payload.role}`,
+                metadata: { role: payload.role, site: payload.site },
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { decision: { allowed: true }, user: invited };
+        },
+        [users, currentUser, serviceManagers, logEvent],
+    );
+
+    /**
+     * **Renvoyer** — un nouveau jeton, une nouvelle date. Le lien précédent cesse de
+     * valoir : c'est ce que « renvoyer » veut dire quand personne n'envoie rien.
+     */
+    const resendInvitation = useCallback(
+        (userId: string): BusinessRuleDecision => {
+            const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
+            if (!permissionDecision.allowed) return permissionDecision;
+
+            const target = users.find((u) => u.id === userId);
+            if (!target) return { allowed: false, reason: 'Compte introuvable.' };
+            if (target.status !== 'pending')
+                return { allowed: false, reason: 'Ce compte n’est plus en attente.' };
+
+            const now = new Date().toISOString();
+            setUsers((prev) =>
+                prev.map((u) =>
+                    u.id === userId
+                        ? {
+                              ...u,
+                              invitedAt: now,
+                              invitedBy: currentUser?.name,
+                              invitationToken: `${userId.slice(-4)}${Math.random().toString(16).slice(2, 10)}`,
+                          }
+                        : u,
+                ),
+            );
+            logEvent({
+                type: 'UPDATE',
+                actorId: currentUser?.id || 'system',
+                actorName: currentUser?.name || 'Système',
+                actorRole: currentUser?.role || 'SuperAdmin',
+                targetType: 'USER',
+                targetId: userId,
+                targetName: target.name,
+                description: `Invitation refaite pour ${target.email} — le lien précédent ne vaut plus`,
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { allowed: true };
+        },
+        [users, currentUser, logEvent],
     );
 
     const updateUser = useCallback(
@@ -3251,6 +3402,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             rbacAssignments,
             rbacWorkflows,
             addUser,
+            inviteUser,
+            resendInvitation,
             updateUser,
             deleteUser,
             addEquipment,
@@ -3304,6 +3457,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             rbacAssignments,
             rbacWorkflows,
             addUser,
+            inviteUser,
+            resendInvitation,
             updateUser,
             deleteUser,
             addEquipment,
