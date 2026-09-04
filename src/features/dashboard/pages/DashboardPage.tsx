@@ -520,34 +520,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         return true;
     };
 
-    const validate = (
-        approvalId: string,
-        status: Approval['status'],
-        approve: boolean,
-        reason?: string,
-    ): boolean => {
-        const isDotation = status === 'WAITING_DOTATION_APPROVAL';
-        const next: Approval['status'] = isDotation
-            ? approve
-                ? 'PENDING_DELIVERY'
-                : 'WAITING_IT_PROCESSING'
-            : approve
-              ? 'WAITING_IT_PROCESSING'
-              : 'Rejected';
+    /**
+     * L'accueil porte **le oui d'un tap**, rien d'autre : le non se prend dans la file,
+     * où il exige un motif et un code (planches 03.1 et 03.3). La branche de refus de
+     * cette fonction n'a jamais été appelée par aucun écran ; elle est retirée plutôt
+     * que branchée ici, sinon l'accueil offrirait un refus sans motif. Lot 5, T4.
+     */
+    const validate = (approvalId: string, status: Approval['status']): boolean => {
+        const next: Approval['status'] =
+            status === 'WAITING_DOTATION_APPROVAL' ? 'PENDING_DELIVERY' : 'WAITING_IT_PROCESSING';
 
-        const decision = updateApproval(approvalId, next, approve ? undefined : { reason });
+        const decision = updateApproval(approvalId, next);
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;
         }
-        showToast(
-            approve
-                ? 'Demande validée.'
-                : isDotation
-                  ? 'Dotation renvoyée au traitement IT.'
-                  : 'Demande refusée.',
-            approve ? 'success' : 'info',
-        );
+        showToast('Demande validée.', 'success');
         return true;
     };
 
@@ -861,7 +849,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         ) : (
                                             <SecurityGate
                                                 onVerified={() =>
-                                                    validate(entry.id, entry.status, true)
+                                                    validate(entry.id, entry.status)
                                                 }
                                                 title="Valider la demande"
                                                 description="Confirmer cette action."

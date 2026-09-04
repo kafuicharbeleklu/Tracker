@@ -11,6 +11,7 @@ import {
     Info,
     Laptop,
     Package,
+    Prohibit,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
@@ -27,6 +28,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import {
     canUserActOnApproval,
+    getApprovalRejectTarget,
     getAvailableApprovalActions,
     isApprovalActiveStatus,
     isApprovalHistoryStatus,
@@ -77,6 +79,13 @@ interface Task {
      * rangée n'avait ni verbe ni destination (planche 03.3).
      */
     assign?: { approvalId: string };
+    /**
+     * Le non, avec sa cible : `Rejected`, ou renvoi à l'IT pour une dotation. Il
+     * n'existe **que là où un oui existe** — même acteur, même gate. Les règles du
+     * refus étaient écrites depuis longtemps ; aucune UI ne les déclenchait
+     * (zone d'ombre n° 8). Planches 03.3 et 06.5 — lot 5.
+     */
+    refusal?: { approvalId: string; nextStatus: ApprovalStatus; requesterName: string };
 }
 
 const NATURE_LABEL: Record<TaskNature, string> = {
@@ -189,8 +198,10 @@ const getApprovalContext = (status: ApprovalStatus): string => {
 
 const getApprovalActionLabel = (status: ApprovalStatus): string | undefined => {
     switch (status) {
+        // Court : la rangée porte désormais un ⋮ à sa droite, et le sujet garde
+        // ses 125 px (planche 03.3). Lot 5, T2.
         case 'WAITING_MANAGER_APPROVAL':
-            return 'Valider la demande';
+            return 'Valider';
         case 'WAITING_DOTATION_APPROVAL':
             return 'Valider la dotation';
         case 'PENDING_DELIVERY':
@@ -239,6 +250,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const [order, setOrder] = useState<TaskOrder>('oldest');
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [reviewDeviceId, setReviewDeviceId] = useState<string | null>(null);
+    // Feuille de motif du refus : la tâche visée, et le texte que le demandeur lira.
+    const [refusing, setRefusing] = useState<Task | null>(null);
+    const [refusalReason, setRefusalReason] = useState('');
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
     const tasks = useMemo<Task[]>(() => {
@@ -312,6 +326,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ? { approvalId: approval.id, nextStatus: primary.nextStatus }
                         : undefined;
                 const assign = primary?.kind === 'assign' ? { approvalId: approval.id } : undefined;
+                const refusal =
+                    primary && (primary.kind === 'transition' || primary.kind === 'assign')
+                        ? {
+                              approvalId: approval.id,
+                              nextStatus: getApprovalRejectTarget(approval.status),
+                              requesterName:
+                                  approval.beneficiaryName || approval.requesterName || 'le demandeur',
+                          }
+                        : undefined;
 
                 out.push({
                     id: `approval-${approval.id}`,
@@ -327,6 +350,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                           : undefined,
                     transition,
                     assign,
+                    refusal,
                     ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
@@ -549,6 +573,29 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         }
     };
 
+    /**
+     * Le refus se prend en deux temps : un motif, puis le code personnel. Le motif
+     * n'est pas décoratif — `updateApproval` le refuse absent, l'UI n'est donc pas
+     * la seule barrière. Lot 5, T3.
+     */
+    const refuseApprovalTask = (task: Task) => {
+        if (!task.refusal) return;
+        const decision = updateApproval(task.refusal.approvalId, task.refusal.nextStatus, {
+            reason: refusalReason.trim(),
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Refus impossible.', 'error');
+            return;
+        }
+        setRefusing(null);
+        showToast(
+            task.refusal.nextStatus === 'Rejected'
+                ? 'Demande refusée. Le demandeur lira votre motif.'
+                : 'Demande renvoyée à l’IT.',
+            'success',
+        );
+    };
+
     const completeApprovalTask = (task: Task): boolean => {
         if (!task.transition) return false;
         const decision = updateApproval(task.transition.approvalId, task.transition.nextStatus);
@@ -762,33 +809,88 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             </span>
                         </div>
 
-                        {task.action && task.transition ? (
-                            <div onClick={(e) => e.stopPropagation()}>
-                                <SecurityGate
-                                    onVerified={() => completeApprovalTask(task)}
-                                    title={task.action}
-                                    description="Confirmez cette action avant de la rendre effective."
-                                    entityId={task.transition.approvalId}
-                                    entityName={task.title}
-                                    trigger={
-                                        <Button variant="tonal" size="sm" className={ROW_ACTION}>
-                                            {task.action}
-                                        </Button>
-                                    }
-                                />
-                            </div>
-                        ) : task.action ? (
-                            <Button
-                                variant="tonal"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    openTask(task);
-                                }}
-                                className={ROW_ACTION}
+                        {/* Le oui est sur la rangée, le non est dans le ⋮ : c'est le partage
+                            que dessinent 03.3 et 06.5. Le ⋮ n'apparaît que sur une demande —
+                            un retour ou un incident n'en portent pas. Lot 5, T2. */}
+                        {task.action ? (
+                            <div
+                                className="flex shrink-0 items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
                             >
-                                {task.action}
-                            </Button>
+                                {task.transition ? (
+                                    <SecurityGate
+                                        onVerified={() => completeApprovalTask(task)}
+                                        title={task.action}
+                                        description="Confirmez cette action avant de la rendre effective."
+                                        entityId={task.transition.approvalId}
+                                        entityName={task.title}
+                                        trigger={
+                                            <Button variant="tonal" size="sm" className={ROW_ACTION}>
+                                                {task.action}
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <Button
+                                        variant="tonal"
+                                        size="sm"
+                                        onClick={() => openTask(task)}
+                                        className={ROW_ACTION}
+                                    >
+                                        {task.action}
+                                    </Button>
+                                )}
+                                {task.refusal && (
+                                    <Menu
+                                        align="end"
+                                        items={[
+                                            {
+                                                id: 'open',
+                                                label: 'Ouvrir la demande',
+                                                description:
+                                                    "le motif, ce qu'il détient, le parcours",
+                                                onSelect: () => openTask(task),
+                                            },
+                                            {
+                                                id: 'refuse',
+                                                label:
+                                                    task.refusal.nextStatus === 'Rejected'
+                                                        ? 'Refuser…'
+                                                        : 'Renvoyer à l’IT…',
+                                                description: 'un motif est requis, il le lira',
+                                                onSelect: () => {
+                                                    setRefusalReason('');
+                                                    setRefusing(task);
+                                                },
+                                            },
+                                            ...(task.target === 'user_details' && task.targetId
+                                                ? [
+                                                      {
+                                                          id: 'user',
+                                                          label: `Voir la fiche de ${task.refusal.requesterName}`,
+                                                          dividerBefore: true,
+                                                          onSelect: () =>
+                                                              onItemClick(
+                                                                  'user_details',
+                                                                  task.targetId!,
+                                                              ),
+                                                      },
+                                                  ]
+                                                : []),
+                                        ]}
+                                        trigger={
+                                            <Button
+                                                variant="text"
+                                                iconOnly
+                                                size="sm"
+                                                aria-label={`Autres actions — ${task.title}`}
+                                            >
+                                                <Icon glyph={DotsThreeVertical} size={20} />
+                                            </Button>
+                                        }
+                                    />
+                                )}
+                            </div>
                         ) : (
                             <Button
                                 variant="text"
@@ -1025,6 +1127,64 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </Button>
                     </div>
                 </div>
+            </BottomSheet>
+
+            {/* Feuille — refuser, ou renvoyer à l'IT. Le motif est obligatoire : le
+                demandeur le lira tel quel, et la règle le refuse absent. Lot 5, T3. */}
+            <BottomSheet
+                open={!!refusing}
+                onClose={() => setRefusing(null)}
+                title={
+                    refusing?.refusal?.nextStatus === 'Rejected'
+                        ? 'Refuser la demande'
+                        : 'Renvoyer à l’IT'
+                }
+            >
+                {refusing?.refusal && (
+                    <div className="space-y-3 px-1 pb-4">
+                        <p className="text-body-medium text-text-secondary">{refusing.title}</p>
+                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-danger)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-danger)]">
+                            <Icon glyph={Prohibit} size={18} />
+                            {refusing.refusal.nextStatus === 'Rejected'
+                                ? `Définitif — ${refusing.refusal.requesterName} lira votre motif, tel quel.`
+                                : 'La demande repart au traitement IT avec votre motif.'}
+                        </p>
+                        <label className="block">
+                            <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                                Motif{' '}
+                                <span className="text-text-secondary font-normal tracking-normal normal-case">
+                                    — obligatoire
+                                </span>
+                            </span>
+                            <textarea
+                                value={refusalReason}
+                                onChange={(e) => setRefusalReason(e.target.value)}
+                                rows={3}
+                                placeholder="Budget gelé jusqu'au prochain exercice…"
+                                className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border p-3 focus:outline-hidden"
+                            />
+                        </label>
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Button variant="text" onClick={() => setRefusing(null)}>
+                                Annuler
+                            </Button>
+                            <SecurityGate
+                                onVerified={() => refuseApprovalTask(refusing)}
+                                title="Confirmer le refus"
+                                description="Votre code personnel signe la décision."
+                                entityId={refusing.refusal.approvalId}
+                                entityName={refusing.title}
+                                trigger={
+                                    <Button variant="danger" disabled={!refusalReason.trim()}>
+                                        {refusing.refusal.nextStatus === 'Rejected'
+                                            ? 'Refuser'
+                                            : 'Renvoyer'}
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    </div>
+                )}
             </BottomSheet>
         </ListTemplate>
     );
