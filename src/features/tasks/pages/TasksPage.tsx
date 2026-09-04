@@ -2,24 +2,19 @@ import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowCounterClockwise,
-    CaretRight,
     Check,
-    CheckCircle,
     ClipboardText,
-    ClockCounterClockwise,
-    DotsThreeVertical,
     Funnel,
-    Info,
     Laptop,
     Package,
     Prohibit,
+    X,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
-import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
+import ListTemplate from '../../../components/layout/ListTemplate';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
-import Menu from '../../../components/ui/Menu';
 import { rowActivation } from '../../../lib/a11y';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -47,10 +42,25 @@ interface Task {
     id: string;
     nature: TaskNature;
     scope: TaskScope;
-    /** Ce dont il s'agit — un objet ou une personne, jamais le nom de la tâche. */
+    /**
+     * **L'objet, et lui seul** — `.tt .t` de la planche. Il portait « Kossi Adjovi —
+     * Dell Latitude 7420 » : deux faits cousus dans une ligne qui n'en tient qu'un au
+     * téléphone. La personne descend d'une ligne, à sa place.
+     */
     title: string;
-    /** L'état qui appelle le geste ou explique le suivi. */
+    /** Qui, ou quelle référence — la première moitié de la sous-ligne (`.tt .s`). */
+    who?: string;
+    /** L'état **en un mot** — la seconde moitié de la sous-ligne. */
     context: string;
+    /** La teinte de la vignette. Par défaut la nature ; l'historique met son issue. */
+    tone?: TaskTone;
+    /**
+     * Le motif d'un refus, cité tel quel sous la sous-ligne (`.tt .q`, en italique) :
+     * c'est le seul texte que le demandeur a reçu, l'historique ne le reformule pas.
+     */
+    quote?: string;
+    /** Qui a décidé — la seconde ligne du bloc de droite (`.rt .by`). */
+    decidedBy?: string;
     /** Depuis quand, quand la donnée le dit. */
     since: string | null;
     /** Le verbe n'apparaît que si la transition est réellement disponible ici. */
@@ -93,6 +103,10 @@ interface Task {
      * plus. Planche 03.3, onglet « À suivre » — lot 6.
      */
     cancel?: { approvalId: string };
+    /** Le motif écrit par le demandeur — cité tel quel dans la feuille (planche 03.3). */
+    reason?: string;
+    /** Ce qui situe la demande sans l'ouvrir : ce qu'il détient, l'urgence. */
+    detail?: string;
     /**
      * Une réception à confirmer sans demande derrière (attribution directe). Elle
      * s'écrit **depuis la rangée**, par la même porte que toutes les autres :
@@ -102,7 +116,10 @@ interface Task {
 }
 
 const NATURE_LABEL: Record<TaskNature, string> = {
-    validation: 'Demandes',
+    /* « Validations » et non « Demandes » : sous « Nature », le mot doit nommer ce
+       qui attend un geste, pas l'objet administratif. C'est le libellé de la feuille
+       de filtre de la planche. */
+    validation: 'Validations',
     collecte: 'Collecte',
     remise: 'Remises',
     reception: 'Réceptions',
@@ -110,44 +127,74 @@ const NATURE_LABEL: Record<TaskNature, string> = {
 };
 
 /**
- * La nature d'une tâche se lit à une **paire teintée**, pas à un mot dans le contexte
- * — c'est le sous-titre même de la planche 03.3. Une paire = un fond et l'encre qui
- * tient dessus ; le socle les déclare ensemble pour qu'aucune ne dérive sans l'autre.
- * Métrique de `.np` : hauteur 22, rayon 4 (R11 : une étiquette de **mots** n'est pas
- * une pilule), 11 px / 500.
+ * L'issue d'une tâche close — ce que l'historique montre à la place de sa nature.
+ * La planche en dessine trois : validée (`.vig.ok`), refusée (`.vig.no`), annulée.
  */
-const NATURE_TINT: Record<TaskNature, string> = {
+type TaskOutcome = 'ok' | 'no' | 'undone';
+
+/** Ce que la vignette peut porter comme couleur : une nature, ou une issue. */
+type TaskTone = TaskNature | TaskOutcome;
+
+/**
+ * **La couleur de la vignette dit la nature** — `.vig.val`, `.rem`, `.rec`, `.ret`,
+ * `.ok`, `.no` de la planche 03.3, passe sobre du 02/09.
+ *
+ * Avant cette passe, la nature se lisait à une pastille de mots posée sous le titre.
+ * La planche la supprime : la rangée n'a plus qu'un titre, une sous-ligne et un âge,
+ * et c'est le carré de 40 px à gauche — celui qui portait déjà les initiales ou le
+ * glyphe de catégorie — qui prend la teinte. Un fait de moins à lire, une couleur de
+ * plus à reconnaître.
+ *
+ * Une paire = un fond et l'encre qui tient dessus ; le socle les déclare ensemble
+ * pour qu'aucune ne dérive sans l'autre.
+ */
+const VIG_TINT: Record<TaskTone, string> = {
     validation: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
     remise: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
     reception: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
     retour: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
     collecte: 'bg-[var(--tk-color-surface-muted-strong)] text-on-surface-variant',
-};
-
-/** Le mot que porte la pastille : au singulier, il qualifie UNE tâche. Les libellés
- *  de `NATURE_LABEL` sont au pluriel parce qu'ils comptent une facette. */
-const NATURE_BADGE: Record<TaskNature, string> = {
-    validation: 'Validation',
-    collecte: 'Collecte',
-    remise: 'Remise',
-    reception: 'Réception',
-    retour: 'Retour',
+    ok: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
+    no: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
+    undone: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
 };
 
 /**
- * `.rbtn` — le geste d'une rangée, déclaré **une seule fois**. Métrique du registre
- * (§2.14) et de la planche 03.3 : **44 px**, `padding: 0 14px`, rayon 4, **13 px / 500**.
+ * `.rbtn` — le geste d'une rangée, déclaré **une seule fois**. Métrique de la planche
+ * 03.3 après la passe sobre : **40 px** de haut, 14 de remplissage latéral, rayon 4,
+ * **15 px / 500**, gouttière de 6 avant un glyphe.
  *
  * Le remplissage suit la **surface**, jamais l'écran (§2.7) : ces rangées sont sur une
  * carte claire, donc `--inset` et l'encre. Le tableau de bord emploie le même rôle sur
  * son héro inversé, où c'est le voile blanc qui s'applique — deux surfaces, deux
  * remplissages, un seul rôle.
  *
- * Il y en avait **deux ici**, et l'un des deux prenait la surface inversée `--dark` :
- * l'encre du héro et de la barre de sélection, jamais celle d'un geste de rangée.
+ * **Le verbe a quitté la rangée** (planche du 02/09, portée le 04/09) : la rangée est
+ * un pur sujet, et les deux décisions vivent dans la feuille de la tâche. Ce rôle
+ * n'habille donc plus qu'un bouton de feuille.
  */
-const ROW_ACTION =
-    'h-11 shrink-0 px-3.5 text-[13px] bg-surface-container text-on-surface hover:bg-[var(--tk-color-surface-muted-strong)] hover:text-on-surface';
+/**
+ * `.fh` — l'intitulé d'un groupe de la feuille de filtre : 12 px sur la grille de 4,
+ * capitales espacées, encre tertiaire. Il était à 11.
+ */
+const FILTER_HEADING = 'text-text-secondary text-[12px] leading-4 tracking-[0.06em] uppercase';
+
+/**
+ * `.chip` de la feuille — **40 px** de haut, 14 de remplissage latéral, rayon 4,
+ * **15 px**. Elle descend de 44 à 40 : la feuille en aligne désormais trois groupes,
+ * et la planche du 02/09 les mesure à 40.
+ */
+const sheetChip = (on: boolean) =>
+    cn(
+        'min-h-10 gap-1.5 rounded-md px-3.5 text-[15px] leading-5 font-normal',
+        on
+            ? 'bg-inverse-surface text-inverse-on-surface'
+            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
+    );
+
+/** Le décompte d'une puce : 500, sur l'encre secondaire de sa surface. */
+const chipCount = (on: boolean) =>
+    cn('font-medium tabular-nums', on ? 'text-inverse-on-surface/75' : 'text-on-surface-variant');
 
 const SCOPE_LABEL: Record<TaskScope, string> = {
     todo: 'À faire',
@@ -172,6 +219,19 @@ const ageLabel = (iso: string | null): string => {
     return `${days} j`;
 };
 
+/**
+ * Dans l'historique, la droite porte la **date** de la décision, pas son âge : une
+ * décision du 14 août ne se lit pas « 21 j ». Planche 03.3, `.rt .age`.
+ */
+const dateLabel = (iso: string | null): string =>
+    iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '—';
+
+/**
+ * Le sujet en toutes lettres — « Kossi Adjovi — Dell Latitude 7420 ». La rangée l'a
+ * scindé en deux lignes, mais un `aria-label` et le libellé que signe le code personnel
+ * ont besoin de la phrase entière : hors de la rangée, l'objet seul ne dit plus de qui
+ * il s'agit.
+ */
 const extractInitials = (name?: string): string | undefined => {
     if (!name) return undefined;
     const parts = name.trim().split(/\s+/);
@@ -190,29 +250,62 @@ const approvalTarget = (approval: { assignedEquipmentId?: string }) =>
         ? { target: 'equipment_details' as ViewType, targetId: approval.assignedEquipmentId }
         : {};
 
-const getApprovalContext = (status: ApprovalStatus): string => {
+/**
+ * La sous-ligne de la planche dit **l'état en un mot**, jamais une phrase : « validation »,
+ * « réception », « chez sa manager », « refusée ». Un même statut se lit donc de trois
+ * façons, une par partition — ce qui attend mon geste, ce que j'attends d'un autre, ce
+ * qui est décidé. C'était une seule phrase pour les trois, et elle disait « Validation
+ * du manager » là où la vignette dit déjà « validation » par sa couleur.
+ */
+const todoState = (status: ApprovalStatus): string => {
     switch (status) {
         case 'WAITING_MANAGER_APPROVAL':
-            return 'Validation du manager';
+            return 'validation';
         case 'WAITING_IT_PROCESSING':
-            return 'Attribution à préparer';
+            return 'unité à choisir';
         case 'WAITING_DOTATION_APPROVAL':
-            return 'Validation de la dotation';
+            return 'validation de la dotation';
         case 'PENDING_DELIVERY':
-            return 'Réception à confirmer';
-        case 'Completed':
-            return 'Réception confirmée';
+            return 'réception';
+        default:
+            return 'demande';
+    }
+};
+
+/** Ce que j'attends, et de qui : « À suivre » nomme la porte, pas l'acte. */
+const followingState = (status: ApprovalStatus, mine: boolean): string => {
+    switch (status) {
+        case 'WAITING_MANAGER_APPROVAL':
+            return mine ? 'chez ma manager' : 'chez sa manager';
+        case 'WAITING_IT_PROCESSING':
+            return 'chez l’informatique';
+        case 'WAITING_DOTATION_APPROVAL':
+            return 'chez la dotation';
+        case 'PENDING_DELIVERY':
+            return 'réception';
+        default:
+            return 'en cours';
+    }
+};
+
+/** L'issue au participe passé, et la teinte que la vignette prend avec elle. */
+const historyOutcome = (
+    status: ApprovalStatus,
+): { word: string; tone: TaskOutcome; glyph: PhosphorGlyph } => {
+    switch (status) {
         case 'Rejected':
-            return 'Demande refusée';
+            return { word: 'refusée', tone: 'no', glyph: X };
         case 'Cancelled':
-            return 'Demande annulée';
+            return { word: 'annulée', tone: 'undone', glyph: ArrowCounterClockwise };
+        default:
+            return { word: 'validée', tone: 'ok', glyph: Check };
     }
 };
 
 const getApprovalActionLabel = (status: ApprovalStatus): string | undefined => {
     switch (status) {
-        // Court : la rangée porte désormais un ⋮ à sa droite, et le sujet garde
-        // ses 125 px (planche 03.3). Lot 5, T2.
+        // Court : le verbe s'écrit dans la feuille de la tâche, à côté du refus, et
+        // deux boutons de même largeur n'ont pas la place d'une phrase (planche 03.3).
         case 'WAITING_MANAGER_APPROVAL':
             return 'Valider';
         case 'WAITING_DOTATION_APPROVAL':
@@ -242,6 +335,34 @@ interface TasksPageProps {
     onItemClick: (view: ViewType, id: string) => void;
 }
 
+/**
+ * Tâches — la boîte de travail unique, planche 03.3, **passe sobre du 02/09**.
+ *
+ * *Une recherche, un filtre, une rangée.*
+ *
+ * Ce que la passe change, et pourquoi la planche le veut :
+ *
+ * · **La bande du haut se tait.** Elle portait le titre, un sous-titre, une recherche,
+ *   un entonnoir, cinq puces de nature et un ⋮ de partition — six commandes au-dessus
+ *   de ce qu'on vient lire. Il reste le titre, la recherche et l'entonnoir. Les trois
+ *   partitions et les cinq natures descendent dans la feuille de filtre.
+ * · **Une ligne nomme ce qu'on regarde** (`.ord`), posée au-dessus de la liste :
+ *   « À faire · les plus anciennes d'abord », et le compte à sa droite. C'est elle qui
+ *   remplace le sous-titre, le bandeau de filtre actif et le bouton de tri.
+ * · **La rangée est un sujet.** L'objet en titre à 17, la personne et l'état en
+ *   sous-ligne à 14, l'âge à 12 aligné en haut. La pastille de mots qui nommait la
+ *   nature disparaît : c'est la **couleur de la vignette** qui la porte.
+ * · **L'historique montre l'issue et qui l'a prise**, empilées à droite, et cite le
+ *   motif d'un refus tel quel, en italique.
+ * · **Aucune note dans l'écran** (R15) : le panneau « Ce qui arrivera ici » tombe.
+ *
+ * **Ce que la planche demande et qui n'est pas fait ici.** Son arbitrage du 02/09 retire
+ * aussi le verbe et le ⋮ de la rangée, et confie les deux décisions à une *feuille de la
+ * tâche* ouverte au tap. Ce déplacement traverse `refusal`, `cancel`, `reception`, le
+ * `SecurityGate` et les deux feuilles de motif — les lots 5, 6 et 7 : il se fait avec
+ * eux, pas dans une passe de forme. La rangée garde donc son geste, à la métrique de
+ * la planche.
+ */
 const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const {
         approvals,
@@ -268,6 +389,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const [refusing, setRefusing] = useState<Task | null>(null);
     const [refusalReason, setRefusalReason] = useState('');
     const [cancelling, setCancelling] = useState<Task | null>(null);
+    /**
+     * La tâche ouverte. **Arbitrage du 02/09 (planche 03.3)** : la rangée ne porte ni
+     * verbe ni ⋮ — elle est le sujet, et son tap ouvre cette feuille, qui porte le
+     * contexte et les décisions. Les lots 5 à 7 avaient posé le verbe et le ⋮ sur la
+     * rangée ; à 393 px les trois colonnes ne tenaient pas et le nom de l'objet se
+     * réduisait à « Dell L… ». Les mécanismes ne changent pas, seul leur logement.
+     */
+    const [openedTask, setOpenedTask] = useState<Task | null>(null);
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
     const tasks = useMemo<Task[]>(() => {
@@ -300,9 +429,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 approval.equipmentName ||
                 getCategoryLabel(approval.equipmentCategory || '');
             const beneficiary = approval.beneficiaryName || approval.requesterName;
-            const title = beneficiary
-                ? `${beneficiary} — ${equipmentLabel}`
-                : equipmentLabel || 'Demande d’équipement';
+            /* L'objet seul en titre ; la personne descend en sous-ligne (planche 03.3). */
+            const subject = equipmentLabel || 'Demande d’équipement';
+            const mine = approval.requesterId === currentUser.id;
             const isActionable = canUserActOnApproval({
                 approval,
                 actorRole: role,
@@ -312,19 +441,24 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             if (isApprovalHistoryStatus(approval.status)) {
                 if (isRelatedApproval(approval)) {
-                    const decidedBy = approval.decisionNote?.actorName;
+                    /* L'issue, qui l'a prise, et — pour un refus — le motif cité tel
+                       quel. La planche empile la date et le nom à droite (`.rt`, `.by`)
+                       au lieu de les coudre au contexte, et met l'issue dans la
+                       vignette : un glyphe teinté, pas des initiales. */
+                    const outcome = historyOutcome(approval.status);
                     out.push({
                         id: `history-${approval.id}`,
                         nature: 'validation',
                         scope: 'history',
-                        title,
-                        context: decidedBy
-                            ? `${getApprovalContext(approval.status)} · ${decidedBy}`
-                            : getApprovalContext(approval.status),
+                        title: subject,
+                        who: beneficiary,
+                        context: outcome.word,
+                        tone: outcome.tone,
+                        quote: approval.decisionNote?.reason,
+                        decidedBy: approval.decisionNote?.actorName,
                         since: approval.updatedAt || approval.createdAt,
                         ...approvalTarget(approval),
-                        initials: extractInitials(beneficiary),
-                        icon: ClipboardText,
+                        icon: outcome.glyph,
                     });
                 }
                 return;
@@ -350,7 +484,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                               approvalId: approval.id,
                               nextStatus: getApprovalRejectTarget(approval.status),
                               requesterName:
-                                  approval.beneficiaryName || approval.requesterName || 'le demandeur',
+                                  approval.beneficiaryName ||
+                                  approval.requesterName ||
+                                  'le demandeur',
                           }
                         : undefined;
 
@@ -358,8 +494,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     id: `approval-${approval.id}`,
                     nature: approval.status === 'PENDING_DELIVERY' ? 'reception' : 'validation',
                     scope: 'todo',
-                    title,
-                    context: getApprovalContext(approval.status),
+                    title: subject,
+                    who: beneficiary,
+                    context: todoState(approval.status),
                     since: approval.createdAt ?? null,
                     action: transition
                         ? getApprovalActionLabel(approval.status)
@@ -369,6 +506,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     transition,
                     assign,
                     refusal,
+                    reason: approval.reason,
+                    detail: approval.urgency === 'urgent' ? 'urgence signalée' : undefined,
                     ...approvalTarget(approval),
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
@@ -388,11 +527,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     id: `following-${approval.id}`,
                     nature: approval.status === 'PENDING_DELIVERY' ? 'reception' : 'validation',
                     scope: 'following',
-                    title,
-                    context: `${getApprovalContext(approval.status)} · en attente d’un autre intervenant`,
+                    title: subject,
+                    who: mine ? 'ma demande' : beneficiary,
+                    context: followingState(approval.status, mine),
                     since: approval.createdAt ?? null,
                     ...approvalTarget(approval),
                     cancel,
+                    reason: approval.reason,
                     initials: extractInitials(beneficiary),
                     icon: ClipboardText,
                 });
@@ -406,8 +547,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         );
 
         equipment.forEach((item) => {
-            const title = `${item.name} (${item.assetId})`;
+            /* Le code ne reste pas entre parenthèses dans le titre : la planche descend
+               la référence en sous-ligne — « Écran Dell U2722 / ASSET-30117 · réception ».
+               Quand un porteur est connu, c'est lui qui prend cette moitié : elle dit à
+               qui la remise est due. Sur ses propres tâches, personne — c'est moi. */
+            const title = item.name;
             const isHolder = item.user?.email?.toLowerCase() === currentUser.email?.toLowerCase();
+            const who = item.user?.name || item.assetId;
 
             if (item.assignmentStatus === 'PENDING_DELIVERY') {
                 if (role !== 'User') {
@@ -416,9 +562,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'remise',
                         scope: 'todo',
                         title,
-                        context: item.user?.name
-                            ? `Remise à faire à ${item.user.name}`
-                            : 'Remise à préparer',
+                        who,
+                        context: 'remise',
                         since: item.assignedAt ?? null,
                         action: 'Remettre',
                         target: 'assignment_wizard',
@@ -431,7 +576,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'reception',
                         scope: 'todo',
                         title,
-                        context: 'Réception à confirmer',
+                        context: 'réception',
                         since: item.assignedAt ?? null,
                         action: 'Confirmer',
                         target: 'equipment_details',
@@ -449,9 +594,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'retour',
                         scope: 'todo',
                         title,
-                        context: item.user?.name
-                            ? `Retour à réceptionner de ${item.user.name}`
-                            : 'Retour à réceptionner',
+                        who,
+                        context: 'retour à réceptionner',
                         since: item.returnRequestedAt || item.assignedAt || null,
                         action: 'Réceptionner',
                         target: 'return_wizard',
@@ -464,7 +608,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'retour',
                         scope: 'todo',
                         title,
-                        context: 'Restitution demandée',
+                        context: 'restitution demandée',
                         since: item.returnRequestedAt || item.assignedAt || null,
                         action: 'Restituer',
                         target: 'return_wizard',
@@ -484,10 +628,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         nature: 'collecte',
                         scope: 'todo',
                         title: device.machineName || device.hostname || 'Machine détectée',
+                        who: device.assetId || device.hostname || undefined,
                         context:
                             device.status === 'ambiguous_match'
-                                ? 'Correspondance à confirmer'
-                                : 'Collecte automatique à valider',
+                                ? 'correspondance à confirmer'
+                                : 'collecte à valider',
                         since: device.firstSeenAt || device.lastSeenAt || null,
                         action: 'Examiner',
                         target: 'tasks',
@@ -536,28 +681,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         [tasks],
     );
 
-    const facets = useMemo<ListFacet[]>(
-        () => [
-            { id: 'toutes', label: 'Tout', count: scopeTasks.length },
-            ...(Object.keys(NATURE_LABEL) as TaskNature[]).map((taskNature) => ({
-                id: taskNature,
-                label: NATURE_LABEL[taskNature],
-                count: counts[taskNature],
-            })),
-        ],
-        [counts, scopeTasks.length],
-    );
-
     const filteredTasks = useMemo(() => {
         const byNature =
             nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
-        // La recherche porte sur ce que la rangée montre : le sujet et son contexte.
+        // La recherche porte sur ce que la rangée montre : l'objet, la personne, l'état.
         const needle = query.trim().toLowerCase();
         const selected = needle
-            ? byNature.filter(
-                  (task) =>
-                      task.title.toLowerCase().includes(needle) ||
-                      task.context.toLowerCase().includes(needle),
+            ? byNature.filter((task) =>
+                  [task.title, task.who, task.context]
+                      .filter(Boolean)
+                      .some((field) => (field as string).toLowerCase().includes(needle)),
               )
             : byNature;
         return [...selected].sort((left, right) => {
@@ -580,18 +713,25 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     const activeFilterCount =
         Number(nature !== 'toutes') + Number(order !== 'oldest') + Number(scope !== 'todo');
-    const orderLabel =
-        order === 'oldest' ? 'Les plus anciennes d’abord' : 'Les plus récentes d’abord';
-    const scopeSubtitle =
-        scope === 'todo'
-            ? scopeCounts.todo === 0
-                ? 'Rien n’attend votre geste'
-                : `${scopeCounts.todo} ${scopeCounts.todo > 1 ? 'choses attendent votre geste' : 'chose attend votre geste'}`
-            : scope === 'following'
-              ? `${scopeCounts.following} ${scopeCounts.following > 1 ? 'tâches à suivre' : 'tâche à suivre'}`
-              : `${scopeCounts.history} ${scopeCounts.history > 1 ? 'décisions dans l’historique' : 'décision dans l’historique'}`;
 
-    const openTask = (task: Task) => {
+    /*
+      `.ord` — LA LIGNE QUI NOMME CE QU'ON REGARDE, posée au-dessus de la liste.
+      C'est elle qui rend la bande du haut silencieuse : la partition, la nature et
+      l'ordre n'ont plus besoin d'être des commandes visibles en permanence, ils se
+      règlent dans la feuille de filtre et se **lisent** ici. Le sous-titre de l'en-tête
+      disparaît avec elle — il disait la même chose une ligne plus haut.
+      Quand une nature est posée, le compte devient relatif : « 6 des 17 ».
+    */
+    const ordLabel = [
+        SCOPE_LABEL[scope],
+        nature !== 'toutes' ? NATURE_LABEL[nature].toLowerCase() : null,
+        order === 'oldest' ? 'les plus anciennes d’abord' : 'les plus récentes d’abord',
+    ]
+        .filter(Boolean)
+        .join(' · ');
+
+    /** Ce que la tâche ouvre quand elle n'a aucune décision à faire prendre. */
+    const navigateToTask = (task: Task) => {
         if (task.deviceId) {
             setReviewDeviceId(task.deviceId);
         } else if (task.assign) {
@@ -601,6 +741,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         } else if (task.target) {
             onNavigate(task.target);
         }
+    };
+
+    const openTask = (task: Task) => {
+        // Une machine détectée s'examine dans sa propre feuille, elle n'a pas de décision.
+        if (task.deviceId) {
+            setReviewDeviceId(task.deviceId);
+            return;
+        }
+        if (task.transition || task.assign || task.reception || task.refusal || task.cancel) {
+            setOpenedTask(task);
+            return;
+        }
+        navigateToTask(task);
     };
 
     /**
@@ -680,162 +833,113 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     return (
         <ListTemplate
             title="Tâches"
-            subtitle={scopeSubtitle}
+            /*
+              LA BANDE DU HAUT NE PORTE PLUS QUE TROIS CHOSES — le titre, la recherche
+              et l'entonnoir (planche 03.3, `.top` + `.frow`). Les trois partitions et
+              les cinq natures descendent dans la feuille de filtre : c'était une couche
+              de commandes permanente au-dessus de la file, et la file est ce qu'on vient
+              lire. Le ⋮ de l'en-tête part avec elles.
+            */
             filter={
+                /* `.fbtn` — 48 carré, rayon 4, en creux : un remplissage, pas un filet.
+                   Son compteur est un carré sombre de 18 (rayon 2), pas une pastille
+                   ronde : il compte des filtres, il ne signale pas une alerte. */
                 <Button
                     variant="text"
                     aria-label="Filtrer les tâches"
                     onClick={() => setIsFilterSheetOpen(true)}
-                    className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                 >
                     <Icon glyph={Funnel} size={20} />
                     {activeFilterCount > 0 && (
-                        <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
+                        <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
                             {activeFilterCount}
                         </span>
                     )}
                 </Button>
-            }
-            /*
-              LES TROIS PORTÉES — dans le menu de l'en-tête, pas dans la bande.
-              La planche 03.3 les dessine en contrôle segmenté ; le produit les met
-              au ⋮. La raison est la cohérence entre listes : Tâches était **la seule**
-              des six à porter une couche de contrôle que les autres n'ont pas, et P2
-              autorise une action de page à cet emplacement. Le coût est réel et il est
-              assumé : une partition dans un menu ne dit plus d'un coup d'œil où l'on
-              est — c'est le sous-titre qui le porte, et la rangée en cours est marquée
-              du creux de l'onglet actif. Arbitré le 20/08.
-            */
-            actions={
-                <Menu
-                    align="end"
-                    items={(Object.keys(SCOPE_LABEL) as TaskScope[]).map((key) => ({
-                        id: key,
-                        label: SCOPE_LABEL[key],
-                        trailingText:
-                            key === 'history' || scopeCounts[key] === 0
-                                ? undefined
-                                : String(scopeCounts[key]),
-                        selected: scope === key,
-                        onSelect: () => setScope(key),
-                    }))}
-                    trigger={
-                        <Button variant="text" iconOnly aria-label="Changer de vue">
-                            <Icon glyph={DotsThreeVertical} />
-                        </Button>
-                    }
-                />
             }
             search={{
                 value: query,
                 onChange: setQuery,
                 placeholder: 'Personne, objet, code',
             }}
-            facets={facets}
-            activeFacetId={nature}
-            onFacetSelect={(id) => {
-                setNature(id as TaskNature | 'toutes');
-            }}
+            /* La ligne `.ord` passe par le décompte du gabarit : c'est le seul rôle
+               qu'il pose sur le sol de la page, au-dessus de la carte. Il n'y a plus de
+               bouton de tri à sa droite — l'ordre se règle dans la feuille et se lit
+               ici, dans la phrase. */
             count={{
                 total: filteredTasks.length,
-                shown: visibleTasks.length,
-                noun: 'tâches',
-            }}
-            sort={{
-                label: orderLabel,
-                onClick: () => setOrder((current) => (current === 'oldest' ? 'newest' : 'oldest')),
+                noun:
+                    nature === 'toutes'
+                        ? `· ${ordLabel}`
+                        : `des ${scopeTasks.length} · ${ordLabel}`,
             }}
             hasRows={visibleTasks.length > 0}
             empty={
+                /*
+                  LE VIDE EST LE BON ÉTAT, ET IL ARRIVE SOUVENT — la planche ne dit pas
+                  « rien », elle dit « à jour ». D'où la pastille **verte de 96**, la
+                  teinte de ce qui est en ordre, et non le rond neutre de 112 que
+                  l'écran introuvable emploie.
+                  Le panneau « Ce qui arrivera ici » tombe : trois lignes qui
+                  expliquaient le produit à qui n'a rien à faire. R15 ne veut aucune
+                  note dans l'écran, et la planche du 02/09 ne le dessine plus.
+                */
                 <ScreenState
-                    icon={CheckCircle}
+                    icon={Check}
+                    className="[&>span]:h-24 [&>span]:w-24 [&>span]:bg-[var(--tk-color-tint-vert)] [&>span]:text-[var(--tk-color-on-tint-vert)]"
                     title={
                         scope === 'todo'
                             ? 'Vous êtes à jour'
                             : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
                     }
                     description={
-                        scope === 'todo'
-                            ? 'Rien n’attend votre geste. La file se remplira d’elle-même — vous n’avez pas à revenir la surveiller.'
-                            : 'Changez de vue ou de nature pour consulter une autre partie de votre boîte de travail.'
-                    }
-                    after={
-                        scope === 'todo' ? (
-                            <>
-                                <p className="text-body-medium text-on-surface mb-2.5 font-medium">
-                                    Ce qui arrivera ici
-                                </p>
-                                {[
-                                    {
-                                        glyph: Check,
-                                        text: (
-                                            <>
-                                                Une demande{' '}
-                                                <b className="text-on-surface font-medium">
-                                                    validée par un manager
-                                                </b>{' '}
-                                                — vous aurez la remise à faire.
-                                            </>
-                                        ),
-                                    },
-                                    {
-                                        glyph: ClockCounterClockwise,
-                                        text: (
-                                            <>
-                                                Une restitution attestée — vous aurez la{' '}
-                                                <b className="text-on-surface font-medium">
-                                                    réception
-                                                </b>{' '}
-                                                à faire.
-                                            </>
-                                        ),
-                                    },
-                                    {
-                                        glyph: Info,
-                                        text: (
-                                            <>
-                                                Un retour qui{' '}
-                                                <b className="text-on-surface font-medium">
-                                                    dépasse 7 jours
-                                                </b>{' '}
-                                                — il remontera seul, en tête.
-                                            </>
-                                        ),
-                                    },
-                                ].map((line, index) => (
-                                    <p
-                                        key={index}
-                                        className="border-outline-variant text-body-medium text-on-surface-variant flex gap-2.5 border-t py-2.5 leading-[19px] first-of-type:border-t-0 first-of-type:pt-0"
-                                    >
-                                        <Icon
-                                            glyph={line.glyph}
-                                            size={18}
-                                            className="mt-0.5 shrink-0"
-                                        />
-                                        <span>{line.text}</span>
-                                    </p>
-                                ))}
-                            </>
-                        ) : undefined
+                        <span className="text-[16px] leading-6">
+                            {scope === 'todo'
+                                ? 'Rien n’attend votre geste. La file se remplira d’elle-même.'
+                                : 'Changez de vue ou de nature.'}
+                        </span>
                     }
                 />
             }
         >
             {visibleTasks.map((task) => {
                 const IconGlyph = task.icon || Package;
+                /* Faute d'issue, c'est la nature qui donne sa couleur à la vignette. */
+                const tone: TaskTone = task.tone ?? task.nature;
 
                 return (
                     /*
-                      `.trow` de la planche 03.3 : rangée à plat, séparée par un filet,
-                      12 px de gouttière, 10 px de padding vertical. Le creux du survol
-                      déborde de 8 px — la mesure que 05.1 déclare pour une rangée en creux.
+                      `.trow` de la planche 03.3, passe sobre du 02/09 : rangée à plat
+                      séparée par un filet, **68 px au minimum**, 16 de gouttière, 12 de
+                      remplissage vertical. Le creux du survol déborde de 16 — la mesure
+                      du remplissage de la carte, pas 8 : un creux qui s'arrête avant le
+                      bord se lit comme une seconde carte.
+                      Une rangée qui cite un motif s'aligne en haut : la vignette n'a pas
+                      à se centrer sur trois lignes.
                     */
                     <div
                         key={task.id}
                         {...rowActivation(() => openTask(task))}
-                        className="border-outline-variant hover:bg-surface-container/50 -mx-2 flex cursor-pointer items-center gap-3 rounded-md border-t px-2 py-2.5 transition-colors first:border-t-0"
+                        className={cn(
+                            'border-outline-variant hover:bg-surface-container/50 -mx-4 flex min-h-[68px] cursor-pointer gap-4 rounded-md border-t px-4 py-3 transition-colors first:border-t-0',
+                            task.quote ? 'items-start' : 'items-center',
+                        )}
                     >
-                        <div className="rounded-vignette bg-surface-container text-body-large font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center font-semibold">
+                        {/*
+                          LA COULEUR DE LA VIGNETTE DIT LA NATURE. La rangée portait une
+                          pastille de mots sous son titre — « Validation », « Remise » —
+                          qui redisait en gris ce que le carré de gauche pouvait porter en
+                          couleur. La planche la supprime : le carré prend la teinte, et
+                          la sous-ligne récupère la place pour dire **qui**.
+                        */}
+                        <div
+                            className={cn(
+                                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[15px] leading-5 font-semibold',
+                                VIG_TINT[tone],
+                                task.quote && 'mt-0.5',
+                            )}
+                        >
                             {task.initials ? (
                                 <span>{task.initials}</span>
                             ) : (
@@ -844,187 +948,60 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                            <p className="text-label-large text-on-surface truncate font-medium">
+                            <p className="text-on-surface truncate text-[17px] leading-6 tracking-[-0.01em]">
                                 {task.title}
                             </p>
-                            {/*
-                              La nature passe en **paire teintée** et quitte le texte :
-                              « Validation du manager · 9 j » disait deux fois la même chose,
-                              une fois en gris. La pastille nomme, l'âge décide — c'est lui
-                              qui porte l'encre pleine, puisqu'une file se traite par le haut.
-                            */}
-                            <span className="text-body-small text-on-surface-variant mt-1 flex items-center gap-2">
-                                <span
-                                    className={cn(
-                                        'text-label-small inline-flex h-[22px] shrink-0 items-center gap-[5px] rounded-md px-2 font-medium',
-                                        NATURE_TINT[task.nature],
-                                    )}
-                                >
-                                    {NATURE_BADGE[task.nature]}
-                                </span>
-                                <span className="text-on-surface shrink-0 font-medium">
-                                    {ageLabel(task.since)}
-                                </span>
-                                {/*
-                                  Sur « À faire » et « À suivre », la pastille de nature dit
-                                  déjà tout et le contexte doublerait — c'est l'arbitrage
-                                  d'origine. Mais dans l'historique, la pastille ne peut pas
-                                  porter l'**issue** : validée, refusée, annulée, et par qui.
-                                  Là, et là seulement, le contexte se lit. Lot 6.
-                                */}
-                                {task.scope === 'history' && (
-                                    <span className="truncate">{task.context}</span>
+                            {/* La sous-ligne : qui, puis l'état en un mot. Deux lignes au
+                                plus — au-delà, une rangée n'est plus une rangée. */}
+                            <p className="text-on-surface-variant mt-0.5 line-clamp-2 text-[14px] leading-5">
+                                {task.who ? (
+                                    <>
+                                        <b className="text-on-surface font-medium">{task.who}</b> ·{' '}
+                                        {task.context}
+                                    </>
+                                ) : (
+                                    task.context
                                 )}
-                            </span>
+                            </p>
+                            {/* Le motif d'un refus, cité tel quel et en italique : c'est le
+                                seul texte que le demandeur a reçu, l'historique ne le
+                                reformule pas (`.tt .q`). */}
+                            {task.quote && (
+                                <p className="text-on-surface mt-1.5 text-[14px] leading-5 italic">
+                                    «&nbsp;{task.quote}&nbsp;»
+                                </p>
+                            )}
                         </div>
 
-                        {/* Le oui est sur la rangée, le non est dans le ⋮ : c'est le partage
-                            que dessinent 03.3 et 06.5. Le ⋮ n'apparaît que sur une demande —
-                            un retour ou un incident n'en portent pas. Lot 5, T2. */}
-                        {task.action ? (
-                            <div
-                                className="flex shrink-0 items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {task.transition ? (
-                                    <SecurityGate
-                                        onVerified={() => completeApprovalTask(task)}
-                                        title={task.action}
-                                        description="Confirmez cette action avant de la rendre effective."
-                                        entityId={task.transition.approvalId}
-                                        entityName={task.title}
-                                        trigger={
-                                            <Button variant="tonal" size="sm" className={ROW_ACTION}>
-                                                {task.action}
-                                            </Button>
-                                        }
-                                    />
-                                ) : task.reception ? (
-                                    <SecurityGate
-                                        onVerified={() => confirmReceptionTask(task)}
-                                        title={task.action}
-                                        description="Confirmez cette action avant de la rendre effective."
-                                        entityId={task.reception.equipmentId}
-                                        entityName={task.title}
-                                        trigger={
-                                            <Button variant="tonal" size="sm" className={ROW_ACTION}>
-                                                {task.action}
-                                            </Button>
-                                        }
-                                    />
-                                ) : (
-                                    <Button
-                                        variant="tonal"
-                                        size="sm"
-                                        onClick={() => openTask(task)}
-                                        className={ROW_ACTION}
-                                    >
-                                        {task.action}
-                                    </Button>
+                        {/*
+                          À droite, ce que la partition demande. « À faire » et « À suivre »
+                          n'ont que l'âge — 12 px, aligné en **haut** de la rangée, parce
+                          qu'une file se traite par le haut et que l'âge est le critère de
+                          tri. L'historique empile la date de la décision et qui l'a prise
+                          (`.rt`, `.by`) : la date, pas l'âge — une décision du 14 août ne
+                          se lit pas « 21 j ».
+                        */}
+                        {task.scope === 'history' ? (
+                            <span className="flex shrink-0 flex-col items-end gap-0.5 self-start">
+                                <span className="text-on-surface-variant mt-1 text-[12px] leading-4 whitespace-nowrap tabular-nums">
+                                    {dateLabel(task.since)}
+                                </span>
+                                {task.decidedBy && (
+                                    <span className="text-text-secondary text-[12px] leading-4 whitespace-nowrap">
+                                        {task.decidedBy}
+                                    </span>
                                 )}
-                                {task.refusal && (
-                                    <Menu
-                                        align="end"
-                                        items={[
-                                            {
-                                                id: 'open',
-                                                label: 'Ouvrir la demande',
-                                                description:
-                                                    "le motif, ce qu'il détient, le parcours",
-                                                onSelect: () => openTask(task),
-                                            },
-                                            {
-                                                id: 'refuse',
-                                                label:
-                                                    task.refusal.nextStatus === 'Rejected'
-                                                        ? 'Refuser…'
-                                                        : 'Renvoyer à l’IT…',
-                                                description: 'un motif est requis, il le lira',
-                                                onSelect: () => {
-                                                    setRefusalReason('');
-                                                    setRefusing(task);
-                                                },
-                                            },
-                                            ...(task.target === 'user_details' && task.targetId
-                                                ? [
-                                                      {
-                                                          id: 'user',
-                                                          label: `Voir la fiche de ${task.refusal.requesterName}`,
-                                                          dividerBefore: true,
-                                                          onSelect: () =>
-                                                              onItemClick(
-                                                                  'user_details',
-                                                                  task.targetId!,
-                                                              ),
-                                                      },
-                                                  ]
-                                                : []),
-                                        ]}
-                                        trigger={
-                                            <Button
-                                                variant="text"
-                                                iconOnly
-                                                size="sm"
-                                                aria-label={`Autres actions — ${task.title}`}
-                                            >
-                                                <Icon glyph={DotsThreeVertical} size={20} />
-                                            </Button>
-                                        }
-                                    />
-                                )}
-                            </div>
-                        ) : task.cancel ? (
-                            /* Ma demande en attente : le chevron laisse la place au ⋮, qui
-                               porte le seul geste que j'ai sur elle — la retirer. Lot 6, A2. */
-                            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-                                <Menu
-                                    align="end"
-                                    items={[
-                                        {
-                                            id: 'open',
-                                            label: 'Ouvrir la demande',
-                                            onSelect: () => openTask(task),
-                                        },
-                                        {
-                                            id: 'cancel',
-                                            label: 'Annuler ma demande…',
-                                            description:
-                                                'Motif facultatif. Elle passe dans « Historique ».',
-                                            destructive: true,
-                                            dividerBefore: true,
-                                            onSelect: () => {
-                                                setRefusalReason('');
-                                                setCancelling(task);
-                                            },
-                                        },
-                                    ]}
-                                    trigger={
-                                        <Button
-                                            variant="text"
-                                            iconOnly
-                                            size="sm"
-                                            aria-label={`Autres actions — ${task.title}`}
-                                        >
-                                            <Icon glyph={DotsThreeVertical} size={20} />
-                                        </Button>
-                                    }
-                                />
-                            </div>
+                            </span>
                         ) : (
-                            <Button
-                                variant="text"
-                                iconOnly
-                                size="sm"
-                                aria-label={`Ouvrir ${task.title}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    openTask(task);
-                                }}
-                                className="text-on-surface-variant shrink-0"
-                            >
-                                <Icon glyph={CaretRight} size={20} />
-                            </Button>
+                            <span className="text-on-surface-variant mt-1 min-w-8 shrink-0 self-start text-right text-[12px] leading-4 tabular-nums">
+                                {ageLabel(task.since)}
+                            </span>
                         )}
+
+                        {/* Pas de chevron : la planche n'en dessine aucun. Toute la
+                            rangée ouvre déjà — `rowActivation` porte le rôle, la
+                            tabulation et la touche Entrée — et un chevron par rangée
+                            faisait vingt glyphes de plus pour ne rien ajouter. */}
                     </div>
                 );
             })}
@@ -1033,21 +1010,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 <Button
                     variant="text"
                     onClick={() => setVisibleCount((count) => count + TASKS_PAGE_SIZE)}
-                    className="border-outline-variant text-on-surface w-full justify-center gap-2.5 rounded-none border-t px-0"
+                    className="border-outline-variant text-on-surface min-h-12 w-full justify-between rounded-none border-t px-0 text-[15px] leading-5 font-medium"
                 >
                     {/*
                       `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3).
                       Le geste et le repère ne sont pas au même rang : « Voir les 11
-                      suivantes » se vise, « 6 sur 17 » se lit. Ils étaient sur une seule
-                      ligne, au même poids — le repère se lisait alors comme une partie
-                      du geste.
+                      suivantes » se vise à 15 px, « 6 sur 17 » se lit à 12. La planche
+                      les met aux deux bouts de la ligne, pas côte à côte au centre.
                     */}
                     <span>
                         Voir les{' '}
                         {Math.min(TASKS_PAGE_SIZE, filteredTasks.length - visibleTasks.length)}{' '}
                         suivantes
                     </span>
-                    <span className="text-body-small text-on-surface-variant font-normal tabular-nums">
+                    <span className="text-on-surface-variant text-[12px] leading-4 font-normal tabular-nums">
                         {visibleTasks.length} sur {filteredTasks.length}
                     </span>
                 </Button>
@@ -1061,7 +1037,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 title={reviewDevice?.machineName || 'Machine détectée'}
             >
                 {reviewDevice && (
-                    <div className="flex flex-col gap-3 px-5 py-3">
+                    <div className="flex flex-col gap-4">
                         <dl className="flex flex-col">
                             {[
                                 ['Nom réseau', reviewDevice.hostname],
@@ -1080,7 +1056,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 .map(([label, value]) => (
                                     <div
                                         key={String(label)}
-                                        className="border-outline-variant text-body-medium flex min-h-11 items-center justify-between gap-3.5 border-t py-[11px] leading-[19px] first:border-t-0"
+                                        className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-2 text-[16px] leading-6 first:border-t-0"
                                     >
                                         <dt className="text-text-secondary shrink-0">{label}</dt>
                                         <dd className="text-on-surface min-w-0 text-right font-medium break-words">
@@ -1091,13 +1067,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </dl>
 
                         {reviewDevice.status === 'ambiguous_match' && (
-                            <p className="bg-surface-container text-body-small text-text-secondary rounded-md px-3 py-2.5">
+                            <p className="bg-surface-container text-text-secondary rounded-md px-4 py-2 text-[12px] leading-4">
                                 Plusieurs actifs du parc lui ressemblent. L'importer en créerait un
                                 de plus — vérifiez d'abord lequel elle est.
                             </p>
                         )}
 
-                        <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
+                        <div className="border-outline-variant flex items-center gap-3 border-t pt-4">
                             <Button
                                 variant="text"
                                 onClick={() => {
@@ -1134,26 +1110,53 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 onClose={() => setIsFilterSheetOpen(false)}
                 title="Filtrer"
             >
-                <div className="flex flex-col gap-4 px-5 py-3">
+                {/*
+                  LA FEUILLE PORTE LES TROIS RÉGLAGES, DANS L'ORDRE DE LA PLANCHE :
+                  **Où** — les trois partitions, qui étaient au ⋮ de l'en-tête —, **Nature**
+                  — les cinq puces, qui étaient dans la bande — et **Ordre**. C'est ce qui
+                  vide la bande du haut, et c'est le seul endroit où ces trois réglages se
+                  posent : la file, elle, se lit.
+                  « Historique » ne porte pas de décompte : on n'y vient pas pour compter,
+                  on y vient pour retrouver.
+                  Le remplissage latéral vient de la feuille elle-même — l'écrire encore
+                  ici le doublait à 40.
+                */}
+                <div className="flex flex-col gap-6">
                     <div>
-                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                            Nature
-                        </p>
+                        <p className={FILTER_HEADING}>Où</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => (
+                                <Button
+                                    key={taskScope}
+                                    variant={scope === taskScope ? 'tonal' : 'text'}
+                                    size="sm"
+                                    onClick={() => setScope(taskScope)}
+                                    className={sheetChip(scope === taskScope)}
+                                >
+                                    {SCOPE_LABEL[taskScope]}
+                                    {taskScope !== 'history' && (
+                                        <b className={chipCount(scope === taskScope)}>
+                                            {scopeCounts[taskScope]}
+                                        </b>
+                                    )}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className={FILTER_HEADING}>Nature</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             <Button
                                 variant={nature === 'toutes' ? 'tonal' : 'text'}
                                 size="sm"
                                 onClick={() => setNature('toutes')}
-                                className={cn(
-                                    // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                    // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                    'text-body-medium min-h-11 px-3 font-medium',
-                                    nature === 'toutes'
-                                        ? 'bg-inverse-surface text-inverse-on-surface'
-                                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                )}
+                                className={sheetChip(nature === 'toutes')}
                             >
-                                Tout {scopeTasks.length}
+                                Tout
+                                <b className={chipCount(nature === 'toutes')}>
+                                    {scopeTasks.length}
+                                </b>
                             </Button>
                             {(Object.keys(NATURE_LABEL) as TaskNature[]).map((taskNature) => (
                                 <Button
@@ -1161,25 +1164,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     variant={nature === taskNature ? 'tonal' : 'text'}
                                     size="sm"
                                     onClick={() => setNature(taskNature)}
-                                    className={cn(
-                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                        'text-body-medium min-h-11 px-3 font-medium',
-                                        nature === taskNature
-                                            ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                    )}
+                                    className={sheetChip(nature === taskNature)}
                                 >
-                                    {NATURE_LABEL[taskNature]} {counts[taskNature]}
+                                    {NATURE_LABEL[taskNature]}
+                                    <b className={chipCount(nature === taskNature)}>
+                                        {counts[taskNature]}
+                                    </b>
                                 </Button>
                             ))}
                         </div>
                     </div>
 
                     <div>
-                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                            Ordre
-                        </p>
+                        <p className={FILTER_HEADING}>Ordre</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(
                                 [
@@ -1192,14 +1189,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     variant={order === value ? 'tonal' : 'text'}
                                     size="sm"
                                     onClick={() => setOrder(value)}
-                                    className={cn(
-                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                        'text-body-medium min-h-11 px-3 font-medium',
-                                        order === value
-                                            ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                    )}
+                                    className={sheetChip(order === value)}
                                 >
                                     {label}
                                 </Button>
@@ -1207,45 +1197,148 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </div>
                     </div>
 
-                    <div>
-                        <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                            Vue
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                            {(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => (
-                                <Button
-                                    key={taskScope}
-                                    variant={scope === taskScope ? 'tonal' : 'text'}
-                                    size="sm"
-                                    onClick={() => setScope(taskScope)}
-                                    className={cn(
-                                        // Une chip DANS la feuille de filtre monte à 44 px (`.sgrp .chip`) :
-                                        // elle est seule cible de sa ligne, là où la bande en aligne cinq à 40.
-                                        'text-body-medium min-h-11 px-3 font-medium',
-                                        scope === taskScope
-                                            ? 'bg-inverse-surface text-inverse-on-surface'
-                                            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                    )}
-                                >
-                                    {SCOPE_LABEL[taskScope]} {scopeCounts[taskScope]}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3">
-                        <Button variant="ghost" onClick={clearFilters}>
+                    {/* `.sfoot` — deux gestes de même largeur, pas un ghost serré contre
+                        un bouton étiré : ils se valent, la grille le dit. */}
+                    <div className="border-outline-variant grid grid-cols-2 gap-3 border-t pt-4">
+                        <Button variant="ghost" onClick={clearFilters} className="h-12">
                             Tout effacer
                         </Button>
                         <Button
                             variant="tonal"
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 h-12"
                             onClick={() => setIsFilterSheetOpen(false)}
                         >
-                            Voir les {filteredTasks.length} tâches
+                            Voir les {filteredTasks.length}
                         </Button>
                     </div>
                 </div>
+            </BottomSheet>
+
+            {/*
+              La feuille d'une tâche — **le logement des décisions depuis le 02/09**.
+              La planche 03.3 la décrit en trois temps : le sujet en tête, le contexte
+              (« le motif, ce qu'il détient »), puis les deux décisions de même largeur.
+              Le oui conduit à l'attestation, la feuille ne l'embarque pas.
+            */}
+            <BottomSheet
+                open={!!openedTask}
+                onClose={() => setOpenedTask(null)}
+                title={openedTask?.title ?? ''}
+            >
+                {openedTask && (
+                    <div className="space-y-4 px-1 pb-4">
+                        <p className="text-body-medium text-text-secondary">
+                            {openedTask.context}
+                            {openedTask.since ? ` · ${ageLabel(openedTask.since)}` : ''}
+                        </p>
+
+                        {(openedTask.reason || openedTask.detail) && (
+                            <div className="bg-surface-container flex flex-col gap-2 rounded-md p-4">
+                                {openedTask.reason && (
+                                    <p className="text-label-large text-on-surface italic">
+                                        « {openedTask.reason} »
+                                    </p>
+                                )}
+                                {openedTask.detail && (
+                                    <p className="text-body-medium text-text-secondary">
+                                        {openedTask.detail}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Les décisions, de même largeur : le non à gauche, le oui à droite. */}
+                        <div className="grid grid-cols-2 gap-3">
+                            {openedTask.refusal ? (
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => {
+                                        setRefusalReason('');
+                                        setRefusing(openedTask);
+                                        setOpenedTask(null);
+                                    }}
+                                >
+                                    {openedTask.refusal.nextStatus === 'Rejected'
+                                        ? 'Refuser'
+                                        : 'Renvoyer à l’IT'}
+                                </Button>
+                            ) : openedTask.cancel ? (
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => {
+                                        setRefusalReason('');
+                                        setCancelling(openedTask);
+                                        setOpenedTask(null);
+                                    }}
+                                >
+                                    Annuler ma demande
+                                </Button>
+                            ) : (
+                                <Button variant="text" onClick={() => setOpenedTask(null)}>
+                                    Fermer
+                                </Button>
+                            )}
+
+                            {openedTask.transition ? (
+                                <SecurityGate
+                                    onVerified={() => {
+                                        if (completeApprovalTask(openedTask)) setOpenedTask(null);
+                                    }}
+                                    title={openedTask.action ?? 'Confirmer'}
+                                    description="Confirmez cette action avant de la rendre effective."
+                                    entityId={openedTask.transition.approvalId}
+                                    entityName={openedTask.title}
+                                    trigger={
+                                        <Button variant="filled">{openedTask.action}</Button>
+                                    }
+                                />
+                            ) : openedTask.reception ? (
+                                <SecurityGate
+                                    onVerified={() => {
+                                        if (confirmReceptionTask(openedTask)) setOpenedTask(null);
+                                    }}
+                                    title={openedTask.action ?? 'Confirmer'}
+                                    description="Confirmez cette action avant de la rendre effective."
+                                    entityId={openedTask.reception.equipmentId}
+                                    entityName={openedTask.title}
+                                    trigger={
+                                        <Button variant="filled">{openedTask.action}</Button>
+                                    }
+                                />
+                            ) : openedTask.assign ? (
+                                <Button
+                                    variant="filled"
+                                    onClick={() => {
+                                        const task = openedTask;
+                                        setOpenedTask(null);
+                                        navigateToTask(task);
+                                    }}
+                                >
+                                    {openedTask.action}
+                                </Button>
+                            ) : (
+                                openedTask.target && (
+                                    <Button
+                                        variant="filled"
+                                        onClick={() => {
+                                            const task = openedTask;
+                                            setOpenedTask(null);
+                                            navigateToTask(task);
+                                        }}
+                                    >
+                                        Ouvrir
+                                    </Button>
+                                )
+                            )}
+                        </div>
+
+                        {(openedTask.transition || openedTask.reception) && (
+                            <p className="text-body-small text-text-secondary text-center">
+                                Le geste passe par votre code personnel.
+                            </p>
+                        )}
+                    </div>
+                )}
             </BottomSheet>
 
             {/* Feuille — refuser, ou renvoyer à l'IT. Le motif est obligatoire : le
@@ -1260,16 +1353,18 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 }
             >
                 {refusing?.refusal && (
-                    <div className="space-y-3 px-1 pb-4">
-                        <p className="text-body-medium text-text-secondary">{refusing.title}</p>
-                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-danger)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-danger)]">
+                    <div className="space-y-4">
+                        <p className="text-text-secondary text-[16px] leading-6">
+                            {refusing.title}
+                        </p>
+                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-danger)] px-4 py-2 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-danger)]">
                             <Icon glyph={Prohibit} size={18} />
                             {refusing.refusal.nextStatus === 'Rejected'
                                 ? `Définitif — ${refusing.refusal.requesterName} lira votre motif, tel quel.`
                                 : 'La demande repart au traitement IT avec votre motif.'}
                         </p>
                         <label className="block">
-                            <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                            <span className="text-text-muted mb-2 block text-[12px] leading-4 font-medium tracking-[0.06em] uppercase">
                                 Motif{' '}
                                 <span className="text-text-secondary font-normal tracking-normal normal-case">
                                     — obligatoire
@@ -1280,10 +1375,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={3}
                                 placeholder="Budget gelé jusqu'au prochain exercice…"
-                                className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border p-3 focus:outline-hidden"
+                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[16px] leading-6 focus:outline-hidden"
                             />
                         </label>
-                        <div className="flex justify-end gap-2 pt-1">
+                        <div className="flex justify-end gap-2">
                             <Button variant="text" onClick={() => setRefusing(null)}>
                                 Annuler
                             </Button>
@@ -1314,15 +1409,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 title="Annuler ma demande"
             >
                 {cancelling?.cancel && (
-                    <div className="space-y-3 px-1 pb-4">
-                        <p className="text-body-medium text-text-secondary">{cancelling.title}</p>
-                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                    <div className="space-y-4">
+                        <p className="text-text-secondary text-[16px] leading-6">
+                            {cancelling.title}
+                        </p>
+                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-2 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
                             <Icon glyph={ArrowCounterClockwise} size={18} />
                             Rien n'est perdu — vous pourrez redemander. La personne qui l'examinait
                             ne la verra plus.
                         </p>
                         <label className="block">
-                            <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                            <span className="text-text-muted mb-2 block text-[12px] leading-4 font-medium tracking-[0.06em] uppercase">
                                 Motif{' '}
                                 <span className="text-text-secondary font-normal tracking-normal normal-case">
                                     — facultatif
@@ -1333,10 +1430,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={2}
                                 placeholder="Plus besoin, j'ai trouvé un poste libre…"
-                                className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border p-3 focus:outline-hidden"
+                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[16px] leading-6 focus:outline-hidden"
                             />
                         </label>
-                        <div className="flex justify-end gap-2 pt-1">
+                        <div className="flex justify-end gap-2">
                             <Button variant="text" onClick={() => setCancelling(null)}>
                                 Garder la demande
                             </Button>
