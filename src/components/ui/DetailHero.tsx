@@ -153,20 +153,21 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {avatar ? (
-            <div className="flex items-start gap-3.5">
-                <span className="font-brand flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[20px] font-semibold tracking-tight text-[var(--tk-color-avatar-text)]">
+            /* La pastille se pose **au-dessus** du sujet, pas à côté : la passe sobre
+               du 03/09 rend la ligne du nom pleine largeur (planche 05.2, `.idh`
+               suivi de `.ty` puis `.nm`). À côté, un nom long se coupait en deux. */
+            <div className="min-w-0">
+                <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[20px] font-semibold tracking-tight text-[var(--tk-color-avatar-text)]">
                     {avatar}
                 </span>
-                <div className="min-w-0 flex-1 pt-0.5">
-                    {label && (
-                        <p className="text-label-small text-on-nav-surface-variant font-medium tracking-[0.07em] uppercase">
-                            {label}
-                        </p>
-                    )}
-                    <p className="font-brand text-inverse-on-surface mt-0.5 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
-                        {subject}
+                {label && (
+                    <p className="text-label-small text-on-nav-surface-variant font-medium tracking-[0.07em] uppercase">
+                        {label}
                     </p>
-                </div>
+                )}
+                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+                    {subject}
+                </p>
             </div>
         ) : (
             <>

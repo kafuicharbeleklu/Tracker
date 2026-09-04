@@ -29,12 +29,13 @@ import type { AppUser, Equipment, HistoryEvent, ViewType } from '../../../types'
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import RuleGroup from '../../../components/ui/RuleGroup';
-import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
+import DetailHero from '../../../components/ui/DetailHero';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import ScreenState from '../../../components/ui/ScreenState';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import TintedTile, { TintedTileRow } from '../../../components/ui/TintedTile';
 
 import {
     ACTIVE_APPROVAL_STATUSES,
@@ -46,7 +47,13 @@ import { authService } from '../../../services/authService';
 import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
 
 /**
- * Fiche utilisateur — planche 05.2, passe du 02/09.
+ * Fiche utilisateur — planche 05.2, **passe sobre du 03/09**.
+ *
+ * Ce que la passe change par rapport au 02/09 : les chiffres **sortent du héro** et
+ * deviennent deux tuiles teintées posées dessous — ce qu'elle détient, sa demande en
+ * cours. Le héro ne garde que le sujet, son état et le geste. « Dernier accès »
+ * descend en rangée. Les coordonnées rejoignent la carte « Compte » au lieu d'ouvrir
+ * la leur. Et une carte « Ses accès » paraît, qui renvoie à 11.1.
  *
  * *Le lien entre une personne et ce qu'elle détient.*
  *
@@ -123,6 +130,15 @@ const historyIcon = (evt: HistoryEvent) => {
     return HISTORY_ICON[evt.type] ?? Package;
 };
 
+/** Ce qu'un niveau de portée veut dire en clair, sur la fiche d'une personne. */
+const SCOPE_LABEL: Record<string, string> = {
+    global: 'tout le parc',
+    country: 'son pays',
+    service: 'son service',
+    team: 'son équipe',
+    self: 'ses seuls objets',
+};
+
 const PIN_LABEL: Record<NonNullable<AppUser['PinStatus']>, string> = {
     active: 'Défini',
     pending: 'Temporaire, à redéfinir',
@@ -136,7 +152,17 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     onEquipmentClick,
     onEditUser,
 }) => {
-    const { users, equipment, events, approvals, updateUser, deleteUser } = useData();
+    const {
+        users,
+        equipment,
+        events,
+        approvals,
+        updateUser,
+        deleteUser,
+        rbacRoles,
+        rbacGroups,
+        getEffectiveAccessForUser,
+    } = useData();
     const { permissions, user: currentUser } = useAccessControl();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
@@ -217,6 +243,51 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             })
             .sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
     }, [events, user]);
+
+    /**
+     * « Ses accès » (planche 05.2, carte 4) — le rôle, les groupes, et ce que ça donne
+     * une fois résolu. Lu dans le moteur RBAC pour **cette** personne, pas pour celle
+     * qui regarde.
+     */
+    const access = useMemo(() => {
+        if (!user) return null;
+        const profile = getEffectiveAccessForUser(user.id);
+        if (!profile) return null;
+        const roles = profile.roleIds
+            .map((id) => rbacRoles.find((r) => r.id === id)?.name)
+            .filter(Boolean) as string[];
+        const groups = profile.groupIds
+            .map((id) => rbacGroups.find((g) => g.id === id)?.name)
+            .filter(Boolean) as string[];
+        const grantedKeys = Object.entries(profile.permissions)
+            .filter(([, decision]) => Boolean(decision))
+            .map(([key]) => key);
+        /* La planche distingue deux comptes : les **permissions** accordées et les
+           **ressources** qu'elles ouvrent. Une ressource est une **page** — c'est ce
+           que 11.1 range « une page par rangée ». Les clés `action.*` ne comptent pas :
+           elles disent ce qu'on fait, pas où l'on entre. */
+        const resources = grantedKeys.filter(
+            (key) =>
+                key.startsWith('view.') &&
+                /* `view.approvals` survit dans `AppViewKey` alors que la section a été
+                   fusionnée dans Tâches — routeur et fichier compris. La compter
+                   donnerait une page de plus que ce qui existe (la planche en dit 9,
+                   le moteur en rend 10). Résidu à retirer du modèle RBAC. */
+                key !== 'view.approvals',
+        ).length;
+        /* Un périmètre `global` n'est pas un périmètre borné : c'est tout le parc.
+           Le compter comme une borne faisait lire « périmètre borné » à un SuperAdmin. */
+        const levels = profile.dataScopes.map((scope) => scope.level);
+        const global = levels.length === 0 || levels.includes('global');
+        return {
+            roleLabel: roles.length ? roles.join(' · ') : getStatusLabel(user.role),
+            groups,
+            granted: grantedKeys.length,
+            resources,
+            scope: global ? 'tout le parc' : SCOPE_LABEL[levels[0]] || 'périmètre borné',
+            reach: global ? 'contrôle total partout' : SCOPE_LABEL[levels[0]] || 'périmètre borné',
+        };
+    }, [user, rbacRoles, rbacGroups, getEffectiveAccessForUser]);
 
     const activeSuperAdminCount = useMemo(
         () => users.filter((u) => u.role === 'SuperAdmin' && u.status !== 'inactive').length,
@@ -485,14 +556,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
           : { icon: CheckCircle, tone: 'positive' as const, label: 'Compte actif' };
 
     const lastLogin = formatShortDate(user.lastLogin);
-    const heroMetrics: DetailMetrics = [
-        { value: held, label: held > 1 ? 'équipements détenus' : 'équipement détenu' },
-        {
-            value: userApprovals.length,
-            label: userApprovals.length > 1 ? 'demandes en cours' : 'demande en cours',
-        },
-        { value: lastLogin ?? '—', label: lastLogin ? 'dernier accès' : 'jamais connecté' },
-    ];
 
     const roleLabel = `${getStatusLabel(user.role)} · ${user.department || user.site || '—'}`;
 
@@ -691,7 +754,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             </span>
                         ) : undefined
                     }
-                    metrics={heroMetrics}
                     actions={heroAction}
                     note={heroNote}
                     className={isSuspended ? '!bg-surface-container-highest !text-on-surface' : undefined}
@@ -699,6 +761,26 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             }
             aside={
                 <>
+                    {/* Les deux tuiles de la passe sobre : elles remplacent les trois
+                        métriques qui vivaient dans le héro. Deux au plus, jamais trois. */}
+                    <TintedTileRow>
+                        <TintedTile
+                            tone="bleu"
+                            glyph={Laptop}
+                            value={held}
+                            label={held > 1 ? 'objets détenus' : 'objet détenu'}
+                        />
+                        <TintedTile
+                            tone="ambre"
+                            glyph={Bell}
+                            value={userApprovals.length}
+                            label={userApprovals.length > 1 ? 'demandes en cours' : 'demande en cours'}
+                            onClick={
+                                userApprovals.length > 0 ? () => onViewChange?.('tasks') : undefined
+                            }
+                        />
+                    </TintedTileRow>
+
                     <RuleGroup header="Équipements détenus">
                         {held > 0 ? (
                             <div>
@@ -787,12 +869,12 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 </>
             }
         >
-            <RuleGroup header="Coordonnées">
+            {/* Une seule carte « Compte » : l'adresse, le téléphone, le code, le dernier
+                accès. La planche du 03/09 a replié « Coordonnées » dedans — deux cartes
+                pour quatre rangées disaient deux fois le même sujet. */}
+            <RuleGroup header="Compte">
                 <RuleGroup.Row title={user.email} subtitle="Adresse de l'annuaire" />
                 {user.phone && <RuleGroup.Row title={user.phone} subtitle="Mobile professionnel" />}
-            </RuleGroup>
-
-            <RuleGroup header="Compte">
                 <RuleGroup.Row
                     title="Mot de passe"
                     subtitle="Réinitialisable par un gestionnaire"
@@ -805,7 +887,39 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     value={pinValue}
                     valueTone={authUser && authUser.PinStatus === 'pending' ? 'pending' : undefined}
                 />
+                <RuleGroup.Row
+                    title="Dernier accès"
+                    value={lastLogin ?? 'Jamais connecté'}
+                    valueTone={lastLogin ? undefined : 'pending'}
+                />
             </RuleGroup>
+
+            {/* « Ses accès » — le rôle, les groupes, et ce que ça donne résolu. La
+                planche renvoie chaque rangée vers 11.1, qui détient le détail. */}
+            {access && (
+                <RuleGroup header="Ses accès">
+                    <RuleGroup.Row
+                        title={access.roleLabel}
+                        subtitle={`rôle · ${access.granted} permission${access.granted > 1 ? 's' : ''}, ${access.scope}`}
+                        onOpen={() => onViewChange?.('rbac')}
+                        external
+                    />
+                    <RuleGroup.Row
+                        title={
+                            access.groups.length ? access.groups.join(' · ') : 'Aucun groupe'
+                        }
+                        subtitle="un groupe borne un rôle à un pays ou un service"
+                        onOpen={() => onViewChange?.('rbac')}
+                        external
+                    />
+                    <RuleGroup.Row
+                        title="Accès effectifs"
+                        subtitle={`${access.resources} ressource${access.resources > 1 ? 's' : ''} · ${access.reach}`}
+                        onOpen={() => onViewChange?.('rbac')}
+                        external
+                    />
+                </RuleGroup>
+            )}
 
             <RuleGroup
                 header="Historique"
