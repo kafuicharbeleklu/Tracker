@@ -99,9 +99,10 @@ const formatDate = (value?: string) =>
         : 'N/A';
 
 const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId, onBack }) => {
-    const { equipment, users, events, updateEquipment, deleteEquipment, settings } = useData();
+    const { equipment, users, events, updateEquipment, deleteEquipment, confirmEquipmentReception, settings } =
+        useData();
     const { showToast } = useToast();
-    const { permissions } = useAccessControl();
+    const { permissions, user: currentUser } = useAccessControl();
     const { navigate } = useAppNavigation();
     const { requestConfirmation } = useConfirmation();
 
@@ -170,6 +171,15 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                   (item.user?.name && user.name === item.user.name),
           )
         : null;
+
+    /* Qui peut confirmer une réception : celui qui reçoit, son manager, ou un
+       gestionnaire. Même règle que `confirmEquipmentReception` dans le store — lue
+       ici pour ne pas offrir un geste qui serait refusé après le tap. Lot 7, S2. */
+    const canConfirmReception =
+        (!!currentUser &&
+            (item.user?.id === currentUser.id || item.user?.email === currentUser.email)) ||
+        (!!currentUser && !!holder && holder.managerId === currentUser.id) ||
+        permissions.canManageInventory;
 
     // ---- les trois qualifiants du voile (R3) -----------------------------------
     const purchaseDate = item.financial?.purchaseDate;
@@ -322,6 +332,34 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     /** Le geste primaire **suit l'état** — c'est la règle du héro (04.2). */
     const primaryAction = (() => {
+        /* Une réception en attente passe **avant** la branche du porteur : le
+           bénéficiaire est justement la personne censée confirmer, et la branche
+           « non-gestionnaire » retournait avant ce test — il ne voyait donc jamais
+           le geste, seulement « Déclarer un incident » et « Restituer ». C'est la
+           moitié UI du défaut que le lot 7 corrige côté écriture (§9.0/D15).
+           La confirmation passe par l'écriture unique du store, qui synchronise
+           l'approbation liée que la fiche oubliait. Lot 7, S2. */
+        if (item.assignmentStatus === 'PENDING_DELIVERY' && canConfirmReception) {
+            return (
+                <Button
+                    variant="filled"
+                    className="w-full"
+                    icon={<Icon glyph={Check} size={20} />}
+                    onClick={() => {
+                        const decision = confirmEquipmentReception(item.id);
+                        showToast(
+                            decision.allowed
+                                ? 'Réception confirmée.'
+                                : decision.reason || 'Confirmation refusée.',
+                            decision.allowed ? 'success' : 'error',
+                        );
+                    }}
+                >
+                    Confirmer la réception
+                </Button>
+            );
+        }
+
         if (!permissions.canManageInventory) {
             return (
                 <div className="flex w-full flex-col gap-2.5">
@@ -378,24 +416,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     onClick={handleEndRepair}
                 >
                     Clore l’intervention
-                </Button>
-            );
-        }
-        if (item.assignmentStatus === 'PENDING_DELIVERY') {
-            return (
-                <Button
-                    variant="filled"
-                    className="w-full"
-                    icon={<Icon glyph={Check} size={20} />}
-                    onClick={() => {
-                        updateEquipment(item.id, {
-                            assignmentStatus: 'CONFIRMED',
-                            confirmedAt: new Date().toISOString(),
-                        });
-                        showToast('Réception confirmée.', 'success');
-                    }}
-                >
-                    Confirmer la réception
                 </Button>
             );
         }

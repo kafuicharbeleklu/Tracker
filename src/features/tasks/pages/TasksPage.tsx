@@ -93,6 +93,12 @@ interface Task {
      * plus. Planche 03.3, onglet « À suivre » — lot 6.
      */
     cancel?: { approvalId: string };
+    /**
+     * Une réception à confirmer sans demande derrière (attribution directe). Elle
+     * s'écrit **depuis la rangée**, par la même porte que toutes les autres :
+     * `confirmEquipmentReception`. Lot 7, S3.
+     */
+    reception?: { equipmentId: string };
 }
 
 const NATURE_LABEL: Record<TaskNature, string> = {
@@ -243,6 +249,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         users,
         detectedDevices,
         updateApproval,
+        confirmEquipmentReception,
         promoteDetectedDeviceToInventory,
         markDetectedDeviceAsIgnored,
     } = useData();
@@ -429,6 +436,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         action: 'Confirmer',
                         target: 'equipment_details',
                         targetId: item.id,
+                        reception: { equipmentId: item.id },
                         icon: getCategoryGlyph(item.type),
                     });
                 }
@@ -634,6 +642,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         }
         setCancelling(null);
         showToast('Demande annulée.', 'success');
+    };
+
+    const confirmReceptionTask = (task: Task): boolean => {
+        if (!task.reception) return false;
+        const decision = confirmEquipmentReception(task.reception.equipmentId);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Confirmation refusée.', 'error');
+            return false;
+        }
+        showToast('Réception confirmée.', 'success');
+        return true;
     };
 
     const completeApprovalTask = (task: Task): boolean => {
@@ -873,6 +892,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         title={task.action}
                                         description="Confirmez cette action avant de la rendre effective."
                                         entityId={task.transition.approvalId}
+                                        entityName={task.title}
+                                        trigger={
+                                            <Button variant="tonal" size="sm" className={ROW_ACTION}>
+                                                {task.action}
+                                            </Button>
+                                        }
+                                    />
+                                ) : task.reception ? (
+                                    <SecurityGate
+                                        onVerified={() => confirmReceptionTask(task)}
+                                        title={task.action}
+                                        description="Confirmez cette action avant de la rendre effective."
+                                        entityId={task.reception.equipmentId}
                                         entityName={task.title}
                                         trigger={
                                             <Button variant="tonal" size="sm" className={ROW_ACTION}>

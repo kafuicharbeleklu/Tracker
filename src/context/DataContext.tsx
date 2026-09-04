@@ -140,6 +140,8 @@ interface DataContextType {
         status: ApprovalStatus,
         options?: { assignedEquipmentId?: string; assignedEquipmentName?: string; reason?: string },
     ) => BusinessRuleDecision;
+    /** La réception d'un objet par son porteur, appelée par la fiche, la file et l'accueil. */
+    confirmEquipmentReception: (equipmentId: string) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
     logEvent: (event: Omit<HistoryEvent, 'id' | 'timestamp'>) => void;
 
@@ -2831,6 +2833,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [approvals, currentUser, logEvent, applyEquipmentWrite, users],
     );
 
+    /**
+     * La réception d'un objet par son porteur — l'acte de 06.1, **quel que soit l'écran
+     * d'où il part**. Il y avait deux chemins : la file passait par `updateApproval`, qui
+     * synchronise l'objet ; la fiche écrivait `updateEquipment({ CONFIRMED })`, qui ne
+     * touchait que l'objet et laissait l'approbation liée en `PENDING_DELIVERY` pour
+     * toujours — et dont la garde acteur refusait silencieusement le bénéficiaire, la
+     * personne même qui est censée confirmer. Les deux affichaient « Réception confirmée ».
+     * Zone d'ombre n° 9, tranchée le 02/09 — lot 7.
+     */
+    const confirmEquipmentReception = useCallback(
+        (equipmentId: string): BusinessRuleDecision => {
+            const item = equipment.find((e) => e.id === equipmentId);
+            if (!item) return { allowed: false, reason: 'Équipement introuvable.' };
+            if (item.assignmentStatus !== 'PENDING_DELIVERY')
+                return { allowed: false, reason: 'Cet équipement n’attend pas de confirmation.' };
+
+            const isHolder =
+                !!currentUser &&
+                (item.user?.id === currentUser.id || item.user?.email === currentUser.email);
+            const isManagerOfHolder =
+                !!currentUser &&
+                !!item.user?.id &&
+                users.find((u) => u.id === item.user!.id)?.managerId === currentUser.id;
+            const canManage = canManageInventoryByRole(currentUserAccessRef.current).allowed;
+            if (!isHolder && !isManagerOfHolder && !canManage)
+                return {
+                    allowed: false,
+                    reason: 'Seule la personne qui reçoit (ou son manager) confirme la réception.',
+                };
+
+            // Chemin 1 — une demande porte cet objet : la transition d'approbation fait foi
+            // et synchronise l'objet au passage.
+            const linked = approvals.find(
+                (a) => a.assignedEquipmentId === equipmentId && a.status === 'PENDING_DELIVERY',
+            );
+            if (linked) return updateApproval(linked.id, 'Completed');
+
+            // Chemin 2 — attribution directe, sans demande : la même écriture que celle que
+            // la synchro d'approbation aurait produite.
+            const updates = getEquipmentUpdatesForApprovalStatus({
+                status: 'Completed',
+                previousStatus: 'PENDING_DELIVERY',
+                actorId: currentUser?.id,
+                nowISO: new Date().toISOString(),
+            });
+            if (!updates) return { allowed: false, reason: 'Transition de réception inconnue.' };
+            applyEquipmentWrite(equipmentId, updates, { source: 'direct_reception' });
+            return { allowed: true };
+        },
+        [equipment, approvals, users, currentUser, updateApproval, applyEquipmentWrite],
+    );
+
     const addApproval = useCallback(
         (approval: Omit<Approval, 'id'>) => {
             const newId = Date.now().toString();
@@ -3077,6 +3131,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             markDetectedDeviceAsIgnored,
             removeEquipmentFromServiceAfterAudit,
             updateApproval,
+            confirmEquipmentReception,
             addApproval,
             logEvent,
             addLocation,
@@ -3127,6 +3182,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             markDetectedDeviceAsIgnored,
             removeEquipmentFromServiceAfterAudit,
             updateApproval,
+            confirmEquipmentReception,
             addApproval,
             logEvent,
             addLocation,
