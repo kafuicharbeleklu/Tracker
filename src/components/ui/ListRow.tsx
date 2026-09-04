@@ -10,11 +10,18 @@ import { cn } from '../../lib/utils';
 /**
  * Rangée de liste — planches **04.1** (contenu) et **00.4** (régime), registre §2.43.
  *
- * **72 px, à toutes les largeurs.** C'est la phrase à retenir d'un portage : la
- * rangée fait 72 px à 393 px et 72 px à 1280 px, la vignette 40 (§2.2), et un
+ * **68 px, à toutes les largeurs.** C'est la phrase à retenir d'un portage : la
+ * rangée fait 68 px à 393 px et 68 px à 1280 px, la vignette 40 (§2.2), et un
  * écran plus large ne mérite pas des rangées plus hautes — il mérite **plus de
  * rangées visibles**. Onze rangées tiennent à 768 px là où le téléphone en montre
  * six, sans qu'aucune décision de dessin ne change.
+ *
+ * **Les six mesures viennent de la passe sobre**, relevées sur 04.1 et 05.1 qui les
+ * déclarent à l'identique : rangée 68 (elle valait 72), gouttière 16 (12), intérieur
+ * vertical 12 (10) ; le code de l'objet à la deuxième marche de R15 — **17 sur 24**,
+ * chasse normale, et non 15 en 500 ; la seconde ligne à **14 sur 20** (13) sur
+ * l'encre `ink2` ; la référence à **12** sur `ink3` (11 sur `ink2`). L'échelle de
+ * R15 n'a que quatre marches — 28 · 17 · 16 · 12 — et 15, 13 et 11 n'en sont pas.
  *
  * **Une rangée n'est pas une fiche résumée.** Elle porte le minimum qui permet de
  * reconnaître et de choisir, sur **deux lignes** :
@@ -170,18 +177,18 @@ const ListRow: React.FC<ListRowProps> = ({
             <span className="min-w-0 flex-1">
                 {/* Ligne 1 : Nom/Code à gauche, Type à droite */}
                 <span className="flex items-baseline gap-2.5">
-                    <span className="text-on-surface truncate text-[15px] leading-5 font-medium">
+                    <span className="text-on-surface truncate text-[17px] leading-6 tracking-[-0.01em]">
                         {title}
                     </span>
                     {type && (
-                        <span className="text-text-secondary ml-auto shrink-0 text-[12px] whitespace-nowrap">
+                        <span className="text-text-muted ml-auto shrink-0 text-[12px] leading-4 whitespace-nowrap">
                             {type}
                         </span>
                     )}
                 </span>
 
                 {/* Ligne 2 : Icône d'état + Porteur/État à gauche, Asset ID à droite */}
-                <span className="text-text-secondary mt-[3px] flex min-w-0 items-center gap-[7px] text-[13px]">
+                <span className="text-text-muted mt-0.5 flex min-w-0 items-center gap-2 text-[14px] leading-5">
                     {status && (
                         <Icon
                             glyph={status.icon}
@@ -193,8 +200,8 @@ const ListRow: React.FC<ListRowProps> = ({
                     {reference && (
                         <span
                             className={cn(
-                                'ml-auto shrink-0 text-[11px] tracking-[0.02em] whitespace-nowrap tabular-nums',
-                                referenceClassName || 'text-text-muted',
+                                'ml-auto shrink-0 text-[12px] tracking-[0.02em] whitespace-nowrap tabular-nums',
+                                referenceClassName || 'text-text-tertiary',
                             )}
                         >
                             {reference}
@@ -225,7 +232,7 @@ const ListRow: React.FC<ListRowProps> = ({
     );
 
     const shell = cn(
-        'flex min-h-[72px] w-full items-center gap-3 border-t border-outline-variant py-2.5 text-left first:border-t-0',
+        'flex min-h-[68px] w-full items-center gap-4 border-t border-outline-variant py-3 text-left first:border-t-0',
         (onOpen || selectionActive) &&
             'outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         // Le fond de la rangée cochée déborde la gouttière de la carte (16 px) :

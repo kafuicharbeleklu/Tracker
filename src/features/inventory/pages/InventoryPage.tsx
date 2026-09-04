@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     ArrowCircleRight,
     CaretDown,
     Clock,
-    Funnel,
+    FileCsv,
     Keyboard,
     Package,
     Scan,
@@ -20,6 +21,8 @@ import useSelection from '../../../hooks/useSelection';
 import { ViewType } from '../../../types';
 
 import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
+import FilterButton from '../../../components/ui/FilterButton';
+import FacetChip from '../../../components/ui/FacetChip';
 import ListRow from '../../../components/ui/ListRow';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
@@ -44,6 +47,22 @@ import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
  *
  * Pour l'utilisateur final (« Mes équipements ») : disparition de la recherche, des filtres,
  * du tri, et du FAB — 4 rangées claires disant depuis quand l'objet est à lui.
+ *
+ * ## Ce que la passe sobre du 02/09 déplace
+ *
+ * **Les états quittent la bande et deviennent le premier groupe du filtre.** La
+ * planche ne dessine plus de rangée de pastilles sous la recherche : `.chips` reste
+ * déclaré dans sa feuille de style et n'est employé nulle part. Les quatre états —
+ * avec leurs comptes — ouvrent la feuille « Filtrer », et **c'est la ligne du
+ * décompte qui nomme ce qu'on voit** (« 14 actifs · tous les états », « 2 actifs ·
+ * en réparation »). Une pastille posée n'était lisible qu'en haut de la liste ;
+ * la ligne du décompte, elle, tient la phrase entière.
+ *
+ * **L'arrivée pré-filtrée perd son bandeau.** La colonne « depuis le tableau de
+ * bord » de la planche ne porte ni jeton ni provenance : le filtre se dit par la
+ * pastille de l'entonnoir, par le décompte qui le nomme, et par la sortie en pied
+ * de liste — « Voir les 14 actifs du parc ». Trois marques valent mieux qu'un
+ * quatrième bandeau au-dessus de la liste.
  */
 
 const STORAGE_KEY_SEARCH = 'inventory_search';
@@ -109,6 +128,50 @@ const getDaysSince = (dateStr?: string): number => {
     const diff = Date.now() - new Date(dateStr).getTime();
     return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)));
 };
+
+/**
+ * `.sh` + `.sgrp` de la planche : le libellé du groupe en **12 sur 16**, capitales
+ * espacées de 6 %, encre tertiaire — puis ses pastilles, gouttière 8, sur deux
+ * lignes s'il le faut. Le libellé était deux crans trop sombre et sans sa mesure.
+ */
+const SheetGroup: React.FC<{ label: string; children: React.ReactNode }> = ({
+    label,
+    children,
+}) => (
+    <div>
+        <p className="text-text-tertiary text-[12px] leading-4 tracking-[0.06em] uppercase">
+            {label}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">{children}</div>
+    </div>
+);
+
+/**
+ * `.si.big` — une des trois routes de la feuille d'ajout. La planche donne 64 de
+ * haut, 6 px d'intérieur vertical, gouttière 14, une vignette de 40 au rayon 6, un
+ * titre de **16 sur 24 en chasse normale** et son explication en 14 sur 20.
+ */
+const AddRoute: React.FC<{
+    glyph: PhosphorGlyph;
+    title: string;
+    detail: string;
+    onClick: () => void;
+}> = ({ glyph, title, detail, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-1.5 text-left transition-colors"
+    >
+        <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
+            <Icon glyph={glyph} size={20} />
+        </span>
+        <span className="min-w-0 flex-1">
+            <span className="text-on-surface block text-[16px] leading-6">{title}</span>
+            <span className="text-text-muted block text-[14px] leading-5">{detail}</span>
+        </span>
+        <Icon glyph={CaretDown} size={18} className="text-text-tertiary shrink-0 -rotate-90" />
+    </button>
+);
 
 interface InventoryPageProps {
     onViewChange: (view: ViewType) => void;
@@ -193,14 +256,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         );
     }, [accessibleEquipment, familyFilter]);
 
+    /* L'état est entré dans la feuille : il compte donc dans la pastille de
+       l'entonnoir. C'est elle qui porte le « 1 » de la colonne « arrivée
+       pré-filtrée » de la planche, là où le bandeau le disait avant. */
     const activeSheetFiltersCount = useMemo(() => {
         let count = 0;
+        if (statusFilter) count += 1;
         if (familyFilter !== 'Toutes') count += 1;
         if (typeFilter) count += 1;
         if (locationFilter !== 'Tous') count += 1;
         if (periodFilter !== 'Toute période') count += 1;
         return count;
-    }, [familyFilter, typeFilter, locationFilter, periodFilter]);
+    }, [statusFilter, familyFilter, typeFilter, locationFilter, periodFilter]);
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -343,14 +410,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         ];
     }, [accessibleEquipment]);
 
-    const displayedFacets = useMemo(() => {
-        if (!arrivedFiltered || !statusFilter) return facets;
-        const activeFacet = facets.find((facet) => facet.id === statusFilter);
-        return activeFacet
-            ? [activeFacet, ...facets.filter((facet) => facet.id !== statusFilter)]
-            : facets;
-    }, [arrivedFiltered, facets, statusFilter]);
-
     const selectedEquipment = useMemo(
         () => filteredEquipment.filter((item) => selection.isSelected(item.id)),
         [filteredEquipment, selection],
@@ -473,10 +532,12 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     };
 
     const handleClearAllSheetFilters = () => {
+        setStatusFilter('');
         setFamilyFilter('Toutes');
         setTypeFilter('');
         setLocationFilter('Tous');
         setPeriodFilter('Toute période');
+        setArrivedFiltered(false);
     };
 
     const clearAllListFilters = () => {
@@ -492,11 +553,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         typeFilter ||
         locationFilter !== 'Tous' ||
         periodFilter !== 'Toute période',
-    );
-
-    const hasPendingConfirmation = useMemo(
-        () => userEquipment.some((item) => item.assignmentStatus === 'PENDING_DELIVERY'),
-        [userEquipment],
     );
 
     return (
@@ -530,81 +586,44 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 }
                 filter={
                     isManager ? (
-                        <button
-                            type="button"
+                        <FilterButton
                             onClick={() => setIsFilterSheetOpen(true)}
-                            aria-label="Filtrer"
-                            className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
-                        >
-                            <Icon glyph={Funnel} size={20} />
-                            {activeSheetFiltersCount > 0 && (
-                                <span className="bg-inverse-surface text-label-small text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-semibold tabular-nums">
-                                    {activeSheetFiltersCount}
-                                </span>
-                            )}
-                        </button>
+                            count={activeSheetFiltersCount}
+                        />
                     ) : undefined
                 }
-                facets={isManager ? displayedFacets : undefined}
-                activeFacetId={statusFilter || 'tous'}
-                onActiveFacetClear={arrivedFiltered ? clearArrivalFilter : undefined}
-                activeFacetClearLabel={
-                    statusFilter ? `Retirer le filtre ${getStatusLabel(statusFilter)}` : undefined
-                }
-                onFacetSelect={
-                    isManager
-                        ? (id) => {
-                              setStatusFilter(id === 'tous' ? '' : id);
-                              if (arrivedFiltered) setSortIndex(DEFAULT_SORT_INDEX);
-                              setArrivedFiltered(false);
-                          }
-                        : undefined
-                }
                 origin={
-                    /* **Une arrivée pré-filtrée se dit** (04.1) : le jeton, la provenance
-                       en toutes lettres, et une sortie qui **nomme sa destination**. La
-                       fiche d'un site renvoie ici filtrée sur lui — sans ce bandeau, on
-                       arriverait sur huit rangées là où le parc en compte quatorze, sans
-                       savoir pourquoi. */
-                    arrivedFiltered && initialSite && locationFilter !== 'Tous'
+                    /* **La planche ne dessine plus de bandeau d'arrivée.** Sa colonne
+                       « arrivée pré-filtrée depuis le tableau de bord » ne porte ni
+                       jeton ni provenance : elle montre la pastille sur l'entonnoir,
+                       la ligne du décompte qui nomme le filtre, et cette sortie en
+                       pied de liste — qui **nomme sa destination**, jamais « effacer
+                       les filtres ». Le bandeau faisait une quatrième marque pour la
+                       même chose, au-dessus des rangées qu'on est venu lire. */
+                    arrivedFiltered &&
+                    (statusFilter || (initialSite && locationFilter !== 'Tous'))
                         ? {
-                              token: locationFilter,
-                              from: (
-                                  <span>
-                                      Depuis <b>{locationFilter}</b> · fiche du site
-                                  </span>
-                              ),
+                              token: statusFilter
+                                  ? getStatusLabel(statusFilter)
+                                  : locationFilter,
                               clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
                               onClear: clearArrivalFilter,
                               displayToken: false,
                               clearPresentation: 'more',
                           }
-                        : arrivedFiltered && statusFilter
-                          ? {
-                                token: getStatusLabel(statusFilter),
-                                from: (
-                                    <span>
-                                        Depuis <b>le tableau de bord</b> · carte «{' '}
-                                        {getStatusLabel(statusFilter)} »
-                                    </span>
-                                ),
-                                clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
-                                onClear: clearArrivalFilter,
-                                displayToken: false,
-                                clearPresentation: 'more',
-                            }
-                          : undefined
+                        : undefined
                 }
                 count={
                     isManager
                         ? {
-                              total: statusFilter
-                                  ? filteredEquipment.length
-                                  : accessibleEquipment.length,
+                              total: filteredEquipment.length,
                               shown: visibleEquipment.length,
+                              /* « 14 actifs · tous les états », « 2 actifs · en
+                                 réparation » : la ligne du décompte **nomme ce qu'on
+                                 voit**, puisque plus aucune pastille ne le dit. */
                               noun: statusFilter
-                                  ? `actifs ${getStatusLabel(statusFilter).toLowerCase()} sur ${accessibleEquipment.length}`
-                                  : 'actifs',
+                                  ? `actifs · ${getStatusLabel(statusFilter).toLowerCase()}`
+                                  : 'actifs · tous les états',
                           }
                         : undefined
                 }
@@ -663,18 +682,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             ) : undefined
                         }
                     />
-                }
-                footer={
-                    isManager
-                        ? visibleEquipment.length > 0
-                            ? visibleEquipment.length === accessibleEquipment.length &&
-                              filteredEquipment.length === accessibleEquipment.length
-                                ? `Les ${accessibleEquipment.length} actifs du parc.`
-                                : undefined
-                            : undefined
-                        : hasPendingConfirmation
-                          ? 'Un équipement en attente de votre confirmation.'
-                          : `${userEquipment.length} équipement${userEquipment.length > 1 ? 's' : ''} sous votre responsabilité.`
                 }
                 /* La barre du bas fait 56 px : le bouton flottant se pose au-dessus,
                    jamais dessus — la planche le place à 76 px du bas. */
@@ -793,231 +800,162 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 })}
 
                 {isManager && visibleEquipment.length < filteredEquipment.length && (
-                    <Button
-                        variant="text"
-                        icon={<Icon glyph={CaretDown} size={18} />}
+                    /* `.more` : 48 de haut, un filet au-dessus, **15 en 500** sur
+                       l'encre pleine, chevron 18 sur l'encre secondaire. */
+                    <button
+                        type="button"
                         onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                        className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
+                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[15px] font-medium transition-colors"
                     >
+                        <Icon glyph={CaretDown} size={18} className="text-text-muted" />
                         Charger la suite
-                    </Button>
+                    </button>
                 )}
 
-                {/* Feuille montante Filtrer (Planche 04.1) */}
+                {/* Feuille montante Filtrer (Planche 04.1) — quatre groupes, dans
+                    l'ordre de la planche : État, Famille, Emplacement, Ajouté. */}
                 <BottomSheet
                     open={isFilterSheetOpen}
                     onClose={() => setIsFilterSheetOpen(false)}
                     title="Filtrer"
                 >
-                    <div className="flex flex-col gap-4 px-5 py-3">
-                        <div>
-                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                                Famille
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {FAMILIES.map((family) => (
-                                    <button
-                                        key={family}
-                                        type="button"
-                                        onClick={() => {
-                                            setFamilyFilter(family);
-                                            setTypeFilter('');
-                                        }}
-                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
-                                            familyFilter === family
-                                                ? 'bg-inverse-surface text-inverse-on-surface'
-                                                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                        }`}
-                                    >
-                                        {family}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="flex flex-col gap-4">
+                        {/* **Le premier groupe du filtre, et il porte les comptes.**
+                            C'est le déplacement de la passe sobre : les états ne
+                            vivent plus en pastilles sous la recherche. */}
+                        <SheetGroup label="État">
+                            {facets.map((facet) => (
+                                <FacetChip
+                                    key={facet.id}
+                                    label={facet.label}
+                                    count={facet.count}
+                                    icon={facet.icon}
+                                    tone={facet.tone}
+                                    selected={
+                                        facet.id === 'tous' ? !statusFilter : facet.id === statusFilter
+                                    }
+                                    onClick={() => {
+                                        setStatusFilter(facet.id === 'tous' ? '' : facet.id);
+                                        if (arrivedFiltered) setSortIndex(DEFAULT_SORT_INDEX);
+                                        setArrivedFiltered(false);
+                                    }}
+                                />
+                            ))}
+                        </SheetGroup>
+
+                        <SheetGroup label="Famille">
+                            {FAMILIES.map((family) => (
+                                <FacetChip
+                                    key={family}
+                                    label={family}
+                                    selected={familyFilter === family}
+                                    onClick={() => {
+                                        setFamilyFilter(family);
+                                        setTypeFilter('');
+                                    }}
+                                />
+                            ))}
+                        </SheetGroup>
 
                         {familyFilter !== 'Toutes' && availableTypesForFamily.length > 0 && (
-                            <div>
-                                <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                                    Type
-                                </p>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setTypeFilter('')}
-                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
-                                            !typeFilter
-                                                ? 'bg-inverse-surface text-inverse-on-surface'
-                                                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                        }`}
-                                    >
-                                        Tous les types
-                                    </button>
-                                    {availableTypesForFamily.map((type) => (
-                                        <button
-                                            key={type}
-                                            type="button"
-                                            onClick={() => setTypeFilter(type)}
-                                            className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
-                                                typeFilter === type
-                                                    ? 'bg-inverse-surface text-inverse-on-surface'
-                                                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                            }`}
-                                        >
-                                            {getCategoryLabel(type)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            <SheetGroup label="Type">
+                                <FacetChip
+                                    label="Tous les types"
+                                    selected={!typeFilter}
+                                    onClick={() => setTypeFilter('')}
+                                />
+                                {availableTypesForFamily.map((type) => (
+                                    <FacetChip
+                                        key={type}
+                                        label={getCategoryLabel(type)}
+                                        selected={typeFilter === type}
+                                        onClick={() => setTypeFilter(type)}
+                                    />
+                                ))}
+                            </SheetGroup>
                         )}
 
-                        <div>
-                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                                Emplacement
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {availableLocations.map((loc) => (
-                                    <button
-                                        key={loc}
-                                        type="button"
-                                        onClick={() => setLocationFilter(loc)}
-                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
-                                            locationFilter === loc
-                                                ? 'bg-inverse-surface text-inverse-on-surface'
-                                                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                        }`}
-                                    >
-                                        {loc}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <SheetGroup label="Emplacement">
+                            {availableLocations.map((loc) => (
+                                <FacetChip
+                                    key={loc}
+                                    label={loc}
+                                    selected={locationFilter === loc}
+                                    onClick={() => setLocationFilter(loc)}
+                                />
+                            ))}
+                        </SheetGroup>
 
-                        <div>
-                            <p className="text-label-small text-text-secondary tracking-[0.06em] uppercase">
-                                Ajouté
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {PERIODS.map((period) => (
-                                    <button
-                                        key={period}
-                                        type="button"
-                                        onClick={() => setPeriodFilter(period)}
-                                        className={`text-body-medium flex min-h-10 items-center rounded-md px-3 font-medium transition-colors ${
-                                            periodFilter === period
-                                                ? 'bg-inverse-surface text-inverse-on-surface'
-                                                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                                        }`}
-                                    >
-                                        {period}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <SheetGroup label="Ajouté">
+                            {PERIODS.map((period) => (
+                                <FacetChip
+                                    key={period}
+                                    label={period}
+                                    selected={periodFilter === period}
+                                    onClick={() => setPeriodFilter(period)}
+                                />
+                            ))}
+                        </SheetGroup>
 
-                        <div className="border-outline-variant mt-4 flex items-center justify-between gap-3 border-t pt-3">
+                        {/* `.sfoot` — **deux colonnes égales**, filet au-dessus. Le
+                            « voir » nomme son nombre ; il ne dit pas « appliquer ». */}
+                        <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer
                             </Button>
                             <Button
                                 variant="tonal"
-                                className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1"
+                                className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
                                 onClick={() => setIsFilterSheetOpen(false)}
                             >
-                                Voir les {filteredEquipment.length} équipements
+                                Voir les {filteredEquipment.length}
                             </Button>
                         </div>
                     </div>
                 </BottomSheet>
 
-                {/* Feuille montante Nouvel équipement (Planche 04.1) */}
+                {/* Feuille montante Nouvel équipement (Planche 04.1) — `.si.big` :
+                    64 de haut, vignette 40 au rayon 6, titre 16 sur 24 **sans
+                    graisse d'appui**, explication 14 sur 20 sur l'encre secondaire.
+                    Le titre était en 500 et l'explication deux crans trop petite. */}
                 <BottomSheet
                     open={isAddSheetOpen}
                     onClose={() => setIsAddSheetOpen(false)}
                     title="Nouvel équipement"
                 >
-                    <div className="flex flex-col gap-1 py-2">
-                        <button
-                            type="button"
-                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
+                    <div className="-mx-5 flex flex-col">
+                        <AddRoute
+                            glyph={Scan}
+                            title="Scanner l’étiquette"
+                            detail="le code et le type sont lus sur l’objet"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 setIsScanning(true);
                                 setScanHit(null);
                             }}
-                        >
-                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                <Icon glyph={Scan} size={20} />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-body-large text-on-surface font-medium">
-                                    Scanner l’étiquette
-                                </p>
-                                <p className="text-body-small text-on-surface-variant">
-                                    le code et le type sont lus sur l’objet
-                                </p>
-                            </div>
-                            <Icon
-                                glyph={CaretDown}
-                                size={18}
-                                className="text-on-surface-variant -rotate-90"
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
+                        />
+                        <AddRoute
+                            glyph={Keyboard}
+                            title="Saisir la fiche"
+                            detail="type, code, emplacement, numéro de série"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 onViewChange('add_equipment');
                             }}
-                        >
-                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                <Icon glyph={Keyboard} size={20} />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-body-large text-on-surface font-medium">
-                                    Saisir la fiche
-                                </p>
-                                <p className="text-body-small text-on-surface-variant">
-                                    type, code, emplacement, numéro de série
-                                </p>
-                            </div>
-                            <Icon
-                                glyph={CaretDown}
-                                size={18}
-                                className="text-on-surface-variant -rotate-90"
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="hover:bg-surface-container flex min-h-16 items-center gap-3.5 px-5 py-2.5 text-left transition-colors"
+                        />
+                        {/* 17.6 nomme l'acte « Importer un fichier », et c'est ce que la
+                            destination fait : un CSV, une ligne par unité. « Importer une
+                            livraison » est l'autre chemin — la file de scan de 04.3,
+                            colonne 2 — que la planche laisse encore à spécifier. */}
+                        <AddRoute
+                            glyph={FileCsv}
+                            title="Importer un fichier"
+                            detail="une ligne par objet, l’identifiant déduit"
                             onClick={() => {
                                 setIsAddSheetOpen(false);
                                 onViewChange('import_equipment');
                             }}
-                        >
-                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                <Icon glyph={Package} size={20} />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                {/* 17.6 nomme l'acte « Importer un fichier », et c'est ce que
-                                    la destination fait : un CSV, une ligne par unité. « Importer
-                                    une livraison » est l'autre chemin — la file de scan de 04.3,
-                                    colonne 2 — que la planche laisse encore à spécifier. */}
-                                <p className="text-body-large text-on-surface font-medium">
-                                    Importer un fichier
-                                </p>
-                                <p className="text-body-small text-on-surface-variant">
-                                    une ligne par unité, depuis un tableur
-                                </p>
-                            </div>
-                            <Icon
-                                glyph={CaretDown}
-                                size={18}
-                                className="text-on-surface-variant -rotate-90"
-                            />
-                        </button>
+                        />
                     </div>
                 </BottomSheet>
 

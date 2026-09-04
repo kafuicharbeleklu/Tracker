@@ -201,20 +201,31 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 {/* Drag handle */}
                 {dragHandle && (
                     <div
-                        className="flex cursor-grab touch-none justify-center pt-3 pb-1"
+                        className="flex cursor-grab touch-none justify-center pt-2 pb-0.5"
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
                         onPointerCancel={resetDrag}
                     >
-                        <div className="bg-on-surface-variant/40 h-1 w-8 rounded-full" />
+                        <div className="bg-outline-variant h-1 w-9 rounded-sm" />
                     </div>
                 )}
 
                 {/* Title */}
                 {title && (
-                    <div className="border-outline-variant flex items-center justify-between border-b px-5 py-4">
-                        <h2 id={titleId} className={cn('section-title', titleClassName)}>
+                    /* `.sttl` de la passe sobre — quatre planches l'écrivent à
+                       l'identique (03.3, 04.1, 05.1, 10.1) : **aucun filet** sous le
+                       titre, 4 px au-dessus, 20 à gauche, 12 à droite, et le titre à
+                       22 sur 28 en Archivo 600. Le filet faisait un second en-tête
+                       dans une feuille qui n'en a qu'un. */
+                    <div className="flex items-center gap-2 pt-1 pr-3 pb-0 pl-5">
+                        <h2
+                            id={titleId}
+                            className={cn(
+                                'font-brand text-on-surface min-w-0 flex-1 text-[22px] leading-7 font-semibold tracking-[-0.015em]',
+                                titleClassName,
+                            )}
+                        >
                             {title}
                         </h2>
                         <CloseButton onClick={onClose} />

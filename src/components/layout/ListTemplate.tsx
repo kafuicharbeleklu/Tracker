@@ -118,7 +118,14 @@ interface ListTemplateProps {
      */
     origin?: {
         token: string;
-        from: React.ReactNode;
+        /**
+         * La provenance en toutes lettres. **04.1 ne la dessine pas** : sa colonne
+         * « arrivée pré-filtrée » ne porte ni bandeau ni jeton — le filtre se dit par
+         * la pastille de l'entonnoir, par la ligne du décompte qui le nomme (« 2 actifs
+         * · en réparation »), et par la sortie en pied de liste. Omettre `from` retire
+         * le bandeau et ne garde que cette sortie.
+         */
+        from?: React.ReactNode;
         clearLabel: string;
         onClear: () => void;
         /** Les autres listes conservent le jeton ; 04.1 montre seulement la provenance. */
@@ -344,7 +351,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             {!isCompact && hasSeekBand && seekBand}
 
             <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
-                {origin && (
+                {origin && origin.from && (
                     <Reading>
                         <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">
                             {origin.displayToken !== false && (
@@ -421,7 +428,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     /* `.ord` — 14 sur 20, encre secondaire, et **le seul appui est le
                        nombre** : graisse 500 sur l'encre pleine. La ligne était à 13 px
                        en 600, deux crans hors de l'échelle de R15. */
-                    <Reading className="flex min-h-11 items-center justify-between gap-3 text-[14px] leading-5 text-[var(--tk-color-text-muted)]">
+                    <Reading className="flex min-h-10 items-center justify-between gap-3 px-1 text-[14px] leading-5 text-[var(--tk-color-text-muted)]">
                         <span className="whitespace-nowrap">
                             <b className="text-on-surface font-medium tabular-nums">
                                 {count.total}
@@ -435,13 +442,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             <button
                                 type="button"
                                 onClick={sort.onClick}
-                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium"
+                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[14px] font-medium"
                             >
-                                <Icon
-                                    glyph={SortAscending}
-                                    size={18}
-                                    className="text-text-secondary"
-                                />
+                                <Icon glyph={SortAscending} size={18} className="text-text-muted" />
                                 {sort.label}
                             </button>
                         )}

@@ -57,7 +57,11 @@ const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
 
 const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
     sm: 'min-h-8 px-3 py-1.5 text-label-medium gap-1.5',
-    md: 'min-h-12 px-4 py-2 text-label-large gap-2',
+    /* `.btn` de la passe sobre : hauteur 48, rayon 4, **16 px en 500** — la troisième
+       marche de R15. Trois planches (03.3, 05.1, 10.1) la déclarent par `--t3` ; la
+       taille valait 14, une valeur que l'échelle des quatre marches ne contient pas.
+       `sm` et `lg` ne bougent pas : ce sont d'autres boutons que `.btn`. */
+    md: 'min-h-12 px-4 py-2 text-[16px] leading-6 font-medium gap-2',
     lg: 'min-h-11 px-5 py-2.5 text-label-large gap-2',
 };
 

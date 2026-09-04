@@ -1,6 +1,10 @@
 # TRACKER — consignes permanentes
 
 ## Gestion des planches
+> Les planches ne sont **pas dans ce dépôt** : elles vivent dans le projet Claude Design
+> nommé « TRACKER », et se lisent avec l'outil `DesignSync`. Les chemins `screens/…` et
+> `scraps/…` cités ci-dessous désignent ce projet-là, pas le dossier local.
+
 - **Édition en place, jamais de duplication.** Une page du produit = une seule planche dans `screens/`. Pour refondre un écran, on modifie la planche existante ; on ne crée pas de copie « v2 » ni de variante à côté.
 - Exception unique : une comparaison avant/après explicitement demandée par l'utilisateur.
 - **Pas de planche « Référence — UI actuelle ».** Le codebase du tracker (dossier local `TRACKER/`) fait foi comme référence fonctionnelle et visuelle de l'existant. Inutile de le redupliquer en planche.
