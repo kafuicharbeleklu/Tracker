@@ -260,9 +260,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         {relation && <RelationRow {...relation} />}
 
         {actions && (
-            <div className="mt-3.5 flex flex-col gap-2.5 border-t border-white/[0.14] pt-3 [&>*]:w-full">
-                {actions}
-            </div>
+            /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
+               une règle de plus. Le seul filet du héro sépare la rangée de relation
+               (planche 04.2 : `.hrow` porte une bordure, `.hact` n'a qu'une marge). */
+            <div className="mt-[18px] flex flex-col gap-2.5 [&>*]:w-full">{actions}</div>
         )}
 
         {note && (

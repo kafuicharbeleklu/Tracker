@@ -8,12 +8,16 @@ import {
     DotsThreeVertical,
     FileText,
     Laptop,
-    MapPin,
+    ClockCountdown,
+    Coins,
+    HandArrowDown,
     Package,
+    ShieldCheck,
     ShieldWarning,
     User,
     Warning,
     Wrench,
+    type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
@@ -22,10 +26,13 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 
+import { getCategoryLabel } from '../../../constants/glossary';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
+import TintedTile, {
+    TintedTileRow,
+    type TintedTileTone,
+} from '../../../components/ui/TintedTile';
 import DetailHero, {
-    type DetailMetric,
-    type DetailMetrics,
 } from '../../../components/ui/DetailHero';
 import ReferenceRow from '../../../components/ui/ReferenceRow';
 import ProportionRow from '../../../components/ui/ProportionRow';
@@ -191,14 +198,39 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         ? Math.round((new Date(item.warrantyEnd).getTime() - Date.now()) / (MS_PER_YEAR / 12))
         : null;
 
-    const metrics: DetailMetrics | undefined = (() => {
-        const facts: DetailMetric[] = [];
+    /**
+     * Les repères chiffrés — passe sobre du 02/09, dont 04.2 est le pilote.
+     *
+     * Ils **quittent le héro** : celui-ci ne porte plus que quatre choses — l'état,
+     * l'objet, la personne, le geste. Les chiffres se posent dessous, en tuiles
+     * teintées. **Une teinte par nature de chiffre** (le temps, la garantie,
+     * l'argent), jamais par humeur. La valeur longue prend la ligne entière : un
+     * prix à sept chiffres ne tient pas dans une demi-tuile.
+     */
+    const tiles = (() => {
+        const out: {
+            key: string;
+            tone: TintedTileTone;
+            glyph: PhosphorGlyph;
+            value: string;
+            label: string;
+            wide?: boolean;
+        }[] = [];
 
         if (ageYears !== null && ageYears >= 0) {
-            facts.push({ value: `${ageYears.toFixed(1).replace('.', ',')} ans`, label: 'au parc' });
+            out.push({
+                key: 'age',
+                tone: 'bleu',
+                glyph: ClockCountdown,
+                value: `${ageYears.toFixed(1).replace('.', ',')} ans`,
+                label: 'au parc',
+            });
         }
         if (warrantyMonthsLeft !== null) {
-            facts.push({
+            out.push({
+                key: 'warranty',
+                tone: 'vert',
+                glyph: ShieldCheck,
                 value: warrantyMonthsLeft > 0 ? `${warrantyMonthsLeft} mois` : 'expirée',
                 label: warrantyMonthsLeft > 0 ? 'de garantie' : 'garantie',
             });
@@ -206,25 +238,29 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
         // Le prix ne franchit pas la frontière de rôle : le porteur voit sa date de remise.
         if (permissions.canManageInventory && item.financial) {
-            facts.push({
+            out.push({
+                key: 'price',
+                tone: 'ambre',
+                glyph: Coins,
                 value: formatCurrency(item.financial.purchasePrice, settings.currency),
                 label: 'à l’achat',
+                wide: true,
             });
         } else if (item.confirmedAt || item.assignedAt) {
-            facts.push({
+            out.push({
+                key: 'handover',
+                tone: 'bleu',
+                glyph: HandArrowDown,
                 value: new Date(item.confirmedAt || item.assignedAt || '').toLocaleDateString(
                     'fr-FR',
-                    {
-                        day: 'numeric',
-                        month: 'short',
-                    },
+                    { day: 'numeric', month: 'long' },
                 ),
-                label: 'remis',
+                label: 'remis à vous',
+                wide: true,
             });
         }
 
-        if (facts.length === 0) return undefined;
-        return facts.slice(0, 3) as unknown as DetailMetrics;
+        return out;
     })();
 
     // ---- les actes -------------------------------------------------------------
@@ -505,11 +541,15 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         label: status.label,
                         tone: statusHeroTone(status.tone),
                     }}
-                    label={item.type}
+                    /* Le site rejoint l'étiquette — « Ordinateur portable · Bureau Paris » —
+                       au lieu d'occuper une rangée de fait à lui seul (planche 04.2, `.ty`). */
+                    label={
+                        item.site
+                            ? `${getCategoryLabel(item.type)} · ${item.site}`
+                            : getCategoryLabel(item.type)
+                    }
                     subject={item.model || item.name}
-                    metrics={metrics}
                     image={item.image || undefined}
-                    facts={item.site ? [{ icon: MapPin, children: item.site }] : undefined}
                     relation={
                         item.status === 'En réparation'
                             ? {
@@ -557,6 +597,22 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     }
                     actions={primaryAction}
                 />
+            }
+            aside={
+                tiles.length > 0 ? (
+                    <TintedTileRow>
+                        {tiles.map((tile) => (
+                            <TintedTile
+                                key={tile.key}
+                                tone={tile.tone}
+                                glyph={tile.glyph}
+                                value={tile.value}
+                                label={tile.label}
+                                wide={tile.wide}
+                            />
+                        ))}
+                    </TintedTileRow>
+                ) : undefined
             }
         >
             <section className="rounded-card bg-surface p-4">

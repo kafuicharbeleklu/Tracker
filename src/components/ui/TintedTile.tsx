@@ -27,6 +27,12 @@ interface TintedTileProps {
     value: React.ReactNode;
     /** Ce que le chiffre compte, au singulier ou au pluriel selon lui. */
     label: React.ReactNode;
+    /**
+     * Pleine largeur, en rangée : la valeur à gauche, son libellé à droite, alignés
+     * sur la ligne de base. C'est le logement des **valeurs longues** — un prix à
+     * sept chiffres ne tient pas dans une demi-tuile (planche 04.2, `.qual .w`).
+     */
+    wide?: boolean;
     onClick?: () => void;
     className?: string;
 }
@@ -44,25 +50,42 @@ const TintedTile: React.FC<TintedTileProps> = ({
     glyph,
     value,
     label,
+    wide = false,
     onClick,
     className,
 }) => {
-    const body = (
+    const chip = (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-white/55">
+            <Icon glyph={glyph} size={18} />
+        </span>
+    );
+    const number = (
+        <span className="font-brand text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+            {value}
+        </span>
+    );
+
+    const body = wide ? (
         <>
-            <span className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-white/55">
-                <Icon glyph={glyph} size={18} />
+            {chip}
+            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+                {number}
+                <span className="text-[16px] leading-6 opacity-85">{label}</span>
             </span>
+        </>
+    ) : (
+        <>
+            {chip}
             <span className="min-w-0">
-                <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
-                    {value}
-                </span>
+                <span className="block">{number}</span>
                 <span className="mt-0.5 block text-[12px] leading-4 opacity-85">{label}</span>
             </span>
         </>
     );
 
     const shell = cn(
-        'flex min-w-0 flex-col gap-2.5 rounded-lg px-[18px] py-4 text-left',
+        'flex min-w-0 rounded-lg px-[18px] py-4 text-left',
+        wide ? 'col-span-2 items-center gap-3.5' : 'flex-col gap-2.5',
         TONE[tone],
         className,
     );
@@ -76,7 +99,10 @@ const TintedTile: React.FC<TintedTileProps> = ({
     );
 };
 
-/** Les tuiles vont par deux au plus, côte à côte — jamais trois (planche 05.2). */
+/**
+ * Deux tuiles par ligne. Une tuile `wide` prend la ligne entière — c'est ainsi que
+ * 04.2 loge trois repères : deux côte à côte, la valeur monétaire dessous.
+ */
 export const TintedTileRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="grid grid-cols-2 gap-3">{children}</div>
 );
