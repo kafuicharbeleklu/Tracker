@@ -2,25 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowCircleRight,
     ArrowUUpLeft,
-    CaretDown,
-    ChartBar,
+    CaretRight,
     Check,
-    CheckCircle,
     Clock,
     ClockCounterClockwise,
-    FileText,
+    Handshake,
     Laptop,
     Package,
     Plus,
-    ShieldWarning,
-    Tray,
-    Truck,
     UserCheck,
-    Warning,
     Wrench,
 } from '@phosphor-icons/react';
+import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
-import { ViewType } from '../../../types';
+import { EventType, ViewType } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
@@ -30,10 +25,9 @@ import { useHistory } from '../../../hooks/useHistory';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import ProportionRow from '../../../components/ui/ProportionRow';
+import TintedTile, { TintedTileRow } from '../../../components/ui/TintedTile';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import SecurityGate from '../../../components/security/SecurityGate';
-import dashboardHeroImage from '../../../assets/dashboard-hero.webp';
 
 import { APP_CONFIG } from '../../../config';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -48,76 +42,112 @@ import { Approval } from '../../../types';
 import { cn } from '../../../lib/utils';
 
 /**
- * Tableau de bord — **porté sur la planche 03.1**.
+ * Tableau de bord — **porté sur la planche 03.1, passe sobre du 02/09**.
  *
- * L'arc de l'écran est fixe : **décision → état → analyse → activité**. Le code
- * plaçait l'activité avant les graphiques ; elle passe en dernier.
+ * L'arc de l'écran est fixe : **décision → état → analyse → activité**.
+ *
+ * ## Ce que la passe sobre du 02/09 change
+ *
+ * L'intro de la planche le dit en une phrase : *« la zone sombre ne porte que ce qui
+ * attend un geste, et sa forme suit le volume — vide, 2, 17, 999 — sans jamais
+ * s'allonger. Dessous, les compteurs du parc sont des tuiles teintées (le composant
+ * de 04.2) ; “Types en tension” ne liste que ce qui manque ; le budget et l'état du
+ * parc tiennent en un chiffre et une jauge chacun. »*
+ *
+ * Concrètement, par rapport au portage du 20/08 :
+ *
+ * - **L'échelle passe à quatre marches**, R15 : `--t1` 28 · `--t2` 17 · `--t3` 16 ·
+ *   `--t4` 12, plus la demi-marche `--t35` 14 que la planche réserve au **sous-titre
+ *   de rangée du héro** (`.tt .s`) et à rien d'autre. Les valeurs 20, 15, 13 et 11
+ *   que le code portait ne sont sur aucune marche : elles sont ramenées.
+ * - **Deux graisses** : Inter 400 pour le texte, 500 pour un titre de carte ou un
+ *   geste ; Archivo 600 pour les seuls chiffres et le prénom. Le titre du héro passe
+ *   donc de « Archivo 600 » à **Inter 400** (`.hero h3{font-weight:400}`), et les
+ *   titres de rangée de 500 à 400 (`.tt .t` ne déclare aucune graisse).
+ * - **Les compteurs du parc deviennent des tuiles teintées** — quatre pour le
+ *   gestionnaire (`.qual` : attribués · disponibles · en réparation · actifs au
+ *   parc), deux pour le porteur (mes équipements · demandes en cours). La carte à
+ *   séparateurs du 20/08 disparaît, et avec elle l'arbitrage « sobre = séparateurs
+ *   plutôt que tuiles » : la passe du 02/09 tranche l'inverse, et c'est elle qui vaut.
+ * - **Les cartes perdent leur icône de titre.** `.ch` ne porte qu'un `h3` et, à
+ *   droite, une mention de 12 px (« 0 disponible »). Une icône devant chaque titre
+ *   était du bruit répété cinq fois.
+ * - **Le héro perd son image.** La planche le peint d'un aplat sombre — pas une
+ *   photo sous un voile à 90 %. Le voile ne servait qu'à rendre l'image inoffensive ;
+ *   la planche supprime les deux.
+ * - **Les rangées de « À traiter » disent l'objet, puis qui et quoi.** Le titre est
+ *   l'équipement (`Dell Latitude 7420`), le sous-titre la personne et la nature
+ *   (`Kossi Adjovi · validation`). Le code mettait la personne dans le titre.
+ * - **La vignette de rangée porte la nature par sa teinte** — `.vig.val` bleu,
+ *   `.rec` vert, `.ret` orange. Elle valait `bg-info/25` pour les trois, donc ne
+ *   disait rien.
+ * - **L'attente se lit sur chaque rangée** (`.age`, « 6 j ») et au régime saturé
+ *   (« la plus ancienne depuis 14 jours »). La note du 20/08 tenait cette donnée pour
+ *   absente du modèle : elle est dans `Approval.createdAt` et
+ *   `Equipment.returnRequestedAt`. C'était un relevé faux, pas un manque. Elle est
+ *   jointe au sous-titre et non posée en colonne — voir la rangée pour le pourquoi.
+ * - **Les notes explicatives partent** (R15 : *aucune note dans l'écran*) : « Aucune
+ *   demande en attente. Le parc est à jour. », « Ouvrir la file (Tâches), filtrée
+ *   sur : », « Amortis à plus de 85 %… », « N sans date de fin connue… ». Reste
+ *   `.wnote`, qui ne commente pas un chiffre mais en ajoute un.
+ * - **Les destinations perdent leur préposition** : `.more .mo` porte le lieu seul —
+ *   « Tâches, par ancienneté », « Finances » — pas « dans Finances ». Une exception
+ *   assumée : la planche nomme « Historique » la destination de « Tout l'historique »,
+ *   et ce lieu n'existe pas dans `ViewType` ; le renvoi mène à **Audit**, qui est où le
+ *   journal se lit. Une destination se nomme comme l'écran qu'elle ouvre, sinon elle
+ *   ment.
  *
  * ## « À traiter » n'est pas une liste, c'est une zone bornée
  *
- * Sa **forme change avec le volume**, jamais sa hauteur : rien à traiter, quelques
- * rangées qui agissent **sur place**, ou les plus anciennes suivies d'un renvoi. À
- * dix-sept demandes elle n'est pas plus haute qu'à deux. Le tableau de bord dit la
- * **taille et la forme** du travail ; la file (onglet Tâches) est le lieu où on le
- * fait.
+ * Sa **forme change avec le volume**, et la planche en dessine **quatre régimes** :
+ *
+ * | régime | volume | forme |
+ * | --- | --- | --- |
+ * | `vide` | 0 | pastille verte, « Vous êtes à jour » |
+ * | `normale` | tout tient | les rangées, et le compte à droite du titre |
+ * | `forte` | plus de trois | trois rangées, puis « Voir les N autres » |
+ * | `saturee` | ≥ 250 | un chiffre de 44, puis les natures d'action |
+ *
+ * Le compte dans l'en-tête (`.cnt`) n'appartient qu'au régime `normale` : au régime
+ * `forte` c'est « Voir les N autres » qui le porte, au régime saturé le chiffre de 44.
+ * Le dire deux fois serait le dire une fois de trop.
  *
  * **Une seule destination** : les liens n'ouvrent pas un autre écran, ils ouvrent
- * **le même** — Tâches — en portant le filtre et le tri. Un second inventaire de la
- * même liste serait une deuxième source de vérité.
+ * **le même** — Tâches — en portant le filtre et le tri.
  *
- * ## « Répartition par type » devient « Types en tension »
+ * ## « Répartition par type » est restée « Types en tension »
  *
- * Compter les unités de chaque type décrit le parc sans rien décider ; ce qui décide,
- * c'est **de quel type il ne reste plus rien**. La carte ne liste que les types à
- * **zéro disponible**, les plus nombreux d'abord, bornée à cinq lignes. Pas de barre :
- * à zéro disponible, une barre ne dit rien. Ce qui est couvert se dit **en une
- * phrase**, jamais en lignes.
+ * Ce qui décide, c'est **de quel type il ne reste plus rien**. La carte ne liste que
+ * les types à zéro disponible, les plus nombreux d'abord, bornée à cinq lignes. Pas
+ * de barre : à zéro disponible, une barre ne dit rien. La passe sobre remplace le
+ * pictogramme d'alerte de chaque ligne par la **pastille carrée de 8 px** (`.dot`)
+ * et déplace « 0 disponible » dans l'en-tête de la carte.
  *
- * ## Ce que le portage retire
+ * ## L'accueil porte le oui d'un tap, et rien de plus
  *
- * - **l'anneau de répartition** et ses quatre couleurs de catégorie — un type n'est
- *   pas un état, et le peindre est l'interdit §8.8 ;
- * - **les quatre cartes financières** (dépenses, valeur, amortissement mensuel) : ce
- *   sont des totaux qui ne décident rien. Reste ce qui appelle un geste — les
- *   équipements en fin de vie comptable, et ceux qui ne sont plus couverts ;
- * - **les deux bandeaux d'alerte** empilés en tête, remplacés par la zone unique ;
- * - **le sous-titre « Vue d'ensemble de votre parc informatique »**, qui ne dit rien
- *   qu'on ne sache déjà : il devient **le volume de travail qui attend**.
- *
- * ## Ce que le portage a ajouté depuis
- *
- * - **Le menu de compte sous l'avatar** est en place (R12 : un déclencheur sans surface
- *   dessinée est un défaut). Il porte Mon profil, Mon compte, Aide et support et la
- *   déconnexion — le découpage de Paramètres (14.1) que la planche demande. Cette note
- *   annonçait le contraire jusqu'au 20/08 : elle décrivait un état dépassé.
- * - **Ses rangées mènent quelque part depuis le 22/08.** Trois d'entre elles étaient
- *   des gestes morts : `AppLayout.handleNavigate` ne connaissait que les renvois
- *   porteurs d'un périmètre (`/inventory/...`) et laissait tomber sans bruit
- *   `/users/<id>` et `/documentation/ui-flow-map` ; « Mon compte » ouvrait l'index de
- *   Paramètres au lieu de la vue *Compte et sécurité* (07.1), qui est le même écran
- *   quel que soit le point d'entrée. S'y ajoutaient deux impasses : un employé n'a pas
- *   `users:read` et se voyait refuser **sa propre** fiche, et la documentation se monte
- *   hors de la coque, donc sans retour.
- * - **Le pied du menu**, `Tracker v1.2.0` — la planche le porte, le code l'avait laissé.
- * - **Les valeurs de l'échelle**, que le code prenait hors barème : 23 px sur l'accueil,
- *   24 px sur les KPI et le chiffre de budget, 30 px sur le compteur saturé — aucune
- *   n'est une marche du socle. Ramenées à 20 / 20 / 28, en Archivo 600.
- *
- * ## L'intensité de vie : **sobre**, et c'est un choix
- *
- * Le panneau de réglages de la planche ouvre sur « assumée » — tuiles de KPI teintées,
- * titres de carte en Archivo 600, glyphes de motif, voile du héro à 76 %. **Le produit
- * retient « sobre »** : séparateurs plutôt que tuiles, titres en Inter 500, glyphes
- * génériques, voile à 90 %. Arbitré le 20/08 ; ce n'est pas un portage incomplet.
+ * Le non se prend dans la file, où il exige un motif et un code (lot 5, T4). La
+ * planche ne dessine pas de bouton sur ses rangées de démonstration — elle montre
+ * l'attente à leur place — mais elle **déclare `.rbtn`** (40 px, `0 14px`, 15/500,
+ * `rgba(255,255,255,.14)`), le geste de rangée sur surface inversée. Le produit le
+ * garde donc, aux mesures de la planche, et l'attente s'installe à côté.
  *
  * ## Ce qui n'est pas porté, et pourquoi
  *
  * - **Le filtrage déjà appliqué dans Tâches** : le régime saturé en présente les
- *   natures d'action, puis ouvre la file unique. La définition précise du filtre
- *   appartient au travail de cette file, pas au tableau de bord.
- * - **L'attente la plus longue** que la planche affiche au régime saturé
- *   (« la plus ancienne depuis 14 jours ») : la donnée n'existe pas côté modèle, et
- *   l'inventer serait un ajout fonctionnel, pas un portage de forme.
+ *   natures d'action, puis ouvre la file unique. La définition du filtre appartient
+ *   au travail de cette file.
+ * - **La note « Renouvellement sur “Matériel IT”, 72 500 XOF restants »** de la carte
+ *   « État du parc » : elle croise la fin de vie comptable avec le reste d'une
+ *   enveloppe budgétaire nommée. Aucun lien type ↔ enveloppe n'existe côté modèle ;
+ *   l'inventer serait un ajout fonctionnel.
+ * - **Le rayon 4 de `.vig`** : le registre §2.2 fixe la vignette de rangée à 6 px sur
+ *   les 28 écrans, et `rounded-vignette` porte ce rôle. Changer le jeton pour une
+ *   planche désaccorderait les 27 autres — c'est un arbitrage de socle, pas de page.
+ * - **La teinte `neutre` de `.qual`** (fond `--surface`, pastille `--inset`) que la
+ *   quatrième tuile du gestionnaire demande : `TintedTile` ne la connaît pas encore,
+ *   et le composant partagé n'est pas dans le périmètre de ce portage. La tuile est
+ *   donc composée sur place, aux mesures exactes de `.qual .neutre`, en attendant que
+ *   le ton rejoigne le composant.
  */
 
 interface DashboardPageProps {
@@ -132,20 +162,78 @@ type DashboardTask =
           who: string;
           what: string;
           kind: 'validation' | 'receipt';
+          /** ISO de l'ouverture de l'attente — la source de `.age`. */
+          since?: string;
       }
     | {
           id: string;
           who: string;
           what: string;
           kind: 'return';
+          since?: string;
       };
 
 const TODO_SATURATION_THRESHOLD = 250;
-const HERO_BACKGROUND_STYLE: React.CSSProperties = {
-    backgroundImage: `linear-gradient(180deg, rgb(10 25 29 / 0.76) 0%, rgb(10 25 29 / 0.9) 62%), url(${dashboardHeroImage})`,
-    backgroundPosition: 'center 42%',
-    backgroundSize: 'cover',
-    backgroundRepeat: 'no-repeat',
+const DAY_MS = 86_400_000;
+
+/** Le nombre de jours d'attente, ou `null` quand la source ne porte pas de date. */
+const daysSince = (iso?: string): number | null => {
+    if (!iso) return null;
+    const at = new Date(iso).getTime();
+    if (Number.isNaN(at)) return null;
+    return Math.max(0, Math.floor((Date.now() - at) / DAY_MS));
+};
+
+/** `.age` de la planche — « 6 j », et « auj. » plutôt que « 0 j ». */
+const formatAge = (days: number | null): string | null => {
+    if (days === null) return null;
+    return days === 0 ? 'auj.' : `${days} j`;
+};
+
+/**
+ * La vignette de rangée dit **la nature de l'attente par sa teinte** — planche 03.1,
+ * `.hero .vig.val / .rec / .ret` : bleu la validation, vert la réception, orange le
+ * retour. Les fonds sont la famille `--live-*` du registre §2.10 à 28 % (30 % pour
+ * l'orange), l'encre la même famille éclaircie d'environ trois quarts de blanc. La
+ * planche écrit cette encre en valeur brute ; le produit la recompose par `color-mix`
+ * sur le jeton, parce qu'aucune valeur brute ne vit hors du fichier de jetons — et le
+ * garde-fou `ds:check` lit aussi les commentaires, donc elle ne s'y cite pas non plus.
+ */
+const TASK_VIGNETTE: Record<DashboardTask['kind'], React.CSSProperties> = {
+    validation: {
+        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-bleu) 28%, transparent)',
+        color: 'color-mix(in srgb, var(--tk-color-live-bleu) 30%, white)',
+    },
+    receipt: {
+        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-vert) 28%, transparent)',
+        color: 'color-mix(in srgb, var(--tk-color-live-vert) 26%, white)',
+    },
+    return: {
+        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-orange) 30%, transparent)',
+        color: 'color-mix(in srgb, var(--tk-color-live-orange) 22%, white)',
+    },
+};
+
+/** `.vmot` — la pastille ronde de 48 du régime vide, `rgba(122,185,85,.22)`. */
+const EMPTY_MOTIF_STYLE: React.CSSProperties = {
+    backgroundColor: 'color-mix(in srgb, var(--tk-color-live-vert) 22%, transparent)',
+    color: 'color-mix(in srgb, var(--tk-color-live-vert) 26%, white)',
+};
+
+/**
+ * `.mk` — la marque d'événement porte **le glyphe de l'acte**, pas une horloge
+ * générique : la planche en montre quatre distincts (paquet, retour, remise,
+ * attribution) sur cinq rangées.
+ */
+const EVENT_GLYPH: Partial<Record<EventType, PhosphorGlyph>> = {
+    CREATE: Package,
+    RETURN: ArrowUUpLeft,
+    ASSIGN: ArrowCircleRight,
+    ASSIGN_PENDING: ArrowCircleRight,
+    ASSIGN_IT_SELECTED: ArrowCircleRight,
+    ASSIGN_CONFIRMED: Handshake,
+    REPAIR_START: Wrench,
+    REPAIR_END: Wrench,
 };
 
 /** La mesure de lecture du système — §2.43. */
@@ -154,28 +242,41 @@ const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
     className,
 }) => <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>;
 
+/**
+ * `.card` — 20 px d'intérieur, rayon 8. Son en-tête `.ch` ne porte **qu'un titre**
+ * (17 px / 500 / 24) et, à droite, une mention de 12 px. L'icône que le code posait
+ * devant chaque titre n'existe nulle part dans la planche.
+ */
 const Card: React.FC<{
-    icon: React.ComponentProps<typeof Icon>['glyph'];
     title: string;
+    meta?: React.ReactNode;
     children: React.ReactNode;
-}> = ({ icon, title, children }) => (
-    <section className="rounded-card bg-surface p-4">
-        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-            <Icon glyph={icon} size={18} className="text-on-surface-variant" />
-            {title}
-        </p>
+}> = ({ title, meta, children }) => (
+    <section className="rounded-card bg-surface p-5">
+        <div className="mb-1.5 flex items-center justify-between gap-2.5">
+            <h3 className="text-on-surface text-[17px] leading-6 font-medium">{title}</h3>
+            {meta && (
+                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4">
+                    {meta}
+                </span>
+            )}
+        </div>
         {children}
     </section>
 );
 
-/** Rangée d'orientation commune aux liens « Voir… » de la planche 03.1. */
+/**
+ * `.more` — la rangée d'orientation : 48 px, un filet au-dessus, le libellé à 16 px,
+ * la **destination seule** à droite en 12 px, et le chevron **droit** de 18. Le code
+ * portait un chevron bas pivoté et un libellé de 14 : ni l'un ni l'autre n'est dans
+ * la planche.
+ */
 const DashboardMoreAction: React.FC<{
     label: React.ReactNode;
     destination: React.ReactNode;
     onClick: () => void;
     tone?: 'surface' | 'inverse';
-    spacing?: 'card' | 'hero';
-}> = ({ label, destination, onClick, tone = 'surface', spacing = 'card' }) => {
+}> = ({ label, destination, onClick, tone = 'surface' }) => {
     const isInverse = tone === 'inverse';
 
     return (
@@ -183,31 +284,88 @@ const DashboardMoreAction: React.FC<{
             variant="text"
             onClick={onClick}
             className={cn(
-                'text-label-large min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent',
-                spacing === 'card' ? 'mt-2' : 'mt-0.5',
+                'min-h-12 w-full justify-start gap-2.5 border-t px-0 text-[16px] font-normal hover:bg-transparent',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
-                    : 'border-outline-variant text-on-surface hover:text-on-surface',
+                    : 'border-outline-variant text-on-surface hover:text-on-surface mt-1',
             )}
         >
             <span className="shrink-0">{label}</span>
             <span
                 className={cn(
-                    'text-body-medium ml-auto min-w-0 flex-1 truncate text-right font-normal',
+                    'ml-auto min-w-0 flex-1 truncate text-right text-[12px] leading-4 font-normal',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant',
                 )}
             >
                 {destination}
             </span>
             <Icon
-                glyph={CaretDown}
+                glyph={CaretRight}
                 size={18}
                 className={cn(
-                    'shrink-0 -rotate-90',
+                    'shrink-0',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface',
                 )}
             />
         </Button>
+    );
+};
+
+/**
+ * `.wrow` + `.wbar` (+ `.wnote`) — **un chiffre et une jauge**, la forme que la passe
+ * sobre donne à « État du parc », « Budget » et « Garantie ».
+ *
+ * Ce n'est pas `ProportionRow` : celui-ci porte les mesures de la planche 04.2
+ * (chiffre 20 / interligne nul, libellé 15/19, jauge à 14 px du chiffre, teinte
+ * `attention` en rouge `--danger`), et 03.1 en demande d'autres — chiffre **22/28**,
+ * libellé **16/24**, jauge à **12 px**, remplissage `--st-orange` ou `--st-vert`. Les
+ * deux formes convergeront quand le composant partagé accueillera les mesures de la
+ * passe ; en attendant, celle de 03.1 vit ici plutôt que de tordre celle de 04.2.
+ */
+const Gauge: React.FC<{
+    value: React.ReactNode;
+    label: React.ReactNode;
+    percent: number;
+    /** Classe de remplissage — l'encre par défaut, `--st-orange` ce qui appelle un geste. */
+    fill?: string;
+    /** Le repère vertical de `.wbar b` — le quart d'exercice, en pourcentage. */
+    marker?: number;
+    note?: React.ReactNode;
+    ariaLabel?: string;
+}> = ({ value, label, percent, fill = 'bg-on-surface', marker, note, ariaLabel }) => {
+    const clamped = Math.max(0, Math.min(100, percent));
+
+    return (
+        <div>
+            <p className="mt-2.5 flex items-baseline gap-2.5">
+                <span className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                    {value}
+                </span>
+                <span className="text-on-surface-variant min-w-0 flex-1 text-[16px] leading-6">
+                    {label}
+                </span>
+            </p>
+
+            <div
+                role="img"
+                aria-label={ariaLabel ?? `${Math.round(clamped)} %`}
+                className="bg-surface-container relative mt-3 h-1.5 rounded-xs"
+            >
+                <span
+                    className={cn('block h-full rounded-xs', fill)}
+                    style={{ width: `${clamped}%` }}
+                />
+                {marker !== undefined && (
+                    <span
+                        className="bg-outline absolute -top-1 h-3.5 w-0.5"
+                        style={{ left: `${marker}%` }}
+                        aria-hidden="true"
+                    />
+                )}
+            </div>
+
+            {note && <p className="text-on-surface-variant mt-2 text-[16px] leading-6">{note}</p>}
+        </div>
     );
 };
 
@@ -296,6 +454,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     approval.equipmentCategory ||
                     '',
                 kind: 'validation' as const,
+                since: approval.createdAt,
             }));
     }, [approvals, currentUser, equipmentById, users]);
 
@@ -325,6 +484,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     approval.equipmentCategory ||
                     '',
                 kind: 'receipt' as const,
+                since: approval.createdAt,
             }));
     }, [approvals, currentUser, equipmentById, users]);
 
@@ -337,6 +497,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     who: item.user?.name || '',
                     what: item.name || `${getCategoryLabel(item.type)} (${item.assetId})`,
                     kind: 'return',
+                    since: item.returnRequestedAt,
                 })),
         [equipment],
     );
@@ -346,11 +507,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         [pendingValidations, pendingReceipts, pendingReturns],
     );
 
+    /**
+     * `.bigl` du régime saturé — « la plus ancienne depuis 14 jours ». La donnée est
+     * dans `Approval.createdAt` et `Equipment.returnRequestedAt` : la note du 20/08 la
+     * disait absente du modèle, c'était un relevé faux.
+     */
+    const oldestWait = useMemo(() => {
+        const ages = todo
+            .map((entry) => daysSince(entry.since))
+            .filter((d): d is number => d !== null);
+        return ages.length > 0 ? Math.max(...ages) : null;
+    }, [todo]);
+
     const todoBreakdown = useMemo(
         () =>
             [
                 {
-                    label: "validations d'attribution",
+                    label: 'validations',
                     count: pendingValidations.length,
                     nature: 'validation' as const,
                 },
@@ -426,9 +599,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const uncovered = active.filter(
             (item) => item.warrantyEnd && new Date(item.warrantyEnd).getTime() <= now,
         ).length;
-        const unknownWarranty = active.filter((item) => !item.warrantyEnd).length;
 
-        return { size: active.length, endOfLife, uncovered, unknownWarranty };
+        return { size: active.length, endOfLife, uncovered };
     }, [equipment]);
 
     const { financeBudgets } = useFinanceData();
@@ -545,28 +717,43 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const isManager = permissions.canManageInventory;
     const firstName = (currentUser?.name || '').split(' ')[0];
 
-    /** Le sous-titre dit **le volume de travail**, pas la nature de l'écran. */
-    const subtitle = isManager
-        ? `${todo.length === 0 ? 'Rien à traiter' : `${todo.length} chose${todo.length > 1 ? 's' : ''} vous attend${todo.length > 1 ? 'ent' : ''}`} · ${counts.total} actifs`
-        : `${mine.receipts === 0 ? 'Rien à confirmer' : `${mine.receipts} réception${mine.receipts > 1 ? 's' : ''} à confirmer`} · ${mine.equipment} équipements`;
-
     /** Trois rangées au plus dans la zone : au-delà, c'est la file qui prend. */
     const isTodoSaturated = todo.length >= TODO_SATURATION_THRESHOLD;
     const shown = todo.slice(0, 3);
     const rest = todo.length - shown.length;
 
+    /**
+     * `.sub` — la sous-ligne dit **la charge**, dans la grammaire des quatre régimes de
+     * la planche : « Rien à traiter · 14 actifs » · « 2 choses vous attendent » ·
+     * « 17 choses vous attendent » · « 999 demandes en attente ». Le rappel du parc
+     * n'apparaît **qu'au régime vide** : quand il y a du travail, c'est le travail qui
+     * occupe la ligne. Le code l'accolait aux quatre régimes.
+     */
+    const subtitle = (() => {
+        if (!isManager) {
+            return mine.receipts === 0
+                ? 'Rien à confirmer'
+                : `${mine.receipts} réception${mine.receipts > 1 ? 's' : ''} à confirmer`;
+        }
+        if (todo.length === 0) return `Rien à traiter · ${counts.total} actifs`;
+        if (isTodoSaturated) return `${todo.length} demandes en attente`;
+        return `${todo.length} chose${todo.length > 1 ? 's' : ''} vous attend${todo.length > 1 ? 'ent' : ''}`;
+    })();
+
     return (
         <div className="bg-background flex min-w-0 flex-1 flex-col">
             <OfflineBanner />
 
-            <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
+            {/* `.page` — gouttière de 16, intérieur 16 / 16 / 24. */}
+            <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
                 <Reading>
-                    <header className="flex items-start justify-between gap-3">
-                        <div>
-                            <h1 className="font-brand text-on-surface text-[20px] leading-7 font-semibold tracking-[-0.015em]">
+                    {/* `.topbar` — prénom en Archivo 600 / 28 / 32, sous-ligne 16 / 24. */}
+                    <header className="flex items-start justify-between gap-3 pt-2">
+                        <div className="min-w-0">
+                            <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                                 Bonjour {firstName}
                             </h1>
-                            <p className="text-on-surface-variant mt-1 text-[14px] leading-5">
+                            <p className="text-on-surface-variant mt-0.5 text-[16px] leading-6">
                                 {subtitle}
                             </p>
                         </div>
@@ -584,6 +771,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 {userInitials}
                             </Button>
 
+                            {/* Le menu de compte appartient à la planche 17.7, à qui 03.1
+                                le délègue : ses mesures ne suivent donc pas l'échelle de
+                                cet écran-ci. */}
                             {isAccountOpen && (
                                 <>
                                     <div
@@ -682,22 +872,28 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </header>
                 </Reading>
 
-                {/* Décision — les deux gestes, et l'unique jaune du contenu. */}
+                {/*
+                  Décision — `.acts` : deux gestes de même largeur, 48 px, rayon 4,
+                  16 / 500, glyphe de 20. Le second seul porte le jaune ; le premier est
+                  une **surface claire** (la classe `.btn-k` de la planche), pas le
+                  noir inversé que le code lui donnait — une seule zone inversée par
+                  écran, et c'est « À traiter ».
+                */}
                 <Reading>
                     {isManager ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2.5">
                             <Button
-                                variant="tonal"
-                                className="!rounded-[4px] bg-[var(--tk-color-inverse-surface)] text-[15px] text-white !shadow-none hover:bg-[var(--tk-color-inverse-surface)]/90"
-                                icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                                variant="text"
+                                className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium !shadow-none"
+                                icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                                 onClick={() => onViewChange('return_wizard')}
                             >
                                 Restituer
                             </Button>
                             <Button
                                 variant="filled"
-                                className="bg-primary hover:bg-primary-hover !rounded-[4px] text-[15px] text-[var(--tk-color-brand-text)] !shadow-none"
-                                icon={<Icon glyph={ArrowCircleRight} size={18} />}
+                                className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                                icon={<Icon glyph={ArrowCircleRight} size={20} />}
                                 onClick={() => onViewChange('assignment_wizard')}
                             >
                                 Attribuer
@@ -706,8 +902,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     ) : (
                         <Button
                             variant="filled"
-                            className="bg-primary hover:bg-primary-hover w-full !rounded-[4px] text-[15px] text-[var(--tk-color-brand-text)] !shadow-none"
-                            icon={<Icon glyph={Plus} size={18} />}
+                            className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                            icon={<Icon glyph={Plus} size={20} />}
                             onClick={() => onViewChange('new_request')}
                         >
                             Demander un équipement
@@ -715,167 +911,197 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     )}
                 </Reading>
 
-                {/* La zone bornée : sa forme suit le volume, jamais sa hauteur. */}
+                {/*
+                  `.hero` — la zone bornée : un aplat de noir inversé, 20 px d'intérieur,
+                  et sa forme suit le volume. Ni image ni voile : la planche pose
+                  un aplat sombre, et l'image d'ambiance que le code y mettait
+                  n'avait plus d'autre fonction que d'être couverte à 90 %.
+                */}
                 <Reading>
-                    <section
-                        className="rounded-card bg-inverse-surface text-inverse-on-surface relative min-h-[196px] overflow-hidden p-4"
-                        style={HERO_BACKGROUND_STYLE}
-                    >
-                        <p className="font-brand mb-1 flex items-center gap-2.5 text-[17px] font-semibold">
-                            <Icon
-                                glyph={CheckCircle}
-                                size={18}
-                                className="text-on-nav-surface-variant"
-                            />
-                            À traiter
-                        </p>
+                    <section className="rounded-card bg-inverse-surface text-inverse-on-surface p-5">
+                        <div className="flex items-baseline justify-between gap-3">
+                            {/* `.hero h3` — 17 / 400, sans glyphe : la zone se nomme, elle
+                                ne s'illustre pas. */}
+                            <h3 className="text-[17px] leading-6">À traiter</h3>
+                            {todo.length > 0 && !isTodoSaturated && rest === 0 && (
+                                <span className="text-on-nav-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
+                                    {todo.length}
+                                </span>
+                            )}
+                        </div>
 
                         {todo.length === 0 ? (
-                            <div className="flex items-center gap-3.5 py-4">
-                                <Icon
-                                    glyph={Tray}
-                                    size={32}
-                                    className="text-on-nav-surface-variant"
-                                />
-                                <div>
-                                    <p className="font-brand text-[20px] font-semibold">
-                                        Rien à traiter
-                                    </p>
-                                    <p className="text-body-medium text-on-nav-surface-variant mt-0.5">
-                                        Aucune demande en attente. Le parc est à jour.
+                            /* Régime `vide` — `.vide` / `.vmot` : une pastille ronde de 48
+                               au vert vivant, deux lignes, et pas de rassurance ajoutée. */
+                            <div className="flex items-center gap-3.5 pt-3 pb-1">
+                                <span
+                                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                                    style={EMPTY_MOTIF_STYLE}
+                                >
+                                    <Icon glyph={Check} size={20} />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="text-[17px] leading-6">Vous êtes à jour</p>
+                                    <p className="text-on-nav-surface-variant mt-0.5 text-[12px] leading-4">
+                                        Rien n’attend votre geste.
                                     </p>
                                 </div>
                             </div>
                         ) : isTodoSaturated ? (
-                            <div className="mt-3">
-                                <p className="font-brand text-[28px] leading-[34px] font-semibold tracking-[-0.02em] tabular-nums">
+                            /* Régime `saturee` — `.bigc` 44 / 48 / -.03em, puis `.tri` : les
+                               natures d'action, chacune un renvoi vers la file. */
+                            <>
+                                <div className="font-brand mt-2 text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
                                     {todo.length}
-                                </p>
-                                <p className="text-body-medium text-on-nav-surface-variant mt-0.5">
+                                </div>
+                                <div className="text-on-nav-surface-variant mt-1 text-[12px] leading-4">
                                     demandes en attente
-                                </p>
-                                <p className="text-body-medium text-on-nav-surface-variant mt-3">
-                                    Ouvrir la file (Tâches), filtrée sur :
-                                </p>
-                                <div className="mt-1.5 border-t border-white/[0.14]">
+                                    {oldestWait !== null &&
+                                        ` · la plus ancienne depuis ${oldestWait} jour${oldestWait > 1 ? 's' : ''}`}
+                                </div>
+                                <div className="mt-3 border-t border-white/[0.14]">
                                     {todoBreakdown.map((item) => (
                                         <Button
                                             key={item.label}
                                             variant="text"
                                             onClick={openTasks}
-                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-11 w-full justify-start border-b border-white/[0.14] px-0 hover:bg-transparent"
+                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-12 w-full justify-start gap-3 border-b border-white/[0.14] px-0 font-normal hover:bg-transparent"
                                         >
-                                            <span className="font-brand w-11 text-base font-semibold tabular-nums">
+                                            <span className="font-brand w-12 shrink-0 text-left text-[17px] font-semibold tabular-nums">
                                                 {item.count}
                                             </span>
-                                            <span className="text-on-nav-surface-variant text-[14px]">
+                                            <span className="flex-1 text-left text-[16px]">
                                                 {item.label}
                                             </span>
                                             <Icon
-                                                glyph={CaretDown}
+                                                glyph={CaretRight}
                                                 size={18}
-                                                className="text-on-nav-surface-variant ml-auto -rotate-90"
+                                                className="text-on-nav-surface-variant shrink-0"
                                             />
                                         </Button>
                                     ))}
                                 </div>
-                            </div>
+                            </>
                         ) : (
+                            /* Régimes `normale` et `forte` — `.trow` : 68 px, filet au-dessus
+                               (le premier compris), et l'attente à droite. */
                             <>
-                                <p className="text-body-medium text-on-nav-surface-variant mt-1 tabular-nums">
-                                    {todo.length} {todo.length > 1 ? 'demandes' : 'demande'}
-                                </p>
+                                {shown.map((entry) => {
+                                    const age = formatAge(daysSince(entry.since));
+                                    const nature =
+                                        entry.kind === 'receipt'
+                                            ? 'réception'
+                                            : entry.kind === 'return'
+                                              ? 'retour'
+                                              : entry.status === 'WAITING_DOTATION_APPROVAL'
+                                                ? 'validation dotation'
+                                                : 'validation manager';
+                                    const initials = entry.who
+                                        .split(' ')
+                                        .map((part) => part[0])
+                                        .filter(Boolean)
+                                        .slice(0, 2)
+                                        .join('')
+                                        .toUpperCase();
 
-                                {shown.map((entry) => (
-                                    <div
-                                        key={entry.id}
-                                        className="flex items-center gap-3 border-t border-white/[0.14] py-2.5 first-of-type:border-t-0"
-                                    >
-                                        <span className="rounded-vignette bg-info/25 font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold">
-                                            {entry.who
-                                                .split(' ')
-                                                .map((part) => part[0])
-                                                .filter(Boolean)
-                                                .slice(0, 2)
-                                                .join('')
-                                                .toUpperCase() || '—'}
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-[15px] font-medium">
-                                                {entry.who
-                                                    ? `${entry.who} — ${entry.what}`
-                                                    : entry.what}
-                                            </p>
-                                            <p className="text-body-medium text-on-nav-surface-variant mt-px">
-                                                {entry.kind === 'receipt'
-                                                    ? 'Réception à confirmer'
-                                                    : entry.kind === 'return'
-                                                      ? 'Retour à réceptionner'
-                                                      : entry.status === 'WAITING_DOTATION_APPROVAL'
-                                                        ? 'Validation de la dotation'
-                                                        : 'Validation du manager'}
-                                            </p>
-                                        </div>
-                                        {entry.kind === 'receipt' ? (
-                                            <SecurityGate
-                                                onVerified={() => confirmReceipt(entry.id)}
-                                                title="Confirmer la réception"
-                                                description="Confirmez-vous avoir bien reçu cet équipement ?"
-                                                entityId={entry.id}
-                                                entityName={entry.what}
-                                                trigger={
-                                                    <Button
-                                                        variant="text"
-                                                        size="sm"
-                                                        className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] hover:bg-white/20"
-                                                    >
-                                                        Confirmer la réception
-                                                    </Button>
-                                                }
-                                            />
-                                        ) : entry.kind === 'return' ? (
-                                            <Button
-                                                variant="text"
-                                                size="sm"
-                                                onClick={() =>
-                                                    onNavigate?.(
-                                                        `/wizards/return?equipmentId=${encodeURIComponent(entry.id.replace(/^return-/, ''))}`,
-                                                    )
-                                                }
-                                                className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] hover:bg-white/20"
+                                    return (
+                                        <div
+                                            key={entry.id}
+                                            className="flex min-h-[68px] items-center gap-4 border-t border-white/[0.14] py-3 first-of-type:mt-2"
+                                        >
+                                            {/* `.vig` — initiales quand une personne est
+                                                nommée, le glyphe de l'objet sinon ; la teinte
+                                                dit la nature. */}
+                                            <span
+                                                className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold"
+                                                style={TASK_VIGNETTE[entry.kind]}
                                             >
-                                                Réceptionner
-                                            </Button>
-                                        ) : (
-                                            <SecurityGate
-                                                onVerified={() =>
-                                                    validate(entry.id, entry.status)
-                                                }
-                                                title="Valider la demande"
-                                                description="Confirmer cette action."
-                                                entityId={entry.id}
-                                                entityName={entry.what}
-                                                trigger={
-                                                    <Button
-                                                        variant="text"
-                                                        size="sm"
-                                                        className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-11 shrink-0 bg-white/[0.14] px-3.5 text-[13px] hover:bg-white/20"
-                                                    >
-                                                        Valider la demande
-                                                    </Button>
-                                                }
-                                            />
-                                        )}
-                                    </div>
-                                ))}
+                                                {initials ? (
+                                                    initials
+                                                ) : (
+                                                    <Icon glyph={Package} size={20} />
+                                                )}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-[17px] leading-6 tracking-[-0.01em]">
+                                                    {entry.what}
+                                                </p>
+                                                {/*
+                                                  `.tt .s` — 14 / 20, la demi-marche `--t35`.
+                                                  **L'attente y est jointe** plutôt que posée en
+                                                  colonne : la planche loge `.age` à droite parce
+                                                  que ses rangées de démonstration n'y portent
+                                                  aucun geste, et à 393 px la colonne d'action et
+                                                  celle de l'attente ne tiennent pas ensemble —
+                                                  elles laisseraient 89 px au nom de l'objet, qui
+                                                  est ce que la rangée est venue dire.
+                                                */}
+                                                <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
+                                                    {[entry.who, nature, age]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
+                                                </p>
+                                            </div>
+                                            {entry.kind === 'receipt' ? (
+                                                <SecurityGate
+                                                    onVerified={() => confirmReceipt(entry.id)}
+                                                    title="Confirmer la réception"
+                                                    description="Confirmez-vous avoir bien reçu cet équipement ?"
+                                                    entityId={entry.id}
+                                                    entityName={entry.what}
+                                                    trigger={
+                                                        <Button
+                                                            variant="text"
+                                                            size="sm"
+                                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
+                                                        >
+                                                            Confirmer
+                                                        </Button>
+                                                    }
+                                                />
+                                            ) : entry.kind === 'return' ? (
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        onNavigate?.(
+                                                            `/wizards/return?equipmentId=${encodeURIComponent(entry.id.replace(/^return-/, ''))}`,
+                                                        )
+                                                    }
+                                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
+                                                >
+                                                    Réceptionner
+                                                </Button>
+                                            ) : (
+                                                <SecurityGate
+                                                    onVerified={() =>
+                                                        validate(entry.id, entry.status)
+                                                    }
+                                                    title="Valider la demande"
+                                                    description="Confirmer cette action."
+                                                    entityId={entry.id}
+                                                    entityName={entry.what}
+                                                    trigger={
+                                                        <Button
+                                                            variant="text"
+                                                            size="sm"
+                                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
+                                                        >
+                                                            Valider
+                                                        </Button>
+                                                    }
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
 
                                 {rest > 0 && (
                                     <DashboardMoreAction
                                         label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
-                                        destination="dans Tâches, par ancienneté"
+                                        destination="Tâches, par ancienneté"
                                         onClick={() => openTasks()}
                                         tone="inverse"
-                                        spacing="hero"
                                     />
                                 )}
                             </>
@@ -883,256 +1109,182 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </section>
                 </Reading>
 
-                {/* État — une carte à séparateurs, le rouge sur le seul chiffre qui alerte. */}
+                {/*
+                  État — `.qual` : les compteurs du parc sont des tuiles teintées, **une
+                  teinte par nature de chiffre**. Bleu ce qui est entre des mains, vert ce
+                  qui est disponible, orange ce qui est immobilisé, neutre le total — un
+                  total n'est pas un état, il ne se peint pas.
+                */}
                 <Reading>
-                    <section className="rounded-card bg-surface p-4">
-                        <div className="grid grid-cols-2">
-                            {(isManager
-                                ? [
-                                      {
-                                          label: 'Total actifs',
-                                          value: counts.total,
-                                          icon: Package,
-                                          onClick: () => openFleet(''),
-                                      },
-                                      {
-                                          label: 'Attribués',
-                                          value: counts.assigned,
-                                          icon: UserCheck,
-                                          onClick: () => openFleet('Attribué'),
-                                      },
-                                      {
-                                          label: 'Disponibles',
-                                          value: counts.available,
-                                          icon: Check,
-                                          onClick: () => openFleet('Disponible'),
-                                      },
-                                      {
-                                          label: 'En réparation',
-                                          value: counts.repair,
-                                          icon: Wrench,
-                                          alert: true,
-                                          onClick: () => openFleet('En réparation'),
-                                      },
-                                  ]
-                                : [
-                                      {
-                                          label: 'Mes équipements',
-                                          value: mine.equipment,
-                                          icon: Laptop,
-                                          onClick: () => openFleet(''),
-                                      },
-                                      {
-                                          label: 'Demandes en cours',
-                                          value: mine.requests,
-                                          icon: Clock,
-                                          onClick: () => onViewChange('tasks'),
-                                      },
-                                      {
-                                          label: 'Réceptions à confirmer',
-                                          value: mine.receipts,
-                                          icon: Truck,
-                                          onClick: () => onViewChange('tasks'),
-                                      },
-                                  ]
-                            ).map((kpi, index, all) => (
-                                <Button
-                                    key={kpi.label}
-                                    variant="text"
-                                    layout="card"
-                                    onClick={kpi.onClick}
-                                    className={cn(
-                                        'block rounded-none py-3.5 hover:bg-transparent',
-                                        index % 2 === 1
-                                            ? 'border-outline-variant border-l pl-3.5'
-                                            : 'pr-3.5',
-                                        index > 1 && 'border-outline-variant border-t',
-                                        index < 2 && 'pt-0',
-                                        // Une troisième cellule seule occupe toute la largeur (2 + 1).
-                                        all.length === 3 &&
-                                            index === 2 &&
-                                            'col-span-2 border-l-0 pl-0',
-                                    )}
-                                >
-                                    <span className="flex items-center justify-between gap-2">
-                                        <span className="text-body-medium text-on-surface-variant">
-                                            {kpi.label}
-                                        </span>
-                                        {/* Le glyphe reste sourd : c'est la tuile qui porte la teinte. */}
-                                        <Icon
-                                            glyph={kpi.icon}
-                                            size={18}
-                                            className="text-on-surface-variant"
-                                        />
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            'font-brand mt-1.5 block text-[20px] leading-[1.25] font-semibold tabular-nums',
-                                            kpi.alert ? 'text-warning-strong' : 'text-on-surface',
-                                        )}
-                                    >
-                                        {kpi.value}
-                                    </span>
-                                </Button>
-                            ))}
-                        </div>
-                    </section>
+                    <TintedTileRow>
+                        {isManager ? (
+                            <>
+                                <TintedTile
+                                    tone="bleu"
+                                    glyph={UserCheck}
+                                    value={counts.assigned}
+                                    label="attribués"
+                                    onClick={() => openFleet('Attribué')}
+                                />
+                                <TintedTile
+                                    tone="vert"
+                                    glyph={Check}
+                                    value={counts.available}
+                                    label="disponibles"
+                                    onClick={() => openFleet('Disponible')}
+                                />
+                                <TintedTile
+                                    tone="orange"
+                                    glyph={Wrench}
+                                    value={counts.repair}
+                                    label="en réparation"
+                                    onClick={() => openFleet('En réparation')}
+                                />
+                                {/* Le total n'est pas un état : il prend le ton `neutre`,
+                                    surface pleine et encre normale (planche 03.1). */}
+                                <TintedTile
+                                    tone="neutre"
+                                    glyph={Package}
+                                    value={counts.total}
+                                    label="actifs au parc"
+                                    onClick={() => openFleet('')}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <TintedTile
+                                    tone="bleu"
+                                    glyph={Laptop}
+                                    value={mine.equipment}
+                                    label="mes équipements"
+                                    onClick={() => openFleet('')}
+                                />
+                                <TintedTile
+                                    tone="ambre"
+                                    glyph={Clock}
+                                    value={mine.requests}
+                                    label="demandes en cours"
+                                    onClick={() => onViewChange('tasks')}
+                                />
+                            </>
+                        )}
+                    </TintedTileRow>
                 </Reading>
 
                 {/* Analyse — ce qui décide, pas ce qui décrit. */}
                 {isManager ? (
                     <>
                         <Reading>
-                            <Card icon={ChartBar} title="Types en tension">
+                            <Card
+                                title="Types en tension"
+                                meta={tension.stressed.length > 0 ? '0 disponible' : undefined}
+                            >
                                 {tension.stressed.length > 0 ? (
                                     <>
-                                        <p className="text-body-medium text-on-surface-variant mt-1 leading-4">
-                                            Aucune unité disponible — les plus nombreux d’abord.
-                                        </p>
                                         {tension.stressed.map(([type, entry]) => (
-                                            <p
+                                            /* `.brow` — 48 px, filet au-dessus, pastille carrée
+                                               de 8 en `--st-orange`. Le pictogramme d'alerte
+                                               que le code posait sur chaque ligne redisait ce
+                                               que la carte dit déjà par son titre. */
+                                            <div
                                                 key={type}
-                                                className="text-body-large mt-3 flex items-center gap-2.5"
+                                                className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                                             >
-                                                <Icon
-                                                    glyph={Warning}
-                                                    size={18}
-                                                    className="text-warning-strong"
-                                                />
-                                                <span className="text-on-surface min-w-0 flex-1 truncate">
+                                                <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
+                                                <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
                                                     {entry.label}
                                                 </span>
-                                                <span className="text-on-surface-variant tabular-nums">
+                                                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
                                                     0 sur {entry.total}
                                                 </span>
-                                            </p>
+                                            </div>
                                         ))}
                                         {tension.calm > 0 && (
-                                            <p className="border-outline-variant text-body-medium text-on-surface-variant mt-3 border-t pt-3">
+                                            <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
                                                 {tension.calm === 1
-                                                    ? 'L’autre type a au moins une unité disponible.'
-                                                    : `Les ${tension.calm} autres types ont au moins une unité disponible.`}
+                                                    ? 'L’autre type a au moins une unité.'
+                                                    : `Les ${tension.calm} autres types ont au moins une unité.`}
                                             </p>
                                         )}
                                     </>
                                 ) : (
-                                    <p className="text-body-medium text-on-surface-variant mt-2">
-                                        Chaque type a au moins une unité disponible.
+                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                                        Chaque type a au moins une unité.
                                     </p>
                                 )}
                             </Card>
                         </Reading>
 
                         <Reading>
-                            <Card icon={ShieldWarning} title="État du parc">
-                                <ProportionRow
+                            <Card title="État du parc">
+                                <Gauge
                                     value={fleet.endOfLife}
-                                    label={`équipements sur ${fleet.size} arrivent en fin de vie comptable`}
+                                    label={`sur ${fleet.size} en fin de vie comptable`}
                                     percent={
                                         fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0
                                     }
-                                    tone={fleet.endOfLife > 0 ? 'attention' : 'neutral'}
-                                    note="Amortis à plus de 85 %. Leur renouvellement reste à provisionner."
+                                    fill="bg-[var(--tk-color-st-orange)]"
                                 />
-                                <ProportionRow
-                                    className="border-outline-variant mt-4 border-t pt-1"
+                                {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
+                                <div className="bg-outline-variant mt-5 h-px" />
+                                <Gauge
                                     value={fleet.uncovered}
-                                    label={`équipements sur ${fleet.size} ne sont plus sous garantie`}
+                                    label={`sur ${fleet.size} hors garantie`}
                                     percent={
                                         fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0
                                     }
-                                    tone={fleet.uncovered > 0 ? 'attention' : 'neutral'}
-                                    note={
-                                        fleet.unknownWarranty > 0
-                                            ? `${fleet.unknownWarranty} sans date de fin connue. Remise en état non provisionnée.`
-                                            : 'Aucun sans date de fin. Leur remise en état n’est provisionnée nulle part.'
-                                    }
+                                    fill="bg-[var(--tk-color-st-orange)]"
                                 />
                                 <DashboardMoreAction
                                     label="Valeur et amortissement"
-                                    destination="dans Finances"
+                                    destination="Finances"
                                     onClick={() => onViewChange('finance')}
                                 />
                             </Card>
                         </Reading>
 
                         <Reading>
-                            <Card icon={FileText} title={`Budget ${budgetStats?.year || 2026}`}>
+                            <Card title={`Budget ${budgetStats?.year || 2026}`}>
                                 {budgetStats ? (
                                     <>
-                                        <div className="mt-3 flex items-baseline gap-2.5">
-                                            <span className="font-brand text-on-surface text-[20px] leading-none font-semibold tabular-nums">
-                                                {new Intl.NumberFormat('fr-FR').format(
-                                                    budgetStats.totalSpent,
-                                                )}
-                                            </span>
-                                            <span className="text-body-large text-on-surface-variant min-w-0 flex-1 leading-[19px]">
-                                                XOF engagés sur les{' '}
-                                                {new Intl.NumberFormat('fr-FR').format(
-                                                    budgetStats.totalAllocated,
-                                                )}{' '}
-                                                de l’exercice
-                                            </span>
-                                            <span className="text-body-medium text-on-surface-variant font-medium tabular-nums">
-                                                {budgetStats.percentSpent
-                                                    .toFixed(1)
-                                                    .replace('.', ',')}{' '}
-                                                %
-                                            </span>
-                                        </div>
-
-                                        <div
-                                            role="img"
-                                            aria-label={`${budgetStats.percentSpent.toFixed(1)} % ; repère du premier trimestre à 25 %`}
-                                            className="bg-surface-container relative mt-3.5 h-1.5 overflow-hidden rounded-xs"
-                                        >
-                                            <span
-                                                className="bg-on-surface block h-full rounded-xs"
-                                                style={{
-                                                    width: `${Math.min(100, Math.max(0, budgetStats.percentSpent))}%`,
-                                                }}
-                                            />
-                                            <span
-                                                className="bg-outline-variant absolute top-0 bottom-0 w-0.5"
-                                                style={{ left: '25%' }}
-                                                aria-hidden="true"
-                                            />
-                                        </div>
-
-                                        {/*
-                                          R13 — sous un chiffre, une ligne au plus. Cette note
-                                          disait trois choses en 165 signes, dont une que le
-                                          dessin porte déjà : « le repère marque le quart
-                                          d'exercice écoulé » — le repère EST ce dessin, et
-                                          l'étiquette accessible de la barre le nomme. Le
-                                          rythme des enveloppes appartient à Finances, où le
-                                          renvoi mène.
-                                        */}
-                                        <p className="text-body-medium text-on-surface-variant mt-2 leading-[18px]">
-                                            <strong className="text-on-surface font-semibold">
-                                                {Math.abs(
-                                                    Math.round(25 - budgetStats.percentSpent),
-                                                )}{' '}
-                                                points{' '}
-                                                {budgetStats.percentSpent <= 25
-                                                    ? 'sous le rythme'
-                                                    : 'au-dessus du rythme'}
-                                            </strong>
-                                            .{' '}
-                                            {new Intl.NumberFormat('fr-FR').format(
-                                                budgetStats.remaining,
-                                            )}{' '}
-                                            XOF disponibles.
-                                        </p>
-
+                                        <Gauge
+                                            value={`${new Intl.NumberFormat('fr-FR').format(budgetStats.totalSpent)} XOF`}
+                                            label={`engagés sur ${new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)}`}
+                                            percent={budgetStats.percentSpent}
+                                            marker={25}
+                                            ariaLabel={`${budgetStats.percentSpent.toFixed(1)} % ; repère du premier trimestre à 25 %`}
+                                            /*
+                                              `.wnote` — la conséquence, pas le commentaire, et
+                                              son `b` n'est pas gras : la planche le pose à 400,
+                                              en encre pleine. Le pourcentage que le code
+                                              affichait en tête de rangée disait deux fois ce
+                                              que la jauge montre.
+                                            */
+                                            note={
+                                                <>
+                                                    <span className="text-on-surface">
+                                                        {Math.abs(
+                                                            Math.round(
+                                                                25 - budgetStats.percentSpent,
+                                                            ),
+                                                        )}{' '}
+                                                        points{' '}
+                                                        {budgetStats.percentSpent <= 25
+                                                            ? 'sous le rythme'
+                                                            : 'au-dessus du rythme'}
+                                                    </span>{' '}
+                                                    au quart de l’exercice.
+                                                </>
+                                            }
+                                        />
                                         <DashboardMoreAction
                                             label="Détail par enveloppe"
-                                            destination="dans Pilotage"
+                                            destination="Finances"
                                             onClick={() => onViewChange('finance')}
                                         />
                                     </>
                                 ) : (
-                                    <p className="text-body-medium text-on-surface-variant mt-2">
+                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
                                         Aucun budget configuré pour cet exercice.
                                     </p>
                                 )}
@@ -1141,51 +1293,62 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </>
                 ) : (
                     <>
-                        {/* Vue Utilisateur — Mes équipements par type */}
+                        {/* Vue — utilisateur final : ses équipements, en `.brow` + `.minibar`. */}
                         <Reading>
-                            <Card icon={ChartBar} title="Mes équipements par type">
+                            <Card title="Mes équipements">
                                 {myTypes.length > 0 ? (
-                                    <div className="mt-2 space-y-3">
-                                        {myTypes.map((item) => (
-                                            <div
-                                                key={item.type}
-                                                className="text-body-medium flex items-center gap-2.5"
-                                            >
-                                                <span className="text-on-surface min-w-0 flex-1 truncate">
-                                                    {item.type}
-                                                </span>
-                                                <div className="bg-surface-container h-1 w-24 shrink-0 overflow-hidden rounded-xs">
-                                                    <div
-                                                        className="bg-on-surface h-full rounded-xs"
-                                                        style={{ width: `${item.percent}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-on-surface-variant w-8 text-right font-medium tabular-nums">
-                                                    {item.count}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    myTypes.map((item) => (
+                                        <div
+                                            key={item.type}
+                                            className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
+                                        >
+                                            <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
+                                                {item.type}
+                                            </span>
+                                            <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
+                                                <span
+                                                    className="bg-on-surface block h-full rounded-xs"
+                                                    style={{ width: `${item.percent}%` }}
+                                                />
+                                            </span>
+                                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[16px] tabular-nums">
+                                                {item.count}
+                                            </span>
+                                        </div>
+                                    ))
                                 ) : (
-                                    <p className="text-body-medium text-on-surface-variant mt-2">
+                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
                                         Aucun équipement ne vous est actuellement attribué.
                                     </p>
                                 )}
                             </Card>
                         </Reading>
 
-                        {/* Vue Utilisateur — Garantie de mes équipements */}
                         <Reading>
-                            <Card icon={ShieldWarning} title="Garantie de mes équipements">
-                                <ProportionRow
+                            <Card title="Garantie">
+                                <Gauge
                                     value={myWarranty.covered}
-                                    label={`de mes ${myWarranty.total} équipements sont couverts`}
+                                    label={`sur ${myWarranty.total} couverts`}
                                     percent={myWarranty.percent}
-                                    tone={myWarranty.percent > 0 ? 'positive' : 'neutral'}
+                                    fill="bg-[var(--tk-color-st-vert)]"
                                     note={
-                                        myWarranty.uncoveredItem
-                                            ? `1 hors garantie : ${myWarranty.uncoveredItem.name || myWarranty.uncoveredItem.model}, depuis ${formatDate(new Date(myWarranty.uncoveredItem.warrantyEnd || ''))}.`
-                                            : 'Tous vos équipements sont sous garantie constructeur active.'
+                                        myWarranty.uncoveredItem ? (
+                                            <>
+                                                {myWarranty.uncoveredItem.name ||
+                                                    myWarranty.uncoveredItem.model}{' '}
+                                                hors garantie{' '}
+                                                <span className="text-on-surface">
+                                                    depuis{' '}
+                                                    {formatDate(
+                                                        new Date(
+                                                            myWarranty.uncoveredItem.warrantyEnd ||
+                                                                '',
+                                                        ),
+                                                    )}
+                                                </span>
+                                                .
+                                            </>
+                                        ) : undefined
                                     }
                                 />
                             </Card>
@@ -1195,55 +1358,53 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
                 {/* Activité — en dernier. */}
                 <Reading>
-                    <Card icon={ClockCounterClockwise} title="Derniers événements">
+                    <Card title="Derniers événements">
                         {recentEvents.length > 0 ? (
                             <>
-                                <div className="mt-2">
-                                    {recentEvents.map((event) => (
+                                {recentEvents.map((event) => {
+                                    /*
+                                      `.mk` — §2.5 : 32 px, ronde, sur le creux. La passe sobre
+                                      **ne tinte plus** la marque d'une personne : la planche
+                                      pose une seule déclaration pour les deux cas, et c'est le
+                                      contenu — initiales ou glyphe de l'acte — qui distingue.
+                                    */
+                                    const glyph = EVENT_GLYPH[event.type] ?? ClockCounterClockwise;
+                                    const initials =
+                                        !event.isSystem && event.actorName
+                                            ? event.actorName
+                                                  .split(' ')
+                                                  .map((part) => part[0])
+                                                  .filter(Boolean)
+                                                  .slice(0, 2)
+                                                  .join('')
+                                                  .toUpperCase()
+                                            : '';
+
+                                    return (
                                         <div
                                             key={event.id}
-                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-2.5 first-of-type:border-t-0"
+                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
                                         >
-                                            {/*
-                                              Marque d'événement — §2.5 : 32 px, ronde, et elle
-                                              dit QUI ou QUOI. La planche distingue les deux —
-                                              initiales sur teinte bleue pour une personne,
-                                              glyphe sur le creux pour un acte du système. Le
-                                              code posait la même horloge sur les trois rangées,
-                                              donc ne disait rien.
-                                            */}
-                                            {!event.isSystem && event.actorName ? (
-                                                <span className="bg-info/[0.16] text-info-strong font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
-                                                    {event.actorName
-                                                        .split(' ')
-                                                        .map((part) => part[0])
-                                                        .filter(Boolean)
-                                                        .slice(0, 2)
-                                                        .join('')
-                                                        .toUpperCase()}
-                                                </span>
-                                            ) : (
-                                                <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                                                    <Icon glyph={ClockCounterClockwise} size={18} />
-                                                </span>
-                                            )}
+                                            <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
+                                                {initials || <Icon glyph={glyph} size={18} />}
+                                            </span>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-body-large text-on-surface leading-5">
+                                                <p className="text-on-surface text-[16px] leading-6">
                                                     {getHistoryEventSentence({
                                                         event,
                                                         perspectiveActorId: currentUser?.id,
                                                     })}
                                                 </p>
-                                                <p className="text-body-medium text-on-surface-variant mt-0.5 tabular-nums">
+                                                <p className="text-on-surface-variant mt-0.5 text-[12px] leading-4 tabular-nums">
                                                     {formatDate(new Date(event.timestamp))}
                                                 </p>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    );
+                                })}
                                 <DashboardMoreAction
-                                    label="Voir tout"
-                                    destination={isManager ? 'dans Audit' : 'dans Mon profil'}
+                                    label={isManager ? "Tout l'historique" : 'Tout mon historique'}
+                                    destination={isManager ? 'Audit' : 'Mon profil'}
                                     onClick={() => {
                                         if (isManager) {
                                             onViewChange('audit');
@@ -1254,7 +1415,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 />
                             </>
                         ) : (
-                            <p className="text-body-medium text-on-surface-variant mt-2">
+                            <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
                                 Aucun événement enregistré pour l’instant.
                             </p>
                         )}
