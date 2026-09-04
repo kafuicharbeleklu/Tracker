@@ -212,66 +212,16 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
         };
     }, [facets, activeFacetId, onFacetSelect]);
 
-    return (
-        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
-            {selection?.active ? (
-                <SelectionTopBar
-                    count={selection.count}
-                    total={selection.total}
-                    onExit={selection.onExit}
-                    onSelectAll={selection.onSelectAll}
-                    onClearAll={selection.onClearAll}
-                    overflow={selection.overflow}
-                />
-            ) : isCompact ? (
-                /* Barre du haut du téléphone (planche 04.1 .tbar.plain) : 56 px de haut,
-                   titre 22 px Archivo, 20 px de marge latérale, bouton d'action à droite. */
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center justify-between border-b px-5 py-1">
-                    {onBack && (
-                        <button
-                            type="button"
-                            aria-label="Retour"
-                            onClick={onBack}
-                            className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                        >
-                            <Icon glyph={ArrowLeft} size={24} />
-                        </button>
-                    )}
-                    <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
-                        {title}
-                    </h1>
-                    {actions}
-                </div>
-            ) : (
-                /* Au rail, la barre ne redit pas la destination : le rail la porte
-                   déjà. Titre, compteur, gestes — sans filet (00.4). */
-                <div className="px-page flex items-center gap-3 pt-5">
-                    <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
-                        {title}
-                    </h1>
-                    {subtitle && (
-                        <span className="text-body-medium text-text-secondary tabular-nums">
-                            {subtitle}
-                        </span>
-                    )}
-                    <span className="flex-1" />
-                    {actions}
-                </div>
-            )}
+    /*
+     * La bande de recherche : **dans l'en-tête au téléphone**, bande de page au rail.
+     * Elle était un bloc à part avec son propre filet ; la passe sobre la replie dans
+     * le même bloc que le titre (`.top` des planches 05.1, 03.3, 10.1).
+     */
+    const hasSeekBand =
+        Boolean(search || filter || (facets && facets.length > 0)) && !selection?.active;
 
-            <OfflineBanner />
-
-            {/* La bande de recherche et les pastilles — chrome attaché à l'en-tête au
-                téléphone (§2.37, 12 px symétriques), simple bande de page au rail. */}
-            {(search || filter || (facets && facets.length > 0)) && !selection?.active && (
-                <div
-                    className={cn(
-                        'flex flex-col gap-2.5',
-                        isCompact
-                            ? 'border-outline-variant bg-surface border-b px-5 py-3'
-                            : 'px-page pt-4',
-                    )}
-                >
+    const seekBand = (
+        <div className={cn('flex flex-col gap-2.5', !isCompact && 'px-page pt-4')}>
                     {(search || (filter && !(facets && facets.length > 0 && !search))) && (
                         <Reading className="flex items-center gap-2">
                             {search && (
@@ -323,8 +273,75 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             </div>
                         </Reading>
                     )}
+        </div>
+    );
+
+    return (
+        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
+            {selection?.active ? (
+                <SelectionTopBar
+                    count={selection.count}
+                    total={selection.total}
+                    onExit={selection.onExit}
+                    onSelectAll={selection.onSelectAll}
+                    onClearAll={selection.onClearAll}
+                    overflow={selection.overflow}
+                />
+            ) : isCompact ? (
+                /*
+                 * Passe sobre — **le titre et la recherche sont un seul bloc**, avec un
+                 * seul filet dessous (`.top` des planches 05.1, 03.3 et 10.1 : fond
+                 * surface, 8/16/16 d'intérieur, gouttière 12). Deux bandes empilées, deux
+                 * filets, faisaient deux fois l'en-tête.
+                 *
+                 * Le titre prend la première marche de R15 — **28 px** Archivo 600 sur 32,
+                 * et non 20 : c'est `--t1`, la marche que trois planches réclament et que
+                 * le gabarit rendait inatteignable depuis la page.
+                 */
+                <div
+                    className={cn(
+                        'border-outline-variant bg-surface flex flex-col border-b px-4',
+                        hasSeekBand ? 'gap-3 pt-2 pb-4' : 'py-1',
+                    )}
+                >
+                    <div className="flex min-h-14 items-center justify-between gap-1">
+                    {onBack && (
+                        <button
+                            type="button"
+                            aria-label="Retour"
+                            onClick={onBack}
+                            className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                        >
+                            <Icon glyph={ArrowLeft} size={24} />
+                        </button>
+                    )}
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 pt-2 pb-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            {title}
+                        </h1>
+                        {actions}
+                    </div>
+                    {hasSeekBand && seekBand}
+                </div>
+            ) : (
+                /* Au rail, la barre ne redit pas la destination : le rail la porte
+                   déjà. Titre, compteur, gestes — sans filet (00.4). */
+                <div className="px-page flex items-center gap-3 pt-5">
+                    <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
+                        {title}
+                    </h1>
+                    {subtitle && (
+                        <span className="text-body-medium text-text-secondary tabular-nums">
+                            {subtitle}
+                        </span>
+                    )}
+                    <span className="flex-1" />
+                    {actions}
                 </div>
             )}
+
+            <OfflineBanner />
+
+            {!isCompact && hasSeekBand && seekBand}
 
             <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
                 {origin && (

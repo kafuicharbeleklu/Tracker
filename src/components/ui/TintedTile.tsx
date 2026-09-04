@@ -3,7 +3,7 @@ import Icon from './Icon';
 import { cn } from '../../lib/utils';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
-export type TintedTileTone = 'bleu' | 'vert' | 'ambre' | 'orange' | 'danger';
+export type TintedTileTone = 'bleu' | 'vert' | 'ambre' | 'orange' | 'danger' | 'neutre';
 
 /**
  * La tuile teintée de la passe sobre (03/09) — `.qual` des planches.
@@ -43,6 +43,23 @@ const TONE: Record<TintedTileTone, string> = {
     ambre: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
     orange: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
     danger: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
+    /**
+     * Le ton d'un **total**, pas d'un état. « 14 actifs au parc » ne se peint pas :
+     * ce n'est ni bon, ni en attente, ni cassé — c'est la somme des trois autres.
+     * La planche 03.1 le déclare surface pleine, encre normale, et la pastille prend
+     * le creux au lieu du blanc translucide, qui serait invisible dessus.
+     */
+    neutre: 'bg-surface text-on-surface',
+};
+
+/** Sur un fond teinté la pastille s'éclaircit ; sur la surface pleine, elle se creuse. */
+const CHIP_TONE: Record<TintedTileTone, string> = {
+    bleu: 'bg-white/55',
+    vert: 'bg-white/55',
+    ambre: 'bg-white/55',
+    orange: 'bg-white/55',
+    danger: 'bg-white/55',
+    neutre: 'bg-surface-container',
 };
 
 const TintedTile: React.FC<TintedTileProps> = ({
@@ -55,7 +72,12 @@ const TintedTile: React.FC<TintedTileProps> = ({
     className,
 }) => {
     const chip = (
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-white/55">
+        <span
+            className={cn(
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]',
+                CHIP_TONE[tone],
+            )}
+        >
             <Icon glyph={glyph} size={18} />
         </span>
     );
