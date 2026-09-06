@@ -24,13 +24,13 @@ function readFirebaseEnv(): FirebaseEnv {
     } = import.meta.env;
 
     return {
-        apiKey: VITE_FIREBASE_API_KEY?.trim() || '',
-        authDomain: VITE_FIREBASE_AUTH_DOMAIN?.trim() || '',
-        projectId: VITE_FIREBASE_PROJECT_ID?.trim() || '',
-        storageBucket: VITE_FIREBASE_STORAGE_BUCKET?.trim() || '',
-        messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || '',
-        appId: VITE_FIREBASE_APP_ID?.trim() || '',
-        measurementId: VITE_FIREBASE_MEASUREMENT_ID?.trim() || undefined,
+        apiKey: VITE_FIREBASE_API_KEY?.trim() || 'AIzaSyB-iGbWTZnvEQXYdjbVwY2l4cg6Vi2fMbU',
+        authDomain: VITE_FIREBASE_AUTH_DOMAIN?.trim() || 'tracker-c801e.firebaseapp.com',
+        projectId: VITE_FIREBASE_PROJECT_ID?.trim() || 'tracker-c801e',
+        storageBucket: VITE_FIREBASE_STORAGE_BUCKET?.trim() || 'tracker-c801e.firebasestorage.app',
+        messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || '645261169143',
+        appId: VITE_FIREBASE_APP_ID?.trim() || '1:645261169143:web:43e9532eb299d6c4d15ef2',
+        measurementId: VITE_FIREBASE_MEASUREMENT_ID?.trim() || 'G-7N6C0ME6HN',
     };
 }
 

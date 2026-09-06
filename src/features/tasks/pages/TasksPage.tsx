@@ -20,7 +20,7 @@ import { rowActivation } from '../../../lib/a11y';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import CloseButton from '../../../components/ui/CloseButton';
-import SecurityGate from '../../../components/security/SecurityGate';
+import ActSheet from '../../../components/ui/ActSheet';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
@@ -414,6 +414,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
      * rangée ; à 393 px les trois colonnes ne tenaient pas et le nom de l'objet se
      * réduisait à « Dell L… ». Les mécanismes ne changent pas, seul leur logement.
      */
+    /**
+     * L'acte engagé depuis une tâche — planche **17.4**. Le pavé partagé
+     * (`SecurityGate`, un code administrateur unique) est remplacé par la feuille
+     * d'acte : *« l'attestation est le bloc 4, jamais un écran »*, et c'est **le code
+     * personnel** de celui qui agit qui prouve, pas un secret d'équipe.
+     */
+    const [acte, setActe] = useState<Task | null>(null);
     const [openedTask, setOpenedTask] = useState<Task | null>(null);
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
@@ -1409,36 +1416,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 </Button>
                             )}
 
-                            {openedTask.transition ? (
-                                <SecurityGate
-                                    onVerified={() => {
-                                        if (completeApprovalTask(openedTask)) setOpenedTask(null);
+                            {openedTask.transition || openedTask.reception ? (
+                                /* Le verbe ouvre la feuille d'acte (17.4) ; il ne
+                                   déclenche plus rien tout seul. */
+                                <Button
+                                    variant="filled"
+                                    icon={<Icon glyph={Check} size={20} />}
+                                    onClick={() => {
+                                        const task = openedTask;
+                                        setOpenedTask(null);
+                                        setActe(task);
                                     }}
-                                    title={openedTask.action ?? 'Confirmer'}
-                                    description="Confirmez cette action avant de la rendre effective."
-                                    entityId={openedTask.transition.approvalId}
-                                    entityName={openedTask.title}
-                                    trigger={
-                                        <Button variant="filled" icon={<Icon glyph={Check} size={20} />}>
-                                            {openedTask.action}
-                                        </Button>
-                                    }
-                                />
-                            ) : openedTask.reception ? (
-                                <SecurityGate
-                                    onVerified={() => {
-                                        if (confirmReceptionTask(openedTask)) setOpenedTask(null);
-                                    }}
-                                    title={openedTask.action ?? 'Confirmer'}
-                                    description="Confirmez cette action avant de la rendre effective."
-                                    entityId={openedTask.reception.equipmentId}
-                                    entityName={openedTask.title}
-                                    trigger={
-                                        <Button variant="filled" icon={<Icon glyph={Check} size={20} />}>
-                                            {openedTask.action}
-                                        </Button>
-                                    }
-                                />
+                                >
+                                    {openedTask.action}
+                                </Button>
                             ) : openedTask.assign || openedTask.target ? (
                                 <Button
                                     variant="filled"
@@ -1467,63 +1458,60 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             {/* Feuille — refuser, ou renvoyer à l'IT. Le motif est obligatoire : le
                 demandeur le lira tel quel, et la règle le refuse absent. Lot 5, T3. */}
-            <BottomSheet
-                open={!!refusing}
-                onClose={() => setRefusing(null)}
-                title={
-                    refusing?.refusal?.nextStatus === 'Rejected'
-                        ? 'Refuser la demande'
-                        : 'Renvoyer à l’IT'
-                }
-            >
-                {refusing?.refusal && (
-                    <div className="space-y-4">
-                        <p className="text-text-secondary text-[16px] leading-6">
-                            {refusing.title}
-                        </p>
-                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-danger)] px-4 py-2 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-danger)]">
-                            <Icon glyph={Prohibit} size={18} />
-                            {refusing.refusal.nextStatus === 'Rejected'
-                                ? `Définitif — ${refusing.refusal.requesterName} lira votre motif, tel quel.`
-                                : 'La demande repart au traitement IT avec votre motif.'}
-                        </p>
-                        <label className="block">
-                            <span className="text-text-muted mb-2 block text-[12px] leading-4 font-medium tracking-[0.06em] uppercase">
-                                Motif{' '}
-                                <span className="text-text-secondary font-normal tracking-normal normal-case">
-                                    — obligatoire
-                                </span>
-                            </span>
+            {/*
+              LE REFUS — un des neuf actes de 17.4, et sa question est le motif. Il
+              passait par une feuille ordinaire close par le pavé administrateur ; il
+              prend la feuille d'acte, où le motif est le bloc 3 et l'attestation le
+              bloc 4, avec le code personnel de celui qui refuse.
+            */}
+            {refusing?.refusal && (
+                <ActSheet
+                    open
+                    onClose={() => setRefusing(null)}
+                    title={
+                        refusing.refusal.nextStatus === 'Rejected'
+                            ? 'Refuser la demande'
+                            : 'Renvoyer à l’IT'
+                    }
+                    subtitle={
+                        refusing.refusal.nextStatus === 'Rejected'
+                            ? `Définitif. ${refusing.refusal.requesterName} lira votre motif, tel quel.`
+                            : 'La demande repart au traitement, avec votre motif.'
+                    }
+                    subject={{ title: refusing.title, subtitle: refusing.context }}
+                    counterparty={
+                        refusing.who ? { label: 'Concerne', title: refusing.who } : undefined
+                    }
+                    question={{
+                        label: 'Motif obligatoire',
+                        children: (
                             <textarea
                                 value={refusalReason}
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={3}
-                                placeholder="Budget gelé jusqu'au prochain exercice…"
-                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[16px] leading-6 focus:outline-hidden"
+                                placeholder="Budget gelé jusqu’au prochain exercice…"
+                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[16px] leading-6 outline-none focus-visible:ring-2"
                             />
-                        </label>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="text" onClick={() => setRefusing(null)}>
-                                Annuler
-                            </Button>
-                            <SecurityGate
-                                onVerified={() => refuseApprovalTask(refusing)}
-                                title="Confirmer le refus"
-                                description="Votre code personnel signe la décision."
-                                entityId={refusing.refusal.approvalId}
-                                entityName={refusing.title}
-                                trigger={
-                                    <Button variant="danger" disabled={!refusalReason.trim()}>
-                                        {refusing.refusal.nextStatus === 'Rejected'
-                                            ? 'Refuser'
-                                            : 'Renvoyer'}
-                                    </Button>
-                                }
-                            />
-                        </div>
-                    </div>
-                )}
-            </BottomSheet>
+                        ),
+                    }}
+                    signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
+                    consequence={{
+                        tone: 'rouge',
+                        glyph: Prohibit,
+                        text: (
+                            <>
+                                Le motif lui est transmis{' '}
+                                <b className="font-medium">tel quel</b> : c’est le seul texte
+                                qu’il recevra.
+                            </>
+                        ),
+                    }}
+                    confirmLabel={
+                        refusing.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'
+                    }
+                    onConfirm={() => refuseApprovalTask(refusing)}
+                />
+            )}
 
             {/* Feuille — annuler ma demande. Motif facultatif, aucun code : je ne signe
                 pas une décision sur autrui, je retire la mienne. Lot 6, A3. */}
@@ -1568,6 +1556,55 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </div>
                 )}
             </BottomSheet>
+
+            {/*
+              LA FEUILLE D'ACTE — 17.4, six blocs. L'objet, l'autre partie quand l'acte
+              en a une, la question propre à l'acte, l'attestation, la conséquence, le
+              verbe. Ici les blocs 1 et 2 sont connus — on vient d'une tâche — et il n'y
+              a pas de question : reste à attester.
+            */}
+            {acte && (
+                <ActSheet
+                    open
+                    onClose={() => setActe(null)}
+                    title={acte.action ?? 'Confirmer'}
+                    subtitle={
+                        acte.reception
+                            ? 'Vous attestez avoir reçu cet équipement.'
+                            : 'Vous attestez votre décision.'
+                    }
+                    subject={{ title: acte.title, subtitle: acte.context }}
+                    counterparty={
+                        acte.who ? { label: 'Concerne', title: acte.who } : undefined
+                    }
+                    signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
+                    consequence={
+                        acte.reception
+                            ? {
+                                  tone: 'bleu',
+                                  glyph: Check,
+                                  text: (
+                                      <>
+                                          L'objet passe <b className="font-medium">à votre nom</b>.
+                                      </>
+                                  ),
+                              }
+                            : {
+                                  tone: 'vert',
+                                  glyph: Check,
+                                  text: <>La demande avance à l'étape suivante.</>,
+                              }
+                    }
+                    confirmLabel={acte.action ?? 'Confirmer'}
+                    cancelLabel="Plus tard"
+                    onConfirm={() => {
+                        const abouti = acte.reception
+                            ? confirmReceptionTask(acte)
+                            : completeApprovalTask(acte);
+                        if (abouti) setActe(null);
+                    }}
+                />
+            )}
         </ListTemplate>
     );
 };

@@ -52,6 +52,7 @@ import {
     saveSingleDoc,
 } from '../lib/firestorePersistence';
 import { DEMO_RESEED_DISABLED } from '../lib/demoSeed';
+import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
 import {
     buildRbacAssignmentFromUser,
     DEFAULT_RBAC_GROUPS,
@@ -515,6 +516,11 @@ const normalizeEquipmentRecord = (persisted: Equipment, seed?: Equipment): Equip
 
     return {
         ...merged,
+        /* Le vocabulaire d'état de la source ramené à celui du produit — l'inventaire
+           importé porte « Actif », « Hors service », « Défectueux », que les compteurs
+           d'écran ne savent pas lire. La base garde ses valeurs ; c'est la lecture qui
+           traduit. Voir `src/lib/equipmentStatus.ts`. */
+        status: normalizeEquipmentStatus(merged.status, Boolean(merged.user)),
         country,
         site,
         department,

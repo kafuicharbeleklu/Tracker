@@ -36,6 +36,13 @@ jobs:
         run: npm run build
         env:
           VITE_ENABLE_DEMO_LOGIN: 'true'
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'AIzaSyB-iGbWTZnvEQXYdjbVwY2l4cg6Vi2fMbU' }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'tracker-c801e.firebaseapp.com' }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID || 'tracker-c801e' }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || 'tracker-c801e.firebasestorage.app' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '645261169143' }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || '1:645261169143:web:43e9532eb299d6c4d15ef2' }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID || 'G-7N6C0ME6HN' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

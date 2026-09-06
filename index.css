@@ -730,7 +730,10 @@ body {
        sans pulsation ni vague brillante. Rôle neuf (aucun équivalent canonique),
        donc déjà à son nom définitif. Il ne crée aucune valeur : la planche demande
        #E7E3DB, le neutre 200 du produit est #E8E4DF — un cran de la même rampe. */
-    --tk-color-skeleton: var(--color-neutral-200);
+    /* Le creux de la page — 17.3 (06/09) : *« nuance `--inset`, aucune valeur propre »*.
+       Le squelette empruntait le neutre 200, une teinte qu'aucune surface du produit ne
+       porte, donc l'attente ne ressemblait pas à ce qui allait la remplacer. */
+    --tk-color-skeleton: var(--tk-color-surface-muted);
 
     /* ---- Couleur — statuts ---- */
     --tk-color-success: #047857; /* AA texte et rempli : 5,48:1 (Q-V1) */

@@ -26,6 +26,12 @@ import { cn } from '../../lib/utils';
  *
  * **A5 — rien avant 300 ms** : voir `useDelayedPending`.
  *
+ * **A6 — le squelette n'a aucune valeur propre** (passe du 06/09). Il prend la hauteur
+ * de la rangée réelle — **68** en liste, **56** en file, le héro sombre pour une fiche —
+ * et la nuance du **creux** de la page. Il portait 72 et 64, deux hauteurs qu'aucune
+ * liste du produit ne fait, et un gris à lui : l'écran sautait donc à l'arrivée de la
+ * donnée, ce que le squelette est précisément là pour éviter.
+ *
  * Trois formes couvrent les vingt-huit écrans, et la planche les compte :
  * liste (4 écrans) · fiche (5) · file (3), les autres n'attendent rien de long.
  */
@@ -69,9 +75,8 @@ interface SkeletonRowProps {
 }
 
 /**
- * Une rangée de liste au repos : la vignette de 40 px, le titre au rang 3 et sa
- * sous-ligne. Hauteur 72 px — celle d'une rangée de liste, à toutes les largeurs
- * (§2.43).
+ * Une rangée de liste au repos : la vignette de 40, le titre et sa sous-ligne.
+ * **68 px**, la hauteur que 04.1 donne à ses rangées.
  */
 export const SkeletonRow: React.FC<SkeletonRowProps> = ({
     withThumb = true,
@@ -81,7 +86,7 @@ export const SkeletonRow: React.FC<SkeletonRowProps> = ({
     const [title, sub] = ROW_WIDTHS[index % ROW_WIDTHS.length];
 
     return (
-        <div className={cn('flex min-h-[72px] items-center gap-3 py-2.5', className)}>
+        <div className={cn('flex min-h-[68px] items-center gap-4 py-3', className)}>
             {withThumb && <SkeletonVignette />}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <Skeleton className={cn('h-[15px]', title)} />
@@ -130,9 +135,12 @@ interface SkeletonQueueProps {
 }
 
 /**
- * Squelette de **file** — Tâches · Demandes · Audit. Rangée plus courte (64 px),
- * marque d'événement **ronde** (§2.5 : ce n'est pas une vignette, c'est un fait
- * passé) et le geste de rangée à droite.
+ * Squelette de **file** — Tâches · Demandes · Inventaire. **56 px**, la hauteur que
+ * 03.3 donne aux siennes, et la marque d'événement **ronde** (§2.5 : ce n'est pas une
+ * vignette, c'est un fait passé).
+ *
+ * Le geste de rangée est retiré : *« une rangée de file ne porte ni verbe ni ⋮ »*
+ * (R15). Le squelette ne réserve donc plus la place d'un bouton qui n'arrivera pas.
  */
 export const SkeletonQueue: React.FC<SkeletonQueueProps> = ({
     rows = 3,
@@ -146,13 +154,13 @@ export const SkeletonQueue: React.FC<SkeletonQueueProps> = ({
     >
         <span className="sr-only">{label}</span>
         {Array.from({ length: rows }, (_, i) => (
-            <div key={i} className="flex min-h-16 items-center gap-3 py-2.5">
+            <div key={i} className="flex min-h-14 items-center gap-3 py-2">
                 <SkeletonVignette round />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <Skeleton className="h-[15px] w-4/5" />
+                    <Skeleton className="h-[17px] w-4/5" />
                     <Skeleton className="w-1/2" />
                 </div>
-                <Skeleton className="h-8 w-14 shrink-0 rounded-sm" />
+                <Skeleton className="w-[26px] shrink-0" />
             </div>
         ))}
     </div>

@@ -4,7 +4,7 @@
 (40 cartes). Ce fichier se tient à jour à chaque planche portée : c'est la seule carte
 qui dise ce qui reste, et elle a déjà démenti une estimation faite de tête.
 
-**14 portées · 6 partielles · 22 restantes** (06/09 : 02.1 remesurée, 02.2 construite, 03.1 repassée, 17.7 portée, 17.1, 17.5 et la confirmation de 17.2 aux mesures).
+**14 portées · 7 partielles · 21 restantes** (06/09 : 02.1 remesurée, 02.2 construite, 03.1 repassée, 17.7 portée, 17.1, 17.3, 17.5, 17.8 et la confirmation de 17.2 aux mesures).
 
 Une planche est dite **portée** quand sa forme a été relevée sur la planche elle-même
 (pas sur un lot), appliquée, et vérifiée à l'écran à 393 px.
@@ -74,7 +74,7 @@ Ils portent la moitié du produit : une décision y vaut pour N écrans.
 | --- | --- | --- | --- |
 | 17.1 | États d'écran (4 états) | `ScreenState` | **partiel** — mesures du 06/09 portées (96 · 22/28 · 16/24, marges 24 · 16 · 64), introuvable et refusé sur la forme commune ; **hors ligne reste en bandeau** |
 | 17.2 | Sélection et confirmation (22 emplois) | `SelectionTopBar`, `BulkActionBar`, `ConfirmationSheet` | **partiel** — la **confirmation** est portée sur la forme des pages (06/09) ; **la sélection reste** |
-| 17.3 | L'attente et le scan (28 écrans) | `Skeleton`, `ScanView` | **non porté** |
+| 17.3 | L'attente et le scan (28 écrans) | `Skeleton`, `ScanView` | **partiel** — squelettes aux hauteurs réelles et à la nuance du creux (06/09) ; **le scan reste** |
 | 17.4 | La feuille d'acte (9 actes) | la feuille des actes | **non porté** |
 | 17.5 | Le retour transitoire (168 messages) | `Snackbar`, `InlineError` | **partiel** — snackbar aux mesures du 06/09 (56 · 14/20), message au champ porté ; **le bandeau et le tri des 168 messages restent** |
 | 17.6 | Le geste d'ajout (6 emplois) | `FabContainer` | **partiel** — ancrage 64 + 16 = 80 porté le 06/09 ; la feuille de choix reste |
@@ -279,3 +279,34 @@ page disparaît au premier défilement, et la liste devient un sous-ensemble san
 partitions sont des chips **dans la feuille de filtre** depuis le 05/09 ; `ListTemplate`
 les affiche toujours dans la bande (`facets`). Les retirer demande que chaque page ait sa
 feuille de filtre — c'est un lot par page, pas une reprise du gabarit.
+
+---
+
+## 17.3 — l'attente prend la forme de ce qui arrive
+
+*« Le squelette n'a aucune valeur propre »* (passe du 06/09). Il prend la hauteur de la
+rangée réelle et la nuance du creux de la page.
+
+| Élément | Planche | Avant |
+| --- | --- | --- |
+| Rangée de liste | **68**, la mesure de 04.1 | 72 |
+| Rangée de file | **56**, la mesure de 03.3 | 64 |
+| Nuance | le creux de la page | un gris à lui, le neutre 200 |
+| Rayon | 2 | 2 |
+
+Le geste de rangée disparaît aussi du squelette de file : *« une rangée de file ne porte
+ni verbe ni ⋮ »* (R15), donc réserver la place d'un bouton qui n'arrivera pas faisait
+sauter la ligne à l'arrivée de la donnée — exactement ce que le squelette évite.
+
+Mesuré pendant l'hydratation Firestore, réseau ralenti : rangée de 68, écart de 16,
+nuance du creux, rayon 2.
+
+**La règle A4 est tenue là où elle s'applique.** *« Ce qui est déjà connu est déjà
+vrai »* : quand une page attend sa donnée, `ListTemplate` garde son en-tête et ne
+remplace que les rangées. Le squelette sans en-tête qu'on voit parfois est celui du
+**chargement de la route** : à cet instant la page n'existe pas encore, et il n'y a pas
+d'en-tête à tenir pour vrai.
+
+**Ce qui reste sur 17.3 : le scan.** La planche ne le dessine pas — *« le scanner est
+unique, dessiné dans 04.1 ; 17.3 en reprend deux états tels quels »* — il se porte donc
+avec 04.1.
