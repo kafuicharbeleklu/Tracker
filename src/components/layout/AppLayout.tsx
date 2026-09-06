@@ -9,9 +9,11 @@ import { ViewType } from '../../types';
 import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { scrollAppToTop } from '../../lib/appScroll';
 import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
-import { EmptyState } from '../ui/EmptyState';
+import ScreenState from '../ui/ScreenState';
+import { MagnifyingGlass } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { SkeletonList } from '../ui/Skeleton';
 
@@ -104,12 +106,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         if (view === 'equipment') setInventoryFilter(null);
         if (view === 'equipment' || view === 'users') setScopedSite(null);
         navigateToView(view);
-        window.scrollTo(0, 0);
+        scrollAppToTop();
     };
 
     const handleItemClick = (view: ViewType, id: string) => {
         navigateToItem(view, id);
-        window.scrollTo(0, 0);
+        scrollAppToTop();
     };
 
     const handleNavigate = (path: string) => {
@@ -117,11 +119,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             setScopedSite(decodeURIComponent(path.split('/inventory/site/')[1]));
             setInventoryFilter(null);
             navigateToView('equipment');
-            window.scrollTo(0, 0);
+            scrollAppToTop();
         } else if (path.startsWith('/users/site/')) {
             setScopedSite(decodeURIComponent(path.split('/users/site/')[1]));
             navigateToView('users');
-            window.scrollTo(0, 0);
+            scrollAppToTop();
         } else if (path.startsWith('/inventory/filter/')) {
             const status = decodeURIComponent(path.split('/inventory/filter/')[1]);
             setInventoryFilter(status);
@@ -139,7 +141,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
              * geste mort.
              */
             navigate(path);
-            window.scrollTo(0, 0);
+            scrollAppToTop();
         }
     };
 
@@ -174,7 +176,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
        variable retombe à 0 et le snackbar reprend ses 12 px de bord. */
     useEffect(() => {
         const root = document.documentElement;
-        root.style.setProperty('--tk-size-bottom-bar', showBottomNav ? '56px' : '0px');
+        // 64 px — la hauteur que 17.7 déclare depuis la passe du 05/09 (elle valait 56).
+        root.style.setProperty('--tk-size-bottom-bar', showBottomNav ? '64px' : '0px');
         return () => root.style.setProperty('--tk-size-bottom-bar', '0px');
     }, [showBottomNav]);
 
@@ -556,30 +559,39 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <TasksPage onNavigate={handleViewChange} onItemClick={handleItemClick} />;
 
             case 'not_found':
-                // Planche 17.1 : le « 404 » est un code d'un autre métier, adressé à
-                // personne, et « vérifiez le lien » suppose une adresse que personne n'a
-                // tapée sur un téléphone. Reste ce qui est vrai — et les deux portes qui servent.
+                /*
+                  Planche 17.1 : le « 404 » est un code d'un autre métier, adressé à
+                  personne, et « vérifiez le lien » suppose une adresse que personne n'a
+                  tapée sur un téléphone. Reste ce qui est vrai, et les deux portes qui
+                  servent — empilées, pleine largeur, la primaire d'abord.
+
+                  Porté sur `ScreenState` le 06/09 : introuvable, refusé et hors ligne
+                  partagent une seule forme, et celle-ci employait encore la composition
+                  héritée (marque de 56, titre d'un autre palier, portes en ligne). Le
+                  renvoi dit **l'Historique**, le mot du lexique depuis le 03/09.
+                */
                 return (
-                    <EmptyState
-                        className="min-h-[60vh]"
-                        icon="search_off"
+                    <ScreenState
+                        icon={MagnifyingGlass}
                         title="Cette page n'existe plus"
-                        description="L'équipement ou la personne que vous cherchiez a peut-être été sorti du parc, ou son compte supprimé. L'historique, lui, est conservé dans l'audit."
-                        action={
-                            <div className="medium:flex-row flex flex-col gap-3">
+                        description="L'équipement ou la personne que vous cherchiez a peut-être été sortie du parc, ou son compte supprimé. Son historique, lui, est conservé dans l'Historique."
+                        actions={
+                            <>
                                 <Button
                                     variant="filled"
+                                    className="!rounded-[4px]"
                                     onClick={() => handleViewChange('dashboard')}
                                 >
                                     Revenir à l'accueil
                                 </Button>
                                 <Button
-                                    variant="tonal"
+                                    variant="ghost"
+                                    className="!rounded-[4px]"
                                     onClick={() => handleViewChange('equipment')}
                                 >
                                     Chercher dans les équipements
                                 </Button>
-                            </div>
+                            </>
                         }
                     />
                 );

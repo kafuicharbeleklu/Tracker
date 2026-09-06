@@ -5,13 +5,17 @@ import { DataProvider } from './src/context/DataContext';
 import { FinanceDataProvider } from './src/context/FinanceDataContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ConfirmationProvider } from './src/context/ConfirmationContext';
+import { useData } from './src/context/DataContext';
+import { useFinanceData } from './src/context/FinanceDataContext';
 
 import AccessDeniedPage from './src/features/auth/pages/AccessDeniedPage';
-import ChangePasswordPage from './src/features/auth/pages/ChangePasswordPage';
+import FirstLoginPage from './src/features/auth/pages/FirstLoginPage';
 
 import LoadingSpinner from './src/components/ui/LoadingSpinner';
 import { ErrorBoundary } from './src/components/ui/ErrorBoundary';
 import { useRouter } from './src/hooks/useRouter';
+
+import MobileFrame from './src/components/layout/MobileFrame';
 
 const AppLayout = lazy(() => import('./src/components/layout/AppLayout'));
 
@@ -35,7 +39,9 @@ const DocumentationExplorerPage = lazy(
 
 const AppContent: React.FC = () => {
     const { isAuthenticated, accessDenied, needsPasswordChange, logout } = useAuth();
-    const { routeSegments } = useRouter();
+    const { isHydrating: isDataHydrating } = useData();
+    const { isHydrating: isFinanceHydrating } = useFinanceData();
+    const { routeSegments, navigate } = useRouter();
 
     /*
      * 0. La documentation — `#/documentation/ui-flow-map`, où mène « Aide et support » du
@@ -58,20 +64,38 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // 1. Check Access Denied
+    /*
+     * 1. L'invitation — `#/invite/<jeton>`, avant la porte d'authentification (02.2) :
+     * la personne n'a pas encore de session, le lien est sa seule clé. La page reste
+     * montée quand la session s'ouvre à l'écran 2 ; c'est elle qui décide de la sortie.
+     */
+    if (routeSegments[0] === 'invite') {
+        return <FirstLoginPage token={routeSegments[1] ?? ''} />;
+    }
+
+    if (isDataHydrating || isFinanceHydrating) {
+        return <LoadingSpinner fullScreen text="Chargement des données Firebase..." />;
+    }
+
+    // 2. Check Access Denied
     if (accessDenied) {
         return <AccessDeniedPage />;
     }
 
-    // 2. Check Password Change Required
+    // 3. Un compte hérité qui doit définir son mot de passe sans lien : le même écran 2.
     if (needsPasswordChange) {
-        return <ChangePasswordPage />;
+        return <FirstLoginPage />;
     }
 
-    // 3. Main Logic
+    // 4. Main Logic
     if (!isAuthenticated) {
-        // If not authenticated (and not in special states), show Login
-        return <LoginPage onLoginSuccess={() => {}} />;
+        /*
+         * La session ouverte, la route repart de l'accueil. Sans cela, une arrivée par
+         * un lien direct (`#/login`, `#/invite/…` consommé) laissait le fragment tel
+         * quel : la coque le résolvait en vue inconnue, et la première chose que voyait
+         * une personne qui venait de se connecter était « Cette page n'existe plus ».
+         */
+        return <LoginPage onLoginSuccess={() => navigate('/')} />;
     }
 
     return (
@@ -106,24 +130,29 @@ const App: React.FC = () => {
     return (
         // Filet racine (#17) : couvre ce que le boundary par vue d'AppLayout ne peut pas
         // atteindre — providers, coque, écrans hors session (Login / Accès refusé /
-        // Changement de mot de passe). Volontairement HORS de l'arbre de providers :
+        // Première connexion). Volontairement HORS de l'arbre de providers :
         // son écran de repli ne doit dépendre d'aucun contexte pour s'afficher.
         <ErrorBoundary
             context="racine"
             title="L'application n'a pas pu démarrer"
             description="Une erreur inattendue a interrompu le chargement. Rechargez la page ; si le problème persiste, signalez-le au support avec l'heure exacte."
         >
-            <ToastProvider>
-                <AuthProvider>
-                    <DataProvider>
-                        <FinanceDataProvider>
-                            <ConfirmationProvider>
-                                <AppContent />
-                            </ConfirmationProvider>
-                        </FinanceDataProvider>
-                    </DataProvider>
-                </AuthProvider>
-            </ToastProvider>
+            {/* Le cadre du téléphone enveloppe TOUT le produit, connexion comprise :
+                c'est ce qui fait que l'écran de connexion et l'application ont la même
+                dimension, ce qu'ils n'avaient pas. */}
+            <MobileFrame>
+                <ToastProvider>
+                    <AuthProvider>
+                        <DataProvider>
+                            <FinanceDataProvider>
+                                <ConfirmationProvider>
+                                    <AppContent />
+                                </ConfirmationProvider>
+                            </FinanceDataProvider>
+                        </DataProvider>
+                    </AuthProvider>
+                </ToastProvider>
+            </MobileFrame>
         </ErrorBoundary>
     );
 };

@@ -3,11 +3,13 @@ import {
     ChartBar,
     CheckCircle,
     ClipboardText,
+    CaretRight,
     Coins,
     FolderOpen,
     Gear,
     Laptop,
     List,
+    LockKey,
     MapPin,
     ShieldCheck,
     SquaresFour,
@@ -17,6 +19,9 @@ import {
 import { cn } from '../../lib/utils';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { useAuth } from '../../context/AuthContext';
+import { usePendingTasks } from '../../hooks/usePendingTasks';
+import { useRouter } from '../../hooks/useRouter';
 import Icon from '../ui/Icon';
 import {
     DESTINATIONS,
@@ -104,16 +109,32 @@ interface BottomNavItem {
     onSelect: () => void;
     active?: boolean;
     ariaLabel?: string;
+    /** Le chiffre rouge de Tâches — ce qui attend un geste (17.7). */
+    badge?: number;
+    /** Le point rouge, quand un fait appelle sans se compter (un code à définir). */
+    dot?: boolean;
 }
 
-/** Une rangée de la feuille « Plus » : un glyphe, un libellé du registre, rien d'autre. */
+/**
+ * Une rangée de la feuille « Plus » : une vignette, un libellé du registre, et une
+ * **sous-ligne seulement quand elle dit un fait** (un code à définir, une campagne
+ * ouverte) — jamais une paraphrase du libellé.
+ */
 interface MoreRow {
     id: string;
-    /** L'entrée du registre dont la rangée porte le libellé — absente pour la déconnexion. */
+    /** L'entrée du registre dont la rangée porte le libellé — absente hors destination. */
     destination?: DestinationId;
     label: string;
+    /** Le fait, s'il y en a un. `warn` le peint de l'ambre des choses à faire. */
+    fact?: { text: string; warn?: boolean };
     glyph: PhosphorGlyph;
     onSelect: () => void;
+}
+
+/** Un groupe de la feuille : son nom, et ses rangées. Un groupe vide ne s'affiche pas. */
+interface MoreGroup {
+    label?: string;
+    rows: MoreRow[];
 }
 
 /**
@@ -195,10 +216,14 @@ const resolveBottomNavDestination = (view: ViewType): NavDestinationId | null =>
 };
 
 /**
- * Une rangée de la feuille : 52 px, rayon `--r-4` de la commande (R11), un glyphe de
- * 20 et un libellé de 15/500. La section courante prend le creux `--inset` et son
- * glyphe passe en `--nav-on` plein — exactement la marque de l'onglet actif de la
- * barre, jamais une seconde couleur.
+ * `.arow` — la rangée du **canon des feuilles** (07.1, 17.10, 18.1), portée ici par la
+ * passe du 05/09 : **56 px**, une vignette de 40 au creux (rayon 4), le libellé en
+ * 16/24, la sous-ligne en 14/20, un chevron de 20 à droite, un filet entre les rangées.
+ *
+ * Elle valait 52 px avec un glyphe nu de 20 et un libellé en 500 — une forme propre à
+ * ce menu, qu'aucune autre feuille du produit ne portait. La section courante garde le
+ * creux et son glyphe la teinte de l'onglet actif : c'est la marque de la barre, jamais
+ * une seconde couleur.
  */
 const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void }> = ({
     row,
@@ -212,18 +237,32 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
             row.onSelect();
             onDone();
         }}
-        className={cn(
-            'text-on-surface flex min-h-[52px] w-full items-center gap-3.5 rounded-md px-3 text-left text-[15px] font-medium transition-colors',
-            here ? 'bg-surface-container' : 'hover:bg-surface-container',
-        )}
+        className="border-outline-variant text-on-surface flex min-h-14 w-full items-center gap-3 border-t py-2 text-left transition-colors first-of-type:border-t-0 hover:bg-transparent"
     >
-        <Icon
-            glyph={row.glyph}
-            size={20}
-            emphasis={here ? 'fill' : 'regular'}
-            className={here ? 'text-[var(--tk-color-nav-active)]' : 'text-on-surface-variant'}
-        />
-        <span className="min-w-0 flex-1 truncate">{row.label}</span>
+        <span
+            className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                here
+                    ? 'bg-surface-container text-[var(--tk-color-nav-active)]'
+                    : 'bg-surface-container text-on-surface-variant',
+            )}
+        >
+            <Icon glyph={row.glyph} size={20} emphasis={here ? 'fill' : 'regular'} />
+        </span>
+        <span className="min-w-0 flex-1">
+            <span className="block truncate text-[16px] leading-6">{row.label}</span>
+            {row.fact && (
+                <span
+                    className={cn(
+                        'block truncate text-[14px] leading-5',
+                        row.fact.warn ? 'text-[var(--tk-color-on-tint-ambre)]' : 'text-on-surface-variant',
+                    )}
+                >
+                    {row.fact.text}
+                </span>
+            )}
+        </span>
+        <Icon glyph={CaretRight} size={20} className="text-text-tertiary shrink-0" />
     </button>
 );
 
@@ -235,35 +274,71 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     className,
 }) => {
     const { permissions } = useAccessControl();
+    const { currentUser } = useAuth();
+    const { navigate } = useRouter();
+    const { count: pendingCount } = usePendingTasks();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    /**
+     * Le code de remise n'est pas défini : la feuille le dit sur « Mon compte », et
+     * l'onglet « Plus » porte le point de la planche. C'est le seul fait que 17.7
+     * autorise à remonter jusqu'à la barre.
+     */
+    const pinToDefine = Boolean(currentUser && !currentUser.pin);
     const moreButtonRef = useRef<HTMLButtonElement | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-    const moreSections: MoreRow[] = useMemo(() => {
-        const rows: MoreRow[] = [];
-        const push = (id: DestinationId) =>
-            rows.push({
-                id,
-                destination: id,
-                label: DESTINATIONS[id].label,
-                glyph: MORE_GLYPHS[id],
-                onSelect: () => onViewChange(id),
-            });
+    /**
+     * **Trois groupes nommés par ce qu'on y fait** (17.7, passe du 05/09) : les
+     * référentiels, le suivi, l'administration — et « Mon compte » ferme la liste. Un
+     * groupe vide ne s'affiche pas ; un porteur n'y voit que la dernière rangée.
+     *
+     * *Historique* (18.1) manque à « Suivi » : la page n'existe pas encore, et une
+     * rangée qui ne mène nulle part est pire qu'une rangée absente. Elle s'ajoute avec
+     * l'écran, pas avant.
+     */
+    const moreGroups: MoreGroup[] = useMemo(() => {
+        const row = (id: DestinationId): MoreRow => ({
+            id,
+            destination: id,
+            label: DESTINATIONS[id].label,
+            glyph: MORE_GLYPHS[id],
+            onSelect: () => onViewChange(id),
+        });
 
-        if (permissions.canViewFinance) push('finance');
-        if (permissions.canManageInventory) push('management');
-        if (permissions.canViewLocations) push('locations');
-        if (permissions.canViewAudit) push('audit');
-        if (permissions.canViewReports) push('reports');
+        const referentiels: MoreRow[] = [];
+        if (permissions.canManageInventory) referentiels.push(row('management'));
+        if (permissions.canViewLocations) referentiels.push(row('locations'));
+
+        const suivi: MoreRow[] = [];
+        if (permissions.canViewAudit) suivi.push(row('audit'));
+        if (permissions.canViewFinance) suivi.push(row('finance'));
+        if (permissions.canViewReports) suivi.push(row('reports'));
+
+        const administration: MoreRow[] = [];
         // `canManageRbac` n'existe pas dans le jeu de permissions : la rangée
         // « Rôles & accès » ne s'affichait donc JAMAIS. Administrer les rôles est un
         // acte d'administration système — c'est `canManageSystem` qui le garde.
-        if (permissions.canManageSystem) push('rbac');
+        if (permissions.canManageSystem) administration.push(row('rbac'));
+        if (permissions.canManageSystem) administration.push(row('settings'));
+        administration.push({
+            id: 'account',
+            label: 'Mon compte',
+            glyph: LockKey,
+            fact: pinToDefine ? { text: 'code PIN à définir', warn: true } : undefined,
+            onSelect: () => navigate('/settings/account'),
+        });
 
-        return rows;
+        return [
+            { label: 'Référentiels', rows: referentiels },
+            { label: 'Suivi', rows: suivi },
+            { label: 'Administration', rows: administration },
+        ].filter((group) => group.rows.length > 0);
     }, [
+        navigate,
         onViewChange,
+        pinToDefine,
         permissions.canManageInventory,
         permissions.canManageSystem,
         permissions.canViewAudit,
@@ -271,18 +346,6 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         permissions.canViewLocations,
         permissions.canViewReports,
     ]);
-
-    /** Derrière un filet : Paramètres n'est pas un domaine du parc. */
-    const moreSettings: MoreRow = useMemo(
-        () => ({
-            id: 'settings',
-            destination: 'settings',
-            label: DESTINATIONS.settings.label,
-            glyph: MORE_GLYPHS.settings,
-            onSelect: () => onViewChange('settings'),
-        }),
-        [onViewChange],
-    );
 
     const currentSection = MORE_SECTION_OF_VIEW[currentView];
 
@@ -318,6 +381,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 id: 'tasks',
                 glyph: CheckCircle,
                 label: getDestinationShortLabel('tasks'),
+                badge: pendingCount > 0 ? pendingCount : undefined,
                 onSelect: () => {
                     setIsMenuOpen(false);
                     onViewChange('tasks');
@@ -349,6 +413,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 setIsMenuOpen((prev) => !prev);
             },
             ariaLabel: onMoreClick ? 'Ouvrir le menu' : 'Plus',
+            dot: pinToDefine,
         });
 
         return items.slice(0, 5).map((item) => ({
@@ -359,6 +424,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         currentView,
         onMoreClick,
         onViewChange,
+        pendingCount,
+        pinToDefine,
         permissions.canViewApprovals,
         permissions.canViewInventory,
         permissions.canViewUsers,
@@ -442,7 +509,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             */}
             {isMenuOpen && (
                 <div
-                    className="animate-in fade-in fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 bg-[rgba(10,25,29,0.42)] duration-150"
+                    className="animate-in fade-in fixed inset-x-0 top-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-40 bg-[rgba(10,25,29,0.42)] duration-150"
                     onClick={() => setIsMenuOpen(false)}
                     aria-hidden="true"
                 />
@@ -455,39 +522,30 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                     role="menu"
                     aria-orientation="vertical"
                     aria-label="Autres sections"
-                    className="animate-in slide-in-from-bottom bg-surface fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-50 flex max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] flex-col overflow-y-auto rounded-t-lg pb-2 shadow-[0_-10px_30px_rgba(10,25,29,0.20)] duration-200"
+                    className="animate-in slide-in-from-bottom bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-50 flex max-h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] flex-col overflow-y-auto rounded-t-lg pb-3 shadow-[0_-10px_30px_rgba(10,25,29,0.20)] duration-200"
                 >
                     <span
                         aria-hidden="true"
                         className="bg-outline-variant mx-auto mt-2 mb-0.5 h-1 w-9 shrink-0 rounded-xs"
                     />
 
-                    <div className="flex items-baseline gap-2 px-5 pt-2 pb-2.5">
-                        <h2 className="font-brand text-[20px] leading-[27px] font-semibold tracking-[-0.015em]">
+                    {/* `.sttl` — le titre des feuilles : 22 sur 28, Archivo 600. */}
+                    <div className="px-5 pt-1 pb-1">
+                        <h2 className="font-brand text-[22px] leading-7 font-semibold tracking-[-0.015em]">
                             Plus
                         </h2>
-                        {/*
-                          La clé dit où l'on est quand on y est, et combien il y a à
-                          voir sinon. Elle tombe quand il n'y a aucune section — la
-                          feuille de l'utilisateur final assume d'être courte.
-                        */}
-                        {currentSection && moreSections.some((row) => row.id === currentSection) ? (
-                            <span className="text-body-small text-on-surface-variant">
-                                vous êtes dans {DESTINATIONS[currentSection].label}
-                            </span>
-                        ) : (
-                            moreSections.length > 0 && (
-                                <span className="text-body-small text-on-surface-variant tabular-nums">
-                                    {moreSections.length} sections
-                                </span>
-                            )
-                        )}
                     </div>
 
-                    {moreSections.length > 0 && (
-                        <>
-                            <div className="flex flex-col px-2">
-                                {moreSections.map((row) => (
+                    <div className="flex flex-col gap-4 px-5 pt-3">
+                        {moreGroups.map((group) => (
+                            <div key={group.label ?? 'sans-groupe'} className="flex flex-col">
+                                {/* `.lab` — le nom du groupe, 12 sur 16 en 500. */}
+                                {group.label && moreGroups.length > 1 && (
+                                    <p className="text-on-surface-variant mb-1 text-[12px] leading-4 font-medium">
+                                        {group.label}
+                                    </p>
+                                )}
+                                {group.rows.map((row) => (
                                     <MoreSheetRow
                                         key={row.id}
                                         row={row}
@@ -496,19 +554,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                     />
                                 ))}
                             </div>
-                            <span
-                                aria-hidden="true"
-                                className="bg-outline-variant mx-5 my-2 h-px"
-                            />
-                        </>
-                    )}
-
-                    <div className="flex flex-col px-2">
-                        <MoreSheetRow
-                            row={moreSettings}
-                            here={currentSection === 'settings'}
-                            onDone={() => setIsMenuOpen(false)}
-                        />
+                        ))}
                     </div>
                 </div>
             )}
@@ -518,7 +564,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                 aria-label="Navigation principale"
                 role="navigation"
                 className={cn(
-                    'nav bg-surface flex h-14 min-h-[56px] w-full items-center justify-around border-t border-[var(--tk-color-border-default)] select-none',
+                    /* `.nav` — **64 px**, icône 24, étiquette 12 sur 16 (17.7, passe du
+                       05/09). Elle valait 56 / 24 / 11 : la hauteur d'avant le scan
+                       central retiré, et une étiquette d'un cran sous l'échelle. */
+                    'nav bg-surface flex h-16 min-h-16 w-full items-center justify-around border-t border-[var(--tk-color-border-default)] select-none',
                     !embedded &&
                         'fixed right-0 bottom-0 left-0 z-50 pb-[max(0px,env(safe-area-inset-bottom))]',
                     className,
@@ -541,10 +590,14 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             aria-current={item.active ? 'page' : undefined}
                             aria-expanded={isMore ? isMenuOpen : undefined}
                             aria-haspopup={isMore ? 'menu' : undefined}
-                            aria-label={item.ariaLabel ?? item.label}
+                            aria-label={
+                                item.badge !== undefined
+                                    ? `${item.ariaLabel ?? item.label} — ${item.badge} en attente`
+                                    : (item.ariaLabel ?? item.label)
+                            }
                             title={item.label}
                             className={cn(
-                                'relative flex h-full min-h-[56px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] transition-colors',
+                                'relative flex h-full min-h-16 flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[12px] leading-4 transition-colors',
                                 item.active
                                     ? 'on font-medium text-[var(--tk-color-nav-active)]'
                                     : 'text-on-surface-variant hover:text-on-surface',
@@ -561,6 +614,23 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                 className="flex-none"
                             />
                             <span>{item.label}</span>
+                            {/* `.bd` — le chiffre rouge, 16 px de haut, calé sur le coin
+                                haut-droit du glyphe ; `.dot` quand le fait ne se compte
+                                pas. Le lecteur d'écran l'entend dans le nom du geste. */}
+                            {item.badge !== undefined && (
+                                <span
+                                    aria-hidden="true"
+                                    className="absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[11px] leading-4 font-medium text-white tabular-nums"
+                                >
+                                    {item.badge > 99 ? '99+' : item.badge}
+                                </span>
+                            )}
+                            {item.dot && item.badge === undefined && (
+                                <span
+                                    aria-hidden="true"
+                                    className="absolute top-2.5 left-[calc(50%+8px)] h-2 w-2 rounded-full bg-[var(--tk-color-danger)]"
+                                />
+                            )}
                         </button>
                     );
                 })}

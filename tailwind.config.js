@@ -1,4 +1,15 @@
 /**
+ * **Le produit est tenu en dimension mobile** (arbitrage du 06/09). Doit rester égal à
+ * `MOBILE_ONLY` de `src/constants/breakpoints.ts`, où la décision est expliquée : ici
+ * la couche CSS, là-bas la couche JavaScript. Les deux se remettent à `false` ensemble
+ * le jour où le régime tablette et bureau se porte.
+ */
+const MOBILE_ONLY = true;
+
+/** Une requête qui ne s'applique jamais — les 122 classes de fenêtre deviennent inertes. */
+const JAMAIS = { raw: 'not all' };
+
+/**
  * Pont Tailwind du TRACKER DS.
  *
  * Chaque entrée pointe vers la COUCHE SÉMANTIQUE `--tk-*` (index.css, tier 2) —
@@ -19,13 +30,22 @@ module.exports = {
         // Classes de taille de fenêtre — valeurs figées (600/840/1200/1600).
         // Le vocabulaire compact/medium/expanded est CONSERVÉ : décision reportée,
         // 388 usages sur 45 fichiers (DESIGN_SYSTEM.md §8).
-        screens: {
-            'compact': { 'max': '599px' },
-            'medium': '600px',
-            'expanded': '840px',
-            'large': '1200px',
-            'extra-large': '1600px',
-        },
+        screens: MOBILE_ONLY
+            ? {
+                  // `compact:` vaut toujours : c'est le régime dans lequel on est.
+                  'compact': { raw: 'all' },
+                  'medium': JAMAIS,
+                  'expanded': JAMAIS,
+                  'large': JAMAIS,
+                  'extra-large': JAMAIS,
+              }
+            : {
+                  'compact': { 'max': '599px' },
+                  'medium': '600px',
+                  'expanded': '840px',
+                  'large': '1200px',
+                  'extra-large': '1600px',
+              },
         extend: {
 
             /* ---- COULEUR ---- */
@@ -149,6 +169,18 @@ module.exports = {
                 },
                 // Q-V2 — indicateur de focus unifié (opaque)
                 'focus-ring': 'var(--tk-color-focus-ring)',
+                /* Les cinq paires teintées du socle (fond + encre), portées au pont le 06/09 :
+                   jusque-là chaque écran les écrivait en classe arbitraire sur le jeton. */
+                'tint-vert': 'var(--tk-color-tint-vert)',
+                'on-tint-vert': 'var(--tk-color-on-tint-vert)',
+                'tint-bleu': 'var(--tk-color-tint-bleu)',
+                'on-tint-bleu': 'var(--tk-color-on-tint-bleu)',
+                'tint-orange': 'var(--tk-color-tint-orange)',
+                'on-tint-orange': 'var(--tk-color-on-tint-orange)',
+                'tint-ambre': 'var(--tk-color-tint-ambre)',
+                'on-tint-ambre': 'var(--tk-color-on-tint-ambre)',
+                'tint-danger': 'var(--tk-color-tint-danger)',
+                'on-tint-danger': 'var(--tk-color-on-tint-danger)',
                 // Inversés
                 'inverse-surface': 'var(--tk-color-inverse-surface)',
                 'inverse-on-surface': 'var(--tk-color-inverse-on-surface)',
@@ -170,11 +202,11 @@ module.exports = {
                 'adn-line': 'var(--tk-color-border-default-next)',
                 'adn-surface-muted': 'var(--tk-color-surface-muted-next)',
                 'adn-pressed': 'var(--tk-color-pressed-surface)',
-                'adn-danger': 'var(--tk-color-danger-next)',
+                'adn-danger': 'var(--tk-color-danger)',
                 'adn-success': 'var(--tk-color-success-next)',
                 'adn-warning-light': 'var(--tk-color-warning-light-next)',
                 'adn-warning-strong': 'var(--tk-color-warning-strong-next)',
-                'adn-on-brand': 'var(--tk-color-brand-text-next)',
+                'adn-on-brand': 'var(--tk-color-brand-text)',
             },
 
             /* ---- ÉLÉVATION (box-shadow) ---- */

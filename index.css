@@ -1,6 +1,4 @@
 @config './tailwind.config.js';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&display=swap');
 @import 'tailwindcss';
 
 /* ============================================================
@@ -701,7 +699,7 @@ body {
     --tk-color-brand: var(--cat-yellow);
     --tk-color-brand-hover: #e3b40c;
     --tk-color-brand-dark: #b88e09;
-    --tk-color-brand-text: #1a1a1a;
+    --tk-color-brand-text: #1a1917; /* l'encre pleine du socle sur le jaune — bascule du 06/09 */
 
     /* ---- Couleur — fonds et textes du contenu ---- */
     /* BASCULE DE PEAU 2026-08-15 — valeurs des planches (04.1/04.2/00.4). */
@@ -749,7 +747,9 @@ body {
     --tk-color-warning: #e8710a;
     --tk-color-warning-light: #fdebd9;
     --tk-color-warning-strong: #9a3412;
-    --tk-color-danger: #dc2626; /* AA texte et rempli : 4,83:1 (Q-V1) */
+    /* `--danger` du socle des planches (#B3261E, 6,21:1 sur le canevas) — bascule du
+       06/09 : la valeur cible `-next` est reportée ici, les 40 planches la citent. */
+    --tk-color-danger: #b3261e;
     --tk-color-danger-light: #fee2e2;
     --tk-color-danger-strong: #991b1b;
     --tk-color-info: #2563eb; /* AA texte et rempli : 5,17:1 (Q-V1) */
@@ -809,9 +809,9 @@ body {
     --tk-color-inverse-on-surface: #ffffff;
     /* Texte estompé sur surface inversée — rôle absent jusqu'au 08/08, découvert en portant
        la connexion : le bandeau de marque porte une accroche, et rien ne la nommait. Valeur
-       alignée sur la planche 02.1 le 20/08 — #B8B2A9, la valeur que §2.22 déclare pour
-       `.brand p`. Elle valait le neutre 400 (#A8A199), un cran plus froid et plus sourd. */
-    --tk-color-text-on-inverse-muted: #b8b2a9;
+       alignée sur la planche 02.1 : depuis la passe R15 du 04/09, `.brand p` cite
+       `--on-dark-2` du socle (#A9C0C4). Elle valait #B8B2A9, puis le neutre 400. */
+    --tk-color-text-on-inverse-muted: var(--tk-color-on-dark-2);
     --tk-color-outline: var(--tk-color-border-strong);
     --tk-color-outline-variant: var(--tk-color-border-default);
     --tk-color-background: var(--tk-color-app-bg);
@@ -983,13 +983,10 @@ body {
     --tk-color-border-default-next: #f0eee9; /* filets — non-texte */
     --tk-color-surface-muted-next: #efede8; /* fonds neutres (segmented, pressed) */
 
-    /* ---- §1 Couleur — texte sur le jaune de marque ---- */
-    --tk-color-brand-text-next: #1a1917; /* 11,33:1 sur --cat-yellow */
 
     /* ---- §1 Couleur — sémantiques ----
        Le brief ne redéfinit ni le ton médian d'avertissement (--tk-color-warning,
        bordures/icônes) ni les variantes `-light` de danger/succès : conservés. */
-    --tk-color-danger-next: #b3261e; /* 6,21:1 sur canvas (actuel #DC2626 : 4,83:1) */
     --tk-color-success-next: #1b7f4d; /* 4,76:1 sur canvas (actuel #047857 : 5,48:1) */
     --tk-color-warning-light-next: #fef3d6; /* fond ambre */
     --tk-color-warning-strong-next: #7a5a00; /* 5,78:1 sur le fond ambre ci-dessus */
@@ -1042,6 +1039,10 @@ body {
        il affiche `NavigationBar`. Le retour transitoire 17.5 s'en sert pour se poser
        au-dessus de la barre — jamais dessus, et jamais au-dessus d'une barre absente. */
     --tk-size-bottom-bar: 0px;
+    /* Le téléphone des planches — `.phone` : 393 × 852. La dimension du produit sous
+       `MOBILE_ONLY`, à toutes les largeurs de fenêtre. */
+    --tk-size-app-frame: 393px;
+    --tk-size-app-frame-height: 852px;
     --tk-size-fab: 52px;
 
     /* ---- §2 Typographie — cibles du brief ----
@@ -1095,6 +1096,116 @@ body,
 #root {
     background: var(--tk-color-app-bg);
     color: var(--tk-color-text-primary);
+}
+
+/* ============================================================
+   LE PRODUIT EN DIMENSION MOBILE
+   ------------------------------------------------------------
+   Arbitrage du 06/09 : les 28 écrans se dessinent au téléphone, et une fenêtre large
+   montre ce téléphone plutôt qu'une seconde mise en page. La décision et son
+   interrupteur vivent dans `src/constants/breakpoints.ts` (`MOBILE_ONLY`) ; ici, la
+   mise en page.
+
+   `.tk-frame` porte une `transform` : elle devient le bloc conteneur des descendants
+   en `position: fixed`, si bien que la barre du bas, le bouton d'ajout et les feuilles
+   se calent sur la colonne. `.tk-frame-scroll` fait défiler les pages à l'intérieur,
+   parce qu'un élément fixe dont le bloc conteneur défile défilerait avec lui.
+
+   Sous 600 px, les deux classes ne déclarent rien : la fenêtre est le téléphone.
+   ============================================================ */
+@media (min-width: 600px) {
+    html,
+    body,
+    #root {
+        background: var(--tk-color-login-desktop-canvas);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Les mesures réelles du téléphone des planches — `.phone` y déclare 393 × 852,
+       rayon 8, l'ombre de carte. La hauteur se rabat sur la fenêtre quand celle-ci est
+       plus courte, sinon l'appareil déborderait par le bas. */
+    .tk-frame {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: var(--tk-size-app-frame);
+        height: min(var(--tk-size-app-frame-height), calc(100dvh - 48px));
+        border-radius: var(--tk-radius-lg);
+        overflow: hidden;
+        background: var(--tk-color-app-bg);
+        box-shadow: var(--tk-elevation-2);
+    }
+
+    .tk-frame-scroll {
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    /* **Une hauteur de fenêtre se mesure sur l'appareil, pas sur l'écran.** Les pages
+       qui occupent la hauteur le demandent en unités de fenêtre (`dvh`, `screen`), et
+       celles-ci comptent l'écran réel : dans un appareil de 852 posé sur une fenêtre de
+       900, la page réclamait 900 et l'appareil se mettait à défiler de 48 px, sans que
+       rien ne dépasse vraiment. Ces règles vivent hors couche, donc elles l'emportent
+       sur les utilitaires — c'est ici le comportement voulu, et le seul endroit du
+       produit qui connaît la hauteur de l'appareil. */
+    .tk-frame-scroll .min-h-dvh,
+    .tk-frame-scroll .min-h-screen {
+        min-height: 100%;
+    }
+
+    .tk-frame-scroll .h-dvh,
+    .tk-frame-scroll .h-screen {
+        height: 100%;
+    }
+
+    /* **Un téléphone ne montre pas d'ascenseur.** Le produit masque déjà les siens sous
+       1 024 px et au pointeur grossier, mais une fenêtre large avec une souris tombe
+       hors de ces deux conditions : l'appareil affichait alors la barre grise du
+       bureau contre son bord droit, ce qu'aucun téléphone ne fait. Le contenu défile
+       toujours, il ne le raconte simplement plus. */
+    .tk-frame,
+    .tk-frame * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .tk-frame::-webkit-scrollbar,
+    .tk-frame *::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+/* ============================================================
+   LE REMPLISSAGE AUTOMATIQUE DU NAVIGATEUR
+   ------------------------------------------------------------
+   Une valeur posée par le gestionnaire de mots de passe est rendue par Chrome avec
+   **son propre style**, pas celui de la page : fond bleu pâle, et une police de
+   contrôle de formulaire — soit environ 13 px là où le champ en déclare 16. Le texte
+   paraît donc plus petit que ce qu'on tape, et il reprend sa taille dès qu'on touche
+   le champ, quand les styles de la page l'emportent enfin.
+
+   Ces quatre déclarations rendent la valeur remplie identique à une valeur saisie :
+   la police et la taille du champ, l'encre du produit, et le fond de la surface posé
+   en ombre intérieure — c'est le seul moyen de recouvrir le fond imposé. La très
+   longue transition neutralise l'animation d'apparition de ce fond.
+   ============================================================ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    -webkit-text-fill-color: var(--tk-color-text-primary);
+    caret-color: var(--tk-color-text-primary);
+    -webkit-box-shadow: 0 0 0 1000px var(--tk-color-surface) inset;
+    box-shadow: 0 0 0 1000px var(--tk-color-surface) inset;
+    transition: background-color 100000s ease-in-out 0s;
 }
 
 /* ---- Masquage des barres de défilement sur mobile et tactile (feeling app native) ---- */

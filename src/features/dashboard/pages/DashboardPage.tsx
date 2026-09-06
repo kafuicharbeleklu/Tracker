@@ -4,13 +4,10 @@ import {
     ArrowUUpLeft,
     CaretRight,
     Check,
-    Clock,
     ClockCounterClockwise,
     Handshake,
-    Laptop,
     Package,
     Plus,
-    UserCheck,
     Wrench,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
@@ -19,26 +16,24 @@ import { EventType, ViewType } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
-import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useHistory } from '../../../hooks/useHistory';
+import { usePendingTasks, daysSince, type PendingTask } from '../../../hooks/usePendingTasks';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import TintedTile, { TintedTileRow } from '../../../components/ui/TintedTile';
+import Figure from '../../../components/ui/Figure';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
-import SecurityGate from '../../../components/security/SecurityGate';
+import heroImage from '../../../assets/dashboard-hero.webp';
 
 import { APP_CONFIG } from '../../../config';
 import { getCategoryLabel } from '../../../constants/glossary';
-import { calculateLinearDepreciation, formatDate } from '../../../lib/financial';
+import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
 import {
     ACTIVE_APPROVAL_STATUSES,
-    canUserActOnApproval,
     getHistoryEventSentence,
     getStatusLabel,
 } from '../../../lib/businessRules';
-import { Approval } from '../../../types';
 import { cn } from '../../../lib/utils';
 
 /**
@@ -155,34 +150,7 @@ interface DashboardPageProps {
     onNavigate?: (path: string) => void;
 }
 
-type DashboardTask =
-    | {
-          id: string;
-          status: Approval['status'];
-          who: string;
-          what: string;
-          kind: 'validation' | 'receipt';
-          /** ISO de l'ouverture de l'attente — la source de `.age`. */
-          since?: string;
-      }
-    | {
-          id: string;
-          who: string;
-          what: string;
-          kind: 'return';
-          since?: string;
-      };
-
 const TODO_SATURATION_THRESHOLD = 250;
-const DAY_MS = 86_400_000;
-
-/** Le nombre de jours d'attente, ou `null` quand la source ne porte pas de date. */
-const daysSince = (iso?: string): number | null => {
-    if (!iso) return null;
-    const at = new Date(iso).getTime();
-    if (Number.isNaN(at)) return null;
-    return Math.max(0, Math.floor((Date.now() - at) / DAY_MS));
-};
 
 /** `.age` de la planche — « 6 j », et « auj. » plutôt que « 0 j ». */
 const formatAge = (days: number | null): string | null => {
@@ -199,7 +167,7 @@ const formatAge = (days: number | null): string | null => {
  * sur le jeton, parce qu'aucune valeur brute ne vit hors du fichier de jetons — et le
  * garde-fou `ds:check` lit aussi les commentaires, donc elle ne s'y cite pas non plus.
  */
-const TASK_VIGNETTE: Record<DashboardTask['kind'], React.CSSProperties> = {
+const TASK_VIGNETTE: Record<PendingTask['kind'], React.CSSProperties> = {
     validation: {
         backgroundColor: 'color-mix(in srgb, var(--tk-color-live-bleu) 28%, transparent)',
         color: 'color-mix(in srgb, var(--tk-color-live-bleu) 30%, white)',
@@ -213,6 +181,36 @@ const TASK_VIGNETTE: Record<DashboardTask['kind'], React.CSSProperties> = {
         color: 'color-mix(in srgb, var(--tk-color-live-orange) 22%, white)',
     },
 };
+
+/**
+ * `.hero` — la passe du 05/09 rend au bloc « À traiter » son image de cartouche, sous
+ * un voile qui va de 76 % à 92 % du bleu-noir : l'image se devine, elle ne se lit pas.
+ * Le voile se compose sur le jeton inversé, sans valeur brute.
+ */
+const HERO_STYLE: React.CSSProperties = {
+    backgroundColor: 'var(--tk-color-inverse-surface)',
+    backgroundImage: `url(${heroImage})`,
+    backgroundPosition: 'center 42%',
+    backgroundSize: 'cover',
+    backgroundRepeat: 'no-repeat',
+};
+const HERO_VEIL_STYLE: React.CSSProperties = {
+    backgroundImage:
+        'linear-gradient(180deg, color-mix(in srgb, var(--tk-color-inverse-surface) 76%, transparent) 0%, color-mix(in srgb, var(--tk-color-inverse-surface) 90%, transparent) 62%, color-mix(in srgb, var(--tk-color-inverse-surface) 92%, transparent) 100%)',
+};
+
+/** Les trois états que « Le parc » compte, dans l'ordre de la barre et des compteurs. */
+const FLEET_STATES: readonly {
+    key: 'assigned' | 'available' | 'repair';
+    status: string;
+    label: string;
+    tone: 'bleu' | 'vert' | 'orange';
+    color: string;
+}[] = [
+    { key: 'assigned', status: 'Attribué', label: 'attribués', tone: 'bleu', color: 'var(--tk-color-st-bleu)' },
+    { key: 'available', status: 'Disponible', label: 'disponibles', tone: 'vert', color: 'var(--tk-color-st-vert)' },
+    { key: 'repair', status: 'En réparation', label: 'en réparation', tone: 'orange', color: 'var(--tk-color-st-orange)' },
+];
 
 /** `.vmot` — la pastille ronde de 48 du régime vide, `rgba(122,185,85,.22)`. */
 const EMPTY_MOTIF_STYLE: React.CSSProperties = {
@@ -243,20 +241,23 @@ const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
 }) => <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>;
 
 /**
- * `.card` — 20 px d'intérieur, rayon 8. Son en-tête `.ch` ne porte **qu'un titre**
- * (17 px / 500 / 24) et, à droite, une mention de 12 px. L'icône que le code posait
- * devant chaque titre n'existe nulle part dans la planche.
+ * `.card` — **16 px d'intérieur** (passe du 05/09, alignée sur 09/10/16), rayon 8. Son
+ * en-tête `.ch` ne porte **qu'un titre** (17 px / 500 / 24) et, à droite, une mention
+ * de 14 / 20 en encre secondaire ; 8 px sous lui. L'icône que le code posait devant
+ * chaque titre n'existe nulle part dans la planche.
  */
 const Card: React.FC<{
     title: string;
     meta?: React.ReactNode;
     children: React.ReactNode;
 }> = ({ title, meta, children }) => (
-    <section className="rounded-card bg-surface p-5">
-        <div className="mb-1.5 flex items-center justify-between gap-2.5">
-            <h3 className="text-on-surface text-[17px] leading-6 font-medium">{title}</h3>
+    <section className="rounded-card bg-surface p-4">
+        <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
+            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                {title}
+            </h3>
             {meta && (
-                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4">
+                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5">
                     {meta}
                 </span>
             )}
@@ -371,10 +372,9 @@ const Gauge: React.FC<{
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate }) => {
     const { logout } = useAuth();
-    const { equipment: allEquipment, users, approvals, updateApproval } = useData();
+    const { equipment: allEquipment, users, approvals } = useData();
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
-    const { showToast } = useToast();
     const [isAccountOpen, setIsAccountOpen] = useState(false);
 
     /*
@@ -421,125 +421,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         () => filterEquipment(allEquipment, users),
         [allEquipment, users, filterEquipment],
     );
-    const equipmentById = useMemo(
-        () => new Map(allEquipment.map((item) => [item.id, item])),
-        [allEquipment],
-    );
-
-    // ---- ce qui attend un geste ------------------------------------------------
-    const pendingValidations = useMemo<DashboardTask[]>(() => {
-        if (!currentUser) return [];
-        return approvals
-            .filter(
-                (approval) =>
-                    (approval.status === 'WAITING_MANAGER_APPROVAL' ||
-                        approval.status === 'WAITING_DOTATION_APPROVAL') &&
-                    canUserActOnApproval({
-                        approval,
-                        actorRole: currentUser.role,
-                        actorId: currentUser.id,
-                        users,
-                    }),
-            )
-            .map((approval) => ({
-                id: approval.id,
-                status: approval.status,
-                who: approval.beneficiaryName || '',
-                what:
-                    approval.assignedEquipmentName ||
-                    (approval.assignedEquipmentId
-                        ? equipmentById.get(approval.assignedEquipmentId)?.name
-                        : undefined) ||
-                    approval.equipmentName ||
-                    approval.equipmentCategory ||
-                    '',
-                kind: 'validation' as const,
-                since: approval.createdAt,
-            }));
-    }, [approvals, currentUser, equipmentById, users]);
-
-    const pendingReceipts = useMemo<DashboardTask[]>(() => {
-        if (!currentUser) return [];
-        return approvals
-            .filter(
-                (approval) =>
-                    approval.status === 'PENDING_DELIVERY' &&
-                    canUserActOnApproval({
-                        approval,
-                        actorRole: currentUser.role,
-                        actorId: currentUser.id,
-                        users,
-                    }),
-            )
-            .map((approval) => ({
-                id: approval.id,
-                status: approval.status,
-                who: approval.beneficiaryName || '',
-                what:
-                    approval.assignedEquipmentName ||
-                    (approval.assignedEquipmentId
-                        ? equipmentById.get(approval.assignedEquipmentId)?.name
-                        : undefined) ||
-                    approval.equipmentName ||
-                    approval.equipmentCategory ||
-                    '',
-                kind: 'receipt' as const,
-                since: approval.createdAt,
-            }));
-    }, [approvals, currentUser, equipmentById, users]);
-
-    const pendingReturns = useMemo<DashboardTask[]>(
-        () =>
-            equipment
-                .filter((item) => item.assignmentStatus === 'PENDING_RETURN')
-                .map((item) => ({
-                    id: `return-${item.id}`,
-                    who: item.user?.name || '',
-                    what: item.name || `${getCategoryLabel(item.type)} (${item.assetId})`,
-                    kind: 'return',
-                    since: item.returnRequestedAt,
-                })),
-        [equipment],
-    );
-
-    const todo = useMemo(
-        () => [...pendingValidations, ...pendingReceipts, ...pendingReturns],
-        [pendingValidations, pendingReceipts, pendingReturns],
-    );
-
-    /**
-     * `.bigl` du régime saturé — « la plus ancienne depuis 14 jours ». La donnée est
-     * dans `Approval.createdAt` et `Equipment.returnRequestedAt` : la note du 20/08 la
-     * disait absente du modèle, c'était un relevé faux.
-     */
-    const oldestWait = useMemo(() => {
-        const ages = todo
-            .map((entry) => daysSince(entry.since))
-            .filter((d): d is number => d !== null);
-        return ages.length > 0 ? Math.max(...ages) : null;
-    }, [todo]);
-
-    const todoBreakdown = useMemo(
-        () =>
-            [
-                {
-                    label: 'validations',
-                    count: pendingValidations.length,
-                    nature: 'validation' as const,
-                },
-                {
-                    label: 'réceptions à confirmer',
-                    count: pendingReceipts.length,
-                    nature: 'reception' as const,
-                },
-                {
-                    label: 'retours à réceptionner',
-                    count: pendingReturns.length,
-                    nature: 'retour' as const,
-                },
-            ].filter((item) => item.count > 0),
-        [pendingValidations.length, pendingReceipts.length, pendingReturns.length],
-    );
+    /*
+      Ce qui attend un geste vient du hook partagé : l'accueil, la barre du bas et la
+      barre latérale doivent annoncer **le même nombre**. Il vivait ici, et la barre
+      latérale en tenait un second, compté sur les noms des personnes.
+    */
+    const {
+        tasks: todo,
+        oldestWaitDays: oldestWait,
+        breakdown: todoBreakdown,
+    } = usePendingTasks();
 
     const openTasks = () => onViewChange('tasks');
 
@@ -681,35 +572,24 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         [myEquipment, approvals, currentUser],
     );
 
-    // ---- les actes -------------------------------------------------------------
-    const confirmReceipt = (approvalId: string): boolean => {
-        const decision = updateApproval(approvalId, 'Completed');
-        if (!decision.allowed) {
-            showToast(decision.reason || 'Action non autorisée.', 'error');
-            return false;
-        }
-        showToast('Réception confirmée.', 'success');
-        return true;
-    };
-
     /**
-     * L'accueil porte **le oui d'un tap**, rien d'autre : le non se prend dans la file,
-     * où il exige un motif et un code (planches 03.1 et 03.3). La branche de refus de
-     * cette fonction n'a jamais été appelée par aucun écran ; elle est retirée plutôt
-     * que branchée ici, sinon l'accueil offrirait un refus sans motif. Lot 5, T4.
+     * **Le renouvellement** — la conséquence que « État du parc » pose sous la fin de
+     * vie comptable : la ligne du budget qui le porte, et ce qu'il en reste. La ligne
+     * se reconnaît à son nom (matériel, renouvellement, équipement) ; à défaut, c'est
+     * la plus dotée de l'exercice. Sans budget, la phrase n'existe pas.
      */
-    const validate = (approvalId: string, status: Approval['status']): boolean => {
-        const next: Approval['status'] =
-            status === 'WAITING_DOTATION_APPROVAL' ? 'PENDING_DELIVERY' : 'WAITING_IT_PROCESSING';
-
-        const decision = updateApproval(approvalId, next);
-        if (!decision.allowed) {
-            showToast(decision.reason || 'Action non autorisée.', 'error');
-            return false;
-        }
-        showToast('Demande validée.', 'success');
-        return true;
-    };
+    const renewal = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const currentBudget =
+            financeBudgets.find((b) => b.year === currentYear) || financeBudgets[0];
+        if (!currentBudget || currentBudget.items.length === 0) return null;
+        const named = currentBudget.items.find((item) =>
+            /renouvel|mat[ée]riel|[ée]quipement|hardware/i.test(item.category),
+        );
+        const line =
+            named ?? [...currentBudget.items].sort((a, b) => b.allocated - a.allocated)[0];
+        return { category: line.category, remaining: line.allocated - (line.spent || 0) };
+    }, [financeBudgets]);
 
     const openFleet = (status: string) =>
         onNavigate?.(`/inventory/filter/${encodeURIComponent(status)}`);
@@ -912,19 +792,24 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 </Reading>
 
                 {/*
-                  `.hero` — la zone bornée : un aplat de noir inversé, 20 px d'intérieur,
-                  et sa forme suit le volume. Ni image ni voile : la planche pose
-                  un aplat sombre, et l'image d'ambiance que le code y mettait
-                  n'avait plus d'autre fonction que d'être couverte à 90 %.
+                  `.hero` — la zone bornée : le bleu-noir inversé, l'image de cartouche
+                  sous son voile, 20 px d'intérieur, et sa forme suit le volume.
                 */}
                 <Reading>
-                    <section className="rounded-card bg-inverse-surface text-inverse-on-surface p-5">
-                        <div className="flex items-baseline justify-between gap-3">
-                            {/* `.hero h3` — 17 / 400, sans glyphe : la zone se nomme, elle
-                                ne s'illustre pas. */}
-                            <h3 className="text-[17px] leading-6">À traiter</h3>
-                            {todo.length > 0 && !isTodoSaturated && rest === 0 && (
-                                <span className="text-on-nav-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
+                    <section
+                        className="rounded-card text-inverse-on-surface relative isolate overflow-hidden p-5"
+                        style={HERO_STYLE}
+                    >
+                        <div className="absolute inset-0 -z-10" style={HERO_VEIL_STYLE} aria-hidden="true" />
+                        <div className="flex min-h-6 items-center justify-between gap-3">
+                            {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
+                                elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
+                                quelque chose à traiter. */}
+                            <h3 className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                À traiter
+                            </h3>
+                            {todo.length > 0 && (
+                                <span className="shrink-0 text-[14px] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
                                     {todo.length}
                                 </span>
                             )}
@@ -942,7 +827,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 </span>
                                 <div className="min-w-0">
                                     <p className="text-[17px] leading-6">Vous êtes à jour</p>
-                                    <p className="text-on-nav-surface-variant mt-0.5 text-[12px] leading-4">
+                                    <p className="mt-0.5 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
                                         Rien n’attend votre geste.
                                     </p>
                                 </div>
@@ -954,7 +839,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 <div className="font-brand mt-2 text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
                                     {todo.length}
                                 </div>
-                                <div className="text-on-nav-surface-variant mt-1 text-[12px] leading-4">
+                                <div className="mt-1 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
                                     demandes en attente
                                     {oldestWait !== null &&
                                         ` · la plus ancienne depuis ${oldestWait} jour${oldestWait > 1 ? 's' : ''}`}
@@ -988,14 +873,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <>
                                 {shown.map((entry) => {
                                     const age = formatAge(daysSince(entry.since));
+                                    /* La nature, en un mot : « validation », « réception »,
+                                       « retour » — la sous-ligne d'une file dit la personne
+                                       et la nature, rien d'autre (R15). */
                                     const nature =
                                         entry.kind === 'receipt'
                                             ? 'réception'
                                             : entry.kind === 'return'
                                               ? 'retour'
-                                              : entry.status === 'WAITING_DOTATION_APPROVAL'
-                                                ? 'validation dotation'
-                                                : 'validation manager';
+                                              : 'validation';
                                     const initials = entry.who
                                         .split(' ')
                                         .map((part) => part[0])
@@ -1004,10 +890,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         .join('')
                                         .toUpperCase();
 
+                                    /*
+                                      `.trow` — **une rangée de file ne porte ni verbe ni ⋮**
+                                      (R15) : elle est le sujet, l'objet en titre, la personne
+                                      et la nature en sous-ligne, l'âge à droite en 12
+                                      tabulaire, sans chevron ; son tap ouvre la file, où le
+                                      verbe ouvre la feuille d'acte. Les boutons « Valider »,
+                                      « Confirmer », « Réceptionner » que l'accueil portait
+                                      passaient par le pavé administrateur : ils partent.
+                                    */
                                     return (
-                                        <div
+                                        <Button
                                             key={entry.id}
-                                            className="flex min-h-[68px] items-center gap-4 border-t border-white/[0.14] py-3 first-of-type:mt-2"
+                                            variant="text"
+                                            layout="card"
+                                            onClick={openTasks}
+                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-[68px] w-full items-center gap-4 rounded-none border-t border-white/[0.14] px-0 py-3 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
                                         >
                                             {/* `.vig` — initiales quand une personne est
                                                 nommée, le glyphe de l'objet sinon ; la teinte
@@ -1022,77 +920,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     <Icon glyph={Package} size={20} />
                                                 )}
                                             </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-[17px] leading-6 tracking-[-0.01em]">
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-[17px] leading-6 tracking-[-0.01em]">
                                                     {entry.what}
-                                                </p>
-                                                {/*
-                                                  `.tt .s` — 14 / 20, la demi-marche `--t35`.
-                                                  **L'attente y est jointe** plutôt que posée en
-                                                  colonne : la planche loge `.age` à droite parce
-                                                  que ses rangées de démonstration n'y portent
-                                                  aucun geste, et à 393 px la colonne d'action et
-                                                  celle de l'attente ne tiennent pas ensemble —
-                                                  elles laisseraient 89 px au nom de l'objet, qui
-                                                  est ce que la rangée est venue dire.
-                                                */}
-                                                <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
-                                                    {[entry.who, nature, age]
-                                                        .filter(Boolean)
-                                                        .join(' · ')}
-                                                </p>
-                                            </div>
-                                            {entry.kind === 'receipt' ? (
-                                                <SecurityGate
-                                                    onVerified={() => confirmReceipt(entry.id)}
-                                                    title="Confirmer la réception"
-                                                    description="Confirmez-vous avoir bien reçu cet équipement ?"
-                                                    entityId={entry.id}
-                                                    entityName={entry.what}
-                                                    trigger={
-                                                        <Button
-                                                            variant="text"
-                                                            size="sm"
-                                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
-                                                        >
-                                                            Confirmer
-                                                        </Button>
-                                                    }
-                                                />
-                                            ) : entry.kind === 'return' ? (
-                                                <Button
-                                                    variant="text"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        onNavigate?.(
-                                                            `/wizards/return?equipmentId=${encodeURIComponent(entry.id.replace(/^return-/, ''))}`,
-                                                        )
-                                                    }
-                                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
-                                                >
-                                                    Réceptionner
-                                                </Button>
-                                            ) : (
-                                                <SecurityGate
-                                                    onVerified={() =>
-                                                        validate(entry.id, entry.status)
-                                                    }
-                                                    title="Valider la demande"
-                                                    description="Confirmer cette action."
-                                                    entityId={entry.id}
-                                                    entityName={entry.what}
-                                                    trigger={
-                                                        <Button
-                                                            variant="text"
-                                                            size="sm"
-                                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary h-10 shrink-0 !rounded-[4px] bg-white/[0.14] px-3.5 text-[15px] font-medium hover:bg-white/20"
-                                                        >
-                                                            Valider
-                                                        </Button>
-                                                    }
-                                                />
+                                                </span>
+                                                <span className="mt-0.5 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                                    {[entry.who, nature].filter(Boolean).join(' · ')}
+                                                </span>
+                                            </span>
+                                            {age && (
+                                                <span className="mt-1 shrink-0 self-start text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                                    {age}
+                                                </span>
                                             )}
-                                        </div>
+                                        </Button>
                                     );
                                 })}
 
@@ -1110,65 +951,79 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 </Reading>
 
                 {/*
-                  État — `.qual` : les compteurs du parc sont des tuiles teintées, **une
-                  teinte par nature de chiffre**. Bleu ce qui est entre des mains, vert ce
-                  qui est disponible, orange ce qui est immobilisé, neutre le total — un
-                  total n'est pas un état, il ne se peint pas.
+                  État — `.parc` (passe du 05/09) : le parc en **une carte**, le total en
+                  tête, une barre à trois états, trois compteurs avec leur pastille carrée.
+                  Les tuiles teintées du 02/09 disaient la même chose en quatre boîtes.
+                  Chaque compteur mène à la liste, filtrée.
                 */}
                 <Reading>
-                    <TintedTileRow>
-                        {isManager ? (
-                            <>
-                                <TintedTile
-                                    tone="bleu"
-                                    glyph={UserCheck}
-                                    value={counts.assigned}
-                                    label="attribués"
-                                    onClick={() => openFleet('Attribué')}
-                                />
-                                <TintedTile
-                                    tone="vert"
-                                    glyph={Check}
-                                    value={counts.available}
-                                    label="disponibles"
-                                    onClick={() => openFleet('Disponible')}
-                                />
-                                <TintedTile
-                                    tone="orange"
-                                    glyph={Wrench}
-                                    value={counts.repair}
-                                    label="en réparation"
-                                    onClick={() => openFleet('En réparation')}
-                                />
-                                {/* Le total n'est pas un état : il prend le ton `neutre`,
-                                    surface pleine et encre normale (planche 03.1). */}
-                                <TintedTile
-                                    tone="neutre"
-                                    glyph={Package}
+                    {isManager ? (
+                        <section className="rounded-card bg-surface p-4">
+                            <div className="flex items-baseline justify-between gap-3">
+                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                    Le parc
+                                </h3>
+                                <Figure
+                                    layout="inline"
                                     value={counts.total}
-                                    label="actifs au parc"
+                                    label="actifs"
                                     onClick={() => openFleet('')}
+                                    aria-label={`${counts.total} actifs, voir la liste`}
+                                    className="shrink-0"
                                 />
-                            </>
-                        ) : (
-                            <>
-                                <TintedTile
-                                    tone="bleu"
-                                    glyph={Laptop}
-                                    value={mine.equipment}
-                                    label="mes équipements"
-                                    onClick={() => openFleet('')}
-                                />
-                                <TintedTile
-                                    tone="ambre"
-                                    glyph={Clock}
-                                    value={mine.requests}
-                                    label="demandes en cours"
-                                    onClick={() => onViewChange('tasks')}
-                                />
-                            </>
-                        )}
-                    </TintedTileRow>
+                            </div>
+                            {/* `.split` — 6 px, rayon 2, 2 px entre les états. */}
+                            <div
+                                className="mt-3.5 flex h-1.5 gap-0.5 overflow-hidden rounded-xs"
+                                role="img"
+                                aria-label={`${counts.assigned} attribués, ${counts.available} disponibles, ${counts.repair} en réparation sur ${counts.total}`}
+                            >
+                                {FLEET_STATES.map((state) => {
+                                    const width =
+                                        counts.total > 0 ? (counts[state.key] / counts.total) * 100 : 0;
+                                    return width > 0 ? (
+                                        <span
+                                            key={state.key}
+                                            className="block h-full"
+                                            style={{ width: `${width}%`, backgroundColor: state.color }}
+                                        />
+                                    ) : null;
+                                })}
+                            </div>
+                            {/* `.qual` — trois colonnes, 22 / 28 en Archivo, le libellé 14 / 20
+                                avec sa pastille de 8. */}
+                            <div className="mt-4 grid grid-cols-3 gap-4">
+                                {FLEET_STATES.map((state) => (
+                                    <Figure
+                                        key={state.key}
+                                        value={counts[state.key]}
+                                        label={state.label}
+                                        tone={state.tone}
+                                        onClick={() => openFleet(state.status)}
+                                    />
+                                ))}
+                            </div>
+                        </section>
+                    ) : (
+                        /* `.qual.two` — deux cartes blanches, chiffre et libellé à pastille :
+                           ce que je détiens (bleu), ce que j'attends (ambre). */
+                        <div className="grid grid-cols-2 gap-4">
+                            <Figure
+                                card
+                                tone="bleu"
+                                value={mine.equipment}
+                                label="mes équipements"
+                                onClick={() => openFleet('')}
+                            />
+                            <Figure
+                                card
+                                tone="ambre"
+                                value={mine.requests}
+                                label="demandes en cours"
+                                onClick={() => onViewChange('tasks')}
+                            />
+                        </div>
+                    )}
                 </Reading>
 
                 {/* Analyse — ce qui décide, pas ce qui décrit. */}
@@ -1224,6 +1079,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0
                                     }
                                     fill="bg-[var(--tk-color-st-orange)]"
+                                    note={
+                                        renewal ? (
+                                            <>
+                                                Renouvellement sur « {renewal.category} »,{' '}
+                                                <span className="text-on-surface">
+                                                    {new Intl.NumberFormat('fr-FR').format(
+                                                        renewal.remaining,
+                                                    )}{' '}
+                                                    XOF
+                                                </span>{' '}
+                                                restants.
+                                            </>
+                                        ) : undefined
+                                    }
                                 />
                                 {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
                                 <div className="bg-outline-variant mt-5 h-px" />
@@ -1396,23 +1265,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     })}
                                                 </p>
                                                 <p className="text-on-surface-variant mt-0.5 text-[12px] leading-4 tabular-nums">
-                                                    {formatDate(new Date(event.timestamp))}
+                                                    {formatMoment(event.timestamp)}
                                                 </p>
                                             </div>
                                         </div>
                                     );
                                 })}
-                                <DashboardMoreAction
-                                    label={isManager ? "Tout l'historique" : 'Tout mon historique'}
-                                    destination={isManager ? 'Audit' : 'Mon profil'}
-                                    onClick={() => {
-                                        if (isManager) {
-                                            onViewChange('audit');
-                                        } else if (currentUser?.id) {
-                                            onNavigate?.(`/users/${currentUser.id}`);
-                                        }
-                                    }}
-                                />
+                                {/* « Tout l'historique » mène à la page Historique (18.1) ;
+                                    tant qu'elle n'existe pas, le renvoi n'existe pas non plus —
+                                    un geste mort est pire qu'un manque. Le porteur, lui, a son
+                                    profil. */}
+                                {!isManager && currentUser?.id && (
+                                    <DashboardMoreAction
+                                        label="Tout mon historique"
+                                        destination="Mon profil"
+                                        onClick={() => onNavigate?.(`/users/${currentUser.id}`)}
+                                    />
+                                )}
                             </>
                         ) : (
                             <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">

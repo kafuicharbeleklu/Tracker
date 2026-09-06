@@ -194,6 +194,18 @@ export interface User {
     rbacDataScopeOverrides?: ScopeConstraint[];
 }
 
+/**
+ * Ce que vaut un lien d'invitation, hors session — planche 02.2, « les quatre cas qui
+ * cassent une arrivée ». Aucune issue ne dit si l'adresse a un compte : un jeton
+ * inconnu ne se distingue pas d'un jeton périmé.
+ */
+export type InvitationResolution =
+    | { state: 'valid'; user: User }
+    | { state: 'expired' }
+    | { state: 'used' }
+    | { state: 'unavailable' }
+    | { state: 'unknown' };
+
 // SharePoint List Schema
 export interface AppUser {
     id: string; // SharePoint ID

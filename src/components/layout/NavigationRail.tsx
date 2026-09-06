@@ -5,6 +5,7 @@ import IconButton from '../ui/IconButton';
 import NavButton from '../ui/NavButton';
 import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { usePendingTasks } from '../../hooks/usePendingTasks';
 import { DESTINATIONS, getDestinationShortLabel } from '../../constants/destinations';
 
 interface NavigationRailProps {
@@ -21,6 +22,8 @@ interface RailItemProps {
     label: string;
     active: boolean;
     compact?: boolean;
+    /** Le chiffre rouge de Tâches — *« mêmes entrées, mêmes badges »* que la barre (17.7). */
+    badge?: number;
     onClick: () => void;
     onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
     tabIndex: number;
@@ -28,7 +31,7 @@ interface RailItemProps {
 
 const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
     (
-        { destinationId, icon, label, active, compact = false, onClick, onKeyDown, tabIndex },
+        { destinationId, icon, label, active, compact = false, badge, onClick, onKeyDown, tabIndex },
         ref,
     ) => (
         <NavButton
@@ -40,12 +43,13 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
             onKeyDown={onKeyDown}
             tabIndex={tabIndex}
             aria-current={active ? 'page' : undefined}
-            aria-label={label}
+            aria-label={badge !== undefined ? `${label} — ${badge} en attente` : label}
             aria-describedby={compact ? undefined : `rail-label-${destinationId}`}
             title={label}
         >
             <span
                 className={cn(
+                    'relative',
                     compact
                         ? 'inline-flex h-7 w-full items-center justify-center rounded-lg'
                         : 'inline-flex h-8 w-full items-center justify-center rounded-lg',
@@ -53,6 +57,14 @@ const RailItem = React.forwardRef<HTMLButtonElement, RailItemProps>(
                 )}
             >
                 <MaterialIcon name={icon} size={24} filled={active} />
+                {badge !== undefined && (
+                    <span
+                        aria-hidden="true"
+                        className="absolute top-1 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[11px] leading-4 font-medium text-white tabular-nums"
+                    >
+                        {badge > 99 ? '99+' : badge}
+                    </span>
+                )}
             </span>
             <span
                 id={`rail-label-${destinationId}`}
@@ -81,6 +93,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
     className,
 }) => {
     const { permissions } = useAccessControl();
+    const { count: pendingCount } = usePendingTasks();
     const destinationRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     const allRailItems = [
@@ -112,6 +125,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                       id: 'tasks' as ViewType,
                       icon: DESTINATIONS.tasks.icon,
                       label: getDestinationShortLabel('tasks'),
+                      badge: pendingCount > 0 ? pendingCount : undefined,
                   },
               ]
             : []),
@@ -182,7 +196,10 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
             className={cn(
                 compact
                     ? 'h-full w-16 border-r border-white/[0.03] bg-[var(--color-sidebar-bg)]'
-                    : 'h-full w-[76px] border-r border-white/[0.03] bg-[var(--color-sidebar-bg)]',
+                      /* 80 px — la mesure que 17.7 déclare pour le rail, et que la
+                         documentation de ce composant énonçait déjà ; la classe en
+                         portait 76. */
+                    : 'h-full w-20 border-r border-white/[0.03] bg-[var(--color-sidebar-bg)]',
                 compact
                     ? 'flex flex-col items-center justify-between py-2'
                     : 'flex flex-col items-center justify-between py-3',
@@ -216,6 +233,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                             icon={item.icon}
                             label={item.label}
                             active={item.active}
+                            badge={'badge' in item ? item.badge : undefined}
                             compact={compact}
                             onClick={item.onSelect}
                             onKeyDown={(event) => handleRailKeyDown(index, event)}

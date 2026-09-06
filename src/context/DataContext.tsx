@@ -1,3 +1,4 @@
+import { isValidPinFormat } from '../lib/security';
 import React, {
     createContext,
     useContext,
@@ -28,6 +29,7 @@ import {
     IncidentOutcome,
     RetirementReason,
     RETIREMENT_REASON_LABELS,
+    InvitationResolution,
 } from '../types';
 import {
     mockAllUsersExtended,
@@ -42,6 +44,13 @@ import {
 import { CATEGORY_ICONS } from '../constants/categoryIcons';
 import { useAuth } from './AuthContext';
 import { getPersistedValue } from '../lib/persistence';
+import { firestore } from '../lib/firebase';
+import {
+    loadCollectionDocs,
+    loadSingleDoc,
+    saveCollectionDocs,
+    saveSingleDoc,
+} from '../lib/firestorePersistence';
 import { DEMO_RESEED_DISABLED } from '../lib/demoSeed';
 import {
     buildRbacAssignmentFromUser,
@@ -98,7 +107,39 @@ interface LocationData {
     services: Record<string, string[]>; // Clé: Site -> Valeur: Liste de services (périmètre d'audit)
 }
 
+type SerializableCategory = Omit<Category, 'icon'>;
+
+const serializeCategory = (category: Category): SerializableCategory => {
+    const { icon: _icon, ...serializable } = category;
+    return serializable;
+};
+
+const deserializeCategory = (
+    category: Partial<Category> & { iconName?: string },
+    seededCategoryFamilies: Record<string, CategoryFamily | undefined>,
+): Category => {
+    const categoryData = (typeof category === 'object' && category !== null
+        ? category
+        : {}) as Partial<Category> & { iconName?: string };
+
+    return {
+        ...categoryData,
+        assignable: categoryData.assignable ?? true,
+        family: categoryData.family ?? seededCategoryFamilies[categoryData.name || ''],
+        icon:
+            CATEGORY_ICONS[categoryData.iconName || 'Laptop'] || CATEGORY_ICONS['Laptop'],
+    } as Category;
+};
+
+const normalizeLocationData = (locationData: Partial<LocationData> | null | undefined): LocationData => ({
+    countries: Array.isArray(locationData?.countries) ? locationData.countries : [],
+    sites: (locationData?.sites ?? {}) as Record<string, string[]>,
+    locals: (locationData?.locals ?? {}) as Record<string, string[]>,
+    services: (locationData?.services ?? {}) as Record<string, string[]>,
+});
+
 interface DataContextType {
+    isHydrating: boolean;
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
@@ -125,6 +166,14 @@ interface DataContextType {
     }) => { decision: BusinessRuleDecision; user?: User };
     /** Refaire le lien et redater l'envoi — le geste « Renvoyer » de la fiche. */
     resendInvitation: (userId: string) => BusinessRuleDecision;
+    /** Ce que vaut un lien d'invitation — 02.2, hors session. */
+    resolveInvitation: (token: string) => InvitationResolution;
+    /** Ouvrir le compte invité : il devient actif, la session peut s'ouvrir. */
+    acceptInvitation: (token: string) => { decision: BusinessRuleDecision; user?: User };
+    /** Un lien périmé en redemande un — même réponse quel que soit le cas. */
+    requestNewInvitation: (token: string) => void;
+    /** Définir son code de remise (02.2 écran 3, 07.1), ou celui d'une personne qu'on gère. */
+    setUserPin: (userId: string, pin: string) => BusinessRuleDecision;
     updateUser: (id: string, updates: Partial<User>) => BusinessRuleDecision;
     deleteUser: (id: string) => BusinessRuleDecision;
     addEquipment: (item: Equipment) => void;
@@ -207,6 +256,7 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 
 const DEFAULT_SETTINGS: AppSettings = {
     currency: 'XOF',
@@ -353,11 +403,29 @@ const inferSiteFromCountry = (country: string): string => {
     return 'Bureau Paris';
 };
 
+/** « Valable 7 jours » — planche 02.2 ; 05.2 l'affiche, 02.2 le vérifie. */
+export const INVITATION_VALIDITY_DAYS = 7;
+
+/**
+ * Le domaine que portaient les comptes de démonstration avant le 06/09. La planche
+ * 02.1 écrit l'adresse d'exemple sur le domaine de **l'entreprise**, pas sur celui de
+ * l'application ; le jeu de démonstration l'a suivie.
+ */
+const LEGACY_DEMO_DOMAIN = '@tracker.app';
+
 const normalizeUserRecord = (persisted: User, seed?: User): User => {
     const merged: User = {
         ...(seed || persisted),
         ...persisted,
     };
+
+    /* Une copie persistée prime sur le seed, y compris pour l'adresse : celles qui
+       portent encore l'ancien domaine reprennent donc celle du seed, sinon un
+       navigateur ayant déjà ouvert l'application garderait indéfiniment des comptes
+       de démonstration que l'écran de connexion n'annonce plus. */
+    if (seed && merged.email?.endsWith(LEGACY_DEMO_DOMAIN)) {
+        merged.email = seed.email;
+    }
     const country = inferCountryFromUser(merged);
     const site = merged.site || seed?.site || inferSiteFromCountry(country);
     const dialingCode = country === 'Sénégal' ? '+221' : country === 'Togo' ? '+228' : '+33';
@@ -721,9 +789,13 @@ const mergePersistedRbacAssignments = (
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
+    const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
 
     // --- SETTINGS ---
     const [settings, setSettings] = useState<AppSettings>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return DEFAULT_SETTINGS;
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.settings.current,
@@ -739,6 +811,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- USERS & EQUIPMENT ---
     const [users, setUsers] = useState<User[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(STORAGE_KEYS.users.current, STORAGE_KEYS.users.legacy);
             if (saved) {
@@ -755,6 +830,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [equipment, setEquipment] = useState<Equipment[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.equipment.current,
@@ -774,6 +852,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [detectedDevices, setDetectedDevices] = useState<DetectedDevice[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.detectedDevices.current,
@@ -796,8 +877,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             Object.fromEntries(mockCategories.map((category) => [category.name, category.family])),
         [],
     );
+    const seededCategoryFamiliesRef = useRef(SEEDED_CATEGORY_FAMILIES);
 
     const [categories, setCategories] = useState<Category[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.categories.current,
@@ -840,6 +925,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- MODELS ---
     const [models, setModels] = useState<Model[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.models.current,
@@ -853,6 +941,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- APPROVALS ---
     const [approvals, setApprovals] = useState<Approval[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.approvals.current,
@@ -873,6 +964,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- HISTORY EVENTS ---
     const [events, setEvents] = useState<HistoryEvent[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.events.current,
@@ -919,6 +1013,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * référentiel.
      */
     const [locationData, setLocationData] = useState<LocationData>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return {
+                countries: [],
+                sites: {},
+                locals: {},
+                services: {},
+            };
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.locations.current,
@@ -946,6 +1048,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- SERVICE MANAGERS (New) ---
     const [serviceManagers, setServiceManagers] = useState<Record<string, string>>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return {};
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.serviceManagers.current,
@@ -966,6 +1071,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [rbacRoles, setRbacRoles] = useState<RbacRole[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.rbacRoles.current,
@@ -982,6 +1090,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [rbacGroups, setRbacGroups] = useState<RbacGroup[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.rbacGroups.current,
@@ -998,6 +1109,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [rbacWorkflows, setRbacWorkflows] = useState<WorkflowDefinition[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.rbacWorkflows.current,
@@ -1014,6 +1128,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const [rbacAssignments, setRbacAssignments] = useState<UserAccessAssignment[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.rbacAssignments.current,
@@ -1032,6 +1149,183 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return mergePersistedRbacAssignments([], users);
         }
     });
+
+    const usersRef = useRef(users);
+    const firebaseHydratedRef = useRef(false);
+
+    useEffect(() => {
+        usersRef.current = users;
+    }, [users]);
+
+    useEffect(() => {
+        if (!FIREBASE_BACKEND_ENABLED) {
+            return;
+        }
+
+        [
+            STORAGE_KEYS.settings.current,
+            STORAGE_KEYS.settings.legacy,
+            STORAGE_KEYS.users.current,
+            STORAGE_KEYS.users.legacy,
+            STORAGE_KEYS.equipment.current,
+            STORAGE_KEYS.equipment.legacy,
+            STORAGE_KEYS.detectedDevices.current,
+            STORAGE_KEYS.detectedDevices.legacy,
+            STORAGE_KEYS.categories.current,
+            STORAGE_KEYS.categories.legacy,
+            STORAGE_KEYS.models.current,
+            STORAGE_KEYS.models.legacy,
+            STORAGE_KEYS.approvals.current,
+            STORAGE_KEYS.approvals.legacy,
+            STORAGE_KEYS.events.current,
+            STORAGE_KEYS.events.legacy,
+            STORAGE_KEYS.locations.current,
+            STORAGE_KEYS.locations.legacy,
+            STORAGE_KEYS.serviceManagers.current,
+            STORAGE_KEYS.serviceManagers.legacy,
+            STORAGE_KEYS.rbacRoles.current,
+            STORAGE_KEYS.rbacRoles.legacy,
+            STORAGE_KEYS.rbacGroups.current,
+            STORAGE_KEYS.rbacGroups.legacy,
+            STORAGE_KEYS.rbacWorkflows.current,
+            STORAGE_KEYS.rbacWorkflows.legacy,
+            STORAGE_KEYS.rbacAssignments.current,
+            STORAGE_KEYS.rbacAssignments.legacy,
+        ].forEach((key) => localStorage.removeItem(key));
+    }, []);
+
+    useEffect(() => {
+        if (!firestore) {
+            firebaseHydratedRef.current = true;
+            setIsHydrating(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const hydrateFromFirebase = async () => {
+            try {
+                const [
+                    firebaseUsers,
+                    firebaseEquipment,
+                    firebaseDetectedDevices,
+                    firebaseCategories,
+                    firebaseModels,
+                    firebaseApprovals,
+                    firebaseEvents,
+                    firebaseSettings,
+                    firebaseLocations,
+                    firebaseServiceManagers,
+                    firebaseRbacRoles,
+                    firebaseRbacGroups,
+                    firebaseRbacWorkflows,
+                    firebaseRbacAssignments,
+                ] = await Promise.all([
+                    loadCollectionDocs<User>(firestore, 'users'),
+                    loadCollectionDocs<Equipment>(firestore, 'equipment'),
+                    loadCollectionDocs<DetectedDevice>(firestore, 'detectedDevices'),
+                    loadCollectionDocs<SerializableCategory>(firestore, 'categories'),
+                    loadCollectionDocs<Model>(firestore, 'models'),
+                    loadCollectionDocs<Approval>(firestore, 'approvals'),
+                    loadCollectionDocs<HistoryEvent>(firestore, 'events'),
+                    loadSingleDoc<AppSettings>(firestore, 'meta', 'settings'),
+                    loadSingleDoc<LocationData>(firestore, 'meta', 'locations'),
+                    loadSingleDoc<Record<string, string>>(firestore, 'meta', 'serviceManagers'),
+                    loadCollectionDocs<RbacRole>(firestore, 'rbacRoles'),
+                    loadCollectionDocs<RbacGroup>(firestore, 'rbacGroups'),
+                    loadCollectionDocs<WorkflowDefinition>(firestore, 'rbacWorkflows'),
+                    loadCollectionDocs<UserAccessAssignment>(firestore, 'rbacAssignments'),
+                ]);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (firebaseUsers.length > 0) {
+                    setUsers(
+                        firebaseUsers.map((user) =>
+                            normalizeUserRecord(user as User, user as User),
+                        ),
+                    );
+                }
+
+                if (firebaseEquipment.length > 0) {
+                    setEquipment(
+                        firebaseEquipment.map((item) =>
+                            normalizeEquipmentRecord(item as Equipment, item as Equipment),
+                        ),
+                    );
+                }
+
+                if (firebaseDetectedDevices.length > 0) {
+                    setDetectedDevices(firebaseDetectedDevices);
+                }
+
+                if (firebaseCategories.length > 0) {
+                    setCategories(
+                        firebaseCategories.map((category) =>
+                            deserializeCategory(category, seededCategoryFamiliesRef.current),
+                        ),
+                    );
+                }
+
+                if (firebaseModels.length > 0) {
+                    setModels(firebaseModels);
+                }
+
+                if (firebaseApprovals.length > 0) {
+                    setApprovals(mergePersistedApprovalsWithSeed(firebaseApprovals));
+                }
+
+                if (firebaseEvents.length > 0) {
+                    setEvents(firebaseEvents);
+                }
+
+                if (firebaseSettings) {
+                    setSettings({ ...DEFAULT_SETTINGS, ...firebaseSettings, currency: 'XOF' });
+                }
+
+                if (firebaseLocations) {
+                    setLocationData(normalizeLocationData(firebaseLocations));
+                }
+
+                if (firebaseServiceManagers) {
+                    setServiceManagers(firebaseServiceManagers);
+                }
+
+                if (firebaseRbacRoles.length > 0) {
+                    setRbacRoles(mergePersistedRbacRoles(firebaseRbacRoles));
+                }
+
+                if (firebaseRbacGroups.length > 0) {
+                    setRbacGroups(mergePersistedRbacGroups(firebaseRbacGroups));
+                }
+
+                if (firebaseRbacWorkflows.length > 0) {
+                    setRbacWorkflows(mergePersistedRbacWorkflows(firebaseRbacWorkflows));
+                }
+
+                if (firebaseRbacAssignments.length > 0) {
+                    const referenceUsers =
+                        firebaseUsers.length > 0 ? firebaseUsers : usersRef.current;
+                    setRbacAssignments(
+                        mergePersistedRbacAssignments(firebaseRbacAssignments, referenceUsers),
+                    );
+                }
+            } catch (error) {
+                console.error('[DataContext] Firebase hydration failed', error);
+            } finally {
+                firebaseHydratedRef.current = true;
+                setIsHydrating(false);
+            }
+        };
+
+        hydrateFromFirebase();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // Save to localStorage
     useEffect(() => {
@@ -1101,6 +1395,134 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [rbacAssignments]);
 
     useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'users', users);
+    }, [users]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'equipment', equipment);
+    }, [equipment]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'detectedDevices', detectedDevices);
+    }, [detectedDevices]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(
+            firestore,
+            'categories',
+            categories.map((category) => serializeCategory(category)),
+        );
+    }, [categories]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'models', models);
+    }, [models]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'approvals', approvals);
+    }, [approvals]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'events', events);
+    }, [events]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveSingleDoc(firestore, 'meta', 'settings', settings);
+    }, [settings]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveSingleDoc(firestore, 'meta', 'locations', locationData);
+    }, [locationData]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveSingleDoc(firestore, 'meta', 'serviceManagers', serviceManagers);
+    }, [serviceManagers]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'rbacRoles', rbacRoles);
+    }, [rbacRoles]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'rbacGroups', rbacGroups);
+    }, [rbacGroups]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'rbacWorkflows', rbacWorkflows);
+    }, [rbacWorkflows]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        /* Une affectation d'accès est nommée par la personne : `UserAccessAssignment`
+           n'a pas de champ `id`. Sans ce troisième argument, l'écriture demandait un
+           document sans nom et Firestore faisait tomber l'application. */
+        void saveCollectionDocs(
+            firestore,
+            'rbacAssignments',
+            rbacAssignments,
+            (assignment: UserAccessAssignment) => assignment.userId,
+        );
+    }, [rbacAssignments]);
+
+    useEffect(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return;
+        }
+
         setRbacAssignments((prev) => mergePersistedRbacAssignments(prev, users));
     }, [users]);
 
@@ -1777,6 +2199,135 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 description: `Invitation refaite pour ${target.email} — le lien précédent ne vaut plus`,
                 isSystem: false,
                 isSensitive: false,
+            });
+            return { allowed: true };
+        },
+        [users, currentUser, logEvent],
+    );
+
+    /**
+     * **Résoudre un lien d'invitation** — planche 02.2, hors session. Le jeton est la
+     * seule clé : personne n'est connecté. Un jeton porté par un compte déjà actif est
+     * *consommé* (arriver sur la connexion est la réponse) ; un jeton inconnu vaut un
+     * jeton périmé ; un compte suspendu entre l'envoi et le clic ne s'ouvre pas, sans
+     * motif — le motif d'une suspension ne se dit pas hors session.
+     */
+    const resolveInvitation = useCallback(
+        (token: string): InvitationResolution => {
+            const clean = token.trim();
+            if (!clean) return { state: 'unknown' };
+            const target = users.find((u) => u.invitationToken === clean);
+            if (!target) return { state: 'unknown' };
+            if (target.status === 'inactive') return { state: 'unavailable' };
+            if (target.status !== 'pending') return { state: 'used' };
+            const invitedAt = target.invitedAt ? new Date(target.invitedAt).getTime() : 0;
+            if (!invitedAt || Date.now() - invitedAt > INVITATION_VALIDITY_DAYS * 86400000)
+                return { state: 'expired' };
+            return { state: 'valid', user: target };
+        },
+        [users],
+    );
+
+    /**
+     * **Ouvrir mon compte** — 02.2, écran 2. Le compte passe en actif ; le jeton reste
+     * sur la fiche pour que le même lien, rouvert, se reconnaisse comme consommé. Le
+     * mot de passe n'est pas conservé : sans serveur, rien ne le vérifie (02.1).
+     */
+    const acceptInvitation = useCallback(
+        (token: string): { decision: BusinessRuleDecision; user?: User } => {
+            const resolution = resolveInvitation(token);
+            if (resolution.state !== 'valid')
+                return { decision: { allowed: false, reason: 'Ce lien ne vaut plus.' } };
+            const accepted: User = {
+                ...resolution.user,
+                status: 'active',
+                mustChangePassword: false,
+                lastLogin: new Date().toISOString(),
+            };
+            setUsers((prev) => prev.map((u) => (u.id === accepted.id ? accepted : u)));
+            logEvent({
+                type: 'UPDATE',
+                actorId: accepted.id,
+                actorName: accepted.name,
+                actorRole: accepted.role,
+                targetType: 'USER',
+                targetId: accepted.id,
+                targetName: accepted.name,
+                description: `Compte ouvert par ${accepted.email} — invitation acceptée`,
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { decision: { allowed: true }, user: accepted };
+        },
+        [resolveInvitation, logEvent],
+    );
+
+    /**
+     * **Demander un nouveau lien** — 02.2, « ce lien a expiré ». La réponse à l'écran
+     * est la même dans tous les cas ; ici, seul un compte encore en attente reçoit un
+     * nouveau jeton, et l'informatique le voit passer dans l'historique.
+     */
+    const requestNewInvitation = useCallback(
+        (token: string): void => {
+            const target = users.find((u) => u.invitationToken === token.trim());
+            if (!target || target.status !== 'pending') return;
+            const now = new Date().toISOString();
+            setUsers((prev) =>
+                prev.map((u) =>
+                    u.id === target.id
+                        ? {
+                              ...u,
+                              invitedAt: now,
+                              invitationToken: `${target.id.slice(-4)}${Math.random().toString(16).slice(2, 10)}`,
+                          }
+                        : u,
+                ),
+            );
+            logEvent({
+                type: 'UPDATE',
+                actorId: target.id,
+                actorName: target.name,
+                actorRole: target.role,
+                targetType: 'USER',
+                targetId: target.id,
+                targetName: target.name,
+                description: `Nouveau lien demandé par ${target.email} — le précédent avait expiré`,
+                isSystem: false,
+                isSensitive: false,
+            });
+        },
+        [users, logEvent],
+    );
+
+    /**
+     * **Définir un code de remise** — 02.2 écran 3 et 07.1 pour soi ; 05.2 pour une
+     * personne qu'on gère. Le format est celui de 06.2 : six chiffres, ni suite ni
+     * chiffre répété. Le code vaut signature (06.2) : le poser est un fait de sécurité,
+     * il se consigne comme tel.
+     */
+    const setUserPin = useCallback(
+        (userId: string, pin: string): BusinessRuleDecision => {
+            const isSelf = currentUser?.id === userId;
+            if (!isSelf) {
+                const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
+                if (!permissionDecision.allowed) return permissionDecision;
+            }
+            if (!isValidPinFormat(pin))
+                return { allowed: false, reason: 'Ni une suite, ni un chiffre répété.' };
+            const target = users.find((u) => u.id === userId);
+            if (!target) return { allowed: false, reason: 'Compte introuvable.' };
+            setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, pin } : u)));
+            logEvent({
+                type: 'SECURITY_STEP_UP',
+                actorId: currentUser?.id || userId,
+                actorName: currentUser?.name || target.name,
+                actorRole: currentUser?.role || target.role,
+                targetType: 'USER',
+                targetId: userId,
+                targetName: target.name,
+                description: isSelf ? 'Code PIN défini' : `Code PIN défini pour ${target.name}`,
+                isSystem: false,
+                isSensitive: true,
             });
             return { allowed: true };
         },
@@ -3388,6 +3939,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const contextValue = useMemo(
         () => ({
             users,
+            isHydrating,
             equipment,
             detectedDevices,
             categories,
@@ -3404,6 +3956,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addUser,
             inviteUser,
             resendInvitation,
+            resolveInvitation,
+            acceptInvitation,
+            requestNewInvitation,
+            setUserPin,
             updateUser,
             deleteUser,
             addEquipment,
@@ -3443,6 +3999,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
         [
             users,
+            isHydrating,
             equipment,
             detectedDevices,
             categories,
@@ -3459,6 +4016,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addUser,
             inviteUser,
             resendInvitation,
+            resolveInvitation,
+            acceptInvitation,
+            requestNewInvitation,
+            setUserPin,
             updateUser,
             deleteUser,
             addEquipment,

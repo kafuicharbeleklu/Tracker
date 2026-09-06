@@ -52,7 +52,12 @@ export const GLOSSARY = {
      donne à l'écran et à son groupe. « Gestion » ne disait pas ce qu'on y gère. */
     MANAGEMENT: 'Catalogue',
     LOCATIONS: 'Emplacements',
-    AUDIT: 'Audit',
+    /* Lexique du 03/09 (R15) : **« Audit » est retiré des écrans.** Le comptage
+       physique du parc s'appelle *inventaire physique* dans une phrase, **Inventaire**
+       en titre, onglet ou chip ; son occurrence reste une *campagne*. Les identifiants
+       du code (`view.audit`, `AuditDetailsPage`) ne bougent pas : un renommage de code
+       est un lot, pas une règle. */
+    AUDIT: 'Inventaire',
     REPORTS: 'Rapports',
     SETTINGS: 'Paramètres',
 

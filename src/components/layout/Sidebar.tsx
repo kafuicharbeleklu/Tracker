@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from '../ui/MaterialIcon';
 import SidebarItem from './SidebarItem';
 import { ViewType } from '../../types';
-import { useAuth } from '../../context/AuthContext';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { usePendingTasks } from '../../hooks/usePendingTasks';
 import { DESTINATIONS } from '../../constants/destinations';
-import { useData } from '../../context/DataContext';
 import Button from '../ui/Button';
 import CloseButton from '../ui/CloseButton';
 import { APP_CONFIG } from '../../config';
@@ -44,9 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     isMobileOpen = false,
     closeMobileMenu,
 }) => {
-    const { currentUser } = useAuth();
     const { permissions } = useAccessControl();
-    const { approvals, users } = useData();
     const drawerRef = useRef<HTMLElement | null>(null);
     const previousFocusedElementRef = useRef<HTMLElement | null>(null);
 
@@ -57,37 +54,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     const showModalDrawer = isModalMode && isMobileOpen;
     const hidePrimary = isModalMode && subtractPrimaryDestinations;
 
-    const role = currentUser?.role;
-
-    const relevantApprovals = useMemo(() => {
-        if (!currentUser) return [];
-
-        if (role === 'User') {
-            return approvals.filter((a) => a.requester === currentUser.name);
-        }
-
-        if (role === 'Manager') {
-            const teamUserNames = users
-                .filter((u) => u.managerId === currentUser.id)
-                .map((u) => u.name);
-            teamUserNames.push(currentUser.name);
-
-            return approvals.filter((a) => teamUserNames.includes(a.requester));
-        }
-
-        return approvals;
-    }, [approvals, currentUser, users, role]);
-
-    const ACTIVE_APPROVAL_STATUSES = new Set([
-        'WAITING_MANAGER_APPROVAL',
-        'WAITING_IT_PROCESSING',
-        'WAITING_DOTATION_APPROVAL',
-        'PENDING_DELIVERY',
-    ]);
-
-    const pendingCount = relevantApprovals.filter((a) =>
-        ACTIVE_APPROVAL_STATUSES.has(a.status),
-    ).length;
+    /*
+      Le chiffre de « Tâches » vient du hook partagé, comme celui de la barre du bas et
+      celui de l'accueil. Il se comptait ici sur les **noms** des personnes
+      (`a.requester === currentUser.name`) et sur quatre statuts ouverts : deux surfaces
+      du même écran pouvaient donc annoncer deux nombres, et un homonyme les faussait
+      toutes les deux. La règle est celle qui était déjà arbitrée — ce qui attend un
+      geste de vous.
+    */
+    const { count: pendingCount } = usePendingTasks();
     const isNavSectionActive = (
         section:
             | 'dashboard'

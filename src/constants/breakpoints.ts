@@ -32,4 +32,44 @@ export const MEDIA = {
     hoverCapable: '(hover: hover) and (pointer: fine)',
 } as const;
 
+/**
+ * **Le produit est tenu en dimension mobile, à toutes les largeurs de fenêtre.**
+ *
+ * Arbitrage du commanditaire, 06/09 : *« pour le moment on veut le projet en dimension
+ * mobile »*. Le régime tablette et bureau des planches 00.3 à 00.5 n'est pas abandonné,
+ * il est **mis en attente** : les 28 écrans se dessinent au téléphone, et la fenêtre
+ * large montre ce téléphone plutôt qu'une seconde mise en page à porter deux fois.
+ *
+ * L'interrupteur agit à trois endroits, et il faut les trois pour que le rendu soit
+ * franc :
+ *
+ * 1. **Ici**, pour la couche JavaScript : `useMediaQuery` répond comme un téléphone de
+ *    393 × 852 en portrait, donc la coque choisit la barre du bas et jamais le rail.
+ * 2. **`tailwind.config.js`**, pour la couche CSS : les classes de fenêtre `medium:`,
+ *    `expanded:` et `large:` cessent de s'appliquer — 122 emplois d'un coup, qu'aucune
+ *    reprise écran par écran n'aurait neutralisés sans oubli.
+ * 3. **`index.css`**, pour la mise en page : la colonne du produit tient 393 px et se
+ *    centre sur le bureau, avec les surfaces flottantes calées sur elle.
+ *
+ * Repasser au régime complet : mettre `false` ici **et** dans `tailwind.config.js`.
+ */
+export const MOBILE_ONLY = true;
+
+/** Le téléphone que le produit joue quand `MOBILE_ONLY` vaut vrai — celui des planches. */
+export const MOBILE_ONLY_VIEWPORT = { width: 393, height: 852 } as const;
+
+/**
+ * Ce que chaque requête de `MEDIA` vaut sur ce téléphone. `hoverCapable` reste lue sur
+ * l'appareil réel : une souris est une souris, même devant un rendu mobile, et les
+ * gestes révélés au survol en dépendent.
+ */
+export const MOBILE_ONLY_ANSWERS: Partial<Record<string, boolean>> = {
+    [MEDIA.compact]: true,
+    [MEDIA.belowExpanded]: true,
+    [MEDIA.medium]: false,
+    [MEDIA.expandedUp]: false,
+    [MEDIA.landscape]: false,
+    [MEDIA.belowExpandedLandscape]: false,
+};
+
 export type MediaKey = keyof typeof MEDIA;

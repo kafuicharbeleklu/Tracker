@@ -19,9 +19,15 @@ import {
 import { canManageFinanceByRole } from '../lib/businessRules';
 import { deleteExpenseSourceFile } from '../lib/financeFileStorage';
 import { getPersistedValue } from '../lib/persistence';
+import { firestore } from '../lib/firebase';
+import {
+    loadCollectionDocs,
+    saveCollectionDocs,
+} from '../lib/firestorePersistence';
 import { EffectiveAccessProfile } from '../types/rbac';
 
 interface FinanceDataContextType {
+    isHydrating: boolean;
     financeExpenses: FinanceExpense[];
     financeBudgets: FinanceBudget[];
     addFinanceExpense: (
@@ -38,6 +44,7 @@ interface FinanceDataContextType {
 }
 
 const FinanceDataContext = createContext<FinanceDataContextType | undefined>(undefined);
+const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 
 const STORAGE_KEYS = {
     financeExpenses: { current: 'tracker_finance_expenses', legacy: 'neemba_finance_expenses' },
@@ -163,12 +170,16 @@ const adjustBudgetWithExpense = (
 export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
     const { logEvent, getEffectiveAccessForUser } = useData();
+    const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
 
     // Accès RBAC effectif (même moteur que l'UI) pour les gardes de mutation finance — via ref (lint-safe).
     const currentUserAccessRef = useRef<EffectiveAccessProfile | null>(null);
     currentUserAccessRef.current = currentUser ? getEffectiveAccessForUser(currentUser.id) : null;
 
     const [financeExpenses, setFinanceExpenses] = useState<FinanceExpense[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.financeExpenses.current,
@@ -184,6 +195,9 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     const [financeBudgets, setFinanceBudgets] = useState<FinanceBudget[]>(() => {
+        if (FIREBASE_BACKEND_ENABLED) {
+            return [];
+        }
         try {
             const saved = getPersistedValue(
                 STORAGE_KEYS.financeBudgets.current,
@@ -198,12 +212,97 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     });
 
+    const firebaseHydratedRef = useRef(false);
+
+    useEffect(() => {
+        if (!FIREBASE_BACKEND_ENABLED) {
+            return;
+        }
+
+        [
+            STORAGE_KEYS.financeExpenses.current,
+            STORAGE_KEYS.financeExpenses.legacy,
+            STORAGE_KEYS.financeBudgets.current,
+            STORAGE_KEYS.financeBudgets.legacy,
+        ].forEach((key) => localStorage.removeItem(key));
+    }, []);
+
+    useEffect(() => {
+        if (!firestore) {
+            firebaseHydratedRef.current = true;
+            setIsHydrating(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const hydrateFromFirebase = async () => {
+            try {
+                const [firebaseExpenses, firebaseBudgets] = await Promise.all([
+                    loadCollectionDocs<FinanceExpense>(firestore, 'financeExpenses'),
+                    loadCollectionDocs<FinanceBudget>(firestore, 'financeBudgets'),
+                ]);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (firebaseExpenses.length > 0) {
+                    setFinanceExpenses(firebaseExpenses);
+                }
+
+                if (firebaseBudgets.length > 0) {
+                    setFinanceBudgets(
+                        firebaseBudgets.map((budget) => ({
+                            ...budget,
+                            year: Number(budget.id) || budget.year,
+                        })),
+                    );
+                }
+            } catch (error) {
+                console.error('[FinanceDataContext] Firebase hydration failed', error);
+            } finally {
+                firebaseHydratedRef.current = true;
+                setIsHydrating(false);
+            }
+        };
+
+        hydrateFromFirebase();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.financeExpenses.current, JSON.stringify(financeExpenses));
     }, [financeExpenses]);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.financeBudgets.current, JSON.stringify(financeBudgets));
+    }, [financeBudgets]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(firestore, 'financeExpenses', financeExpenses);
+    }, [financeExpenses]);
+
+    useEffect(() => {
+        if (!firestore || !firebaseHydratedRef.current) {
+            return;
+        }
+
+        void saveCollectionDocs(
+            firestore,
+            'financeBudgets',
+            financeBudgets.map((budget) => ({
+                id: String(budget.year),
+                ...budget,
+            })),
+        );
     }, [financeBudgets]);
 
     const addFinanceExpense = useCallback(
@@ -604,6 +703,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const value = useMemo(
         () => ({
+            isHydrating,
             financeExpenses,
             financeBudgets,
             addFinanceExpense,
@@ -612,6 +712,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
             upsertFinanceBudget,
         }),
         [
+            isHydrating,
             financeExpenses,
             financeBudgets,
             addFinanceExpense,

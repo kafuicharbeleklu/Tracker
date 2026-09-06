@@ -31,6 +31,22 @@ const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
  */
 export const PIN_LENGTH = 6;
 
+/**
+ * Ce qu'un code PIN ne peut pas être — planche 02.2, écran 3 : *« ni une suite, ni six
+ * fois le même chiffre »*. Six chiffres, une suite montante ou descendante refusée,
+ * un chiffre répété refusé. L'année de naissance n'est pas vérifiable ici : la phrase
+ * de l'écran la déconseille, le code ne la connaît pas.
+ */
+export const isValidPinFormat = (pin: string): boolean => {
+    if (!new RegExp(`^\\d{${PIN_LENGTH}}$`).test(pin)) return false;
+    if (/^(\d)\1+$/.test(pin)) return false;
+    const digits = pin.split('').map(Number);
+    const step = digits[1] - digits[0];
+    if (Math.abs(step) === 1 && digits.every((d, i) => i === 0 || d - digits[i - 1] === step))
+        return false;
+    return true;
+};
+
 export function validateAdminPIN(pin: string): boolean {
     return pin === ADMIN_PIN;
 }

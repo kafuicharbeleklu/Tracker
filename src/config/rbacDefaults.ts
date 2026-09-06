@@ -296,22 +296,22 @@ export const DEFAULT_RBAC_GROUPS: RbacGroup[] = [
 ];
 
 export const DEFAULT_RBAC_ASSIGNMENTS_BY_EMAIL: Record<string, RbacAssignmentOverride> = {
-    'alice.admin@tracker.app': {
+    'alice.admin@neemba.com': {
         roleIds: [SYSTEM_ROLE_IDS.superAdmin],
     },
-    'bob.senegal@tracker.app': {
+    'bob.senegal@neemba.com': {
         groupIds: ['group.it.senegal'],
     },
-    'clara.france@tracker.app': {
+    'clara.france@neemba.com': {
         groupIds: ['group.it.france'],
     },
-    'marc.finance@tracker.app': {
+    'marc.finance@neemba.com': {
         groupIds: ['group.finance.reviewers'],
     },
-    'nora.manager@tracker.app': {
+    'nora.manager@neemba.com': {
         roleIds: [CUSTOM_ROLE_IDS.financeController],
     },
-    'oumar.manager@tracker.app': {
+    'oumar.manager@neemba.com': {
         groupIds: ['group.audit.operators'],
     },
 };

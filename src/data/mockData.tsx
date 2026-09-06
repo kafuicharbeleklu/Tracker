@@ -49,7 +49,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '1',
         name: 'Alice SuperAdmin',
-        email: 'alice.admin@tracker.app',
+        email: 'alice.admin@neemba.com',
         lastLogin: '14/01/2026 12:07',
         role: 'SuperAdmin',
         department: 'IT HQ',
@@ -58,7 +58,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '2',
         name: 'Bob Admin Sénégal',
-        email: 'bob.senegal@tracker.app',
+        email: 'bob.senegal@neemba.com',
         lastLogin: '14/01/2026 09:30',
         role: 'Admin',
         department: 'IT Sénégal',
@@ -69,7 +69,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '3',
         name: 'Jane Manager',
-        email: 'jane.manager@tracker.app',
+        email: 'jane.manager@neemba.com',
         lastLogin: '13/01/2026 16:45',
         role: 'Manager',
         department: 'Sales',
@@ -78,7 +78,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '4',
         name: 'Ethan Employé',
-        email: 'ethan.user@tracker.app',
+        email: 'ethan.user@neemba.com',
         lastLogin: '12/01/2026 10:15',
         role: 'User',
         department: 'Sales',
@@ -88,7 +88,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '5',
         name: 'Abdoulaye Deen TOURE',
-        email: 'abdoulaye.toure@tracker.app',
+        email: 'abdoulaye.toure@neemba.com',
         lastLogin: '10/01/2026 08:00',
         role: 'User',
         department: 'Marketing',
@@ -98,7 +98,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '6',
         name: 'Clara Admin France',
-        email: 'clara.france@tracker.app',
+        email: 'clara.france@neemba.com',
         lastLogin: '14/01/2026 11:42',
         role: 'Admin',
         department: 'IT France',
@@ -110,7 +110,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '7',
         name: 'Oumar Manager Dakar',
-        email: 'oumar.manager@tracker.app',
+        email: 'oumar.manager@neemba.com',
         lastLogin: '13/01/2026 17:05',
         role: 'Manager',
         department: 'Support Afrique',
@@ -122,7 +122,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '8',
         name: 'Fatou Support',
-        email: 'fatou.support@tracker.app',
+        email: 'fatou.support@neemba.com',
         lastLogin: '13/01/2026 15:31',
         role: 'User',
         department: 'Support Afrique',
@@ -134,7 +134,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '9',
         name: 'Marc Finance',
-        email: 'marc.finance@tracker.app',
+        email: 'marc.finance@neemba.com',
         lastLogin: '12/01/2026 09:12',
         role: 'User',
         department: 'Finance',
@@ -147,7 +147,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '10',
         name: 'Nora Finance Manager',
-        email: 'nora.manager@tracker.app',
+        email: 'nora.manager@neemba.com',
         lastLogin: '14/01/2026 08:58',
         role: 'Manager',
         department: 'Finance',
@@ -159,7 +159,7 @@ export const mockAllUsersExtended: User[] = [
     {
         id: '11',
         name: 'Lea Marketing',
-        email: 'lea.marketing@tracker.app',
+        email: 'lea.marketing@neemba.com',
         lastLogin: '11/01/2026 14:23',
         role: 'User',
         department: 'Marketing Europe',
@@ -325,7 +325,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop',
         user: {
             name: 'Jane Manager',
-            email: 'jane.manager@tracker.app',
+            email: 'jane.manager@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
         },
         financial: {
@@ -349,7 +349,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1587829741301-dc798b91a603?w=100&h=100&fit=crop',
         user: {
             name: 'Ethan Employé',
-            email: 'ethan.user@tracker.app',
+            email: 'ethan.user@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ethan',
         },
         financial: {
@@ -389,7 +389,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1615900119312-2acd3a71f3ad?w=100&h=100&fit=crop',
         user: {
             name: 'Alice SuperAdmin',
-            email: 'alice.admin@tracker.app',
+            email: 'alice.admin@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
         },
         financial: {
@@ -411,7 +411,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=100&h=100&fit=crop',
         user: {
             name: 'Alice SuperAdmin',
-            email: 'alice.admin@tracker.app',
+            email: 'alice.admin@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
         },
         financial: {
@@ -435,7 +435,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=100&h=100&fit=crop',
         user: {
             name: 'Fatou Support',
-            email: 'fatou.support@tracker.app',
+            email: 'fatou.support@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fatou',
         },
         financial: {
@@ -517,7 +517,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=100&h=100&fit=crop',
         user: {
             name: 'Marc Finance',
-            email: 'marc.finance@tracker.app',
+            email: 'marc.finance@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marc',
         },
         financial: {
@@ -562,7 +562,7 @@ export const mockAllEquipment: Equipment[] = [
         image: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=100&h=100&fit=crop',
         user: {
             name: 'Lea Marketing',
-            email: 'lea.marketing@tracker.app',
+            email: 'lea.marketing@neemba.com',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lea',
         },
         financial: {

@@ -1,8 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
-import { XCircle } from '@phosphor-icons/react';
+import { Eye, EyeSlash, XCircle } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import Icon from './Icon';
-import MaterialIcon from './MaterialIcon';
 
 interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
     /** Optional Material Symbols icon name */
@@ -30,8 +29,8 @@ interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
     hideRequiredIndicator?: boolean;
     /** Optional class names for a leading icon or prefix wrapper */
     leadingElementClassName?: string;
-    /** Error message */
-    error?: string;
+    /** Error message — un nœud, pour qu'une phrase puisse nommer sa sortie en appui (02.1). */
+    error?: React.ReactNode;
     /** Helper/supporting text */
     supportingText?: string;
     /** Show character count helper when maxLength is provided */
@@ -216,21 +215,36 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             'text-on-surface min-h-12 w-full py-3 text-[16px] leading-6',
                             'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow]',
                             'focus:outline-none',
-                            'placeholder:text-text-tertiary',
+                            /*
+                             * **L'exemple d'un champ est du texte, pas un glyphe.** Il
+                             * portait la troisième encre du socle, que le registre
+                             * réserve aux pictogrammes : son contraste est sous le
+                             * plancher AA. À taille strictement égale — mesuré, même
+                             * largeur et même hauteur de glyphe pour la même chaîne —
+                             * un gris si clair se lit plus maigre et plus petit que la
+                             * valeur saisie, et c'est ce que l'œil rapporte comme une
+                             * différence de corps. L'encre secondaire passe AA et lève
+                             * les deux griefs d'un coup.
+                             */
+                            'placeholder:text-on-surface-variant',
                             'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
                             isOutlined
                                 ? cn(
-                                      'bg-surface rounded-md border',
+                                      /* Le champ cerné des pages hors session (02.1, 02.2) : blanc,
+                                         filet de 1 px `--line` (le creux ne se verrait pas sur le
+                                         canevas), 2 px d'encre au focus, 2 px danger en erreur — et
+                                         le filet se prend sur le padding pour tenir les 48. */
+                                      'bg-surface rounded-md border py-[11px]',
                                       error
-                                          ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-2'
-                                          : 'border-outline hover:border-outline focus:border-focus-ring focus:ring-focus-ring focus:ring-2',
+                                          ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-1 focus:ring-inset ring-1 ring-inset ring-error'
+                                          : 'border-outline-variant hover:border-outline-variant focus:border-focus-ring focus:ring-focus-ring focus:ring-1 focus:ring-inset',
                                       'disabled:border-on-surface/[0.12] disabled:bg-surface',
                                   )
                                 : cn(
                                       'bg-surface-container rounded-md border-0',
                                       error
-                                          ? 'ring-error focus:ring-error ring-2 focus:ring-2'
-                                          : 'focus:ring-focus-ring focus:ring-2',
+                                          ? 'ring-error focus:ring-error ring-2 ring-inset focus:ring-2 focus:ring-inset'
+                                          : 'focus:ring-focus-ring focus:ring-2 focus:ring-inset',
                                       'disabled:bg-on-surface/[0.04]',
                                   ),
                             hasLeadingElement ? 'pl-[42px]' : 'px-3.5',
@@ -280,21 +294,20 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                                     }
                                     aria-pressed={showPassword}
                                 >
-                                    <MaterialIcon
-                                        name={showPassword ? 'visibility_off' : 'visibility'}
-                                        size={20}
-                                    />
+                                    {/* `.field .eye` — le glyphe de 02.2, 18 en encre secondaire (I2). */}
+                                    <Icon glyph={showPassword ? EyeSlash : Eye} size={18} />
                                 </button>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* 6 px sous le champ — la métrique de `.ferr` / `.fok` sur 17.5. Portée par le bloc
+                {/* `.ferr` / `.fok` de 17.5 (passe du 06/09) : 8 px sous le champ, 14 sur 20, glyphe
+                    de 18 et 6 px d'air, au ras du champ — plus d'indentation. Portée par le bloc
                     lui-même et non par le `space-y-1` du conteneur : les formulaires qui règlent leur
                     propre rythme neutralisent ce dernier, et le message se retrouvait collé au bord. */}
                 {(error || supportingText || showCounter) && (
-                    <div className="mt-1.5 ml-4 flex items-start justify-between gap-2">
+                    <div className="mt-2 flex items-start justify-between gap-2">
                         <div className="min-h-[16px]">
                             {/*
                               I3 (§0.3) — l'état porte une icône ET une couleur. `--tk-color-error`
@@ -306,7 +319,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {error && (
                                 <p
                                     id={errorId}
-                                    className="text-body-small text-error flex items-start gap-1.5"
+                                    className="text-error flex items-start gap-1.5 text-[14px] leading-5"
                                     role="alert"
                                 >
                                     <Icon glyph={XCircle} size={18} className="mt-px" />
@@ -317,7 +330,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {!error && supportingText && (
                                 <p
                                     id={supportingId}
-                                    className="text-body-small text-on-surface-variant"
+                                    className="text-on-surface-variant text-[14px] leading-5"
                                 >
                                     {supportingText}
                                 </p>

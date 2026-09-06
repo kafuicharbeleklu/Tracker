@@ -1,6 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
-import { Trash } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import Button from './Button';
@@ -31,9 +30,23 @@ import { cn } from '../../lib/utils';
  * qu'on approuve. Le **rouge est réservé à l'irréversible** ; le réversible est
  * sombre — c'est `irreversible` qui décide, pas l'appelant.
  *
- * **C4 — l'irréversible le dit.** Une ligne, en rouge, sous le corps : c'est la
- * seule différence entre supprimer et suspendre du point de vue de l'utilisateur,
- * donc elle doit être la plus visible.
+ * **C4 — la réversibilité se dit dans le sous-titre** (passe du 06/09). « Irréversible. »
+ * ou « Réversible : … », sous le titre, et rien d'autre : c'est la seule différence
+ * entre sortir du parc et suspendre du point de vue de la personne, donc c'est la
+ * première chose lue. Elle vivait en ligne rouge **sous le corps**, c'est-à-dire après
+ * la décision.
+ *
+ * ## La forme est celle des pages
+ *
+ * Relevé du 06/09 : les pages qui confirment — la fiche d'une personne, la campagne
+ * d'inventaire, Mon compte — portaient toutes la même feuille, et cette planche en
+ * dessinait une autre. Le canon est celui des pages, et il tient en quatre blocs :
+ * le **titre** qui porte le verbe et son sous-titre de réversibilité, l'**objet** en
+ * rangée, **« Ce que cela change »** dans un creux, le **motif** quand il est dû. Deux
+ * verbes de même largeur en pied.
+ *
+ * Ce qui disparaît : le **cercle-icône** de tête, qui illustrait une décision au lieu
+ * de la dire, et la ligne rouge à part.
  *
  * Et quand l'acte échoue, c'est la règle 1 de **17.1** qui prend la suite : la
  * feuille **reste ouverte**, le motif saisi **reste écrit**, l'erreur se pose
@@ -54,6 +67,14 @@ export interface ConfirmationReason {
     required?: boolean;
     /** Ce que le destinataire recevra, dit à l'écran : le motif est transmis tel quel. */
     hint?: React.ReactNode;
+}
+
+/** `.fixed` — l'objet de l'acte, nommé en rangée. */
+export interface ConfirmationSubject {
+    /** La vignette de 40 : un glyphe, des initiales. */
+    vignette?: React.ReactNode;
+    title: React.ReactNode;
+    subtitle?: React.ReactNode;
 }
 
 interface ConfirmationSheetProps {
@@ -80,8 +101,14 @@ interface ConfirmationSheetProps {
      * `irreversible` est un acte dont la couleur reste à instruire.
      */
     irreversible?: boolean;
-    /** Le pictogramme du cercle de tête. Corbeille par défaut. */
-    icon?: PhosphorGlyph;
+    /**
+     * La phrase de réversibilité, quand l'acte se défait : *« Réversible : “Réactiver”
+     * redevient le geste de la fiche. »* Un acte irréversible n'en a pas besoin, il dit
+     * « Irréversible. » de lui-même.
+     */
+    reversibleNote?: string;
+    /** L'objet de l'acte, en rangée — `.fixed` de la planche. */
+    subject?: ConfirmationSubject;
     /** Les faits qui pèsent sur la décision, en rangées de référence. */
     details?: ConfirmationDetail[];
     /** Le motif, quand l'acte en réclame un. */
@@ -103,7 +130,8 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
     cancelText = 'Annuler',
     tone = 'neutral',
     irreversible = false,
-    icon = Trash,
+    reversibleNote,
+    subject,
     details,
     reason,
     confirmKeyword,
@@ -172,6 +200,9 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
     if (!isOpen) return null;
 
+    /* C4 — la réversibilité, première chose lue sous le titre. */
+    const reversibility = irreversible ? 'Irréversible.' : reversibleNote;
+
     const keywordBlocked = confirmKeyword
         ? keywordInput.trim().toLowerCase() !== confirmKeyword.toLowerCase()
         : false;
@@ -208,71 +239,102 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 {!asDialog && (
                     <span
                         aria-hidden="true"
-                        className="bg-outline-variant mx-auto mt-2 mb-1.5 h-1 w-9 rounded-full"
+                        className="bg-outline-variant mx-auto mt-2 mb-1.5 h-1 w-9 rounded-xs"
                     />
                 )}
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-2">
-                    <span
-                        className={cn(
-                            'mb-3.5 flex h-12 w-12 items-center justify-center rounded-full',
-                            tone === 'destructive'
-                                ? 'bg-danger-light text-danger'
-                                : 'bg-surface-container text-on-surface-variant',
-                        )}
-                    >
-                        <Icon glyph={icon} size={20} />
-                    </span>
-
+                {/* `.sttl` — le titre porte le verbe, le sous-titre la réversibilité. */}
+                <div className="px-5 pt-1">
                     <h2
                         id={titleId}
-                        className="font-brand text-on-surface text-[22px] leading-[27px] font-semibold tracking-tight"
+                        className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] text-pretty"
                     >
                         {title}
                     </h2>
+                    {reversibility && (
+                        <p
+                            className={cn(
+                                'mt-1 text-[14px] leading-5',
+                                irreversible ? 'text-danger' : 'text-on-surface-variant',
+                            )}
+                        >
+                            {reversibility}
+                        </p>
+                    )}
+                </div>
 
-                    <p className="text-body-medium text-text-secondary mt-2">{message}</p>
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                    {/* `.fixed` — l'objet, nommé. Une rangée, pas « cet élément ». */}
+                    {subject && (
+                        <div className="flex items-center gap-3 py-2">
+                            {subject.vignette && (
+                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                    {subject.vignette}
+                                </span>
+                            )}
+                            <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[16px] leading-6">
+                                    {subject.title}
+                                </span>
+                                {subject.subtitle && (
+                                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                        {subject.subtitle}
+                                    </span>
+                                )}
+                            </span>
+                        </div>
+                    )}
 
-                    {details && details.length > 0 && (
-                        <div className="border-outline-variant mt-3.5 border-t">
-                            {details.map((detail) => (
-                                <div
+                    {/* `.conseq` — ce qui aura changé, et ce qui est conservé. */}
+                    {(message || (details && details.length > 0)) && (
+                        <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
+                            <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                                Ce que cela change
+                            </p>
+                            {message && (
+                                <p className="text-on-surface text-[14px] leading-5">{message}</p>
+                            )}
+                            {details?.map((detail) => (
+                                <p
                                     key={detail.label}
-                                    className="border-outline-variant text-body-medium text-text-secondary flex min-h-11 items-center gap-2.5 border-t first:border-t-0"
+                                    className="text-on-surface flex items-center gap-3 text-[14px] leading-5"
                                 >
                                     {detail.icon && (
-                                        <Icon
-                                            glyph={detail.icon}
-                                            size={18}
-                                            className="text-on-surface-variant"
-                                        />
+                                        <span className="bg-surface text-on-surface-variant flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                            <Icon glyph={detail.icon} size={18} />
+                                        </span>
                                     )}
-                                    {detail.label}
-                                    <b className="text-on-surface ml-auto font-medium tabular-nums">
-                                        {detail.value}
-                                    </b>
-                                </div>
+                                    <span className="min-w-0 flex-1">{detail.label}</span>
+                                    <b className="font-medium tabular-nums">{detail.value}</b>
+                                </p>
                             ))}
                         </div>
                     )}
 
                     {reason && (
-                        <div className="mt-3.5">
+                        <div>
                             <label
                                 htmlFor={`${titleId}-reason`}
-                                className="text-label-small text-on-surface-variant mb-1.5 block tracking-wider uppercase"
+                                className="text-on-surface-variant mb-2 block text-[12px] leading-4 font-medium"
                             >
                                 {reason.label}
+                                {reason.required && (
+                                    <span className="text-text-tertiary font-normal">
+                                        {' '}
+                                        obligatoire
+                                    </span>
+                                )}
                             </label>
+                            {/* `.field.long` — le creux, sans filet, 96 de haut, 16 sur 24. */}
                             <textarea
                                 id={`${titleId}-reason`}
                                 value={reasonInput}
                                 onChange={(event) => setReasonInput(event.target.value)}
                                 placeholder={reason.placeholder}
-                                className="border-outline bg-surface text-body-large text-on-surface focus-visible:ring-focus-ring min-h-24 w-full rounded-md border p-3 leading-[21px] outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[16px] leading-6 outline-none focus-visible:ring-2"
                             />
                             {reason.hint && (
-                                <p className="text-body-small text-text-secondary mt-1.5">
+                                <p className="text-on-surface-variant mt-2 text-[14px] leading-5">
                                     {reason.hint}
                                 </p>
                             )}
@@ -280,10 +342,10 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                     )}
 
                     {confirmKeyword && (
-                        <div className="mt-3.5">
+                        <div>
                             <label
                                 htmlFor={`${titleId}-keyword`}
-                                className="text-body-small text-text-secondary mb-1.5 block"
+                                className="text-on-surface-variant mb-2 block text-[12px] leading-4 font-medium"
                             >
                                 Tapez{' '}
                                 <b className="text-on-surface font-medium">{confirmKeyword}</b> pour
@@ -295,23 +357,22 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 value={keywordInput}
                                 onChange={(event) => setKeywordInput(event.target.value)}
                                 placeholder={confirmKeyword}
-                                className="border-outline bg-surface text-body-large text-on-surface focus-visible:ring-focus-ring min-h-12 w-full rounded-md border px-3 outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface focus-visible:ring-focus-ring min-h-12 w-full rounded-[4px] border-0 px-3.5 text-[16px] leading-6 outline-none focus-visible:ring-2"
                             />
                         </div>
                     )}
 
-                    {/* C4 — la seule différence visible entre supprimer et suspendre. */}
-                    {irreversible && (
-                        <p className="text-body-medium text-danger mt-3 font-medium">
-                            Cette action est irréversible.
-                        </p>
-                    )}
-
-                    {error && <InlineError className="mt-3">{error}</InlineError>}
+                    {error && <InlineError>{error}</InlineError>}
                 </div>
 
-                <div className="border-outline-variant mt-4 flex items-center gap-3 border-t px-5 pt-4">
-                    <Button variant="text" onClick={onClose} disabled={isLoading} className="px-1">
+                {/* `.sfoot` — deux verbes de même largeur, 12 d'écart, un filet au-dessus. */}
+                <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4">
+                    <Button
+                        variant="ghost"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="!rounded-[4px]"
+                    >
                         {cancelText}
                     </Button>
                     <Button
@@ -319,7 +380,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                         onClick={() => onConfirm(reason ? reasonInput : undefined)}
                         disabled={keywordBlocked || reasonBlocked || isLoading}
                         loading={isLoading}
-                        className="flex-1"
+                        className="!rounded-[4px]"
                     >
                         {error ? 'Réessayer' : confirmText}
                     </Button>

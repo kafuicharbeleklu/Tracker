@@ -224,6 +224,41 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
      * Elle était un bloc à part avec son propre filet ; la passe sobre la replie dans
      * le même bloc que le titre (`.top` des planches 05.1, 03.3, 10.1).
      */
+    /**
+     * `.ord` — **le cinquième slot de 17.8** : ce qu'on regarde à gauche, combien à
+     * droite, en **12 sur 16**. Deux corrections de la passe du 06/09.
+     *
+     * Elle vivait **dans le contenu**, donc elle défilait : *« un filtre posé dans la
+     * page disparaît au premier défilement, et la liste devient un sous-ensemble sans
+     * étiquette »*. Elle appartient au bloc fixe, avec la recherche et l'entonnoir.
+     *
+     * Et elle tenait 14 sur 20 avec un bouton de tri habillé de 44 : la planche déclare
+     * 12 sur 16 pour toute la ligne, le tri compris. C'est une ligne de service, pas un
+     * geste de page.
+     */
+    const orderRow =
+        count && !selection?.active ? (
+            <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
+                <span className="min-w-0 truncate">
+                    <b className="text-on-surface font-medium tabular-nums">{count.total}</b>{' '}
+                    {count.noun}
+                    {typeof count.shown === 'number' && count.shown !== count.total && (
+                        <> · {count.shown} affichés</>
+                    )}
+                </span>
+                {sort && (
+                    <button
+                        type="button"
+                        onClick={sort.onClick}
+                        className="text-on-surface flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent text-[12px] leading-4 font-medium"
+                    >
+                        <Icon glyph={SortAscending} size={14} className="text-text-muted" />
+                        {sort.label}
+                    </button>
+                )}
+            </div>
+        ) : null;
+
     const hasSeekBand =
         Boolean(search || filter || (facets && facets.length > 0)) && !selection?.active;
 
@@ -311,10 +346,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                            tout compris** (04.1 colonne 3, 17.8 colonne 4). Les 8 px
                            qu'on ajoutait faisaient un en-tête de 64 sur un écran qui
                            n'a qu'un titre à porter. */
-                        hasSeekBand ? 'gap-3 pt-2 pb-4' : '',
+                        /* `.top` de 17.8 (passe du 06/09) : **8 en haut, 12 en bas**,
+                           12 entre les trois lignes. Le pied valait 16, ce qui creusait
+                           l'écart entre la ligne de tri et la première rangée. */
+                        hasSeekBand ? 'gap-3 pt-2 pb-3' : '',
                     )}
                 >
-                    <div className="flex min-h-14 items-center justify-between gap-1">
+                    {/* `.tt` — la rangée du titre se règle sur son geste : **48**, la
+                        mesure du bouton d'icône. Elle tenait 56 et le titre portait 12 px
+                        de padding vertical, si bien que le bloc gagnait 8 px que la
+                        planche ne déclare pas. */}
+                    <div className="flex min-h-12 items-center justify-between gap-1">
                         {onBack && (
                             <button
                                 type="button"
@@ -325,12 +367,13 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 pt-2 pb-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                             {title}
                         </h1>
                         {actions}
                     </div>
                     {hasSeekBand && seekBand}
+                    {orderRow}
                 </div>
             ) : (
                 /* Au rail, la barre ne redit pas la destination : le rail la porte
@@ -352,6 +395,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             <OfflineBanner />
 
             {!isCompact && hasSeekBand && seekBand}
+            {!isCompact && orderRow && <div className="px-page pt-3">{orderRow}</div>}
 
             {/* `.page` — cinq planches de la passe sobre l'écrivent à l'identique :
                 gouttière 16, intérieur `16 / 16 / 24`. Et **96 px de pied quand un
@@ -438,32 +482,6 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     </Reading>
                 )}
 
-                {count && !selection?.active && (
-                    /* `.ord` — 14 sur 20, encre secondaire, et **le seul appui est le
-                       nombre** : graisse 500 sur l'encre pleine. La ligne était à 13 px
-                       en 600, deux crans hors de l'échelle de R15. */
-                    <Reading className="flex min-h-10 items-center justify-between gap-3 px-1 text-[14px] leading-5 text-[var(--tk-color-text-muted)]">
-                        <span className="whitespace-nowrap">
-                            <b className="text-on-surface font-medium tabular-nums">
-                                {count.total}
-                            </b>{' '}
-                            {count.noun}
-                            {typeof count.shown === 'number' && count.shown !== count.total && (
-                                <> · {count.shown} affichés</>
-                            )}
-                        </span>
-                        {sort && (
-                            <button
-                                type="button"
-                                onClick={sort.onClick}
-                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[14px] font-medium"
-                            >
-                                <Icon glyph={SortAscending} size={18} className="text-text-muted" />
-                                {sort.label}
-                            </button>
-                        )}
-                    </Reading>
-                )}
 
                 {showSkeleton ? (
                     <Reading>

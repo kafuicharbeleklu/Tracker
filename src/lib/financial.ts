@@ -197,6 +197,29 @@ export const formatDateTime = (date: string | number | Date = new Date()) => {
 };
 
 /**
+ * **Le moment d'un événement** — `.ev .d` de 03.1 et 18.1 : « aujourd'hui, 11:21 »,
+ * « hier, 09:30 », sinon « 14 janvier, 13:15 » (l'année seulement si elle n'est pas
+ * la nôtre). Une date de journal se lit d'un coup d'œil ; « 14/01/2026 » demande de la
+ * déchiffrer.
+ */
+export const formatMoment = (date: string | number | Date = new Date()) => {
+    const parsed = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    const time = parsed.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const dayOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const delta = Math.round((dayOf(now) - dayOf(parsed)) / 86_400_000);
+    if (delta === 0) return `aujourd'hui, ${time}`;
+    if (delta === 1) return `hier, ${time}`;
+    const day = parsed.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        ...(parsed.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+    });
+    return `${day}, ${time}`;
+};
+
+/**
  * Formatage de nombres simples (compteurs, stats)
  */
 export const formatNumber = (amount: number, compact = false) => {

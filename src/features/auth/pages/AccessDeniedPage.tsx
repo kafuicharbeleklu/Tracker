@@ -1,41 +1,50 @@
 import React from 'react';
+import { LockSimple } from '@phosphor-icons/react';
+
 import { useAuth } from '../../../context/AuthContext';
 import Button from '../../../components/ui/Button';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import ScreenState from '../../../components/ui/ScreenState';
+import { APP_CONFIG } from '../../../config';
 
 /**
- * Accès refusé — planche 17.1, quatrième état.
+ * Accès refusé — planche **17.1**, quatrième état.
  *
- * L'écran précédent listait **trois causes possibles** et laissait la personne trier.
- * Le produit sait laquelle est la sienne : la vérification renvoie un motif, et c'est
- * lui qui s'affiche ici. Le motif ne passe plus par un message qui disparaît.
+ * *« Trois écrans, une forme. »* Hors ligne, introuvable et refusé empruntent l'état
+ * vide : même motif, même place du titre, même geste de sortie, et une seule chose qui
+ * change, **ce qu'on peut faire ensuite**. L'écran portait sa propre composition — un
+ * rond de 80, une icône de 40, un titre d'un autre palier — pour dire la même chose que
+ * les deux autres.
+ *
+ * **Un accès refusé ne fait pas deviner sa cause.** Le produit sait laquelle est la
+ * sienne, compte en attente, suspendu ou hors liste, et la vérification la renvoie : le
+ * motif est le **titre**, parce que c'est le fait, et qu'il n'y a rien de plus important
+ * à lire. L'écran précédent listait les trois causes et laissait la personne trier.
+ *
+ * Deux phrases de l'ancienne version sont retirées. Elle affirmait *« votre identifiant
+ * Microsoft est valide »*, alors que la connexion Microsoft est hors périmètre depuis
+ * l'arbitrage du 01/09 : l'écran promettait un chemin qui n'existe pas. Et elle renvoyait
+ * à *« la personne qui gère les comptes de votre entité »* — la planche demande **un
+ * nom**, que cet écran n'a pas ; à défaut de le connaître, il ne feint pas de le donner.
+ *
+ * Pas de barre du bas : il n'y a rien à naviguer.
  */
 const AccessDeniedPage: React.FC = () => {
     const { logout, accessDeniedReason } = useAuth();
 
-    // Le motif est le titre : c'est le fait, et rien n'est plus important à lire.
     const motif = accessDeniedReason ?? "Votre compte n'a pas accès à cette application.";
 
     return (
-        <div className="bg-surface text-on-surface flex min-h-dvh flex-col items-center justify-center p-6">
-            <div className="w-full max-w-sm space-y-6 text-center">
-                <div className="bg-surface-container text-on-surface-variant mx-auto flex h-20 w-20 items-center justify-center rounded-full">
-                    <MaterialIcon name="lock" size={40} />
-                </div>
-
-                <div className="space-y-2">
-                    <h1 className="text-headline-small">{motif}</h1>
-                    <p className="text-body-medium text-on-surface-variant">
-                        Votre identifiant Microsoft est valide : c'est l'accès à Tracker qui ne
-                        l'est pas encore. Prévenez la personne qui gère les comptes de votre entité
-                        — elle peut l'ouvrir en une fois.
-                    </p>
-                </div>
-
-                <Button variant="outlined" onClick={logout} className="w-full">
-                    Retour à la connexion
-                </Button>
-            </div>
+        <div className="bg-background text-on-surface flex min-h-dvh flex-col">
+            <ScreenState
+                icon={LockSimple}
+                title={motif}
+                description={`Votre informatique ouvre les accès à ${APP_CONFIG.appName}. Prévenez-la : elle peut le faire en une fois.`}
+                actions={
+                    <Button variant="outlined" onClick={logout} className="!rounded-[4px]">
+                        Retour à la connexion
+                    </Button>
+                }
+            />
         </div>
     );
 };

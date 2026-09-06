@@ -59,6 +59,12 @@ const VARIANT_NATURE: Record<SnackbarVariant, { glyph: typeof Info; tone: string
  *
  * **Règle d'écriture, opposable :** ≤ 60 signes, une proposition, un verbe.
  * Au-delà, ce n'est pas un retour transitoire — c'est que le tri a été mal fait.
+ *
+ * **Les mesures, passe du 06/09** : barre de **56 de haut**, intérieur 8 partout sauf
+ * 14 à gauche, message **14 sur 20**, geste **14 sur 20 en 500** sur une cible de 40.
+ * Le message et le geste tenaient 13 sur 18 — un palier que l'échelle des cinq marches
+ * ne contient pas, et la barre n'avait pas de hauteur propre : elle se réglait sur son
+ * texte, donc elle changeait de taille d'un message à l'autre.
  */
 const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) => {
     const [visible, setVisible] = useState(false);
@@ -129,7 +135,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                 aria-live="polite"
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    'pointer-events-auto flex w-full min-w-0 items-center gap-3 rounded-lg py-3 pr-3 pl-[14px]',
+                    'pointer-events-auto flex min-h-14 w-full min-w-0 items-center gap-3 rounded-lg p-2 pl-[14px]',
                     'bg-inverse-surface text-inverse-on-surface',
                     'shadow-[0_6px_20px_rgba(10,25,29,0.28)]',
                     'expanded:w-auto expanded:min-w-[344px] expanded:max-w-[560px]',
@@ -141,7 +147,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                 {/* La nature, portée par le glyphe — la couleur n'est que son renfort (I3). */}
                 <Icon glyph={nature.glyph} size={20} className={nature.tone} />
 
-                <p className="min-w-0 flex-1 text-[13px] leading-[18px] break-words">
+                <p className="min-w-0 flex-1 text-[14px] leading-5 break-words">
                     {current.message}
                 </p>
 
@@ -154,7 +160,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                             handleDismiss();
                         }}
                         className={cn(
-                            'text-inverse-primary min-h-9 shrink-0 rounded-md px-2 text-[13px] font-medium',
+                            'text-inverse-primary min-h-10 shrink-0 rounded-md px-2.5 text-[14px] leading-5 font-medium',
                             'duration-short4 transition-opacity outline-none hover:opacity-80',
                             'focus-visible:ring-2 focus-visible:ring-current',
                         )}

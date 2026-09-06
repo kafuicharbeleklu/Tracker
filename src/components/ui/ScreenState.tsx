@@ -25,6 +25,15 @@ import { cn } from '../../lib/utils';
  *
  * L'icône de 32 px est le seul emploi de cette taille, **une fois par écran** (§0.2),
  * et elle ne remplace pas le titre : elle l'accompagne (I3).
+ *
+ * ## Les mesures, arrêtées le 06/09
+ *
+ * *« Cinq métriques coexistaient pour le même état vide. »* Le canon est celui des
+ * pages — 03.3, 09.1, 16.1 et les écrans de finances — et cette planche s'y range :
+ * motif rond de **96** sur le creux, titre **22 sur 28** en Archivo, phrase **16 sur
+ * 24** en encre secondaire bornée à 280, marges **24 · 16 · 64**, **16** entre les
+ * blocs, un ou deux gestes de 48 empilés à 12. Le composant portait un motif de 112,
+ * un titre de 20 et une phrase de 14.
  */
 
 interface ScreenStateProps {
@@ -63,31 +72,33 @@ const ScreenState: React.FC<ScreenStateProps> = ({
 }) => (
     <div
         className={cn(
-            'flex flex-1 flex-col items-center justify-center gap-4 px-6 pt-7 pb-14 text-center',
+            'flex flex-1 flex-col items-center justify-center gap-4 px-4 pt-6 pb-16 text-center',
             className,
         )}
     >
-        <span className="bg-surface-container text-on-surface-variant flex h-28 w-28 items-center justify-center rounded-full">
+        <span className="bg-surface-container text-text-tertiary flex h-24 w-24 items-center justify-center rounded-full">
             <Icon glyph={icon} size={32} />
         </span>
 
         <div>
-            <p className="font-brand text-on-surface text-[20px] leading-7 font-semibold tracking-[-0.01em]">
+            <p className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em]">
                 {title}
             </p>
             {description && (
-                <p className="text-body-medium text-on-surface-variant mx-auto mt-2 max-w-[280px] leading-5">
+                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[16px] leading-6 text-pretty">
                     {description}
                 </p>
             )}
         </div>
 
         {actions && (
-            <div className="flex w-full max-w-[280px] flex-col gap-2.5 [&>*]:w-full">{actions}</div>
+            <div className="flex w-full max-w-[280px] flex-col gap-3 [&>*]:w-full">{actions}</div>
         )}
 
+        {/* `.lfoot` — le fait de pied : une heure de dernière lecture, un compte.
+            12 sur 16, encre tertiaire, chiffres tabulaires. */}
         {footnote && (
-            <p className="text-body-small text-on-surface-variant mx-auto max-w-[280px]">
+            <p className="text-text-tertiary mx-auto max-w-[280px] text-[12px] leading-4 tabular-nums">
                 {footnote}
             </p>
         )}

@@ -19,6 +19,14 @@ interface AuthContextType {
     isLoading: boolean;
 
     login: (email: string) => void; // Legacy/Dev login
+    /**
+     * Ouvrir la session d'une personne du store — c'est ce que fait la connexion (02.1)
+     * et l'invitation acceptée (02.2). Un compte suspendu n'ouvre pas : il tombe sur
+     * l'écran de refus avec son seul motif dicible hors session.
+     */
+    loginAs: (user: User) => void;
+    /** Le compte hérité (sans lien) vient de définir son mot de passe — 02.2, écran 2. */
+    completeFirstLogin: () => void;
     loginWithGoogle: () => Promise<void>;
     loginWithMicrosoft: () => Promise<void>;
     logout: () => void;
@@ -64,18 +72,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const result = await authService.verifyUser(accessToken, email);
 
                 if (result.success && result.user) {
-                    // Map SharePoint User to App User
-                    const appUser: User = {
-                        id: result.user.id,
-                        name: result.user.Title,
-                        email: result.user.MicrosoftEmail,
-                        role: result.user.Role,
-                        department: 'N/A', // Could be fetched from SharePoint extra fields
-                        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(result.user.Title)}&background=random`,
-                        // Add other mappings
-                        status: result.user.Status,
-                        mustChangePassword: result.user.MustChangePassword,
-                    };
+                    const demoUser = mockAllUsersExtended.find(
+                        (user) => user.email.toLowerCase() === result.user.MicrosoftEmail.toLowerCase(),
+                    );
+                    const appUser: User = demoUser
+                        ? {
+                              ...demoUser,
+                              id: result.user.id,
+                              name: result.user.Title || demoUser.name,
+                              email: result.user.MicrosoftEmail,
+                              role: demoUser.role,
+                              status: result.user.Status,
+                              mustChangePassword: result.user.MustChangePassword,
+                          }
+                        : {
+                              id: result.user.id,
+                              name: result.user.Title,
+                              email: result.user.MicrosoftEmail,
+                              role: result.user.Role,
+                              department: 'N/A', // Could be fetched from SharePoint extra fields
+                              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(result.user.Title)}&background=random`,
+                              status: result.user.Status,
+                              mustChangePassword: result.user.MustChangePassword,
+                          };
 
                     setCurrentUser(appUser);
                     setNeedsPasswordChange(!!result.needsPasswordChange);
@@ -146,6 +165,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const loginAs = (user: User) => {
+        if (user.status === 'inactive') {
+            setCurrentUser(null);
+            setAccessDenied(true);
+            setAccessDeniedReason("Ce compte n'est pas disponible.");
+            setAuthSource(null);
+            return;
+        }
+        setCurrentUser(user);
+        setNeedsPasswordChange(false);
+        setAccessDenied(false);
+        setAccessDeniedReason(null);
+        setAuthSource('demo');
+    };
+
+    const completeFirstLogin = () => {
+        setNeedsPasswordChange(false);
+        setCurrentUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
+    };
+
     const loginWithGoogle = async () => {
         // Not implemented for this flow
         showToast('Google Login not supported in this strict mode.', 'info');
@@ -180,6 +219,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 accessDeniedReason,
                 isLoading,
                 login,
+                loginAs,
+                completeFirstLogin,
                 loginWithGoogle,
                 loginWithMicrosoft,
                 logout,

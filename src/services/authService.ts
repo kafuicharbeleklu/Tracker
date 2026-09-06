@@ -49,48 +49,135 @@ const generateTempPin = (): string => {
 let mockAppUsers: AppUser[] = [
     {
         id: '1',
-        Title: 'Alice Admin',
-        MicrosoftEmail: 'alice.admin@tracker.app', // Must match valid Microsoft accounts for testing
+        Title: 'Alice SuperAdmin',
+        MicrosoftEmail: 'alice.admin@neemba.com',
         Role: 'SuperAdmin',
         Status: 'active',
         PinStatus: 'active',
         MustChangePassword: false,
-        CreatedDate: new Date().toISOString(),
+        CreatedDate: '2026-01-14T08:00:00Z',
         CreatedBy: 'System',
-        LastLoginDate: new Date().toISOString(),
+        LastLoginDate: '2026-01-14T12:07:00Z',
     },
     {
         id: '2',
-        Title: 'Bob Manager',
-        MicrosoftEmail: 'bob.manager@tracker.app',
+        Title: 'Bob Admin Sénégal',
+        MicrosoftEmail: 'bob.senegal@neemba.com',
+        Role: 'Admin',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-14T09:30:00Z',
+    },
+    {
+        id: '3',
+        Title: 'Jane Manager',
+        MicrosoftEmail: 'jane.manager@neemba.com',
         Role: 'Manager',
         Status: 'active',
         PinStatus: 'active',
         MustChangePassword: false,
-        CreatedDate: new Date().toISOString(),
+        CreatedDate: '2026-01-14T08:00:00Z',
         CreatedBy: 'System',
-    },
-    {
-        id: '3',
-        Title: 'Charlie New',
-        MicrosoftEmail: 'charlie.new@tracker.app',
-        Role: 'User',
-        Status: 'pending',
-        PinStatus: 'pending',
-        MustChangePassword: true,
-        CreatedDate: new Date().toISOString(),
-        CreatedBy: 'Alice Admin',
+        LastLoginDate: '2026-01-13T16:45:00Z',
     },
     {
         id: '4',
-        Title: 'Dave Inactive',
-        MicrosoftEmail: 'dave.inactive@tracker.app',
+        Title: 'Ethan Employé',
+        MicrosoftEmail: 'ethan.user@neemba.com',
         Role: 'User',
-        Status: 'inactive',
-        PinStatus: 'not_set',
+        Status: 'active',
+        PinStatus: 'active',
         MustChangePassword: false,
-        CreatedDate: new Date().toISOString(),
-        CreatedBy: 'Alice Admin',
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-12T10:15:00Z',
+    },
+    {
+        id: '5',
+        Title: 'Abdoulaye Deen TOURE',
+        MicrosoftEmail: 'abdoulaye.toure@neemba.com',
+        Role: 'User',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-10T08:00:00Z',
+    },
+    {
+        id: '6',
+        Title: 'Clara Admin France',
+        MicrosoftEmail: 'clara.france@neemba.com',
+        Role: 'Admin',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-14T11:42:00Z',
+    },
+    {
+        id: '7',
+        Title: 'Oumar Manager Dakar',
+        MicrosoftEmail: 'oumar.manager@neemba.com',
+        Role: 'Manager',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-13T17:05:00Z',
+    },
+    {
+        id: '8',
+        Title: 'Fatou Support',
+        MicrosoftEmail: 'fatou.support@neemba.com',
+        Role: 'User',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-13T15:31:00Z',
+    },
+    {
+        id: '9',
+        Title: 'Marc Finance',
+        MicrosoftEmail: 'marc.finance@neemba.com',
+        Role: 'User',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-12T09:12:00Z',
+    },
+    {
+        id: '10',
+        Title: 'Nora Finance Manager',
+        MicrosoftEmail: 'nora.manager@neemba.com',
+        Role: 'Manager',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-14T08:58:00Z',
+    },
+    {
+        id: '11',
+        Title: 'Lea Marketing',
+        MicrosoftEmail: 'lea.marketing@neemba.com',
+        Role: 'User',
+        Status: 'active',
+        PinStatus: 'active',
+        MustChangePassword: false,
+        CreatedDate: '2026-01-14T08:00:00Z',
+        CreatedBy: 'System',
+        LastLoginDate: '2026-01-11T14:23:00Z',
     },
 ];
 
@@ -139,8 +226,8 @@ interface SetStatusApiResponse {
 
 // SIMULATED BACKEND DELAY
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const mockTempPasswords = new Map<string, string>([['3', generateTempPassword()]]);
-const mockTempPins = new Map<string, string>([['3', generateTempPin()]]);
+const mockTempPasswords = new Map<string, string>();
+const mockTempPins = new Map<string, string>();
 
 const canUseAuthApi = (): boolean => Boolean(AUTH_API_BASE_URL);
 
@@ -163,10 +250,7 @@ export const authService = {
         }
 
         if (!accessToken || accessToken === 'mock_token') {
-            return {
-                success: false,
-                error: 'Jeton Microsoft invalide ou absent.',
-            };
+            console.warn('[Backend] Mock auth active without a Microsoft token.');
         }
 
         if (!isAllowedEmail(email)) {
