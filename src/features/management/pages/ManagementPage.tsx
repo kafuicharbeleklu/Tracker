@@ -2,11 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     CaretRight,
     Clock,
+    Cube,
+    Desktop,
     FolderOpen,
     Funnel,
+    Network,
+    Plugs,
     Plus,
     SortAscending,
     UploadSimple,
+    type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
 import Reading from '../../../components/layout/Reading';
@@ -16,6 +21,11 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import FacetChip from '../../../components/ui/FacetChip';
 import Icon from '../../../components/ui/Icon';
 import ListRow from '../../../components/ui/ListRow';
+import SelectionTopBar from '../../../components/ui/SelectionTopBar';
+import BulkActionBar from '../../../components/ui/BulkActionBar';
+import { useSelection } from '../../../hooks/useSelection';
+import { useDeclareSelectionRegime } from '../../../context/SelectionRegimeContext';
+import { buildCsvLine } from '../../../lib/csv';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import ScreenState from '../../../components/ui/ScreenState';
 import SearchField from '../../../components/ui/SearchField';
@@ -46,6 +56,26 @@ const ALL_FAMILIES = 'Toutes';
  * vide à mesure qu'on renseigne les fiches.
  */
 const UNFILED_FAMILY = 'Sans famille';
+
+/**
+ * **Les quatre familles, leur pictogramme et leur teinte** — 09.1, `.fh .si`. Elles sont
+ * fixées (A2) : le référentiel se parcourt d'un bout à l'autre, et quatre en-têtes se
+ * distinguent d'un coup d'œil quand ils portent une image. Sans elle, quatre titres de
+ * 13 px se ressemblaient tous.
+ */
+const FAMILY_GLYPH: Record<string, PhosphorGlyph> = {
+    Informatique: Desktop,
+    Périphériques: Plugs,
+    'Impression et réseau': Network,
+    'Mobilier et divers': Cube,
+};
+
+const FAMILY_TINT: Record<string, string> = {
+    Informatique: 'bg-tint-bleu text-on-tint-bleu',
+    Périphériques: 'bg-tint-vert text-on-tint-vert',
+    'Impression et réseau': 'bg-tint-ambre text-on-tint-ambre',
+    'Mobilier et divers': 'bg-tint-orange text-on-tint-orange',
+};
 
 /** L'ordre d'affichage : les quatre familles du référentiel, puis le manque. */
 const FAMILY_ORDER: string[] = [...CATEGORY_FAMILIES, UNFILED_FAMILY];
@@ -137,6 +167,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const [isModelModalOpen, setIsModelModalOpen] = useState(false);
 
     const isCompact = useMediaQuery(MEDIA.compact);
+
+    /* 17.2 — le catalogue est l'un des quatre écrans qui portent la sélection groupée. */
+    const selection = useSelection();
+    useDeclareSelectionRegime(selection.isActive);
     const categoryImportInputRef = useRef<HTMLInputElement | null>(null);
     const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -187,6 +221,42 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
         modelCountByType,
         assetCountByType,
     ]);
+
+    /**
+     * **Exporter la sélection** — le seul acte groupé du catalogue pour l'instant :
+     * il ne change rien, donc il ne demande aucun garde.
+     */
+    const exporterSelection = () => {
+        const choisis = filteredCategories.filter((category) => selection.isSelected(category.id));
+        if (choisis.length === 0) {
+            showToast('Aucun type sélectionné.', 'info');
+            return;
+        }
+
+        const entetes = ['Type', 'Famille', 'Modeles', 'Actifs'];
+        const lignes = choisis.map((category) => [
+            category.name,
+            category.family || '',
+            String(modelCountByType.get(category.name) ?? 0),
+            String(assetCountByType.get(category.name) ?? 0),
+        ]);
+
+        const csv = [buildCsvLine(entetes), ...lignes.map((ligne) => buildCsvLine(ligne))].join(
+            '\n',
+        );
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const lien = document.createElement('a');
+        lien.href = url;
+        lien.download = `catalogue-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(lien);
+        lien.click();
+        document.body.removeChild(lien);
+        URL.revokeObjectURL(url);
+
+        showToast(`${choisis.length} type(s) exporté(s).`, 'success');
+        selection.exit();
+    };
 
     const filteredCategories = useMemo(
         () =>
@@ -593,7 +663,19 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             {/* LA BARRE — `.tbar` de 09.1, reprise au caractère de 04.1 : 56 px, titre
                 Archivo, filet en bas au téléphone ; au rail, ni filet ni redite de la
                 destination, que le rail porte déjà (00.4). */}
-            {isCompact ? (
+            {isCompact && selection.isActive ? (
+                /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
+                   change de régime, il ne gagne pas un palier. */
+                <SelectionTopBar
+                    count={selection.count}
+                    total={filteredCategories.length}
+                    onExit={selection.exit}
+                    onSelectAll={() =>
+                        selection.selectAll(filteredCategories.map((category) => category.id))
+                    }
+                    onClearAll={selection.clear}
+                />
+            ) : isCompact ? (
                 <div className="border-outline-variant bg-surface flex min-h-14 items-center justify-between border-b px-5 py-1">
                     <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
                         Catalogue
@@ -635,7 +717,11 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 (surface + filet), simple bande de page au rail (§2.37, 00.4).
                 Elle disparaît avec le référentiel vide : un outil qui trie ce qui
                 n'existe pas apprend que l'écran est cassé. */}
-            {!isReferentialEmpty && (
+            {/* S3 — **un seul palier haut**. En sélection, la barre sombre remplace
+                l'en-tête ; laisser la recherche et les partitions dessous en ferait un
+                second palier, et la planche n'en dessine aucun : le sujet de l'écran
+                n'est plus la liste, c'est ce qui est coché. */}
+            {!isReferentialEmpty && !selection.isActive && (
                 <div
                     className={cn(
                         'flex flex-col gap-2.5',
@@ -730,29 +816,34 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                     />
                 ) : (
                     <Reading className="flex flex-col">
-                        {/* LE PORTE-VOIX — `.pv`, Archivo 28 : le nombre de modèles, parce
-                            que c'est lui qui décide de ce qu'on peut créer. Au rail il est
-                            monté dans l'en-tête, où 00.4 attend le compteur. */}
-                        {isCompact && (
-                            <div className="px-0.5 pb-0.5">
-                                <b className="font-brand text-on-surface block text-[28px] leading-8 font-semibold tracking-[-0.02em] tabular-nums">
-                                    {modelCountLabel}
-                                </b>
-                                <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                    au catalogue, sous {typeCountLabel} — c'est ce nombre qui décide
-                                    de ce qu'on peut créer.
-                                </span>
-                            </div>
-                        )}
+                        {/*
+                          `.ord` — **la passe sobre du 03/09 retire le porte-voix de 28.**
+                          La planche ne dessine plus qu'une ligne de 12 sur 16 : les types
+                          et les modèles à gauche, les actifs au parc à droite. Le grand
+                          nombre disait ce que cette ligne dit, une marche plus haut, et
+                          poussait la première rangée hors de l'écran.
 
-                        {/* `.cnt` et son tri — 44 px, 13 px, le second fait à gauche. */}
-                        <div className="text-text-secondary flex min-h-11 items-center justify-between gap-3 px-0.5 text-[13px]">
-                            <span className="whitespace-nowrap">
-                                <b className="text-on-surface font-semibold tabular-nums">
-                                    {familyFacets.length - 1}
+                          Le tri reste à droite : 09.1 ne le dessine pas, mais il existe
+                          dans le produit et 17.8 lui donne cette place. Le compte des
+                          actifs rejoint donc la phrase de gauche.
+                        */}
+
+                        <div
+                            className={cn(
+                                'text-on-surface-variant flex min-h-11 items-center justify-between gap-3 px-1 text-[12px] leading-4',
+                                selection.isActive && 'hidden',
+                            )}
+                        >
+                            <span className="min-w-0 truncate">
+                                <b className="text-on-surface font-medium tabular-nums">
+                                    {typeCountLabel}
                                 </b>{' '}
-                                familles ·{' '}
-                                <b className="text-on-surface font-semibold tabular-nums">
+                                ·{' '}
+                                <b className="text-on-surface font-medium tabular-nums">
+                                    {modelCountLabel}
+                                </b>{' '}
+                                ·{' '}
+                                <b className="text-on-surface font-medium tabular-nums">
                                     {equipment.length}
                                 </b>{' '}
                                 actifs au parc
@@ -762,12 +853,12 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 onClick={() =>
                                     setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
                                 }
-                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[13px] font-medium"
+                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[12px] leading-4 font-medium"
                             >
                                 <Icon
                                     glyph={SortAscending}
                                     size={18}
-                                    className="text-text-secondary"
+                                    className="text-on-surface-variant"
                                 />
                                 {SORT_OPTIONS[sortIndex].label}
                             </button>
@@ -787,9 +878,27 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 <div className="flex flex-col gap-5">
                                     {categoriesByFamily.map(({ family, items }) => (
                                         <section key={family}>
-                                            <div className="text-on-surface flex items-baseline justify-between gap-3 px-0.5 pb-2 text-[13px] font-medium">
-                                                <span className="min-w-0 truncate">{family}</span>
-                                                <span className="text-text-secondary shrink-0 text-[12px] font-normal tabular-nums">
+                                            {/* `.fh` — le pictogramme de la famille, teinté,
+                                                puis son nom en 17 sur 24 et le compte en 14
+                                                sur 20. Il valait 13 px sans image : quatre
+                                                familles se distinguaient par leur seul nom. */}
+                                            <div className="text-on-surface flex items-center gap-3 px-1 pb-2">
+                                                <span
+                                                    className={cn(
+                                                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]',
+                                                        FAMILY_TINT[family] ??
+                                                            'bg-surface-container text-on-surface-variant',
+                                                    )}
+                                                >
+                                                    <Icon
+                                                        glyph={FAMILY_GLYPH[family] ?? Cube}
+                                                        size={18}
+                                                    />
+                                                </span>
+                                                <span className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                                    {family}
+                                                </span>
+                                                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
                                                     {items.length} type{items.length > 1 ? 's' : ''}
                                                 </span>
                                             </div>
@@ -868,8 +977,29 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                     ? `${assetCount} actif${assetCount > 1 ? 's' : ''}, rien pour en créer`
                                                                     : `${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`
                                                             }
-                                                            reference={dataKey}
+                                                            /* `.key` — la clé anglaise se
+                                                               lit en **chasse fixe** : c'est
+                                                               une valeur de donnée, pas un
+                                                               mot. Absente, la planche la
+                                                               réclame — « clé ? », souligné
+                                                               en pointillé. */
+                                                            reference={dataKey ?? 'clé ?'}
+                                                            referenceClassName={cn(
+                                                                'font-mono text-text-tertiary',
+                                                                !dataKey &&
+                                                                    'underline decoration-dotted underline-offset-2',
+                                                            )}
                                                             onOpen={() => onCategoryClick?.(cat.id)}
+                                                            /* 09.1 — `.lrow` de 64, gouttière 12. */
+                                                            dense
+                                                            selectionActive={selection.isActive}
+                                                            selected={selection.isSelected(cat.id)}
+                                                            onToggle={() =>
+                                                                selection.toggle(cat.id)
+                                                            }
+                                                            onLongPress={() =>
+                                                                selection.enter(cat.id)
+                                                            }
                                                         />
                                                     );
                                                 })}
@@ -931,7 +1061,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             {/* Le bouton flottant — 56 px, rayon 8, le seul jaune du contenu (§X12).
                 La barre du bas fait 56 px : il se pose à 76 du bas, au-dessus, jamais
                 dessus. */}
-            {isCompact && !isReferentialEmpty && (
+            {/* 17.2 — le pied n'existe pas à sélection vide, et il prend la place de la
+                barre du bas. La suppression groupée n'y est pas : `deleteCategory` ne
+                regarde pas si le type est employé, et supprimer d'un geste dix types
+                qui portent des actifs les laisserait sans catégorie. C'est un garde à
+                écrire avant l'acte, pas un bouton à poser. */}
+            {selection.isActive && (
+                <BulkActionBar count={selection.count}>
+                    <Button variant="filled" onClick={exporterSelection}>
+                        Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
+                    </Button>
+                </BulkActionBar>
+            )}
+
+            {isCompact && !isReferentialEmpty && !selection.isActive && (
                 <FabContainer
                     description="Ajouter au catalogue"
                     className="compact:bottom-[76px] right-5 bottom-[76px]"

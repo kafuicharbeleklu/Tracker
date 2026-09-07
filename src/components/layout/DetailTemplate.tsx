@@ -5,6 +5,7 @@ import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import { SkeletonDetail } from '../ui/Skeleton';
 import { OfflineBanner } from '../ui/ContextBanner';
+import { MEDIA } from '../../constants/breakpoints';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { cn } from '../../lib/utils';
@@ -55,8 +56,15 @@ import { cn } from '../../lib/utils';
 interface DetailTemplateProps {
     /** Le code de l'objet — l'identité, écrite ici et nulle part ailleurs. */
     code: React.ReactNode;
-    /** L'identifiant technique, sous le code. Chiffres tabulaires. */
-    reference?: React.ReactNode;
+    /*
+     * **La barre n'a pas de sous-titre** — R16 : *« un seul étage, jamais de sous-titre »*,
+     * et 17.8 l'écrit pour son premier slot. La fente `reference` en était un : elle
+     * portait, sur les quatre fiches qui l'employaient, un fait que le héro écrit déjà
+     * trois centimètres plus bas — le numéro d'actif, le rôle, le nom du type, la
+     * catégorie de la demande. Deux étages faisaient aussi flotter le titre hors de l'axe
+     * de la barre de 56. La fente est retirée pour qu'un cinquième appelant ne la
+     * rouvre pas.
+     */
     onBack?: () => void;
     /** Le menu de débordement : les actes nommés, l'irréversible en dernier. */
     menu?: React.ReactNode;
@@ -77,6 +85,12 @@ interface DetailTemplateProps {
      * héro**, là où le geste a été engagé, et l'état de l'objet ne change pas.
      */
     error?: React.ReactNode;
+    /**
+     * **L'accusé de clôture** (06.3) — il se pose **au-dessus du héro**, dans le fil de
+     * la page : ce qui vient de se produire se lit avant l'état qui en résulte, et
+     * l'écran ne le porte qu'un moment.
+     */
+    banner?: React.ReactNode;
     /**
      * Ce qui appelle un geste et reste donc **à gauche** en deux colonnes : une carte
      * d'incident en cours, un rappel d'action.
@@ -99,30 +113,40 @@ interface DetailTemplateProps {
  * lignes ; le reprendre à 1200 ferait basculer 80 px trop tôt sans que rien ne le
  * demande.
  */
-const TWO_COLUMN = '(min-width: 1280px)';
+/* La requête vit dans `MEDIA` : une constante privée échappe à la table des réponses
+   du régime mobile, et c'est ce qui posait deux colonnes dans un cadre de 393. */
 
 const DetailTemplate: React.FC<DetailTemplateProps> = ({
     code,
-    reference,
     onBack,
     menu,
     hero,
     error,
+    banner,
     aside,
     loading = false,
     children,
     className,
 }) => {
-    const twoColumnCapable = useMediaQuery(TWO_COLUMN);
+    const twoColumnCapable = useMediaQuery(MEDIA.twoColumn);
     const showSkeleton = useDelayedPending(loading);
     /* La colonne de gauche n'existe que si quelque chose la remplit. Vide, elle
        laissait 440 px de blanc à côté des cartes au-delà de 1280. */
-    const twoColumn = twoColumnCapable && Boolean(hero || error || aside);
+    const twoColumn = twoColumnCapable && Boolean(hero || error || aside || banner);
 
     return (
         <div className={cn('flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
-            {/* L'identité n'est écrite qu'ici. */}
-            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
+            {/*
+              `.tbar` — **la barre de 56 du composant partagé 17.8**, et ses trois
+              mesures : intérieur `0 8 0 4` (asymétrique : le retour est un carré de 48
+              qui porte déjà son air à gauche, le ⋮ à droite n'en a pas), gouttière 4, et
+              un seul filet dessous.
+
+              Elle tenait `px-2 py-1` et une gouttière de 4 en classe `gap-1` : 8 à
+              gauche comme à droite, plus 4 de padding vertical qui poussaient la barre
+              au-delà de 56 dès que la seconde ligne apparaissait.
+            */}
+            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                 {onBack && (
                     <Button
                         variant="text"
@@ -135,14 +159,13 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                     </Button>
                 )}
                 <div className="min-w-0 flex-1 px-1">
-                    <p className="font-brand text-on-surface truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
+                    {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`, coupé
+                        à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit bien 16, mais
+                        c'est la seule des quatre planches à barre — 05.2, 09.2 et 16.2
+                        écrivent 17/24, et **17.8 le déclare pour les huit écrans**. */}
+                    <p className="font-brand text-on-surface truncate text-[17px] leading-6 font-semibold tracking-[-0.01em]">
                         {code}
                     </p>
-                    {reference && (
-                        <p className="text-label-small text-text-secondary truncate tracking-[0.03em] tabular-nums">
-                            {reference}
-                        </p>
-                    )}
                 </div>
                 {menu}
             </div>
@@ -167,6 +190,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                     twoColumn && 'w-[440px] shrink-0',
                                 )}
                             >
+                                {banner}
                                 {hero}
                                 {error}
                                 {aside}

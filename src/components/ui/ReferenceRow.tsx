@@ -86,8 +86,11 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                     )}
                 >
                     {value}
+                    {/* Une phrase, pas une étiquette : 12 sur 16 **sans** interlettrage.
+                        `text-label-small` en porte `.075em`, fait pour les capitales — sur
+                        une phrase en minuscules, il l'étire lettre à lettre. */}
                     {detail && (
-                        <span className="text-label-small text-on-surface-variant mt-0.5 block font-normal">
+                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4 font-normal">
                             {detail}
                         </span>
                     )}

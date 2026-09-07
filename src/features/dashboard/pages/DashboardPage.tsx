@@ -5,9 +5,12 @@ import {
     CaretRight,
     Check,
     ClockCounterClockwise,
+    Gear,
     Handshake,
+    LockKey,
     Package,
     Plus,
+    SignOut,
     Wrench,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
@@ -24,15 +27,11 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Figure from '../../../components/ui/Figure';
 import { OfflineBanner } from '../../../components/ui/ContextBanner';
-import heroImage from '../../../assets/dashboard-hero.webp';
-
-import { APP_CONFIG } from '../../../config';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
 import {
     ACTIVE_APPROVAL_STATUSES,
     getHistoryEventSentence,
-    getStatusLabel,
 } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
 
@@ -207,9 +206,27 @@ const FLEET_STATES: readonly {
     tone: 'bleu' | 'vert' | 'orange';
     color: string;
 }[] = [
-    { key: 'assigned', status: 'Attribué', label: 'attribués', tone: 'bleu', color: 'var(--tk-color-st-bleu)' },
-    { key: 'available', status: 'Disponible', label: 'disponibles', tone: 'vert', color: 'var(--tk-color-st-vert)' },
-    { key: 'repair', status: 'En réparation', label: 'en réparation', tone: 'orange', color: 'var(--tk-color-st-orange)' },
+    {
+        key: 'assigned',
+        status: 'Attribué',
+        label: 'attribués',
+        tone: 'bleu',
+        color: 'var(--tk-color-st-bleu)',
+    },
+    {
+        key: 'available',
+        status: 'Disponible',
+        label: 'disponibles',
+        tone: 'vert',
+        color: 'var(--tk-color-st-vert)',
+    },
+    {
+        key: 'repair',
+        status: 'En réparation',
+        label: 'en réparation',
+        tone: 'orange',
+        color: 'var(--tk-color-st-orange)',
+    },
 ];
 
 /** `.vmot` — la pastille ronde de 48 du régime vide, `rgba(122,185,85,.22)`. */
@@ -404,18 +421,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         );
     }, [currentUser?.name]);
 
-    /*
-      Le rôle puis le rattachement, la grammaire de l'en-tête de la fiche
-      (`UserDetailsPage`) — le menu et la page qu'il ouvre disent la même chose. Le code
-      testait `role === 'ADMIN'`, une valeur qui n'existe pas dans `UserRole` : Alice
-      SuperAdmin lisait « IT HQ » et son rôle n'apparaissait nulle part.
-    */
-    const accountSubtitle = useMemo(() => {
-        if (!currentUser) return 'Utilisateur';
-        const attachment = currentUser.jobTitle || currentUser.department || currentUser.site;
-        const role = getStatusLabel(currentUser.role);
-        return attachment ? `${role} · ${attachment}` : role;
-    }, [currentUser]);
 
     const equipment = useMemo(
         () => filterEquipment(allEquipment, users),
@@ -426,11 +431,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
       barre latérale doivent annoncer **le même nombre**. Il vivait ici, et la barre
       latérale en tenait un second, compté sur les noms des personnes.
     */
-    const {
-        tasks: todo,
-        oldestWaitDays: oldestWait,
-        breakdown: todoBreakdown,
-    } = usePendingTasks();
+    const { tasks: todo, oldestWaitDays: oldestWait, breakdown: todoBreakdown } = usePendingTasks();
 
     const openTasks = () => onViewChange('tasks');
 
@@ -586,8 +587,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const named = currentBudget.items.find((item) =>
             /renouvel|mat[ée]riel|[ée]quipement|hardware/i.test(item.category),
         );
-        const line =
-            named ?? [...currentBudget.items].sort((a, b) => b.allocated - a.allocated)[0];
+        const line = named ?? [...currentBudget.items].sort((a, b) => b.allocated - a.allocated)[0];
         return { category: line.category, remaining: line.allocated - (line.spent || 0) };
     }, [financeBudgets]);
 
@@ -651,9 +651,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 {userInitials}
                             </Button>
 
-                            {/* Le menu de compte appartient à la planche 17.7, à qui 03.1
-                                le délègue : ses mesures ne suivent donc pas l'échelle de
-                                cet écran-ci. */}
+                            {/*
+                              {/*
+                                LE MENU DE COMPTE — **trois entrées, et pas d'avatar dedans.**
+                              
+                                Arbitré par le commanditaire le 06/09 : *« le menu contextuel de l'avatar ne
+                                reprend pas l'avatar ; il porte Mon compte, Paramètres et le bouton
+                                Déconnexion »*. Répéter l'identité sous le bouton qu'on vient de taper ne dit
+                                rien de neuf ; **Mon profil** n'a pas de page dans ce produit et n'a donc pas
+                                d'entrée ; **Paramètres** vit ici plutôt que dans la feuille « Plus », qui ne
+                                range que des destinations de travail.
+                              
+                                Les rangées gardent le canon des feuilles (17.7, 07.1) : 56 de haut, vignette
+                                de 40 au rayon 4, titre 16 sur 24. La sortie ferme la liste, en encre de
+                                danger, séparée par un filet — c'est un acte, pas une destination.
+                              */}
                             {isAccountOpen && (
                                 <>
                                     <div
@@ -661,90 +673,72 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         onClick={() => setIsAccountOpen(false)}
                                         aria-hidden="true"
                                     />
-                                    <div className="border-outline-variant bg-surface shadow-elevation-3 absolute top-[52px] right-0 z-50 w-[238px] rounded-lg border p-1.5">
-                                        <div className="flex items-center gap-2.5 p-2 pb-3">
-                                            <span className="font-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-sm font-semibold text-white">
-                                                {userInitials}
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface truncate text-sm font-medium">
-                                                    {currentUser?.name || 'Utilisateur'}
-                                                </p>
-                                                <p className="text-on-surface-variant truncate text-xs">
-                                                    {accountSubtitle}
-                                                </p>
-                                            </div>
-                                        </div>
+                                    <div className="border-outline-variant bg-surface shadow-elevation-3 absolute top-[52px] right-0 z-50 w-[300px] rounded-lg border p-2">
+                                        {(
+                                            [
+                                                {
+                                                    glyph: LockKey,
+                                                    titre: 'Mon compte',
+                                                    detail: 'Mot de passe, code PIN, sessions',
+                                                    aller: () => onNavigate?.('/settings/account'),
+                                                },
+                                                {
+                                                    glyph: Gear,
+                                                    titre: 'Paramètres',
+                                                    detail: 'Notifications, langue et site, aide',
+                                                    aller: () => onNavigate?.('/settings'),
+                                                },
+                                            ] as const
+                                        ).map((rangee, index) => (
+                                            <Button
+                                                key={rangee.titre}
+                                                variant="text"
+                                                layout="card"
+                                                onClick={() => {
+                                                    setIsAccountOpen(false);
+                                                    rangee.aller();
+                                                }}
+                                                className={cn(
+                                                    'text-on-surface hover:bg-surface-container flex min-h-14 w-full items-center gap-3 rounded-none px-2 py-2 text-left',
+                                                    index > 0 && 'border-outline-variant border-t',
+                                                )}
+                                            >
+                                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                                    <Icon glyph={rangee.glyph} size={20} />
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate text-[16px] leading-6">
+                                                        {rangee.titre}
+                                                    </span>
+                                                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                                        {rangee.detail}
+                                                    </span>
+                                                </span>
+                                                <Icon
+                                                    glyph={CaretRight}
+                                                    size={20}
+                                                    className="text-text-tertiary shrink-0"
+                                                />
+                                            </Button>
+                                        ))}
+
+                                        <span
+                                            aria-hidden="true"
+                                            className="bg-outline-variant my-1 block h-px"
+                                        />
 
                                         <Button
                                             variant="text"
-                                            size="sm"
-                                            layout="card"
-                                            onClick={() => {
-                                                setIsAccountOpen(false);
-                                                if (currentUser?.id)
-                                                    onNavigate?.(`/users/${currentUser.id}`);
-                                            }}
-                                            className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t px-2.5 py-2 text-left text-sm"
-                                        >
-                                            <span className="font-medium">Mon profil</span>
-                                            <span className="text-on-surface-variant text-[11px]">
-                                                Mes équipements, mon historique
-                                            </span>
-                                        </Button>
-
-                                        <Button
-                                            variant="text"
-                                            size="sm"
-                                            layout="card"
-                                            onClick={() => {
-                                                setIsAccountOpen(false);
-                                                onNavigate?.('/settings/account');
-                                            }}
-                                            className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t px-2.5 py-2 text-left text-sm"
-                                        >
-                                            <span className="font-medium">Mon compte</span>
-                                            <span className="text-on-surface-variant text-[11px]">
-                                                Mot de passe, code PIN, sessions
-                                            </span>
-                                        </Button>
-
-                                        <Button
-                                            variant="text"
-                                            size="sm"
-                                            layout="card"
-                                            onClick={() => {
-                                                setIsAccountOpen(false);
-                                                onNavigate?.('/documentation/ui-flow-map');
-                                            }}
-                                            className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full flex-col items-start justify-center gap-0.5 rounded-md border-t px-2.5 py-2 text-left text-sm"
-                                        >
-                                            <span className="font-medium">Aide et support</span>
-                                            <span className="text-on-surface-variant text-[11px]">
-                                                Documentation, tutoriels, FAQ
-                                            </span>
-                                        </Button>
-
-                                        <div className="bg-outline-variant my-1 h-px" />
-
-                                        <Button
-                                            variant="text"
-                                            size="sm"
                                             layout="card"
                                             onClick={() => {
                                                 setIsAccountOpen(false);
                                                 logout();
                                             }}
-                                            className="text-danger hover:bg-error-container/30 flex min-h-[40px] w-full items-center rounded-md px-2.5 py-2 text-left text-sm font-medium"
+                                            className="text-danger hover:bg-error-container/30 flex min-h-12 w-full items-center gap-3 rounded-md px-2 py-2 text-left text-[16px] leading-6 font-medium"
                                         >
+                                            <Icon glyph={SignOut} size={20} className="shrink-0" />
                                             Se déconnecter
                                         </Button>
-
-                                        {/* Le pied du menu de la planche : la version s'y lit
-                                            sans ouvrir Paramètres. */}
-                                        <p className="border-outline-variant text-outline mt-1 border-t px-2.5 pt-2 pb-0.5 text-[11px] tabular-nums">
-                                            {APP_CONFIG.appName} v{APP_CONFIG.version}
-                                        </p>
                                     </div>
                                 </>
                             )}
@@ -800,7 +794,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         className="rounded-card text-inverse-on-surface relative isolate overflow-hidden p-5"
                         style={HERO_STYLE}
                     >
-                        <div className="absolute inset-0 -z-10" style={HERO_VEIL_STYLE} aria-hidden="true" />
+                        <div
+                            className="absolute inset-0 -z-10"
+                            style={HERO_VEIL_STYLE}
+                            aria-hidden="true"
+                        />
                         <div className="flex min-h-6 items-center justify-between gap-3">
                             {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
                                 elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
@@ -925,7 +923,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                     {entry.what}
                                                 </span>
                                                 <span className="mt-0.5 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
-                                                    {[entry.who, nature].filter(Boolean).join(' · ')}
+                                                    {[entry.who, nature]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
                                                 </span>
                                             </span>
                                             {age && (
@@ -980,12 +980,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             >
                                 {FLEET_STATES.map((state) => {
                                     const width =
-                                        counts.total > 0 ? (counts[state.key] / counts.total) * 100 : 0;
+                                        counts.total > 0
+                                            ? (counts[state.key] / counts.total) * 100
+                                            : 0;
                                     return width > 0 ? (
                                         <span
                                             key={state.key}
                                             className="block h-full"
-                                            style={{ width: `${width}%`, backgroundColor: state.color }}
+                                            style={{
+                                                width: `${width}%`,
+                                                backgroundColor: state.color,
+                                            }}
                                         />
                                     ) : null;
                                 })}

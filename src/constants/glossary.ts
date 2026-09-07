@@ -85,7 +85,7 @@ export const GLOSSARY = {
  *
  * Avant cette table, le même objet portait trois libellés : « Écrans et
  * moniteurs » (`Category.description`), « Moniteur » (ManagementPage) et
- * « Écran » (NewRequestPage). Toute page qui affiche une catégorie lit
+ * « Écran » (la feuille de demande, 06.4). Toute page qui affiche une catégorie lit
  * `getCategoryLabel`, jamais sa propre liste.
  *
  * ÉTAPE SUIVANTE, hors de ce fichier : le libellé doit descendre dans la donnée,
@@ -93,6 +93,10 @@ export const GLOSSARY = {
  * administrateur n'a aucune entrée ici. Voir `REGLES-TRANSVERSES.md` §5.7.
  */
 export const CATEGORY_LABELS: Record<string, string> = {
+    AccessPoint: 'Borne Wi-Fi',
+    Desktop: 'Poste fixe',
+    DockingStation: "Station d'accueil",
+    Firewall: 'Pare-feu',
     Furniture: 'Mobilier',
     Headphones: 'Casque',
     Keyboard: 'Clavier',
@@ -101,7 +105,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
     Mouse: 'Souris',
     Phone: 'Téléphone',
     Printer: 'Imprimante',
+    NetworkDevice: 'Équipement réseau',
+    Projector: 'Vidéo-projecteur',
     Server: 'Serveur',
+    Switch: 'Commutateur',
     Tablet: 'Tablette',
 };
 

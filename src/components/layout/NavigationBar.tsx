@@ -255,7 +255,9 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
                 <span
                     className={cn(
                         'block truncate text-[14px] leading-5',
-                        row.fact.warn ? 'text-[var(--tk-color-on-tint-ambre)]' : 'text-on-surface-variant',
+                        row.fact.warn
+                            ? 'text-[var(--tk-color-on-tint-ambre)]'
+                            : 'text-on-surface-variant',
                     )}
                 >
                     {row.fact.text}
@@ -321,7 +323,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         // « Rôles & accès » ne s'affichait donc JAMAIS. Administrer les rôles est un
         // acte d'administration système — c'est `canManageSystem` qui le garde.
         if (permissions.canManageSystem) administration.push(row('rbac'));
-        if (permissions.canManageSystem) administration.push(row('settings'));
+        /* **Paramètres a quitté cette feuille** (arbitrage du commanditaire, 06/09) :
+           il vit dans le menu de l'avatar, avec Mon compte et la déconnexion. La
+           feuille « Plus » ne range que des destinations de travail — deux portes vers
+           le même réglage en font une de trop. */
         administration.push({
             id: 'account',
             label: 'Mon compte',
@@ -503,9 +508,12 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     return (
         <>
             {/*
-              LE VOILE — il s'arrête à 56 px du bas. La case « Plus » reste au-dessus,
+              LE VOILE — il s'arrête à 64 px du bas. La case « Plus » reste au-dessus,
               donc pressable, et c'est elle qui referme : un menu ne recouvre pas la
               destination qui l'a ouvert (même règle que le snackbar de 17.5).
+
+              Rétabli le 06/09 à la demande du commanditaire, après un essai qui posait
+              la feuille au bord de l'écran par-dessus la barre.
             */}
             {isMenuOpen && (
                 <div

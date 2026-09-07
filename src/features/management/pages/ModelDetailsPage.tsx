@@ -1,10 +1,18 @@
-import React, { useMemo, useState } from 'react';
-import { CaretRight, DotsThreeVertical, PencilSimple, Plus } from '@phosphor-icons/react';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+    CaretRight,
+    DotsThreeVertical,
+    Handshake,
+    PencilSimple,
+    Plus,
+} from '@phosphor-icons/react';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useToast } from '../../../context/ToastContext';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
+import DetailHero from '../../../components/ui/DetailHero';
+import { getCategoryLabel } from '../../../constants/glossary';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
@@ -18,7 +26,7 @@ interface ModelDetailsPageProps {
 }
 
 const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) => {
-    const { equipment, models, deleteModel } = useData();
+    const { equipment, models, categories, deleteModel } = useData();
     const { navigateToItem, navigateToView } = useAppNavigation();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
@@ -26,12 +34,40 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
 
     const model = models.find((m) => m.id === modelId);
 
+    /**
+     * **Le retour rend la catégorie, pas la racine du catalogue.** On descend famille →
+     * type → modèle ; remonter d'un modèle au sommet fait refaire deux pas à qui n'en
+     * avait fait qu'un. Relevé au rapport d'écarts du 05/09, planche 09.2.
+     *
+     * Un modèle nomme sa famille (`type`), la fiche de catégorie s'adresse par
+     * identifiant : la correspondance se fait ici, et à défaut le retour reste celui que
+     * la coque a donné.
+     */
+    const parentCategory = useMemo(
+        () => (model ? categories.find((c) => c.name === model.type) : undefined),
+        [categories, model],
+    );
+    const retour = useCallback(() => {
+        if (parentCategory) navigateToItem('category_details', parentCategory.id);
+        else onBack();
+    }, [parentCategory, navigateToItem, onBack]);
+
     // Filter equipment by model name
     const modelEquipment = useMemo(() => {
         if (!model) return [];
         return equipment.filter((e) => e.model === model.name);
     }, [equipment, model]);
 
+    /**
+     * **Le geste du modèle porte sur une de ses unités.** *« Un modèle n'est pas un
+     * objet : c'est ce dont on a plusieurs exemplaires, et la question qu'on lui pose est
+     * combien puis-je en attribuer maintenant »* (09.2). Le héro répond au chiffre ;
+     * « Remettre » répond au geste, sur la première unité disponible.
+     */
+    const premiereDisponible = useMemo(
+        () => modelEquipment.find((e) => e.status === 'Disponible') ?? null,
+        [modelEquipment],
+    );
     const availableCount = useMemo(
         () => modelEquipment.filter((e) => e.status === 'Disponible').length,
         [modelEquipment],
@@ -45,18 +81,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
         [modelEquipment],
     );
 
-    // Distinct sites where this model is located
-    const sitesSummary = useMemo(() => {
-        const set = new Set<string>();
-        modelEquipment.forEach((item) => {
-            if (item.site) set.add(item.site);
-        });
-        const arr = Array.from(set);
-        if (arr.length === 0) return '';
-        if (arr.length === 1) return `au ${arr[0]}`;
-        if (arr.length === 2) return `au ${arr[0]} et à ${arr[1]}`;
-        return `au ${arr[0]}, ${arr[1]} et ${arr.length - 2} autre(s) site(s)`;
-    }, [modelEquipment]);
+
 
     const handleExportUnits = () => {
         if (modelEquipment.length === 0) {
@@ -109,14 +134,6 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
     const assignedPercent = totalUnits > 0 ? (assignedCount / totalUnits) * 100 : 0;
     const repairPercent = totalUnits > 0 ? (repairCount / totalUnits) * 100 : 0;
 
-    const brandInitials = (model.brand || model.name)
-        .split(' ')
-        .map((p) => p[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-
     /**
      * **Une suppression se décide devant l'objet** — au menu de sa fiche, pas en le
      * survolant (§04.1, `ListRow`). Le geste vivait sur la rangée du catalogue, en
@@ -152,7 +169,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
             onConfirm: () => {
                 if (deleteModel(model.id)) {
                     showToast(`Modèle « ${model.name} » supprimé.`, 'success');
-                    onBack();
+                    retour();
                     return;
                 }
                 showToast('Suppression impossible.', 'error');
@@ -199,13 +216,16 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
             />
 
             <DetailTemplate
-                code={model.name}
-                reference={`${model.brand ? `${model.brand} · ` : ''}${model.type}`}
-                onBack={onBack}
+                /* `.tid .code` de 09.2 — **« Modèle »**, le nom commun. La barre portait
+                   le nom du modèle *et* sa marque et son type, c'est-à-dire exactement
+                   les deux lignes que le héro écrit trois centimètres plus bas. R3 :
+                   *« ce que le héro porte, les cartes ne le reprennent pas »* — la barre
+                   non plus. */
+                code="Modèle"
+                onBack={retour}
                 menu={
                     <Menu
                         align="end"
-                        className="w-[262px]"
                         items={menuItems}
                         trigger={
                             <Button
@@ -221,112 +241,109 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     />
                 }
                 hero={
-                    <section className="bg-inverse-surface text-inverse-on-surface flex flex-col gap-3 rounded-lg p-4">
-                        <div className="flex items-start gap-3.5">
-                            {model.image ? (
-                                <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-md bg-white/10 p-1">
-                                    <img
-                                        src={model.image}
-                                        alt={model.name}
-                                        className="h-full w-full object-contain"
-                                    />
-                                </div>
-                            ) : (
-                                <span className="text-inverse-on-surface flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-md bg-white/12 font-['Archivo',sans-serif] text-[19px] font-semibold">
-                                    {brandInitials}
+                    /*
+                     * **Le même héro que la fiche de type** (09.2 le dit : *« même héro que
+                     * la fiche de type (09.1) »*) : l'identité, puis **le parc en barre et
+                     * trois comptes, le disponible en premier**. Ils vivaient dans une carte
+                     * séparée, sous le héro, avec une phrase d'explication : le lecteur
+                     * devait descendre pour répondre à la seule question qu'on pose à un
+                     * modèle — *« combien puis-je en attribuer maintenant »*.
+                     *
+                     * L'étiquette dit le **libellé** du type et non sa clé : la fiche
+                     * annonçait « Laptop » là où tout le produit écrit « Ordinateur
+                     * portable ».
+                     */
+                    <DetailHero
+                        label={[model.brand, getCategoryLabel(model.type)]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        subject={model.name}
+                        image={model.image || undefined}
+                        meter={
+                            totalUnits > 0 ? (
+                                <span className="flex h-2 gap-0.5 overflow-hidden rounded-[4px]">
+                                    {availablePercent > 0 && (
+                                        <i
+                                            className="block h-full bg-[var(--tk-color-st-vert)]"
+                                            style={{ width: `${availablePercent}%` }}
+                                        />
+                                    )}
+                                    {assignedPercent > 0 && (
+                                        <i
+                                            className="block h-full bg-[var(--tk-color-st-bleu)]"
+                                            style={{ width: `${assignedPercent}%` }}
+                                        />
+                                    )}
+                                    {repairPercent > 0 && (
+                                        <i
+                                            className="block h-full bg-[var(--tk-color-st-orange)]"
+                                            style={{ width: `${repairPercent}%` }}
+                                        />
+                                    )}
                                 </span>
-                            )}
-                            <div className="min-w-0 flex-1 pt-0.5">
-                                <h1 className="truncate font-['Archivo',sans-serif] text-[20px] font-semibold tracking-[-0.01em] text-white">
-                                    {model.name}
-                                </h1>
-                                <p className="text-text-secondary mt-0.5 text-[13px]">
-                                    {model.brand ? `${model.brand} · ` : ''}
-                                    {model.type}
-                                </p>
+                            ) : undefined
+                        }
+                        metrics={[
+                            {
+                                value: availableCount,
+                                label: (
+                                    <span className="flex items-center gap-1.5">
+                                        <i className="h-2 w-2 shrink-0 rounded-[2px] bg-[var(--tk-color-st-vert)]" />
+                                        disponibles
+                                    </span>
+                                ),
+                            },
+                            {
+                                value: assignedCount,
+                                label: (
+                                    <span className="flex items-center gap-1.5">
+                                        <i className="h-2 w-2 shrink-0 rounded-[2px] bg-[var(--tk-color-st-bleu)]" />
+                                        attribués
+                                    </span>
+                                ),
+                            },
+                            {
+                                value: repairCount,
+                                label: (
+                                    <span className="flex items-center gap-1.5">
+                                        <i className="h-2 w-2 shrink-0 rounded-[2px] bg-[var(--tk-color-st-orange)]" />
+                                        réparation
+                                    </span>
+                                ),
+                            },
+                        ]}
+                        metricsStyle="boxes"
+                        /* `.hact` de 09.2 — **deux gestes, deux colonnes égales** : le
+                           jaune remet une unité, le second modifie la fiche. Le héro n'en
+                           portait aucun : « Remettre » n'existait nulle part sur cet
+                           écran, et « Modifier » ne vivait que dans le ⋮ — un geste
+                           courant à deux taps derrière un glyphe. */
+                        actions={
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                    variant="filled"
+                                    icon={<Icon glyph={Handshake} size={20} />}
+                                    disabled={!premiereDisponible}
+                                    onClick={() =>
+                                        premiereDisponible &&
+                                        navigateToItem('assignment_wizard', premiereDisponible.id)
+                                    }
+                                >
+                                    Remettre
+                                </Button>
+                                <Button
+                                    variant="tonal"
+                                    className="text-inverse-on-surface bg-white/[0.12] hover:bg-white/[0.18]"
+                                    icon={<Icon glyph={PencilSimple} size={20} />}
+                                    onClick={() => setIsEditModalOpen(true)}
+                                >
+                                    Modifier
+                                </Button>
                             </div>
-                        </div>
-
-                        <div className="flex items-baseline gap-2.5 border-t border-white/14 pt-3.5">
-                            <b className="font-['Archivo',sans-serif] text-[32px] font-semibold tracking-[-0.01em] text-white tabular-nums">
-                                {availableCount}
-                            </b>
-                            <span className="text-text-secondary text-[13px] leading-[19px]">
-                                disponible{availableCount > 1 ? 's' : ''} sur {totalUnits} unité
-                                {totalUnits > 1 ? 's' : ''}
-                                {sitesSummary ? (
-                                    <>
-                                        <br />
-                                        {sitesSummary}
-                                    </>
-                                ) : null}
-                            </span>
-                        </div>
-                    </section>
+                        }
+                    />
                 }
             >
-                {/* Carte 1 : Le parc de ce modèle */}
-                <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
-                    <div className="mb-1 flex items-baseline justify-between gap-3">
-                        <h3 className="text-on-surface text-[13px] font-medium">
-                            Le parc de ce modèle
-                        </h3>
-                        <span className="text-text-secondary font-['Archivo',sans-serif] text-[13px] font-semibold tabular-nums">
-                            {totalUnits}
-                        </span>
-                    </div>
-
-                    <div className="bg-surface-container my-2.5 flex h-1.5 overflow-hidden rounded-[2px]">
-                        {availablePercent > 0 && (
-                            <i
-                                className="block h-full bg-[var(--tk-color-st-vert)]"
-                                style={{ width: `${availablePercent}%` }}
-                            />
-                        )}
-                        {assignedPercent > 0 && (
-                            <i
-                                className="block h-full bg-[var(--tk-color-st-bleu)]"
-                                style={{ width: `${assignedPercent}%` }}
-                            />
-                        )}
-                        {repairPercent > 0 && (
-                            <i
-                                className="block h-full bg-[var(--tk-color-st-orange)]"
-                                style={{ width: `${repairPercent}%` }}
-                            />
-                        )}
-                    </div>
-
-                    <div className="text-text-secondary flex flex-wrap gap-x-4 gap-y-2 text-[13px]">
-                        <span className="inline-flex items-center gap-1.5">
-                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-vert)]" />
-                            Disponibles{' '}
-                            <b className="text-on-surface font-medium tabular-nums">
-                                {availableCount}
-                            </b>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-bleu)]" />
-                            Attribués{' '}
-                            <b className="text-on-surface font-medium tabular-nums">
-                                {assignedCount}
-                            </b>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <i className="h-1.5 w-1.5 shrink-0 rounded-[2px] bg-[var(--tk-color-st-orange)]" />
-                            En réparation{' '}
-                            <b className="text-on-surface font-medium tabular-nums">
-                                {repairCount}
-                            </b>
-                        </span>
-                    </div>
-
-                    <p className="text-text-secondary mt-2 text-[12px] leading-[17px]">
-                        La barre porte les trois états décisionnels du parc (disponible, attribué,
-                        en réparation).
-                    </p>
-                </section>
-
                 {/* Carte 2 : Les unités */}
                 <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
                     <div className="mb-1 flex items-baseline justify-between gap-3">

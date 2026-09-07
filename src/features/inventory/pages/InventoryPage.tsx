@@ -31,6 +31,7 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
+import BulkOverflow from '../../../components/ui/BulkOverflow';
 
 import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/businessRules';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -646,10 +647,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
                         </Button>
                     ),
+                    /* Le ⋮ porte les autres actes : la colonne du débordement fait
+                       48 px, un verbe étiqueté y était rogné à un carré muet (17.2). */
                     bulkOverflow: isManager ? (
-                        <Button variant="danger" onClick={handleBulkDelete}>
-                            Sortir du parc
-                        </Button>
+                        <BulkOverflow
+                            items={[
+                                {
+                                    id: 'sortir',
+                                    label: 'Sortir du parc',
+                                    icon: 'logout',
+                                    destructive: true,
+                                    onSelect: handleBulkDelete,
+                                },
+                            ]}
+                        />
                     ) : undefined,
                 }}
                 hasRows={visibleEquipment.length > 0}
@@ -670,26 +681,29 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     {`Voir les ${accessibleEquipment.length} équipements`}
                                 </Button>
                             ) : isManager ? (
-                                <Button
-                                    variant="filled"
-                                    onClick={() => onViewChange('add_equipment')}
-                                >
+                                /* **Le vide ouvre la même feuille que le bouton
+                                   flottant**, jamais un chemin direct (17.1 et 17.6,
+                                   arbitré le 06/09). Il menait droit à la saisie, si
+                                   bien qu'une liste vide n'offrait ni le scan ni
+                                   l'import — les deux autres façons de peupler un parc,
+                                   et les plus utiles quand il n'y a rien. */
+                                <Button variant="filled" onClick={() => setIsAddSheetOpen(true)}>
                                     Ajouter un équipement
                                 </Button>
                             ) : undefined
                         }
                     />
                 }
-                /* La barre du bas fait 56 px : le bouton flottant se pose au-dessus,
-                   jamais dessus — la planche le place à 76 px du bas. */
+                /* La barre du bas fait 64 px : le bouton flottant se pose au-dessus,
+                   jamais dessus — la planche l'ancre à 80 px du bas (17.6, 06/09). */
                 fab={
                     /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
                        copie.** Il était réécrit à la main ici et sur l'autre liste, à
                        deux fichiers de distance, et les deux copies avaient déjà
                        divergé : deux jetons de texte pour le même contraste, et un
                        ancrage retapé par-dessus celui du conteneur. L'ancrage se
-                       calcule une fois — 56 de barre + 20 de gouttière — et il vit
-                       dans `FabContainer`. La feuille, elle, reste à la page : ses
+                       calcule une fois — 64 de barre + 16 de gouttière, la règle du
+                       06/09 — et il vit dans `FabContainer`. La feuille, elle, reste à la page : ses
                        rangées portent une explication que 17.6 ne dessine pas. */
                     isManager && !selection.isActive ? (
                         <FabContainer description="Ajouter un équipement">

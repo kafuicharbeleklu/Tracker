@@ -20,6 +20,7 @@ import { ViewType, UserRole, type User } from '../../../types';
 import ListTemplate from '../../../components/layout/ListTemplate';
 import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import ScreenState from '../../../components/ui/ScreenState';
+import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { FabContainer } from '../../../components/ui/FabContainer';
@@ -504,10 +505,20 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
                         </Button>
                     ),
+                    /* Le ⋮ porte les autres actes (17.2) : la colonne du débordement
+                       fait 48 px et rognait le verbe à un carré muet. */
                     bulkOverflow: permissions.canManageUsers ? (
-                        <Button variant="danger" onClick={handleBulkDelete}>
-                            Supprimer
-                        </Button>
+                        <BulkOverflow
+                            items={[
+                                {
+                                    id: 'supprimer',
+                                    label: 'Supprimer les comptes',
+                                    icon: 'delete',
+                                    destructive: true,
+                                    onSelect: handleBulkDelete,
+                                },
+                            ]}
+                        />
                     ) : undefined,
                 }}
                 empty={
@@ -534,8 +545,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                     {`Voir les ${users.length} personnes`}
                                 </Button>
                             ) : permissions.canManageUsers ? (
-                                <Button variant="filled" onClick={() => setIsInviteSheetOpen(true)}>
-                                    Inviter une personne
+                                /* **Le vide ouvre la même feuille que le bouton
+                                   flottant** (17.1 et 17.6). Il allait droit à
+                                   l'invitation : une équipe vide ne se voyait donc
+                                   jamais proposer l'import d'un annuaire, qui est
+                                   pourtant le geste de ce moment-là. */
+                                <Button variant="filled" onClick={() => setIsAddSheetOpen(true)}>
+                                    Ajouter une personne
                                 </Button>
                             ) : undefined
                         }
@@ -549,8 +565,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                        deux fichiers de distance, et les deux copies avaient déjà
                        divergé : deux jetons de texte pour le même contraste, et un
                        ancrage retapé par-dessus celui du conteneur. L'ancrage se
-                       calcule une fois — 56 de barre + 20 de gouttière — et il vit
-                       dans `FabContainer`. La feuille, elle, reste à la page : ses
+                       calcule une fois — 64 de barre + 16 de gouttière, la règle du
+                       06/09 — et il vit dans `FabContainer`. La feuille, elle, reste à la page : ses
                        rangées portent une explication que 17.6 ne dessine pas. */
                     permissions.canManageUsers && !selection.isActive ? (
                         <FabContainer description="Ajouter une personne">

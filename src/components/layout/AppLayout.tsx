@@ -1,6 +1,6 @@
 import { MEDIA } from '../../constants/breakpoints';
 import { DESTINATIONS } from '../../constants/destinations';
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 import { NavigationBar } from './NavigationBar';
 import { NavigationRail } from './NavigationRail';
@@ -13,15 +13,21 @@ import { scrollAppToTop } from '../../lib/appScroll';
 import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import ScreenState from '../ui/ScreenState';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { CloudSlash, MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { useData } from '../../context/DataContext';
 import { SkeletonList } from '../ui/Skeleton';
+import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
+import RequestSheet from '../../features/tasks/components/RequestSheet';
+import ClosureBanner, { type ClosureBannerProps } from '../ui/ClosureBanner';
+import HandoverActSheet from '../../features/inventory/components/HandoverActSheet';
+import ReturnActSheet from '../../features/inventory/components/ReturnActSheet';
 
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage'));
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
 const UsersPage = lazy(() => import('../../features/users/pages/UsersPage'));
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'));
-const NewRequestPage = lazy(() => import('../../features/tasks/pages/NewRequestPage'));
+const ApprovalDetailsPage = lazy(() => import('../../features/tasks/pages/ApprovalDetailsPage'));
 const FinanceManagementPage = lazy(
     () => import('../../features/finance/pages/FinanceManagementPage'),
 );
@@ -32,10 +38,6 @@ const LocationsPage = lazy(() => import('../../features/locations/pages/Location
 const AuditPage = lazy(() => import('../../features/audit/pages/AuditPage'));
 const ReportsPage = lazy(() => import('../../features/reports/pages/ReportsPage'));
 const SettingsPage = lazy(() => import('../../features/management/pages/SettingsPage'));
-const AssignmentWizardPage = lazy(
-    () => import('../../features/inventory/pages/AssignmentWizardPage'),
-);
-const ReturnWizardPage = lazy(() => import('../../features/inventory/pages/ReturnWizardPage'));
 const ImportEquipmentPage = lazy(
     () => import('../../features/inventory/pages/ImportEquipmentPage'),
 );
@@ -73,6 +75,14 @@ const PageLoadingFallback: React.FC = () => (
     </div>
 );
 
+/** L'objet que l'adresse d'un acte désigne — `?equipmentId=` dans le hash. */
+const lireObjetDeLAdresse = (): string | null => {
+    const hash = window.location.hash;
+    const query = hash.includes('?') ? hash.split('?')[1] : '';
+    if (!query) return null;
+    return new URLSearchParams(query).get('equipmentId');
+};
+
 const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -84,8 +94,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const useRailNavigation = isMedium || isCompactLandscape;
 
     const {
-        currentView,
-        selectedId: selectedItemId,
+        currentView: vueDemandee,
+        selectedId: selectedIdRoute,
         routeSegments,
         navigate,
         navigateToView,
@@ -93,6 +103,99 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         goBack,
     } = useAppNavigation();
     const { permissions, user: currentUser } = useAccessControl();
+    /* Le magasin distant n'a pas répondu : l'écran montre des données locales, et le dit. */
+    const { remoteUnavailable } = useData();
+
+    /**
+     * **Les deux assistants sont devenus des feuilles d'acte** (17.4) : *« jamais un
+     * wizard à étapes, une page de validation »*. Leurs deux adresses survivent — les
+     * tâches, les fiches et les liens profonds y renvoient — mais elles n'ouvrent plus
+     * un écran : elles ouvrent **la feuille sur la page où l'on est**, c'est-à-dire la
+     * fiche de l'objet quand l'adresse en désigne un, l'inventaire sinon.
+     */
+    /**
+     * **Demander un équipement est une feuille**, pas un écran (06.4) : *« une feuille
+     * sur la page où l'on est »*. Comme les deux actes de l'inventaire, l'adresse
+     * survit — le bouton de l'accueil et le lien profond `/tasks/new` y mènent —, mais
+     * elle pose la feuille au lieu d'ouvrir une page.
+     */
+    const demandeEnCours = vueDemandee === 'new_request';
+
+    const acteDemande: 'remise' | 'retour' | null =
+        vueDemandee === 'assignment_wizard'
+            ? 'remise'
+            : vueDemandee === 'return_wizard'
+              ? 'retour'
+              : null;
+    /*
+     * Sans le droit d'agir sur l'inventaire, l'adresse **reste une vue** : le refus se
+     * lit, comme avant. Sinon la page dessous s'afficherait normalement, sans feuille
+     * et sans un mot — un geste qui ne fait rien est pire qu'un geste refusé.
+     */
+    const acteEnCours = acteDemande && permissions.canManageInventory ? acteDemande : null;
+    const objetDeLActe = acteEnCours ? lireObjetDeLAdresse() : null;
+
+    /*
+     * **La page que la feuille couvre.** Quand l'adresse nomme un objet, c'est sa fiche
+     * — l'acte parle de lui. Quand elle n'en nomme aucun (l'accueil, le FAB), c'est
+     * *« la page où l'on est »* : l'écran précédent, retenu ici, et non l'inventaire,
+     * qui ferait changer d'écran un geste qui n'en change pas.
+     */
+    const ecranPrecedent = useRef<{ view: ViewType; id: string | null }>({
+        view: 'dashboard',
+        id: null,
+    });
+    useEffect(() => {
+        if (!acteDemande && vueDemandee !== 'new_request') {
+            ecranPrecedent.current = { view: vueDemandee, id: selectedIdRoute };
+        }
+    }, [acteDemande, vueDemandee, selectedIdRoute]);
+
+    const currentView: ViewType = acteEnCours
+        ? objetDeLActe
+            ? 'equipment_details'
+            : ecranPrecedent.current.view
+        : demandeEnCours
+          ? ecranPrecedent.current.view
+          : vueDemandee;
+    const selectedItemId =
+        acteEnCours || demandeEnCours
+            ? (acteEnCours ? objetDeLActe : null) || ecranPrecedent.current.id
+            : selectedIdRoute;
+
+    /**
+     * **La clôture d'un acte engagé depuis une feuille** — 06.3, forme 2 : *« rien de
+     * visible n'a changé, l'effet est chez quelqu'un d'autre »*. La feuille se referme
+     * sur la page d'où l'on vient, et cette page ne sait rien de ce qui vient d'être
+     * fait : c'est la coque qui a ouvert la feuille, c'est donc elle qui porte l'accusé.
+     *
+     * Il **reste jusqu'à la sortie de l'écran**, et pas une seconde de plus.
+     */
+    const [cloture, setCloture] = useState<(ClosureBannerProps & { vue: ViewType }) | null>(null);
+    /*
+     * Il est posé **avant** la navigation qui referme la feuille : le nettoyer sur tout
+     * changement de vue l'effaçait donc à l'instant même où il apparaissait. Il nomme
+     * l'écran auquel il appartient, et ne s'efface qu'en le quittant.
+     */
+    useEffect(() => {
+        setCloture((precedente) =>
+            precedente && precedente.vue !== currentView ? null : precedente,
+        );
+    }, [currentView, selectedIdRoute]);
+
+    /** Refermer une feuille, c'est revenir à la page qu'elle couvrait, jamais quitter. */
+    const revenirDerriereLaFeuille = () => {
+        if (ecranPrecedent.current.id) {
+            navigateToItem(ecranPrecedent.current.view, ecranPrecedent.current.id);
+        } else handleViewChange(ecranPrecedent.current.view);
+    };
+
+    const fermerLActe = () => {
+        if (objetDeLActe) navigateToItem('equipment_details', objetDeLActe);
+        else if (ecranPrecedent.current.id) {
+            navigateToItem(ecranPrecedent.current.view, ecranPrecedent.current.id);
+        } else handleViewChange(ecranPrecedent.current.view);
+    };
     const [inventoryFilter, setInventoryFilter] = useState<string | null>(null);
     /**
      * Le site reçu par une liste qu'on ouvre depuis la fiche d'un site (10.1, C2 :
@@ -165,9 +268,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'reports',
         'settings',
     ];
+    /*
+     * **Le régime de sélection prend le bas de l'écran** (17.2). La barre du haut est
+     * remplacée par le compte, et le pied d'actes prend la place de la navigation :
+     * *« l'écran change de régime ; il ne gagne pas une couche »*. Empiler les deux
+     * ferait 140 px de chrome au bas d'un téléphone, et la planche ne dessine jamais
+     * la navigation sous les actes d'une sélection.
+     */
+    const [enSelection, setEnSelection] = useState(false);
+    const regimeSelection = useMemo(
+        () => ({ active: enSelection, declare: setEnSelection }),
+        [enSelection],
+    );
+
     const usesBottomNavShortcuts =
         isCompact && !isCompactLandscape && bottomNavViews.includes(currentView);
-    const showBottomNav = usesBottomNavShortcuts && !isMobileMenuOpen;
+    const showBottomNav = usesBottomNavShortcuts && !isMobileMenuOpen && !enSelection;
 
     /* La barre du bas publie sa hauteur à la racine du document. Le retour transitoire
        (17.5) est monté par `ToastProvider`, en dehors de cet arbre : il ne peut pas hériter
@@ -177,9 +293,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     useEffect(() => {
         const root = document.documentElement;
         // 64 px — la hauteur que 17.7 déclare depuis la passe du 05/09 (elle valait 56).
-        root.style.setProperty('--tk-size-bottom-bar', showBottomNav ? '64px' : '0px');
+        // En sélection, c'est le pied d'actes qui occupe le bas : 12 + 48 + 16 (17.2).
+        const hauteur = enSelection ? '76px' : showBottomNav ? '64px' : '0px';
+        root.style.setProperty('--tk-size-bottom-bar', hauteur);
         return () => root.style.setProperty('--tk-size-bottom-bar', '0px');
-    }, [showBottomNav]);
+    }, [showBottomNav, enSelection]);
 
     /**
      * Vues passées à l'ADN mobile (DESIGN_BRIEF.md §5) : elles portent elles-mêmes
@@ -207,6 +325,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
            comme les quatre autres listes du gabarit : la barre du haut la
            redirait une ligne plus bas. */
         'management',
+        /* Le détail d'une demande (06.5) porte sa propre barre « Demande » : la
+           barre du haut ajoutait un « Tracker » au-dessus, deux bandes pour une
+           seule identité. */
+        'approval_details',
     ];
     const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
@@ -235,8 +357,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return 'Utilisateur';
             case 'import_users':
                 return 'Import utilisateurs';
-            case 'new_request':
-                return 'Nouvelle demande';
             case 'finance':
                 return DESTINATIONS.finance.label;
             case 'finance_expenses':
@@ -268,10 +388,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.reports.label;
             case 'settings':
                 return DESTINATIONS.settings.label;
-            case 'assignment_wizard':
-                return 'Attribution';
-            case 'return_wizard':
-                return 'Retour';
             case 'not_found':
                 return 'Page introuvable';
             default:
@@ -445,8 +561,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
 
-            case 'new_request':
-                return <NewRequestPage onViewChange={handleViewChange} />;
             case 'finance':
                 return <FinanceManagementPage onViewChange={handleViewChange} />;
             case 'finance_expenses':
@@ -536,27 +650,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
 
-            // Wizards & Forms
-            case 'assignment_wizard':
-                return (
-                    <AssignmentWizardPage
-                        initialEquipmentId={selectedItemId || undefined}
-                        onCancel={() => handleViewChange('equipment')}
-                        onComplete={() => handleViewChange('equipment')}
-                    />
-                );
-            case 'return_wizard':
-                return (
-                    <ReturnWizardPage
-                        initialEquipmentId={selectedItemId || undefined}
-                        onCancel={() => handleViewChange('equipment')}
-                        onComplete={() => handleViewChange('equipment')}
-                    />
-                );
-
             case 'tasks':
                 // Planche 08.1 : la destination unique des liens du tableau de bord.
                 return <TasksPage onNavigate={handleViewChange} onItemClick={handleItemClick} />;
+            case 'approval_details':
+                return (
+                    <ApprovalDetailsPage
+                        approvalId={selectedItemId || undefined}
+                        onBack={() => handleViewChange('tasks')}
+                    />
+                );
 
             case 'not_found':
                 /*
@@ -612,47 +715,109 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     return (
-        <div className="bg-background flex min-h-screen flex-col font-sans">
-            {/* Top App Bar — Mobile Only when active */}
-            {showTopAppBar && (
-                <TopAppBar
-                    title={getTopAppBarTitle(currentView)}
-                    onMenuClick={() => setIsMobileMenuOpen(true)}
-                />
-            )}
-
-            <div className="relative flex min-h-0 flex-1">
-                {/* Desktop Sidebar */}
-                {isExpandedUp && (
-                    <Sidebar
-                        currentView={currentView}
-                        onViewChange={handleViewChange}
-                        isCollapsed={isSidebarCollapsed}
-                        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        onLogout={onLogout}
+        <SelectionRegimeProvider value={regimeSelection}>
+            <div className="bg-background flex min-h-screen flex-col font-sans">
+                {/* Top App Bar — Mobile Only when active */}
+                {showTopAppBar && (
+                    <TopAppBar
+                        title={getTopAppBarTitle(currentView)}
+                        onMenuClick={() => setIsMobileMenuOpen(true)}
                     />
                 )}
 
-                {/* Tablet Navigation Rail */}
-                {useRailNavigation && (
-                    <NavigationRail currentView={currentView} onViewChange={handleViewChange} />
+                <div className="relative flex min-h-0 flex-1">
+                    {/* Desktop Sidebar */}
+                    {isExpandedUp && (
+                        <Sidebar
+                            currentView={currentView}
+                            onViewChange={handleViewChange}
+                            isCollapsed={isSidebarCollapsed}
+                            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                            onLogout={onLogout}
+                        />
+                    )}
+
+                    {/* Tablet Navigation Rail */}
+                    {useRailNavigation && (
+                        <NavigationRail currentView={currentView} onViewChange={handleViewChange} />
+                    )}
+
+                    {/* Main Content Area */}
+                    <main
+                        className={`bg-background relative flex min-w-0 flex-1 flex-col ${
+                            enSelection ? 'pb-[76px]' : usesBottomNavShortcuts ? 'pb-16' : ''
+                        }`}
+                    >
+                        <ErrorBoundary>
+                            {/* L'accusé se pose **en tête de page**, là où la planche le
+                                dessine — au-dessus de ce que l'écran montrait déjà. */}
+                            {/*
+                              **Ce qui est à l'écran n'est pas l'inventaire réel.** Quand
+                              Firestore ne répond pas — quota quotidien épuisé, réseau
+                              coupé —, l'application se rabat sur ses données de
+                              démonstration. Elle le taisait : on lisait « Ethan Employé »
+                              au milieu du parc de Neemba Togo en croyant à un mélange.
+                            */}
+                            {remoteUnavailable && (
+                                <div className="px-4 pt-4">
+                                    <ClosureBanner
+                                        tone="ambre"
+                                        glyph={CloudSlash}
+                                        title="Données de démonstration"
+                                        detail="Le magasin distant n’a pas répondu : rien de ce qui est écrit ici n’y sera enregistré."
+                                    />
+                                </div>
+                            )}
+
+                            {cloture && (
+                                <div className="px-4 pt-4">
+                                    <ClosureBanner {...cloture} />
+                                </div>
+                            )}
+                            <Suspense fallback={<PageLoadingFallback />}>
+                                {renderContent()}
+                            </Suspense>
+                        </ErrorBoundary>
+                    </main>
+                </div>
+
+                {/* Mobile Bottom Navigation Bar */}
+                {showBottomNav && (
+                    <NavigationBar currentView={currentView} onViewChange={handleViewChange} />
                 )}
 
-                {/* Main Content Area */}
-                <main
-                    className={`bg-background relative flex min-w-0 flex-1 flex-col ${usesBottomNavShortcuts ? 'pb-16' : ''}`}
-                >
-                    <ErrorBoundary>
-                        <Suspense fallback={<PageLoadingFallback />}>{renderContent()}</Suspense>
-                    </ErrorBoundary>
-                </main>
-            </div>
+                {/* 06.4 — demander un équipement, sur la page où l'on est. */}
+                <RequestSheet
+                    open={demandeEnCours}
+                    onClose={revenirDerriereLaFeuille}
+                    onSent={(envoi) =>
+                        setCloture({
+                            vue: ecranPrecedent.current.view,
+                            tone: 'bleu',
+                            glyph: PaperPlaneTilt,
+                            title: 'Demande envoyée',
+                            detail: `${envoi.type} · chez ${envoi.destination}`,
+                        })
+                    }
+                />
 
-            {/* Mobile Bottom Navigation Bar */}
-            {showBottomNav && (
-                <NavigationBar currentView={currentView} onViewChange={handleViewChange} />
-            )}
-        </div>
+                {/* Les deux actes de l'inventaire — la feuille, jamais l'assistant. */}
+                {acteEnCours && (
+                    <>
+                        <HandoverActSheet
+                            open={acteEnCours === 'remise'}
+                            onClose={fermerLActe}
+                            initialEquipmentId={objetDeLActe || undefined}
+                        />
+                        <ReturnActSheet
+                            open={acteEnCours === 'retour'}
+                            onClose={fermerLActe}
+                            initialEquipmentId={objetDeLActe || undefined}
+                        />
+                    </>
+                )}
+            </div>
+        </SelectionRegimeProvider>
     );
 };
 

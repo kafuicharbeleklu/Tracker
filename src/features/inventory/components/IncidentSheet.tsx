@@ -77,6 +77,8 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
 }) => {
     const [outcome, setOutcome] = useState<IncidentOutcome>('immobilised');
     const [photos, setPhotos] = useState<string[]>([]);
+    /** Ce que la borne de 5 Mo a écarté — lu sous le champ des photos. */
+    const [refusPhoto, setRefusPhoto] = useState<string | null>(null);
     const [comment, setComment] = useState('');
     const photoInput = useRef<HTMLInputElement>(null);
 
@@ -187,11 +189,26 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                             ref={photoInput}
                             accept="image/*"
                             multiple
-                            onFiles={(names) =>
-                                setPhotos((prev) => (names.length > 0 ? [...prev, ...names] : prev))
-                            }
+                            onFiles={(names) => {
+                                setRefusPhoto(null);
+                                setPhotos((prev) =>
+                                    names.length > 0 ? [...prev, ...names] : prev,
+                                );
+                            }}
+                            onReject={setRefusPhoto}
                         />
                     </div>
+                    {/* La borne de 17.10 : le refus se lit **au champ**, là où la photo
+                        a été choisie, et nomme le fichier et sa taille (17.5). */}
+                    {refusPhoto && (
+                        <p
+                            className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5"
+                            role="alert"
+                        >
+                            <Icon glyph={XCircle} size={18} className="mt-px" />
+                            <span>{refusPhoto}</span>
+                        </p>
+                    )}
                 </div>
 
                 <div>

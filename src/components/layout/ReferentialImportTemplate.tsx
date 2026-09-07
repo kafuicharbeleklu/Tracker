@@ -1,21 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import { CaretRight, FileCsv, X } from '@phosphor-icons/react';
+import { CaretRight, Check, FileCsv, ListChecks, X } from '@phosphor-icons/react';
 
 import Button from '../ui/Button';
 import { FileDropzone } from '../ui/FileDropzone';
 import Icon from '../ui/Icon';
 import { FullScreenFormLayout } from './FullScreenFormLayout';
+import { cn } from '../../lib/utils';
 
-/** Une colonne du contrat — `.crow` de la planche 09.2. */
+/**
+ * Une colonne du contrat — `.chp` de la planche 09.2. **Un jeton ne porte que le nom
+ * de la colonne** : ce qu'elle exige se dit une fois, dans la phrase sous les jetons
+ * (`contractNote`). Les descriptions par colonne faisaient trois rangées de texte
+ * au-dessus d'une zone de dépôt qu'on ne voyait plus.
+ */
 export interface ImportColumn {
     /** Le nom écrit dans le fichier, tel quel. */
     key: string;
-    /** Ce que la colonne porte, en une ligne. */
-    description: React.ReactNode;
-    /** Le mot du contrat : « requis », « facultatif », « selon le type ». */
-    requirement: string;
-    /** Un mot exigeant se lit en encre pleine, un mot facultatif en encre pâle. */
+    /** Requise : le jeton prend la teinte bleue. */
     required?: boolean;
+    /** Ce que la colonne porte — conservé pour le fichier d'exemple et la documentation. */
+    description?: React.ReactNode;
+    /** Le mot du contrat : « requis », « facultatif », « selon le type ». */
+    requirement?: string;
 }
 
 /** Une ligne de données lue dans le fichier, retenue ou refusée. */
@@ -45,6 +51,13 @@ interface ReferentialImportTemplateProps<T> {
     onImport: (values: T[]) => void;
     /** Une précision propre au référentiel, sous les lignes refusées. */
     rejectionNote?: React.ReactNode;
+    /**
+     * `.fnote` — la phrase qui dit **ce que le contrat exige au juste**, sous les jetons
+     * de colonnes : « les deux premières sont requises ; Category doit être un type du
+     * catalogue ». La planche la préfère à une description par colonne, qui faisait
+     * trois rangées là où une phrase suffit.
+     */
+    contractNote?: React.ReactNode;
     /** Ce que la zone de dépôt annonce en second. */
     dropSubLabel?: string;
 }
@@ -89,11 +102,21 @@ function ReferentialImportTemplate<T>({
     parse,
     onImport,
     rejectionNote,
+    contractNote,
     dropSubLabel = 'Séparateur virgule ou point-virgule, encodage UTF-8',
 }: ReferentialImportTemplateProps<T>) {
     const [file, setFile] = useState<File | null>(null);
     const [candidates, setCandidates] = useState<ImportCandidate<T>[]>([]);
     const [previewMode, setPreviewMode] = useState(false);
+
+    /**
+     * **Ce que la liste montre** — la planche en dessine quatre lignes : une retenue,
+     * puis les refusées. Tout lister ferait défiler cinq cents rangées pour trouver les
+     * trois qui demandent un geste ; ne montrer que les refusées laisserait croire que
+     * rien n'a été lu. La première retenue prouve la lecture, les refusées disent où
+     * corriger.
+     */
+    const APERCU_REFUS_MAX = 12;
 
     const accepted = useMemo(() => candidates.filter((row) => !row.error), [candidates]);
     const rejected = useMemo(() => candidates.filter((row) => Boolean(row.error)), [candidates]);
@@ -130,6 +153,15 @@ function ReferentialImportTemplate<T>({
     };
 
     const acceptedCount = accepted.length;
+
+    /** La première retenue, puis les refusées — dans l'ordre du fichier. */
+    const apercu = useMemo(
+        () =>
+            [...(accepted.length > 0 ? [accepted[0]] : []), ...rejected.slice(0, APERCU_REFUS_MAX)]
+                .slice()
+                .sort((a, b) => a.line - b.line),
+        [accepted, rejected],
+    );
     const canWrite = previewMode && acceptedCount > 0;
 
     const saveLabel = !previewMode
@@ -159,36 +191,47 @@ function ReferentialImportTemplate<T>({
                 <div className="flex flex-col gap-4">
                     {/* LE CONTRAT — `.cols` : chaque colonne, ce qu'elle porte, si elle
                         est requise. Avant le dépôt, pas après. */}
-                    <section className="rounded-card bg-surface shadow-elevation-1 p-4">
-                        <div className="mb-1 flex items-baseline justify-between gap-3">
-                            <h3 className="text-on-surface text-[13px] font-medium">
-                                Ce que le fichier doit contenir
-                            </h3>
-                            <span className="text-text-secondary text-[13px]">.csv</span>
+                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                        {/* `.sh` — un pictogramme de 32 teinté, puis le titre en 17 sur
+                            24. Il valait 13 px : un titre de section se lisait comme une
+                            étiquette de champ. */}
+                        <div className="flex items-center gap-3">
+                            <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={FileCsv} size={18} />
+                            </span>
+                            <p className="text-on-surface flex-1 text-[17px] leading-6 font-medium">
+                                Le fichier
+                            </p>
                         </div>
-                        <div className="divide-outline-variant flex flex-col divide-y">
-                            {columns.map((column) => (
-                                <div
-                                    key={column.key}
-                                    className="flex min-h-[38px] items-baseline gap-2.5 py-1.5 text-[13px]"
-                                >
-                                    <code className="bg-surface-container text-on-surface shrink-0 rounded-xs px-1.5 py-0.5 font-mono text-[12px] tracking-[0.01em]">
-                                        {column.key}
-                                    </code>
-                                    <span className="text-text-secondary min-w-0 flex-1 leading-[18px]">
-                                        {column.description}
-                                    </span>
+
+                        {/* `.chips` — **les colonnes sont des jetons**, pas des rangées :
+                            le contrat se lit d'un coup d'œil et les requises portent la
+                            teinte bleue. Trois rangées de description disaient en trois
+                            phrases ce qu'une phrase dit sous les jetons. */}
+                        <div>
+                            <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                                Colonnes attendues
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {columns.map((column) => (
                                     <span
-                                        className={
+                                        key={column.key}
+                                        className={cn(
+                                            'inline-flex min-h-8 items-center rounded-[4px] px-3 font-mono text-[14px] leading-5',
                                             column.required
-                                                ? 'text-on-surface shrink-0 text-[11px] font-medium'
-                                                : 'text-text-muted shrink-0 text-[11px]'
-                                        }
+                                                ? 'bg-tint-bleu text-on-tint-bleu'
+                                                : 'bg-surface-container text-on-surface',
+                                        )}
                                     >
-                                        {column.requirement}
+                                        {column.key}
                                     </span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                            {contractNote && (
+                                <p className="text-on-surface-variant mt-2 text-[14px] leading-5">
+                                    {contractNote}
+                                </p>
+                            )}
                         </div>
                         {/* `.more` — la rangée « voir plus » du système : 48 px, filet en
                             tête, 14 px/500. C'est un geste, donc un `Button` du DS et non
@@ -215,93 +258,125 @@ function ReferentialImportTemplate<T>({
                 <div className="flex flex-col gap-4">
                     {/* LE FICHIER LU, ET LES DEUX TOTAUX — `.fread` puis `.tals`.
                         Le décompte se lit **avant** d'écrire. */}
-                    <section className="rounded-card bg-surface shadow-elevation-1 p-4">
-                        <div className="flex min-h-14 items-center gap-3">
-                            <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
-                                <Icon glyph={FileCsv} size={20} />
+                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={FileCsv} size={18} />
+                            </span>
+                            <p className="text-on-surface flex-1 text-[17px] leading-6 font-medium">
+                                Le fichier
+                            </p>
+                        </div>
+
+                        {/* `.pick` — le fichier lu est un choix fait : vignette verte,
+                            ce qu'il porte, et le verbe qui le reprend. Une croix disait
+                            « retirer » là où la planche dit « changer ». */}
+                        <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
+                            <span className="bg-tint-vert text-on-tint-vert flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={Check} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <b className="text-on-surface block truncate text-[14px] font-medium">
+                                <span className="text-on-surface block truncate text-[16px] leading-6 font-medium">
                                     {file?.name}
-                                </b>
-                                <span className="text-text-secondary block text-[12px] tabular-nums">
-                                    {candidates.length} ligne{candidates.length > 1 ? 's' : ''} lue
-                                    {candidates.length > 1 ? 's' : ''}
+                                </span>
+                                <span className="text-on-surface-variant block text-[14px] leading-5 tabular-nums">
+                                    {candidates.length} ligne{candidates.length > 1 ? 's' : ''} ·{' '}
+                                    {columns.length} colonnes
                                 </span>
                             </span>
                             <Button
                                 variant="text"
-                                iconOnly
-                                aria-label="Retirer le fichier"
                                 onClick={reset}
-                                className="shrink-0"
+                                className="h-auto !min-h-0 shrink-0 !px-0 !py-0 text-[15px] font-medium"
                             >
-                                <Icon glyph={X} size={20} />
+                                Changer
                             </Button>
-                        </div>
-
-                        <div className="mt-3 flex gap-2.5">
-                            <div className="bg-surface-container min-w-0 flex-1 rounded-md px-3 py-[11px]">
-                                <b className="font-brand text-on-surface block text-[24px] font-semibold tracking-[-0.01em] tabular-nums">
-                                    {acceptedCount}
-                                </b>
-                                <span className="text-text-secondary mt-px block text-[12px] leading-[17px]">
-                                    {noun.many} prêt{acceptedCount > 1 ? 's' : ''} à entrer
-                                </span>
-                            </div>
-                            {rejected.length > 0 && (
-                                <div className="bg-surface-container min-w-0 flex-1 rounded-md px-3 py-[11px]">
-                                    <b className="font-brand text-error block text-[24px] font-semibold tracking-[-0.01em] tabular-nums">
-                                        {rejected.length}
-                                    </b>
-                                    <span className="text-text-secondary mt-px block text-[12px] leading-[17px]">
-                                        ligne{rejected.length > 1 ? 's' : ''} refusée
-                                        {rejected.length > 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                            )}
                         </div>
                     </section>
 
-                    {/* LES LIGNES REFUSÉES, NOMMÉES — `.erow`. Trois lignes nommées valent
-                        mieux qu'un compte : c'est dans le tableur qu'on les corrigera. */}
-                    {rejected.length > 0 && (
-                        <section className="rounded-card bg-surface shadow-elevation-1 p-4">
-                            <div className="mb-1 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[13px] font-medium">
-                                    Les lignes refusées
-                                </h3>
-                                <span className="text-text-secondary text-[13px] tabular-nums">
-                                    {rejected.length}
+                    {/* `.cgroup` — **le décompte avant l'écriture** : le nombre en 28,
+                        ce qu'il compte à côté, et la proportion en barre de 6. Deux
+                        cases de 24 disaient deux nombres sans dire leur rapport. */}
+                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-tint-bleu text-on-tint-bleu flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={ListChecks} size={18} />
+                            </span>
+                            <p className="text-on-surface flex-1 text-[17px] leading-6 font-medium">
+                                Ce qui sera créé
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <p className="flex items-baseline gap-2">
+                                <b className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.01em] tabular-nums">
+                                    {acceptedCount}
+                                </b>
+                                <span className="text-on-surface-variant text-[14px] leading-5">
+                                    {acceptedCount > 1 ? noun.many : noun.one} sur{' '}
+                                    {candidates.length} ligne{candidates.length > 1 ? 's' : ''}
                                 </span>
-                            </div>
-                            <div className="divide-outline-variant flex flex-col divide-y">
-                                {rejected.map((row) => (
-                                    <div
-                                        key={row.line}
-                                        className="flex items-start gap-2.5 py-2.5 text-[13px] leading-[19px]"
-                                    >
-                                        <span className="text-text-muted w-[34px] shrink-0 pt-px text-[12px] tabular-nums">
-                                            l. {row.line}
+                            </p>
+                            <span className="bg-surface-container block h-1.5 overflow-hidden rounded-[2px]">
+                                <i
+                                    className="block h-1.5 rounded-[2px] bg-[var(--tk-color-st-vert)]"
+                                    style={{
+                                        width: `${candidates.length > 0 ? Math.round((acceptedCount / candidates.length) * 100) : 0}%`,
+                                    }}
+                                />
+                            </span>
+                        </div>
+
+                        {/* `.urow` — une ligne par verdict : le numéro du tableur, ce qui
+                            la nomme, sa cause, et le carré qui tranche. La première
+                            retenue montre que la lecture a marché ; les refusées disent
+                            où corriger. */}
+                        <div className="flex flex-col">
+                            {apercu.map((row) => (
+                                <div
+                                    key={row.line}
+                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-2 first:border-t-0"
+                                >
+                                    <span className="text-text-tertiary w-8 shrink-0 text-[12px] leading-4 tabular-nums">
+                                        {String(row.line).padStart(2, '0')}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span
+                                            className={cn(
+                                                'block truncate text-[16px] leading-6',
+                                                row.error
+                                                    ? 'text-on-surface-variant'
+                                                    : 'text-on-surface',
+                                            )}
+                                        >
+                                            {row.label}
                                         </span>
-                                        <span className="min-w-0 flex-1">
-                                            <b className="text-on-surface block font-medium">
-                                                {row.label}
-                                            </b>
-                                            <span className="text-error mt-px block text-[12px] leading-[17px]">
+                                        {row.error && (
+                                            <span className="text-error block text-[14px] leading-5">
                                                 {row.error}
                                             </span>
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            {rejectionNote && (
-                                <div className="bg-surface-container text-text-secondary mt-3 flex gap-2.5 rounded-md px-3 py-[11px] text-[12px] leading-[17px]">
-                                    {rejectionNote}
+                                        )}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',
+                                            row.error
+                                                ? 'bg-tint-danger text-on-tint-danger'
+                                                : 'bg-tint-vert text-on-tint-vert',
+                                        )}
+                                    >
+                                        <Icon glyph={row.error ? X : Check} size={18} />
+                                    </span>
                                 </div>
-                            )}
-                        </section>
-                    )}
+                            ))}
+                        </div>
+
+                        {rejectionNote && rejected.length > 0 && (
+                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-[4px] px-4 py-3 text-[14px] leading-5">
+                                {rejectionNote}
+                            </div>
+                        )}
+                    </section>
 
                     {!canWrite && (
                         <p className="text-text-secondary px-0.5 text-[12px] leading-[17px]">

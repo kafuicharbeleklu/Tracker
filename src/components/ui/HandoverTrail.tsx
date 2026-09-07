@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Hourglass, User } from '@phosphor-icons/react';
+import { Check, Hourglass, User, X, type Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
@@ -18,7 +18,12 @@ import { cn } from '../../lib/utils';
  * quand* : le lecteur ne pouvait ni relancer ni comprendre.
  */
 
-export type TrailState = 'done' | 'wait' | 'late';
+/**
+ * `fail` vient de **06.5** : un parcours peut s'arrêter. Une demande refusée n'est pas
+ * « en attente pour toujours » — le fil doit pouvoir dire où elle s'est arrêtée, et les
+ * étapes qui suivent n'ont **pas eu lieu**.
+ */
+export type TrailState = 'done' | 'wait' | 'late' | 'fail';
 
 export interface TrailStep {
     /** Ce que la partie atteste — « Clara Admin atteste avoir remis ». */
@@ -26,18 +31,26 @@ export interface TrailStep {
     /** Quand, et par quelle méthode : « lundi 09:42 · code PIN ». */
     detail?: React.ReactNode;
     state: TrailState;
+    /**
+     * Le glyphe de l'étape, quand l'état ne suffit pas à le dire : le parcours d'une
+     * demande (06.5) nomme ses trois étapes par leur acteur — la poignée de main pour
+     * l'informatique, la personne pour le bénéficiaire — et elles restent à venir.
+     */
+    glyph?: PhosphorGlyph;
 }
 
 const STEP_CLASS: Record<TrailState, string> = {
     done: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
     late: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
     wait: 'bg-surface-container text-text-tertiary',
+    fail: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
 };
 
-const STEP_GLYPH: Record<TrailState, typeof Check> = {
+const STEP_GLYPH: Record<TrailState, PhosphorGlyph> = {
     done: Check,
     late: Hourglass,
     wait: User,
+    fail: X,
 };
 
 const HandoverTrail: React.FC<{ steps: TrailStep[]; className?: string }> = ({
@@ -59,7 +72,7 @@ const HandoverTrail: React.FC<{ steps: TrailStep[]; className?: string }> = ({
                         STEP_CLASS[step.state],
                     )}
                 >
-                    <Icon glyph={STEP_GLYPH[step.state]} size={18} />
+                    <Icon glyph={step.glyph ?? STEP_GLYPH[step.state]} size={18} />
                 </span>
                 <span className="min-w-0 flex-1">
                     <span

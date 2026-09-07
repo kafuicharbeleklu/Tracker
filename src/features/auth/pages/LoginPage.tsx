@@ -129,14 +129,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         const normalizedEmail = candidateEmail.toLowerCase();
         return (
             users.find(
-                (u) =>
-                    u.email.toLowerCase() === normalizedEmail &&
-                    u.status !== 'pending',
+                (u) => u.email.toLowerCase() === normalizedEmail && u.status !== 'pending',
             ) ??
             mockAllUsersExtended.find(
-                (u) =>
-                    u.email.toLowerCase() === normalizedEmail &&
-                    u.status !== 'pending',
+                (u) => u.email.toLowerCase() === normalizedEmail && u.status !== 'pending',
             )
         );
     };
@@ -223,8 +219,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     attempts >= 3 ? (
                         <>
                             Adresse ou mot de passe incorrect. Troisième essai :{' '}
-                            <b className="font-medium">Mot de passe oublié</b> vous renvoie un
-                            lien.
+                            <b className="font-medium">Mot de passe oublié</b> vous renvoie un lien.
                         </>
                     ) : (
                         'Adresse ou mot de passe incorrect.'
@@ -343,7 +338,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                     'block w-full text-[12px] leading-4 transition-colors',
                                     isOn
                                         ? 'text-on-surface font-medium'
-                                        : 'text-on-surface-variant font-normal group-hover:text-on-surface',
+                                        : 'text-on-surface-variant group-hover:text-on-surface font-normal',
                                 )}
                             >
                                 {role}
@@ -363,47 +358,59 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               planche : 28 px de haut, 20 sur les côtés et en pied, 18 entre les groupes.
             */}
             <main className={cn(AUTH_MEASURE, 'flex flex-1 flex-col px-5 pt-7 pb-5')}>
-                    {authView === 'login' && (
-                        <>
-                            {/*
+                {authView === 'login' && (
+                    <>
+                        {/*
                               Rythme de la planche, et il ne se joue pas au `space-y` :
                               chaque groupe porte 18 px, le lien en reprend 2 au-dessus
                               — 20 px sous le champ — et en pose 28 avant le geste.
                             */}
-                            <form
-                                noValidate
-                                autoComplete="off"
-                                onSubmit={handleLogin}
-                                className="flex flex-col"
-                            >
-                                <div className="mb-[18px]">
-                                    <InputField
-                                        id="login-email"
-                                        label="Adresse e-mail"
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => {
-                                            setEmail(e.target.value);
-                                            if (emailError) setEmailError(undefined);
-                                        }}
-                                        icon={<Icon glyph={EnvelopeSimple} size={18} />}
-                                        autoComplete="off"
-                                        error={emailError}
-                                        required
-                                        hideRequiredIndicator
-                                        variant="outlined"
-                                        containerClassName="!space-y-0"
-                                        leadingElementClassName="!left-3"
-                                        className={FIELD_CLASSES}
-                                    />
-                                </div>
+                        <form
+                            noValidate
+                            autoComplete="off"
+                            onSubmit={handleLogin}
+                            className="flex flex-col"
+                        >
+                            <div className="mb-[18px]">
+                                <InputField
+                                    id="login-email"
+                                    label="Adresse e-mail"
+                                    /*
+                                          **Un champ à remplir dit ce qu'il attend.**
+                                          Les exemples avaient été retirés avec le
+                                          préremplissage, en septembre — mais ce sont
+                                          deux choses différentes : une **valeur** entre
+                                          dans le champ et part au serveur ; un **texte
+                                          d'exemple** ne fait que montrer la forme
+                                          attendue, et disparaît à la première frappe.
+                                          Sans lui, deux cadres vides ne disent plus
+                                          rien de ce qu'on doit y écrire.
+                                        */
+                                    placeholder="prenom.nom@neemba.com"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (emailError) setEmailError(undefined);
+                                    }}
+                                    icon={<Icon glyph={EnvelopeSimple} size={18} />}
+                                    autoComplete="off"
+                                    error={emailError}
+                                    required
+                                    hideRequiredIndicator
+                                    variant="outlined"
+                                    containerClassName="!space-y-0"
+                                    leadingElementClassName="!left-3"
+                                    className={FIELD_CLASSES}
+                                />
+                            </div>
 
-                                <div className="mb-[18px]">
-                                    <InputField
-                                        id="login-password"
-                                        label="Mot de passe"
-                                        type="password"
-                                        /*
+                            <div className="mb-[18px]">
+                                <InputField
+                                    id="login-password"
+                                    label="Mot de passe"
+                                    type="password"
+                                    /*
                                           Pas de pastilles en exemple. La planche dessine
                                           un champ **rempli**, et le reproduire en texte
                                           d'exemple pose de vraies puces `•` à 16 px, que
@@ -412,96 +419,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                           texte grandissait au tap d'un compte de
                                           démonstration. Le libellé dit déjà le champ.
                                         */
-                                        value={password}
-                                        onChange={(e) => {
-                                            setPassword(e.target.value);
-                                            if (passwordError) setPasswordError(undefined);
-                                        }}
-                                        icon={<Icon glyph={LockSimple} size={18} />}
-                                        isPassword
-                                        autoComplete="new-password"
-                                        error={passwordError}
-                                        required
-                                        hideRequiredIndicator
-                                        showPasswordToggle={false}
-                                        variant="outlined"
-                                        containerClassName="!space-y-0"
-                                        leadingElementClassName="!left-3"
-                                        className={FIELD_CLASSES}
-                                    />
-                                </div>
-
-                                <Button
-                                    type="button"
-                                    variant="text"
-                                    onClick={openForgotPassword}
-                                    disabled={isLoading}
-                                    className={cn(LINK_CLASSES, 'mt-0.5 mb-7 self-start')}
-                                >
-                                    Mot de passe oublié
-                                </Button>
-
-                                <Button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    variant="filled"
-                                    loading={isLoading}
-                                    loadingLabel="Connexion en cours"
-                                    className={SUBMIT_CLASSES}
-                                >
-                                    Se connecter
-                                </Button>
-                            </form>
-
-                            {demoAccounts}
-                        </>
-                    )}
-
-                    {authView === 'forgot' && (
-                        <form
-                            noValidate
-                            autoComplete="off"
-                            onSubmit={handleForgotPasswordSubmit}
-                            className="flex flex-col"
-                        >
-                            {/* `.back` — le retour en tête, 14 sur 20 en 500, encre secondaire,
-                                20 px avant le titre. */}
-                            <Button
-                                type="button"
-                                variant="text"
-                                onClick={backToLogin}
-                                disabled={isSubmittingForgotPassword}
-                                icon={<Icon glyph={ArrowLeft} size={18} />}
-                                className="text-on-surface-variant hover:text-on-surface mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 text-[14px] leading-5 font-medium hover:bg-transparent"
-                            >
-                                Retour à la connexion
-                            </Button>
-                            {/* `.pt` / `.ps` — titre de carte 17 sur 24 en Archivo 600, puis la
-                                phrase de soutien 14 sur 20, 20 px avant le champ. */}
-                            <h2 className="font-brand mb-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
-                                Mot de passe oublié
-                            </h2>
-                            <p className="text-on-surface-variant mb-5 text-[14px] leading-5">
-                                Un lien par courriel, valable 30 minutes. La phrase de retour est la
-                                même que l'adresse ait un compte ou non.
-                            </p>
-
-                            <div className="mb-[18px]">
-                                <InputField
-                                    id="forgot-email"
-                                    label="Adresse e-mail"
-                                    type="email"
-                                    value={forgotPasswordEmail}
+                                    value={password}
                                     onChange={(e) => {
-                                        setForgotPasswordEmail(e.target.value);
-                                        if (forgotPasswordError) setForgotPasswordError(undefined);
+                                        setPassword(e.target.value);
+                                        if (passwordError) setPasswordError(undefined);
                                     }}
-                                    icon={<Icon glyph={EnvelopeSimple} size={18} />}
-                                    autoComplete="off"
-                                    error={forgotPasswordError}
+                                    /* En toutes lettres, jamais en pastilles : des
+                                           puces d'exemple à 16 px sont remplacées au
+                                           remplissage par celles du navigateur, plus
+                                           grosses — le texte paraissait grandir au tap. */
+                                    placeholder="Votre mot de passe"
+                                    icon={<Icon glyph={LockSimple} size={18} />}
+                                    isPassword
+                                    autoComplete="new-password"
+                                    error={passwordError}
                                     required
                                     hideRequiredIndicator
-                                    autoFocus
+                                    showPasswordToggle={false}
                                     variant="outlined"
                                     containerClassName="!space-y-0"
                                     leadingElementClassName="!left-3"
@@ -510,51 +444,130 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             </div>
 
                             <Button
+                                type="button"
+                                variant="text"
+                                onClick={openForgotPassword}
+                                disabled={isLoading}
+                                className={cn(LINK_CLASSES, 'mt-0.5 mb-7 self-start')}
+                            >
+                                Mot de passe oublié
+                            </Button>
+
+                            <Button
                                 type="submit"
+                                disabled={isLoading}
                                 variant="filled"
-                                loading={isSubmittingForgotPassword}
-                                loadingLabel="Envoi en cours"
+                                loading={isLoading}
+                                loadingLabel="Connexion en cours"
                                 className={SUBMIT_CLASSES}
                             >
-                                Envoyer le lien
+                                Se connecter
                             </Button>
                         </form>
-                    )}
 
-                    {authView === 'sent' && (
-                        <OutcomePanel
-                            icon={PaperPlaneTilt}
-                            tone="bleu"
-                            title="Lien envoyé"
-                            message={
-                                <>
-                                    Si <b>{forgotPasswordEmail.trim()}</b> a un compte, un courriel vient
-                                    de partir.
-                                </>
-                            }
-                            detail="Le lien vaut 30 minutes. Votre code PIN ne change pas."
-                            actions={
-                                <>
-                                    <Button
-                                        type="button"
-                                        variant="outlined"
-                                        onClick={backToLogin}
-                                        className="!rounded-[4px] !shadow-none"
-                                    >
-                                        Retour à la connexion
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="text"
-                                        onClick={() => setAuthView('forgot')}
-                                        className={cn(LINK_CLASSES, 'self-center')}
-                                    >
-                                        Je n'ai rien reçu
-                                    </Button>
-                                </>
-                            }
-                        />
-                    )}
+                        {demoAccounts}
+                    </>
+                )}
+
+                {authView === 'forgot' && (
+                    <form
+                        noValidate
+                        autoComplete="off"
+                        onSubmit={handleForgotPasswordSubmit}
+                        className="flex flex-col"
+                    >
+                        {/* `.back` — le retour en tête, 14 sur 20 en 500, encre secondaire,
+                                20 px avant le titre. */}
+                        <Button
+                            type="button"
+                            variant="text"
+                            onClick={backToLogin}
+                            disabled={isSubmittingForgotPassword}
+                            icon={<Icon glyph={ArrowLeft} size={18} />}
+                            className="text-on-surface-variant hover:text-on-surface mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 text-[14px] leading-5 font-medium hover:bg-transparent"
+                        >
+                            Retour à la connexion
+                        </Button>
+                        {/* `.pt` / `.ps` — titre de carte 17 sur 24 en Archivo 600, puis la
+                                phrase de soutien 14 sur 20, 20 px avant le champ. */}
+                        <h2 className="font-brand mb-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                            Mot de passe oublié
+                        </h2>
+                        <p className="text-on-surface-variant mb-5 text-[14px] leading-5">
+                            Un lien par courriel, valable 30 minutes. La phrase de retour est la
+                            même que l'adresse ait un compte ou non.
+                        </p>
+
+                        <div className="mb-[18px]">
+                            <InputField
+                                id="forgot-email"
+                                label="Adresse e-mail"
+                                placeholder="prenom.nom@neemba.com"
+                                type="email"
+                                value={forgotPasswordEmail}
+                                onChange={(e) => {
+                                    setForgotPasswordEmail(e.target.value);
+                                    if (forgotPasswordError) setForgotPasswordError(undefined);
+                                }}
+                                icon={<Icon glyph={EnvelopeSimple} size={18} />}
+                                autoComplete="off"
+                                error={forgotPasswordError}
+                                required
+                                hideRequiredIndicator
+                                autoFocus
+                                variant="outlined"
+                                containerClassName="!space-y-0"
+                                leadingElementClassName="!left-3"
+                                className={FIELD_CLASSES}
+                            />
+                        </div>
+
+                        <Button
+                            type="submit"
+                            variant="filled"
+                            loading={isSubmittingForgotPassword}
+                            loadingLabel="Envoi en cours"
+                            className={SUBMIT_CLASSES}
+                        >
+                            Envoyer le lien
+                        </Button>
+                    </form>
+                )}
+
+                {authView === 'sent' && (
+                    <OutcomePanel
+                        icon={PaperPlaneTilt}
+                        tone="bleu"
+                        title="Lien envoyé"
+                        message={
+                            <>
+                                Si <b>{forgotPasswordEmail.trim()}</b> a un compte, un courriel
+                                vient de partir.
+                            </>
+                        }
+                        detail="Le lien vaut 30 minutes. Votre code PIN ne change pas."
+                        actions={
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outlined"
+                                    onClick={backToLogin}
+                                    className="!rounded-[4px] !shadow-none"
+                                >
+                                    Retour à la connexion
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="text"
+                                    onClick={() => setAuthView('forgot')}
+                                    className={cn(LINK_CLASSES, 'self-center')}
+                                >
+                                    Je n'ai rien reçu
+                                </Button>
+                            </>
+                        }
+                    />
+                )}
             </main>
         </AuthShell>
     );

@@ -1,6 +1,14 @@
 import React, { useState, useRef } from 'react';
+import { XCircle } from '@phosphor-icons/react';
 import MaterialIcon from './MaterialIcon';
+import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import {
+    MAX_IMPORT_FILE_BYTES,
+    formatFileSize,
+    partitionBySize,
+    rejectionMessage,
+} from '../../lib/fileImport';
 
 interface FileDropzoneProps {
     onFileSelect: (file: File) => void;
@@ -10,6 +18,8 @@ interface FileDropzoneProps {
     label?: string;
     subLabel?: string;
     isProcessing?: boolean;
+    /** La borne de 17.10 — 5 Mo par défaut, la valeur arbitrée le 06/09. */
+    maxSize?: number;
     className?: string;
 }
 
@@ -21,9 +31,14 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     label = 'Glisser-déposer votre fichier',
     subLabel = 'ou cliquez pour parcourir',
     isProcessing = false,
+    maxSize = MAX_IMPORT_FILE_BYTES,
     className,
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    /* Le refus se lit **là où le fichier a été déposé** : c'est un champ précis en
+       cause, donc le message vit sous la zone et reste tant que rien n'a changé
+       (17.5, troisième réponse). Il valait le silence : le fichier disparaissait. */
+    const [refus, setRefus] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const getNormalizedFiles = (incomingFiles: File[]): File[] => {
@@ -58,16 +73,20 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         const normalizedFiles = getNormalizedFiles(incomingFiles);
         if (!normalizedFiles.length) return;
 
+        const { accepted, rejected } = partitionBySize(normalizedFiles, maxSize);
+        setRefus(rejectionMessage(rejected, maxSize));
+        if (!accepted.length) return;
+
         if (multiple) {
             if (onFilesSelect) {
-                onFilesSelect(normalizedFiles);
+                onFilesSelect(accepted);
             } else {
-                onFileSelect(normalizedFiles[0]);
+                onFileSelect(accepted[0]);
             }
             return;
         }
 
-        onFileSelect(normalizedFiles[0]);
+        onFileSelect(accepted[0]);
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -110,6 +129,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     };
 
     return (
+        <>
         <div
             role="button"
             tabIndex={0}
@@ -166,8 +186,21 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                     </div>
                     <p className="text-title-small text-on-surface mb-1">{label}</p>
                     <p className="text-body-small text-on-surface-variant">{subLabel}</p>
+                    <p className="text-on-surface-variant mt-2 text-[12px] leading-4">
+                        {formatFileSize(maxSize)} par fichier au plus
+                    </p>
                 </>
             )}
         </div>
+
+        {/* Le refus, sous la zone : 14 sur 20, glyphe de 18, encre danger — la forme
+            du message au champ de 17.5. Il nomme le fichier et sa taille. */}
+        {refus && (
+            <p className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5" role="alert">
+                <Icon glyph={XCircle} size={18} className="mt-px" />
+                <span>{refus}</span>
+            </p>
+        )}
+        </>
     );
 };

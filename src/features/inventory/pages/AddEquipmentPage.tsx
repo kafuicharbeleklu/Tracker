@@ -724,13 +724,18 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     />
                                 );
                             })}
+                            {/* La borne de 17.10 : ce qui dépasse ne s'attache pas, et
+                                le dit. Rien n'a changé à l'écran, personne n'attend un
+                                geste : c'est un snackbar (17.5, deuxième réponse). */}
                             <FilePicker
                                 ref={invoiceInput}
                                 onFiles={(_names, files) => attachDocument(files[0], 'Facture')}
+                                onReject={(message) => showToast(message, 'error')}
                             />
                             <FilePicker
                                 ref={warrantyInput}
                                 onFiles={(_names, files) => attachDocument(files[0], 'Garantie')}
+                                onReject={(message) => showToast(message, 'error')}
                             />
                         </div>
                         <FormNote>

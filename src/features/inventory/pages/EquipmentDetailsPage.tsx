@@ -9,15 +9,10 @@ import {
     DotsThreeVertical,
     FileText,
     Laptop,
-    ClockCountdown,
-    Coins,
-    HandArrowDown,
     Package,
-    ShieldCheck,
     ShieldWarning,
     Warning,
     Wrench,
-    type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
@@ -31,10 +26,11 @@ import { getCategoryLabel } from '../../../constants/glossary';
 import HandoverTrail, { type TrailStep } from '../../../components/ui/HandoverTrail';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import IncidentSheet from '../components/IncidentSheet';
+import ActSheet from '../../../components/ui/ActSheet';
+import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import RetireSheet from '../components/RetireSheet';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
-import TintedTile, { TintedTileRow, type TintedTileTone } from '../../../components/ui/TintedTile';
-import DetailHero from '../../../components/ui/DetailHero';
+import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ReferenceRow from '../../../components/ui/ReferenceRow';
 import ProportionRow from '../../../components/ui/ProportionRow';
 import Button from '../../../components/ui/Button';
@@ -130,6 +126,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
        confirmations : l'une passait l'objet en réparation sans rien demander, l'autre
        demandait de taper « SUPPRIMER » sans jamais demander pourquoi. */
     const [isIncidentSheetOpen, setIsIncidentSheetOpen] = useState(false);
+    /* 17.4 — « Confirmer la réception » est l'un des neuf actes : il s'atteste. */
+    const [confirmationOuverte, setConfirmationOuverte] = useState(false);
+    /** La clôture du dernier acte posé ici — 06.3, forme 1. */
+    const [cloture, setCloture] = useState<ClosureBannerProps | null>(null);
     const [isRetireSheetOpen, setIsRetireSheetOpen] = useState(false);
 
     const financialStats = useMemo(() => {
@@ -231,20 +231,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
      * prix à sept chiffres ne tient pas dans une demi-tuile.
      */
     const tiles = (() => {
-        const out: {
-            key: string;
-            tone: TintedTileTone;
-            glyph: PhosphorGlyph;
-            value: string;
-            label: string;
-            wide?: boolean;
-        }[] = [];
+        /* Ni teinte ni pictogramme : `.qual` de 04.2 ne porte que le chiffre et son
+           libellé — *« le chiffre et son libellé suffisent »*. */
+        const out: { key: string; value: string; label: string; wide?: boolean }[] = [];
 
         if (ageYears !== null && ageYears >= 0) {
             out.push({
                 key: 'age',
-                tone: 'bleu',
-                glyph: ClockCountdown,
                 value: `${ageYears.toFixed(1).replace('.', ',')} ans`,
                 label: 'au parc',
             });
@@ -252,8 +245,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         if (warrantyMonthsLeft !== null) {
             out.push({
                 key: 'warranty',
-                tone: 'vert',
-                glyph: ShieldCheck,
                 value: warrantyMonthsLeft > 0 ? `${warrantyMonthsLeft} mois` : 'expirée',
                 label: warrantyMonthsLeft > 0 ? 'de garantie' : 'garantie',
             });
@@ -263,8 +254,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         if (permissions.canManageInventory && item.financial) {
             out.push({
                 key: 'price',
-                tone: 'ambre',
-                glyph: Coins,
                 value: formatCurrency(item.financial.purchasePrice, settings.currency),
                 label: 'à l’achat',
                 wide: true,
@@ -272,8 +261,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         } else if (item.confirmedAt || item.assignedAt) {
             out.push({
                 key: 'handover',
-                tone: 'bleu',
-                glyph: HandArrowDown,
                 value: new Date(item.confirmedAt || item.assignedAt || '').toLocaleDateString(
                     'fr-FR',
                     { day: 'numeric', month: 'long' },
@@ -460,20 +447,16 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
            La confirmation passe par l'écriture unique du store, qui synchronise
            l'approbation liée que la fiche oubliait. Lot 7, S2. */
         if (item.assignmentStatus === 'PENDING_DELIVERY' && isReceivingParty) {
+            /* Le bouton **ouvre l'acte**, il ne le pose pas : confirmer une réception
+               est l'un des neuf actes de 17.4, et un acte s'atteste. Il écrivait
+               directement, si bien que le passage de main n'avait de preuve que d'un
+               côté — celui qui remet signait, celui qui reçoit tapait un bouton. */
             return (
                 <Button
                     variant="filled"
                     className="w-full"
                     icon={<Icon glyph={Check} size={20} />}
-                    onClick={() => {
-                        const decision = confirmEquipmentReception(item.id);
-                        showToast(
-                            decision.allowed
-                                ? 'Réception confirmée.'
-                                : decision.reason || 'Confirmation refusée.',
-                            decision.allowed ? 'success' : 'error',
-                        );
-                    }}
+                    onClick={() => setConfirmationOuverte(true)}
                 >
                     Confirmer la réception
                 </Button>
@@ -629,8 +612,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         <>
             <DetailTemplate
                 code={item.name}
-                reference={item.assetId}
                 onBack={onBack}
+                /* 06.3 — la clôture se lit au-dessus de l'état qu'elle a produit. */
+                banner={cloture ? <ClosureBanner {...cloture} fadeAfterMs={8000} /> : undefined}
                 menu={
                     menuItems.length > 0 ? (
                         <Menu
@@ -707,24 +691,26 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                               : 'en stock',
                                       }
                         }
+                        /* **Les repères chiffrés sont des tuiles du héro** — 04.2, passe
+                           du 05/09 : *« deux côte à côte, la valeur monétaire en pleine
+                           largeur — un prix à sept chiffres y tient. Pas de teinte : le
+                           chiffre et son libellé suffisent. »* Ils vivaient sous le héro,
+                           en tuiles teintées à pictogramme : trois couleurs et trois
+                           glyphes pour dire l'âge, la garantie et le prix, alors que ce
+                           sont les qualifiants du sujet et qu'ils appartiennent au voile
+                           (R3 : *« trois métriques au plus, dans le voile »*). */
+                        metrics={
+                            tiles.length > 0
+                                ? (tiles.slice(0, 3).map((tile) => ({
+                                      value: tile.value,
+                                      label: tile.label,
+                                      wide: tile.wide,
+                                  })) as unknown as DetailMetrics)
+                                : undefined
+                        }
+                        metricsStyle="qual"
                         actions={primaryAction}
                     />
-                }
-                aside={
-                    tiles.length > 0 ? (
-                        <TintedTileRow>
-                            {tiles.map((tile) => (
-                                <TintedTile
-                                    key={tile.key}
-                                    tone={tile.tone}
-                                    glyph={tile.glyph}
-                                    value={tile.value}
-                                    label={tile.label}
-                                    wide={tile.wide}
-                                />
-                            ))}
-                        </TintedTileRow>
-                    ) : undefined
                 }
             >
                 <section className="rounded-card bg-surface p-4">
@@ -745,13 +731,17 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             value={item.model || '—'}
                             quiet={!item.model}
                         />
-                        <ReferenceRow label="Mémoire" value={item.ram || '—'} quiet={!item.ram} />
-                        <ReferenceRow
-                            label="Stockage"
-                            value={item.storage || '—'}
-                            quiet={!item.storage}
-                        />
-                        <ReferenceRow label="Système" value={item.os || '—'} quiet={!item.os} />
+                        {/* **Une rangée sans valeur n'est pas une rangée** (09.2). La
+                            fiche en posait trois — Mémoire, Stockage, Système — quel que
+                            soit l'objet : une borne Wi-Fi n'a ni mémoire ni système, et
+                            elle affichait « N/A » trois fois. Quand aucune des trois n'est
+                            renseignée, une seule ligne le dit, et elle le dit en creux. */}
+                        {item.ram && <ReferenceRow label="Mémoire" value={item.ram} />}
+                        {item.storage && <ReferenceRow label="Stockage" value={item.storage} />}
+                        {item.os && <ReferenceRow label="Système" value={item.os} />}
+                        {!item.ram && !item.storage && !item.os && (
+                            <ReferenceRow label="Spécifications" value="aucune saisie" quiet />
+                        )}
                         {item.lastReturnCondition && (
                             <ReferenceRow
                                 label="Réserve d’usage"
@@ -842,17 +832,32 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                     }
                                     source="Amortissement issu du paramétrage par catégorie, pas d’une réévaluation."
                                 />
-                                <Button
-                                    variant="text"
-                                    className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
+                                {/* `.more` — **une rangée de renvoi, pas un bouton** :
+                                    `flex`, gouttière 10, 48 de haut, un filet au-dessus,
+                                    le libellé en 16, la destination en 12 à droite, le
+                                    chevron en encre secondaire. Le `Button` du système
+                                    l'habillait de son intérieur et de sa cible tactile :
+                                    **le chevron sortait de la carte de 14 px**, à
+                                    l'extérieur du fond blanc. */}
+                                <button
+                                    type="button"
                                     onClick={() => navigate('/finance')}
+                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[16px] leading-6"
                                 >
-                                    <span>Prix d’achat et amortissement</span>
-                                    <span className="text-body-medium text-text-secondary ml-auto font-normal">
+                                    {/* `.more` de la planche écrit **« Amortissement »**,
+                                        pas « Prix d'achat et amortissement » : la phrase
+                                        longue ne laissait plus la place à sa destination,
+                                        qui passait à la ligne sous le chevron. */}
+                                    <span>Amortissement</span>
+                                    <span className="text-text-secondary flex-1 text-right text-[12px] leading-4 whitespace-nowrap">
                                         dans Finances
                                     </span>
-                                    <Icon glyph={CaretDown} size={18} className="-rotate-90" />
-                                </Button>
+                                    <Icon
+                                        glyph={CaretDown}
+                                        size={18}
+                                        className="text-text-secondary -rotate-90"
+                                    />
+                                </button>
                             </>
                         )}
                     </section>
@@ -939,6 +944,54 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     </section>
                 )}
             </DetailTemplate>
+
+            {/*
+              **La quatrième feuille de 06.1** — la personne confirme sa réception, et
+              l'atteste. C'est le seul des quatre passages de main que le porteur pose
+              lui-même : les blocs 2 et 3 sont vides (17.4 les note « — »), il ne reste
+              que l'objet, l'attestation et la conséquence.
+            */}
+            {confirmationOuverte && (
+                <ActSheet
+                    open
+                    onClose={() => setConfirmationOuverte(false)}
+                    title="Confirmer la réception"
+                    subtitle="Vous attestez avoir reçu cet équipement."
+                    subject={{
+                        vignette: <Icon glyph={Package} size={20} />,
+                        title: item.name,
+                        subtitle: [item.model || item.type, item.site].filter(Boolean).join(' · '),
+                    }}
+                    signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
+                    consequence={{
+                        text: (
+                            <>
+                                L’objet passe <strong>à votre nom</strong>, et l’attente se ferme.
+                            </>
+                        ),
+                    }}
+                    confirmLabel="Je confirme"
+                    onConfirm={() => {
+                        const decision = confirmEquipmentReception(item.id);
+                        if (!decision.allowed) {
+                            showToast(decision.reason || 'Confirmation refusée.', 'error');
+                            return;
+                        }
+                        setConfirmationOuverte(false);
+                        /*
+                         * **06.3, forme 1 — l'écran a changé.** « En attente » devient
+                         * « Attribué », le geste devient Restituer, l'attestation passe
+                         * en tête de l'historique : tout se met à jour sous les yeux. Le
+                         * bandeau n'a qu'à nommer ce qui vient de se produire, puis il
+                         * s'efface. Un snackbar par-dessus dirait la même chose deux fois.
+                         */
+                        setCloture({
+                            title: 'Réception confirmée',
+                            detail: `À votre nom depuis ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
+                        });
+                    }}
+                />
+            )}
 
             {/* Les deux feuilles d'acte de 04.3. Elles se montent **hors du gabarit** :
             une feuille est une couche de l'écran, pas une section de la fiche. */}

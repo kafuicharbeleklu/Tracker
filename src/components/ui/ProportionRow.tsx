@@ -40,10 +40,16 @@ interface ProportionRowProps {
     className?: string;
 }
 
+/**
+ * `.wbar i` — les teintes de la **famille d'état**, celles que 04.2, 09.2 et 16.1
+ * emploient pour la même chose. `attention` tirait le **rouge d'erreur** : un actif
+ * amorti à 100 % n'est pas une panne, c'est un actif à renouveler — et la barre pleine
+ * en rouge sang le disait comme une alarme.
+ */
 const TONE_FILL: Record<NonNullable<ProportionRowProps['tone']>, string> = {
     neutral: 'bg-on-surface',
-    positive: 'bg-success',
-    attention: 'bg-danger',
+    positive: 'bg-[var(--tk-color-st-vert)]',
+    attention: 'bg-[var(--tk-color-st-orange)]',
 };
 
 const ProportionRow: React.FC<ProportionRowProps> = ({
@@ -86,9 +92,11 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             )}
 
             {source && (
-                <p className="text-label-small text-on-surface-variant mt-2.5 leading-4">
-                    {source}
-                </p>
+                /* **12 sur 16, sans interlettrage.** Cette ligne portait
+                   `text-label-small`, dont l'interlettrage de `.075em` est fait pour une
+                   micro-étiquette en capitales ; appliqué à une phrase française en
+                   minuscules, il l'étire lettre à lettre et la rend illisible. */
+                <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">{source}</p>
             )}
         </div>
     );

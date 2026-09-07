@@ -169,6 +169,13 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
             columns={COLUMNS}
             sample={SAMPLE}
             noun={{ one: 'emplacement', many: 'emplacements' }}
+            contractNote={
+                <>
+                    <b className="text-on-surface font-medium">Type</b> vaut country, site ou
+                    service ; <b className="text-on-surface font-medium">ParentName</b> est le
+                    niveau au-dessus, vide pour un pays.
+                </>
+            }
             parse={parse}
             onImport={handleImport}
             dropSubLabel="Un pays doit figurer avant ses sites, un site avant ses services"

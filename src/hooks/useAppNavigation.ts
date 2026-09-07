@@ -17,6 +17,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
     edit_user: 'Modifier utilisateur',
     import_users: 'Importer utilisateurs',
     new_request: 'Nouvelle demande',
+    approval_details: 'Demande',
     tasks: 'Tâches',
     management: DESTINATIONS.management.label,
     rbac: DESTINATIONS.rbac.label,
@@ -31,8 +32,8 @@ const VIEW_TITLES: Record<ViewType, string> = {
     audit: DESTINATIONS.audit.label,
     audit_details: 'Détails audit',
     reports: DESTINATIONS.reports.label,
-    assignment_wizard: "Assistant d'attribution",
-    return_wizard: 'Assistant de retour',
+    assignment_wizard: "Remettre l'équipement",
+    return_wizard: 'Rendre et réceptionner',
     finance: DESTINATIONS.finance.label,
     finance_expenses: 'Journal des dépenses',
     settings: DESTINATIONS.settings.label,
@@ -82,7 +83,12 @@ export const useAppNavigation = () => {
             // « Nouvelle demande » est un geste de la file, et son adresse le dit : elle
             // vivait sous /approvals/new, la section qui n'existe plus.
             if (action === 'new') computedView = 'new_request';
-            else computedView = 'tasks';
+            /* 06.5 — le détail d'une demande est un écran, pas une feuille : c'est
+               devant lui qu'on refuse, qu'on renvoie ou qu'on abandonne. */
+            else if (action === 'request' && param) {
+                computedView = 'approval_details';
+                id = param;
+            } else computedView = 'tasks';
         } else if (section === 'management') {
             if (action === 'categories') {
                 if (param === 'add') computedView = 'add_category';
@@ -192,10 +198,12 @@ export const useAppNavigation = () => {
                 model_details: (id) => `/management/models/${id}`,
                 audit_details: () => `/audit/details`,
                 site_details: (id) => `/locations/site/${encodeURIComponent(id)}`,
+                approval_details: (id) => `/tasks/request/${encodeURIComponent(id)}`,
                 // Les rangées « Remettre » / « Réceptionner » / « Restituer » de la file (TasksPage)
                 // arrivent ici avec l'identifiant de l'équipement ; les deux assistants lisent
                 // `equipmentId` dans le hash. Sans ces deux clés, le tap ne faisait rien.
-                assignment_wizard: (id) => `/wizards/assignment?equipmentId=${encodeURIComponent(id)}`,
+                assignment_wizard: (id) =>
+                    `/wizards/assignment?equipmentId=${encodeURIComponent(id)}`,
                 return_wizard: (id) => `/wizards/return?equipmentId=${encodeURIComponent(id)}`,
             };
 

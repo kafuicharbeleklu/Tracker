@@ -10,11 +10,11 @@ import {
     DotsThreeVertical,
     HardDrives,
     Laptop,
+    LockSimple,
     Mouse,
     Package,
     PaperPlaneTilt,
     Plus,
-    Signature,
     Prohibit,
     SignOut,
     User,
@@ -37,8 +37,8 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import ScreenState from '../../../components/ui/ScreenState';
+import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import BottomSheet from '../../../components/ui/BottomSheet';
-import TintedTile, { TintedTileRow } from '../../../components/ui/TintedTile';
 
 import {
     ACTIVE_APPROVAL_STATUSES,
@@ -170,6 +170,9 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     const { permissions, user: currentUser } = useAccessControl();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
+
+    /** La clôture du dernier acte posé ici — 06.3, forme 1. */
+    const [cloture, setCloture] = useState<ClosureBannerProps | null>(null);
 
     const [sheet, setSheet] = useState<null | 'note' | 'suspend' | 'departure' | 'restitution'>(
         null,
@@ -337,13 +340,18 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         .join('')
         .toUpperCase();
 
-    const writeUser = (updates: Parameters<typeof updateUser>[1], ok: string) => {
+    /**
+     * @param ok le retour transitoire quand rien de visible ne change (17.5, forme 1).
+     *   `null` : l'écran change sous les yeux, et c'est le bandeau de clôture qui le dit
+     *   (06.3, forme 1) — un snackbar par-dessus redirait la même chose deux fois.
+     */
+    const writeUser = (updates: Parameters<typeof updateUser>[1], ok: string | null) => {
         const decision = updateUser(user.id, updates);
         if (!decision.allowed) {
             showToast(decision.reason || 'Écriture refusée.', 'error');
             return false;
         }
-        showToast(ok, 'success');
+        if (ok) showToast(ok, 'success');
         if (isDemoSeedUser(user.id)) showToast(DEMO_RESEED_NOTICE, 'info');
         return true;
     };
@@ -379,13 +387,43 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 suspendedBy: currentUser?.name || 'Gestionnaire',
                 suspensionReason: reasonDraft.trim() || undefined,
             },
-            held > 0
-                ? `Compte suspendu. ${heldLabel} signalé${held > 1 ? 's' : ''} à récupérer.`
-                : 'Compte suspendu.',
+            null,
         );
         if (ok) {
             setSheet(null);
             authService.setUserStatus(user.id, 'inactive').catch(() => undefined);
+            /*
+             * **06.3, forme 1.** La fiche s'inverse sous les yeux — héro éteint, geste
+             * primaire « Réactiver », ce qu'elle détient inchangé : le bandeau n'a plus
+             * qu'à nommer ce qui vient de se produire. Et il porte « Annuler », **parce
+             * que l'acte est défaisable là où il vient d'être fait** : redemander une
+             * confirmation pour défaire ce qu'on vient de faire est une question de trop.
+             */
+            setCloture({
+                tone: 'neutre',
+                glyph: LockSimple,
+                title: 'Compte suspendu',
+                detail:
+                    held > 0
+                        ? `Sa session a pris fin. ${heldLabel} signalé${held > 1 ? 's' : ''} à récupérer.`
+                        : 'Sa session a pris fin.',
+                action: {
+                    label: 'Annuler',
+                    onClick: () => {
+                        writeUser(
+                            {
+                                status: 'active',
+                                suspendedAt: undefined,
+                                suspendedBy: undefined,
+                                suspensionReason: undefined,
+                            },
+                            null,
+                        );
+                        authService.setUserStatus(user.id, 'active').catch(() => undefined);
+                        setCloture(null);
+                    },
+                },
+            });
         }
     };
 
@@ -808,7 +846,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     return (
         <DetailTemplate
             code={user.name}
-            reference={roleLabel}
             onBack={onBack}
             menu={
                 <Menu
@@ -821,6 +858,9 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     }
                 />
             }
+            /* 06.3 — l'accusé de clôture, au-dessus du héro : c'est là que la planche
+               le dessine, dans le fil de la page et non par-dessus. */
+            banner={cloture ? <ClosureBanner {...cloture} fadeAfterMs={8000} /> : undefined}
             hero={
                 <DetailHero
                     avatar={initials}
@@ -851,6 +891,37 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             heroAction
                         )
                     }
+                    /* **Les deux tuiles sont dans le héro** — 05.2, passe du 05/09 :
+                       *« deux tuiles dans le héro (ce qu'elle détient, sa demande en
+                       cours — alignées le 05/09 sur 09, 10 et 16) »*. Elles vivaient
+                       sous lui, teintées et à pictogramme ; la planche les déclare sur
+                       le voile blanc, sans teinte — et ses classes `c-bleu` / `c-ambre`
+                       y sont d'ailleurs inertes, `.qual > div` les recouvrant. */
+                    metrics={[
+                        {
+                            value: held,
+                            label: held > 1 ? 'objets détenus' : 'objet détenu',
+                        },
+                        /* **Sur un compte en attente, la seconde tuile dit la preuve**
+                           (05.3, colonne 4) : sans code personnel, une remise se
+                           signera. C'est le fait qui compte à ce moment-là — le
+                           compteur de demandes d'un compte qui n'a jamais ouvert
+                           l'application vaut toujours zéro. */
+                        isInvited && !user.pin
+                            ? { value: 'Signature', label: 'preuve à la remise' }
+                            : {
+                                  value: userApprovals.length,
+                                  label:
+                                      userApprovals.length > 1
+                                          ? 'demandes en cours'
+                                          : 'demande en cours',
+                                  onClick:
+                                      userApprovals.length > 0
+                                          ? () => onViewChange?.('tasks')
+                                          : undefined,
+                              },
+                    ]}
+                    metricsStyle="qual"
                     note={heroNote}
                     className={
                         isSuspended ? '!bg-surface-container-highest !text-on-surface' : undefined
@@ -859,46 +930,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             }
             aside={
                 <>
-                    {/* Les deux tuiles de la passe sobre : elles remplacent les trois
-                        métriques qui vivaient dans le héro. Deux au plus, jamais trois. */}
-                    <TintedTileRow>
-                        <TintedTile
-                            tone="bleu"
-                            glyph={Laptop}
-                            value={held}
-                            label={held > 1 ? 'objets détenus' : 'objet détenu'}
-                        />
-                        {/* **Sur un compte en attente, la seconde tuile dit la preuve**
-                            (05.3, colonne 4) : sans code personnel, une remise se
-                            signera. C'est le fait qui compte à ce moment-là — le
-                            compteur de demandes d'un compte qui n'a jamais ouvert
-                            l'application vaut toujours zéro. */}
-                        {isInvited && !user.pin ? (
-                            <TintedTile
-                                tone="ambre"
-                                glyph={Signature}
-                                value="Signature"
-                                label="preuve à la remise"
-                            />
-                        ) : (
-                            <TintedTile
-                                tone="ambre"
-                                glyph={Bell}
-                                value={userApprovals.length}
-                                label={
-                                    userApprovals.length > 1
-                                        ? 'demandes en cours'
-                                        : 'demande en cours'
-                                }
-                                onClick={
-                                    userApprovals.length > 0
-                                        ? () => onViewChange?.('tasks')
-                                        : undefined
-                                }
-                            />
-                        )}
-                    </TintedTileRow>
-
                     <RuleGroup header="Équipements détenus">
                         {held > 0 ? (
                             <div>

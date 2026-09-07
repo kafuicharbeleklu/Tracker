@@ -14,6 +14,7 @@ import SearchField from '../ui/SearchField';
 import FacetChip from '../ui/FacetChip';
 import { SkeletonList } from '../ui/Skeleton';
 import SelectionTopBar from '../ui/SelectionTopBar';
+import { useDeclareSelectionRegime } from '../../context/SelectionRegimeContext';
 import BulkActionBar from '../ui/BulkActionBar';
 import { OfflineBanner } from '../ui/ContextBanner';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -156,6 +157,19 @@ interface ListTemplateProps {
         bulkOverflow?: React.ReactNode;
     };
 
+    /**
+     * Le héro de la page, **au-dessus des rangées et sous le bloc fixe** — 09.1, 10.1,
+     * 15.1 et 16.1 l'écrivent à l'identique : surtitre, gros chiffre, tuiles. Il défile
+     * avec le contenu, contrairement à l'en-tête, et il survit à la liste vide : ce
+     * qu'il annonce ne dépend pas du filtre posé.
+     */
+    hero?: React.ReactNode;
+    /**
+     * `.fnote` — la note de pied de liste : ce que la rangée suivante fera. Elle n'est
+     * ni un compte ni un état vide ; elle explique le geste, à gauche, en 14 sur 20.
+     */
+    note?: React.ReactNode;
+
     loading?: boolean;
     /** Ce que l'écran montre quand il n'y a rien — un `ScreenState` (17.1). */
     empty?: React.ReactNode;
@@ -192,6 +206,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     count,
     sort,
     selection,
+    hero,
+    note,
     loading = false,
     empty,
     footer,
@@ -201,6 +217,10 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     className,
 }) => {
     const isCompact = useMediaQuery(MEDIA.compact);
+
+    /* La coque doit savoir qu'on est en sélection : c'est elle qui porte la barre du
+       bas, à qui le pied d'actes prend la place (17.2). */
+    useDeclareSelectionRegime(Boolean(selection?.active));
     const showSkeleton = useDelayedPending(loading);
     const hasRows = hasRowsOverride ?? React.Children.count(children) > 0;
 
@@ -409,6 +429,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     fab && !selection?.active ? 'pb-24' : 'pb-6',
                 )}
             >
+                {hero && <Reading>{hero}</Reading>}
+
                 {origin && origin.from && (
                     <Reading>
                         <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">
@@ -482,7 +504,6 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     </Reading>
                 )}
 
-
                 {showSkeleton ? (
                     <Reading>
                         <div className="bg-surface rounded-xl px-4">
@@ -506,6 +527,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         </>
                     )
                 )}
+
+                {note && <Reading>{note}</Reading>}
 
                 {origin && origin.showClearAction !== false && (
                     <Reading>

@@ -243,3 +243,125 @@ export const Consequences: React.FC<{
         ))}
     </div>
 );
+
+/**
+ * `.pick` — **une rangée qui porte un choix déjà fait, et le rouvre.** Planches 06.4 et
+ * 17.4 : vignette de 40, deux lignes, et le verbe de reprise à droite (« Changer »).
+ * Rien n'est choisi : la rangée le dit en encre tertiaire, et le verbe devient
+ * « Choisir ».
+ */
+export const PickRow: React.FC<{
+    vignette: React.ReactNode;
+    /** La teinte de la vignette. Sans elle, le creux gris — c'est le cas du vide. */
+    tint?: Tint;
+    title: string;
+    subtitle?: string;
+    /** « Changer » quand le choix est fait, « Choisir » quand il reste à faire. */
+    actionLabel: string;
+    /** Le titre est un appel au choix, pas une valeur : il se lit en tertiaire. */
+    empty?: boolean;
+    onClick: () => void;
+}> = ({ vignette, tint, title, subtitle, actionLabel, empty = false, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="bg-surface-container flex min-h-14 w-full items-center gap-3 rounded-[4px] px-3.5 py-2 text-left"
+    >
+        <span
+            className={cn(
+                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold',
+                tint ? TINT_CLASS[tint] : 'bg-surface text-text-tertiary',
+            )}
+        >
+            {vignette}
+        </span>
+        <span className="min-w-0 flex-1">
+            <span
+                className={cn(
+                    'block truncate text-[16px] leading-6',
+                    empty ? 'text-text-tertiary' : 'font-medium',
+                )}
+            >
+                {title}
+            </span>
+            {subtitle && (
+                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                    {subtitle}
+                </span>
+            )}
+        </span>
+        <span className="shrink-0 text-[15px] font-medium">{actionLabel}</span>
+    </button>
+);
+
+/**
+ * `.seg` — **l'échelle courte**, sur le creux : deux ou trois crans, le pris en surface.
+ * 06.4 n'en veut que deux pour l'urgence, *« le produit n'en distingue pas trois »*.
+ * Ce n'est pas le segmenté de Material : piste de 4 d'intérieur, crans de 36, rayon 2.
+ */
+export const Segmented = <T extends string>({
+    options,
+    value,
+    onChange,
+    label,
+}: {
+    options: ReadonlyArray<{ value: T; label: string }>;
+    value: T;
+    onChange: (value: T) => void;
+    /** Ce que l'échelle règle, pour qui ne voit pas le libellé au-dessus. */
+    label?: string;
+}) => (
+    <div
+        role="group"
+        aria-label={label}
+        className="bg-surface-container flex gap-1 rounded-[4px] p-1"
+    >
+        {options.map((option) => (
+            <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                aria-pressed={value === option.value}
+                className={cn(
+                    'flex min-h-9 flex-1 items-center justify-center rounded-[2px] text-[14px] leading-5',
+                    value === option.value
+                        ? 'bg-surface text-on-surface font-medium shadow-[0_1px_2px_rgba(10,25,29,0.08)]'
+                        : 'text-on-surface-variant',
+                )}
+            >
+                {option.label}
+            </button>
+        ))}
+    </div>
+);
+
+/**
+ * `.tile` — **une tuile de choix**, deux par ligne, 88 au minimum. Le glyphe en haut,
+ * le nom en bas ; le cran pris passe en encre inversée. Elle sert la feuille de choix du
+ * type (06.4) : des chemins, pas un formulaire.
+ */
+export const ChoiceTile: React.FC<{
+    glyph: PhosphorGlyph;
+    label: string;
+    selected: boolean;
+    onClick: () => void;
+}> = ({ glyph, label, selected, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={selected}
+        className={cn(
+            'flex min-h-[88px] flex-col justify-between gap-3 rounded-[4px] p-3.5 text-left',
+            selected
+                ? 'bg-inverse-surface text-inverse-on-surface'
+                : 'bg-surface-container text-on-surface',
+        )}
+    >
+        <Icon
+            glyph={glyph}
+            size={24}
+            className={selected ? undefined : 'text-on-surface-variant'}
+        />
+        <span className="text-[16px] leading-6">{label}</span>
+    </button>
+);

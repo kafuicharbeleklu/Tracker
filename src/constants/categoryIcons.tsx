@@ -4,6 +4,7 @@ import {
     Armchair,
     Camera,
     Cpu,
+    Desktop,
     DeviceMobile,
     DeviceTablet,
     HardDrive,
@@ -15,9 +16,13 @@ import {
     Monitor,
     Mouse,
     Package,
+    Network as NetworkIcon,
+    Plugs,
     Printer,
+    ShieldCheck,
     SpeakerHigh,
     Television,
+    VideoCamera,
     WifiHigh,
 } from '@phosphor-icons/react';
 
@@ -81,6 +86,16 @@ export const CATEGORY_GLYPHS: Record<string, PhosphorGlyph> = {
     Headphones,
     Printer,
     Armchair,
+    /* Les sept types que l'inventaire réel a réclamés (06/09) : un poste fixe n'est pas
+       un portable, et une borne n'est pas un commutateur — la liste des actifs doit
+       pouvoir les distinguer d'un coup d'œil. */
+    Desktop,
+    DockingStation: Plugs,
+    Switch: NetworkIcon,
+    AccessPoint: WifiHigh,
+    Firewall: ShieldCheck,
+    NetworkDevice: WifiHigh,
+    Projector: VideoCamera,
     /* Le reste du jeu figé par §6 — proposé au sélecteur d'une fiche de type. */
     Smartphone: DeviceMobile,
     Tablet: DeviceTablet,

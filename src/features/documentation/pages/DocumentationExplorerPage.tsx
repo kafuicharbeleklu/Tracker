@@ -267,22 +267,22 @@ const screens: Screen[] = [
     },
     {
         id: 'assignment',
-        name: "Assistant d'attribution",
+        name: "Remettre l'équipement",
         kind: 'wizard',
         next: ['inventory'],
-        actions: [{ label: 'Terminer', to: 'inventory' }],
-        source: 'AssignmentWizardPage.tsx',
+        actions: [{ label: 'Remettre', to: 'inventory' }],
+        source: 'HandoverActSheet.tsx',
     },
     {
         id: 'return',
-        name: 'Assistant de retour',
+        name: 'Rendre et réceptionner',
         kind: 'wizard',
         next: ['inventory'],
         actions: [
-            { label: 'Annuler', to: 'inventory' },
-            { label: 'Terminer', to: 'inventory' },
+            { label: 'Je rends', to: 'inventory' },
+            { label: 'Réceptionner', to: 'inventory' },
         ],
-        source: 'ReturnWizardPage.tsx',
+        source: 'ReturnActSheet.tsx',
     },
     {
         id: 'audit',
@@ -362,7 +362,7 @@ const screens: Screen[] = [
         kind: 'wizard',
         next: ['approvals'],
         actions: [{ label: 'Soumettre', to: 'approvals' }],
-        source: 'NewRequestPage.tsx',
+        source: 'RequestSheet.tsx',
     },
 ];
 

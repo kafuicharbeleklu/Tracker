@@ -1,10 +1,10 @@
 import React from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
-import { CheckSquare, Square } from '@phosphor-icons/react';
 
 import useLongPress from '../../hooks/useLongPress';
 
 import Icon from './Icon';
+import { SelectionBox } from './SelectableRow';
 import { cn } from '../../lib/utils';
 
 /**
@@ -49,9 +49,9 @@ import { cn } from '../../lib/utils';
  * **La sélection appartient à cette rangée** (planche 17.2). Le point de bascule est
  * la rangée elle-même : la vignette cède la place à une case **au pixel près** —
  * même position, mêmes 40 px —, le texte ne bouge pas d'un point, et la zone de
- * frappe passe à 48 sans que rien ne se voie. Deux entrées, dont une **écrite** dans
- * le menu de débordement (S2) : un geste qui ne s'annonce nulle part n'est découvert
- * que par ceux qui le connaissaient déjà. Et **jamais un acte au seul survol** (S4).
+ * frappe passe à 48 sans que rien ne se voie. **Une seule entrée : l'appui long**
+ * (S2, arbitré le 06/09) — pas d'entrée dans un menu. Et **jamais un acte au seul
+ * survol** (S4).
  *
  * **Deux faits au téléphone, quatre au-delà** (00.4) : le modèle et la date
  * apparaissent dès `medium` parce que la place existe — ils viennent de la fiche,
@@ -128,8 +128,14 @@ interface ListRowProps {
     selectionActive?: boolean;
     selected?: boolean;
     onToggle?: () => void;
-    /** Entrer en sélection par l'appui long — la seconde entrée de S2. */
+    /** Entrer en sélection par l'appui long — la seule entrée de S2. */
     onLongPress?: () => void;
+    /**
+     * La rangée du **catalogue** (09.1) : 64 et non 68, gouttière 12 et non 16. Elle
+     * porte deux faits courts — des modèles, des actifs — là où la rangée d'un actif en
+     * porte quatre ; la planche lui donne donc un cran de moins.
+     */
+    dense?: boolean;
     className?: string;
 }
 
@@ -148,6 +154,7 @@ const ListRow: React.FC<ListRowProps> = ({
     selected = false,
     onToggle,
     onLongPress,
+    dense = false,
     className,
 }) => {
     const longPress = useLongPress(selectionActive ? undefined : onLongPress);
@@ -155,17 +162,7 @@ const ListRow: React.FC<ListRowProps> = ({
     const content = (
         <>
             {selectionActive ? (
-                <span
-                    className={cn(
-                        'touch-target flex h-10 w-10 shrink-0 items-center justify-center',
-                        selected ? 'text-on-surface' : 'text-on-surface-variant',
-                    )}
-                >
-                    <Icon
-                        glyph={selected ? CheckSquare : Square}
-                        emphasis={selected ? 'fill' : 'regular'}
-                    />
-                </span>
+                <SelectionBox selected={selected} />
             ) : (
                 vignette && (
                     /* `.vig` — 40 de côté, et **les initiales en Archivo 600 sur 15**
@@ -235,7 +232,8 @@ const ListRow: React.FC<ListRowProps> = ({
     );
 
     const shell = cn(
-        'flex min-h-[68px] w-full items-center gap-4 border-t border-outline-variant py-3 text-left first:border-t-0',
+        'flex w-full items-center border-t border-outline-variant text-left first:border-t-0',
+        dense ? 'min-h-16 gap-3 py-2' : 'min-h-[68px] gap-4 py-3',
         (onOpen || selectionActive) &&
             'outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         // Le fond de la rangée cochée déborde la gouttière de la carte (16 px) :

@@ -661,6 +661,86 @@ export const mockCategories: Category[] = [
         description: 'Imprimantes',
         defaultDepreciation: { method: 'linear', years: 5, salvageValuePercent: 0 },
     },
+    /*
+     * **Les sept types que l'inventaire réel réclamait** (06/09/2026). Le parc de Neemba
+     * Togo porte 243 objets ; sans eux, 76 d'entre eux n'avaient aucun type au catalogue
+     * — dont 23 postes fixes, 9 commutateurs et 8 bornes. Ils ne sont pas inventés : ce
+     * sont les valeurs que le tableur lui-même écrit, dans `Categorie` pour les postes
+     * et dans `Type d'Equipement` pour le réseau.
+     *
+     * `assignable` suit la règle de 09.1 : *« un objet de ce type se remet-il en main
+     * propre à quelqu'un ? »* Un commutateur, une borne, un pare-feu servent un lieu.
+     */
+    {
+        id: '9',
+        name: 'Desktop',
+        family: 'Informatique',
+        assignable: true,
+        icon: <MaterialIcon name="desktop_windows" size={24} />,
+        iconName: 'Desktop',
+        description: 'Postes fixes',
+        defaultDepreciation: { method: 'linear', years: 5, salvageValuePercent: 0 },
+    },
+    {
+        id: '10',
+        name: 'DockingStation',
+        family: 'Périphériques',
+        assignable: true,
+        icon: <MaterialIcon name="dock" size={24} />,
+        iconName: 'DockingStation',
+        description: "Stations d'accueil",
+        defaultDepreciation: { method: 'linear', years: 5, salvageValuePercent: 0 },
+    },
+    {
+        id: '11',
+        name: 'Switch',
+        family: 'Impression et réseau',
+        assignable: false,
+        icon: <MaterialIcon name="lan" size={24} />,
+        iconName: 'Switch',
+        description: 'Commutateurs réseau',
+        defaultDepreciation: { method: 'linear', years: 7, salvageValuePercent: 0 },
+    },
+    {
+        id: '12',
+        name: 'AccessPoint',
+        family: 'Impression et réseau',
+        assignable: false,
+        icon: <MaterialIcon name="wifi" size={24} />,
+        iconName: 'AccessPoint',
+        description: 'Bornes Wi-Fi',
+        defaultDepreciation: { method: 'linear', years: 7, salvageValuePercent: 0 },
+    },
+    {
+        id: '13',
+        name: 'Firewall',
+        family: 'Impression et réseau',
+        assignable: false,
+        icon: <MaterialIcon name="security" size={24} />,
+        iconName: 'Firewall',
+        description: 'Pare-feux',
+        defaultDepreciation: { method: 'linear', years: 7, salvageValuePercent: 0 },
+    },
+    {
+        id: '14',
+        name: 'NetworkDevice',
+        family: 'Impression et réseau',
+        assignable: false,
+        icon: <MaterialIcon name="router" size={24} />,
+        iconName: 'NetworkDevice',
+        description: 'Modems, routeurs, passerelles',
+        defaultDepreciation: { method: 'linear', years: 7, salvageValuePercent: 0 },
+    },
+    {
+        id: '15',
+        name: 'Projector',
+        family: 'Mobilier et divers',
+        assignable: false,
+        icon: <MaterialIcon name="videocam" size={24} />,
+        iconName: 'Projector',
+        description: 'Vidéo-projecteurs',
+        defaultDepreciation: { method: 'linear', years: 5, salvageValuePercent: 0 },
+    },
 ];
 
 export const mockModels: Model[] = [

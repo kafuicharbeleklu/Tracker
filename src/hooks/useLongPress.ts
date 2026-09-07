@@ -2,12 +2,12 @@ import type React from 'react';
 import { useCallback, useRef } from 'react';
 
 /**
- * L'appui long — **la seconde entrée** du mode sélection (planche 17.2, règle S2).
+ * L'appui long — **la seule entrée** du mode sélection (planche 17.2, règle S2,
+ * arbitrée le 06/09 : « aucune entrée dans un menu », sur téléphone comme sur
+ * tablette).
  *
- * Elle ne vient jamais seule : le registre exige qu'une entrée soit **écrite**
- * quelque part (le menu de débordement), parce qu'un geste qui ne s'annonce nulle
- * part n'est découvert que par ceux qui le connaissaient déjà. Ce crochet ne porte
- * donc que la moitié tactile du couple.
+ * La rangée s'enfonce pendant l'appui : c'est le seul retour, et la planche dit qu'il
+ * suffit.
  *
  * Un appui qui devient long **annule le clic** qui l'aurait suivi : sans cela, le
  * même doigt ouvre la fiche en relâchant.

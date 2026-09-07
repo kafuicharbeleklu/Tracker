@@ -16,7 +16,9 @@ import {
 import ListTemplate from '../../../components/layout/ListTemplate';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
-import { rowActivation } from '../../../lib/a11y';
+import SelectableRow, { SelectionBox } from '../../../components/ui/SelectableRow';
+import { useSelection } from '../../../hooks/useSelection';
+import { buildCsvLine } from '../../../lib/csv';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import CloseButton from '../../../components/ui/CloseButton';
@@ -421,6 +423,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
      * personnel** de celui qui agit qui prouve, pas un secret d'équipe.
      */
     const [acte, setActe] = useState<Task | null>(null);
+    /* 17.2 — la file est l'un des quatre écrans qui portent la sélection groupée. */
+    const selection = useSelection();
     const [openedTask, setOpenedTask] = useState<Task | null>(null);
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
@@ -831,11 +835,71 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
      * La seule exception est la machine remontée par la collecte : elle s'examine dans
      * sa propre feuille (14.1), qui n'est pas celle-ci.
      */
+    /**
+     * **Exporter la sélection** — le seul acte que la file sait poser sur plusieurs
+     * tâches à la fois. Il ne change rien : c'est pourquoi il peut être groupé sans
+     * qu'on ait à trancher la question de l'attestation.
+     */
+    const exporterSelection = () => {
+        const choisies = filteredTasks.filter((task) => selection.isSelected(task.id));
+        if (choisies.length === 0) {
+            showToast('Aucune tâche sélectionnée.', 'info');
+            return;
+        }
+
+        const entetes = ['Nature', 'Objet', 'Personne', 'Contexte', 'Depuis', 'Partition'];
+        const lignes = choisies.map((task) => [
+            task.nature,
+            task.title,
+            task.who || '',
+            task.context || '',
+            task.since || '',
+            task.scope,
+        ]);
+
+        const csv = [buildCsvLine(entetes), ...lignes.map((ligne) => buildCsvLine(ligne))].join(
+            '\n',
+        );
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const lien = document.createElement('a');
+        lien.href = url;
+        lien.download = `taches-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(lien);
+        lien.click();
+        document.body.removeChild(lien);
+        URL.revokeObjectURL(url);
+
+        showToast(`${choisies.length} tâche(s) exportée(s).`, 'success');
+        selection.exit();
+    };
+
+    /** L'identifiant de la demande derrière une rangée, quelle que soit sa nature. */
+    const demandeDe = (task: Task): string | undefined =>
+        task.transition?.approvalId ??
+        task.refusal?.approvalId ??
+        task.cancel?.approvalId ??
+        task.remind?.approvalId;
+
     const openTask = (task: Task) => {
         if (task.deviceId) {
             setReviewDeviceId(task.deviceId);
             return;
         }
+
+        /*
+         * **06.5 — une rangée de demande ouvre son détail.** *« La rangée de 03.3 suffit
+         * pour un oui ; un non, un renvoi ou un abandon se prennent ici, devant ce qu'on
+         * décide. »* La feuille de détail ne montrait ni ce que la personne détient déjà,
+         * ni ce qui est disponible, ni où en est le parcours : on tranchait sans la
+         * donnée qui fait le oui ou le non.
+         */
+        const demande = demandeDe(task);
+        if (demande) {
+            onItemClick?.('approval_details', demande);
+            return;
+        }
+
         setOpenedTask(task);
     };
 
@@ -957,6 +1021,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ? `· ${ordLabel}`
                         : `des ${scopeTasks.length} · ${ordLabel}`,
             }}
+            /*
+              17.2 — la sélection groupée. Le pied ne porte que ce que la file sait
+              faire sur plusieurs tâches à la fois : **exporter**. Valider, réaffecter
+              et refuser en lot restent ouverts — 17.2 les dessine dans une feuille de
+              confirmation sans attestation, 17.4 les déclare actes attestés, et
+              trancher entre les deux n'appartient pas à ce portage.
+            */
+            selection={{
+                active: selection.isActive,
+                count: selection.count,
+                total: filteredTasks.length,
+                onExit: selection.exit,
+                onSelectAll: () => selection.selectAll(filteredTasks.map((task) => task.id)),
+                onClearAll: selection.clear,
+                actions: (
+                    <Button variant="filled" onClick={exporterSelection}>
+                        Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
+                    </Button>
+                ),
+            }}
             hasRows={visibleTasks.length > 0}
             empty={
                 /*
@@ -1001,15 +1085,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                       Une rangée qui cite un motif s'aligne en haut : la vignette n'a pas
                       à se centrer sur trois lignes.
                     */
-                    <div
+                    <SelectableRow
                         key={task.id}
-                        {...rowActivation(() => openTask(task))}
+                        onOpen={() => openTask(task)}
+                        selectionActive={selection.isActive}
+                        selected={selection.isSelected(task.id)}
+                        onToggle={() => selection.toggle(task.id)}
+                        onLongPress={() => selection.enter(task.id)}
                         className={cn(
                             'border-outline-variant hover:bg-surface-container/50 -mx-4 flex min-h-[68px] cursor-pointer gap-4 rounded-md border-t px-4 py-3 transition-colors first:border-t-0',
                             task.quote ? 'items-start' : 'items-center',
                             /* `.trow.on` — la rangée tapée reste marquée sous la feuille :
                                en revenant, on retrouve où l'on était. */
                             openedTask?.id === task.id && 'bg-surface-container',
+                            selection.isSelected(task.id) && 'bg-surface-container',
                         )}
                     >
                         {/*
@@ -1019,19 +1108,24 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                           couleur. La planche la supprime : le carré prend la teinte, et
                           la sous-ligne récupère la place pour dire **qui**.
                         */}
-                        <div
-                            className={cn(
-                                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[15px] leading-5 font-semibold',
-                                VIG_TINT[tone],
-                                task.quote && 'mt-0.5',
-                            )}
-                        >
-                            {task.initials ? (
-                                <span>{task.initials}</span>
-                            ) : (
-                                <Icon glyph={IconGlyph} size={20} />
-                            )}
-                        </div>
+                        {/* La case prend la place de la vignette, au pixel près (17.2). */}
+                        {selection.isActive ? (
+                            <SelectionBox selected={selection.isSelected(task.id)} />
+                        ) : (
+                            <div
+                                className={cn(
+                                    'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[15px] leading-5 font-semibold',
+                                    VIG_TINT[tone],
+                                    task.quote && 'mt-0.5',
+                                )}
+                            >
+                                {task.initials ? (
+                                    <span>{task.initials}</span>
+                                ) : (
+                                    <Icon glyph={IconGlyph} size={20} />
+                                )}
+                            </div>
+                        )}
 
                         <div className="min-w-0 flex-1">
                             <p className="text-on-surface truncate text-[17px] leading-6 tracking-[-0.01em]">
@@ -1106,10 +1200,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         )}
 
                         {/* Pas de chevron : la planche n'en dessine aucun. Toute la
-                            rangée ouvre déjà — `rowActivation` porte le rôle, la
+                            rangée ouvre déjà — `SelectableRow` porte le rôle, la
                             tabulation et la touche Entrée — et un chevron par rangée
                             faisait vingt glyphes de plus pour ne rien ajouter. */}
-                    </div>
+                    </SelectableRow>
                 );
             })}
 
@@ -1500,9 +1594,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         glyph: Prohibit,
                         text: (
                             <>
-                                Le motif lui est transmis{' '}
-                                <b className="font-medium">tel quel</b> : c’est le seul texte
-                                qu’il recevra.
+                                Le motif lui est transmis <b className="font-medium">tel quel</b> :
+                                c’est le seul texte qu’il recevra.
                             </>
                         ),
                     }}
@@ -1574,9 +1667,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             : 'Vous attestez votre décision.'
                     }
                     subject={{ title: acte.title, subtitle: acte.context }}
-                    counterparty={
-                        acte.who ? { label: 'Concerne', title: acte.who } : undefined
-                    }
+                    counterparty={acte.who ? { label: 'Concerne', title: acte.who } : undefined}
                     signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
                     consequence={
                         acte.reception
@@ -1595,7 +1686,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                   text: <>La demande avance à l'étape suivante.</>,
                               }
                     }
-                    confirmLabel={acte.action ?? 'Confirmer'}
+                    /* 17.4 — le verbe de l'acte n'est pas celui de la rangée : la
+                       rangée dit « Confirmer », la feuille dit « Je confirme », comme
+                       elle dit « Je rends ». C'est la personne qui parle. */
+                    confirmLabel={acte.reception ? 'Je confirme' : (acte.action ?? 'Confirmer')}
                     cancelLabel="Plus tard"
                     onConfirm={() => {
                         const abouti = acte.reception

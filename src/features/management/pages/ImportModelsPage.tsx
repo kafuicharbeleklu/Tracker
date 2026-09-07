@@ -138,6 +138,13 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
             columns={COLUMNS}
             sample={SAMPLE}
             noun={{ one: 'modèle', many: 'modèles' }}
+            contractNote={
+                <>
+                    Les deux premières sont requises ;{' '}
+                    <b className="text-on-surface font-medium">Category</b> doit être un type du
+                    catalogue.
+                </>
+            }
             parse={parse}
             onImport={handleImport}
         />

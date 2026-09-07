@@ -4,6 +4,7 @@ import {
     ArrowLeft,
     ArrowsLeftRight,
     ArrowUUpLeft,
+    CaretRight,
     CheckCircle,
     CircleDashed,
     CircleHalf,
@@ -13,25 +14,23 @@ import {
     Info,
     Package,
     PlusCircle,
+    QrCode,
     Question,
-    Scan,
     Warning,
+    Wrench,
 } from '@phosphor-icons/react';
 
-import { MEDIA } from '../../../constants/breakpoints';
 import Reading from '../../../components/layout/Reading';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
-import { PageTabs } from '../../../components/ui/PageTabs';
 import FacetChip from '../../../components/ui/FacetChip';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import { useToast } from '../../../context/ToastContext';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import SideSheet from '../../../components/ui/SideSheet';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
@@ -51,7 +50,17 @@ interface AuditDetailsPageProps {
  * les trois premières sont des **puces** d'un même onglet (C2), `exceptions` est
  * l'autre onglet.
  */
-type AuditTab = 'todo' | 'scanned' | 'missing' | 'exceptions';
+/**
+ * Les partitions du parc — **des puces, pas des onglets** (16.2, et 17.8 : *« aucun
+ * onglet dans le corpus »*). Un actif est *à scanner*, puis *retrouvé*, et *manquant*
+ * seulement si la campagne se clôture sans lui : trois moments d'un même sujet.
+ *
+ * `horsSite` est le quatrième, et il n'existe qu'après la clôture : l'actif chez le
+ * réparateur n'a pas été vu, mais son absence est justifiée — *« ni retrouvé ni
+ * manquant »*. Le compter manquant accusait le porteur d'une perte que la fiche
+ * expliquait déjà.
+ */
+type AuditTab = 'todo' | 'scanned' | 'missing' | 'horsSite';
 
 /**
  * Ce qu'on a décidé d'un écart. `null` = pas encore tranché, et c'est ce qui
@@ -70,10 +79,19 @@ type AuditTab = 'todo' | 'scanned' | 'missing' | 'exceptions';
  */
 type ExceptionDecision = 'attached' | 'left' | 'kept' | 'discarded';
 
+/**
+ * **La portée d'un comptage est un lieu** — 16.1 : *« le périmètre d'une campagne est un
+ * site, ou un local quand le site en a »*. Elle portait un `service` : 16.1 ne lui en
+ * envoie plus depuis le 06/09, si bien que l'écran ouvrait sur un périmètre vide.
+ *
+ * `local` absent **et** `horsLocal` faux : le site entier. `horsLocal` vrai : le site
+ * **moins** ses locaux — le périmètre des 211 actifs que nulle pièce ne situe.
+ */
 interface AuditScope {
     country: string;
     site: string;
-    service: string;
+    local: string;
+    horsLocal: boolean;
 }
 
 interface LocalExceptionEntry {
@@ -91,7 +109,8 @@ interface LocalExceptionEntry {
 interface StoredAuditScope {
     country?: string;
     site?: string;
-    service?: string;
+    local?: string;
+    horsLocal?: boolean;
 }
 
 const AUDIT_SCOPE_PREF_KEY = 'audit_scope_pref';
@@ -211,10 +230,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const { navigateToItem } = useAppNavigation();
-    const isMobile = useMediaQuery(MEDIA.belowExpanded);
     const storedScope = useMemo(() => readStoredScope(), []);
 
     const [activeTab, setActiveTab] = useState<AuditTab>('todo');
+    /**
+     * **Les écarts sont un écran, pas un onglet** (16.2, colonne 2) : *« un détail de la
+     * campagne, avec retour »*. On y entre par la carte de tension, et le retour ramène
+     * au parc — pas à la vue globale.
+     */
+    const [vueEcarts, setVueEcarts] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
     const [scanRawValue, setScanRawValue] = useState('');
@@ -226,34 +250,41 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [foundIds, setFoundIds] = useState<string[]>([]);
     const [foundAt, setFoundAt] = useState<Record<string, string>>({});
     const [missingIds, setMissingIds] = useState<string[]>([]);
+    /** Le relevé fige aussi les absences justifiées : elles ne sont pas des manquants. */
+    const [horsSiteSnapshot, setHorsSiteSnapshot] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
 
     /**
      * **Le périmètre n'est pas un choix de cet écran.** La planche 16.2 ne dessine
      * aucun sélecteur : elle ouvre sur une campagne *déjà nommée* — « Support
-     * Afrique · Campus Dakar » dans la barre du haut, le service au palier haut du
+     * Afrique · Campus Dakar » dans la barre du haut, le lieu au palier haut du
      * héro, et le sous-titre qui dit *« périmètre figé au démarrage »*.
      *
      * L'écran portait pourtant trois `SelectField` — pays, site, service —, hérités
      * de l'écran d'avant, où l'on composait sa portée sur place. C'est **16.1 qui
-     * désigne le service** : sa rangée porte « Lancer », et c'est ce geste qui fixe le
+     * désigne le lieu** : sa rangée porte « Lancer », et c'est ce geste qui fixe le
      * triplet. Ici, il se lit ; il ne se compose plus. Les trois valeurs arrivent donc
      * de la portée posée à la navigation, une fois, et ne bougent plus de la vie de
      * l'écran — ce qui est exactement ce que « figé au démarrage » veut dire.
      */
     const selectedCountry = storedScope.country || '';
     const selectedSite = storedScope.site || '';
-    const selectedService = storedScope.service || '';
+    const selectedLocal = storedScope.local || '';
+    const selectedHorsLocal = Boolean(storedScope.horsLocal);
+    /** Ce que le titre et les phrases nomment : le local s'il y en a un, sinon le site. */
+    const selectedPlace = selectedHorsLocal
+        ? `${selectedSite} — hors local`
+        : selectedLocal || selectedSite;
 
     const scopedEquipment = useMemo(() => {
-        if (!selectedCountry || !selectedSite || !selectedService) return [];
-        return equipment.filter(
-            (item) =>
-                item.country === selectedCountry &&
-                item.site === selectedSite &&
-                item.department === selectedService,
-        );
-    }, [equipment, selectedCountry, selectedSite, selectedService]);
+        if (!selectedCountry || !selectedSite) return [];
+        return equipment.filter((item) => {
+            if (item.country !== selectedCountry || item.site !== selectedSite) return false;
+            if (selectedHorsLocal) return !(item.local || '').trim();
+            if (!selectedLocal) return true;
+            return (item.local || '').trim().toLowerCase() === selectedLocal.trim().toLowerCase();
+        });
+    }, [equipment, selectedCountry, selectedSite, selectedLocal, selectedHorsLocal]);
 
     const sessionStarted = Boolean(auditStartedAt);
     const baselineSourceIds = useMemo(
@@ -299,6 +330,31 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             .filter((item): item is Equipment => Boolean(item));
     }, [auditFinalized, equipment, missingIds]);
 
+    /**
+     * **Hors site, justifié** — 16.2 : *« 1 chez le réparateur, hors site justifié : ni
+     * retrouvé ni manquant »*, et la puce du relevé clôturé le compte à part
+     * (41 = 37 retrouvés + 3 manquants + 1 hors site).
+     *
+     * Pendant la campagne l'actif en réparation **reste à scanner** — c'est le relevé
+     * qui dit s'il est là, pas son statut. C'est à la **clôture** que la distinction se
+     * fait : ne pas l'avoir vu n'est pas l'avoir perdu, la fiche disait déjà où il est.
+     */
+    const horsSiteIds = useMemo(
+        () =>
+            baselineEquipment
+                .filter((item) => !foundSet.has(item.id) && item.status === 'En réparation')
+                .map((item) => item.id),
+        [baselineEquipment, foundSet],
+    );
+
+    const horsSiteItems = useMemo(() => {
+        if (!auditFinalized) return [];
+        const byId = new Map(equipment.map((item) => [item.id, item]));
+        return horsSiteSnapshot
+            .map((id) => byId.get(id))
+            .filter((item): item is Equipment => Boolean(item));
+    }, [auditFinalized, equipment, horsSiteSnapshot]);
+
     const exceptionsDisplay = useMemo(() => {
         const byId = new Map(equipment.map((item) => [item.id, item]));
         return exceptionEntries.map((entry) => ({
@@ -333,14 +389,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const sessionFound = scannedItems.length;
     const sessionExceptions = exceptionEntries.length;
     const resolvedExceptions = sessionExceptions - pendingExceptions.length;
-    /**
-     * Le périmètre en clair, pour la barre du haut — « Support Afrique · Campus Dakar »
-     * pendant la campagne, la date de clôture après : ce n'est plus un lieu qu'on
-     * consulte, c'est un relevé daté.
-     */
-    const scopeCaption = auditFinalized
-        ? `clôturée · ${formatDateTime(finalizedAt || undefined)}`
-        : [selectedService, selectedSite].filter(Boolean).join(' · ') || 'périmètre à choisir';
 
     /** Deux des quatre manquants sont attribués : c'est le fait qui pèse le plus après une clôture. */
     const assignedMissingCount = useMemo(
@@ -354,11 +402,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         return stamps.length > 0 ? stamps.slice().sort().at(-1) : undefined;
     }, [foundAt]);
 
-    const scopeIsReady = Boolean(selectedCountry && selectedSite && selectedService);
+    const scopeIsReady = Boolean(selectedCountry && selectedSite);
     const currentScope: AuditScope = {
         country: selectedCountry,
         site: selectedSite,
-        service: selectedService,
+        local: selectedLocal,
+        horsLocal: selectedHorsLocal,
     };
 
     const resetAuditSession = () => {
@@ -397,7 +446,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     /**
      * **La campagne s'ouvre déjà lancée.** « Lancer » est un geste de 16.1 : c'est la
-     * rangée du service qui le porte, et l'écran qui s'ouvre derrière montre une
+     * rangée du lieu qui le porte, et l'écran qui s'ouvre derrière montre une
      * campagne *en cours* — « démarrée il y a 2 h », « périmètre figé au démarrage ».
      * Le relevé part donc à l'arrivée, sur la portée que la navigation a posée.
      *
@@ -419,7 +468,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const abandonAuditSession = () => {
         requestConfirmation({
-            title: `Abandonner le relevé de ${selectedService} ?`,
+            title: `Abandonner le relevé de ${selectedPlace} ?`,
             message: (
                 <>
                     Les {sessionFound} scan(s) déjà faits seront perdus et le périmètre redeviendra
@@ -443,11 +492,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         });
     };
 
-    const finalizeAuditSession = (missingSnapshot: Equipment[]) => {
+    const finalizeAuditSession = (missingSnapshot: Equipment[], horsSite: string[] = []) => {
         const closedAt = new Date().toISOString();
         setAuditFinalized(true);
         setFinalizedAt(closedAt);
         setMissingIds(missingSnapshot.map((item) => item.id));
+        setHorsSiteSnapshot(horsSite);
 
         if (missingSnapshot.length === 0) {
             showToast('Campagne clôturée : tout le parc a été retrouvé.', 'success');
@@ -515,7 +565,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
         if (
             result.equipmentId &&
-            result.serviceMatches &&
+            result.placeMatches &&
             baselineSourceIds.includes(result.equipmentId)
         ) {
             const equipmentId = result.equipmentId;
@@ -523,7 +573,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             setFoundAt((prev) => ({ ...prev, [equipmentId]: new Date().toISOString() }));
         }
 
-        if (result.resolution !== 'found_in_service') {
+        if (result.resolution !== 'found_in_place') {
             const entry: LocalExceptionEntry = {
                 id: `audit_scan_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
                 timestamp: new Date().toISOString(),
@@ -538,7 +588,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 'écart — à trancher',
                 'exception',
             );
-            setActiveTab('exceptions');
         } else {
             registerScanHit(
                 result.equipmentName || scannedCode,
@@ -549,7 +598,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             setActiveTab('scanned');
         }
 
-        if (result.resolution === 'found_out_of_service') {
+        if (result.resolution === 'found_out_of_place') {
             showToast(result.message, 'warning');
         } else {
             showToast(result.message, 'success');
@@ -580,22 +629,26 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 `${pendingExceptions.length} écart(s) à trancher avant de pouvoir clôturer.`,
                 'warning',
             );
-            setActiveTab('exceptions');
+            setVueEcarts(true);
             return;
         }
 
-        const missingSnapshot = [...todoItems];
+        /* Ce qui n'a pas été vu se sépare en deux : ce dont l'absence s'explique — la
+           machine chez le réparateur — et ce dont elle ne s'explique pas. Seul le second
+           devient un manquant. */
+        const justifies = new Set(horsSiteIds);
+        const missingSnapshot = todoItems.filter((item) => !justifies.has(item.id));
         if (missingSnapshot.length === 0) {
-            finalizeAuditSession(missingSnapshot);
+            finalizeAuditSession(missingSnapshot, horsSiteIds);
             return;
         }
 
         requestConfirmation({
-            title: `Clôturer l'audit de ${selectedService} ?`,
+            title: `Clôturer l'audit de ${selectedPlace} ?`,
             message: (
                 <>
                     <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
-                    marqués manquants et retirés du service. Ils restent au parc, avec tout leur
+                    marqués manquants et retirés du lieu. Ils restent au parc, avec tout leur
                     historique, et réapparaîtront s'ils sont scannés ailleurs.
                 </>
             ),
@@ -612,7 +665,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { icon: CheckCircle, label: 'Retrouvés, inchangés', value: sessionFound },
                 {
                     icon: Question,
-                    label: 'Marqués manquants, retirés du service',
+                    label: 'Marqués manquants, retirés du lieu',
                     value: missingSnapshot.length,
                 },
                 {
@@ -620,8 +673,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     label: 'Écarts tranchés',
                     value: `${resolvedExceptions} sur ${sessionExceptions}`,
                 },
+                /* La quatrième ligne de `.conseq` — elle ne paraît que si elle a un
+                   sujet : *« hors site justifié : ni retrouvé ni manquant »*. */
+                ...(horsSiteIds.length > 0
+                    ? [
+                          {
+                              icon: Wrench,
+                              label: 'Hors site, justifié : ni retrouvé ni manquant',
+                              value: horsSiteIds.length,
+                          },
+                      ]
+                    : []),
             ],
-            onConfirm: () => finalizeAuditSession(missingSnapshot),
+            onConfirm: () => finalizeAuditSession(missingSnapshot, horsSiteIds),
         });
     };
 
@@ -632,7 +696,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const previousScope: AuditScope = {
             country: item.country || '',
             site: item.site || '',
-            service: item.department || '',
+            local: item.local || '',
+            horsLocal: !(item.local || '').trim(),
         };
 
         updateEquipment(
@@ -640,13 +705,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             {
                 country: selectedCountry,
                 site: selectedSite,
-                department: selectedService,
+                local: selectedLocal,
             },
             {
                 source: 'audit_scan_alignment',
                 scopeCountry: selectedCountry,
                 scopeSite: selectedSite,
-                scopeService: selectedService,
+                scopeLocal: selectedHorsLocal ? '' : selectedLocal,
             },
         );
 
@@ -663,7 +728,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     : entry,
             ),
         );
-        showToast(`${item.name} rattaché à ${selectedService}.`, 'success');
+        showToast(`${item.name} rattaché à ${selectedPlace}.`, 'success');
     };
 
     /**
@@ -684,7 +749,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     : entry,
             ),
         );
-        showToast('Écart tranché : l’actif reste rattaché à son service d’origine.', 'info');
+        showToast('Écart tranché : l’actif reste rattaché à son lieu d’origine.', 'info');
     };
 
     /**
@@ -762,7 +827,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 {
                     country: entry.previousScope.country,
                     site: entry.previousScope.site,
-                    department: entry.previousScope.service,
+                    /* On rend le **lieu** d'origine, pas le service : c'est le lieu que
+                       « Rattacher ici » avait écrit, et lui seul qu'il faut défaire. */
+                    local: entry.previousScope.local,
                 },
                 { source: 'audit_scan_alignment_undo' },
             );
@@ -810,7 +877,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             ...rows.map((row) => buildCsvLine(row, ',')),
         ].join('\n');
 
-        const filename = `releve_audit_${selectedService || 'service'}_${new Date().toISOString().split('T')[0]}.csv`;
+        const filename = `releve_audit_${selectedPlace || 'lieu'}_${new Date().toISOString().split('T')[0]}.csv`;
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -829,7 +896,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * encore ne sont pas des manquants absents. Une seule phrase pour quatre nouvelles
      * opposées apprenait quelque chose de faux trois fois sur quatre.
      */
-    const renderEmptyList = (scope: AuditTab) => {
+    const renderEmptyList = (scope: AuditTab | 'exceptions') => {
         if (scope === 'todo') {
             if (auditFinalized) {
                 return (
@@ -843,8 +910,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return sessionTotal === 0 ? (
                 <EmptyState
                     icon="inventory_2"
-                    title="Ce service n'attend aucun actif"
-                    description="Il n'y a rien à auditer ici : aucun actif du parc n'est rattaché à ce périmètre."
+                    title="Ce lieu n'attend aucun actif"
+                    description="Il n'y a rien à compter ici : aucun actif du parc n'est situé dans ce périmètre."
                 />
             ) : (
                 <EmptyState
@@ -870,7 +937,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 <EmptyState
                     icon="task_alt"
                     title="Aucun manquant"
-                    description="La campagne s'est clôturée sans perte : tout le parc du service a été retrouvé."
+                    description="La campagne s'est clôturée sans perte : tout ce que le lieu attendait a été retrouvé."
                 />
             ) : (
                 <EmptyState
@@ -885,7 +952,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             <EmptyState
                 icon="check_circle"
                 title="Aucun écart"
-                description="Tout ce qui a été scanné était attendu dans ce service. Rien à trancher."
+                description="Tout ce qui a été scanné était attendu dans ce lieu. Rien à trancher."
             />
         );
     };
@@ -904,7 +971,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * clôture. Le statut de l'objet n'apparaît nulle part : c'est justement ce que
      * l'audit est en train de vérifier.
      */
-    const renderEquipmentRows = (rows: Equipment[], mode: 'todo' | 'scanned' | 'missing') => {
+    const renderEquipmentRows = (
+        rows: Equipment[],
+        mode: 'todo' | 'scanned' | 'missing' | 'horsSite',
+    ) => {
         if (rows.length === 0) return renderEmptyList(mode);
 
         return rows.map((item) => {
@@ -914,7 +984,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     ? { icon: CheckCircle, label: formatSince(foundAt[item.id]), tone: 'positive' }
                     : mode === 'missing'
                       ? { icon: Question, label: 'manquant', tone: 'attention' }
-                      : { icon: CircleDashed, label: 'à scanner', tone: 'muted' };
+                      : mode === 'horsSite'
+                        ? { icon: Wrench, label: 'hors site', tone: 'pending' }
+                        : { icon: CircleDashed, label: 'à scanner', tone: 'muted' };
 
             return (
                 <ListRow
@@ -962,43 +1034,86 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * un actif est *à scanner*, puis *retrouvé*, et *manquant* seulement si la campagne
      * se clôture sans lui. Ce ne sont pas trois sujets, ce sont **trois états d'un même
      * sujet** — donc un onglet et trois puces. L'écart, lui, est un autre sujet : un
-     * objet que le service n'attendait pas.
+     * objet que le lieu n'attendait pas.
      *
      * Les puces filtrent le même parc ; l'onglet change de sujet.
      */
-    const sessionTabs = (
-        <PageTabs
-            /* Le segment actif est **blanc sur le creux** (`.seg span.on`), jamais
-               rempli de jaune : « le jaune n'est pas un fond d'onglet »
-               (interdit §8.1, et §4 du brief). La vue globale portait déjà
-               le segment de l'ADN ; la campagne était restée sur la pilule de marque,
-               et les deux écrans d'un même domaine ne se ressemblaient plus. */
-            appearance="neutral"
-            allViewsButton={false}
-            idBase="audit-campagne"
-            ariaLabel="Vues de la campagne"
-            activeId={activeTab === 'exceptions' ? 'exceptions' : 'parc'}
-            onChange={(tabId) => setActiveTab(tabId === 'exceptions' ? 'exceptions' : 'todo')}
-            items={[
-                {
-                    id: 'parc',
-                    /* La planche écrit « Le parc du service » en toutes lettres à
-                       393 px : le libellé court coupait un mot qui tient. */
-                    label: 'Le parc du service',
-                    badge: sessionTotal,
-                },
-                {
-                    id: 'exceptions',
-                    label: 'Écarts',
-                    badge: sessionExceptions,
-                    /* `.al` — le badge d'écart est **orange** : c'est le seul compteur
-                       de l'écran qui demande une décision, et il ne se confond pas
-                       avec le 41 qui ne fait que dire la taille du parc. */
-                    badgeTone: pendingExceptions.length > 0 ? 'attention' : 'neutral',
-                },
-            ]}
-        />
-    );
+    /** « 2 rattachés, 1 écarté » — ce que la carte tranchée dit d'elle-même. */
+    const repartitionDesEcarts = useMemo(() => {
+        const compte = { attached: 0, left: 0, kept: 0, discarded: 0 };
+        exceptionEntries.forEach((entry) => {
+            if (entry.resolved && entry.decision) compte[entry.decision] += 1;
+        });
+        const morceaux: string[] = [];
+        if (compte.attached > 0)
+            morceaux.push(`${compte.attached} rattaché${compte.attached > 1 ? 's' : ''}`);
+        if (compte.kept > 0) morceaux.push(`${compte.kept} complété${compte.kept > 1 ? 's' : ''}`);
+        if (compte.left > 0)
+            morceaux.push(`${compte.left} laissé${compte.left > 1 ? 's' : ''} là-bas`);
+        if (compte.discarded > 0)
+            morceaux.push(`${compte.discarded} écarté${compte.discarded > 1 ? 's' : ''}`);
+        return morceaux.join(', ') || 'aucune décision';
+    }, [exceptionEntries]);
+
+    /**
+     * `.tens` — **la carte de tension.** L'écart est une file de décisions, pas une vue :
+     * trois objets trouvés ici sans y être attendus, contre quarante et un à parcourir.
+     * Il prend donc la place où l'œil va — une carte ambre en tête du parc, qui ouvre les
+     * cartes de décision — et **il n'existe pas quand il n'y a rien à trancher**.
+     *
+     * Il était un onglet, à côté du parc. 17.8 a retiré le slot du corpus le 06/09 :
+     * *« là où une partition exclusive existe, elle est en chips dans la feuille de
+     * filtre »* — et ici l'écart n'est même pas une partition du parc, c'est un autre
+     * sujet. La planche le dessine en carte, et l'écran des écarts a son propre retour.
+     */
+    const carteDeTension =
+        sessionExceptions === 0 ? null : (
+            <button
+                type="button"
+                onClick={() => setVueEcarts(true)}
+                className={cn(
+                    'flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left',
+                    closureBlocked
+                        ? 'bg-tint-ambre text-on-tint-ambre'
+                        : 'bg-surface text-on-surface shadow-elevation-1',
+                )}
+            >
+                <span
+                    className={cn(
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                        closureBlocked
+                            ? 'bg-white/55 text-[color:inherit]'
+                            : 'bg-tint-vert text-on-tint-vert',
+                    )}
+                >
+                    <Icon glyph={closureBlocked ? ArrowsLeftRight : CheckCircle} size={20} />
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[16px] leading-6">
+                        {closureBlocked
+                            ? `${pendingExceptions.length} objet${pendingExceptions.length > 1 ? 's' : ''} non attendu${pendingExceptions.length > 1 ? 's' : ''} ici`
+                            : `${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
+                    </span>
+                    <span
+                        className={cn(
+                            'block truncate text-[14px] leading-5',
+                            closureBlocked ? 'opacity-80' : 'text-on-surface-variant',
+                        )}
+                    >
+                        {closureBlocked ? 'à trancher avant de clôturer' : repartitionDesEcarts}
+                    </span>
+                </span>
+                {closureBlocked ? (
+                    /* `.go` — le geste de la carte est **sombre**, pas jaune : le jaune de
+                       l'écran est pris par le scan, et ceci mène à une décision. */
+                    <span className="bg-inverse-surface text-inverse-on-surface flex h-10 shrink-0 items-center rounded-sm px-3.5 text-[15px] font-medium">
+                        Trancher
+                    </span>
+                ) : (
+                    <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
+                )}
+            </button>
+        );
 
     /**
      * Les trois moments du même parc — et il n'y en a que deux sur une campagne
@@ -1015,6 +1130,18 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
                     ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
                     ['missing', 'Manquants', missingItems.length, Question],
+                    /* La quatrième puce n'a de sujet qu'après la clôture, et seulement
+                       s'il y a eu une absence justifiée à mettre à part. */
+                    ...(auditFinalized && horsSiteItems.length > 0
+                        ? [
+                              [
+                                  'horsSite',
+                                  'Hors site, justifié',
+                                  horsSiteItems.length,
+                                  Wrench,
+                              ] as const,
+                          ]
+                        : []),
                 ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
             ).map(([id, label, count, glyph]) => (
                 <FacetChip
@@ -1104,7 +1231,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * endroit où elle vit : la carte de progression qui la redisait sous le héro est
      * tombée avec les tuiles (corollaire R3).
      */
-    const heroNote = sessionStarted ? (
+    const heroGauge = sessionStarted ? (
         <>
             <span
                 aria-hidden="true"
@@ -1122,17 +1249,45 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 {sessionFound} sur {sessionTotal} · {progressPercentage} %
                 {auditFinalized &&
                     sessionExceptions > 0 &&
-                    ` · ${resolvedExceptions} écarts tranchés`}
+                    ` · ${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
             </span>
         </>
     ) : undefined;
 
+    /**
+     * Le ⋮ de la barre — **l'ordre de la planche** : exporter, clôturer, abandonner.
+     *
+     * *« Le ⋮ s'ouvre au tap : Exporter, Abandonner ; Clôturer n'y entre qu'une fois les
+     * écarts tranchés. »* La clôture vivait en pied de contenu, en second bouton, avec un
+     * bandeau à sa place quand un écart bloquait. Deux formes pour un même acte selon
+     * qu'il est possible ou non : la planche n'en garde qu'une, et **l'entrée disparaît**
+     * — c'est la carte de tension, en tête du parc, qui dit ce qui manque pour l'obtenir.
+     */
     const overflowItems: MenuItem[] = useMemo(() => {
         const items: MenuItem[] = [];
+        if (sessionStarted) {
+            items.push({
+                id: 'export-releve',
+                label: 'Exporter le relevé',
+                description: 'le parc, son état et l’heure de chaque lecture',
+                icon: 'download',
+                onSelect: exportRelevé,
+            });
+        }
+        if (sessionStarted && !auditFinalized && !closureBlocked) {
+            items.push({
+                id: 'finalize-session',
+                label: 'Clôturer la campagne',
+                description: 'les jamais scannés passent manquants ; sans retour',
+                icon: 'lock',
+                destructive: true,
+                onSelect: handleFinalizeAudit,
+            });
+        }
         if (sessionStarted && !auditFinalized) {
             items.push({
                 id: 'abandon-session',
-                label: 'Abandonner le relevé',
+                label: 'Abandonner la campagne',
                 description: 'jette les scans en cours ; aucun actif modifié',
                 icon: 'restart_alt',
                 destructive: true,
@@ -1141,7 +1296,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         }
         return items;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sessionStarted, auditFinalized, sessionFound, sessionExceptions, selectedService]);
+    }, [
+        sessionStarted,
+        auditFinalized,
+        closureBlocked,
+        sessionFound,
+        sessionExceptions,
+        selectedPlace,
+    ]);
 
     /**
      * Le héro **ne porte aucun geste** : la planche les pose en pied de contenu, en
@@ -1149,7 +1311,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * main dans un local. Et l'identité — « Campagne d'audit · service · site » — vit
      * dans la barre du haut, pas dans le voile : le voile porte le sujet, une fois.
      */
-    /** La vue globale : c'est là que se choisit le service, et nulle part ailleurs. */
+    /** La vue globale : c'est là que se choisit le lieu, et nulle part ailleurs. */
     const backToOverview = () => {
         if (typeof onViewChange === 'function') {
             onViewChange('audit');
@@ -1160,12 +1322,30 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     const hero = (
         <DetailHero
-            subject={selectedService || 'Périmètre à choisir'}
-            status={heroStatus}
+            /* `.ty` — l'état est dans le surtitre, pas en pastille : « Inventaire
+               physique · en cours ». La planche ne dessine pas de badge ici. */
+            label={`Inventaire physique · ${heroStatus.label}`}
+            subject={selectedPlace || 'Périmètre à choisir'}
             metrics={heroMetrics}
+            metricsStyle="boxes"
             statusDetail={heroStatusDetail}
             subtitle={heroSubtitle}
-            note={heroNote}
+            gauge={heroGauge}
+            /* `.hact` — **le scan est le geste du héro**, et le seul jaune de l'écran.
+               Il vivait en pied de contenu, sous quarante rangées : dans un local, on
+               tient l'appareil d'une main et on scanne — ce geste-là ne se cherche pas.
+               Une campagne clôturée n'en a plus : la barre du haut porte l'export. */
+            actions={
+                sessionStarted && !auditFinalized ? (
+                    <Button
+                        variant="filled"
+                        onClick={() => setScanOpen(true)}
+                        icon={<Icon glyph={QrCode} size={20} />}
+                    >
+                        Scanner
+                    </Button>
+                ) : undefined
+            }
         />
     );
 
@@ -1185,148 +1365,64 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * qu'on venait de dire. Le seul cas où le pied est vide est celui du service qui
      * n'attend aucun actif : il n'y a rien à engager, et la liste le dit.
      */
-    const footerActions = auditFinalized ? (
-        <Button
-            variant="outlined"
-            onClick={exportRelevé}
-            className="w-full"
-            icon={<Icon glyph={Export} size={20} />}
-        >
-            Exporter le relevé
-        </Button>
-    ) : sessionStarted ? (
-        <>
-            {closureBlocked ? (
-                <p className="bg-surface-container text-body-small text-on-surface flex items-start gap-2.5 rounded-md px-3.5 py-3">
-                    <Icon
-                        glyph={Warning}
-                        size={18}
-                        className="mt-px shrink-0 text-[var(--tk-color-st-orange)]"
-                    />
-                    <span>
-                        <strong className="font-medium">
-                            {pendingExceptions.length} écart
-                            {pendingExceptions.length > 1 ? 's' : ''} à trancher
-                        </strong>{' '}
-                        avant de pouvoir clôturer. Un objet trouvé ici sans y être attendu ne peut
-                        pas rester sans réponse.
-                    </span>
-                </p>
-            ) : (
-                <Button variant="outlined" onClick={handleFinalizeAudit} className="w-full">
-                    Clôturer la campagne
-                </Button>
-            )}
-            <Button
-                variant="filled"
-                onClick={() => setScanOpen(true)}
-                className="w-full"
-                icon={<Icon glyph={Scan} size={20} />}
-            >
-                Scanner — mode lot
-            </Button>
-        </>
-    ) : null;
+    /**
+     * **Le pied d'acte n'existe plus** — 16.2 ne dessine aucun `.pfoot`. Ses trois
+     * contenus sont retournés là où la planche les pose : le **scan** dans le héro
+     * (`.hact`, le seul jaune), la **clôture** dans le ⋮ une fois les écarts tranchés,
+     * et le bandeau « n écarts à trancher » remplacé par la **carte de tension**, en
+     * tête du parc, qui dit la même chose *et* mène à l'endroit où trancher. L'export
+     * d'une campagne close est dans la barre du haut.
+     */
 
     return (
         <div className="bg-surface-container-low flex h-full flex-col">
-            {isMobile ? (
-                /* La barre du haut de la planche : retour · identité · débordement. Les onglets
-                   n'y sont pas — ils descendent sous le héro, avec les puces qu'ils commandent
-                   (§9.4 : la barre « Vue globale / Détails » disparaît, le Retour l'assume). */
-                <div className="bg-surface border-outline-variant px-page-sm medium:px-page border-b py-1.5">
-                    <Reading className="flex min-h-14 items-center gap-1">
+            {/* `.tbar` — **une barre de 56, la même à toutes les largeurs** : retour,
+                l'identité de l'écran, le débordement. Les onglets « Vue globale / Détails »
+                en sont partis avec 17.8 (*« aucun onglet dans le corpus »*) : le retour dit
+                déjà d'où l'on vient, et il le disait mieux qu'un onglet qui restait allumé.
+
+                Le titre est **« Campagne »**, pas « Campagne d'audit · Salle serveur · Togo » :
+                le héro porte le sujet et sa portée, juste dessous. La barre les redisait en
+                11 px, sous le titre — deux fois le même fait, dont une fois trop petit. */}
+            <div className="bg-surface border-outline-variant border-b">
+                <Reading className="flex min-h-14 items-center gap-1 px-1 pr-2">
+                    <Button
+                        variant="text"
+                        onClick={vueEcarts ? () => setVueEcarts(false) : onBack}
+                        className="text-on-surface h-12 w-12 min-w-0 shrink-0 rounded-md p-0"
+                        icon={<Icon glyph={ArrowLeft} size={24} />}
+                        aria-label="Retour"
+                    />
+                    <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                        {vueEcarts ? 'Écarts' : 'Campagne'}
+                    </span>
+                    {/* Après la clôture il n'y a plus rien à décider : le débordement se
+                        vide, et la barre porte le seul geste qui reste. */}
+                    {auditFinalized ? (
                         <Button
                             variant="text"
-                            onClick={onBack}
-                            className="text-on-surface-variant hover:text-on-surface h-11 w-11 min-w-0 shrink-0 rounded-full p-0"
-                            icon={<Icon glyph={ArrowLeft} size={24} />}
-                            aria-label="Retour"
-                        />
-                        {/* L'identité de l'écran vit ici — « Campagne d'audit », puis le périmètre.
-                            Le héro porte le sujet, pas son étiquette : la dire deux fois volerait
-                            une ligne au voile pour un fait qu'on a déjà lu. */}
-                        <span className="min-w-0 flex-1 leading-tight">
-                            <span className="font-brand text-on-surface block truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
-                                Campagne d'audit
-                            </span>
-                            <span className="text-text-secondary block truncate text-[11px] leading-[15px]">
-                                {scopeCaption}
-                            </span>
-                        </span>
-                        {/* Après la clôture il n'y a plus rien à décider : le débordement
-                            se vide, et la barre porte le seul geste qui reste. */}
-                        {auditFinalized ? (
-                            <Button
-                                variant="text"
-                                iconOnly
-                                onClick={exportRelevé}
-                                aria-label="Exporter le relevé"
-                            >
-                                <Icon glyph={Export} size={20} />
-                            </Button>
-                        ) : (
-                            overflowItems.length > 0 && (
-                                <Menu
-                                    align="end"
-                                    items={overflowItems}
-                                    trigger={
-                                        <Button variant="text" iconOnly aria-label="Autres actions">
-                                            <Icon glyph={DotsThreeVertical} size={20} />
-                                        </Button>
-                                    }
-                                />
-                            )
-                        )}
-                    </Reading>
-                </div>
-            ) : (
-                <div className="bg-surface border-outline-variant px-page-sm medium:px-page border-b">
-                    <Reading className="flex items-center justify-between gap-3">
-                        {/* **Le périmètre courant se lit dans la barre du haut** (16.1). Au
-                        rail, la barre ne portait que les deux onglets : on ne savait pas
-                        de quelle campagne on regardait les écarts. Le téléphone le disait
-                        déjà — c'est le même fait, il ne dépend pas de la largeur. */}
-                        <span className="min-w-0 shrink leading-tight">
-                            <span className="font-brand text-on-surface block truncate text-[15px] leading-5 font-semibold tracking-[-0.015em]">
-                                Campagne d'audit
-                            </span>
-                            <span className="text-text-secondary block truncate text-[11px] leading-[15px]">
-                                {scopeCaption}
-                            </span>
-                        </span>
-                        <PageTabs
-                            appearance="neutral"
-                            allViewsButton={false}
-                            activeId="details"
-                            onChange={(tabId) => {
-                                if (tabId === 'overview') {
-                                    if (typeof onViewChange === 'function') {
-                                        onViewChange('audit');
-                                        return;
-                                    }
-                                    onBack();
-                                }
-                            }}
-                            items={[
-                                { id: 'overview', label: 'Vue globale' },
-                                { id: 'details', label: 'Détails campagne', shortLabel: 'Détails' },
-                            ]}
-                        />
-                        {overflowItems.length > 0 && (
+                            iconOnly
+                            onClick={exportRelevé}
+                            aria-label="Exporter le relevé"
+                        >
+                            <Icon glyph={Export} size={20} />
+                        </Button>
+                    ) : (
+                        !vueEcarts &&
+                        overflowItems.length > 0 && (
                             <Menu
                                 align="end"
                                 items={overflowItems}
                                 trigger={
-                                    <Button variant="text" iconOnly aria-label="Autres actions">
+                                    <Button variant="text" iconOnly aria-label="Autres actes">
                                         <Icon glyph={DotsThreeVertical} size={20} />
                                     </Button>
                                 }
                             />
-                        )}
-                    </Reading>
-                </div>
-            )}
+                        )
+                    )}
+                </Reading>
+            </div>
 
             {/* Plus de FAB, donc plus de dégagement bas à réserver : le pied d'acte est
                 dans le flux, en fin de contenu. */}
@@ -1343,21 +1439,23 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <EmptyState
                             icon="pin_drop"
                             title="Aucune campagne ouverte"
-                            description="Une campagne porte sur un service, et c'est la vue globale qui le désigne : sa rangée dit ce qui reste à vérifier, et son geste lance le relevé."
+                            description="Une campagne porte sur un lieu, et c'est la vue globale qui le désigne : sa rangée dit ce qui reste à vérifier, et son geste lance le relevé."
                             action={
                                 <Button variant="filled" onClick={backToOverview}>
-                                    Choisir un service à auditer
+                                    Choisir un lieu à compter
                                 </Button>
                             }
                         />
                     ) : (
                         <>
-                            {hero}
-
-                            {sessionTabs}
-
-                            {activeTab !== 'exceptions' && (
+                            {/* **Le parc et les écarts sont deux écrans**, pas deux onglets :
+                                la carte de tension mène à l'un, son retour ramène à l'autre. */}
+                            {!vueEcarts && (
                                 <>
+                                    {hero}
+
+                                    {carteDeTension}
+
                                     {parcChips}
 
                                     {/* La légende de liste : le sujet à gauche, le compte à droite. */}
@@ -1375,6 +1473,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                             renderEquipmentRows(scannedItems, 'scanned')}
                                         {activeTab === 'missing' &&
                                             renderEquipmentRows(missingItems, 'missing')}
+                                        {activeTab === 'horsSite' &&
+                                            renderEquipmentRows(horsSiteItems, 'horsSite')}
 
                                         {/* Les indices de la planche : ils ne paraissent que quand ils
                                 s'appliquent. Une explication permanente devient du décor. */}
@@ -1386,8 +1486,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                     <strong className="text-on-surface font-medium">
                                                         L'actif en réparation reste à scanner.
                                                     </strong>{' '}
-                                                    Il est attendu dans le service : c'est l'audit
-                                                    qui dit s'il y est encore, pas son statut.
+                                                    Il est attendu dans le lieu : c'est le relevé
+                                                    qui dit s'il y est, pas son statut. À la
+                                                    clôture, ne pas l'avoir vu ne le rendra pas
+                                                    manquant — son absence est justifiée.
                                                 </p>
                                             )}
                                         {activeTab === 'scanned' && scannedItems.length > 0 && (
@@ -1398,6 +1500,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                     quand l'objet a été vu
                                                 </strong>
                                                 .
+                                            </p>
+                                        )}
+                                        {activeTab === 'horsSite' && horsSiteItems.length > 0 && (
+                                            <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                                                <strong className="text-on-surface font-medium">
+                                                    Ni retrouvés, ni manquants.
+                                                </strong>{' '}
+                                                Ces actifs sont chez le réparateur : leur absence du
+                                                lieu s'explique, et la clôture ne les accuse pas.
                                             </p>
                                         )}
                                         {activeTab === 'missing' &&
@@ -1424,7 +1535,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     inconnu — **avant** ses gestes. Un écart sans son fait ne se tranche pas, il
                     se devine. Et le geste principal est sombre, pas jaune : le jaune est pris
                     par le scan, et ceci est une décision de ligne, pas l'acte de l'écran. */}
-                            {activeTab === 'exceptions' && (
+                            {vueEcarts && (
                                 <div className="space-y-3">
                                     {/* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */}
                                     <div className="text-body-small flex items-baseline justify-between gap-3 px-0.5">
@@ -1436,7 +1547,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                   : 'Aucun écart'}
                                         </p>
                                         <p className="text-text-muted shrink-0">
-                                            scannés hors campagne
+                                            scannés hors attendus
                                         </p>
                                     </div>
 
@@ -1456,13 +1567,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                   entry.equipment?.assetId ||
                                                   'code inconnu';
                                               const isOutOfService =
-                                                  entry.result.resolution ===
-                                                  'found_out_of_service';
+                                                  entry.result.resolution === 'found_out_of_place';
+                                              /* Où la fiche dit que l'actif vit —
+                                                 **un lieu**, pas un service : c'est ce
+                                                 qu'on compare à l'endroit où on l'a
+                                                 trouvé (16.1). */
                                               const registeredAt = entry.equipment
-                                                  ? [
-                                                        entry.equipment.department,
-                                                        entry.equipment.site,
-                                                    ]
+                                                  ? [entry.equipment.local, entry.equipment.site]
                                                         .filter(Boolean)
                                                         .join(' · ')
                                                   : '';
@@ -1511,7 +1622,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                           ) : isOutOfService ? (
                                                               <ExceptionMark
                                                                   icon={ArrowsLeftRight}
-                                                                  label="hors service"
+                                                                  label="hors lieu"
                                                                   tone="attention"
                                                               />
                                                           ) : (
@@ -1532,7 +1643,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                                   <>
                                                                       Rattaché à{' '}
                                                                       <strong className="font-medium">
-                                                                          {selectedService}
+                                                                          {selectedPlace}
                                                                       </strong>{' '}
                                                                       {formatSince(entry.decidedAt)}
                                                                       . L'actif compte désormais
@@ -1540,7 +1651,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                                   </>
                                                               ) : entry.decision === 'left' ? (
                                                                   <>
-                                                                      Laissé à son service d'origine{' '}
+                                                                      Laissé à son lieu d'origine{' '}
                                                                       {registeredAt ? (
                                                                           <>
                                                                               —{' '}
@@ -1571,11 +1682,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                                   Cet actif est enregistré sur{' '}
                                                                   <strong className="font-medium">
                                                                       {registeredAt ||
-                                                                          'un autre service'}
+                                                                          'un autre lieu'}
                                                                   </strong>
-                                                                  . Il a été trouvé dans le local de{' '}
+                                                                  . Il a été trouvé dans{' '}
                                                                   <strong className="font-medium">
-                                                                      {selectedService}
+                                                                      {selectedPlace}
                                                                   </strong>
                                                                   . Vit-il ici ?
                                                               </>
@@ -1712,14 +1823,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                           })}
                                 </div>
                             )}
-
-                            {/* Le pied d'acte, en pleine largeur et en fin de contenu : la planche n'a
-                    pas de bouton flottant ici. Un FAB masque une rangée et impose un
-                    dégagement bas ; le geste au fil du contenu se pose sous ce qu'il
-                    concerne, et se lit avant d'être frappé. */}
-                            {footerActions && (
-                                <div className="flex flex-col gap-2.5 pt-1">{footerActions}</div>
-                            )}
                         </>
                     )}
                 </Reading>
@@ -1730,8 +1833,18 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 est explicite. Ce composant ne décode rien par contrat : la lecture reste celle
                 que ce produit possède réellement — la saisie du contenu du QR — et elle est
                 atteinte par « Saisir à la main », l'affordance que la vue porte déjà. */}
+            {/* **Le scan doit passer devant le bandeau de navigation.** Il valait
+                `z-50`, exactement celui du bandeau
+                de navigation : le bandeau, plus bas dans le document, passait devant et
+                **recouvrait le pied de la vue de scan** — donc « Saisir à la main », le
+                seul geste par lequel ce produit enregistre une lecture. Le bouton était
+                à l'écran, et aucun doigt ne pouvait l'atteindre.
+
+                `90` et non `110` : au-dessus du bandeau (`50`), et **en dessous des
+                feuilles** (`100`), puisque la saisie du code s'ouvre par-dessus le scan
+                qui l'appelle. */}
             {scanOpen && (
-                <div className="fixed inset-0 z-50 bg-[var(--tk-color-inverse-surface)]">
+                <div className="fixed inset-0 z-[90] bg-[var(--tk-color-inverse-surface)]">
                     <ScanView
                         mode="batch"
                         onClose={() => setScanOpen(false)}

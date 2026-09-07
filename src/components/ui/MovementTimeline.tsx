@@ -97,7 +97,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
                                                 {item.title}
                                             </p>
                                             {(item.actor || item.meta) && (
-                                                <p className="text-label-small text-on-surface-variant break-words">
+                                                <p className="text-on-surface-variant text-[12px] leading-4 break-words">
                                                     {item.actor ? `Par ${item.actor}` : null}
                                                     {item.actor && item.meta ? ' • ' : null}
                                                     {item.meta || null}

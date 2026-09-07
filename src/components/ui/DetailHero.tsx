@@ -3,6 +3,7 @@ import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import { CaretRight } from '@phosphor-icons/react';
 
 import Icon from './Icon';
+import Thumbnail from './Thumbnail';
 import { cn } from '../../lib/utils';
 
 /**
@@ -40,6 +41,14 @@ export interface DetailMetric {
     value: React.ReactNode;
     /** Ce qu'il mesure — « au parc », « XOF à l'achat ». */
     label: React.ReactNode;
+    /**
+     * La tuile prend **les deux colonnes**, et se couche : le fait à gauche, ce qu'il
+     * mesure à droite. `.qual > div.w` de 04.2 — *« un prix à sept chiffres y tient »*,
+     * ce qu'une demi-largeur ne permet pas.
+     */
+    wide?: boolean;
+    /** Une tuile peut **ouvrir** — `.qual > a` de 05.2 : « 1 demande en cours ». */
+    onClick?: () => void;
 }
 
 /** Un, deux ou trois. **Pas quatre** : R3 le dit, le type le tient. */
@@ -95,6 +104,32 @@ interface DetailHeroProps {
      */
     subtitle?: React.ReactNode;
     metrics?: DetailMetrics;
+    /**
+     * La forme des mesures. `inline` — la rangée filetée de 04.2, pour des faits qui
+     * situent un objet. **`boxes`** — les `.hk` de 09.1 : des cases sur un voile blanc,
+     * pour des faits qui *sont* le sujet (un type de catalogue n'a rien d'autre à dire
+     * que ses modèles et ses actifs).
+     */
+    /**
+     * `qual` — **les tuiles de 04.2** : une grille de deux colonnes sur le voile blanc,
+     * dont une tuile peut prendre toute la largeur. C'est la forme que 04.2, 09, 10 et 16
+     * ont alignée le 05/09, et elle vit **dans le héro** : les repères chiffrés d'une
+     * fiche ne sont pas des cartes, ce sont des qualifiants du sujet.
+     */
+    metricsStyle?: 'inline' | 'boxes' | 'qual';
+    /**
+     * **La barre qui répartit ce que les mesures comptent** — `.split` de 09.2 : trois
+     * segments de 8, collés au-dessus des cases. Elle se lit avant les chiffres parce
+     * qu'elle donne la proportion d'un coup ; les chiffres donnent ensuite l'exactitude.
+     */
+    meter?: React.ReactNode;
+    /**
+     * **La jauge, sous les chiffres et au-dessus du geste** — `.prog` de 16.2, et le même
+     * ordre sur 16.1 : les cases donnent l'exactitude, la barre donne la proportion, puis
+     * le geste. Elle passait par `note`, qui se rend **après** le geste avec un filet :
+     * l'avancement se lisait sous le bouton qui le fait avancer.
+     */
+    gauge?: React.ReactNode;
     /** Les faits qui situent : emplacement, rattachement. */
     facts?: DetailHeroFact[];
     /**
@@ -123,6 +158,9 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     statusDetail,
     subtitle,
     metrics,
+    metricsStyle = 'inline',
+    meter,
+    gauge,
     facts,
     relation,
     image,
@@ -139,11 +177,12 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     >
         {image && (
             <>
-                <img
+                <Thumbnail
                     src={image}
                     alt=""
-                    aria-hidden="true"
                     className="absolute inset-0 -z-20 h-full w-full object-cover"
+                    /* Sans image, le héro garde sa surface inversée : c'est déjà un fond. */
+                    fallback={null}
                 />
                 {/* Le voile monte vers le bas : le sujet reste lisible sur n'importe
                     quelle photo, et le bas du héro porte le texte le plus dense. */}
@@ -192,12 +231,16 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 )}
 
                 {label && (
-                    <p className="text-label-small text-on-nav-surface-variant mt-3 font-medium tracking-[0.07em] uppercase">
+                    /* `.ty` — **12 sur 16**, interlettrage `.07em`, capitales, 16 au-dessus.
+                       Il tenait `text-label-small`, c'est-à-dire 11 : une marche sous la
+                       plus petite que R15 déclare, et la même étiquette valait 12 dans la
+                       variante à pastille juste au-dessus. */
+                    <p className="mt-4 text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                         {label}
                     </p>
                 )}
 
-                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
 
@@ -228,7 +271,34 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             </div>
         )}
 
-        {metrics && (
+        {meter && <div className="mt-5">{meter}</div>}
+
+        {metrics && metricsStyle === 'boxes' && (
+            /* `.hrow` / `.hk` — 09.1 : des cases de 12 sur 14, valeur en 22 sur 28. */
+            <div className={cn('flex gap-3', meter ? 'mt-3' : 'mt-5')}>
+                {metrics.map((metric, index) => (
+                    <div
+                        key={index}
+                        className={cn(
+                            /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
+                               retombe à `12px 10px`** : à trois de front sur 393 px,
+                               14 d'intérieur laissent « réparation » se couper. */
+                            'min-w-0 flex-1 rounded-[4px] bg-white/[0.08] py-3',
+                            metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
+                        )}
+                    >
+                        <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                            {metric.value}
+                        </span>
+                        <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
+                            {metric.label}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        )}
+
+        {metrics && metricsStyle === 'inline' && (
             <div className="mt-3.5 flex gap-[18px] border-t border-white/[0.14] pt-3">
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
@@ -242,6 +312,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 ))}
             </div>
         )}
+
+        {gauge && <div className="mt-4">{gauge}</div>}
 
         {facts && facts.length > 0 && (
             <div className="mt-3 flex flex-col gap-[7px] border-t border-white/[0.14] pt-3">
@@ -258,6 +330,51 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {relation && <RelationRow {...relation} />}
+
+        {metrics && metricsStyle === 'qual' && (
+            /* `.qual` — grille `1fr 1fr`, gouttière 12, 20 au-dessus. Les tuiles sont
+               posées sur le voile blanc à 8 % : **pas de teinte**, le chiffre et son
+               libellé suffisent (04.2, passe du 05/09). */
+            <div className="mt-5 grid grid-cols-2 gap-3">
+                {metrics.map((metric, index) => {
+                    const contenu = (
+                        <>
+                            <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                                {metric.value}
+                            </span>
+                            <span
+                                className={cn(
+                                    'text-on-nav-surface-variant block truncate text-[12px] leading-4',
+                                    metric.wide ? undefined : 'mt-0.5',
+                                )}
+                            >
+                                {metric.label}
+                            </span>
+                        </>
+                    );
+                    const forme = cn(
+                        'flex min-w-0 rounded-[4px] bg-white/[0.08] text-left',
+                        metric.wide
+                            ? 'col-span-2 items-baseline justify-between gap-3 px-3.5 py-3'
+                            : 'flex-col px-2.5 py-3',
+                    );
+                    return metric.onClick ? (
+                        <button
+                            key={index}
+                            type="button"
+                            onClick={metric.onClick}
+                            className={cn(forme, 'cursor-pointer hover:bg-white/[0.14]')}
+                        >
+                            {contenu}
+                        </button>
+                    ) : (
+                        <div key={index} className={forme}>
+                            {contenu}
+                        </div>
+                    );
+                })}
+            </div>
+        )}
 
         {actions && (
             /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
@@ -286,9 +403,12 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
                 {vignette}
             </span>
             <span className="min-w-0 flex-1">
-                <span className="text-body-large block truncate font-medium">{title}</span>
+                {/* `.hrow .t` — **17 sur 24**, la deuxième marche de R15, et sans graisse
+                    d'appui : c'est un nom, pas un fait mis en avant. Il tenait
+                    `text-body-large` (15/21) en 500. */}
+                <span className="block truncate text-[17px] leading-6">{title}</span>
                 {detail && (
-                    <span className="text-body-small text-on-nav-surface-variant mt-px block">
+                    <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
                         {detail}
                     </span>
                 )}
@@ -299,8 +419,11 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
         </>
     );
 
+    /* `.hrow` — **20 au-dessus, 16 d'intérieur haut**, filet du voile, 56 de haut. Elle
+       tenait `mt-2 pt-2` : la rangée du porteur se collait au sujet, et le filet passait
+       à 8 px du nom au lieu de 20. */
     const shell =
-        'mt-2 flex min-h-14 w-full items-center gap-3 border-t border-white/[0.14] pt-2 text-left';
+        'mt-5 flex min-h-14 w-full items-center gap-3 border-t border-white/[0.14] pt-4 text-left';
 
     if (!onOpen) return <div className={shell}>{content}</div>;
 

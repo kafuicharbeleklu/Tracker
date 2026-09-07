@@ -46,12 +46,13 @@ import { useAuth } from './AuthContext';
 import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
 import {
+    documentsModifies,
     loadCollectionDocs,
     loadSingleDoc,
     saveCollectionDocs,
     saveSingleDoc,
 } from '../lib/firestorePersistence';
-import { DEMO_RESEED_DISABLED } from '../lib/demoSeed';
+import { DEMO_RESEED_DISABLED, isDemoSeedEquipment, isDemoSeedUser } from '../lib/demoSeed';
 import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
 import {
     buildRbacAssignmentFromUser,
@@ -119,20 +120,21 @@ const deserializeCategory = (
     category: Partial<Category> & { iconName?: string },
     seededCategoryFamilies: Record<string, CategoryFamily | undefined>,
 ): Category => {
-    const categoryData = (typeof category === 'object' && category !== null
-        ? category
-        : {}) as Partial<Category> & { iconName?: string };
+    const categoryData = (
+        typeof category === 'object' && category !== null ? category : {}
+    ) as Partial<Category> & { iconName?: string };
 
     return {
         ...categoryData,
         assignable: categoryData.assignable ?? true,
         family: categoryData.family ?? seededCategoryFamilies[categoryData.name || ''],
-        icon:
-            CATEGORY_ICONS[categoryData.iconName || 'Laptop'] || CATEGORY_ICONS['Laptop'],
+        icon: CATEGORY_ICONS[categoryData.iconName || 'Laptop'] || CATEGORY_ICONS['Laptop'],
     } as Category;
 };
 
-const normalizeLocationData = (locationData: Partial<LocationData> | null | undefined): LocationData => ({
+const normalizeLocationData = (
+    locationData: Partial<LocationData> | null | undefined,
+): LocationData => ({
     countries: Array.isArray(locationData?.countries) ? locationData.countries : [],
     sites: (locationData?.sites ?? {}) as Record<string, string[]>,
     locals: (locationData?.locals ?? {}) as Record<string, string[]>,
@@ -141,6 +143,12 @@ const normalizeLocationData = (locationData: Partial<LocationData> | null | unde
 
 interface DataContextType {
     isHydrating: boolean;
+    /**
+     * **Le magasin distant n'a pas répondu.** L'application montre alors ses données
+     * locales de démonstration : elle reste utilisable, mais ce n'est plus l'inventaire
+     * réel, et l'écran doit le dire plutôt que de laisser croire à un mélange.
+     */
+    remoteUnavailable: boolean;
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
@@ -194,22 +202,28 @@ interface DataContextType {
     ) => BusinessRuleDecision;
     upsertEquipmentFromAuditScan: (
         payload: AuditScanPayload,
-        scope: { country: string; site: string; service: string },
+        scope: { country: string; site: string; local?: string; horsLocal?: boolean },
     ) => AuditScanResult;
     ingestAgentCheckIn: (payload: AgentCheckInPayload) => AgentCheckInResult;
     promoteDetectedDeviceToInventory: (
         detectedDeviceId: string,
-        scope?: { country: string; site: string; service: string },
+        scope?: { country: string; site: string; local?: string; horsLocal?: boolean },
     ) => AuditScanResult;
     markDetectedDeviceAsIgnored: (detectedDeviceId: string) => boolean;
     removeEquipmentFromServiceAfterAudit: (
         equipmentId: string,
-        scope: { country: string; site: string; service: string },
+        scope: { country: string; site: string; local?: string; horsLocal?: boolean },
     ) => boolean;
     updateApproval: (
         id: string,
         status: ApprovalStatus,
-        options?: { assignedEquipmentId?: string; assignedEquipmentName?: string; reason?: string },
+        options?: {
+            assignedEquipmentId?: string;
+            assignedEquipmentName?: string;
+            reason?: string;
+            /** Par quelle méthode la décision a été attestée — « code PIN », « signature ». */
+            method?: string;
+        },
     ) => BusinessRuleDecision;
     /** La réception d'un objet par son porteur, appelée par la fiche, la file et l'accueil. */
     confirmEquipmentReception: (equipmentId: string) => BusinessRuleDecision;
@@ -469,7 +483,32 @@ const mergePersistedUsersWithSeed = (parsed: unknown[]): User[] => {
     return [...mergedPersisted, ...seededMissing];
 };
 
+/**
+ * Ce que le tableur écrit quand il ne sait pas — « N/A », « - », « néant ». Ce ne sont pas
+ * des valeurs : les laisser passer les affiche comme des faits.
+ */
+const NON_RENSEIGNE =
+    /^(n\.?\s*\/?\s*a\.?|na|-{1,2}|néant|neant|aucun|aucune|inconnu|inconnue|null|undefined)$/i;
+
+const valeurRenseignee = (valeur?: string): string | undefined => {
+    const nette = (valeur ?? '').trim();
+    if (!nette || NON_RENSEIGNE.test(nette)) return undefined;
+    return nette;
+};
+
 const normalizeEquipmentRecord = (persisted: Equipment, seed?: Equipment): Equipment => {
+    /*
+     * **Deux graphies pour un même site.** Le tableur écrit « Lomé » sur ses feuilles
+     * réseau et « Lomé Siège » sur les autres : l'inventaire physique (16.1) en faisait
+     * deux lieux à compter, et les filtres deux entrées. L'import unifie désormais à
+     * l'écriture ; ce repli tient les enregistrements déjà en base, tant qu'ils n'ont
+     * pas été réécrits.
+     */
+    const siteCanonique = (valeur?: string): string | undefined => {
+        if (!valeur) return valeur;
+        return valeur.trim().toLowerCase() === 'lomé' ? 'Lomé Siège' : valeur;
+    };
+
     const mergedFinancial = {
         purchasePrice: 0,
         purchaseDate: '2025-01-01',
@@ -488,7 +527,10 @@ const normalizeEquipmentRecord = (persisted: Equipment, seed?: Equipment): Equip
     };
 
     const country = merged.country || seed?.country || 'France';
-    const site = merged.site || seed?.site || DEFAULT_SITE_BY_COUNTRY[country] || 'Bureau Paris';
+    const site =
+        siteCanonique(merged.site || seed?.site) ||
+        DEFAULT_SITE_BY_COUNTRY[country] ||
+        'Bureau Paris';
     const userDepartment =
         merged.user && typeof merged.user === 'object'
             ? (merged.user as Partial<User>).department
@@ -527,9 +569,20 @@ const normalizeEquipmentRecord = (persisted: Equipment, seed?: Equipment): Equip
         warrantyEnd,
         serialNumber,
         hostname,
-        os: merged.os || seed?.os || (isComputingAsset ? 'Windows 11 Pro' : 'N/A'),
-        ram: merged.ram || seed?.ram || (isComputingAsset ? '16 GB' : 'N/A'),
-        storage: merged.storage || seed?.storage || (isComputingAsset ? '512 GB SSD' : 'N/A'),
+        /**
+         * **Une spécification inconnue reste inconnue.** 09.2 : *« la fiche refuse
+         * d'inventer quand la donnée manque : "Aucune spécification saisie", jamais
+         * "Processeur standard" »*.
+         *
+         * Ces trois champs faisaient l'inverse, deux fois. Un poste sans données recevait
+         * « Windows 11 Pro », « 16 GB », « 512 GB SSD » — des valeurs **fausses données
+         * pour vraies**, que le support aurait lues au téléphone. Et tout le reste
+         * recevait la chaîne `'N/A'` : une borne Wi-Fi affichait trois rangées
+         * « Mémoire N/A · Stockage N/A · Système N/A », trois lignes pour ne rien dire.
+         */
+        os: valeurRenseignee(merged.os) ?? valeurRenseignee(seed?.os),
+        ram: valeurRenseignee(merged.ram) ?? valeurRenseignee(seed?.ram),
+        storage: valeurRenseignee(merged.storage) ?? valeurRenseignee(seed?.storage),
         securityAgents: merged.securityAgents || {
             sentinelOne: isComputingAsset,
             matrix42: isComputingAsset,
@@ -576,6 +629,29 @@ const normalizeApprovalRecord = (entry: Approval, seed?: Approval): Approval => 
     updatedAt: entry.updatedAt || entry.createdAt || seed?.updatedAt || new Date().toISOString(),
 });
 
+/** Les demandes de démonstration, reconnues par leur identifiant — elles ne s'écrivent pas. */
+const APPROVAL_SEED_IDS = new Set(APPROVAL_SEED.map((approval) => approval.id));
+
+/**
+ * **Une demande orpheline ne s'affiche pas.**
+ *
+ * Les demandes du jeu de démonstration se reconnaissent à leur identifiant. Mais il en
+ * existe d'autres, créées **dans l'application** au fil des essais, qui désignent un
+ * bénéficiaire ou un objet de démonstration : « Demande: Headset · Ethan Employé »,
+ * « LPT-DK-03 · réception ». Leur identifiant est un horodatage, donc aucune liste ne
+ * les reconnaît — et pourtant elles n'ont plus de sujet dès que les comptes et les
+ * actifs de démonstration cessent d'être chargés.
+ *
+ * Une tâche qui nomme quelqu'un qui n'existe pas est pire qu'une tâche absente : elle
+ * demande un geste qu'on ne peut pas poser.
+ */
+const estDemandeSansSujet = (approval: Approval): boolean =>
+    APPROVAL_SEED_IDS.has(approval.id) ||
+    isDemoSeedUser(approval.beneficiaryId) ||
+    isDemoSeedUser(approval.requesterId) ||
+    (Boolean(approval.assignedEquipmentId) &&
+        isDemoSeedEquipment(approval.assignedEquipmentId as string));
+
 const mergePersistedApprovalsWithSeed = (parsed: unknown[]): Approval[] => {
     const persistedApprovals = parsed.filter((entry): entry is Approval => {
         if (typeof entry !== 'object' || entry === null) return false;
@@ -593,7 +669,10 @@ const mergePersistedApprovalsWithSeed = (parsed: unknown[]): Approval[] => {
         ? []
         : APPROVAL_SEED.filter((seed) => !mergedIds.has(seed.id));
 
-    return [...mergedPersisted, ...seededMissing];
+    /* Ni les demandes du seed, ni celles qui nomment un sujet de démonstration. */
+    return [...mergedPersisted, ...seededMissing].filter(
+        (approval) => !estDemandeSansSujet(approval),
+    );
 };
 
 // Réparation au chargement (§9.1) : libère tout équipement réservé par un workflow
@@ -796,6 +875,8 @@ const mergePersistedRbacAssignments = (
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
     const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
+    /** Le magasin distant n'a pas répondu : ce qui est à l'écran est local (voir plus bas). */
+    const [remoteUnavailable, setRemoteUnavailable] = useState(false);
 
     // --- SETTINGS ---
     const [settings, setSettings] = useState<AppSettings>(() => {
@@ -1076,9 +1157,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     });
 
+    /**
+     * **Le référentiel des droits est de la configuration, pas de la donnée.**
+     *
+     * Les trois états ci-dessous partaient à vide dès que Firebase répondait — comme les
+     * utilisateurs et les actifs, dont le magasin est la seule source. Mais une base sans
+     * aucun rôle n'est pas une base « dont l'administrateur a tout retiré » : c'est une
+     * base neuve, ou une base qu'un nettoyage vient de vider. Le 07/09 la réparation a
+     * effacé les huit rôles avec les résidus de démonstration, et **toutes** les pages
+     * ont répondu « Accès refusé » — le produit se verrouillait lui-même, sans qu'aucun
+     * écran ne permette de le rouvrir.
+     *
+     * Ils partent donc de leurs valeurs par défaut, et `mergePersisted*` pose par-dessus
+     * ce que le magasin porte : ce qu'un administrateur a modifié gagne, ce qu'il n'a
+     * jamais touché existe quand même.
+     */
     const [rbacRoles, setRbacRoles] = useState<RbacRole[]>(() => {
         if (FIREBASE_BACKEND_ENABLED) {
-            return [];
+            return DEFAULT_RBAC_ROLES;
         }
         try {
             const saved = getPersistedValue(
@@ -1097,7 +1193,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const [rbacGroups, setRbacGroups] = useState<RbacGroup[]>(() => {
         if (FIREBASE_BACKEND_ENABLED) {
-            return [];
+            return DEFAULT_RBAC_GROUPS;
         }
         try {
             const saved = getPersistedValue(
@@ -1116,7 +1212,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const [rbacWorkflows, setRbacWorkflows] = useState<WorkflowDefinition[]>(() => {
         if (FIREBASE_BACKEND_ENABLED) {
-            return [];
+            return DEFAULT_WORKFLOW_DEFINITIONS;
         }
         try {
             const saved = getPersistedValue(
@@ -1158,6 +1254,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const usersRef = useRef(users);
     const firebaseHydratedRef = useRef(false);
+    /**
+     * **L'empreinte de ce qui est déjà dans Firestore**, une carte par collection.
+     * Sans elle, chaque changement d'état réécrivait la collection entière : un objet
+     * remis, et les 257 documents du parc repartaient. Le budget quotidien du plan
+     * gratuit tombait en quelques gestes, Firestore refusait alors **toute lecture**, et
+     * l'application se rabattait sur ses données de démonstration — qui se mélangeaient
+     * à l'inventaire importé. C'est la cause unique des trois symptômes relevés le
+     * 06/09 : résidus dans « À traiter », dans « Tâches » et dans « Équipements ».
+     */
+    const empreintesRef = useRef<Record<string, Map<string, string>>>({});
 
     useEffect(() => {
         usersRef.current = users;
@@ -1209,6 +1315,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         let cancelled = false;
 
+        /*
+         * **Une attente sans fin n'est pas une attente.** Quand le quota de Firestore
+         * est épuisé, le SDK ne rejette pas : il réessaie, avec un délai qui monte
+         * jusqu'au maximum, indéfiniment. L'application restait donc sur ses données
+         * locales sans jamais l'apprendre — et sans jamais le dire. Passé ce délai, on
+         * déclare le magasin muet ; s'il répond plus tard, la déclaration est levée.
+         */
+        const DELAI_HYDRATATION_MS = 12_000;
+        const minuteur = setTimeout(() => {
+            if (!cancelled) setRemoteUnavailable(true);
+        }, DELAI_HYDRATATION_MS);
+
         const hydrateFromFirebase = async () => {
             try {
                 const [
@@ -1247,19 +1365,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return;
                 }
 
+                /* Le magasin a répondu : la déclaration de repli est levée. */
+                setRemoteUnavailable(false);
+
+                /*
+                 * **Les lignes de démonstration ne remontent pas du magasin.** Elles y
+                 * sont entrées quand l'application persistait son propre jeu ; elles y
+                 * restent tant que la base n'est pas réparée, et il n'y a aucune raison
+                 * de les remettre à l'écran au milieu de l'inventaire réel. Le produit
+                 * sait les reconnaître — c'est le même test que celui qui les empêche
+                 * désormais de partir.
+                 */
                 if (firebaseUsers.length > 0) {
                     setUsers(
-                        firebaseUsers.map((user) =>
-                            normalizeUserRecord(user as User, user as User),
-                        ),
+                        firebaseUsers
+                            .filter((user) => !isDemoSeedUser((user as User).id))
+                            .map((user) => normalizeUserRecord(user as User, user as User)),
                     );
                 }
 
                 if (firebaseEquipment.length > 0) {
                     setEquipment(
-                        firebaseEquipment.map((item) =>
-                            normalizeEquipmentRecord(item as Equipment, item as Equipment),
-                        ),
+                        firebaseEquipment
+                            .filter((item) => !isDemoSeedEquipment((item as Equipment).id))
+                            .map((item) =>
+                                normalizeEquipmentRecord(item as Equipment, item as Equipment),
+                            ),
                     );
                 }
 
@@ -1280,7 +1411,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
 
                 if (firebaseApprovals.length > 0) {
-                    setApprovals(mergePersistedApprovalsWithSeed(firebaseApprovals));
+                    setApprovals(
+                        mergePersistedApprovalsWithSeed(
+                            firebaseApprovals.filter(
+                                (approval) => !estDemandeSansSujet(approval as Approval),
+                            ),
+                        ),
+                    );
                 }
 
                 if (firebaseEvents.length > 0) {
@@ -1319,8 +1456,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     );
                 }
             } catch (error) {
-                console.error('[DataContext] Firebase hydration failed', error);
+                /*
+                 * **Un magasin qui ne répond pas doit se dire.** L'application garde
+                 * alors ses données de démonstration — c'est le bon repli, elle reste
+                 * utilisable — mais elle le taisait : on lisait un inventaire de
+                 * démonstration en croyant lire celui de Neemba Togo, et les deux
+                 * paraissaient mélangés. Le cas n'est pas théorique : le quota
+                 * quotidien de Firestore s'épuise, et tout s'arrête net.
+                 */
+                console.error('[DataContext] Hydratation Firebase impossible', error);
+                setRemoteUnavailable(true);
             } finally {
+                clearTimeout(minuteur);
                 firebaseHydratedRef.current = true;
                 setIsHydrating(false);
             }
@@ -1329,6 +1476,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hydrateFromFirebase();
 
         return () => {
+            clearTimeout(minuteur);
             cancelled = true;
         };
     }, []);
@@ -1405,7 +1553,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'users', users);
+        /*
+         * **Le seed de démonstration ne part jamais au magasin distant.** Quand
+         * Firestore ne répond pas — quota épuisé, réseau coupé —, l'hydratation laisse
+         * les données de démonstration en place ; l'effet de persistance les écrivait
+         * alors dans la base, où elles se mêlaient définitivement à l'inventaire
+         * importé. C'est ainsi qu'Ethan Employé et LPT-DK-03 ont rejoint les 243 lignes
+         * du tableur de Neemba Togo.
+         */
+        const suivi = empreintesRef.current['users'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(
+            users.filter((user) => !isDemoSeedUser(user.id)),
+            suivi,
+        );
+        empreintesRef.current['users'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'users', aEcrire);
     }, [users]);
 
     useEffect(() => {
@@ -1413,7 +1575,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'equipment', equipment);
+        const suivi = empreintesRef.current['equipment'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(
+            equipment.filter((item) => !isDemoSeedEquipment(item.id)),
+            suivi,
+        );
+        empreintesRef.current['equipment'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'equipment', aEcrire);
     }, [equipment]);
 
     useEffect(() => {
@@ -1421,7 +1589,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'detectedDevices', detectedDevices);
+        const suivi = empreintesRef.current['detectedDevices'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(detectedDevices, suivi);
+        empreintesRef.current['detectedDevices'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'detectedDevices', aEcrire);
     }, [detectedDevices]);
 
     useEffect(() => {
@@ -1441,7 +1612,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'models', models);
+        const suivi = empreintesRef.current['models'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(models, suivi);
+        empreintesRef.current['models'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'models', aEcrire);
     }, [models]);
 
     useEffect(() => {
@@ -1449,7 +1623,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'approvals', approvals);
+        const suivi = empreintesRef.current['approvals'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(
+            approvals.filter((approval) => !estDemandeSansSujet(approval)),
+            suivi,
+        );
+        empreintesRef.current['approvals'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'approvals', aEcrire);
     }, [approvals]);
 
     useEffect(() => {
@@ -1457,7 +1637,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'events', events);
+        const suivi = empreintesRef.current['events'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(events, suivi);
+        empreintesRef.current['events'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'events', aEcrire);
     }, [events]);
 
     useEffect(() => {
@@ -1489,7 +1672,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'rbacRoles', rbacRoles);
+        const suivi = empreintesRef.current['rbacRoles'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(rbacRoles, suivi);
+        empreintesRef.current['rbacRoles'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'rbacRoles', aEcrire);
     }, [rbacRoles]);
 
     useEffect(() => {
@@ -1497,7 +1683,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'rbacGroups', rbacGroups);
+        const suivi = empreintesRef.current['rbacGroups'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(rbacGroups, suivi);
+        empreintesRef.current['rbacGroups'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'rbacGroups', aEcrire);
     }, [rbacGroups]);
 
     useEffect(() => {
@@ -1505,7 +1694,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(firestore, 'rbacWorkflows', rbacWorkflows);
+        const suivi = empreintesRef.current['rbacWorkflows'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(rbacWorkflows, suivi);
+        empreintesRef.current['rbacWorkflows'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'rbacWorkflows', aEcrire);
     }, [rbacWorkflows]);
 
     useEffect(() => {
@@ -2866,7 +3058,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const upsertEquipmentFromAuditScan = useCallback(
         (
             payload: AuditScanPayload,
-            scope: { country: string; site: string; service: string },
+            scope: { country: string; site: string; local?: string; horsLocal?: boolean },
         ): AuditScanResult => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) {
@@ -2879,7 +3071,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const scopedCountry = scope.country?.trim();
             const scopedSite = scope.site?.trim();
-            const scopedService = scope.service?.trim();
+            /* Le local du périmètre. Vide **et** `horsLocal` faux : le site entier. */
+            const scopedLocal = scope.local?.trim() || '';
+            const scopedHorsLocal = Boolean(scope.horsLocal);
             const scannedAt = payload.scannedAt || new Date().toISOString();
 
             const byAssetId = normalizeMatch(payload.assetId);
@@ -2974,25 +3168,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         scannedAt,
                         scopeCountry: scopedCountry,
                         scopeSite: scopedSite,
-                        scopeService: scopedService,
+                        scopeLocal: scopedHorsLocal ? '' : scopedLocal,
                     });
                 }
 
-                const serviceMatches =
+                /* **Le lieu attendu** : le pays et le site toujours, le local quand le
+                   périmètre en désigne un — et, pour la rangée « hors local », l'absence
+                   de local est précisément ce qui doit correspondre. */
+                const existingLocal = (existing.local || '').trim();
+                const placeMatches =
                     normalizeMatch(existing.country) === normalizeMatch(scopedCountry) &&
                     normalizeMatch(existing.site) === normalizeMatch(scopedSite) &&
-                    normalizeMatch(existing.department) === normalizeMatch(scopedService);
+                    (scopedHorsLocal
+                        ? existingLocal === ''
+                        : !scopedLocal ||
+                          normalizeMatch(existingLocal) === normalizeMatch(scopedLocal));
+                const lieuAttendu = scopedHorsLocal
+                    ? `${scopedSite} (hors local)`
+                    : scopedLocal || scopedSite;
 
                 return {
                     ok: true,
-                    resolution: serviceMatches ? 'found_in_service' : 'found_out_of_service',
+                    resolution: placeMatches ? 'found_in_place' : 'found_out_of_place',
                     equipmentId: existing.id,
                     equipmentName: existing.name,
-                    serviceMatches,
+                    placeMatches,
                     wasUpdated,
-                    message: serviceMatches
-                        ? `Machine retrouvée dans le bon service (${scopedService}).`
-                        : `Machine détectée mais rattachée à un autre service (${existing.department || 'Non défini'}).`,
+                    message: placeMatches
+                        ? `Machine retrouvée dans le bon lieu (${lieuAttendu}).`
+                        : `Machine détectée mais enregistrée ailleurs (${existingLocal || existing.site || 'lieu non défini'}).`,
                 };
             }
 
@@ -3021,7 +3225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 storage: payload.storage,
                 country: scopedCountry,
                 site: scopedSite,
-                department: scopedService,
+                local: scopedHorsLocal ? undefined : scopedLocal || undefined,
                 securityAgents: {
                     sentinelOne: payload.agents?.sentinelOne ?? false,
                     matrix42: payload.agents?.matrix42 ?? false,
@@ -3045,7 +3249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     source: 'audit_scan',
                     scopeCountry: scopedCountry,
                     scopeSite: scopedSite,
-                    scopeService: scopedService,
+                    scopeLocal: scopedHorsLocal ? '' : scopedLocal,
                 },
                 isSystem: false,
                 isSensitive: false,
@@ -3056,7 +3260,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 resolution: 'created',
                 equipmentId: newEquipment.id,
                 equipmentName: newEquipment.name,
-                serviceMatches: true,
+                placeMatches: true,
                 wasUpdated: true,
                 message: `Nouvelle machine ajoutée au stock (${newEquipment.assetId}).`,
             };
@@ -3288,7 +3492,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const promoteDetectedDeviceToInventory = useCallback(
         (
             detectedDeviceId: string,
-            scope?: { country: string; site: string; service: string },
+            scope?: { country: string; site: string; local?: string; horsLocal?: boolean },
         ): AuditScanResult => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) {
@@ -3322,12 +3526,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     detected.site ||
                     DEFAULT_SITE_BY_COUNTRY[fallbackCountry] ||
                     'Bureau Paris',
-                service:
-                    scope?.service ||
-                    detected.service ||
-                    DEFAULT_DEPARTMENT_BY_COUNTRY[fallbackCountry] ||
-                    'IT HQ',
+                /* Le lieu où l'agent a vu la machine — la sonde ne connaît pas de
+                   local, donc le périmètre du rapprochement est le site. */
+                local: scope?.local,
+                horsLocal: scope?.horsLocal,
             };
+
+            /* **Le service reste une donnée de la sonde, pas un périmètre.** Le
+               rapprochement d'un poste détecté écrit le service que l'agent rapporte ;
+               ce n'est pas ce qui borne la campagne depuis le 07/09. */
+            const serviceDetecte =
+                detected.service || DEFAULT_DEPARTMENT_BY_COUNTRY[fallbackCountry] || 'IT HQ';
 
             const result = upsertEquipmentFromAuditScan(
                 {
@@ -3344,7 +3553,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     userEmail: detected.currentUserEmail,
                     country: targetScope.country,
                     site: targetScope.site,
-                    service: targetScope.service,
+                    service: serviceDetecte,
                     scannedAt: detected.lastSeenAt,
                     agents: {
                         sentinelOne: detected.apps.sentinelOne,
@@ -3365,7 +3574,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                                   linkedEquipmentId: result.equipmentId,
                                   country: targetScope.country,
                                   site: targetScope.site,
-                                  service: targetScope.service,
+                                  service: serviceDetecte,
                                   lastSeenAt: new Date().toISOString(),
                               }
                             : item,
@@ -3423,7 +3632,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const removeEquipmentFromServiceAfterAudit = useCallback(
         (
             equipmentId: string,
-            scope: { country: string; site: string; service: string },
+            scope: { country: string; site: string; local?: string; horsLocal?: boolean },
         ): boolean => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) {
@@ -3433,22 +3642,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const item = equipment.find((entry) => entry.id === equipmentId);
             if (!item) return false;
 
-            const note = `Audit: non retrouvé dans ${scope.service} (${scope.site}, ${scope.country}) le ${new Date().toLocaleDateString('fr-FR')}. Requalification IT requise.`;
+            const lieuAttendu = scope.horsLocal
+                ? `${scope.site} (hors local)`
+                : scope.local || scope.site;
+            const note = `Audit: non retrouvé dans ${lieuAttendu} (${scope.site}, ${scope.country}) le ${new Date().toLocaleDateString('fr-FR')}. Requalification IT requise.`;
             const mergedNotes = item.notes ? `${item.notes}\n${note}` : note;
 
             updateEquipment(
                 equipmentId,
                 {
-                    department: undefined,
+                    /* Un manquant sort du **lieu** où on l'attendait : c'est ce que la
+                       clôture retire, et c'est ce que « Rattacher ici » rendrait. */
+                    local: undefined,
                     status: 'Manquant',
                     notes: mergedNotes,
                 },
                 {
                     source: 'audit_finalize',
-                    reason: 'missing_in_service',
+                    reason: 'missing_in_place',
                     scopeCountry: scope.country,
                     scopeSite: scope.site,
-                    scopeService: scope.service,
+                    scopeLocal: scope.horsLocal ? '' : scope.local,
                 },
             );
 
@@ -3465,6 +3679,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 assignedEquipmentId?: string;
                 assignedEquipmentName?: string;
                 reason?: string;
+                method?: string;
             },
         ): BusinessRuleDecision => {
             const oldApproval = approvals.find((a) => a.id === id);
@@ -3537,6 +3752,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                           actorId: currentUser?.id || 'system',
                           actorName: currentUser?.name || 'Système',
                           at: now,
+                          /* « Qui, quand, par quelle méthode » (06.2) : 06.5 relit les
+                             trois dans « La décision ». */
+                          method: options?.method,
                       }
                     : undefined;
             setApprovals((prev) =>
@@ -3946,6 +4164,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         () => ({
             users,
             isHydrating,
+            remoteUnavailable,
             equipment,
             detectedDevices,
             categories,
@@ -4006,6 +4225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [
             users,
             isHydrating,
+            remoteUnavailable,
             equipment,
             detectedDevices,
             categories,

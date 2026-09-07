@@ -276,52 +276,6 @@ const ScanView: React.FC<ScanViewProps> = ({
                                 En attente d’une lecture.
                             </p>
                         )}
-
-                        {onManualSubmit ? (
-                            manualOpen ? (
-                                <div className="mt-2 flex gap-2">
-                                    <input
-                                        autoFocus
-                                        value={manualValue}
-                                        onChange={(event) => setManualValue(event.target.value)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                submitManual();
-                                            }
-                                        }}
-                                        aria-label="Code lu sur l’étiquette"
-                                        placeholder="le code lu sur l’étiquette"
-                                        className="border-outline-variant bg-surface text-body-large text-on-surface focus:border-primary min-h-12 min-w-0 flex-1 rounded-xs border px-3 outline-none"
-                                    />
-                                    <Button
-                                        variant="tonal"
-                                        onClick={submitManual}
-                                        disabled={!manualValue.trim()}
-                                    >
-                                        Valider
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Button
-                                    variant="text"
-                                    onClick={() => setManualOpen(true)}
-                                    className="mt-1.5 px-0"
-                                >
-                                    Saisir à la main si le code est abîmé
-                                </Button>
-                            )
-                        ) : (
-                            onManualEntry && (
-                                <Button
-                                    variant="text"
-                                    onClick={onManualEntry}
-                                    className="mt-1.5 px-0"
-                                >
-                                    Saisir à la main si le code est abîmé
-                                </Button>
-                            )
-                        )}
                     </>
                 ) : (
                     <>
@@ -357,6 +311,53 @@ const ScanView: React.FC<ScanViewProps> = ({
                             </Button>
                         )}
                     </>
+                )}
+
+                {/* **« Saisir à la main » vaut pour les deux modes** — 17.3 : *« un code
+                    abîmé ne se scanne pas »*, et cette vue ne décode rien par contrat.
+                    Elle ne s'affichait que dans le mode simple : en **mode lot**, celui
+                    de la campagne d'inventaire, l'écran de scan n'offrait donc aucune
+                    façon d'enregistrer une lecture. Le seul geste de 16.2 était mort. */}
+                {onManualSubmit ? (
+                    manualOpen ? (
+                        <div className="mt-2 flex gap-2">
+                            <input
+                                autoFocus
+                                value={manualValue}
+                                onChange={(event) => setManualValue(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        submitManual();
+                                    }
+                                }}
+                                aria-label="Code lu sur l’étiquette"
+                                placeholder="le code lu sur l’étiquette"
+                                className="border-outline-variant bg-surface text-body-large text-on-surface focus:border-primary min-h-12 min-w-0 flex-1 rounded-xs border px-3 outline-none"
+                            />
+                            <Button
+                                variant="tonal"
+                                onClick={submitManual}
+                                disabled={!manualValue.trim()}
+                            >
+                                Valider
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button
+                            variant="text"
+                            onClick={() => setManualOpen(true)}
+                            className="mt-1.5 px-0"
+                        >
+                            Saisir à la main si le code est abîmé
+                        </Button>
+                    )
+                ) : (
+                    onManualEntry && (
+                        <Button variant="text" onClick={onManualEntry} className="mt-1.5 px-0">
+                            Saisir à la main si le code est abîmé
+                        </Button>
+                    )
                 )}
             </div>
         </div>

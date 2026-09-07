@@ -1,5 +1,7 @@
 import React, { forwardRef } from 'react';
 
+import { MAX_IMPORT_FILE_BYTES, partitionBySize, rejectionMessage } from '../../lib/fileImport';
+
 /**
  * **Le champ de fichier caché**, et rien d'autre.
  *
@@ -13,16 +15,24 @@ import React, { forwardRef } from 'react';
  *   `unknown[]` : la lecture passe par `item(i)` ;
  * - sans remise à zéro de `value`, **rechoisir le même fichier ne déclenche rien** —
  *   l'événement `change` n'a rien changé.
+ *
+ * **La borne de 17.10 s'applique ici aussi** : 5 Mo par fichier. Un fichier au-delà
+ * n'est pas remis à l'appelant, et `onReject` dit lequel et pourquoi — un refus muet
+ * laisserait croire à une pièce jointe qui n'existe pas.
  */
 interface FilePickerProps {
     accept?: string;
     multiple?: boolean;
     /** Les noms des fichiers choisis. Le produit ne stocke pas les fichiers eux-mêmes. */
     onFiles: (names: string[], files: File[]) => void;
+    /** Ce que la borne a écarté, en une phrase prête à lire. */
+    onReject?: (message: string) => void;
+    /** La borne de 17.10 — 5 Mo par défaut. */
+    maxSize?: number;
 }
 
 const FilePicker = forwardRef<HTMLInputElement, FilePickerProps>(
-    ({ accept, multiple = false, onFiles }, ref) => (
+    ({ accept, multiple = false, onFiles, onReject, maxSize = MAX_IMPORT_FILE_BYTES }, ref) => (
         <input
             ref={ref}
             type="file"
@@ -36,10 +46,15 @@ const FilePicker = forwardRef<HTMLInputElement, FilePickerProps>(
                     const file = picked?.item(index);
                     if (file) files.push(file);
                 }
-                onFiles(
-                    files.map((file) => file.name),
-                    files,
-                );
+                const { accepted, rejected } = partitionBySize(files, maxSize);
+                const refus = rejectionMessage(rejected, maxSize);
+                if (refus) onReject?.(refus);
+                if (accepted.length > 0) {
+                    onFiles(
+                        accepted.map((file) => file.name),
+                        accepted,
+                    );
+                }
                 event.target.value = '';
             }}
         />

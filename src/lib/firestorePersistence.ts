@@ -18,9 +18,7 @@ import { collection, doc, getDoc, getDocs, setDoc, type Firestore } from 'fireba
 
 function stripUndefined<T>(value: T): T {
     if (Array.isArray(value)) {
-        return value
-            .map((item) => stripUndefined(item))
-            .filter((item) => item !== undefined) as T;
+        return value.map((item) => stripUndefined(item)).filter((item) => item !== undefined) as T;
     }
 
     if (value && typeof value === 'object') {
@@ -79,6 +77,38 @@ export async function saveCollectionDocs<T extends object>(
             }),
         ),
     );
+}
+
+/**
+ * **Ce qui a changé depuis la dernière écriture** — et rien d'autre.
+ *
+ * `saveCollectionDocs` réécrivait la collection entière à chaque changement d'état :
+ * confirmer une réception, c'est modifier **un** équipement, et cela écrivait les 257
+ * documents du parc. Dix gestes de test suffisaient à consommer le budget quotidien du
+ * plan gratuit, et Firestore répondait alors `RESOURCE_EXHAUSTED` à toute lecture —
+ * l'application repartait sur ses données de démonstration, qui se mélangeaient à
+ * l'inventaire réel. C'est le défaut relevé le 06/09.
+ *
+ * L'empreinte est le document sérialisé : deux rendus qui produisent le même objet
+ * n'écrivent rien.
+ */
+export function documentsModifies<T extends object>(
+    items: readonly T[],
+    empreintes: Map<string, string>,
+    getId: (item: T) => string | undefined = (item) => (item as { id?: string }).id,
+): { aEcrire: T[]; empreintes: Map<string, string> } {
+    const prochaines = new Map<string, string>();
+    const aEcrire: T[] = [];
+
+    for (const item of items) {
+        const id = getId(item);
+        if (typeof id !== 'string' || id.length === 0) continue;
+        const empreinte = JSON.stringify(stripUndefined(item));
+        prochaines.set(id, empreinte);
+        if (empreintes.get(id) !== empreinte) aEcrire.push(item);
+    }
+
+    return { aEcrire, empreintes: prochaines };
 }
 
 export async function loadSingleDoc<T extends object>(

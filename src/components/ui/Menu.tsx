@@ -44,13 +44,12 @@ const Menu: React.FC<MenuProps> = ({
     align = 'end',
     placement = 'bottom',
     /*
-     §2.13 — un seul composant, une seule largeur : **262 px**. La valeur était une
-     fourchette (`min-w-[112px] max-w-[280px]`), donc la largeur suivait le contenu :
-     cinq écrans ouvraient le même menu à cinq largeurs, et son bord se déplaçait
-     selon l'endroit d'où on l'ouvrait. Un seul appelant posait 262 en dur ; les
-     quatre autres dérivaient. Corrigé le 20/08.
+     `menus.css` du projet design — la feuille partagée des menus : **`min-width:236px`**.
+     Une largeur *fixe* de 262 avait été posée le 20/08 pour que le bord ne danse pas
+     d'un écran à l'autre ; le plancher règle le même problème sans couper un libellé
+     long ni étirer un menu de deux mots.
   */
-    widthClassName = 'w-[262px] max-w-[calc(100vw-32px)]',
+    widthClassName = 'min-w-[236px] max-w-[calc(100vw-32px)]',
     className,
 }) => {
     const [open, setOpen] = useState(false);
@@ -81,10 +80,19 @@ const Menu: React.FC<MenuProps> = ({
         }
     }, []);
 
-    const openMenu = useCallback(() => {
-        setOpen(true);
-        setHighlightedIndex(firstEnabled);
-    }, [firstEnabled]);
+    /**
+     * **Ouvert au doigt, aucun acte n'est désigné.** Le menu allumait sa première entrée
+     * quelle que soit la façon dont on l'ouvrait : au tap, cette rangée grisée se lit
+     * comme un choix déjà fait — et c'est le premier acte de la liste, souvent le plus
+     * engageant. Le clavier, lui, a besoin d'un point de départ : il le garde.
+     */
+    const openMenu = useCallback(
+        (parLeClavier = false) => {
+            setOpen(true);
+            setHighlightedIndex(parLeClavier ? firstEnabled : -1);
+        },
+        [firstEnabled],
+    );
 
     useEffect(() => {
         if (!open) return;
@@ -192,7 +200,7 @@ const Menu: React.FC<MenuProps> = ({
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
-                    openMenu();
+                    openMenu(true);
                     break;
                 case 'ArrowUp':
                     event.preventDefault();
@@ -205,7 +213,7 @@ const Menu: React.FC<MenuProps> = ({
                     if (open) {
                         closeMenu(false);
                     } else {
-                        openMenu();
+                        openMenu(true);
                     }
                     break;
                 default:
@@ -226,10 +234,19 @@ const Menu: React.FC<MenuProps> = ({
                     aria-labelledby={triggerId}
                     onKeyDown={onMenuKeyDown}
                     className={cn(
-                        // Surface flottante : elle prend le cran de surface (R11), comme la carte et la feuille.
-                        'border-outline-variant bg-surface-container shadow-elevation-3 absolute z-50 rounded-lg border py-1',
+                        /* `.menu` de `menus.css` — **la surface, pas le creux**, rayon 8,
+                           une seule ombre (`0 8px 24px rgba(10,25,29,.2)`) et **aucun
+                           filet** : la planche n'en déclare pas, et le filet doublait le
+                           bord de l'ombre. Intérieur `8 0` : les rangées vont d'un bord à
+                           l'autre, c'est leur propre padding qui les rentre. */
+                        'bg-surface absolute z-50 overflow-hidden rounded-lg py-2 shadow-[0_8px_24px_rgba(10,25,29,0.2)]',
                         'animate-in fade-in zoom-in-95 duration-short4',
-                        placement === 'top' ? 'bottom-full mb-2' : 'mt-2',
+                        /* `.menu.tr{top:52px}` — **la liste s'ouvre sous la barre**,
+                           pas dessus. Sans `top-full`, une boîte absolue sans `top`
+                           prend sa position statique : dans un conteneur `flex` aligné
+                           au centre, c'est le haut du conteneur — et le menu recouvrait
+                           le titre et le retour de la barre de 56 qu'il surmonte. */
+                        placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-1',
                         widthClassName,
                         align === 'end'
                             ? placement === 'top'
@@ -243,20 +260,20 @@ const Menu: React.FC<MenuProps> = ({
                 >
                     {title && (
                         <>
-                            <div className="px-4 py-2">
-                                <p className="text-label-small text-on-surface-variant tracking-widest uppercase">
-                                    {title}
-                                </p>
-                            </div>
-                            <Divider />
+                            {/* `.menu .cap` — 12 sur 16, encre tertiaire, intérieur
+                                `6 16 8`. Ni capitales ni interlettrage : c'est une
+                                légende, pas une étiquette de section. */}
+                            <p className="text-text-muted px-4 pt-1.5 pb-2 text-[12px] leading-4">
+                                {title}
+                            </p>
                         </>
                     )}
 
                     {items.map((item, index) => (
                         <React.Fragment key={item.id}>
-                            {item.dividerBefore && (
-                                <Divider className="mx-2 my-1" variant="middle" />
-                            )}
+                            {/* `.menu .sep{height:1px;margin:8px 0}` — **pleine largeur** :
+                                il sépare deux groupes d'actes, il n'encadre pas une liste. */}
+                            {item.dividerBefore && <Divider className="my-2" />}
                             <button
                                 ref={(element) => {
                                     itemRefs.current[index] = element;
@@ -275,13 +292,23 @@ const Menu: React.FC<MenuProps> = ({
                                     closeMenu();
                                 }}
                                 className={cn(
-                                    'group text-body-medium duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-3 text-left transition-[color,background-color,opacity] outline-none',
-                                    item.description ? 'min-h-[52px] py-2' : 'h-12',
+                                    /* `.menu .mi` — **16 sur 24**, intérieur `8 16`,
+                                       gouttière 12, 48 de haut. Elle tenait
+                                       `text-body-medium`, c'est-à-dire **13 sur 19** :
+                                       trois marches sous ce que la feuille partagée
+                                       déclare, dans le seul endroit du produit où l'on
+                                       choisit un acte à l'aveugle du bout du pouce. */
+                                    'group duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-4 py-2 text-left text-[16px] leading-6 transition-[color,background-color,opacity] outline-none',
+                                    item.description ? 'min-h-[56px]' : 'min-h-12',
                                     item.selected &&
                                         'bg-surface-container font-medium text-[var(--tk-color-nav-active)]',
                                     'focus-visible:ring-focus-ring focus-visible:ring-2 focus-visible:ring-inset',
+                                    /* `.menu .mi.dg` de la feuille partagée — le
+                                       rouge **posé sur teinte**, plus sombre que le rouge
+                                       d'alerte : un acte destructeur dans une liste se
+                                       lit, il ne clignote pas. */
                                     item.destructive && !item.disabled
-                                        ? 'text-error'
+                                        ? 'text-on-tint-danger'
                                         : 'text-on-surface',
                                     highlightedIndex === index && !item.disabled
                                         ? 'bg-on-surface/[0.12]'
@@ -291,11 +318,24 @@ const Menu: React.FC<MenuProps> = ({
                                         : 'cursor-pointer',
                                 )}
                             >
-                                {item.icon && <MaterialIcon name={item.icon} size={20} />}
+                                {item.icon && (
+                                    /* `.menu .mi .ic` prend l'encre secondaire — le glyphe ne
+                                       prend la couleur du libellé que sur un acte
+                                       destructeur (`.dg .ic{color:inherit}`). */
+                                    <MaterialIcon
+                                        name={item.icon}
+                                        size={20}
+                                        className={cn(
+                                            item.destructive && !item.disabled
+                                                ? undefined
+                                                : 'text-on-surface-variant',
+                                        )}
+                                    />
+                                )}
                                 <div className="min-w-0 flex-1">
                                     <span className="block truncate">{item.label}</span>
                                     {item.description && (
-                                        <span className="text-on-surface-variant mt-0.5 block truncate text-[11px] leading-tight font-normal">
+                                        <span className="text-text-muted mt-0.5 block truncate text-[12px] leading-4 font-normal">
                                             {item.description}
                                         </span>
                                     )}

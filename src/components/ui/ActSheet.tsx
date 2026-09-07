@@ -1,6 +1,6 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
-import { X } from '@phosphor-icons/react';
+import { CaretRight, MagnifyingGlass, QrCode, X } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import Button from './Button';
@@ -34,17 +34,53 @@ import { cn } from '../../lib/utils';
  * segment « Code PIN / Signature » que portait l'anatomie contredisait la planche de
  * l'attestation : il est retiré.
  *
- * Ce que le point de départ change, c'est **ce qui est déjà connu** à l'ouverture,
- * jamais la forme : depuis une tâche les blocs 1 et 2 sont remplis, depuis l'accueil
- * rien ne l'est et la feuille s'ouvre sur le choix de l'objet.
+ * ## Ce que le point de départ change : ce qui est déjà connu, jamais la forme
+ *
+ * *Fiche objet* : le bloc 1 est connu, le 2 l'est aussi si une demande validée existe.
+ * *Fiche personne* : le bloc 2 est connu, le 1 se choisit. *Tâche* : les deux sont
+ * connus. **Accueil, FAB, scanner : rien ne l'est, et la feuille s'ouvre sur le choix
+ * du bloc 1** — recherche et scan sur une ligne, l'objet demandé en tête, en bleu.
+ * Tant qu'un bloc se choisit, la feuille n'a **ni attestation ni pied** : il n'y a
+ * encore rien à attester.
  */
 
 /** Une partie nommée — l'objet du bloc 1, la personne du bloc 2. */
 export interface ActParty {
     /** La vignette de 40 : un glyphe, des initiales. */
     vignette?: React.ReactNode;
+    /** La teinte de la vignette. Sans elle, le gris du fond enfoncé. */
+    vignetteTone?: ConsequenceTone;
     title: React.ReactNode;
     subtitle?: React.ReactNode;
+}
+
+/** Une ligne de choix — l'objet, ou la personne, qu'on n'a pas encore désigné. */
+export interface ActChoice {
+    id: string;
+    vignette?: React.ReactNode;
+    /** L'objet demandé passe en tête, sa vignette en bleu. */
+    highlighted?: boolean;
+    title: React.ReactNode;
+    subtitle?: React.ReactNode;
+    /** Le texte sur lequel la recherche porte. */
+    searchText: string;
+}
+
+/** Le choix d'un bloc, dans la feuille — jamais un écran, jamais une étape. */
+export interface ActPicker {
+    /** Le titre de la feuille pendant le choix : « Remettre un équipement ». */
+    title: string;
+    /** Ce qu'on demande, en sous-titre : « Lequel ? », « À qui ? ». */
+    prompt: string;
+    searchPlaceholder: string;
+    /** Le scan n'existe que là où l'objet porte une étiquette. */
+    onScan?: () => void;
+    /** Ce que la liste rassemble : « Disponibles à Lomé Siège ». */
+    groupLabel: string;
+    items: ActChoice[];
+    onPick: (id: string) => void;
+    /** Ce que la feuille dit quand rien ne correspond. */
+    emptyLabel: string;
 }
 
 export type ConsequenceTone = 'bleu' | 'vert' | 'ambre' | 'orange' | 'rouge';
@@ -64,17 +100,31 @@ interface ActSheetProps {
     title: string;
     /** Ce que la personne atteste au juste — « Vous attestez votre geste, pas le sien ». */
     subtitle?: string;
-    /** 1 · l'objet, fixe. */
-    subject: ActParty;
+    /** 1 · l'objet, fixe. `null` quand il reste à choisir. */
+    subject: ActParty | null;
+    /** Le choix du bloc 1, quand l'entrée n'a rien désigné. */
+    subjectPicker?: ActPicker;
     /** 2 · l'autre partie, quand l'acte en a une. */
-    counterparty?: ActParty & { label: string };
+    counterparty?: (ActParty & { label: string }) | null;
+    /** Le choix du bloc 2, quand aucune demande validée ne l'a désignée. */
+    counterpartyPicker?: ActPicker;
     /** 3 · la seule question propre à l'acte. */
     question?: { label: string; children: React.ReactNode };
     /** Qui atteste, et le code de son compte s'il en a défini un. */
     signer: { name: string; pin?: string };
+    /** Le libellé du bloc 4 — « Signature de Karim Diallo » quand l'autre partie signe. */
+    attestationLabel?: string;
     /** 5 · ce que l'acte déclenche. Une ligne, calculée. */
     consequence?: { tone: ConsequenceTone; glyph: PhosphorGlyph; text: React.ReactNode };
+    /** Ce qui se lit avant le bloc 1 — les deux attestations d'un passage de main. */
+    preamble?: React.ReactNode;
     confirmLabel: string;
+    /**
+     * Le ton du verbe. **Le rouge est réservé à l'irréversible** (17.2, C3) et le
+     * sombre au reste : refuser une demande ne détruit rien — le demandeur peut
+     * redéposer —, donc « Refuser » est sombre, pas rouge (06.5).
+     */
+    confirmVariant?: 'filled' | 'tonal' | 'danger';
     /** « Plus tard » quand l'acte vient d'une tâche, « Annuler » sinon. */
     cancelLabel?: string;
     onConfirm: (method: AttestationMethod) => void;
@@ -89,11 +139,16 @@ const ActSheet: React.FC<ActSheetProps> = ({
     title,
     subtitle,
     subject,
+    subjectPicker,
     counterparty,
+    counterpartyPicker,
     question,
     signer,
+    attestationLabel,
     consequence,
+    preamble,
     confirmLabel,
+    confirmVariant = 'filled',
     cancelLabel = 'Annuler',
     onConfirm,
     isLoading = false,
@@ -104,11 +159,27 @@ const ActSheet: React.FC<ActSheetProps> = ({
         method: signer.pin ? 'pin' : 'signature',
         done: false,
     });
+    const [recherche, setRecherche] = useState('');
 
-    /* Une feuille refermée oublie son attestation : rouverte, elle la redemande. */
+    /* Le bloc qui reste à désigner tient la feuille : tant qu'il n'est pas rempli, il
+       n'y a rien à attester, donc ni bloc 4 ni pied. */
+    const picker = !subject ? subjectPicker : !counterparty ? counterpartyPicker : undefined;
+
+    /*
+     * Une feuille refermée oublie son attestation : rouverte, elle la redemande. **Et
+     * un changement de signataire vaut fermeture** : dans une remise en présence, la
+     * feuille reste ouverte pendant que la main passe de celui qui remet à celui qui
+     * reçoit. Sans cette remise à zéro, le tracé du premier valait pour le second, et
+     * « Il confirme » était actif avant que quiconque ait signé.
+     */
     useEffect(() => {
-        if (!open) setAttestation({ method: signer.pin ? 'pin' : 'signature', done: false });
-    }, [open, signer.pin]);
+        setAttestation({ method: signer.pin ? 'pin' : 'signature', done: false });
+    }, [open, signer.name, signer.pin]);
+
+    /* Un choix fait vide la recherche : le choix suivant repart de la liste entière. */
+    useEffect(() => {
+        setRecherche('');
+    }, [picker?.title, picker?.groupLabel]);
 
     useEffect(() => {
         if (!open) return;
@@ -119,7 +190,32 @@ const ActSheet: React.FC<ActSheetProps> = ({
         return () => document.removeEventListener('keydown', onEscape);
     }, [open, onClose]);
 
+    const resultats = useMemo(() => {
+        if (!picker) return [];
+        const terme = recherche.trim().toLowerCase();
+        const trouves = terme
+            ? picker.items.filter((item) => item.searchText.toLowerCase().includes(terme))
+            : picker.items;
+        /* L'objet demandé est en tête : c'est celui pour lequel on a ouvert la feuille. */
+        return [...trouves].sort(
+            (a, b) => Number(Boolean(b.highlighted)) - Number(Boolean(a.highlighted)),
+        );
+    }, [picker, recherche]);
+
     if (!open) return null;
+
+    const vignetteBox = (party: { vignette?: React.ReactNode; vignetteTone?: ConsequenceTone }) => (
+        <span
+            className={cn(
+                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold',
+                party.vignetteTone
+                    ? TEINTE[party.vignetteTone]
+                    : 'bg-surface-container text-on-surface-variant',
+            )}
+        >
+            {party.vignette}
+        </span>
+    );
 
     const partyRow = (party: ActParty, filled: boolean) => (
         <div
@@ -128,17 +224,10 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 filled ? 'bg-surface-container min-h-14 rounded-[4px] px-3.5 py-2' : 'py-2',
             )}
         >
-            {party.vignette && (
-                <span className="bg-surface-container text-on-surface-variant font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold">
-                    {party.vignette}
-                </span>
-            )}
+            {party.vignette && vignetteBox(party)}
             <span className="min-w-0 flex-1">
                 <span
-                    className={cn(
-                        'block truncate text-[16px] leading-6',
-                        filled && 'font-medium',
-                    )}
+                    className={cn('block truncate text-[16px] leading-6', filled && 'font-medium')}
                 >
                     {party.title}
                 </span>
@@ -163,7 +252,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                className="bg-surface rounded-t-card shadow-elevation-3 animate-in slide-in-from-bottom-4 duration-300 relative flex max-h-[97%] w-full flex-col pb-3"
+                className="bg-surface rounded-t-card shadow-elevation-3 animate-in slide-in-from-bottom-4 relative flex max-h-[97%] w-full flex-col pb-3 duration-300"
             >
                 <span
                     aria-hidden="true"
@@ -177,11 +266,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             id={titleId}
                             className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] text-pretty"
                         >
-                            {title}
+                            {picker ? picker.title : title}
                         </h2>
-                        {subtitle && (
+                        {(picker ? picker.prompt : subtitle) && (
                             <p className="text-on-surface-variant mt-1 text-[14px] leading-5">
-                                {subtitle}
+                                {picker ? picker.prompt : subtitle}
                             </p>
                         )}
                     </div>
@@ -190,80 +279,170 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     </Button>
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
-                    {/* 1 · l'objet */}
-                    {partyRow(subject, false)}
-
-                    {/* 2 · l'autre partie */}
-                    {counterparty && (
-                        <div>
-                            <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
-                                {counterparty.label}
-                            </p>
-                            {partyRow(counterparty, true)}
-                        </div>
-                    )}
-
-                    {/* 3 · la question */}
-                    {question && (
-                        <div>
-                            <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
-                                {question.label}
-                            </p>
-                            {question.children}
-                        </div>
-                    )}
-
-                    {/* 4 · l'attestation — le compte décide de la méthode */}
-                    <Attestation
-                        signerName={signer.name}
-                        signerPin={signer.pin}
-                        onChange={setAttestation}
-                    />
-
-                    {/* 5 · ce que cela déclenche */}
-                    {consequence && (
-                        <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
-                            <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
-                                Ce que cela déclenche
-                            </p>
-                            <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
-                                <span
-                                    className={cn(
-                                        'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',
-                                        TEINTE[consequence.tone],
-                                    )}
+                {picker ? (
+                    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                        {/* La recherche et le scan tiennent sur une ligne. */}
+                        <div className="flex gap-2">
+                            <label className="bg-surface-container flex min-h-12 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
+                                <Icon
+                                    glyph={MagnifyingGlass}
+                                    size={20}
+                                    className="text-on-surface-variant shrink-0"
+                                />
+                                <input
+                                    type="search"
+                                    value={recherche}
+                                    onChange={(event) => setRecherche(event.target.value)}
+                                    placeholder={picker.searchPlaceholder}
+                                    aria-label={picker.searchPlaceholder}
+                                    autoComplete="off"
+                                    className="text-on-surface placeholder:text-text-tertiary min-w-0 flex-1 bg-transparent text-[16px] leading-6 outline-none"
+                                />
+                            </label>
+                            {picker.onScan && (
+                                <button
+                                    type="button"
+                                    onClick={picker.onScan}
+                                    aria-label="Scanner l'étiquette"
+                                    className="bg-inverse-surface text-inverse-on-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px]"
                                 >
-                                    <Icon glyph={consequence.glyph} size={18} />
-                                </span>
-                                <span className="min-w-0 flex-1">{consequence.text}</span>
-                            </p>
+                                    <Icon glyph={QrCode} size={20} />
+                                </button>
+                            )}
                         </div>
-                    )}
 
-                    {error && <InlineError>{error}</InlineError>}
-                </div>
+                        <div>
+                            <p className="text-on-surface-variant mb-2 flex items-baseline justify-between gap-3 text-[12px] leading-4 font-medium">
+                                <span>{picker.groupLabel}</span>
+                                <span className="text-text-tertiary font-normal tabular-nums">
+                                    {resultats.length}
+                                </span>
+                            </p>
 
-                {/* 6 · le verbe */}
-                <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4">
-                    <Button
-                        variant="ghost"
-                        onClick={onClose}
-                        disabled={isLoading}
-                        className="!rounded-[4px]"
-                    >
-                        {cancelLabel}
-                    </Button>
-                    <Button
-                        variant="filled"
-                        onClick={() => onConfirm(attestation.method)}
-                        disabled={!attestation.done || isLoading}
-                        loading={isLoading}
-                        className="!rounded-[4px]"
-                    >
-                        {error ? 'Réessayer' : confirmLabel}
-                    </Button>
-                </div>
+                            {resultats.length === 0 ? (
+                                <p className="text-on-surface-variant py-2 text-[14px] leading-5">
+                                    {picker.emptyLabel}
+                                </p>
+                            ) : (
+                                resultats.map((item, index) => (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => picker.onPick(item.id)}
+                                        className={cn(
+                                            'flex min-h-14 w-full items-center gap-3 py-2 text-left',
+                                            index > 0 && 'border-outline-variant border-t',
+                                        )}
+                                    >
+                                        {item.vignette &&
+                                            vignetteBox({
+                                                vignette: item.vignette,
+                                                vignetteTone: item.highlighted ? 'bleu' : undefined,
+                                            })}
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-[16px] leading-6">
+                                                {item.title}
+                                            </span>
+                                            {item.subtitle && (
+                                                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                                    {item.subtitle}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <Icon
+                                            glyph={CaretRight}
+                                            size={20}
+                                            className="text-text-tertiary shrink-0"
+                                        />
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                            {preamble}
+
+                            {/* 1 · l'objet */}
+                            {subject && partyRow(subject, false)}
+
+                            {/* 2 · l'autre partie */}
+                            {counterparty && (
+                                <div>
+                                    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                                        {counterparty.label}
+                                    </p>
+                                    {partyRow(counterparty, true)}
+                                </div>
+                            )}
+
+                            {/* 3 · la question */}
+                            {question && (
+                                <div>
+                                    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                                        {question.label}
+                                    </p>
+                                    {question.children}
+                                </div>
+                            )}
+
+                            {/* 4 · l'attestation — le compte décide de la méthode */}
+                            <Attestation
+                                /* Le bloc entier repart : le pavé du précédent
+                                   signataire ne doit pas rester à l'écran. */
+                                key={signer.name}
+                                signerName={signer.name}
+                                signerPin={signer.pin}
+                                label={attestationLabel}
+                                onChange={setAttestation}
+                            />
+
+                            {/* 5 · ce que cela déclenche */}
+                            {consequence && (
+                                <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
+                                    <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                                        Ce que cela déclenche
+                                    </p>
+                                    <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                                        <span
+                                            className={cn(
+                                                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',
+                                                TEINTE[consequence.tone],
+                                            )}
+                                        >
+                                            <Icon glyph={consequence.glyph} size={18} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">{consequence.text}</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            {error && <InlineError>{error}</InlineError>}
+                        </div>
+
+                        {/* 6 · le verbe */}
+                        <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                            <Button
+                                variant="ghost"
+                                onClick={onClose}
+                                disabled={isLoading}
+                                className="!rounded-[4px]"
+                            >
+                                {cancelLabel}
+                            </Button>
+                            <Button
+                                variant={confirmVariant}
+                                onClick={() => onConfirm(attestation.method)}
+                                disabled={!attestation.done || isLoading}
+                                loading={isLoading}
+                                className="!rounded-[4px]"
+                            >
+                                {error ? 'Réessayer' : confirmLabel}
+                            </Button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

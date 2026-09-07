@@ -3,6 +3,8 @@ import { CaretRight, Info, Plus, Warning } from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
+import DetailHero from '../../../components/ui/DetailHero';
+import Thumbnail from '../../../components/ui/Thumbnail';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -98,15 +100,33 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
 
     return (
         <DetailTemplate
-            /* 09.1 ne dessine pas de héro sur la fiche d'un type : la barre d'identité,
-               puis les cartes. Le produit ouvrait sur un héro inversé dont le porte-voix
-               était **le nombre d'actifs** — le seul chiffre que la planche renvoie
-               ailleurs : *« les actifs ne sont pas listés ici : ils sont dans 04.1, et un
-               second inventaire est une seconde vérité »*. Ce que la fiche a à dire tient
-               dans ses trois cartes : ce que le type est, ce qu'il coûte dans le temps,
-               et ses modèles. */
-            code={displayName}
+            code="Type"
             onBack={onBack}
+            /*
+             * **La passe sobre du 03/09 redonne un héro à la fiche d'un type.** Le
+             * portage précédent l'avait retiré, sur une lecture antérieure de 09.1 ; la
+             * planche courante le dessine, et lui donne exactement deux mesures : les
+             * modèles et les actifs au parc. *« Le héro dit l'identité et les deux
+             * comptes. »*
+             *
+             * Le compte d'actifs n'est pas une liste : *« les actifs ne sont pas listés
+             * ici, ils sont dans 04.1, et un second inventaire est une seconde
+             * vérité »*. Un chiffre n'est pas un inventaire.
+             */
+            hero={
+                <DetailHero
+                    label={family || 'Sans famille'}
+                    subject={displayName}
+                    metrics={[
+                        {
+                            value: categoryModels.length,
+                            label: categoryModels.length > 1 ? 'modèles' : 'modèle',
+                        },
+                        { value: categoryEquipment.length, label: 'actifs au parc' },
+                    ]}
+                    metricsStyle="boxes"
+                />
+            }
         >
             {/* Section 1 : Caractéristiques du type (Planche 09.1) */}
             <section className="bg-surface shadow-elevation-1 divide-outline-variant divide-y rounded-lg p-4">
@@ -201,20 +221,19 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                 <ListRow
                                     key={model.id}
                                     vignette={
-                                        model.image ? (
-                                            <img
-                                                src={model.image}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="text-[15px] font-medium">
-                                                {(model.brand || model.name)
-                                                    .trim()
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                            </span>
-                                        )
+                                        <Thumbnail
+                                            src={model.image}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                            fallback={
+                                                <span className="text-[15px] font-medium">
+                                                    {(model.brand || model.name)
+                                                        .trim()
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </span>
+                                            }
+                                        />
                                     }
                                     title={model.name}
                                     type={model.brand || undefined}

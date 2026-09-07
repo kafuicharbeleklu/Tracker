@@ -30,6 +30,14 @@ export const MEDIA = {
     belowExpandedLandscape: `(max-width: ${BREAKPOINTS.mediumMax}px) and (orientation: landscape)`,
     /** Pointeur principal avec survol (souris/trackpad) — requis pour les actions hover-reveal */
     hoverCapable: '(hover: hover) and (pointer: fine)',
+    /**
+     * La fiche à **deux colonnes** — le héro à gauche, les cartes à droite. Elle vivait
+     * en constante privée de `DetailTemplate`, donc hors de la table ci-dessous : sur une
+     * fenêtre de bureau elle répondait « oui » et le gabarit posait deux colonnes **dans
+     * le cadre de 393 px**. Le héro sortait du cadre à droite et la colonne des cartes
+     * tombait entièrement hors champ : les trois fiches paraissaient vides sous leur héro.
+     */
+    twoColumn: '(min-width: 1280px)',
 } as const;
 
 /**
@@ -70,6 +78,7 @@ export const MOBILE_ONLY_ANSWERS: Partial<Record<string, boolean>> = {
     [MEDIA.expandedUp]: false,
     [MEDIA.landscape]: false,
     [MEDIA.belowExpandedLandscape]: false,
+    [MEDIA.twoColumn]: false,
 };
 
 export type MediaKey = keyof typeof MEDIA;

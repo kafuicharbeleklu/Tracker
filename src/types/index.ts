@@ -22,6 +22,7 @@ export type ViewType =
     | 'edit_user'
     | 'import_users'
     | 'new_request'
+    | 'approval_details'
     | 'management'
     | 'rbac'
     | 'add_category'
@@ -341,6 +342,14 @@ export interface Equipment {
     // Location
     country?: string;
     site?: string;
+    /**
+     * **Le local du site** — la salle, l'étage, le bâtiment. C'est le périmètre du
+     * deuxième niveau de 16.1 : *« un comptage physique compte ce qui est dans un
+     * lieu »*, et un site un peu grand se compte salle par salle. Le tableur le porte
+     * dans sa colonne `Emplacement` ; il finissait en note de texte libre, où rien ne
+     * pouvait le lire.
+     */
+    local?: string;
     department?: string;
 
     // Notes
@@ -516,6 +525,12 @@ export interface Approval {
         actorId: string;
         actorName: string; // Snapshot pour historique
         at: string; // ISO 8601
+        /**
+         * **Par quelle méthode** la décision a été attestée — « code PIN », « signature ».
+         * 06.2 le réclame au même titre que l'auteur et l'heure, et 06.5 l'affiche dans
+         * « La décision » : sans lui, la trace dit qui et quand, jamais comment.
+         */
+        method?: string;
     };
 
     // Dates
@@ -630,14 +645,21 @@ export interface AgentCheckInResult {
     message: string;
 }
 
-export type AuditScanResolution = 'found_in_service' | 'found_out_of_service' | 'created';
+/**
+ * **Un scan d'inventaire se résout contre un lieu, pas contre un service** (16.1, passe
+ * du 07/09). Le périmètre d'une campagne est un site, ou un local quand le site en a :
+ * comparer l'actif scanné au *service* du périmètre ne pouvait plus rien trancher, et
+ * l'événement écrit portait un `scopeService` que la vue globale ne lisait plus.
+ */
+export type AuditScanResolution = 'found_in_place' | 'found_out_of_place' | 'created';
 
 export interface AuditScanResult {
     ok: boolean;
     resolution?: AuditScanResolution;
     equipmentId?: string;
     equipmentName?: string;
-    serviceMatches?: boolean;
+    /** L'actif est-il bien là où le périmètre l'attendait ? */
+    placeMatches?: boolean;
     wasUpdated?: boolean;
     message: string;
 }
