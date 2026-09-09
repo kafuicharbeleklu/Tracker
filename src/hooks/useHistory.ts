@@ -67,10 +67,11 @@ export const useHistory = () => {
 
                 // Équipements de son équipe
                 if (event.targetType === 'EQUIPMENT') {
-                    if (
-                        event.metadata?.beneficiaryId &&
-                        teamUserIds.includes(event.metadata.beneficiaryId)
-                    )
+                    /* `metadata` est un sac de `unknown` : la valeur se lit, elle ne se
+                       suppose pas — c'est la même précaution que `readMetadataString`
+                       prend dans `lib/reports.ts`. */
+                    const beneficiaire = event.metadata?.beneficiaryId;
+                    if (typeof beneficiaire === 'string' && teamUserIds.includes(beneficiaire))
                         return true;
                     const eq = equipment.find((item) => item.id === event.targetId);
                     return Boolean(eq?.user?.id && teamUserIds.includes(eq.user.id));

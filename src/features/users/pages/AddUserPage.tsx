@@ -1,13 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-    Buildings,
-    EnvelopeSimple,
-    Eye,
-    Key,
-    LockSimple,
-    NotePencil,
-    User as UserGlyph,
-} from '@phosphor-icons/react';
+import { EnvelopeSimple, LockSimple } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -250,10 +242,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 })
                 .catch((err) => {
                     console.error('Failed to invite user to Auth System', err);
-                    showToast(
-                        "Attention: L'utilisateur a été créé localement mais l'invitation Auth a échoué.",
-                        'warning',
-                    );
+                    showToast("Compte créé, mais l'invitation n'est pas partie.", 'warning');
                 });
 
             // Notification Feedback Spécifique
@@ -262,10 +251,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                     users.find((u) => u.id === formData.managerId)?.name || 'Le manager';
                 // Toast étendu pour confirmer la notification
                 setTimeout(() => {
-                    showToast(
-                        `Utilisateur créé et invitation envoyée. Notification manager transmise à ${managerName}.`,
-                        'success',
-                    );
+                    showToast(`Compte créé, invitation envoyée à ${managerName}.`, 'success');
                 }, 800);
             } else {
                 showToast('Utilisateur créé et invitation envoyée par e-mail.', 'success');
@@ -319,7 +305,6 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
     return (
         <FullScreenFormLayout
             title="Modifier la fiche"
-            subtitle={`${formData.name || 'Compte'}${editedUser?.status === 'pending' ? ' · en attente' : ''}`}
             onCancel={onCancel}
             onSave={handleSubmit}
             saveLabel="Enregistrer"
@@ -328,7 +313,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         >
             <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
                 {/* ── Identité ─────────────────────────────────────────────────── */}
-                <FormSection title="Identité" glyph={UserGlyph} tint="bleu">
+                <FormSection title="Identité">
                     <div>
                         <FieldLabel>Nom</FieldLabel>
                         <InputField
@@ -364,7 +349,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 </FormSection>
 
                 {/* ── Organisation ─────────────────────────────────────────────── */}
-                <FormSection title="Organisation" glyph={Buildings} tint="vert">
+                <FormSection title="Organisation">
                     <div className="flex gap-3">
                         <div className="min-w-0 flex-1">
                             <FieldLabel>Pays</FieldLabel>
@@ -437,7 +422,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 </FormSection>
 
                 {/* ── Accès ────────────────────────────────────────────────────── */}
-                <FormSection title="Accès" glyph={Key} tint="ambre">
+                <FormSection title="Accès">
                     <div>
                         <FieldLabel>Rôle</FieldLabel>
                         <SelectField
@@ -466,12 +451,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 </FormSection>
 
                 {/* ── Note ─────────────────────────────────────────────────────── */}
-                <FormSection
-                    title="Note"
-                    glyph={NotePencil}
-                    tint="orange"
-                    caption="gestionnaires seulement"
-                >
+                <FormSection title="Note" caption="gestionnaires seulement">
                     <TextArea
                         value={formData.note}
                         onChange={(event) =>
@@ -484,7 +464,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 </FormSection>
 
                 {/* ── Observé ──────────────────────────────────────────────────── */}
-                <FormSection title="Observé" glyph={Eye} tint="bleu" caption="jamais saisi">
+                <FormSection title="Observé" caption="jamais saisi">
                     <div className="flex flex-col">
                         <div className="flex min-h-12 items-center justify-between gap-4 py-3 text-[16px] leading-6">
                             <span className="text-on-surface-variant">Créé le</span>

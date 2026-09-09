@@ -260,10 +260,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
             });
 
             if (suite === 'WAITING_DOTATION_APPROVAL') {
-                showToast(
-                    'Matériel sélectionné. En attente de validation par le Manager.',
-                    'success',
-                );
+                showToast('En attente de validation par le manager.', 'success');
                 onClose();
                 return;
             }

@@ -125,6 +125,20 @@ interface RuleGroupRowProps {
      * Une rangée qui renvoie ailleurs doit le dire avant le clic, pas après.
      */
     external?: boolean;
+    /**
+     * **La rangée choisit, elle n'ouvre pas** — et perd donc son chevron. Une liste de
+     * paliers (3 · 6 · 12 · 24 mois) est un choix posé sur place : le `>` y promettait
+     * un écran de plus à chaque ligne, et l'état retenu est déjà dit par le glyphe et
+     * le mot (I3). C'est la même règle que pour la feuille « Plus », dont les flèches
+     * ont sauté le 06/09.
+     */
+    choice?: boolean;
+    /**
+     * **La valeur est une quantité, pas un appui** — `.v.q` de 11.1 la pose en chasse
+     * normale sur l'encre tertiaire. Le nombre de porteurs d'un rôle se lit, il ne se
+     * martèle pas ; le graisser le mettrait au même rang que le nom du rôle.
+     */
+    quiet?: boolean;
     className?: string;
 }
 
@@ -137,14 +151,23 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     trailing,
     onOpen,
     external = false,
+    choice = false,
+    quiet = false,
     className,
 }) => {
     const content = (
         <>
             <span className="min-w-0 flex-1">
                 {/* `.row .t` — 16 sur 24, **chasse normale** : c'est le sujet de la
-                    rangée, pas son appui. `.row .s` le qualifie en 14 sur 20. */}
-                <span className="text-on-surface block text-[16px] leading-6">{title}</span>
+                    rangée, pas son appui. `.row .s` le qualifie en 14 sur 20.
+                    Le titre **tient sur une ligne** — 11.1 écrit `white-space:nowrap;
+                    overflow:hidden;text-overflow:ellipsis` sur `.row .t`, et sans
+                    cela « Compte et sécurité » passait à la ligne dès qu'une valeur
+                    un peu longue lui prenait sa place : la rangée de 60 px en faisait
+                    98, et les quatre groupes ne tenaient plus dans un écran. */}
+                <span className="text-on-surface block truncate text-[16px] leading-6">
+                    {title}
+                </span>
                 {subtitle && (
                     <span className="text-on-surface-variant block text-[14px] leading-5">
                         {subtitle}
@@ -163,8 +186,9 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             {value !== undefined && value !== null && (
                 <span
                     className={cn(
-                        'shrink-0 text-right text-[16px] leading-6 font-medium whitespace-nowrap',
-                        valueTone ? TONE_CLASS[valueTone] : 'text-on-surface',
+                        'shrink-0 text-right text-[16px] leading-6 whitespace-nowrap',
+                        quiet ? 'text-text-muted font-normal' : 'font-medium',
+                        valueTone ? TONE_CLASS[valueTone] : !quiet && 'text-on-surface',
                     )}
                 >
                     {value}
@@ -173,7 +197,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
 
             {trailing && <span className="shrink-0">{trailing}</span>}
 
-            {onOpen && (
+            {onOpen && !choice && (
                 <Icon
                     glyph={external ? ArrowSquareOut : CaretRight}
                     size={20}
@@ -186,7 +210,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     /* `.row` — 60 de haut, gouttière 16, intérieur vertical 10, et le filet qui la
        sépare de la précédente. Elle valait 56 avec 12 de gouttière. */
     const shell = cn(
-        'flex min-h-[60px] w-full items-center gap-4 border-t border-outline-variant py-2.5 text-left first:border-t-0',
+        'flex min-h-[60px] w-full items-center gap-3 border-t border-outline-variant py-2.5 text-left first:border-t-0',
         className,
     );
 

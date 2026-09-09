@@ -45,7 +45,10 @@ const normalizeUserForDemo = (user: User): User => {
     };
 };
 
-export const mockAllUsersExtended: User[] = [
+/* Le littéral **avant** `.map` n'a pas de type de destination : sans `as User[]`,
+   TypeScript en déduit une union de formes littérales, et `normalizeUserForDemo`
+   n'accepte plus son propre tableau. */
+export const mockAllUsersExtended: User[] = ([
     {
         id: '1',
         name: 'Alice SuperAdmin',
@@ -169,7 +172,7 @@ export const mockAllUsersExtended: User[] = [
         rbacDirectPermissions: [{ key: 'action.reports.export', effect: 'allow', access: 'write' }],
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lea',
     },
-].map(normalizeUserForDemo);
+] as User[]).map(normalizeUserForDemo);
 
 // --- Equipment Data with Financials ---
 const WARRANTY_YEARS_BY_TYPE: Record<string, number> = {
@@ -277,7 +280,7 @@ const normalizeEquipmentForDemo = (item: Equipment): Equipment => {
     };
 };
 
-export const mockAllEquipment: Equipment[] = [
+export const mockAllEquipment: Equipment[] = ([
     {
         id: '1',
         name: 'LPT-HQ-01',
@@ -574,7 +577,7 @@ export const mockAllEquipment: Equipment[] = [
         assignmentStatus: 'CONFIRMED',
         department: 'Marketing Europe',
     },
-].map(normalizeEquipmentForDemo);
+] as Equipment[]).map(normalizeEquipmentForDemo);
 
 // --- Management Data with Defaults ---
 

@@ -1,17 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ChartBar,
     CheckCircle,
-    ClipboardText,
-    CaretRight,
-    Coins,
-    FolderOpen,
-    Gear,
     Laptop,
     List,
     LockKey,
-    MapPin,
-    ShieldCheck,
     SquaresFour,
     UsersThree,
     type Icon as PhosphorGlyph,
@@ -26,6 +18,7 @@ import Icon from '../ui/Icon';
 import {
     DESTINATIONS,
     getDestinationShortLabel,
+    sectionOfView,
     type DestinationId,
 } from '../../constants/destinations';
 
@@ -83,24 +76,6 @@ interface NavigationBarProps {
 }
 
 type NavDestinationId = 'dashboard' | 'equipment' | 'tasks' | 'users' | 'more';
-const MORE_VIEWS: ViewType[] = [
-    'finance',
-    'finance_expenses',
-    'management',
-    'rbac',
-    'add_category',
-    'add_model',
-    'import_models',
-    'category_details',
-    'model_details',
-    'locations',
-    'site_details',
-    'import_locations',
-    'audit',
-    'audit_details',
-    'reports',
-    'settings',
-];
 
 interface BottomNavItem {
     id: NavDestinationId;
@@ -138,81 +113,19 @@ interface MoreGroup {
 }
 
 /**
- * Les glyphes des six sections secondaires, fixés par la planche 17.7. Ils ne
- * vivent pas dans `DESTINATIONS` : le registre porte des noms Material Symbols,
- * consommés par les surfaces qui n'ont pas encore basculé sur Phosphor.
+ * **De la vue courante vers la case de la barre.** Les quatre principales se
+ * reconnaissent à elles-mêmes ; tout ce qui relève d'une autre destination tombe dans
+ * « Plus », qui rouvre alors sur cette rangée-là. La table vit dans le registre : elle
+ * était recopiée ici en deux morceaux — un `if` par famille, puis `MORE_SECTION_OF_VIEW`
+ * — et la barre latérale en tenait un troisième.
  */
-const MORE_GLYPHS: Record<string, PhosphorGlyph> = {
-    finance: Coins,
-    management: FolderOpen,
-    locations: MapPin,
-    audit: ClipboardText,
-    reports: ChartBar,
-    rbac: ShieldCheck,
-    settings: Gear,
-};
-
-/**
- * De la vue courante vers la section secondaire qui la contient — c'est elle que la
- * feuille marque en creux à la réouverture. Une case fourre-tout ne peut pas dire
- * laquelle des six on regarde ; deux surfaces le font et suffisent : la barre de
- * titre nomme la page, et la feuille rouvre sur la rangée en creux.
- */
-const MORE_SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
-    finance: 'finance',
-    finance_expenses: 'finance',
-    management: 'management',
-    add_category: 'management',
-    add_model: 'management',
-    import_models: 'management',
-    category_details: 'management',
-    model_details: 'management',
-    locations: 'locations',
-    site_details: 'locations',
-    import_locations: 'locations',
-    audit: 'audit',
-    audit_details: 'audit',
-    reports: 'reports',
-    rbac: 'rbac',
-    settings: 'settings',
-};
+const PRINCIPALES: NavDestinationId[] = ['dashboard', 'equipment', 'tasks', 'users'];
 
 const resolveBottomNavDestination = (view: ViewType): NavDestinationId | null => {
-    if (
-        view === 'equipment' ||
-        view === 'equipment_details' ||
-        view === 'add_equipment' ||
-        view === 'edit_equipment' ||
-        view === 'import_equipment' ||
-        view === 'assignment_wizard' ||
-        view === 'return_wizard'
-    ) {
-        return 'equipment';
-    }
-
-    if (
-        view === 'users' ||
-        view === 'user_details' ||
-        view === 'add_user' ||
-        view === 'edit_user' ||
-        view === 'import_users'
-    ) {
-        return 'users';
-    }
-
-    if (view === 'tasks' || view === 'new_request') {
-        return 'tasks';
-    }
-
-    if (view === 'dashboard') {
-        return 'dashboard';
-    }
-
-    if (MORE_VIEWS.includes(view)) {
-        return 'more';
-    }
-
-    return null;
+    const section = sectionOfView(view);
+    if (!section) return null;
+    if ((PRINCIPALES as string[]).includes(section)) return section as NavDestinationId;
+    return 'more';
 };
 
 /**
@@ -264,7 +177,9 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
                 </span>
             )}
         </span>
-        <Icon glyph={CaretRight} size={20} className="text-text-tertiary shrink-0" />
+        {/* **Pas de chevron** (arbitrage du 07/09) : dans une feuille où *toutes* les
+            rangées mènent ailleurs, la flèche n'en distingue aucune — elle ne fait que
+            répéter, huit fois, ce que la feuille est. */}
     </button>
 );
 
@@ -296,16 +211,16 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
      * référentiels, le suivi, l'administration — et « Mon compte » ferme la liste. Un
      * groupe vide ne s'affiche pas ; un porteur n'y voit que la dernière rangée.
      *
-     * *Historique* (18.1) manque à « Suivi » : la page n'existe pas encore, et une
-     * rangée qui ne mène nulle part est pire qu'une rangée absente. Elle s'ajoute avec
-     * l'écran, pas avant.
+     * *Historique* (18.1) a rejoint « Suivi » le 07/09, avec sa page. Elle manquait
+     * jusque-là parce qu'*une rangée qui ne mène nulle part est pire qu'une rangée
+     * absente* — la règle tenait, il fallait l'écran.
      */
     const moreGroups: MoreGroup[] = useMemo(() => {
         const row = (id: DestinationId): MoreRow => ({
             id,
             destination: id,
             label: DESTINATIONS[id].label,
-            glyph: MORE_GLYPHS[id],
+            glyph: DESTINATIONS[id].glyph,
             onSelect: () => onViewChange(id),
         });
 
@@ -315,6 +230,9 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
         const suivi: MoreRow[] = [];
         if (permissions.canViewAudit) suivi.push(row('audit'));
+        /* Le journal se lit par qui peut lire les rapports : ce sont les mêmes faits,
+           l'un par nature et par jour, l'autre agrégés. */
+        if (permissions.canViewReports) suivi.push(row('history'));
         if (permissions.canViewFinance) suivi.push(row('finance'));
         if (permissions.canViewReports) suivi.push(row('reports'));
 
@@ -352,7 +270,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         permissions.canViewReports,
     ]);
 
-    const currentSection = MORE_SECTION_OF_VIEW[currentView];
+    const currentSection = sectionOfView(currentView);
 
     const destinations = useMemo(() => {
         const activeId = resolveBottomNavDestination(currentView);

@@ -3,7 +3,10 @@ import {
     ArrowLeft,
     CheckCircle,
     Clock,
+    Key,
+    LockKey,
     ShieldWarning,
+    Signature,
     SignOut,
     Warning,
     type Icon as PhosphorGlyph,
@@ -15,6 +18,10 @@ import InputField from '../../../components/ui/InputField';
 import Toggle from '../../../components/ui/Toggle';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import RuleGroup from '../../../components/ui/RuleGroup';
+import DetailHero from '../../../components/ui/DetailHero';
+import ActionCard from '../../../components/ui/ActionCard';
+import PinField from '../../../components/ui/PinField';
+import { isValidPinFormat, PIN_LENGTH } from '../../../lib/security';
 import type { RuleRowTone } from '../../../components/ui/RuleGroup';
 import Notice from '../../../components/ui/Notice';
 import Reading from '../../../components/layout/Reading';
@@ -22,12 +29,11 @@ import { FileDropzone } from '../../../components/ui/FileDropzone';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { MEDIA } from '../../../constants/breakpoints';
 import { authService } from '../../../services/authService';
 import { parseAgentBatchContent } from '../../../lib/agentCheckin';
 import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
 import { APP_CONFIG } from '../../../config';
+import type { BusinessRuleDecision } from '../../../lib/businessRules';
 import type {
     AgentCheckInPayload,
     AppSettings,
@@ -96,32 +102,105 @@ interface SettingsPageProps {
      * une copie. L'adresse le porte : `/settings/account`.
      */
     initialSection?: 'account';
+    /** Paramètres s'atteint depuis la feuille « Plus » : la barre en garde le retour. */
+    onBack?: () => void;
 }
 
 /** Les vues de l'écran. Chacune est un état de Paramètres, pas une page du produit. */
-type SettingsView = 'index' | 'account' | 'currency' | 'depreciation' | 'sources';
-
-/** Le propriétaire du réglage, écrit sous le titre de la vue — 14.1 `.aid`. */
-const VIEW_OWNER: Record<SettingsView, string | null> = {
-    index: null,
-    account: 'Paramètres · vous',
-    currency: "Paramètres · l'entreprise",
-    depreciation: "Paramètres · l'entreprise",
-    sources: "Paramètres · l'informatique",
-};
+type SettingsView =
+    'index' | 'account' | 'currency' | 'depreciation' | 'inventory' | 'files' | 'sources';
 
 const VIEW_TITLE: Record<SettingsView, string> = {
     index: 'Paramètres',
-    account: 'Compte et sécurité',
+    account: 'Mon compte',
     currency: 'Devise et année fiscale',
     depreciation: 'Amortissement',
+    inventory: "Périodicité de l'inventaire",
+    files: "Taille maximale d'un fichier",
     sources: 'Sources de collecte',
 };
 
-const FISCAL_MONTHS: Array<{ value: string; label: string; short: string }> = [
-    { value: '01', label: '1er janvier', short: '1er janv.' },
-    { value: '04', label: '1er avril', short: '1er avr.' },
-    { value: '09', label: '1er septembre', short: '1er sept.' },
+/**
+ * Les périodes proposées. Un inventaire physique se tient au trimestre, au semestre,
+ * à l'année ou aux deux ans : au-delà, le parc a changé plus que la liste.
+ */
+const INVENTORY_PERIODS = [3, 6, 12, 24];
+
+/**
+ * Les bornes proposées. 5 Mo est l'arbitrage du 06/09 (17.10) ; les trois autres
+ * encadrent ce qu'un tableur d'inventaire et une photo d'incident pèsent réellement.
+ */
+const FILE_LIMITS = [2, 5, 10, 20];
+
+/** Ce que chaque choix veut dire, pour que la durée ne soit pas qu'un chiffre. */
+const PERIOD_SUBTITLES: Record<number, string> = {
+    3: 'Un parc qui bouge tous les jours',
+    6: 'Deux comptages par an',
+    12: 'Le rythme courant d’un inventaire annuel',
+    24: 'Un parc stable, peu de mouvements',
+};
+
+const FILE_LIMIT_SUBTITLES: Record<number, string> = {
+    2: 'Un tableur, pas une photo',
+    5: 'Un tableur et une photo de téléphone',
+    10: 'Une facture scannée, plusieurs pages',
+    20: 'Tout passe, la lecture peut être longue',
+};
+
+/**
+ * L'ordinal se compose : 14.1 écrit `1<sup>er</sup> janv.`. L'exposant rend trois
+ * pixels à la rangée — assez pour que « Devise et année fiscale » ne se coupe plus.
+ */
+const Premier: React.FC = () => (
+    <>
+        1<sup className="text-[0.7em] leading-none">er</sup>
+    </>
+);
+
+const FISCAL_MONTHS: Array<{
+    value: string;
+    label: React.ReactNode;
+    short: React.ReactNode;
+}> = [
+    {
+        value: '01',
+        label: (
+            <>
+                <Premier /> janvier
+            </>
+        ),
+        short: (
+            <>
+                <Premier /> janv.
+            </>
+        ),
+    },
+    {
+        value: '04',
+        label: (
+            <>
+                <Premier /> avril
+            </>
+        ),
+        short: (
+            <>
+                <Premier /> avr.
+            </>
+        ),
+    },
+    {
+        value: '09',
+        label: (
+            <>
+                <Premier /> septembre
+            </>
+        ),
+        short: (
+            <>
+                <Premier /> sept.
+            </>
+        ),
+    },
 ];
 
 const DEPRECIATION_METHODS: Array<{
@@ -166,68 +245,80 @@ const daysSince = (iso: string): number =>
     Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
 
 /**
- * La barre de la vue — `.tbar` de 14.1. Au téléphone elle porte le titre à 22 px ;
- * au rail la destination est déjà écrite à gauche, la barre ne la redit pas (00.4).
+ * La barre de Paramètres — **deux formes, et aucun sous-titre** (R16).
+ *
+ * 14.1 n'écrit pas la même barre sur ses trois colonnes, et la différence n'est pas
+ * cosmétique : l'index est **une liste de destinations**, il porte donc la barre des
+ * listes — `.top`, titre à **28/32** comme Actifs, Catalogue, Emplacements et
+ * Finances. Une sous-vue est **un objet ouvert** : elle porte la barre de fiche —
+ * `.tbar`, le nom du réglage en `.code` à **17/24**, la flèche de retour à gauche.
+ *
+ * Ce qui tombe : la ligne « Paramètres · vous » sous le titre. R16 — *une barre porte
+ * un titre, un étage, jamais un sous-titre* — et le propriétaire du réglage est déjà
+ * dit par le groupe à filets d'où l'on vient (« Vous », « L'entreprise »,
+ * « L'informatique »). La barre le redisait un étage plus haut, dans un corps de
+ * 11 px étiré par `text-label-small`.
  */
 const SettingsBar: React.FC<{
     title: string;
-    owner?: string | null;
     onBack?: () => void;
-}> = ({ title, owner, onBack }) => {
-    const isCompact = useMediaQuery(MEDIA.compact);
+    /** L'index porte la barre de liste ; une sous-vue porte la barre de fiche. */
+    variant: 'liste' | 'fiche';
+}> = ({ title, onBack, variant }) => {
+    const retour = onBack && (
+        <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="shrink-0">
+            <Icon glyph={ArrowLeft} size={24} />
+        </Button>
+    );
 
-    if (isCompact) {
+    if (variant === 'fiche') {
         return (
-            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-5 py-1">
-                {onBack && (
-                    <Button
-                        variant="text"
-                        iconOnly
-                        aria-label="Retour"
-                        onClick={onBack}
-                        className="-ml-2 shrink-0"
-                    >
-                        <Icon glyph={ArrowLeft} size={24} />
-                    </Button>
-                )}
-                <div className="min-w-0 flex-1">
-                    <h1 className="font-brand text-on-surface truncate text-[22px] leading-7 font-semibold tracking-tight">
-                        {title}
-                    </h1>
-                    {owner && (
-                        <p className="text-label-small text-text-secondary truncate">{owner}</p>
-                    )}
-                </div>
+            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
+                {retour}
+                <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                    {title}
+                </h1>
             </div>
         );
     }
 
     return (
-        <div className="px-page flex items-center gap-3 pt-5">
-            {onBack && (
-                <Button
-                    variant="text"
-                    iconOnly
-                    aria-label="Retour"
-                    onClick={onBack}
-                    className="-ml-2 shrink-0"
-                >
-                    <Icon glyph={ArrowLeft} size={24} />
-                </Button>
-            )}
-            <h1 className="font-brand text-on-surface shrink-0 text-[22px] leading-7 font-semibold tracking-tight">
-                {title}
-            </h1>
-            {owner && <span className="text-body-medium text-text-secondary">{owner}</span>}
+        <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+            <div className="flex min-h-12 items-center gap-1">
+                {retour}
+                <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                    {title}
+                </h1>
+            </div>
         </div>
     );
 };
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initialSection }) => {
+/** « Kafui Charbel EKLU » → « KE ». Les deux bouts d'un nom, jamais trois lettres. */
+const initiales = (nom?: string): string => {
+    const mots = (nom ?? '').trim().split(/\s+/).filter(Boolean);
+    if (mots.length === 0) return '?';
+    if (mots.length === 1) return mots[0].slice(0, 2).toUpperCase();
+    return (mots[0][0] + mots[mots.length - 1][0]).toUpperCase();
+};
+
+const SettingsPage: React.FC<SettingsPageProps> = ({
+    onLogout,
+    onNavigate,
+    initialSection,
+    onBack,
+}) => {
     const { showToast } = useToast();
     const { currentUser } = useAuth();
-    const { settings, updateSettings, equipment, categories, detectedDevices, ingestAgentCheckIn } =
-        useData();
+    const {
+        settings,
+        updateSettings,
+        equipment,
+        categories,
+        detectedDevices,
+        ingestAgentCheckIn,
+        setUserPin,
+    } = useData();
 
     const [view, setView] = useState<SettingsView>(initialSection ?? 'index');
 
@@ -235,7 +326,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
     useEffect(() => {
         if (initialSection) setView(initialSection);
     }, [initialSection]);
-    const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
 
     /** La feuille d'une source — le seul endroit de l'écran qui garde un pied. */
     const [openSource, setOpenSource] = useState<AutoCollectionSource | null>(null);
@@ -243,6 +333,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
     const [sourceError, setSourceError] = useState<string | null>(null);
 
     const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
+    const [pinSheetOpen, setPinSheetOpen] = useState(false);
+
+    /**
+     * `.ty` du héro de 07.1 — *« Finances · Lomé Siège · mot de passe local »*. Le
+     * troisième terme dit le **mode de connexion** ; ce produit n'en a qu'un et ne
+     * vérifie rien à l'ouverture, alors l'écrire serait affirmer un fait de sécurité
+     * qui n'existe pas. Restent le service et le site, tous deux portés par la fiche.
+     */
+    const identiteLabel = useMemo(
+        () =>
+            [currentUser?.department, currentUser?.site].filter(Boolean).join(' · ') ||
+            currentUser?.role,
+        [currentUser],
+    );
     const [feedSheetOpen, setFeedSheetOpen] = useState(false);
 
     useEffect(() => {
@@ -274,6 +378,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
             (item) => !item.financial?.depreciationYears && typedWithoutPlan.has(item.type),
         ).length;
     }, [categories, equipment]);
+
+    /**
+     * Combien de lieux la périodicité gouverne. 14.1 écrit *« Donne son sens à “en
+     * retard” sur 6 sites »* : ce n'est pas le nombre de retardataires mais **l'étendue
+     * du réglage**, comme « 14 actifs » sous l'amortissement. Un site sans aucun objet
+     * n'a rien à compter : il n'entre pas dans le compte.
+     */
+    const sitesInventories = useMemo(
+        () =>
+            new Set(
+                equipment.map((item) => (item.site || '').trim()).filter((site) => site.length > 0),
+            ).size,
+        [equipment],
+    );
 
     const typesWithOwnPlan = useMemo(
         () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
@@ -326,9 +444,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
         [detectedDevices],
     );
 
-    const twoFactor: { tone: RuleRowTone; icon: PhosphorGlyph; label: string } = isTwoFactorEnabled
-        ? { tone: 'positive', icon: CheckCircle, label: '2FA active' }
-        : { tone: 'pending', icon: ShieldWarning, label: '2FA inactive' };
+    /**
+     * **L'état que la rangée « Mon compte » porte, c'est celui du code PIN.**
+     *
+     * Elle portait « 2FA active / inactive », lu d'un `useState` local — un fait
+     * inventé à chaque montage, remis à *inactive* au rechargement, et derrière
+     * lequel il n'y avait aucun second facteur. Le code de remise, lui, est **réel**
+     * (`User.pin`, lu par `Attestation`), il décide de la façon dont une remise
+     * s'atteste, et son absence est déjà signalée par la feuille « Plus ».
+     */
+    const codePin: { tone: RuleRowTone; icon: PhosphorGlyph; label: string } = currentUser?.pin
+        ? { tone: 'positive', icon: CheckCircle, label: 'Code PIN défini' }
+        : { tone: 'pending', icon: ShieldWarning, label: 'Code PIN à définir' };
 
     const openSourceSheet = (id: AutoCollectionSource) => {
         setSourceDraft(settings);
@@ -400,10 +527,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
 
         setFeedSheetOpen(false);
         if (accepted && !rejected) {
-            showToast(
-                `${accepted} machine(s) remontée(s) — elles attendent dans Tâches.`,
-                'success',
-            );
+            showToast(`${accepted} remontée(s), en attente dans Tâches.`, 'success');
         } else if (accepted) {
             showToast(`${accepted} remontée(s), ${rejected} rejetée(s).`, 'warning');
         } else {
@@ -417,41 +541,51 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
         <div className="flex min-h-0 w-full flex-1 flex-col">
             <SettingsBar
                 title={VIEW_TITLE[view]}
-                owner={VIEW_OWNER[view]}
-                onBack={view === 'index' ? undefined : goBack}
+                variant={view === 'index' ? 'liste' : 'fiche'}
+                onBack={view === 'index' ? onBack : goBack}
             />
 
-            <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
+            {/* `.page` de 14.1 — `16px 16px 24px`. La gouttière valait 20 : quatre pixels
+                pris de chaque côté à des rangées qui n'en avaient pas de trop. */}
+            <div className="medium:px-page flex-1 overflow-y-auto px-4 pt-4 pb-6">
                 <Reading className="flex flex-col gap-5 pb-16">
                     {view === 'index' && (
                         <>
                             <RuleGroup
-                                header="Ce qui est à vous"
+                                header="Vous"
                                 note="Une seule vue pour ces réglages, atteinte aussi depuis votre avatar. Cette ligne ne les refait pas, elle y mène."
                             >
                                 <RuleGroup.Row
-                                    title="Compte et sécurité"
+                                    title="Mon compte"
                                     /* Le sous-titre **ne répète pas le contenu** : il dit la
                                        conséquence. « Mot de passe, double authentification,
                                        session » énumérait ce qu'il y a derrière la porte —
                                        ce que le chevron dit déjà. */
                                     subtitle={
-                                        isTwoFactorEnabled
-                                            ? 'Un second facteur protège chaque connexion'
-                                            : 'Le mot de passe seul ouvre votre session'
+                                        currentUser?.pin
+                                            ? 'Votre code atteste vos remises'
+                                            : 'Sans code, chaque remise se trace'
                                     }
-                                    status={{ icon: twoFactor.icon, tone: twoFactor.tone }}
-                                    value={twoFactor.label}
-                                    valueTone={twoFactor.tone}
+                                    status={{ icon: codePin.icon, tone: codePin.tone }}
+                                    value={codePin.label}
+                                    valueTone={codePin.tone}
                                     onOpen={() => setView('account')}
                                 />
                             </RuleGroup>
 
-                            <RuleGroup header="Ce qui est à l'entreprise">
+                            <RuleGroup header="L'entreprise">
                                 <RuleGroup.Row
                                     title="Devise et année fiscale"
                                     subtitle="Tout montant du produit s'écrit avec"
-                                    value={`${settings.currency} · ${fiscalMonth.short}`}
+                                    /* 14.1 écrit `XOF · 1<sup>er</sup> janv.` — et
+                                       l'exposant n'est pas un ornement : sans lui la
+                                       valeur prenait trois pixels de trop et coupait
+                                       « Devise et année fisc… ». */
+                                    value={
+                                        <>
+                                            {settings.currency} · {fiscalMonth.short}
+                                        </>
+                                    }
                                     onOpen={() => setView('currency')}
                                 />
                                 <RuleGroup.Row
@@ -464,10 +598,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                     value={`${settings.defaultDepreciationYears} ans`}
                                     onOpen={() => setView('depreciation')}
                                 />
+                                {/* Les deux bornes ajoutées à la planche le 05/09. Elles
+                                    existaient dans le code — l'une nulle part, l'autre en
+                                    dur dans `lib/fileImport.ts` — mais ne se réglaient
+                                    d'aucun écran. */}
+                                <RuleGroup.Row
+                                    title="Périodicité de l'inventaire"
+                                    subtitle={
+                                        sitesInventories > 0
+                                            ? `Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`
+                                            : 'Dit au bout de combien de temps un lieu est à recompter'
+                                    }
+                                    value={`${settings.inventoryPeriodMonths} mois`}
+                                    onOpen={() => setView('inventory')}
+                                />
+                                <RuleGroup.Row
+                                    title="Taille maximale d'un fichier"
+                                    subtitle="Vaut pour tout fichier déposé — tableur, pièce, photo"
+                                    value={`${settings.maxImportFileMb} Mo`}
+                                    onOpen={() => setView('files')}
+                                />
                             </RuleGroup>
 
                             <RuleGroup
-                                header="Ce qui est à l'informatique"
+                                header="L'informatique"
                                 note={
                                     <>
                                         Ce que les sources produisent est{' '}
@@ -513,20 +667,28 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                 )}
                             </RuleGroup>
 
-                            <RuleGroup
-                                header="À propos"
-                                note="Les éléments de démonstration (équipements, utilisateurs) sont restaurés à chaque chargement, y compris après suppression. Vos créations et modifications sont, elles, conservées."
-                            >
+                            {/* La note disait que les objets de démonstration revenaient à
+                                chaque chargement. Le jeu de démonstration a été retiré et le
+                                parc est désormais celui du tableur : la phrase décrivait un
+                                produit qui n'existe plus, et un écran de réglages est le
+                                dernier endroit où l'on peut se permettre de mentir. */}
+                            <RuleGroup header="À propos">
                                 <RuleGroup.Row title="Version" value={APP_CONFIG.version} />
-                                <RuleGroup.Row
-                                    title="Thème"
-                                    subtitle="Clair par décision d'identité — il n'y a pas de mode sombre à attendre"
-                                    value="Clair"
-                                />
+                                {/* 14.1 : `Thème | Clair — identité Neemba`. La décision
+                                    est **dans la valeur**, pas dans une phrase de 69
+                                    signes sous le titre — une rangée d'« À propos » se
+                                    lit, elle ne se plaide pas. */}
+                                <RuleGroup.Row title="Thème" value="Clair — identité Neemba" />
                                 {APP_CONFIG.supportEmail && (
+                                    /* La planche ne met **aucune valeur** sur cette
+                                       rangée : elle mène ailleurs, elle ne se lit pas.
+                                       L'adresse en valeur prenait 155 px pour 88
+                                       disponibles, et le titre partait en « Contacter
+                                       le su… ». Elle passe en sous-titre, où elle
+                                       reste lisible sans disputer la place. */
                                     <RuleGroup.Row
                                         title="Contacter le support"
-                                        value={APP_CONFIG.supportEmail}
+                                        subtitle={APP_CONFIG.supportEmail}
                                         onOpen={() => {
                                             window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
                                         }}
@@ -539,51 +701,72 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
 
                     {view === 'account' && (
                         <>
-                            <RuleGroup header="Qui est connecté">
-                                <RuleGroup.Row
-                                    title={currentUser?.name ?? 'Utilisateur'}
-                                    subtitle={currentUser?.email ?? ''}
-                                    value={currentUser?.role}
-                                />
-                            </RuleGroup>
+                            {/* `.prof` de 07.1 — **le héro ne porte que l'identité**.
+                                *« Un acte n'a qu'une entrée, dans sa carte »* : pas de
+                                geste ici, pas de qualifiant chiffré. */}
+                            <DetailHero
+                                avatar={
+                                    <span className="font-brand text-[20px] font-semibold">
+                                        {initiales(currentUser?.name)}
+                                    </span>
+                                }
+                                label={identiteLabel}
+                                subject={currentUser?.name ?? 'Mon compte'}
+                                subtitle={currentUser?.email}
+                            />
 
-                            <RuleGroup header="Sécurité">
-                                <RuleGroup.Row
-                                    title="Mot de passe"
-                                    subtitle="Il sert à ouvrir la session, pas à signer une réception"
+                            <ActionCard title="Me connecter">
+                                <ActionCard.Row
+                                    glyph={LockKey}
+                                    title="Changer mon mot de passe"
+                                    subtitle="il ouvre la session, il ne signe pas"
                                     onOpen={() => setPasswordSheetOpen(true)}
                                 />
-                                <RuleGroup.Row
-                                    title="Double authentification"
-                                    subtitle="Un second facteur à chaque connexion"
-                                    trailing={
-                                        <Toggle
-                                            checked={isTwoFactorEnabled}
-                                            onChange={setIsTwoFactorEnabled}
-                                        />
-                                    }
-                                />
-                            </RuleGroup>
+                            </ActionCard>
 
-                            <RuleGroup header="Session">
-                                <RuleGroup.Row
-                                    title="Cet appareil"
-                                    subtitle="Se déconnecter ferme la session ici, pas ailleurs"
-                                    trailing={
-                                        <Button
-                                            variant="outlined"
-                                            size="sm"
-                                            onClick={onLogout}
-                                            icon={<Icon glyph={SignOut} size={18} />}
-                                        >
-                                            Déconnexion
-                                        </Button>
+                            {/* La carte que 07.1 appelle « Prouver une remise », et qui
+                                manquait entièrement. `NavigationBar` promettait déjà
+                                *« code PIN à définir »* sur la rangée « Mon compte » de
+                                la feuille « Plus » — la destination ne tenait pas la
+                                promesse : aucune rangée n'y parlait du code. */}
+                            <ActionCard title="Prouver une remise">
+                                <ActionCard.Row
+                                    glyph={Key}
+                                    title={
+                                        currentUser?.pin
+                                            ? 'Remplacer mon code PIN'
+                                            : 'Définir mon code PIN'
                                     }
+                                    subtitle={
+                                        currentUser?.pin
+                                            ? "l'ancien cessera aussitôt de valoir"
+                                            : 'sans lui, chaque remise se trace'
+                                    }
+                                    onOpen={() => setPinSheetOpen(true)}
                                 />
-                            </RuleGroup>
+                                {/* 07.1 dessine une **signature enregistrée** — importée,
+                                    recadrée, apposée d'elle-même. Ce produit ne la porte
+                                    pas : `Attestation` fait tracer la signature au moment
+                                    de la remise, et rien ne la garde. La rangée dit donc
+                                    ce qui est, et n'ouvre rien : une porte qui ne mène
+                                    nulle part vaut moins qu'une phrase vraie. */}
+                                <ActionCard.Row
+                                    glyph={Signature}
+                                    title="Ma signature"
+                                    subtitle="tracée à chaque remise, jamais conservée"
+                                />
+                            </ActionCard>
+
+                            <ActionCard title="Où je suis connecté">
+                                <ActionCard.Row
+                                    glyph={SignOut}
+                                    title="Se déconnecter"
+                                    subtitle="de cet appareil seulement"
+                                    onOpen={onLogout}
+                                />
+                            </ActionCard>
                         </>
                     )}
-
                     {view === 'currency' && (
                         <>
                             <RuleGroup
@@ -628,6 +811,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                                 : undefined
                                         }
                                         onOpen={() => apply({ fiscalYearStart: month.value })}
+                                        choice
                                     />
                                 ))}
                             </RuleGroup>
@@ -687,6 +871,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                         onOpen={() =>
                                             apply({ defaultDepreciationMethod: method.value })
                                         }
+                                        choice
                                     />
                                 ))}
                             </RuleGroup>
@@ -697,6 +882,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                     subtitle="Au bout de laquelle un objet ne vaut plus rien au bilan"
                                     trailing={
                                         <InputField
+                                            mesure="courte"
                                             type="number"
                                             aria-label="Durée en années"
                                             value={String(settings.defaultDepreciationYears)}
@@ -716,6 +902,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                     subtitle="Ce qu'il vaut encore à la fin, en pourcentage"
                                     trailing={
                                         <InputField
+                                            mesure="courte"
                                             type="number"
                                             aria-label="Valeur résiduelle en pourcentage"
                                             value={String(settings.salvageValuePercent)}
@@ -758,6 +945,90 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                 </strong>{' '}
                                 Elles ne changent pas un calcul mais une lecture.
                             </Notice>
+
+                            <p className="text-text-muted text-[12px] leading-[17px]">
+                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
+                                le pose.
+                            </p>
+                        </>
+                    )}
+
+                    {view === 'inventory' && (
+                        <>
+                            <RuleGroup
+                                header="Recompter un lieu"
+                                note={
+                                    <>
+                                        Au-delà de cette durée, un lieu que personne n'a recompté
+                                        est dit{' '}
+                                        <strong className="text-text-secondary font-medium">
+                                            en retard
+                                        </strong>{' '}
+                                        dans l'inventaire physique. Le réglage ne lance rien : il
+                                        dit à partir de quand le silence devient un manque.
+                                    </>
+                                }
+                            >
+                                {INVENTORY_PERIODS.map((mois) => (
+                                    <RuleGroup.Row
+                                        key={mois}
+                                        title={`${mois} mois`}
+                                        subtitle={PERIOD_SUBTITLES[mois]}
+                                        status={
+                                            settings.inventoryPeriodMonths === mois
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={
+                                            settings.inventoryPeriodMonths === mois
+                                                ? 'Retenue'
+                                                : undefined
+                                        }
+                                        valueTone={
+                                            settings.inventoryPeriodMonths === mois
+                                                ? 'positive'
+                                                : undefined
+                                        }
+                                        onOpen={() => apply({ inventoryPeriodMonths: mois })}
+                                        choice
+                                    />
+                                ))}
+                            </RuleGroup>
+
+                            <p className="text-text-muted text-[12px] leading-[17px]">
+                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
+                                le pose.
+                            </p>
+                        </>
+                    )}
+
+                    {view === 'files' && (
+                        <>
+                            <RuleGroup
+                                header="Ce qu'un dépôt accepte"
+                                note="Un fichier au-delà de la borne est refusé au dépôt, nommé et mesuré — il ne part pas dans une lecture qui ne finira pas. La borne vaut pour toutes les formes : le tableur d'un import, la pièce jointe d'une facture, la photo d'un incident."
+                            >
+                                {FILE_LIMITS.map((mo) => (
+                                    <RuleGroup.Row
+                                        key={mo}
+                                        title={`${mo} Mo`}
+                                        subtitle={FILE_LIMIT_SUBTITLES[mo]}
+                                        status={
+                                            settings.maxImportFileMb === mo
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={
+                                            settings.maxImportFileMb === mo ? 'Retenue' : undefined
+                                        }
+                                        valueTone={
+                                            settings.maxImportFileMb === mo ? 'positive' : undefined
+                                        }
+                                        onOpen={() => apply({ maxImportFileMb: mo })}
+                                        choice
+                                    />
+                                ))}
+                            </RuleGroup>
 
                             <p className="text-text-muted text-[12px] leading-[17px]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
@@ -877,6 +1148,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                                 placeholder="NEEMBA_AGENT_KEY"
                             />
                             <InputField
+                                mesure="courte"
                                 label="Fréquence de remontée (minutes)"
                                 type="number"
                                 value={String(sourceDraft.autoCollectionHeartbeatMinutes)}
@@ -1011,6 +1283,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                 userId={currentUser?.id}
             />
 
+            <PinSheet
+                open={pinSheetOpen}
+                onClose={() => setPinSheetOpen(false)}
+                dejaDefini={Boolean(currentUser?.pin)}
+                onSubmit={(pin) => setUserPin(currentUser?.id ?? '', pin)}
+            />
+
             <BottomSheet
                 open={feedSheetOpen}
                 onClose={() => setFeedSheetOpen(false)}
@@ -1026,6 +1305,85 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onNavigate, initi
                 />
             </BottomSheet>
         </div>
+    );
+};
+
+/**
+ * **Poser son code de remise** — 07.1, carte « Prouver une remise ».
+ *
+ * Le code vaut signature (06.2) : il n'a pas de « confirmer », il a **une seule
+ * saisie qui se relit**. La sixième frappe valide seule — `PinField` le fait — et
+ * le refus ne vide pas le pavé : il dit ce qui ne va pas.
+ *
+ * Ce que la feuille **ne fait pas** : demander l'ancien code. `setUserPin` ne le
+ * vérifie pas, et prétendre le contraire par un champ de plus donnerait à croire
+ * qu'un code oublié protège quelque chose. La sous-ligne de la rangée dit à sa
+ * place ce qui arrive à l'ancien : *« il cesse aussitôt de valoir »*.
+ */
+const PinSheet: React.FC<{
+    open: boolean;
+    onClose: () => void;
+    dejaDefini: boolean;
+    onSubmit: (pin: string) => BusinessRuleDecision;
+}> = ({ open, onClose, dejaDefini, onSubmit }) => {
+    const { showToast } = useToast();
+    const [pin, setPin] = useState('');
+    const [refus, setRefus] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!open) {
+            setPin('');
+            setRefus(null);
+        }
+    }, [open]);
+
+    const poser = (code: string) => {
+        if (!isValidPinFormat(code)) {
+            setRefus('Ni une suite, ni six fois le même chiffre.');
+            return;
+        }
+        const decision = onSubmit(code);
+        if (!decision.allowed) {
+            setRefus(decision.reason ?? "Le code n'a pas pu être posé.");
+            return;
+        }
+        showToast(dejaDefini ? 'Code PIN remplacé.' : 'Code PIN défini.', 'success');
+        onClose();
+    };
+
+    return (
+        <BottomSheet
+            open={open}
+            onClose={onClose}
+            title={dejaDefini ? 'Remplacer mon code PIN' : 'Définir mon code PIN'}
+        >
+            <div className="flex flex-col gap-4">
+                <p className="text-on-surface-variant text-[14px] leading-5">
+                    Six chiffres. Il vaut signature à chaque remise — personne ne peut le lire, pas
+                    même l'informatique.
+                </p>
+                <PinField
+                    value={pin}
+                    onChange={(suivant) => {
+                        setPin(suivant);
+                        if (refus && suivant.length < PIN_LENGTH) setRefus(null);
+                    }}
+                    onComplete={poser}
+                    state={refus ? 'error' : 'idle'}
+                    autoFocus
+                    label={dejaDefini ? 'Nouveau code PIN' : 'Code PIN'}
+                />
+                {refus ? (
+                    <p className="text-error text-[14px] leading-5">{refus}</p>
+                ) : (
+                    <p className="text-text-muted text-[12px] leading-4">
+                        {dejaDefini
+                            ? "L'ancien code cesse de valoir dès celui-ci posé."
+                            : 'Sans code, la remise se prouve par un tracé.'}
+                    </p>
+                )}
+            </div>
+        </BottomSheet>
     );
 };
 

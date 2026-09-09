@@ -35,6 +35,7 @@ export type ViewType =
     | 'import_locations'
     | 'audit'
     | 'audit_details'
+    | 'history'
     | 'reports'
     | 'assignment_wizard'
     | 'return_wizard'
@@ -56,6 +57,20 @@ export interface AppSettings {
     renewalThreshold: number;
     roundingRule: 'standard' | 'integer' | 'ceil';
     compactNotation: boolean; // New setting for 1K, 1M formatting
+
+    /**
+     * **La périodicité de l'inventaire physique, en mois** — 14.1 (05/09). C'est elle
+     * qui donne son sens à « en retard » : un lieu dont le dernier comptage est plus
+     * vieux que cette durée doit être recompté. Sans elle, aucun écran ne pouvait dire
+     * d'un site qu'il était en retard, faute de savoir sur quoi.
+     */
+    inventoryPeriodMonths: number;
+    /**
+     * **La borne de 17.10, en Mo** — la taille maximale d'un fichier déposé, quelle que
+     * soit sa forme (tableur, pièce jointe, photo). Elle vivait en dur dans
+     * `lib/fileImport.ts` ; 14.1 la range sous « L'entreprise », où on la cherche.
+     */
+    maxImportFileMb: number;
 
     // Collecte automatique
     autoCollectionAgentEnabled: boolean;
@@ -338,6 +353,25 @@ export interface Equipment {
     // Maintenance / Repair
     repairStartDate?: string;
     repairEndDate?: string;
+    /**
+     * **Ce que la prise en charge écrit** — 04.4, premier acte. Le geste existait dans
+     * le ⋮ de la fiche et ne posait qu'un message : *« Prise en charge de l'intervention
+     * enregistrée »*, sans rien enregistrer. Ces quatre champs sont ce que la planche
+     * demande, et rien de plus : qui répare, quand l'objet revient, ce que cela coûte
+     * quand la garantie ne couvre pas, et le dossier chez le réparateur.
+     */
+    /**
+     * **Qui détenait l'objet avant qu'il parte en réparation.** 04.4 fait revenir un
+     * objet réparé *« chez Alice »*, pas au stock — mais la déclaration d'incident
+     * effaçait le porteur (`user = null`) et le produit ne savait plus à qui le rendre.
+     * Ce champ garde la réponse le temps de l'intervention ; il est vidé à la
+     * réception.
+     */
+    repairPreviousUser?: Partial<User> | null;
+    repairer?: string;
+    repairExpectedReturn?: string;
+    repairCost?: number;
+    repairTicket?: string;
 
     // Location
     country?: string;

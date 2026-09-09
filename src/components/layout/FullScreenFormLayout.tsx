@@ -1,3 +1,10 @@
+/*
+ * **R16 : une barre porte un titre, un étage, jamais un sous-titre.** La fente
+ * `subtitle` est retirée le 08/09. Elle portait, sur 04.3, « L'identifiant se déduit à
+ * l'enregistrement » — une phrase de 42 signes dans une barre qui en affiche une
+ * trentaine : elle arrivait tronquée, et ce qu'elle disait, l'écran le dit déjà sous
+ * le champ de série. Les barres des planches 04.3 et 05.3 ne portent que leur titre.
+ */
 import React, { useId } from 'react';
 import MaterialIcon from '../ui/MaterialIcon';
 import Button from '../ui/Button';
@@ -6,7 +13,6 @@ import { FullScreenLayout } from './FullScreenLayout';
 interface FullScreenFormLayoutProps {
     title: string;
     /** Ce sur quoi on travaille, sous le titre — le `.aid` de 04.3. */
-    subtitle?: string;
     onCancel: () => void;
     onSave: () => void;
     children: React.ReactNode;
@@ -24,7 +30,6 @@ interface FullScreenFormLayoutProps {
 
 export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
     title,
-    subtitle,
     onCancel,
     onSave,
     children,
@@ -107,7 +112,6 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
     return (
         <FullScreenLayout
             title={title}
-            subtitle={subtitle}
             /* La barre de 04.3 porte une **flèche de retour** à gauche et rien à
                droite que son geste : sur un écran plein, on revient d'où l'on vient,
                on ne « ferme » pas une fenêtre qui n'en est pas une. */

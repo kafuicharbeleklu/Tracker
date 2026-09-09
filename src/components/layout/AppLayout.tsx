@@ -3,7 +3,6 @@ import { DESTINATIONS } from '../../constants/destinations';
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 import { NavigationBar } from './NavigationBar';
-import { NavigationRail } from './NavigationRail';
 import TopAppBar from './TopAppBar';
 import { ViewType } from '../../types';
 import Button from '../ui/Button';
@@ -36,6 +35,7 @@ const ManagementPage = lazy(() => import('../../features/management/pages/Manage
 const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
 const AuditPage = lazy(() => import('../../features/audit/pages/AuditPage'));
+const HistoryPage = lazy(() => import('../../features/history/pages/HistoryPage'));
 const ReportsPage = lazy(() => import('../../features/reports/pages/ReportsPage'));
 const SettingsPage = lazy(() => import('../../features/management/pages/SettingsPage'));
 const ImportEquipmentPage = lazy(
@@ -83,8 +83,31 @@ const lireObjetDeLAdresse = (): string | null => {
     return new URLSearchParams(query).get('equipmentId');
 };
 
+/** Le repli de la barre latérale, retenu d'une session à l'autre. */
+const SIDEBAR_COLLAPSED_KEY = 'tk_sidebar_collapsed';
+
 const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    /**
+     * **Le repli de la barre latérale est retenu par personne** (recherche bureau du
+     * 08/09, motif de Linear). Un état que l'on repose à chaque chargement n'est pas un
+     * réglage : c'est un geste à refaire. Un stockage refusé — navigation privée, site
+     * bloqué — rend simplement la barre déployée, qui est le défaut.
+     */
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+        try {
+            return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, isSidebarCollapsed ? '1' : '0');
+        } catch {
+            // Ignore storage failures.
+        }
+    }, [isSidebarCollapsed]);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const isCompact = useMediaQuery(MEDIA.compact);
     const isLandscape = useMediaQuery(MEDIA.landscape);
@@ -329,6 +352,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
            barre du haut ajoutait un « Tracker » au-dessus, deux bandes pour une
            seule identité. */
         'approval_details',
+        /* L'Historique (18.1) prend le gabarit de liste 17.8, qui porte son titre :
+           la barre du haut l'écrivait une seconde fois, juste au-dessus. */
+        'history',
+        /* Finances (15.1) porte son `.top` depuis le 07/09, avec son titre en 28 : la
+           barre du haut écrivait « Finances » au-dessus de « Finances ». */
+        'finance',
     ];
     const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
@@ -384,6 +413,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.audit.label;
             case 'audit_details':
                 return 'Détail audit';
+            case 'history':
+                return DESTINATIONS.history.label;
             case 'reports':
                 return DESTINATIONS.reports.label;
             case 'settings':
@@ -639,6 +670,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onViewChange={handleViewChange}
                     />
                 );
+            case 'history':
+                return <HistoryPage onBack={goBack} />;
             case 'reports':
                 return <ReportsPage />;
             case 'settings':
@@ -646,6 +679,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <SettingsPage
                         onLogout={onLogout}
                         onNavigate={handleViewChange}
+                        onBack={goBack}
                         initialSection={routeSegments[1] === 'account' ? 'account' : undefined}
                     />
                 );
@@ -718,28 +752,32 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         <SelectionRegimeProvider value={regimeSelection}>
             <div className="bg-background flex min-h-screen flex-col font-sans">
                 {/* Top App Bar — Mobile Only when active */}
-                {showTopAppBar && (
-                    <TopAppBar
-                        title={getTopAppBarTitle(currentView)}
-                        onMenuClick={() => setIsMobileMenuOpen(true)}
-                    />
-                )}
+                {/*
+                  `onMenuClick` n'existe pas sur `TopAppBar` — la barre n'a qu'un
+                  `leadingAction`. Le rappel ouvrait le **tiroir modal** de l'ancienne
+                  barre latérale, qui n'est plus monté : au téléphone, le débordement
+                  est la feuille « Plus » (17.7).
+                */}
+                {showTopAppBar && <TopAppBar title={getTopAppBarTitle(currentView)} />}
 
                 <div className="relative flex min-h-0 flex-1">
-                    {/* Desktop Sidebar */}
-                    {isExpandedUp && (
+                    {/*
+                      **Une seule barre pour deux régimes** (00.3). Le rail *est* la barre
+                      latérale repliée : *« la même liste de destinations, debout »*. Le
+                      produit en tenait deux — `NavigationRail` (80 px, quatre entrées, un
+                      `onMenuClick` requis que personne ne passait) et `Sidebar` —, avec
+                      deux jeux de droits et deux réponses à « où suis-je ». À `medium` la
+                      barre est repliée et ne se déploie pas : 00.3 y tient le rail, et
+                      264 px sur 768 ne laisseraient pas ses 360 px à une colonne.
+                    */}
+                    {(isExpandedUp || useRailNavigation) && (
                         <Sidebar
                             currentView={currentView}
                             onViewChange={handleViewChange}
-                            isCollapsed={isSidebarCollapsed}
+                            isCollapsed={isSidebarCollapsed || !isExpandedUp}
                             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                            onLogout={onLogout}
+                            canExpand={isExpandedUp}
                         />
-                    )}
-
-                    {/* Tablet Navigation Rail */}
-                    {useRailNavigation && (
-                        <NavigationRail currentView={currentView} onViewChange={handleViewChange} />
                     )}
 
                     {/* Main Content Area */}

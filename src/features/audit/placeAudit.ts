@@ -79,6 +79,30 @@ export const formatSince = (value?: string | null): string => {
     return `il y a ${Math.floor(hours / 24)} j`;
 };
 
+/**
+ * **« En retard » n'existait pas, faute de savoir sur quoi.** 14.1 (05/09) range la
+ * périodicité de l'inventaire sous « L'entreprise » et dit ce qu'elle décide : *« Donne
+ * son sens à “en retard” »*. Un lieu est en retard quand son dernier comptage complet
+ * est plus vieux que la période — et un lieu **jamais compté** l'est aussi : la borne
+ * est passée depuis toujours. Un lieu sans rien à compter ne peut pas l'être, et un
+ * comptage en cours n'est pas en retard, il est en train de se faire.
+ */
+const MOIS_MS = 30.44 * 86_400_000;
+
+/** Combien de mois depuis le dernier comptage. `null` quand il n'y en a jamais eu. */
+export const moisDepuis = (value: string | null): number | null => {
+    if (!value) return null;
+    const then = new Date(value).getTime();
+    if (Number.isNaN(then)) return null;
+    return Math.max(0, (Date.now() - then) / MOIS_MS);
+};
+
+export const enRetard = (row: PlaceAuditRow, periodeMois: number): boolean => {
+    if (row.expected === 0 || row.status === 'En cours' || periodeMois <= 0) return false;
+    const mois = moisDepuis(row.lastScanAt);
+    return mois === null || mois >= periodeMois;
+};
+
 /** Libellé affiché d'un statut de campagne (les valeurs internes sont sans accent). */
 export const STATUS_LABELS: Record<PlaceAuditRow['status'], string> = {
     'A lancer': 'À lancer',

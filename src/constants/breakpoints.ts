@@ -41,29 +41,38 @@ export const MEDIA = {
 } as const;
 
 /**
- * **Le produit est tenu en dimension mobile, à toutes les largeurs de fenêtre.**
+ * **La mise en attente de la dimension bureau — levée le 08/09.**
  *
- * Arbitrage du commanditaire, 06/09 : *« pour le moment on veut le projet en dimension
- * mobile »*. Le régime tablette et bureau des planches 00.3 à 00.5 n'est pas abandonné,
- * il est **mis en attente** : les 28 écrans se dessinent au téléphone, et la fenêtre
- * large montre ce téléphone plutôt qu'une seconde mise en page à porter deux fois.
+ * Le commanditaire avait tenu le produit en dimension mobile à toutes les largeurs le
+ * 06/09 (*« pour le moment on veut le projet en dimension mobile »*), le temps que les
+ * 45 planches soient dessinées au téléphone. Cette modélisation est finie ; l'ordre du
+ * 08/09 est de lever la restriction. La fenêtre large **reprend donc sa mise en page** :
+ * le rail plutôt que la barre du bas, les classes de fenêtre à nouveau vivantes, plus de
+ * colonne de 393 px centrée sur le bureau.
  *
- * L'interrupteur agit à trois endroits, et il faut les trois pour que le rendu soit
- * franc :
+ * L'interrupteur agissait à trois endroits, et il faut les trois dans le même sens pour
+ * que le rendu soit franc :
  *
- * 1. **Ici**, pour la couche JavaScript : `useMediaQuery` répond comme un téléphone de
- *    393 × 852 en portrait, donc la coque choisit la barre du bas et jamais le rail.
- * 2. **`tailwind.config.js`**, pour la couche CSS : les classes de fenêtre `medium:`,
- *    `expanded:` et `large:` cessent de s'appliquer — 122 emplois d'un coup, qu'aucune
- *    reprise écran par écran n'aurait neutralisés sans oubli.
- * 3. **`index.css`**, pour la mise en page : la colonne du produit tient 393 px et se
- *    centre sur le bureau, avec les surfaces flottantes calées sur elle.
+ * 1. **Ici**, pour la couche JavaScript : à `true`, `useMediaQuery` répondait comme un
+ *    téléphone de 393 × 852 en portrait, donc la coque choisissait la barre du bas et
+ *    jamais le rail.
+ * 2. **`tailwind.config.js`**, pour la couche CSS : à `true`, les classes de fenêtre
+ *    `medium:`, `expanded:` et `large:` cessaient de s'appliquer — 122 emplois d'un
+ *    coup, qu'aucune reprise écran par écran n'aurait neutralisés sans oubli.
+ * 3. **`index.css`** (`.tk-frame`, monté par `MobileFrame`), pour la mise en page : la
+ *    colonne du produit tenait 393 px et se centrait sur le bureau, avec les surfaces
+ *    flottantes calées sur elle. À `false`, le cadre ne se monte plus et c'est le
+ *    document qui redevient le conteneur de défilement — `getAppScroller` le suit.
  *
- * Repasser au régime complet : mettre `false` ici **et** dans `tailwind.config.js`.
+ * **Ce que la levée ne fait pas** : porter les régimes 00.3 / 00.4 / 00.5. Ce qui
+ * apparaît au-delà de 600 px est l'état où le chantier bureau s'était arrêté le 06/09,
+ * pas la passe du 08/09 (§2.43 ter). Voir `docs/design/PORTAGE-PLANCHES.md`.
+ *
+ * Revenir au régime mobile seul : remettre `true` ici **et** dans `tailwind.config.js`.
  */
-export const MOBILE_ONLY = true;
+export const MOBILE_ONLY = false;
 
-/** Le téléphone que le produit joue quand `MOBILE_ONLY` vaut vrai — celui des planches. */
+/** Le téléphone que le produit jouerait si `MOBILE_ONLY` repassait à vrai — celui des planches. */
 export const MOBILE_ONLY_VIEWPORT = { width: 393, height: 852 } as const;
 
 /**

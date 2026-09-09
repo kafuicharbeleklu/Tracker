@@ -68,34 +68,38 @@ export const TINT_CLASS = {
 export type Tint = keyof typeof TINT_CLASS;
 
 /**
- * La carte d'une section — `.fsec` : surface, rayon 8, **20 d'intérieur, gouttière
- * 16**, et un en-tête `.sh` qui porte **une tuile teintée par nature**.
+ * La carte d'une section — `.fsec` : surface, rayon 8, **16 d'intérieur, gouttière
+ * 16**, et un en-tête `.sh` réduit à **un titre et sa précision**.
+ *
+ * **La tuile d'icône est tombée** (passe du 05/09, déclarée à l'identique par 04.3,
+ * 04.4 et 05.3 : `.sh .si{display:none}`). Elle teintait chaque section par « nature »
+ * — bleu pour la référence, vert pour la configuration, orange pour l'achat — et cette
+ * nature ne voulait rien dire : deux formulaires voisins n'attribuaient pas les mêmes
+ * couleurs aux mêmes idées. Un titre de section se lit ; il n'a pas besoin d'être
+ * annoncé par un carré coloré. C'est ce que 09 et 10 font depuis la passe sobre.
+ *
+ * L'intérieur passe de **20 à 16** dans le même mouvement — la mesure que les trois
+ * planches déclarent.
+ *
+ * La précision (`.cs`) se pose **au bout de la ligne du titre**, pas en dessous : la
+ * ligne fait 24 de haut, le titre prend la place et la précision ferme à droite.
  */
 export const FormSection: React.FC<{
     title: string;
-    glyph: PhosphorGlyph;
-    tint: Tint;
+    /** `.cs` — ce que la section doit dire d'elle-même, en quelques mots. */
     caption?: string;
     children: React.ReactNode;
-}> = ({ title, glyph, tint, caption, children }) => (
-    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
-        <div className="flex items-center gap-3">
-            <span
-                className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
-                    TINT_CLASS[tint],
-                )}
-            >
-                <Icon glyph={glyph} size={18} />
-            </span>
-            <p className="text-on-surface min-w-0 flex-1 text-[17px] leading-6 font-medium">
+}> = ({ title, caption, children }) => (
+    <section className="rounded-card bg-surface flex flex-col gap-4 p-4">
+        <div className="flex min-h-6 items-center justify-between gap-3">
+            <p className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
                 {title}
-                {caption && (
-                    <span className="text-text-tertiary block text-[12px] leading-4 font-normal">
-                        {caption}
-                    </span>
-                )}
             </p>
+            {caption && (
+                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5">
+                    {caption}
+                </span>
+            )}
         </div>
         {children}
     </section>
@@ -184,7 +188,7 @@ export const OptionRow: React.FC<{
                 selected ? 'bg-current' : 'border-outline border-[1.5px]',
             )}
         >
-            {selected && <Icon glyph={Check} size={14} className="text-surface" />}
+            {selected && <Icon glyph={Check} size={18} className="text-surface" />}
         </span>
     </button>
 );

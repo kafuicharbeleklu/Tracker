@@ -141,27 +141,22 @@ function stripUndefined(value) {
     return value;
 }
 
-function defaultImageForSheet(sheetName) {
-    const normalized = normalizeText(sheetName);
-    if (normalized.includes('imprim')) {
-        return 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=100&h=100&fit=crop';
-    }
-    if (normalized.includes('ecran')) {
-        return 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=100&h=100&fit=crop';
-    }
-    if (normalized.includes('phone')) {
-        return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop';
-    }
-    if (normalized.includes('tablette')) {
-        return 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=100&h=100&fit=crop';
-    }
-    if (normalized.includes('projecteur')) {
-        return 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=100&h=100&fit=crop';
-    }
-    if (normalized.includes('switch') || normalized.includes('interco') || normalized.includes('fire')) {
-        return 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&h=100&fit=crop';
-    }
-    return 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop';
+/**
+ * **Le tableur ne porte aucune photo, et l'import n'en invente pas.**
+ *
+ * Il posait une image d'illustration Unsplash par famille de feuille : la même photo de
+ * portable pour les 89 ordinateurs, la même borne pour les 8 points d'accès. Trois
+ * conséquences, toutes mauvaises. Ce n'est **pas la photo de l'objet** — un actif qu'on
+ * cherche dans un local ne se reconnaît pas à une image de catalogue. Le domaine est
+ * **bloqué** par la politique de ressources croisées du navigateur, si bien que les 243
+ * rangées affichaient une **image cassée**. Et une adresse externe dans une fiche
+ * d'inventaire est une dépendance qu'on ne contrôle pas.
+ *
+ * Sans photo, la rangée porte le **pictogramme de sa catégorie** — celui que 09.1 arrête
+ * pour les huit familles, et que le produit emploie déjà partout ailleurs.
+ */
+function defaultImageForSheet() {
+    return undefined;
 }
 
 function sanitizeRow(row) {

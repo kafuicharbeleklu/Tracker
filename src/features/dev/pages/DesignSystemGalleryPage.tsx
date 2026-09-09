@@ -11,10 +11,8 @@ import {
     MapPin,
     Monitor,
     Package,
-    Pause,
     Plus,
     ShieldWarning,
-    Trash,
     User,
     Wallet,
     Wrench,
@@ -28,7 +26,6 @@ import Card from '../../../components/ui/Card';
 import Chip from '../../../components/ui/Chip';
 import CloseButton from '../../../components/ui/CloseButton';
 import ConfirmationSheet from '../../../components/ui/ConfirmationSheet';
-import { ContextBanner } from '../../../components/ui/ContextBanner';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import Divider from '../../../components/ui/Divider';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -58,7 +55,7 @@ import NavButton from '../../../components/ui/NavButton';
 import { PageTabs } from '../../../components/ui/PageTabs';
 import Pagination from '../../../components/ui/Pagination';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
-import ScreenState from '../../../components/ui/ScreenState';
+import ScreenState, { OfflineState } from '../../../components/ui/ScreenState';
 import { SearchFilterBar } from '../../../components/ui/SearchFilterBar';
 import SegmentedButton from '../../../components/ui/SegmentedButton';
 import SelectField from '../../../components/ui/SelectField';
@@ -1351,7 +1348,6 @@ const DesignSystemGalleryPage: React.FC = () => {
                         <div className="border-outline-variant bg-background overflow-hidden rounded-lg border">
                             <DetailTemplate
                                 code="LPT-HQ-01"
-                                reference="ASSET-10001"
                                 onBack={() => undefined}
                                 menu={
                                     <Button variant="text" iconOnly aria-label="Autres actions">
@@ -1952,19 +1948,12 @@ const DesignSystemGalleryPage: React.FC = () => {
                         </p>
                     </Specimen>
 
-                    <Specimen
-                        name="ContextBanner / OfflineBanner + InlineError"
-                        note="planche 17.1 — règles 1 et 2"
-                    >
+                    <Specimen name="OfflineState + InlineError" note="planche 17.1 — règles 1 et 2">
                         <div className="space-y-4">
                             <div className="border-outline-variant overflow-hidden rounded-lg border">
-                                <ContextBanner>
-                                    <strong className="text-on-surface font-medium">
-                                        Hors ligne.
-                                    </strong>{' '}
-                                    Vous pouvez consulter le parc ; créer, attribuer et déclarer
-                                    reviendront avec le réseau.
-                                </ContextBanner>
+                                <OfflineState
+                                    depuis={new Date(Date.now() - 6 * 60000).toISOString()}
+                                />
                             </div>
                             <InlineError>
                                 <strong className="font-medium">
@@ -1974,15 +1963,17 @@ const DesignSystemGalleryPage: React.FC = () => {
                             </InlineError>
                         </div>
                         <p className="text-body-small text-on-surface-variant mt-4">
-                            <code>OfflineBanner</code> ne se montre que hors ligne (il lit{' '}
-                            <code>navigator.onLine</code>, dette D9) ; c’est{' '}
-                            <code>ContextBanner</code> qui est instancié ici pour qu’il soit
-                            visible. L’erreur d’acte vit{' '}
+                            Hors ligne,{' '}
                             <strong className="text-on-surface font-medium">
-                                là où le geste a été engagé
+                                l’état prend la forme de l’état vide
                             </strong>{' '}
-                            : la feuille reste ouverte, la saisie reste écrite, et le geste primaire
-                            devient « Réessayer » — voir <code>ConfirmationSheet</code>.
+                            — motif, titre, phrase, heure de la dernière lecture — et jamais celle
+                            d’un bandeau. L’autre moitié de la règle vit dans les gabarits : les
+                            gestes qui écrivent{' '}
+                            <strong className="text-on-surface font-medium">disparaissent</strong>,
+                            pas grisés, absents. L’erreur d’acte, elle, vit là où le geste a été
+                            engagé : la feuille reste ouverte, la saisie reste écrite, et le geste
+                            primaire devient « Réessayer » — voir <code>ConfirmationSheet</code>.
                         </p>
                     </Specimen>
 
@@ -2340,7 +2331,6 @@ const DesignSystemGalleryPage: React.FC = () => {
                 onConfirm={() => setConfirmOpen(false)}
                 tone={confirmTone}
                 irreversible={confirmTone === 'destructive'}
-                icon={confirmTone === 'destructive' ? Trash : Pause}
                 title={
                     confirmTone === 'destructive'
                         ? 'Supprimer Latitude 5540 du parc ?'
@@ -2412,7 +2402,6 @@ const DesignSystemGalleryPage: React.FC = () => {
                         id: 'b',
                         label: 'Deuxième action',
                         icon: 'upload',
-                        variant: 'text',
                         onSelect: () => undefined,
                     },
                     {

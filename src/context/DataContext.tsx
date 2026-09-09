@@ -54,6 +54,7 @@ import {
 } from '../lib/firestorePersistence';
 import { DEMO_RESEED_DISABLED, isDemoSeedEquipment, isDemoSeedUser } from '../lib/demoSeed';
 import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
+import { setImportLimitMb } from '../lib/fileImport';
 import {
     buildRbacAssignmentFromUser,
     DEFAULT_RBAC_GROUPS,
@@ -149,6 +150,14 @@ interface DataContextType {
      * réel, et l'écran doit le dire plutôt que de laisser croire à un mélange.
      */
     remoteUnavailable: boolean;
+    /**
+     * **Quand la donnée à l'écran a été lue pour la dernière fois.** 17.1, règle 2 :
+     * l'état hors ligne dit *« le motif, le titre, la phrase, et l'heure de la
+     * dernière lecture »*. Sans cette heure, l'écran affirme que ce qu'on voit est
+     * encore valable sans dire de quand il date — et c'est précisément la question
+     * qu'on se pose dans un couloir sans réseau.
+     */
+    derniereLecture: string | null;
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
@@ -282,6 +291,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     renewalThreshold: 85,
     roundingRule: 'standard',
     compactNotation: false,
+    inventoryPeriodMonths: 12,
+    maxImportFileMb: 5,
     autoCollectionAgentEnabled: false,
     autoCollectionAgentApiKey: 'NEEMBA_AGENT_KEY',
     autoCollectionApiBaseUrl: 'http://localhost:8787',
@@ -873,10 +884,16 @@ const mergePersistedRbacAssignments = (
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentUser } = useAuth();
+    const { currentUser, patchCurrentUser } = useAuth();
     const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
     /** Le magasin distant n'a pas répondu : ce qui est à l'écran est local (voir plus bas). */
     const [remoteUnavailable, setRemoteUnavailable] = useState(false);
+    /** Voir `derniereLecture` au contrat : posée à la fin de chaque hydratation. */
+    const [derniereLecture, setDerniereLecture] = useState<string | null>(
+        /* Sans magasin distant, la lecture est celle du stockage local, faite au
+           montage : c'est bien cet instant-là. L'hydratation Firebase la repose. */
+        () => new Date().toISOString(),
+    );
 
     // --- SETTINGS ---
     const [settings, setSettings] = useState<AppSettings>(() => {
@@ -895,6 +912,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return DEFAULT_SETTINGS;
         }
     });
+
+    /*
+     * **La borne des fichiers suit le réglage.** 17.10 la tenait en dur dans
+     * `lib/fileImport.ts` ; 14.1 en fait une rangée de « L'entreprise ». Les neuf
+     * emplois sont des composants d'interface qui ne connaissent pas ce contexte :
+     * plutôt que de leur passer la valeur de main en main à travers neuf écrans, on
+     * la repose dans le module dès qu'elle change, et ils la lisent au moment de
+     * refuser un fichier.
+     */
+    useEffect(() => {
+        setImportLimitMb(settings.maxImportFileMb);
+    }, [settings.maxImportFileMb]);
 
     // --- USERS & EQUIPMENT ---
     const [users, setUsers] = useState<User[]>(() => {
@@ -1470,6 +1499,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 clearTimeout(minuteur);
                 firebaseHydratedRef.current = true;
                 setIsHydrating(false);
+                setDerniereLecture(new Date().toISOString());
             }
         };
 
@@ -2515,6 +2545,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const target = users.find((u) => u.id === userId);
             if (!target) return { allowed: false, reason: 'Compte introuvable.' };
             setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, pin } : u)));
+            /* Poser son propre code doit valoir **tout de suite** : `Attestation` lit
+               `signer.pin` depuis `currentUser`, une copie que la session ne relit
+               jamais. Sans cette ligne, l'écran disait « défini » et la remise
+               suivante réclamait quand même une signature. */
+            if (isSelf) patchCurrentUser({ pin });
             logEvent({
                 type: 'SECURITY_STEP_UP',
                 actorId: currentUser?.id || userId,
@@ -2529,7 +2564,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             return { allowed: true };
         },
-        [users, currentUser, logEvent],
+        [users, currentUser, logEvent, patchCurrentUser],
     );
 
     const updateUser = useCallback(
@@ -3037,6 +3072,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 updates.status = 'En réparation';
                 updates.repairStartDate = now;
                 updates.repairEndDate = undefined;
+                /* 04.4 : un objet réparé **repart chez son porteur**. Le porteur était
+                   effacé ici sans être retenu nulle part, si bien qu'à la réception le
+                   produit ne savait plus à qui le rendre et le renvoyait au stock. */
+                updates.repairPreviousUser = item.user ?? null;
                 updates.user = null;
                 updates.assignmentStatus = 'NONE';
             } else if (payload.outcome === 'out_of_service') {
@@ -4165,6 +4204,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             users,
             isHydrating,
             remoteUnavailable,
+            derniereLecture,
             equipment,
             detectedDevices,
             categories,
@@ -4226,6 +4266,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             users,
             isHydrating,
             remoteUnavailable,
+            derniereLecture,
             equipment,
             detectedDevices,
             categories,

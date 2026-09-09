@@ -5,6 +5,7 @@ import {
     BellRinging,
     CaretDown,
     Check,
+    CheckCircle,
     ClockCounterClockwise,
     DotsThreeVertical,
     FileText,
@@ -26,6 +27,9 @@ import { getCategoryLabel } from '../../../constants/glossary';
 import HandoverTrail, { type TrailStep } from '../../../components/ui/HandoverTrail';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import IncidentSheet from '../components/IncidentSheet';
+import TakeChargeSheet from '../components/TakeChargeSheet';
+import { motifIncident } from '../incidents';
+import ReceiveRepairSheet from '../components/ReceiveRepairSheet';
 import ActSheet from '../../../components/ui/ActSheet';
 import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import RetireSheet from '../components/RetireSheet';
@@ -114,6 +118,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         remindApproval,
         confirmEquipmentReception,
         settings,
+        models,
     } = useData();
     const { showToast } = useToast();
     const { permissions, user: currentUser } = useAccessControl();
@@ -122,10 +127,27 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     const item = equipment.find((entry) => entry.id === equipmentId);
 
+    /**
+     * **La marque vient du catalogue, pas de l'objet.** `brand` vit sur `Model` ; la
+     * feuille de prise en charge lisait `item.brand`, qui n'existe pas, et son
+     * réparateur sous garantie retombait donc toujours sur le nom du modèle. Le
+     * rapprochement se fait par le nom du modèle, seul lien que l'objet porte.
+     */
+    const marqueDuModele = useMemo(
+        () =>
+            item?.model
+                ? models.find((modele) => modele.name.toLowerCase() === item.model?.toLowerCase())
+                      ?.brand
+                : undefined,
+        [item?.model, models],
+    );
+
     /* Les deux feuilles d'acte de 04.3 (colonnes 3 et 4). Elles remplacent deux
        confirmations : l'une passait l'objet en réparation sans rien demander, l'autre
        demandait de taper « SUPPRIMER » sans jamais demander pourquoi. */
     const [isIncidentSheetOpen, setIsIncidentSheetOpen] = useState(false);
+    const [isTakeChargeOpen, setIsTakeChargeOpen] = useState(false);
+    const [isReceiveRepairOpen, setIsReceiveRepairOpen] = useState(false);
     /* 17.4 — « Confirmer la réception » est l'un des neuf actes : il s'atteste. */
     const [confirmationOuverte, setConfirmationOuverte] = useState(false);
     /** La clôture du dernier acte posé ici — 06.3, forme 1. */
@@ -293,10 +315,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 approval.assignedEquipmentId === item.id && approval.status === 'PENDING_DELIVERY',
         );
         if (!linked) {
-            showToast(
-                'Remise directe : aucune demande à relancer. Prévenez la personne de vive voix.',
-                'info',
-            );
+            showToast('Remise directe : rien à relancer.', 'info');
             return;
         }
         const decision = remindApproval(linked.id);
@@ -338,9 +357,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         });
     };
 
-    const handleTakeCharge = () => {
-        showToast('Prise en charge de l’intervention enregistrée.', 'info');
-    };
+    /* 04.4, premier acte. Le geste posait un retour transitoire et n'écrivait rien :
+       il annonçait une prise en charge que personne ne pouvait retrouver. */
+    const handleTakeCharge = () => setIsTakeChargeOpen(true);
 
     const handleReassign = () => {
         navigate(
@@ -348,26 +367,12 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         );
     };
 
-    const handleEndRepair = () => {
-        requestConfirmation({
-            title: `Remettre ${item.name} en service ?`,
-            message: (
-                <>
-                    L’équipement repasse en{' '}
-                    <strong className="text-on-surface font-medium">Disponible</strong> et redevient
-                    attribuable. La date de fin d’intervention est enregistrée.
-                </>
-            ),
-            confirmText: 'Mettre en service',
-            onConfirm: () => {
-                updateEquipment(item.id, {
-                    status: 'Disponible',
-                    repairEndDate: new Date().toISOString(),
-                });
-                showToast('Équipement remis en service.', 'success');
-            },
-        });
-    };
+    /*
+     * 04.4, troisième acte. La confirmation qui vivait ici posait toujours la même
+     * issue — l'objet repassait « Disponible » —, alors qu'un retour de réparation en
+     * a **trois**, et qu'un objet réparé **repart chez son porteur**.
+     */
+    const handleEndRepair = () => setIsReceiveRepairOpen(true);
 
     const handleRetire = () => {
         if (item.status !== 'Disponible' && item.status !== 'En réparation') {
@@ -648,8 +653,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             item.status === 'En réparation'
                                 ? {
                                       vignette: <Icon glyph={Wrench} size={20} />,
-                                      title: item.repairReason || 'En réparation',
-                                      detail: `signalé le ${formatDate(item.repairStartDate || item.updatedAt)} · en atelier`,
+                                      title: motifIncident(item) || 'En réparation',
+                                      detail: `signalé le ${formatDate(item.repairStartDate)} · en atelier`,
                                   }
                                 : item.assignmentStatus === 'PENDING_DELIVERY' && holder
                                   ? {
@@ -964,6 +969,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     }}
                     signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
                     consequence={{
+                        /* La conséquence se dit par un pictogramme, une teinte et un
+                           mot — la feuille d'acte les exige tous les trois (I3). */
+                        tone: 'vert',
+                        glyph: CheckCircle,
                         text: (
                             <>
                                 L’objet passe <strong>à votre nom</strong>, et l’attente se ferme.
@@ -986,6 +995,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                          * s'efface. Un snackbar par-dessus dirait la même chose deux fois.
                          */
                         setCloture({
+                            /* I3 : un état se dit par un pictogramme **et** un mot. Le
+                               bandeau les exige tous les deux ; ils manquaient. */
+                            tone: 'vert',
+                            glyph: CheckCircle,
                             title: 'Réception confirmée',
                             detail: `À votre nom depuis ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
                         });
@@ -995,6 +1008,71 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
             {/* Les deux feuilles d'acte de 04.3. Elles se montent **hors du gabarit** :
             une feuille est une couche de l'écran, pas une section de la fiche. */}
+            <ReceiveRepairSheet
+                open={isReceiveRepairOpen}
+                item={item}
+                onClose={() => setIsReceiveRepairOpen(false)}
+                onConfirm={(outcome) => {
+                    if (outcome === 'irreparable') {
+                        /* La sortie du parc est un acte à part, irréversible : elle ne
+                           se glisse pas dans la fermeture d'une intervention. */
+                        setIsReceiveRepairOpen(false);
+                        handleRetire();
+                        return;
+                    }
+                    const porteur = item.repairPreviousUser;
+                    const decision = updateEquipment(item.id, {
+                        status: porteur ? 'En attente' : 'Disponible',
+                        user: porteur ?? null,
+                        /* Il revient chez son porteur, qui doit encore confirmer :
+                           c'est l'attente de 06.1, pas une attribution acquise. */
+                        assignmentStatus: porteur ? 'PENDING_DELIVERY' : 'NONE',
+                        repairEndDate: new Date().toISOString(),
+                        repairPreviousUser: null,
+                        ...(outcome === 'diminished'
+                            ? {
+                                  /* La réserve s'ajoute à la note de la fiche, elle ne
+                                     l'écrase pas : ce qui y était dit reste vrai. */
+                                  notes: [
+                                      item.notes,
+                                      'Réparé, mais diminué — réserve notée à la réception.',
+                                  ]
+                                      .filter(Boolean)
+                                      .join('\n'),
+                              }
+                            : {}),
+                    });
+                    showToast(
+                        decision.allowed
+                            ? porteur
+                                ? `Réceptionné, il repart chez ${porteur.name}.`
+                                : 'Réceptionné, il repasse disponible.'
+                            : decision.reason || 'Réception refusée.',
+                        decision.allowed ? 'success' : 'error',
+                    );
+                }}
+            />
+
+            <TakeChargeSheet
+                open={isTakeChargeOpen}
+                item={item}
+                holderName={item.user?.name}
+                siteName={item.site}
+                brandName={marqueDuModele}
+                onClose={() => setIsTakeChargeOpen(false)}
+                onConfirm={(valeurs) => {
+                    const decision = updateEquipment(item.id, valeurs);
+                    showToast(
+                        decision.allowed
+                            ? valeurs.repairCost
+                                ? 'Montant envoyé en validation.'
+                                : 'Prise en charge enregistrée.'
+                            : decision.reason || 'Prise en charge refusée.',
+                        decision.allowed ? 'success' : 'error',
+                    );
+                }}
+            />
+
             <IncidentSheet
                 open={isIncidentSheetOpen}
                 item={item}

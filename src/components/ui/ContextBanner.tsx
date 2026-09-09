@@ -1,6 +1,5 @@
 import React from 'react';
 
-import useOnlineStatus from '../../hooks/useOnlineStatus';
 import { cn } from '../../lib/utils';
 
 /**
@@ -29,39 +28,12 @@ export const ContextBanner: React.FC<ContextBannerProps> = ({ children, classNam
     </div>
 );
 
-interface OfflineBannerProps {
-    /**
-     * Ce que l'écran laisse faire, et ce qui revient avec le réseau. Une phrase, et
-     * elle nomme **les gestes de cet écran** — « créer, attribuer et déclarer
-     * reviendront avec le réseau » — parce qu'une phrase générique n'apprend rien.
-     */
-    children?: React.ReactNode;
-    className?: string;
-}
-
-/**
- * Hors ligne — planche **17.1**, règle 2 : **on lit, on n'écrit pas**.
- *
- * Le bandeau le dit **une fois**, sous la barre du haut, et jamais deux : ni une
- * pastille dans la barre, ni un second message dans la page. Ce qui est déjà chargé
- * reste lisible — un parc qu'on ne peut plus consulter dans un couloir sans réseau ne
- * sert à rien.
- *
- * Il ne s'affiche que hors ligne : un bandeau qui dirait « connecté » serait un état
- * de plus à lire pour une information que personne n'attend.
+/*
+ * `OfflineBanner` a été retiré le 08/09. 17.1 (règle 2) dit l'état hors ligne **dans
+ * la forme de l'état vide** — motif, titre, phrase, heure de la dernière lecture — et
+ * jamais en bandeau : voir `OfflineState` dans `ScreenState.tsx`. Le bandeau annonçait
+ * la coupure sans dire ce qu'on pouvait encore faire, et restait affiché par-dessus un
+ * contenu parfois vide.
  */
-export const OfflineBanner: React.FC<OfflineBannerProps> = ({ children, className }) => {
-    const online = useOnlineStatus();
 
-    if (online) return null;
-
-    return (
-        <ContextBanner className={className}>
-            <b className="text-on-surface font-medium">Hors ligne.</b>{' '}
-            {children ??
-                'Vous pouvez consulter ce qui est déjà chargé ; les gestes qui écrivent reviendront avec le réseau.'}
-        </ContextBanner>
-    );
-};
-
-export default OfflineBanner;
+export default ContextBanner;

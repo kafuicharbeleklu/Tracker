@@ -2,21 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowElbowDownRight,
     ArrowLeft,
-    ArrowRight,
     Briefcase,
-    CaretDown,
-    CaretUp,
     Crosshair,
     Eye,
     Flag,
     GlobeHemisphereWest,
     Lightning,
     LockSimpleOpen,
-    Plus,
     Prohibit,
-    ShieldCheck,
     ShieldPlus,
-    SortAscending,
     User as UserGlyph,
     Users,
     UsersThree,
@@ -29,10 +23,9 @@ import Button from '../../../components/ui/Button';
 import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
 import RuleGroup from '../../../components/ui/RuleGroup';
-import InfoTip from '../../../components/ui/InfoTip';
 import ScreenState from '../../../components/ui/ScreenState';
-import SearchField from '../../../components/ui/SearchField';
-import FacetChip from '../../../components/ui/FacetChip';
+import ListTemplate from '../../../components/layout/ListTemplate';
+import ListActionFab from '../../../components/ui/ListActionFab';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
@@ -41,8 +34,6 @@ import { useRouter } from '../../../hooks/useRouter';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { MEDIA } from '../../../constants/breakpoints';
 import { DESTINATIONS } from '../../../constants/destinations';
 import { RBAC_PERMISSIONS, SYSTEM_ROLE_ID_BY_USER_ROLE } from '../../../config/rbacDefaults';
 import type {
@@ -54,7 +45,6 @@ import type {
     RbacRole,
     ScopeLevel,
 } from '../../../types/rbac';
-import { cn } from '../../../lib/utils';
 
 /**
  * Rôles et accès — **porté sur la planche 11.1**.
@@ -103,15 +93,6 @@ import { cn } from '../../../lib/utils';
 type RbacView = 'roles' | 'groups';
 
 /** L'ordre de lecture des portées : du plus large au plus étroit, l'inexprimable en dernier. */
-const SCOPE_ORDER: ScopeLevel[] = [
-    'global',
-    'country',
-    'site',
-    'team',
-    'service',
-    'self',
-    'custom',
-];
 
 const SCOPE_LABEL: Record<ScopeLevel, string> = {
     global: 'global',
@@ -121,6 +102,22 @@ const SCOPE_LABEL: Record<ScopeLevel, string> = {
     service: 'service',
     self: 'soi',
     custom: 'sur mesure',
+};
+
+/**
+ * **Ce que la portée veut dire, en mots** — 11.1 les écrit sous chaque nom de rôle :
+ * *« tout le parc »*, *« ses pays »*, *« son équipe »*. Le mot technique (`country`,
+ * `team`) nomme un mécanisme ; ces phrases-là nomment ce que la personne verra, et
+ * c'est le seul des deux qu'on puisse arbitrer sans lire le moteur.
+ */
+const SCOPE_PHRASE: Record<ScopeLevel, string> = {
+    global: 'tout le parc',
+    country: 'ses pays',
+    site: 'ses sites',
+    team: 'son équipe',
+    service: 'son service',
+    self: 'ses objets',
+    custom: 'un périmètre sur mesure',
 };
 
 const SCOPE_ICON: Record<ScopeLevel, PhosphorGlyph> = {
@@ -190,7 +187,6 @@ const AUTH_METHOD_LABEL: Record<string, string> = {
 
 const VIEW_KEYS = Object.values(RBAC_PERMISSIONS.views) as PermissionKey[];
 const ACTION_KEYS = Object.values(RBAC_PERMISSIONS.actions) as PermissionKey[];
-const TOTAL_PERMISSIONS = VIEW_KEYS.length + ACTION_KEYS.length;
 
 const permissionLabel = (key: PermissionKey): string =>
     key.startsWith('view.')
@@ -198,9 +194,6 @@ const permissionLabel = (key: PermissionKey): string =>
         : (ACTION_LABEL[key] ?? key);
 
 const declaredScope = (role: RbacRole): ScopeLevel => role.dataScopes?.[0]?.level ?? 'custom';
-
-const allowedRules = (role: RbacRole): PermissionRule[] =>
-    role.permissions.filter((rule) => rule.effect === 'allow');
 
 const deniedRules = (role: RbacRole): PermissionRule[] =>
     role.permissions.filter((rule) => rule.effect === 'deny');
@@ -245,124 +238,14 @@ const inheritanceFact = (
  * Chaque note est **déduite de ce que le groupe contient réellement** — jamais posée en
  * dur sur un nom de rôle, qui changerait sans que la phrase change.
  */
-/**
- * **Ce qui explique un chiffre monte en ⓘ** — passe R13 de la planche 11.1.
- *
- * Ces trois faits expliquaient chacun le **décompte d'une rangée**, et ils vivaient
- * pourtant en pied de groupe, en paragraphes de quatre lignes posés entre deux
- * cadres. Un pied de groupe qui parle d'une rangée oblige à retrouver laquelle ; une
- * ⓘ collée au chiffre désigne son sujet toute seule.
- *
- * Retourne la bulle qui accompagne le décompte du rôle, ou `null` quand le décompte
- * dit ce qu'il paraît dire — c'est le cas des cinq rôles sur huit qui n'héritent de
- * rien et dont la portée s'exprime.
- */
-const roleCountTip = (
-    role: RbacRole,
-    level: ScopeLevel,
-    byId: Map<string, RbacRole>,
-): React.ReactNode => {
-    const inheritance = inheritanceFact(role, byId);
-
-    /* « Affiche 4, porte 24 » : le rôle qui hérite sans rien ajouter. Son décompte
-       est celui de ses propres règles, pas de ce qu'il donne. */
-    if (inheritance?.addsNothing) {
-        const base = role.baseRoleId ? byId.get(role.baseRoleId) : undefined;
-        const carried = base ? allowedRules(base).length : null;
-        return (
-            <InfoTip
-                title={
-                    carried !== null
-                        ? `Affiche ${allowedRules(role).length}, porte ${carried}`
-                        : 'Le décompte ne dit pas ce que le rôle porte'
-                }
-                detail="Un décompte de rôle qui hérite ne dit pas ce qu'il porte."
-            />
-        );
-    }
-
-    /* « Deux portées empilées » : hériter d'un rôle d'une autre portée les additionne,
-       et `gatherDataScopes` garde les deux sans les départager. */
-    if (inheritance && role.baseRoleId) {
-        const base = byId.get(role.baseRoleId);
-        const baseLevel = base ? declaredScope(base) : null;
-        if (baseLevel && baseLevel !== level) {
-            return (
-                <InfoTip
-                    title="Deux portées empilées"
-                    detail={`${SCOPE_LABEL[baseLevel]}, héritée ; ${SCOPE_LABEL[level]}, déclarée. Rien ne les départage.`}
-                />
-            );
-        }
-    }
-
-    /* « Portée nommée » : une expression sur mesure qu'aucun code ne sait résoudre. */
-    if (level === 'custom') {
-        const named = role.dataScopes?.[0]?.expression;
-        return (
-            <InfoTip
-                title={named ? `Portée nommée ${named}` : 'Portée sur mesure'}
-                detail="Aucun code ne sait la résoudre."
-            />
-        );
-    }
-
-    return null;
-};
-
-/**
- * **Le repli — et il n'en reste qu'un.** Passe R13 : le relevé de code descend sous
- * le cadre, ce qui explique un chiffre monte en ⓘ, *« un seul repli reste, celui qui
- * a un renvoi »*. C'est celui-ci : le fait est long, il concerne **deux rôles à la
- * fois** — donc aucun chiffre en particulier —, et il se termine par un endroit où
- * aller. Replié, il tient sur une ligne ; déplié, il ne coupe pas la liste puisqu'on
- * vient de l'ouvrir.
- */
-const ScopeDisclosure: React.FC<{
-    summary: string;
-    children: React.ReactNode;
-    linkLabel: string;
-    onFollow: () => void;
-}> = ({ summary, children, linkLabel, onFollow }) => {
-    const [open, setOpen] = useState(false);
-    return (
-        <div className="text-text-muted text-[11px] leading-4">
-            <Button
-                variant="text"
-                onClick={() => setOpen((value) => !value)}
-                aria-expanded={open}
-                className="text-text-secondary min-h-11 w-full justify-between gap-2 px-0 text-left text-[12px]"
-            >
-                <span className="min-w-0 flex-1">{summary}</span>
-                <Icon glyph={open ? CaretUp : CaretDown} size={18} className="shrink-0" />
-            </Button>
-            {open && (
-                <div className="flex flex-col items-start gap-1 pb-3">
-                    <p>{children}</p>
-                    <Button
-                        variant="text"
-                        onClick={onFollow}
-                        className="text-on-surface min-h-11 gap-1.5 px-0 text-[12px]"
-                    >
-                        {linkLabel}
-                        <Icon glyph={ArrowRight} size={16} />
-                    </Button>
-                </div>
-            )}
-        </div>
-    );
-};
-
 const RbacPage: React.FC = () => {
     const { routeSegments, navigate } = useRouter();
-    const isCompact = useMediaQuery(MEDIA.compact);
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const {
         users,
         rbacRoles,
         rbacGroups,
-        rbacAssignments,
         upsertRbacRole,
         deleteRbacRole,
         upsertRbacGroup,
@@ -418,22 +301,50 @@ const RbacPage: React.FC = () => {
         return rbacGroups.filter((group) => group.name.toLowerCase().includes(needle));
     }, [query, rbacGroups]);
 
-    /** Les rôles rangés par portée **déclarée** — le classement qui rend l'écart visible. */
-    const rolesByScope = useMemo(() => {
-        const buckets = new Map<ScopeLevel, RbacRole[]>();
-        filteredRoles.forEach((role) => {
-            const level = declaredScope(role);
-            buckets.set(level, [...(buckets.get(level) ?? []), role]);
-        });
-        return SCOPE_ORDER.filter((level) => buckets.has(level)).map((level) => ({
-            level,
-            roles: buckets.get(level) as RbacRole[],
-        }));
-    }, [filteredRoles]);
-
     const customRoles = useMemo(
         () => rbacRoles.filter((role) => role.kind === 'custom'),
         [rbacRoles],
+    );
+
+    /**
+     * **Qui porte chaque rôle** — le chiffre que 11.1 met à droite de la rangée, sous
+     * l'en-tête « porteurs ». L'écran affichait à la place le nombre de *permissions*
+     * du rôle, et sa ligne d'ordre annonçait « 0 affectations ».
+     *
+     * Le zéro était faux. Un compte porte son rôle de **deux** façons : la liste
+     * `rbacRoleIds`, et le champ historique `role` que `SYSTEM_ROLE_ID_BY_USER_ROLE`
+     * rattache à un rôle du système. Ne compter que la première donnait zéro sur un
+     * parc où **les 59 comptes** passent par la seconde.
+     */
+    const porteursParRole = useMemo(() => {
+        const table = new Map<string, number>();
+        users.forEach((user) => {
+            const ids = new Set<string>(user.rbacRoleIds ?? []);
+            const herite = SYSTEM_ROLE_ID_BY_USER_ROLE[user.role];
+            if (herite) ids.add(herite);
+            ids.forEach((id) => table.set(id, (table.get(id) ?? 0) + 1));
+        });
+        return table;
+    }, [users]);
+
+    /**
+     * **Les membres d'un groupe se comptent depuis les personnes.** `RbacGroup` ne
+     * porte pas de liste de membres : l'appartenance vit dans `User.rbacGroupIds`.
+     * Compter du côté du groupe donnait zéro partout — la même erreur que « 0
+     * affectations », et pour la même raison : le lien n'est pas là où on le cherche.
+     */
+    const membresParGroupe = useMemo(() => {
+        const table = new Map<string, number>();
+        users.forEach((user) => {
+            (user.rbacGroupIds ?? []).forEach((id) => table.set(id, (table.get(id) ?? 0) + 1));
+        });
+        return table;
+    }, [users]);
+
+    /** Le second fait de la ligne d'ordre de « Groupes » — 11.1 : « 5 groupes · 10 membres ». */
+    const membresTotal = useMemo(
+        () => rbacGroups.reduce((total, group) => total + (membresParGroupe.get(group.id) ?? 0), 0),
+        [rbacGroups, membresParGroupe],
     );
 
     const goToRole = (roleId: string) => navigate(`/rbac/roles/${roleId}`);
@@ -763,258 +674,173 @@ const RbacPage: React.FC = () => {
 
     // ── La liste ──────────────────────────────────────────────────────────────
     return (
-        <div className="flex min-h-0 w-full flex-1 flex-col">
-            {isCompact ? (
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center border-b px-5 py-1">
-                    <h1 className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-tight">
-                        Rôles &amp; accès
-                    </h1>
-                </div>
-            ) : (
-                <div className="px-page flex items-center gap-3 pt-5">
-                    <h1 className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-tight">
-                        Rôles &amp; accès
-                    </h1>
-                </div>
-            )}
-
-            <div
-                className={cn(
-                    'flex flex-col gap-2.5',
-                    isCompact
-                        ? 'border-outline-variant bg-surface border-b px-5 py-3'
-                        : 'px-page pt-4',
-                )}
-            >
-                <div className="w-full max-w-[960px]">
-                    <SearchField
-                        value={query}
-                        onChange={setQuery}
-                        placeholder="Rôle, groupe, permission"
+        <>
+            <ListTemplate
+                /*
+                 * **La barre de 17.8, la même que les cinq autres listes.** L'écran
+                 * portait un titre à 22/28 et, sous lui, un champ de recherche toujours
+                 * ouvert puis deux jetons « Rôles 8 · Groupes 5 ». 17.8 a relevé qu'il
+                 * n'y a **pas d'onglets dans le corpus** : les deux jetons étaient une
+                 * barre d'onglets déguisée, et 11.1 dessine bien **deux écrans de
+                 * liste** — « Accès » puis « Groupes » — chacun avec son en-tête.
+                 */
+                title={view === 'groups' ? 'Groupes' : 'Accès'}
+                onBack={view === 'groups' ? () => navigate('/rbac/roles') : undefined}
+                search={{
+                    value: query,
+                    onChange: setQuery,
+                    placeholder: view === 'groups' ? 'Nom d’un groupe' : 'Rôle, permission',
+                }}
+                count={
+                    view === 'groups'
+                        ? {
+                              total: filteredGroups.length,
+                              noun: `groupe${filteredGroups.length > 1 ? 's' : ''} · ${membresTotal} membre${membresTotal > 1 ? 's' : ''}`,
+                          }
+                        : {
+                              total: filteredRoles.length,
+                              /* `.ord` de 11.1 : « 8 rôles · 5 groupes » à gauche,
+                                 « 25 personnes » à droite. Les trois faits comptent le
+                                 même sujet et tiennent sur une ligne. */
+                              noun: `rôle${filteredRoles.length > 1 ? 's' : ''} · ${rbacGroups.length} groupe${rbacGroups.length > 1 ? 's' : ''} · ${users.length} personne${users.length > 1 ? 's' : ''}`,
+                          }
+                }
+                fab={
+                    <ListActionFab
+                        label={view === 'groups' ? 'groupe' : 'accès'}
+                        sheetTitle="Créer"
+                        actions={
+                            view === 'groups'
+                                ? [
+                                      {
+                                          id: 'group',
+                                          label: 'Un groupe',
+                                          icon: 'group_add',
+                                          onSelect: () => setGroupSheetOpen(true),
+                                      },
+                                  ]
+                                : [
+                                      {
+                                          id: 'role',
+                                          label: 'Un rôle',
+                                          icon: 'shield',
+                                          onSelect: () => setRoleSheetOpen(true),
+                                      },
+                                      {
+                                          id: 'group',
+                                          label: 'Un groupe',
+                                          icon: 'group_add',
+                                          onSelect: () => setGroupSheetOpen(true),
+                                      },
+                                      {
+                                          id: 'assign',
+                                          label: 'Affecter une personne',
+                                          icon: 'person_add',
+                                          onSelect: () => setAssignmentSheetOpen(true),
+                                      },
+                                  ]
+                        }
                     />
-                </div>
-                <div className="flex w-full max-w-[960px] gap-2">
-                    <FacetChip
-                        label="Rôles"
-                        count={rbacRoles.length}
-                        selected={view === 'roles'}
-                        onClick={() => navigate('/rbac/roles')}
-                    />
-                    <FacetChip
-                        label="Groupes"
-                        count={rbacGroups.length}
-                        selected={view === 'groups'}
-                        onClick={() => navigate('/rbac/groups')}
-                    />
-                </div>
-            </div>
-
-            <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
-                <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
-                    {/* `.pv` de 11.1 — **le chiffre, son libellé court, et l'explication
-                        rangée derrière l'ⓘ** (17.9). Les deux propositions qui suivaient
-                        le décompte tenaient sur trois lignes dans un encart lu une fois,
-                        puis jamais. */}
-                    <Notice glyph={ShieldCheck}>
-                        <strong className="text-on-surface font-medium">
-                            {TOTAL_PERMISSIONS} permissions
-                        </strong>{' '}
-                        — {VIEW_KEYS.length} vues, {ACTION_KEYS.length} actions
-                        <InfoTip
-                            title="En lecture, écriture ou suppression"
-                            detail="Toutes lues par l'application."
-                            label="Ce que compte ce chiffre"
-                            className="ml-1.5"
-                        />
-                    </Notice>
-
-                    {view === 'roles' ? (
-                        <>
-                            <div className="text-text-secondary flex items-center justify-between gap-3 text-[13px]">
-                                <span className="tabular-nums">
-                                    <strong className="text-on-surface font-medium">
-                                        {rbacRoles.length}
-                                    </strong>{' '}
-                                    rôles ·{' '}
-                                    <strong className="text-on-surface font-medium">
-                                        {rbacAssignments.length}
-                                    </strong>{' '}
-                                    affectations
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Icon glyph={SortAscending} size={18} />
-                                    Par portée
-                                </span>
-                            </div>
-
-                            {customRoles.length === 0 && rolesByScope.length === 0 ? (
-                                <ScreenState
-                                    icon={ShieldPlus}
-                                    title="Aucun rôle personnalisé"
-                                    description="Les rôles du système restent — l'écran les protège de la suppression. C'est un rôle sur mesure qu'il n'y a pas encore."
-                                    actions={
-                                        <Button
-                                            variant="filled"
-                                            onClick={() => setRoleSheetOpen(true)}
-                                            icon={<Icon glyph={Plus} size={18} />}
-                                        >
-                                            Créer un rôle
-                                        </Button>
-                                    }
-                                />
-                            ) : (
-                                rolesByScope.map(({ level, roles }) => (
-                                    <RuleGroup
-                                        key={level}
-                                        header={
-                                            <span className="flex items-center gap-2">
-                                                <Icon glyph={SCOPE_ICON[level]} size={20} />
-                                                Portée déclarée : {SCOPE_LABEL[level]}
-                                            </span>
-                                        }
-                                        headerTrailing={`${roles.length} rôle${roles.length > 1 ? 's' : ''}`}
-                                        note={
-                                            level === 'global' ? (
-                                                <ScopeDisclosure
-                                                    summary="Deux rôles reçoivent le parc entier"
-                                                    linkLabel="Voir les pays affectés à l'Admin"
-                                                    onFollow={() => navigate('/users')}
-                                                >
-                                                    Le SuperAdmin toujours, et l'
-                                                    <strong className="text-on-surface font-medium">
-                                                        Admin dès qu'aucun pays ne lui est affecté
-                                                    </strong>{' '}
-                                                    — le repli de filterEquipment le dit en
-                                                    commentaire. Ce qui les sépare tient à
-                                                    managedCountries, une donnée de la personne, pas
-                                                    au rôle. Seul écart qui vienne bien du rôle :
-                                                    les quatorze actions{' '}
-                                                    <strong className="text-on-surface font-medium">
-                                                        en suppression
-                                                    </strong>
-                                                    , contre trois à l'Admin.
-                                                </ScopeDisclosure>
-                                            ) : null
-                                        }
-                                    >
-                                        {roles.map((role) => {
-                                            const inheritance = inheritanceFact(role, rolesById);
-                                            const denied = deniedRules(role);
-                                            const facts = [
-                                                inheritance &&
-                                                    `Hérite de ${inheritance.baseName}${inheritance.addsNothing ? " — n'ajoute aucun droit" : ''}`,
-                                                denied.length > 0 &&
-                                                    `Refuse ${denied.length} action${denied.length > 1 ? 's' : ''}`,
-                                            ].filter(Boolean);
-
-                                            return (
-                                                <RuleGroup.Row
-                                                    key={role.id}
-                                                    title={role.name}
-                                                    subtitle={
-                                                        facts.length > 0
-                                                            ? facts.join(' · ')
-                                                            : role.id
-                                                    }
-                                                    value={
-                                                        <span className="inline-flex items-center gap-1">
-                                                            {allowedRules(role).length}
-                                                            {roleCountTip(role, level, rolesById)}
-                                                        </span>
-                                                    }
-                                                    onOpen={() => goToRole(role.id)}
-                                                />
-                                            );
-                                        })}
-                                    </RuleGroup>
-                                ))
-                            )}
-
-                            {/* Le pied de la liste — 11.1. Le classement par portée montre
-                                l'écart ; cette note dit **ce que le produit lit à la place**.
-                                Sans elle, on croit que ranger sur la portée veut dire qu'elle
-                                s'applique. */}
-                            <Notice glyph={Crosshair}>
-                                <strong className="text-on-surface font-medium">
-                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} rôles ont une
-                                    branche dans le filtrage ligne à ligne
-                                </strong>{' '}
-                                — les valeurs de <code>UserRole</code>, testées en dur. Leur portée
-                                déclarée et ce que le filtre applique coïncident{' '}
-                                <strong className="text-on-surface font-medium">
-                                    par construction
-                                </strong>
-                                , jamais parce que la portée est lue. Les {customRoles.length} rôles
-                                personnalisés n'ont aucune branche : ils déclarent un périmètre que
-                                rien ne borne.
-                            </Notice>
-
-                            <div className="flex flex-col gap-3">
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => setRoleSheetOpen(true)}
-                                    icon={<Icon glyph={Plus} size={18} />}
-                                >
-                                    Créer un rôle
-                                </Button>
-                                <Button variant="text" onClick={() => setAssignmentSheetOpen(true)}>
-                                    Affecter une personne
-                                </Button>
-                            </div>
-                        </>
-                    ) : filteredGroups.length === 0 ? (
+                }
+                empty={
+                    view === 'groups' ? (
                         <ScreenState
                             icon={Users}
                             title="Aucun groupe"
                             description="Un groupe donne un rôle à plusieurs personnes d'un coup, et borne où il s'applique — un pays, un service."
-                            actions={
-                                <Button
-                                    variant="filled"
-                                    onClick={() => setGroupSheetOpen(true)}
-                                    icon={<Icon glyph={Plus} size={18} />}
-                                >
-                                    Créer un groupe
-                                </Button>
-                            }
                         />
                     ) : (
-                        <>
-                            <RuleGroup
-                                header={
-                                    <span className="flex items-center gap-2">
-                                        <Icon glyph={Users} size={20} />
-                                        Les groupes
-                                    </span>
-                                }
-                                headerTrailing={String(filteredGroups.length)}
-                                note="Un groupe peut donner un droit que son rôle n'a pas, et cet ajout-là s'applique. Les portées écrites sous chaque nom, elles, sont déclarées puis ignorées."
-                            >
-                                {filteredGroups.map((group) => (
-                                    <RuleGroup.Row
-                                        key={group.id}
-                                        title={group.name}
-                                        subtitle={groupSummary(group, rolesById)}
-                                        value={
-                                            group.permissions?.length
-                                                ? `+${group.permissions.length} droit${group.permissions.length > 1 ? 's' : ''}`
-                                                : undefined
-                                        }
-                                        onOpen={() => setOpenGroupId(group.id)}
-                                    />
-                                ))}
-                            </RuleGroup>
+                        <ScreenState
+                            icon={ShieldPlus}
+                            title="Aucun rôle"
+                            description="Les rôles du système sont livrés avec le produit. S'il n'en reste aucun, c'est que le filtre en cache."
+                        />
+                    )
+                }
+                hasRows={view === 'groups' ? filteredGroups.length > 0 : filteredRoles.length > 0}
+            >
+                {view === 'roles' ? (
+                    <>
+                        {/*
+                         * **La carte des rôles de 11.1** — un rôle par rangée, ce qu'il
+                         * couvre en sous-ligne, et **le nombre de personnes qui le
+                         * portent** à droite. L'écran rangeait les rôles en six cartes
+                         * par portée déclarée et mettait à droite leur nombre de
+                         * permissions : un classement d'analyse, pas la liste d'un
+                         * produit. Ce que la planche demande de lire d'un coup d'œil,
+                         * c'est qui est concerné.
+                         */}
+                        <RuleGroup
+                            header="Les rôles"
+                            headerTrailing="porteurs"
+                            note={
+                                <>
+                                    Les rôles du système ne se suppriment pas.{' '}
+                                    <strong className="text-on-surface font-medium">
+                                        La portée écrite sous un nom est déclarée, pas appliquée
+                                    </strong>{' '}
+                                    : le filtrage teste en dur les{' '}
+                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} valeurs de{' '}
+                                    <code>UserRole</code>, et les {customRoles.length} rôles sur
+                                    mesure n'ont aucune branche.
+                                </>
+                            }
+                        >
+                            {filteredRoles.map((role) => {
+                                const niveau = declaredScope(role);
+                                const heritage = inheritanceFact(role, rolesById);
+                                const refus = deniedRules(role);
+                                const faits = [
+                                    heritage
+                                        ? `Hérite de ${heritage.baseName}${heritage.addsNothing ? " — n'ajoute aucun droit" : ''}`
+                                        : SCOPE_PHRASE[niveau],
+                                    refus.length > 0 &&
+                                        `refuse ${refus.length} action${refus.length > 1 ? 's' : ''}`,
+                                ].filter(Boolean);
+                                const porteurs = porteursParRole.get(role.id) ?? 0;
 
-                            <Button
-                                variant="outlined"
-                                onClick={() => setGroupSheetOpen(true)}
-                                icon={<Icon glyph={Plus} size={18} />}
-                            >
-                                Créer un groupe
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </div>
+                                return (
+                                    <RuleGroup.Row
+                                        key={role.id}
+                                        title={role.name}
+                                        subtitle={faits.join(' · ')}
+                                        value={porteurs}
+                                        quiet
+                                        onOpen={() => goToRole(role.id)}
+                                    />
+                                );
+                            })}
+                        </RuleGroup>
+
+                        {/* 11.1 : la seconde carte ne liste pas les groupes, elle y mène.
+                            « 5 groupes · ce qui s'ajoute aux rôles ». */}
+                        <RuleGroup header="Les groupes">
+                            <RuleGroup.Row
+                                title={`${rbacGroups.length} groupe${rbacGroups.length > 1 ? 's' : ''}`}
+                                subtitle="Ce qui s'ajoute aux rôles, à plusieurs personnes d'un coup"
+                                onOpen={() => navigate('/rbac/groups')}
+                            />
+                        </RuleGroup>
+                    </>
+                ) : (
+                    <RuleGroup
+                        header="Ce qu'ils ajoutent"
+                        headerTrailing="membres"
+                        note="Un groupe ajoute une ligne ou un périmètre, jamais la hiérarchie. Le droit ajouté s'applique ; la portée écrite sous le nom est déclarée puis ignorée."
+                    >
+                        {filteredGroups.map((group) => (
+                            <RuleGroup.Row
+                                key={group.id}
+                                title={group.name}
+                                subtitle={groupSummary(group, rolesById)}
+                                value={membresParGroupe.get(group.id) ?? 0}
+                                quiet
+                                onOpen={() => setOpenGroupId(group.id)}
+                            />
+                        ))}
+                    </RuleGroup>
+                )}
+            </ListTemplate>
 
             {/* Un groupe n'a pas de fiche : ce qu'il porte tient en trois lignes, et le
                 seul acte qu'on y prend est destructeur. Une feuille suffit. */}
@@ -1155,7 +981,7 @@ const RbacPage: React.FC = () => {
                     if (decision.allowed) setAssignmentSheetOpen(false);
                 }}
             />
-        </div>
+        </>
     );
 };
 

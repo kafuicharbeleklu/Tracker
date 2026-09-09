@@ -22,6 +22,17 @@ interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
     showPasswordToggle?: boolean;
     /** Label text */
     label?: string;
+    /**
+     * **La largeur de ce que le champ attend** (00.5). Un champ ne prend pas la mesure
+     * du contenu parce qu'elle est là : il prend celle de sa donnée. *« Un numéro de
+     * série court ne prend pas 560 px, une date en prend 240, un nom prend la mesure
+     * entière. »* C'était vrai à 393 px, où la contrainte le faisait seule ; cela doit
+     * rester vrai à 768, où plus rien ne l'impose — sinon les champs courts deviennent
+     * des invitations à écrire long.
+     *
+     * `date` est **déduite** de `type="date"` : une date n'attend jamais autre chose.
+     */
+    mesure?: 'courte' | 'date' | 'pleine';
     /** Optional class names for the field container and label */
     containerClassName?: string;
     labelClassName?: string;
@@ -58,6 +69,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
             isPassword = false,
             showPasswordToggle = true,
             label,
+            mesure,
             containerClassName,
             labelClassName,
             hideRequiredIndicator = false,
@@ -129,8 +141,21 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
             props.onChange?.(e);
         };
 
+        /* `date` se déduit du type ; tout le reste prend la mesure entière sauf
+           déclaration contraire de l'appelant. */
+        const largeurAttendue = mesure ?? (type === 'date' ? 'date' : 'pleine');
+
         return (
-            <div className={cn('w-full space-y-1', containerClassName)}>
+            <div
+                className={cn(
+                    'w-full space-y-1',
+                    /* 200 pour ce qui est court, 240 pour une date — les deux mesures
+                       que 00.5 déclare. Une date se déduit de son type. */
+                    largeurAttendue === 'courte' && 'max-w-[200px]',
+                    largeurAttendue === 'date' && 'max-w-[240px]',
+                    containerClassName,
+                )}
+            >
                 {label && (
                     <label
                         htmlFor={inputId}
@@ -236,7 +261,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                                          le filet se prend sur le padding pour tenir les 48. */
                                       'bg-surface rounded-md border py-[11px]',
                                       error
-                                          ? 'border-error hover:border-error focus:border-error focus:ring-error focus:ring-1 focus:ring-inset ring-1 ring-inset ring-error'
+                                          ? 'border-error hover:border-error focus:border-error focus:ring-error ring-error ring-1 ring-inset focus:ring-1 focus:ring-inset'
                                           : 'border-outline-variant hover:border-outline-variant focus:border-focus-ring focus:ring-focus-ring focus:ring-1 focus:ring-inset',
                                       'disabled:border-on-surface/[0.12] disabled:bg-surface',
                                   )

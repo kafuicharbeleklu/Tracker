@@ -12,11 +12,9 @@ import {
     DotsThreeVertical,
     Export,
     Info,
-    Package,
     PlusCircle,
     QrCode,
     Question,
-    Warning,
     Wrench,
 } from '@phosphor-icons/react';
 
@@ -35,6 +33,7 @@ import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import SideSheet from '../../../components/ui/SideSheet';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
+import { AUDIT_SCOPE_PREF_KEY } from '../../../lib/auditScope';
 import { buildCsvLine } from '../../../lib/csv';
 import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../../types';
 import { useConfirmation } from '../../../context/ConfirmationContext';
@@ -112,8 +111,6 @@ interface StoredAuditScope {
     local?: string;
     horsLocal?: boolean;
 }
-
-const AUDIT_SCOPE_PREF_KEY = 'audit_scope_pref';
 
 const readStoredScope = (): StoredAuditScope => {
     try {
@@ -479,7 +476,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             irreversible: true,
             confirmText: 'Abandonner',
             cancelText: 'Continuer le relevé',
-            icon: ArrowUUpLeft,
             details: [
                 { label: 'Scans perdus', value: sessionFound },
                 { label: 'Écarts perdus', value: sessionExceptions },
@@ -656,7 +652,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             irreversible: true,
             confirmText: 'Clôturer',
             cancelText: 'Annuler',
-            icon: Warning,
             // Les trois lignes de la planche, et pas une de plus : chacune est une
             // conséquence, pas un commentaire. Le fait « dont attribués » n'est pas ici
             // — il vit sur l'écran clôturé, où il a une suite ; dans la confirmation, il
@@ -796,7 +791,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             irreversible: true,
             confirmText: 'Écarter',
             cancelText: 'Annuler',
-            icon: Package,
             onConfirm: () => {
                 if (item) deleteEquipment(item.id);
                 setExceptionEntries((prev) =>

@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Books,
     CaretRight,
     Clock,
     Cube,
     Desktop,
-    FolderOpen,
+    FileCsv,
     Funnel,
+    Laptop,
     Network,
     Plugs,
     Plus,
     SortAscending,
-    UploadSimple,
+    Tag,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
@@ -26,7 +28,6 @@ import BulkActionBar from '../../../components/ui/BulkActionBar';
 import { useSelection } from '../../../hooks/useSelection';
 import { useDeclareSelectionRegime } from '../../../context/SelectionRegimeContext';
 import { buildCsvLine } from '../../../lib/csv';
-import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import ScreenState from '../../../components/ui/ScreenState';
 import SearchField from '../../../components/ui/SearchField';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -113,10 +114,18 @@ const METHOD_OPTIONS: { value: MethodFilter; label: string }[] = [
 ];
 
 /** La rangée d'une feuille de choix — 64 px, vignette de 40, chevron à droite. */
+/**
+ * `.orow` de 09.1 — la rangée de la feuille d'ajout : **64 de haut, gouttière 12**, un
+ * filet entre deux. Elle tenait `gap-3.5` et `py-2.5`.
+ */
 const ADD_ROW_CLASS =
-    'flex min-h-16 w-full items-center gap-3.5 px-5 py-2.5 text-left transition-colors hover:bg-surface-container';
-const ADD_ROW_GLYPH_CLASS =
-    'flex h-10 w-10 shrink-0 items-center justify-center rounded-vignette bg-surface-container text-on-surface-variant';
+    'flex min-h-16 w-full items-center gap-3 border-t border-outline-variant px-5 py-2 text-left transition-colors first-of-type:border-t-0 hover:bg-surface-container';
+/**
+ * `.vig` — **une teinte par chemin**, comme la planche les distingue : le type en bleu,
+ * le modèle en vert, l'import en ambre. Les trois portaient le même creux gris et le
+ * même glyphe `+`, si bien qu'aucune ne se reconnaissait avant d'être lue.
+ */
+const ADD_ROW_GLYPH_CLASS = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]';
 
 interface ManagementPageProps {
     onCategoryClick?: (id: string) => void;
@@ -336,9 +345,11 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     /* Le porte-voix de 09.1 : « N modèles au catalogue, sous N types ». Une seule
        formulation, que l'en-tête au rail et le bloc du téléphone se partagent. */
     const modelCountLabel = `${models.length} modèle${models.length > 1 ? 's' : ''}`;
-    const typeCountLabel = `${categories.length} type${categories.length > 1 ? 's' : ''}`;
 
-    const sheetFilterCount = (typeStateFilter ? 1 : 0) + (methodFilter ? 1 : 0);
+    const sheetFilterCount =
+        (typeStateFilter ? 1 : 0) +
+        (methodFilter ? 1 : 0) +
+        (familyFilter !== ALL_FAMILIES ? 1 : 0);
     const isFiltered =
         Boolean(debouncedSearch) || familyFilter !== ALL_FAMILIES || sheetFilterCount > 0;
     const isReferentialEmpty = categories.length === 0;
@@ -346,6 +357,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const clearSheetFilters = () => {
         setTypeStateFilter('');
         setMethodFilter('');
+        setFamilyFilter(ALL_FAMILIES);
     };
 
     const clearAllFilters = () => {
@@ -362,10 +374,6 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const openAddModel = () => {
         setIsAddSheetOpen(false);
         setIsModelModalOpen(true);
-    };
-
-    const handleTriggerCategoryImport = () => {
-        categoryImportInputRef.current?.click();
     };
 
     const handleCategoryImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -446,10 +454,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             }
 
             if (createdCount === 0 && skippedCount > 0) {
-                showToast(
-                    'Aucune nouvelle catégorie importée (doublons ou données invalides).',
-                    'warning',
-                );
+                showToast('Aucun type ajouté : doublons ou lignes invalides.', 'warning');
             }
         } catch {
             showToast("Impossible d'importer ce fichier CSV.", 'error');
@@ -492,58 +497,69 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 title="Filtrer"
             >
                 <div className="flex flex-col px-0 pb-0">
-                    <p className="text-text-muted px-5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
+                    {/* **La famille est ici, pas dans une rangée de l'en-tête.** 17.8 a
+                        retiré le slot des partitions le 06/09 : *« là où une partition
+                        exclusive existe, elle est en chips dans la feuille de filtre, et
+                        la ligne de tri la nomme »*. Elle occupait une bande sous la
+                        recherche — une quatrième ligne de commandes avant la première
+                        rangée du catalogue. */}
+                    <p className="text-on-surface-variant px-5 pt-3.5 pb-2 text-[12px] leading-4 font-medium">
+                        Famille
+                    </p>
+                    <div className="flex flex-wrap gap-2 px-5">
+                        {familyFacets.map((facet) => (
+                            <FacetChip
+                                key={facet.id}
+                                label={facet.label}
+                                count={facet.count}
+                                selected={facet.id === familyFilter}
+                                onClick={() => setFamilyFilter(facet.id)}
+                            />
+                        ))}
+                    </div>
+
+                    <p className="text-on-surface-variant px-5 pt-4 pb-2 text-[12px] leading-4 font-medium">
                         État du type
                     </p>
                     <div className="flex flex-wrap gap-2 px-5">
                         {TYPE_STATE_OPTIONS.map((option) => (
-                            <button
+                            <FacetChip
                                 key={option.label}
-                                type="button"
+                                label={option.label}
+                                selected={typeStateFilter === option.value}
                                 onClick={() => setTypeStateFilter(option.value)}
-                                className={cn(
-                                    'flex min-h-11 items-center rounded-md px-3 text-[13px] transition-colors',
-                                    typeStateFilter === option.value
-                                        ? 'bg-inverse-surface text-inverse-on-surface'
-                                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                )}
-                            >
-                                {option.label}
-                            </button>
+                            />
                         ))}
                     </div>
 
-                    <p className="text-text-muted px-5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
+                    <p className="text-on-surface-variant px-5 pt-4 pb-2 text-[12px] leading-4 font-medium">
                         Amortissement
                     </p>
                     <div className="flex flex-wrap gap-2 px-5">
                         {METHOD_OPTIONS.map((option) => (
-                            <button
+                            <FacetChip
                                 key={option.label}
-                                type="button"
+                                label={option.label}
+                                selected={methodFilter === option.value}
                                 onClick={() => setMethodFilter(option.value)}
-                                className={cn(
-                                    'flex min-h-11 items-center rounded-md px-3 text-[13px] transition-colors',
-                                    methodFilter === option.value
-                                        ? 'bg-inverse-surface text-inverse-on-surface'
-                                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-                                )}
-                            >
-                                {option.label}
-                            </button>
+                            />
                         ))}
                     </div>
 
-                    <div className="border-outline-variant mt-3 flex items-center gap-3 border-t px-5 pt-3.5 pb-0.5">
-                        <Button variant="ghost" className="px-1" onClick={clearSheetFilters}>
+                    <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button
+                            variant="tonal"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                            onClick={clearSheetFilters}
+                        >
                             Tout effacer
                         </Button>
                         <Button
-                            variant="tonal"
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex-1"
+                            variant="filled"
+                            className="justify-center"
                             onClick={() => setIsFilterSheetOpen(false)}
                         >
-                            Voir les {filteredCategories.length} type
+                            Voir {filteredCategories.length} type
                             {filteredCategories.length > 1 ? 's' : ''}
                         </Button>
                     </div>
@@ -558,77 +574,50 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 title="Ajouter au catalogue"
             >
                 <div className="flex flex-col py-2">
-                    <button type="button" className={ADD_ROW_CLASS} onClick={openAddModel}>
-                        <span className={ADD_ROW_GLYPH_CLASS}>
-                            <Icon glyph={Plus} size={20} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[15px] font-medium">
-                                Un modèle
-                            </span>
-                            <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                il se range sous un type existant et emporte marque et amortissement
-                            </span>
-                        </span>
-                        <Icon
-                            glyph={CaretRight}
-                            size={18}
-                            className="text-text-secondary shrink-0"
-                        />
-                    </button>
-
+                    {/*
+                      **Trois chemins, dans l'ordre de la planche** — et le type d'abord :
+                      un modèle se range *sous* un type, et l'import lit des types au
+                      catalogue. La feuille en portait quatre, le modèle en tête et deux
+                      imports au bout ; le second — « des types, depuis un CSV » — n'est pas
+                      dans 09.1, qui renvoie l'import des types aux Paramètres : *« ils
+                      demandent les clés de la donnée, que personne ne connaît avant
+                      d'avoir créé un type à la main »*.
+                    */}
                     <button type="button" className={ADD_ROW_CLASS} onClick={openAddCategory}>
-                        <span className={ADD_ROW_GLYPH_CLASS}>
-                            <Icon glyph={Plus} size={20} />
+                        <span className={cn(ADD_ROW_GLYPH_CLASS, 'bg-tint-bleu text-on-tint-bleu')}>
+                            <Icon glyph={Tag} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[15px] font-medium">
+                            <span className="text-on-surface block text-[16px] leading-6">
                                 Un type
                             </span>
-                            <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                une entrée de référentiel : il change ce que voient tous les filtres
-                                du produit
+                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                                Une famille, un nom, attribuable ou non
                             </span>
                         </span>
                         <Icon
                             glyph={CaretRight}
-                            size={18}
-                            className="text-text-secondary shrink-0"
+                            size={20}
+                            className="text-text-tertiary shrink-0"
                         />
                     </button>
 
-                    {/* Les deux imports en masse. La planche les renvoie aux Paramètres —
-                        ils demandent les clés de la donnée, que personne ne connaît avant
-                        d'avoir créé un type à la main. Ils restent ici en attendant ce
-                        déplacement, plutôt que de devenir injoignables : c'est la seule
-                        porte du produit vers l'import de modèles. */}
-                    <p className="border-outline-variant text-text-muted mt-2 border-t px-5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.06em] uppercase">
-                        Importer en masse
-                    </p>
-
-                    <button
-                        type="button"
-                        className={ADD_ROW_CLASS}
-                        onClick={() => {
-                            setIsAddSheetOpen(false);
-                            handleTriggerCategoryImport();
-                        }}
-                    >
-                        <span className={ADD_ROW_GLYPH_CLASS}>
-                            <Icon glyph={UploadSimple} size={20} />
+                    <button type="button" className={ADD_ROW_CLASS} onClick={openAddModel}>
+                        <span className={cn(ADD_ROW_GLYPH_CLASS, 'bg-tint-vert text-on-tint-vert')}>
+                            <Icon glyph={Laptop} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[15px] font-medium">
-                                Des types, depuis un CSV
+                            <span className="text-on-surface block text-[16px] leading-6">
+                                Un modèle
                             </span>
-                            <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                nom, description, méthode, durée, valeur résiduelle, pictogramme
+                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                                Un nom et son type ; le reste plus tard
                             </span>
                         </span>
                         <Icon
                             glyph={CaretRight}
-                            size={18}
-                            className="text-text-secondary shrink-0"
+                            size={20}
+                            className="text-text-tertiary shrink-0"
                         />
                     </button>
 
@@ -640,29 +629,39 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             onViewChange?.('import_models');
                         }}
                     >
-                        <span className={ADD_ROW_GLYPH_CLASS}>
-                            <Icon glyph={UploadSimple} size={20} />
+                        <span
+                            className={cn(ADD_ROW_GLYPH_CLASS, 'bg-tint-ambre text-on-tint-ambre')}
+                        >
+                            <Icon glyph={FileCsv} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[15px] font-medium">
-                                Des modèles, depuis un fichier
+                            <span className="text-on-surface block text-[16px] leading-6">
+                                Importer des modèles
                             </span>
-                            <span className="text-text-secondary mt-[3px] block text-[13px] leading-[19px]">
-                                le contrat de colonnes s'affiche avant le dépôt
+                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                                Un fichier, une ligne par modèle
                             </span>
                         </span>
                         <Icon
                             glyph={CaretRight}
-                            size={18}
-                            className="text-text-secondary shrink-0"
+                            size={20}
+                            className="text-text-tertiary shrink-0"
                         />
                     </button>
                 </div>
             </BottomSheet>
 
-            {/* LA BARRE — `.tbar` de 09.1, reprise au caractère de 04.1 : 56 px, titre
-                Archivo, filet en bas au téléphone ; au rail, ni filet ni redite de la
-                destination, que le rail porte déjà (00.4). */}
+            {/*
+              **L'EN-TÊTE DE 17.8 — un seul bloc.** Le catalogue en portait trois : une
+              barre de 56 avec le titre en **20**, puis une bande à filet propre avec la
+              recherche et l'entonnoir, puis une troisième rangée de pastilles de famille.
+              Quatre lignes de commandes avant la première rangée du référentiel.
+
+              Le composant partagé en déclare un : titre **28 sur 32** et l'action de page,
+              recherche et entonnoir à 48, la ligne de compte en 12 — *« l'ordre descend du
+              général au particulier : où l'on est, ce qu'on cherche, quelle tranche, dans
+              quel ordre »*. Les partitions sont dans la feuille (§ ci-dessus).
+            */}
             {isCompact && selection.isActive ? (
                 /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
                    change de régime, il ne gagne pas un palier. */
@@ -675,104 +674,95 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                     }
                     onClearAll={selection.clear}
                 />
-            ) : isCompact ? (
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center justify-between border-b px-5 py-1">
-                    <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
-                        Catalogue
-                    </h1>
-                </div>
             ) : (
-                <div className="px-page flex items-center gap-3 pt-5">
-                    <div className="flex min-w-0 items-baseline gap-2.5">
-                        <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
-                            Catalogue
-                        </h1>
-                        {/* Le porte-voix **est** le compteur de l'en-tête au rail (00.4 :
-                        « titre + compteur, sans filet »). Il vivait deux bandes plus bas
-                        en Archivo 28, sous un « N types » qui redisait la moitié de sa
-                        phrase : trois compteurs se recoupaient avant la première rangée.
-                        Au téléphone il reste où 09.1 le dessine — dans la page, en 28. */}
-                        <span className="text-text-secondary min-w-0 truncate text-[13px] leading-5">
-                            <b className="font-brand text-on-surface font-semibold tabular-nums">
-                                {modelCountLabel}
-                            </b>
-                            {` au catalogue, sous ${typeCountLabel}`}
-                        </span>
-                    </div>
-                    <span className="flex-1" />
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={Plus} size={18} />}
-                        onClick={() => setIsAddSheetOpen(true)}
-                    >
-                        Ajouter au catalogue
-                    </Button>
-                </div>
-            )}
-
-            <OfflineBanner />
-
-            {/* LA BANDE — `.seek` : le champ et le bouton de filtre à 8 px, la rangée
-                de familles 10 px dessous. Chrome attaché à l'en-tête au téléphone
-                (surface + filet), simple bande de page au rail (§2.37, 00.4).
-                Elle disparaît avec le référentiel vide : un outil qui trie ce qui
-                n'existe pas apprend que l'écran est cassé. */}
-            {/* S3 — **un seul palier haut**. En sélection, la barre sombre remplace
-                l'en-tête ; laisser la recherche et les partitions dessous en ferait un
-                second palier, et la planche n'en dessine aucun : le sujet de l'écran
-                n'est plus la liste, c'est ce qui est coché. */}
-            {!isReferentialEmpty && !selection.isActive && (
                 <div
                     className={cn(
-                        'flex flex-col gap-2.5',
+                        'flex flex-col',
                         isCompact
-                            ? 'border-outline-variant bg-surface border-b px-5 py-3'
-                            : 'px-page pt-4',
+                            ? 'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
+                            : 'px-page pt-5',
+                        !isReferentialEmpty && 'gap-3',
                     )}
                 >
-                    <Reading className="flex items-center gap-2">
-                        <SearchField
-                            value={searchQuery}
-                            onChange={setSearchQuery}
-                            placeholder="Type, modèle, marque"
-                            className="flex-1"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setIsFilterSheetOpen(true)}
-                            aria-label="Filtrer"
-                            className="border-outline text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
-                        >
-                            <Icon glyph={Funnel} size={20} />
-                            {sheetFilterCount > 0 && (
-                                <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] leading-[18px] font-semibold tabular-nums">
-                                    {sheetFilterCount}
-                                </span>
-                            )}
-                        </button>
-                    </Reading>
+                    {/* `.tt` — **le titre, et rien d'autre.** 17.8 tranche : *« une seule
+                        action de page dans le corpus : le scan de 04.1. Partout ailleurs
+                        le geste de création vit dans le "+" (17.6) : le gabarit autorise
+                        zéro action, et c'est le cas ordinaire. »* Le bouton « Ajouter »
+                        posé ici le 07/09 était une **seconde porte** vers la feuille que
+                        le bouton flottant ouvre déjà en bas de l'écran. */}
+                    <div className="flex min-h-12 items-center">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            Catalogue
+                        </h1>
+                    </div>
 
-                    {/* Les pastilles de famille (A2) — à 393 px elles défilent, dès 600
-                        elles tiennent toutes : un filtre qu'on ne voit pas se choisit à
-                        l'aveugle. */}
-                    <Reading className="overflow-hidden">
-                        <div
-                            className={cn(
-                                'flex [scrollbar-width:none] gap-2 overflow-x-auto',
-                                isCompact ? 'pr-1' : 'flex-wrap',
-                            )}
-                        >
-                            {familyFacets.map((facet) => (
-                                <FacetChip
-                                    key={facet.id}
-                                    label={facet.label}
-                                    count={facet.count}
-                                    selected={facet.id === familyFilter}
-                                    onClick={() => setFamilyFilter(facet.id)}
+                    {/* La bande disparaît avec le référentiel vide : un outil qui trie ce
+                        qui n'existe pas apprend que l'écran est cassé. */}
+                    {!isReferentialEmpty && (
+                        <>
+                            <Reading className="flex items-center gap-2">
+                                <SearchField
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    placeholder="Type, modèle, marque"
+                                    className="flex-1"
                                 />
-                            ))}
-                        </div>
-                    </Reading>
+                                <Button
+                                    variant="text"
+                                    aria-label="Filtrer le catalogue"
+                                    onClick={() => setIsFilterSheetOpen(true)}
+                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                >
+                                    <Icon glyph={Funnel} size={20} />
+                                    {sheetFilterCount > 0 && (
+                                        <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
+                                            {sheetFilterCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            </Reading>
+
+                            {/*
+                              `.ord` — **le cinquième slot, dans le bloc fixe.** Il vivait
+                              dans le contenu, donc il défilait : *« un filtre posé dans
+                              `.page` disparaît au premier défilement, et la liste devient
+                              un sous-ensemble sans étiquette »* (17.8). C'est aussi ici que
+                              la **famille retenue se nomme**, puisqu'elle n'a plus de
+                              rangée à elle : la ligne de tri porte la partition.
+                            */}
+                            <Reading
+                                className={cn(
+                                    'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[12px] leading-4',
+                                    selection.isActive && 'hidden',
+                                )}
+                            >
+                                <span className="min-w-0 truncate">
+                                    <b className="text-on-surface font-medium tabular-nums">
+                                        {filteredCategories.length}
+                                    </b>{' '}
+                                    type{filteredCategories.length > 1 ? 's' : ''}
+                                    {familyFilter !== ALL_FAMILIES && ` · ${familyFilter}`} ·{' '}
+                                    {modelCountLabel} · {equipment.length} actifs
+                                </span>
+                                <Button
+                                    variant="text"
+                                    onClick={() =>
+                                        setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
+                                    }
+                                    className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[12px] leading-4 font-medium hover:bg-transparent"
+                                    icon={
+                                        <Icon
+                                            glyph={SortAscending}
+                                            size={18}
+                                            className="text-on-surface-variant"
+                                        />
+                                    }
+                                >
+                                    {SORT_OPTIONS[sortIndex].label}
+                                </Button>
+                            </Reading>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -791,79 +781,24 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                        zéro : il dit la conséquence, puis met le seul geste utile à
                        portée. */
                     <ScreenState
-                        icon={FolderOpen}
+                        icon={Books}
                         title="Le catalogue est vide"
                         description={
                             <>
-                                Sans type ni modèle,{' '}
+                                Commencez par un type : sans lui,{' '}
                                 <b className="text-on-surface font-medium">
-                                    aucun équipement ne peut être créé
-                                </b>{' '}
-                                : la fiche d'un actif tire sa marque, son type et sa durée
-                                d'amortissement d'ici.
+                                    aucun modèle ni équipement ne peut être créé
+                                </b>
+                                .
                             </>
                         }
-                        actions={
-                            <Button
-                                variant="filled"
-                                icon={<Icon glyph={Plus} size={18} />}
-                                onClick={openAddCategory}
-                            >
-                                Créer le premier type
-                            </Button>
-                        }
-                        footnote="L'import en masse demande les clés de la donnée : il attend qu'un premier type existe."
+                        /* **Ni bouton, ni note** — 09.1, colonne 5 : *« un seul geste
+                           d'ajout, le FAB, le même qu'au repos ; la phrase dit par quoi
+                           commencer »*. Le bouton posé ici doublait le geste flottant, et
+                           la note expliquait l'import à qui n'a pas encore de type. */
                     />
                 ) : (
                     <Reading className="flex flex-col">
-                        {/*
-                          `.ord` — **la passe sobre du 03/09 retire le porte-voix de 28.**
-                          La planche ne dessine plus qu'une ligne de 12 sur 16 : les types
-                          et les modèles à gauche, les actifs au parc à droite. Le grand
-                          nombre disait ce que cette ligne dit, une marche plus haut, et
-                          poussait la première rangée hors de l'écran.
-
-                          Le tri reste à droite : 09.1 ne le dessine pas, mais il existe
-                          dans le produit et 17.8 lui donne cette place. Le compte des
-                          actifs rejoint donc la phrase de gauche.
-                        */}
-
-                        <div
-                            className={cn(
-                                'text-on-surface-variant flex min-h-11 items-center justify-between gap-3 px-1 text-[12px] leading-4',
-                                selection.isActive && 'hidden',
-                            )}
-                        >
-                            <span className="min-w-0 truncate">
-                                <b className="text-on-surface font-medium tabular-nums">
-                                    {typeCountLabel}
-                                </b>{' '}
-                                ·{' '}
-                                <b className="text-on-surface font-medium tabular-nums">
-                                    {modelCountLabel}
-                                </b>{' '}
-                                ·{' '}
-                                <b className="text-on-surface font-medium tabular-nums">
-                                    {equipment.length}
-                                </b>{' '}
-                                actifs au parc
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
-                                }
-                                className="text-on-surface hover:bg-surface-container -mr-2 flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 bg-transparent px-2 text-[12px] leading-4 font-medium"
-                            >
-                                <Icon
-                                    glyph={SortAscending}
-                                    size={18}
-                                    className="text-on-surface-variant"
-                                />
-                                {SORT_OPTIONS[sortIndex].label}
-                            </button>
-                        </div>
-
                         {filteredCategories.length > 0 ? (
                             <>
                                 {/* A2 — deux niveaux, famille → type. Le référentiel est
@@ -1074,7 +1009,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 </BulkActionBar>
             )}
 
-            {isCompact && !isReferentialEmpty && !selection.isActive && (
+            {/* Le geste d'ajout ne disparaît pas avec la liste : 09.1 le dessine sur le
+                référentiel vide, **au même endroit**. Il s'effaçait justement là où il est
+                le seul chemin. */}
+            {isCompact && !selection.isActive && (
                 <FabContainer
                     description="Ajouter au catalogue"
                     className="compact:bottom-[76px] right-5 bottom-[76px]"

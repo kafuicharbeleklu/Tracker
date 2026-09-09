@@ -979,6 +979,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     return (
         <ListTemplate
+            /* 03.3 est une **file** : ses rangées font 56 et portent une marque ronde.
+               Le squelette doit annoncer cette forme-là, pas celle d'une liste. */
+            skeleton="file"
             title="Tâches"
             /*
               LA BANDE DU HAUT NE PORTE PLUS QUE TROIS CHOSES — le titre, la recherche

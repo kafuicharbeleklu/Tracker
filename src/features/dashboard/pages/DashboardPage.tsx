@@ -1,39 +1,39 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
     ArrowCircleRight,
     ArrowUUpLeft,
     CaretRight,
     Check,
     ClockCounterClockwise,
-    Gear,
     Handshake,
-    LockKey,
     Package,
     Plus,
-    SignOut,
     Wrench,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
 import { EventType, ViewType } from '../../../types';
-import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useHistory } from '../../../hooks/useHistory';
 import { usePendingTasks, daysSince, type PendingTask } from '../../../hooks/usePendingTasks';
+import { useCurrentCampaign, type CurrentCampaign } from '../../../hooks/useCurrentCampaign';
+import { useAccountMenu } from '../../../hooks/useAccountMenu';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 
+import Reading from '../../../components/layout/Reading';
 import Button from '../../../components/ui/Button';
+import Menu from '../../../components/ui/Menu';
 import Icon from '../../../components/ui/Icon';
 import Figure from '../../../components/ui/Figure';
-import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
-import {
-    ACTIVE_APPROVAL_STATUSES,
-    getHistoryEventSentence,
-} from '../../../lib/businessRules';
+import { rememberAuditScope } from '../../../lib/auditScope';
+import { ACTIVE_APPROVAL_STATUSES, getHistoryEventSentence } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
+import heroImage from '../../../assets/dashboard-hero.webp';
 
 /**
  * Tableau de bord — **porté sur la planche 03.1, passe sobre du 02/09**.
@@ -99,12 +99,13 @@ import { cn } from '../../../lib/utils';
  * | --- | --- | --- |
  * | `vide` | 0 | pastille verte, « Vous êtes à jour » |
  * | `normale` | tout tient | les rangées, et le compte à droite du titre |
- * | `forte` | plus de trois | trois rangées, puis « Voir les N autres » |
+ * | `forte` | plus de quatre | quatre rangées, puis « Voir les N autres » |
  * | `saturee` | ≥ 250 | un chiffre de 44, puis les natures d'action |
  *
- * Le compte dans l'en-tête (`.cnt`) n'appartient qu'au régime `normale` : au régime
- * `forte` c'est « Voir les N autres » qui le porte, au régime saturé le chiffre de 44.
- * Le dire deux fois serait le dire une fois de trop.
+ * Le compte de l'en-tête (`.cnt`) accompagne les trois régimes qui portent quelque
+ * chose — la planche l'écrit pour 2, 17 et 999 — et **le régime vide n'en a pas** :
+ * il n'y a pas de zéro à afficher, il y a une phrase à lire. La colonne du porteur, elle,
+ * n'en porte aucun : sa zone ne compte pas, elle montre ce qui l'attend.
  *
  * **Une seule destination** : les liens n'ouvrent pas un autre écran, ils ouvrent
  * **le même** — Tâches — en portant le filtre et le tri.
@@ -125,15 +126,28 @@ import { cn } from '../../../lib/utils';
  * `rgba(255,255,255,.14)`), le geste de rangée sur surface inversée. Le produit le
  * garde donc, aux mesures de la planche, et l'attente s'installe à côté.
  *
+ * ## Ce que la relecture du 08/09 ajoute
+ *
+ * - **« Inventaire en cours »**, la carte que la passe du 05/09 glisse entre « Le parc »
+ *   et « Types en tension » : le lieu compté, la part retrouvée, et la reprise de la
+ *   campagne. Elle n'existe **que pendant** un comptage — voir `useCurrentCampaign`.
+ * - **Le rythme du budget n'est plus le quart de l'exercice.** La planche pose le repère
+ *   de `.wbar b` à 67 % au 3 septembre, c'est-à-dire à la **part d'exercice écoulée**, et
+ *   date sa phrase du jour (« 5 points au-dessus du rythme au 3 septembre »). Le code
+ *   comparait à 25 % toute l'année : au 8 septembre il annonçait « 44 points au-dessus du
+ *   rythme », ce qui n'est pas un écart mais une erreur de référence.
+ * - **Le chiffre du budget est le pourcentage**, et le montant total passe au libellé —
+ *   « 72 % · de 42 000 000 XOF consommés ». Le code montrait l'engagé et gardait le
+ *   pourcentage pour la seule jauge.
+ * - **« Tout l'historique » existe** : la page Historique (18.1) a été écrite le 05/09,
+ *   et le renvoi que la planche dessine depuis « Derniers événements » n'est plus mort.
+ *
  * ## Ce qui n'est pas porté, et pourquoi
  *
  * - **Le filtrage déjà appliqué dans Tâches** : le régime saturé en présente les
  *   natures d'action, puis ouvre la file unique. La définition du filtre appartient
  *   au travail de cette file.
- * - **La note « Renouvellement sur “Matériel IT”, 72 500 XOF restants »** de la carte
- *   « État du parc » : elle croise la fin de vie comptable avec le reste d'une
- *   enveloppe budgétaire nommée. Aucun lien type ↔ enveloppe n'existe côté modèle ;
- *   l'inventer serait un ajout fonctionnel.
+
  * - **Le rayon 4 de `.vig`** : le registre §2.2 fixe la vignette de rangée à 6 px sur
  *   les 28 écrans, et `rounded-vignette` porte ce rôle. Changer le jeton pour une
  *   planche désaccorderait les 27 autres — c'est un arbitrage de socle, pas de page.
@@ -150,6 +164,68 @@ interface DashboardPageProps {
 }
 
 const TODO_SATURATION_THRESHOLD = 250;
+
+/** `.hv-forte` — la planche en dessine **quatre**, et le bureau (§2.43 bis) aussi. */
+const TODO_SHOWN = 4;
+
+/** « 3 septembre » — la date du jour telle que `.wnote` la date (« au 3 septembre »). */
+const jourEnClair = (date: Date): string => {
+    const rendu = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    return date.getDate() === 1 ? rendu.replace(/^1\s/, '1ᵉʳ ') : rendu;
+};
+
+/** « commencée hier » — un jour de campagne se dit, il ne se déchiffre pas. */
+const enJour = (iso: string): string => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const jourDe = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const delta = Math.round((jourDe(new Date()) - jourDe(d)) / 86_400_000);
+    if (delta <= 0) return "aujourd'hui";
+    if (delta === 1) return 'hier';
+    return `le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`;
+};
+
+/**
+ * **Où en est la campagne** — « Commencée hier, 2 écarts relevés. »
+ *
+ * La colonne mobile de la planche loge cette phrase dans `.mo`, à droite de « Reprendre
+ * la campagne ». Mesuré à 393 : le libellé prend 180 px, la phrase 147, plus 18 de
+ * chevron et 20 de gouttières — **365 px pour 329 disponibles**. La rangée ne peut pas
+ * les tenir tous les deux, et c'est la phrase qui saute (« commencée hier, … »), donc
+ * précisément le nombre d'écarts qui décide d'y retourner.
+ *
+ * La colonne bureau de la même planche a déjà tranché : la phrase passe en `.wnote`,
+ * pleine largeur, et `.mo` reprend son rôle — **le lieu où l'on va**, comme les quatre
+ * autres renvois de l'écran (« Finances », « Historique », « Tâches, par ancienneté »).
+ * C'est cette résolution-là qui est portée, à 393 comme à 1280.
+ */
+const repriseNote = (campagne: CurrentCampaign): React.ReactNode => (
+    <>
+        Commencée {enJour(campagne.startedAt)}
+        {campagne.ecarts > 0 && (
+            <>
+                ,{' '}
+                <span className="text-on-surface">
+                    {campagne.ecarts} écart{campagne.ecarts > 1 ? 's' : ''}
+                </span>{' '}
+                relevé{campagne.ecarts > 1 ? 's' : ''}
+            </>
+        )}
+        .
+    </>
+);
+
+/**
+ * **Le rythme d'un exercice, c'est le temps écoulé** — le repère de `.wbar b`, que la
+ * planche pose à 67 % « au 3 septembre », soit la part de l'année consommée à cette
+ * date. Le code comparait à 25 % toute l'année : au 8 septembre il annonçait « 44 points
+ * au-dessus du rythme » sur un budget à 72 %, ce qui ne mesurait plus rien.
+ */
+const partEcoulee = (annee: number): number => {
+    const debut = new Date(annee, 0, 1).getTime();
+    const fin = new Date(annee + 1, 0, 1).getTime();
+    return Math.max(0, Math.min(100, ((Date.now() - debut) / (fin - debut)) * 100));
+};
 
 /** `.age` de la planche — « 6 j », et « auj. » plutôt que « 0 j ». */
 const formatAge = (days: number | null): string | null => {
@@ -250,12 +326,6 @@ const EVENT_GLYPH: Partial<Record<EventType, PhosphorGlyph>> = {
     REPAIR_START: Wrench,
     REPAIR_END: Wrench,
 };
-
-/** La mesure de lecture du système — §2.43. */
-const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
-    children,
-    className,
-}) => <div className={cn('mx-auto w-full max-w-[960px]', className)}>{children}</div>;
 
 /**
  * `.card` — **16 px d'intérieur** (passe du 05/09, alignée sur 09/10/16), rayon 8. Son
@@ -388,39 +458,39 @@ const Gauge: React.FC<{
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate }) => {
-    const { logout } = useAuth();
     const { equipment: allEquipment, users, approvals } = useData();
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
-    const [isAccountOpen, setIsAccountOpen] = useState(false);
 
-    /*
-      Échap referme le menu de compte. Son voile se ferme au clic, ce qui ne vaut que
-      pour une souris : au clavier, le menu restait ouvert sans aucun moyen d'en sortir.
-      Un voile est décoratif — c'est Échap qui en est le pendant clavier, et les six
-      autres surfaces flottantes du produit l'ont déjà.
-    */
-    useEffect(() => {
-        if (!isAccountOpen) return;
-        const onEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setIsAccountOpen(false);
-        };
-        document.addEventListener('keydown', onEscape);
-        return () => document.removeEventListener('keydown', onEscape);
-    }, [isAccountOpen]);
+    /**
+     * **LE MENU DE COMPTE.** Il portait sa propre boîte : un voile fixe, un bord,
+     * `shadow-elevation-3`, 300 px de large, des rangées séparées d'un filet. Le produit
+     * compte neuf autres menus contextuels, tous rendus par `components/ui/Menu` —
+     * c'est-à-dire par `menus.css`. Celui-ci était le seul à ne ressembler à aucun
+     * autre, et le seul sans navigation au clavier ni sémantique `menu`/`menuitem`.
+     *
+     * Son contenu vit dans `useAccountMenu` : **le pied de la barre latérale ouvre le
+     * même menu** au bureau (00.3, §2.43), et une liste de destinations recopiée d'une
+     * surface à l'autre finit par diverger.
+     */
+    const compte = useAccountMenu();
 
-    const userInitials = useMemo(() => {
-        return (
-            (currentUser?.name || '')
-                .split(' ')
-                .map((part) => part[0])
-                .filter(Boolean)
-                .slice(0, 2)
-                .join('')
-                .toUpperCase() || 'AS'
-        );
-    }, [currentUser?.name]);
-
+    /**
+     * **Les deux seuils du bureau** (00.3, et la note de recherche du 08/09).
+     *
+     * `large` (≥ 840) : la navigation a quitté le bas de l'écran, l'en-tête prend sa
+     * forme de bureau et la bande de chiffres passe en ligne. `bureau` (≥ 1280) : la
+     * grille de 03.1 — c'est le seuil où chaque colonne garde ses 360 px, la seule
+     * bascule à deux colonnes que §2.43 accorde.
+     */
+    const large = useMediaQuery(MEDIA.expandedUp);
+    const bureau = useMediaQuery(MEDIA.twoColumn);
+    /**
+     * **L'avatar n'est dans l'en-tête que lorsqu'il n'y a pas de navigation latérale.**
+     * Dès 600 px, le rail puis la barre portent la personne à leur pied : garder la
+     * pastille en haut ferait **deux portes vers le même compte** sur le même écran.
+     */
+    const compact = useMediaQuery(MEDIA.compact);
 
     const equipment = useMemo(
         () => filterEquipment(allEquipment, users),
@@ -433,18 +503,60 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     */
     const { tasks: todo, oldestWaitDays: oldestWait, breakdown: todoBreakdown } = usePendingTasks();
 
+    /* L'inventaire physique qui tourne — `null` tant que personne ne compte. */
+    const campagne = useCurrentCampaign();
+
     const openTasks = () => onViewChange('tasks');
 
+    /**
+     * **Reprendre, ce n'est pas relister.** Le renvoi ne repasse pas par la vue globale
+     * (16.1) : il retient le lieu et ouvre le comptage (16.2) là où il en était. Le
+     * périmètre est le site entier — c'est celui que la carte nomme.
+     */
+    const reprendreCampagne = (encours: CurrentCampaign) => {
+        rememberAuditScope({ country: encours.country, site: encours.site });
+        onViewChange('audit_details');
+    };
+
     // ---- l'état du parc --------------------------------------------------------
-    const counts = useMemo(
-        () => ({
+    const counts = useMemo(() => {
+        const assigned = equipment.filter((item) => item.status === 'Attribué').length;
+        const available = equipment.filter((item) => item.status === 'Disponible').length;
+        const repair = equipment.filter((item) => item.status === 'En réparation').length;
+        return {
             total: equipment.length,
-            assigned: equipment.filter((item) => item.status === 'Attribué').length,
-            available: equipment.filter((item) => item.status === 'Disponible').length,
-            repair: equipment.filter((item) => item.status === 'En réparation').length,
-        }),
-        [equipment],
-    );
+            assigned,
+            available,
+            repair,
+            /**
+             * **Ce que les trois états ne couvrent pas.** La planche compte trois états et
+             * sa fixture s'y épuise — 7 + 5 + 2 = 14. Le parc réel non : un actif *retiré*
+             * ou *manquant* n'est ni attribué, ni disponible, ni en réparation, et il
+             * manquait à la barre sans que rien ne le dise.
+             *
+             * Le reste est **nommé état par état** : « 34 retirés, 11 manquants » se lit,
+             * là où « 45 hors des trois états » demande d'aller chercher lesquels.
+             */
+            reste: (() => {
+                const parEtat = new Map<string, number>();
+                equipment.forEach((item) => {
+                    if (
+                        item.status === 'Attribué' ||
+                        item.status === 'Disponible' ||
+                        item.status === 'En réparation'
+                    )
+                        return;
+                    parEtat.set(item.status, (parEtat.get(item.status) ?? 0) + 1);
+                });
+                const total = [...parEtat.values()].reduce((a, b) => a + b, 0);
+                const phrase = [...parEtat.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([etat, n]) => `${n} ${etat.toLowerCase()}${n > 1 ? 's' : ''}`)
+                    .join(', ');
+                return { total, phrase };
+            })(),
+        };
+    }, [equipment]);
 
     /**
      * **Types en tension** : uniquement ceux dont il ne reste aucune unité
@@ -477,6 +589,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
         const endOfLife = active.filter((item) => {
             if (!item.financial) return false;
+            /*
+              **Sans prix d'achat, il n'y a pas de vie comptable** — donc pas de fin.
+              `calculateLinearDepreciation` rend `progressPercent: 100` quand le montant
+              amortissable est nul (division impossible, valeur de repli). Le parc importé
+              porte `purchasePrice: 0` sur ses 243 actifs : la carte annonçait « 243 sur
+              243 en fin de vie comptable », jauge pleine, sur un parc dont aucun prix
+              n'est connu. Un chiffre issu d'un repli n'est pas une mesure.
+            */
+            if (!(item.financial.purchasePrice > 0) || !(item.financial.depreciationYears > 0))
+                return false;
             const stats = calculateLinearDepreciation(
                 item.financial.purchasePrice,
                 item.financial.purchaseDate,
@@ -515,7 +637,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         };
     }, [financeBudgets]);
 
-    const recentEvents = useMemo(() => getRecentActivity(3), [getRecentActivity]);
+    /**
+     * Le repère du budget — `null` dès que l'exercice affiché n'est pas celui qui court :
+     * on ne mesure pas un retard sur une année finie ou pas commencée.
+     */
+    const budgetPace = useMemo(() => {
+        if (!budgetStats) return null;
+        return budgetStats.year === new Date().getFullYear() ? partEcoulee(budgetStats.year) : null;
+    }, [budgetStats]);
+    const budgetGap =
+        budgetStats && budgetPace !== null ? Math.round(budgetStats.percentSpent - budgetPace) : 0;
+
+    /* Trois lignes au téléphone, **quatre au bureau** : la colonne des événements y est
+       bornée à la hauteur de la file, et la planche l'y dessine à quatre. */
+    const recentEvents = useMemo(
+        () => getRecentActivity(bureau ? 4 : 3),
+        [bureau, getRecentActivity],
+    );
 
     // ---- la vue de l'utilisateur porteur ---------------------------------------
     const myEquipment = useMemo(
@@ -597,9 +735,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const isManager = permissions.canManageInventory;
     const firstName = (currentUser?.name || '').split(' ')[0];
 
-    /** Trois rangées au plus dans la zone : au-delà, c'est la file qui prend. */
+    /** Quatre rangées au plus dans la zone : au-delà, c'est la file qui prend. */
     const isTodoSaturated = todo.length >= TODO_SATURATION_THRESHOLD;
-    const shown = todo.slice(0, 3);
+    const shown = todo.slice(0, TODO_SHOWN);
     const rest = todo.length - shown.length;
 
     /**
@@ -620,680 +758,869 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         return `${todo.length} chose${todo.length > 1 ? 's' : ''} vous attend${todo.length > 1 ? 'ent' : ''}`;
     })();
 
-    return (
-        <div className="bg-background flex min-w-0 flex-1 flex-col">
-            <OfflineBanner />
+    /*
+      **Les onze morceaux de l'écran, nommés une fois.** Le téléphone les empile ; le
+      bureau les compose autrement (03.1 bureau, §2.43 bis). Ce sont **les mêmes** — une
+      carte qui change de place ne change pas de contenu, et c'est la seule façon de tenir
+      les deux régimes sans écrire deux tableaux de bord.
+    */
+    const enTete = (
+        <>
+            {/* `.topbar` — prénom en Archivo 600 / 28 / 32, sous-ligne 16 / 24. */}
+            <header className="flex items-start justify-between gap-3 pt-2">
+                <div className="min-w-0">
+                    <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        Bonjour {firstName}
+                    </h1>
+                    <p className="text-on-surface-variant mt-0.5 text-[16px] leading-6">
+                        {subtitle}
+                    </p>
+                </div>
 
-            {/* `.page` — gouttière de 16, intérieur 16 / 16 / 24. */}
-            <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
-                <Reading>
-                    {/* `.topbar` — prénom en Archivo 600 / 28 / 32, sous-ligne 16 / 24. */}
-                    <header className="flex items-start justify-between gap-3 pt-2">
-                        <div className="min-w-0">
-                            <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
-                                Bonjour {firstName}
-                            </h1>
-                            <p className="text-on-surface-variant mt-0.5 text-[16px] leading-6">
-                                {subtitle}
-                            </p>
-                        </div>
-
-                        <div className="relative shrink-0">
+                {compact && (
+                    <Menu
+                        align="end"
+                        /* La légende dit **qui l'on est et à quel titre**. Le
+                           rattachement n'y monte pas : il vit dans Mon compte, et
+                           une légende de 12 qui passe à la ligne cesse d'en être
+                           une. */
+                        title={compte.legende}
+                        items={compte.items}
+                        trigger={
                             <Button
                                 variant="text"
                                 size="md"
                                 iconOnly
-                                onClick={() => setIsAccountOpen((prev) => !prev)}
                                 className="font-brand focus-visible:ring-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[15px] font-semibold tracking-wide text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
-                                aria-label={`Compte — ${currentUser?.name || 'Utilisateur'}`}
-                                aria-expanded={isAccountOpen}
+                                aria-label={`Compte — ${compte.nom}`}
                             >
-                                {userInitials}
+                                {compte.initiales}
                             </Button>
+                        }
+                    />
+                )}
+            </header>
+        </>
+    );
 
-                            {/*
-                              {/*
-                                LE MENU DE COMPTE — **trois entrées, et pas d'avatar dedans.**
-                              
-                                Arbitré par le commanditaire le 06/09 : *« le menu contextuel de l'avatar ne
-                                reprend pas l'avatar ; il porte Mon compte, Paramètres et le bouton
-                                Déconnexion »*. Répéter l'identité sous le bouton qu'on vient de taper ne dit
-                                rien de neuf ; **Mon profil** n'a pas de page dans ce produit et n'a donc pas
-                                d'entrée ; **Paramètres** vit ici plutôt que dans la feuille « Plus », qui ne
-                                range que des destinations de travail.
-                              
-                                Les rangées gardent le canon des feuilles (17.7, 07.1) : 56 de haut, vignette
-                                de 40 au rayon 4, titre 16 sur 24. La sortie ferme la liste, en encre de
-                                danger, séparée par un filet — c'est un acte, pas une destination.
-                              */}
-                            {isAccountOpen && (
-                                <>
-                                    <div
-                                        className="fixed inset-0 z-40"
-                                        onClick={() => setIsAccountOpen(false)}
-                                        aria-hidden="true"
-                                    />
-                                    <div className="border-outline-variant bg-surface shadow-elevation-3 absolute top-[52px] right-0 z-50 w-[300px] rounded-lg border p-2">
-                                        {(
-                                            [
-                                                {
-                                                    glyph: LockKey,
-                                                    titre: 'Mon compte',
-                                                    detail: 'Mot de passe, code PIN, sessions',
-                                                    aller: () => onNavigate?.('/settings/account'),
-                                                },
-                                                {
-                                                    glyph: Gear,
-                                                    titre: 'Paramètres',
-                                                    detail: 'Notifications, langue et site, aide',
-                                                    aller: () => onNavigate?.('/settings'),
-                                                },
-                                            ] as const
-                                        ).map((rangee, index) => (
-                                            <Button
-                                                key={rangee.titre}
-                                                variant="text"
-                                                layout="card"
-                                                onClick={() => {
-                                                    setIsAccountOpen(false);
-                                                    rangee.aller();
-                                                }}
-                                                className={cn(
-                                                    'text-on-surface hover:bg-surface-container flex min-h-14 w-full items-center gap-3 rounded-none px-2 py-2 text-left',
-                                                    index > 0 && 'border-outline-variant border-t',
-                                                )}
-                                            >
-                                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                                    <Icon glyph={rangee.glyph} size={20} />
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="block truncate text-[16px] leading-6">
-                                                        {rangee.titre}
-                                                    </span>
-                                                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
-                                                        {rangee.detail}
-                                                    </span>
-                                                </span>
-                                                <Icon
-                                                    glyph={CaretRight}
-                                                    size={20}
-                                                    className="text-text-tertiary shrink-0"
-                                                />
-                                            </Button>
-                                        ))}
-
-                                        <span
-                                            aria-hidden="true"
-                                            className="bg-outline-variant my-1 block h-px"
-                                        />
-
-                                        <Button
-                                            variant="text"
-                                            layout="card"
-                                            onClick={() => {
-                                                setIsAccountOpen(false);
-                                                logout();
-                                            }}
-                                            className="text-danger hover:bg-error-container/30 flex min-h-12 w-full items-center gap-3 rounded-md px-2 py-2 text-left text-[16px] leading-6 font-medium"
-                                        >
-                                            <Icon glyph={SignOut} size={20} className="shrink-0" />
-                                            Se déconnecter
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </header>
-                </Reading>
-
-                {/*
-                  Décision — `.acts` : deux gestes de même largeur, 48 px, rayon 4,
-                  16 / 500, glyphe de 20. Le second seul porte le jaune ; le premier est
-                  une **surface claire** (la classe `.btn-k` de la planche), pas le
-                  noir inversé que le code lui donnait — une seule zone inversée par
-                  écran, et c'est « À traiter ».
-                */}
-                <Reading>
-                    {isManager ? (
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <Button
-                                variant="text"
-                                className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium !shadow-none"
-                                icon={<Icon glyph={ArrowUUpLeft} size={20} />}
-                                onClick={() => onViewChange('return_wizard')}
-                            >
-                                Restituer
-                            </Button>
-                            <Button
-                                variant="filled"
-                                className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
-                                icon={<Icon glyph={ArrowCircleRight} size={20} />}
-                                onClick={() => onViewChange('assignment_wizard')}
-                            >
-                                Attribuer
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button
-                            variant="filled"
-                            className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
-                            icon={<Icon glyph={Plus} size={20} />}
-                            onClick={() => onViewChange('new_request')}
-                        >
-                            Demander un équipement
-                        </Button>
-                    )}
-                </Reading>
-
-                {/*
-                  `.hero` — la zone bornée : le bleu-noir inversé, l'image de cartouche
-                  sous son voile, 20 px d'intérieur, et sa forme suit le volume.
-                */}
-                <Reading>
-                    <section
-                        className="rounded-card text-inverse-on-surface relative isolate overflow-hidden p-5"
-                        style={HERO_STYLE}
+    const gestes = (
+        <>
+            {isManager ? (
+                <div className="grid grid-cols-2 gap-2.5">
+                    <Button
+                        variant="text"
+                        className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium !shadow-none"
+                        icon={<Icon glyph={ArrowUUpLeft} size={20} />}
+                        onClick={() => onViewChange('return_wizard')}
                     >
-                        <div
-                            className="absolute inset-0 -z-10"
-                            style={HERO_VEIL_STYLE}
-                            aria-hidden="true"
-                        />
-                        <div className="flex min-h-6 items-center justify-between gap-3">
-                            {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
-                                elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
-                                quelque chose à traiter. */}
-                            <h3 className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
-                                À traiter
-                            </h3>
-                            {todo.length > 0 && (
-                                <span className="shrink-0 text-[14px] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
-                                    {todo.length}
-                                </span>
-                            )}
-                        </div>
+                        Restituer
+                    </Button>
+                    <Button
+                        variant="filled"
+                        className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        icon={<Icon glyph={ArrowCircleRight} size={20} />}
+                        onClick={() => onViewChange('assignment_wizard')}
+                    >
+                        Attribuer
+                    </Button>
+                </div>
+            ) : (
+                <Button
+                    variant="filled"
+                    className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    icon={<Icon glyph={Plus} size={20} />}
+                    onClick={() => onViewChange('new_request')}
+                >
+                    Demander un équipement
+                </Button>
+            )}
+        </>
+    );
 
-                        {todo.length === 0 ? (
-                            /* Régime `vide` — `.vide` / `.vmot` : une pastille ronde de 48
-                               au vert vivant, deux lignes, et pas de rassurance ajoutée. */
-                            <div className="flex items-center gap-3.5 pt-3 pb-1">
-                                <span
-                                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-                                    style={EMPTY_MOTIF_STYLE}
-                                >
-                                    <Icon glyph={Check} size={20} />
-                                </span>
-                                <div className="min-w-0">
-                                    <p className="text-[17px] leading-6">Vous êtes à jour</p>
-                                    <p className="mt-0.5 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
-                                        Rien n’attend votre geste.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : isTodoSaturated ? (
-                            /* Régime `saturee` — `.bigc` 44 / 48 / -.03em, puis `.tri` : les
-                               natures d'action, chacune un renvoi vers la file. */
-                            <>
-                                <div className="font-brand mt-2 text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
-                                    {todo.length}
-                                </div>
-                                <div className="mt-1 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
-                                    demandes en attente
-                                    {oldestWait !== null &&
-                                        ` · la plus ancienne depuis ${oldestWait} jour${oldestWait > 1 ? 's' : ''}`}
-                                </div>
-                                <div className="mt-3 border-t border-white/[0.14]">
-                                    {todoBreakdown.map((item) => (
-                                        <Button
-                                            key={item.label}
-                                            variant="text"
-                                            onClick={openTasks}
-                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-12 w-full justify-start gap-3 border-b border-white/[0.14] px-0 font-normal hover:bg-transparent"
-                                        >
-                                            <span className="font-brand w-12 shrink-0 text-left text-[17px] font-semibold tabular-nums">
-                                                {item.count}
-                                            </span>
-                                            <span className="flex-1 text-left text-[16px]">
-                                                {item.label}
-                                            </span>
-                                            <Icon
-                                                glyph={CaretRight}
-                                                size={18}
-                                                className="text-on-nav-surface-variant shrink-0"
-                                            />
-                                        </Button>
-                                    ))}
-                                </div>
-                            </>
-                        ) : (
-                            /* Régimes `normale` et `forte` — `.trow` : 68 px, filet au-dessus
-                               (le premier compris), et l'attente à droite. */
-                            <>
-                                {shown.map((entry) => {
-                                    const age = formatAge(daysSince(entry.since));
-                                    /* La nature, en un mot : « validation », « réception »,
-                                       « retour » — la sous-ligne d'une file dit la personne
-                                       et la nature, rien d'autre (R15). */
-                                    const nature =
-                                        entry.kind === 'receipt'
-                                            ? 'réception'
-                                            : entry.kind === 'return'
-                                              ? 'retour'
-                                              : 'validation';
-                                    const initials = entry.who
-                                        .split(' ')
-                                        .map((part) => part[0])
-                                        .filter(Boolean)
-                                        .slice(0, 2)
-                                        .join('')
-                                        .toUpperCase();
-
-                                    /*
-                                      `.trow` — **une rangée de file ne porte ni verbe ni ⋮**
-                                      (R15) : elle est le sujet, l'objet en titre, la personne
-                                      et la nature en sous-ligne, l'âge à droite en 12
-                                      tabulaire, sans chevron ; son tap ouvre la file, où le
-                                      verbe ouvre la feuille d'acte. Les boutons « Valider »,
-                                      « Confirmer », « Réceptionner » que l'accueil portait
-                                      passaient par le pavé administrateur : ils partent.
-                                    */
-                                    return (
-                                        <Button
-                                            key={entry.id}
-                                            variant="text"
-                                            layout="card"
-                                            onClick={openTasks}
-                                            className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-[68px] w-full items-center gap-4 rounded-none border-t border-white/[0.14] px-0 py-3 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
-                                        >
-                                            {/* `.vig` — initiales quand une personne est
-                                                nommée, le glyphe de l'objet sinon ; la teinte
-                                                dit la nature. */}
-                                            <span
-                                                className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold"
-                                                style={TASK_VIGNETTE[entry.kind]}
-                                            >
-                                                {initials ? (
-                                                    initials
-                                                ) : (
-                                                    <Icon glyph={Package} size={20} />
-                                                )}
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-[17px] leading-6 tracking-[-0.01em]">
-                                                    {entry.what}
-                                                </span>
-                                                <span className="mt-0.5 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
-                                                    {[entry.who, nature]
-                                                        .filter(Boolean)
-                                                        .join(' · ')}
-                                                </span>
-                                            </span>
-                                            {age && (
-                                                <span className="mt-1 shrink-0 self-start text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
-                                                    {age}
-                                                </span>
-                                            )}
-                                        </Button>
-                                    );
-                                })}
-
-                                {rest > 0 && (
-                                    <DashboardMoreAction
-                                        label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
-                                        destination="Tâches, par ancienneté"
-                                        onClick={() => openTasks()}
-                                        tone="inverse"
-                                    />
-                                )}
-                            </>
-                        )}
-                    </section>
-                </Reading>
-
-                {/*
-                  État — `.parc` (passe du 05/09) : le parc en **une carte**, le total en
-                  tête, une barre à trois états, trois compteurs avec leur pastille carrée.
-                  Les tuiles teintées du 02/09 disaient la même chose en quatre boîtes.
-                  Chaque compteur mène à la liste, filtrée.
-                */}
-                <Reading>
-                    {isManager ? (
-                        <section className="rounded-card bg-surface p-4">
-                            <div className="flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
-                                    Le parc
-                                </h3>
-                                <Figure
-                                    layout="inline"
-                                    value={counts.total}
-                                    label="actifs"
-                                    onClick={() => openFleet('')}
-                                    aria-label={`${counts.total} actifs, voir la liste`}
-                                    className="shrink-0"
-                                />
-                            </div>
-                            {/* `.split` — 6 px, rayon 2, 2 px entre les états. */}
-                            <div
-                                className="mt-3.5 flex h-1.5 gap-0.5 overflow-hidden rounded-xs"
-                                role="img"
-                                aria-label={`${counts.assigned} attribués, ${counts.available} disponibles, ${counts.repair} en réparation sur ${counts.total}`}
-                            >
-                                {FLEET_STATES.map((state) => {
-                                    const width =
-                                        counts.total > 0
-                                            ? (counts[state.key] / counts.total) * 100
-                                            : 0;
-                                    return width > 0 ? (
-                                        <span
-                                            key={state.key}
-                                            className="block h-full"
-                                            style={{
-                                                width: `${width}%`,
-                                                backgroundColor: state.color,
-                                            }}
-                                        />
-                                    ) : null;
-                                })}
-                            </div>
-                            {/* `.qual` — trois colonnes, 22 / 28 en Archivo, le libellé 14 / 20
-                                avec sa pastille de 8. */}
-                            <div className="mt-4 grid grid-cols-3 gap-4">
-                                {FLEET_STATES.map((state) => (
-                                    <Figure
-                                        key={state.key}
-                                        value={counts[state.key]}
-                                        label={state.label}
-                                        tone={state.tone}
-                                        onClick={() => openFleet(state.status)}
-                                    />
-                                ))}
-                            </div>
-                        </section>
-                    ) : (
-                        /* `.qual.two` — deux cartes blanches, chiffre et libellé à pastille :
-                           ce que je détiens (bleu), ce que j'attends (ambre). */
-                        <div className="grid grid-cols-2 gap-4">
-                            <Figure
-                                card
-                                tone="bleu"
-                                value={mine.equipment}
-                                label="mes équipements"
-                                onClick={() => openFleet('')}
-                            />
-                            <Figure
-                                card
-                                tone="ambre"
-                                value={mine.requests}
-                                label="demandes en cours"
-                                onClick={() => onViewChange('tasks')}
-                            />
-                        </div>
+    const aTraiter = (
+        <>
+            <section
+                className="rounded-card text-inverse-on-surface relative isolate overflow-hidden p-5"
+                style={HERO_STYLE}
+            >
+                <div
+                    className="absolute inset-0 -z-10"
+                    style={HERO_VEIL_STYLE}
+                    aria-hidden="true"
+                />
+                <div className="flex min-h-6 items-center justify-between gap-3">
+                    {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
+                        elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
+                        quelque chose à traiter. */}
+                    <h3 className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                        À traiter
+                    </h3>
+                    {/* La colonne du porteur n'en porte aucun : sa zone ne
+                        compte pas, elle montre ce qui l'attend. */}
+                    {isManager && todo.length > 0 && (
+                        <span className="shrink-0 text-[14px] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                            {todo.length}
+                        </span>
                     )}
-                </Reading>
+                </div>
 
-                {/* Analyse — ce qui décide, pas ce qui décrit. */}
-                {isManager ? (
+                {todo.length === 0 ? (
+                    /* Régime `vide` — `.vide` / `.vmot` : une pastille ronde de 48
+                       au vert vivant, deux lignes, et pas de rassurance ajoutée. */
+                    <div className="flex items-center gap-3.5 pt-3 pb-1">
+                        <span
+                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                            style={EMPTY_MOTIF_STYLE}
+                        >
+                            <Icon glyph={Check} size={20} />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-[17px] leading-6">Vous êtes à jour</p>
+                            <p className="mt-0.5 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
+                                Rien n’attend votre geste.
+                            </p>
+                        </div>
+                    </div>
+                ) : isTodoSaturated ? (
+                    /* Régime `saturee` — `.bigc` 44 / 48 / -.03em, puis `.tri` : les
+                       natures d'action, chacune un renvoi vers la file. */
                     <>
-                        <Reading>
-                            <Card
-                                title="Types en tension"
-                                meta={tension.stressed.length > 0 ? '0 disponible' : undefined}
-                            >
-                                {tension.stressed.length > 0 ? (
-                                    <>
-                                        {tension.stressed.map(([type, entry]) => (
-                                            /* `.brow` — 48 px, filet au-dessus, pastille carrée
-                                               de 8 en `--st-orange`. Le pictogramme d'alerte
-                                               que le code posait sur chaque ligne redisait ce
-                                               que la carte dit déjà par son titre. */
-                                            <div
-                                                key={type}
-                                                className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
-                                            >
-                                                <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
-                                                <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
-                                                    {entry.label}
-                                                </span>
-                                                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
-                                                    0 sur {entry.total}
-                                                </span>
-                                            </div>
-                                        ))}
-                                        {tension.calm > 0 && (
-                                            <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
-                                                {tension.calm === 1
-                                                    ? 'L’autre type a au moins une unité.'
-                                                    : `Les ${tension.calm} autres types ont au moins une unité.`}
-                                            </p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
-                                        Chaque type a au moins une unité.
-                                    </p>
-                                )}
-                            </Card>
-                        </Reading>
-
-                        <Reading>
-                            <Card title="État du parc">
-                                <Gauge
-                                    value={fleet.endOfLife}
-                                    label={`sur ${fleet.size} en fin de vie comptable`}
-                                    percent={
-                                        fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0
-                                    }
-                                    fill="bg-[var(--tk-color-st-orange)]"
-                                    note={
-                                        renewal ? (
-                                            <>
-                                                Renouvellement sur « {renewal.category} »,{' '}
-                                                <span className="text-on-surface">
-                                                    {new Intl.NumberFormat('fr-FR').format(
-                                                        renewal.remaining,
-                                                    )}{' '}
-                                                    XOF
-                                                </span>{' '}
-                                                restants.
-                                            </>
-                                        ) : undefined
-                                    }
-                                />
-                                {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
-                                <div className="bg-outline-variant mt-5 h-px" />
-                                <Gauge
-                                    value={fleet.uncovered}
-                                    label={`sur ${fleet.size} hors garantie`}
-                                    percent={
-                                        fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0
-                                    }
-                                    fill="bg-[var(--tk-color-st-orange)]"
-                                />
-                                <DashboardMoreAction
-                                    label="Valeur et amortissement"
-                                    destination="Finances"
-                                    onClick={() => onViewChange('finance')}
-                                />
-                            </Card>
-                        </Reading>
-
-                        <Reading>
-                            <Card title={`Budget ${budgetStats?.year || 2026}`}>
-                                {budgetStats ? (
-                                    <>
-                                        <Gauge
-                                            value={`${new Intl.NumberFormat('fr-FR').format(budgetStats.totalSpent)} XOF`}
-                                            label={`engagés sur ${new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)}`}
-                                            percent={budgetStats.percentSpent}
-                                            marker={25}
-                                            ariaLabel={`${budgetStats.percentSpent.toFixed(1)} % ; repère du premier trimestre à 25 %`}
-                                            /*
-                                              `.wnote` — la conséquence, pas le commentaire, et
-                                              son `b` n'est pas gras : la planche le pose à 400,
-                                              en encre pleine. Le pourcentage que le code
-                                              affichait en tête de rangée disait deux fois ce
-                                              que la jauge montre.
-                                            */
-                                            note={
-                                                <>
-                                                    <span className="text-on-surface">
-                                                        {Math.abs(
-                                                            Math.round(
-                                                                25 - budgetStats.percentSpent,
-                                                            ),
-                                                        )}{' '}
-                                                        points{' '}
-                                                        {budgetStats.percentSpent <= 25
-                                                            ? 'sous le rythme'
-                                                            : 'au-dessus du rythme'}
-                                                    </span>{' '}
-                                                    au quart de l’exercice.
-                                                </>
-                                            }
-                                        />
-                                        <DashboardMoreAction
-                                            label="Détail par enveloppe"
-                                            destination="Finances"
-                                            onClick={() => onViewChange('finance')}
-                                        />
-                                    </>
-                                ) : (
-                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
-                                        Aucun budget configuré pour cet exercice.
-                                    </p>
-                                )}
-                            </Card>
-                        </Reading>
+                        <div className="font-brand mt-2 text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
+                            {todo.length}
+                        </div>
+                        <div className="mt-1 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
+                            demandes en attente
+                            {oldestWait !== null &&
+                                ` · la plus ancienne depuis ${oldestWait} jour${oldestWait > 1 ? 's' : ''}`}
+                        </div>
+                        <div className="mt-3 border-t border-white/[0.14]">
+                            {todoBreakdown.map((item) => (
+                                <Button
+                                    key={item.label}
+                                    variant="text"
+                                    onClick={openTasks}
+                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-12 w-full justify-start gap-3 border-b border-white/[0.14] px-0 font-normal hover:bg-transparent"
+                                >
+                                    <span className="font-brand w-12 shrink-0 text-left text-[17px] font-semibold tabular-nums">
+                                        {item.count}
+                                    </span>
+                                    <span className="flex-1 text-left text-[16px]">
+                                        {item.label}
+                                    </span>
+                                    <Icon
+                                        glyph={CaretRight}
+                                        size={18}
+                                        className="text-on-nav-surface-variant shrink-0"
+                                    />
+                                </Button>
+                            ))}
+                        </div>
                     </>
                 ) : (
+                    /* Régimes `normale` et `forte` — `.trow` : 68 px, filet au-dessus
+                       (le premier compris), et l'attente à droite. */
                     <>
-                        {/* Vue — utilisateur final : ses équipements, en `.brow` + `.minibar`. */}
-                        <Reading>
-                            <Card title="Mes équipements">
-                                {myTypes.length > 0 ? (
-                                    myTypes.map((item) => (
-                                        <div
-                                            key={item.type}
-                                            className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
-                                        >
-                                            <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
-                                                {item.type}
-                                            </span>
-                                            <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
-                                                <span
-                                                    className="bg-on-surface block h-full rounded-xs"
-                                                    style={{ width: `${item.percent}%` }}
-                                                />
-                                            </span>
-                                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[16px] tabular-nums">
-                                                {item.count}
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
-                                        Aucun équipement ne vous est actuellement attribué.
-                                    </p>
-                                )}
-                            </Card>
-                        </Reading>
+                        {shown.map((entry) => {
+                            const age = formatAge(daysSince(entry.since));
+                            /* La nature, en un mot : « validation », « réception »,
+                               « retour » — la sous-ligne d'une file dit la personne
+                               et la nature, rien d'autre (R15). */
+                            const nature =
+                                entry.kind === 'receipt'
+                                    ? 'réception'
+                                    : entry.kind === 'return'
+                                      ? 'retour'
+                                      : 'validation';
+                            /*
+                              **Une rangée ne vous nomme pas à vous.** La colonne
+                              du porteur l'écrit sans détour : sa réception se lit
+                              « Écran Dell U2722 · livré le 24 juillet », pas
+                              « Marc Finance · réception ». Une file dit *de qui*
+                              on attend quelque chose ; quand c'est de vous, le
+                              nom est du bruit et la nature suffit.
+                            */
+                            const pourMoi =
+                                Boolean(currentUser?.name) && entry.who === currentUser?.name;
+                            const initials = entry.who
+                                .split(' ')
+                                .map((part) => part[0])
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .join('')
+                                .toUpperCase();
 
-                        <Reading>
-                            <Card title="Garantie">
-                                <Gauge
-                                    value={myWarranty.covered}
-                                    label={`sur ${myWarranty.total} couverts`}
-                                    percent={myWarranty.percent}
-                                    fill="bg-[var(--tk-color-st-vert)]"
-                                    note={
-                                        myWarranty.uncoveredItem ? (
-                                            <>
-                                                {myWarranty.uncoveredItem.name ||
-                                                    myWarranty.uncoveredItem.model}{' '}
-                                                hors garantie{' '}
-                                                <span className="text-on-surface">
-                                                    depuis{' '}
-                                                    {formatDate(
-                                                        new Date(
-                                                            myWarranty.uncoveredItem.warrantyEnd ||
-                                                                '',
-                                                        ),
-                                                    )}
-                                                </span>
-                                                .
-                                            </>
-                                        ) : undefined
-                                    }
-                                />
-                            </Card>
-                        </Reading>
+                            /*
+                              `.trow` — **une rangée de file ne porte ni verbe ni ⋮**
+                              (R15) : elle est le sujet, l'objet en titre, la personne
+                              et la nature en sous-ligne, l'âge à droite en 12
+                              tabulaire, sans chevron ; son tap ouvre la file, où le
+                              verbe ouvre la feuille d'acte. Les boutons « Valider »,
+                              « Confirmer », « Réceptionner » que l'accueil portait
+                              passaient par le pavé administrateur : ils partent.
+                            */
+                            return (
+                                <Button
+                                    key={entry.id}
+                                    variant="text"
+                                    layout="card"
+                                    onClick={openTasks}
+                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-[68px] w-full items-center gap-4 rounded-none border-t border-white/[0.14] px-0 py-3 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
+                                >
+                                    {/* `.vig` — initiales quand une personne est
+                                        nommée, le glyphe de l'objet sinon ; la teinte
+                                        dit la nature. */}
+                                    <span
+                                        className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold"
+                                        style={TASK_VIGNETTE[entry.kind]}
+                                    >
+                                        {initials ? initials : <Icon glyph={Package} size={20} />}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-[17px] leading-6 tracking-[-0.01em]">
+                                            {entry.what}
+                                        </span>
+                                        <span className="mt-0.5 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                            {[pourMoi ? '' : entry.who, nature]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </span>
+                                    </span>
+                                    {age && (
+                                        <span className="mt-1 shrink-0 self-start text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                            {age}
+                                        </span>
+                                    )}
+                                </Button>
+                            );
+                        })}
+
+                        {rest > 0 && (
+                            <DashboardMoreAction
+                                label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
+                                destination="Tâches, par ancienneté"
+                                onClick={() => openTasks()}
+                                tone="inverse"
+                            />
+                        )}
                     </>
                 )}
+            </section>
+        </>
+    );
 
-                {/* Activité — en dernier. */}
-                <Reading>
-                    <Card title="Derniers événements">
-                        {recentEvents.length > 0 ? (
-                            <>
-                                {recentEvents.map((event) => {
-                                    /*
-                                      `.mk` — §2.5 : 32 px, ronde, sur le creux. La passe sobre
-                                      **ne tinte plus** la marque d'une personne : la planche
-                                      pose une seule déclaration pour les deux cas, et c'est le
-                                      contenu — initiales ou glyphe de l'acte — qui distingue.
-                                    */
-                                    const glyph = EVENT_GLYPH[event.type] ?? ClockCounterClockwise;
-                                    const initials =
-                                        !event.isSystem && event.actorName
-                                            ? event.actorName
-                                                  .split(' ')
-                                                  .map((part) => part[0])
-                                                  .filter(Boolean)
-                                                  .slice(0, 2)
-                                                  .join('')
-                                                  .toUpperCase()
-                                            : '';
+    const leParc = (
+        <>
+            {isManager ? (
+                <section className="rounded-card bg-surface p-4">
+                    <div className="flex items-baseline justify-between gap-3">
+                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                            Le parc
+                        </h3>
+                        <Figure
+                            layout="inline"
+                            value={counts.total}
+                            label="actifs"
+                            onClick={() => openFleet('')}
+                            aria-label={`${counts.total} actifs, voir la liste`}
+                            className="shrink-0"
+                        />
+                    </div>
+                    {/* `.split` — 6 px, rayon 2, 2 px entre les états, **sur le
+                        creux de la page**. La barre n'avait pas de fond : les
+                        actifs qu'aucun des trois états ne couvre y laissaient un
+                        blanc, et la barre paraissait inachevée. Le creux est le
+                        même que celui de `.wbar`, la jauge de la carte voisine —
+                        il dit « le reste du parc », il ne le peint pas en état. */}
+                    <div
+                        className="bg-surface-container mt-3.5 flex h-1.5 gap-0.5 overflow-hidden rounded-xs"
+                        role="img"
+                        aria-label={`${counts.assigned} attribués, ${counts.available} disponibles, ${counts.repair} en réparation${counts.reste.total > 0 ? `, ${counts.reste.phrase}` : ''} sur ${counts.total}`}
+                    >
+                        {FLEET_STATES.map((state) => {
+                            const width =
+                                counts.total > 0 ? (counts[state.key] / counts.total) * 100 : 0;
+                            return width > 0 ? (
+                                <span
+                                    key={state.key}
+                                    className="block h-full"
+                                    style={{
+                                        width: `${width}%`,
+                                        backgroundColor: state.color,
+                                    }}
+                                />
+                            ) : null;
+                        })}
+                    </div>
+                    {/* `.qual` — trois colonnes, 22 / 28 en Archivo, le libellé 14 / 20
+                        avec sa pastille de 8. */}
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                        {FLEET_STATES.map((state) => (
+                            <Figure
+                                key={state.key}
+                                value={counts[state.key]}
+                                label={state.label}
+                                tone={state.tone}
+                                onClick={() => openFleet(state.status)}
+                            />
+                        ))}
+                    </div>
+                    {/* `.calm` — la phrase qui répond au creux de la barre, dans
+                        l'idiome de la carte voisine (« Les 3 autres types ont au
+                        moins une unité »). Elle ne paraît que s'il y a un reste :
+                        un parc entièrement en service n'a rien à expliquer. */}
+                    {counts.reste.total > 0 && (
+                        <Button
+                            variant="text"
+                            onClick={() => openFleet('')}
+                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[12px] leading-4 font-normal hover:bg-transparent"
+                        >
+                            <span>
+                                Hors service :{' '}
+                                <b className="text-on-surface font-medium tabular-nums">
+                                    {counts.reste.phrase}
+                                </b>
+                            </span>
+                        </Button>
+                    )}
+                </section>
+            ) : (
+                /* `.qual.two` — deux cartes blanches, chiffre et libellé à pastille :
+                   ce que je détiens (bleu), ce que j'attends (ambre). */
+                <div className="grid grid-cols-2 gap-4">
+                    <Figure
+                        card
+                        tone="bleu"
+                        value={mine.equipment}
+                        label="mes équipements"
+                        onClick={() => openFleet('')}
+                    />
+                    <Figure
+                        card
+                        tone="ambre"
+                        value={mine.requests}
+                        label="demandes en cours"
+                        onClick={() => onViewChange('tasks')}
+                    />
+                </div>
+            )}
+        </>
+    );
 
-                                    return (
-                                        <div
-                                            key={event.id}
-                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
-                                        >
-                                            <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
-                                                {initials || <Icon glyph={glyph} size={18} />}
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface text-[16px] leading-6">
-                                                    {getHistoryEventSentence({
-                                                        event,
-                                                        perspectiveActorId: currentUser?.id,
-                                                    })}
-                                                </p>
-                                                <p className="text-on-surface-variant mt-0.5 text-[12px] leading-4 tabular-nums">
-                                                    {formatMoment(event.timestamp)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {/* « Tout l'historique » mène à la page Historique (18.1) ;
-                                    tant qu'elle n'existe pas, le renvoi n'existe pas non plus —
-                                    un geste mort est pire qu'un manque. Le porteur, lui, a son
-                                    profil. */}
-                                {!isManager && currentUser?.id && (
-                                    <DashboardMoreAction
-                                        label="Tout mon historique"
-                                        destination="Mon profil"
-                                        onClick={() => onNavigate?.(`/users/${currentUser.id}`)}
-                                    />
-                                )}
-                            </>
-                        ) : (
+    /*
+      **La carte n'existe que s'il y a une campagne.** Extraite en constante, elle est
+      évaluée à chaque rendu — et `campagne.site` sur un `null` faisait tomber tout
+      l'écran. Le garde ne peut donc pas rester au point d'appel : il vient ici.
+    */
+    const inventaire = campagne && (
+        <>
+            <Card title="Inventaire en cours" meta={campagne.site}>
+                <Gauge
+                    value={`${campagne.progress} %`}
+                    label="du parc du lieu retrouvé"
+                    percent={campagne.progress}
+                    fill="bg-[var(--tk-color-st-vert)]"
+                    note={repriseNote(campagne)}
+                    ariaLabel={`${campagne.found} actifs retrouvés sur ${campagne.expected}`}
+                />
+                <DashboardMoreAction
+                    label="Reprendre la campagne"
+                    destination="Inventaire"
+                    onClick={() => reprendreCampagne(campagne)}
+                />
+            </Card>
+        </>
+    );
+
+    const typesEnTension = (
+        <>
+            <Card
+                title="Types en tension"
+                meta={tension.stressed.length > 0 ? '0 disponible' : undefined}
+            >
+                {tension.stressed.length > 0 ? (
+                    <>
+                        {tension.stressed.map(([type, entry]) => (
+                            /* `.brow` — 48 px, filet au-dessus, pastille carrée
+                                   de 8 en `--st-orange`. Le pictogramme d'alerte
+                                   que le code posait sur chaque ligne redisait ce
+                                   que la carte dit déjà par son titre. */
+                            <div
+                                key={type}
+                                className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
+                            >
+                                <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
+                                <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
+                                    {entry.label}
+                                </span>
+                                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
+                                    0 sur {entry.total}
+                                </span>
+                            </div>
+                        ))}
+                        {tension.calm > 0 && (
                             <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
-                                Aucun événement enregistré pour l’instant.
+                                {tension.calm === 1
+                                    ? 'L’autre type a au moins une unité.'
+                                    : `Les ${tension.calm} autres types ont au moins une unité.`}
                             </p>
                         )}
-                    </Card>
+                    </>
+                ) : (
+                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                        Chaque type a au moins une unité.
+                    </p>
+                )}
+            </Card>
+        </>
+    );
+
+    const etatDuParc = (
+        <>
+            <Card title="État du parc">
+                <Gauge
+                    value={fleet.endOfLife}
+                    label={`sur ${fleet.size} en fin de vie comptable`}
+                    percent={fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0}
+                    fill="bg-[var(--tk-color-st-orange)]"
+                    note={
+                        renewal ? (
+                            <>
+                                Renouvellement sur « {renewal.category} »,{' '}
+                                <span className="text-on-surface">
+                                    {new Intl.NumberFormat('fr-FR').format(renewal.remaining)} XOF
+                                </span>{' '}
+                                restants.
+                            </>
+                        ) : undefined
+                    }
+                />
+                {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
+                <div className="bg-outline-variant mt-5 h-px" />
+                <Gauge
+                    value={fleet.uncovered}
+                    label={`sur ${fleet.size} hors garantie`}
+                    percent={fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0}
+                    fill="bg-[var(--tk-color-st-orange)]"
+                />
+                <DashboardMoreAction
+                    label="Valeur et amortissement"
+                    destination="Finances"
+                    onClick={() => onViewChange('finance')}
+                />
+            </Card>
+        </>
+    );
+
+    const budget = (
+        <>
+            <Card title={`Budget ${budgetStats?.year || 2026}`}>
+                {budgetStats ? (
+                    <>
+                        <Gauge
+                            /* `.wrow` — **le chiffre est le pourcentage**, et
+                                   le total passe au libellé : « 72 % · de
+                                   42 000 000 XOF consommés ». Un montant engagé
+                                   ne se compare à rien tant qu'on n'a pas lu
+                                   l'enveloppe qui le suit. */
+                            value={`${Math.round(budgetStats.percentSpent)} %`}
+                            label={`de ${new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)} XOF consommés`}
+                            percent={budgetStats.percentSpent}
+                            marker={budgetPace ?? undefined}
+                            ariaLabel={
+                                budgetPace === null
+                                    ? `${budgetStats.percentSpent.toFixed(1)} %`
+                                    : `${budgetStats.percentSpent.toFixed(1)} % ; repère du rythme de l’exercice à ${Math.round(budgetPace)} %`
+                            }
+                            /*
+                                  `.wnote` — la conséquence, pas le commentaire, et
+                                  son `b` n'est pas gras : la planche le pose à 400,
+                                  en encre pleine. Elle **date** sa mesure (« au 3
+                                  septembre ») parce que l'écart au rythme change
+                                  tous les jours. Sur un exercice qui n'est pas en
+                                  cours, il n'y a pas de rythme à tenir : la jauge
+                                  reste seule.
+                                */
+                            note={
+                                budgetPace === null ? undefined : (
+                                    <>
+                                        <span className="text-on-surface">
+                                            {budgetGap === 0
+                                                ? 'Au rythme de l’exercice'
+                                                : `${Math.abs(budgetGap)} point${Math.abs(budgetGap) > 1 ? 's' : ''} ${budgetGap > 0 ? 'au-dessus du rythme' : 'sous le rythme'}`}
+                                        </span>{' '}
+                                        au {jourEnClair(new Date())}.
+                                    </>
+                                )
+                            }
+                        />
+                        <DashboardMoreAction
+                            label="Détail par enveloppe"
+                            destination="Finances"
+                            onClick={() => onViewChange('finance')}
+                        />
+                    </>
+                ) : (
+                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                        Aucun budget configuré pour cet exercice.
+                    </p>
+                )}
+            </Card>
+        </>
+    );
+
+    const mesEquipements = (
+        <>
+            <Card title="Mes équipements">
+                {myTypes.length > 0 ? (
+                    myTypes.map((item) => (
+                        <div
+                            key={item.type}
+                            className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
+                        >
+                            <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
+                                {item.type}
+                            </span>
+                            <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
+                                <span
+                                    className="bg-on-surface block h-full rounded-xs"
+                                    style={{ width: `${item.percent}%` }}
+                                />
+                            </span>
+                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[16px] tabular-nums">
+                                {item.count}
+                            </span>
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                        Aucun équipement ne vous est actuellement attribué.
+                    </p>
+                )}
+            </Card>
+        </>
+    );
+
+    const garantie = (
+        <>
+            <Card title="Garantie">
+                <Gauge
+                    value={myWarranty.covered}
+                    label={`sur ${myWarranty.total} couverts`}
+                    percent={myWarranty.percent}
+                    fill="bg-[var(--tk-color-st-vert)]"
+                    note={
+                        myWarranty.uncoveredItem ? (
+                            <>
+                                {myWarranty.uncoveredItem.name || myWarranty.uncoveredItem.model}{' '}
+                                hors garantie{' '}
+                                <span className="text-on-surface">
+                                    depuis{' '}
+                                    {formatDate(
+                                        new Date(myWarranty.uncoveredItem.warrantyEnd || ''),
+                                    )}
+                                </span>
+                                .
+                            </>
+                        ) : undefined
+                    }
+                />
+            </Card>
+        </>
+    );
+
+    const evenements = (
+        <>
+            <Card title="Derniers événements">
+                {recentEvents.length > 0 ? (
+                    <>
+                        {recentEvents.map((event) => {
+                            /*
+                              `.mk` — §2.5 : 32 px, ronde, sur le creux. La passe sobre
+                              **ne tinte plus** la marque d'une personne : la planche
+                              pose une seule déclaration pour les deux cas, et c'est le
+                              contenu — initiales ou glyphe de l'acte — qui distingue.
+                            */
+                            const glyph = EVENT_GLYPH[event.type] ?? ClockCounterClockwise;
+                            const initials =
+                                !event.isSystem && event.actorName
+                                    ? event.actorName
+                                          .split(' ')
+                                          .map((part) => part[0])
+                                          .filter(Boolean)
+                                          .slice(0, 2)
+                                          .join('')
+                                          .toUpperCase()
+                                    : '';
+
+                            return (
+                                <div
+                                    key={event.id}
+                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
+                                >
+                                    <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
+                                        {initials || <Icon glyph={glyph} size={18} />}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-on-surface text-[16px] leading-6">
+                                            {getHistoryEventSentence({
+                                                event,
+                                                perspectiveActorId: currentUser?.id,
+                                            })}
+                                        </p>
+                                        <p className="text-on-surface-variant mt-0.5 text-[12px] leading-4 tabular-nums">
+                                            {formatMoment(event.timestamp)}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {/*
+                          « Tout l'historique » mène au journal (18.1), écrit le
+                          05/09 : le renvoi que la planche dessine n'est plus un
+                          geste mort. Le porteur, lui, n'a pas accès au journal —
+                          il se lit par qui peut lire les rapports — et son
+                          « Tout mon historique » reste sa fiche, qui porte les
+                          mêmes faits bornés à lui.
+                        */}
+                        {isManager
+                            ? permissions.canViewReports && (
+                                  <DashboardMoreAction
+                                      label="Tout l’historique"
+                                      destination="Historique"
+                                      onClick={() => onViewChange('history')}
+                                  />
+                              )
+                            : currentUser?.id && (
+                                  <DashboardMoreAction
+                                      label="Tout mon historique"
+                                      destination="Mon profil"
+                                      onClick={() => onNavigate?.(`/users/${currentUser.id}`)}
+                                  />
+                              )}
+                    </>
+                ) : (
+                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                        Aucun événement enregistré pour l’instant.
+                    </p>
+                )}
+            </Card>
+        </>
+    );
+
+    /**
+     * `.bande` — **la bande de chiffres**, au bureau (§2.43 bis). Elle *reprend* « Le
+     * parc » du téléphone plutôt que d'ajouter une tuile : *« pas de tuile neuve »*.
+     * Chaque nombre est une porte vers la liste, pré-filtrée.
+     *
+     * **Sauf le dernier.** « Hors garantie » n'a pas de filtre dans le produit : il est
+     * donc rendu en chiffre nu, pas en lien. Une porte qui n'ouvre rien est pire qu'un
+     * chiffre qui se lit.
+     */
+    const bande = (
+        <section className="rounded-card bg-surface flex px-5 py-3.5">
+            {[
+                { cle: 'total', valeur: counts.total, mot: 'actifs', statut: '' },
+                {
+                    cle: 'assigned',
+                    valeur: counts.assigned,
+                    mot: 'attribués',
+                    statut: 'Attribué',
+                    pastille: 'var(--tk-color-st-bleu)',
+                },
+                {
+                    cle: 'available',
+                    valeur: counts.available,
+                    mot: 'disponibles',
+                    statut: 'Disponible',
+                    pastille: 'var(--tk-color-st-vert)',
+                },
+                {
+                    cle: 'repair',
+                    valeur: counts.repair,
+                    mot: 'en réparation',
+                    statut: 'En réparation',
+                    pastille: 'var(--tk-color-st-orange)',
+                },
+                { cle: 'warranty', valeur: fleet.uncovered, mot: 'hors garantie' },
+            ].map((entree, index) => {
+                const chiffre = (
+                    <>
+                        <span className="font-brand text-on-surface flex items-center gap-2 text-[22px] leading-[26px] font-semibold tabular-nums">
+                            {entree.pastille && (
+                                <span
+                                    aria-hidden="true"
+                                    className="h-2 w-2 shrink-0 rounded-xs"
+                                    style={{ backgroundColor: entree.pastille }}
+                                />
+                            )}
+                            {entree.valeur}
+                        </span>
+                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4">
+                            {entree.mot}
+                        </span>
+                    </>
+                );
+                return (
+                    <div
+                        key={entree.cle}
+                        className={cn(
+                            'min-w-0 flex-1 pr-4',
+                            index > 0 && 'border-outline-variant border-l pl-4',
+                        )}
+                    >
+                        {entree.statut !== undefined ? (
+                            <Button
+                                variant="text"
+                                layout="card"
+                                onClick={() => openFleet(entree.statut as string)}
+                                aria-label={`${entree.valeur} ${entree.mot}, voir la liste`}
+                                className="h-auto w-full flex-col items-start gap-0 px-0 py-0 hover:bg-transparent"
+                            >
+                                {chiffre}
+                            </Button>
+                        ) : (
+                            chiffre
+                        )}
+                    </div>
+                );
+            })}
+        </section>
+    );
+
+    /**
+     * `.dhead` — l'en-tête du bureau : le prénom, la charge, **et les deux gestes sur la
+     * même ligne**, à 40 px. L'avatar n'y est pas : au bureau la personne vit au pied de
+     * la barre latérale, et deux portes vers son compte en feraient une de trop.
+     */
+    const enTeteBureau = (
+        <header className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+                <h2 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                    Bonjour {firstName}
+                </h2>
+                <p className="text-on-surface-variant mt-0.5 text-[14px] leading-5">{subtitle}</p>
+            </div>
+            {isManager && (
+                <>
+                    <Button
+                        variant="text"
+                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[14px] font-medium !shadow-none"
+                        icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                        onClick={() => onViewChange('return_wizard')}
+                    >
+                        Restituer
+                    </Button>
+                    <Button
+                        variant="filled"
+                        className="bg-primary hover:bg-primary-hover h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        icon={<Icon glyph={ArrowCircleRight} size={18} />}
+                        onClick={() => onViewChange('assignment_wizard')}
+                    >
+                        Attribuer
+                    </Button>
+                </>
+            )}
+            {!isManager && (
+                <Button
+                    variant="filled"
+                    className="bg-primary hover:bg-primary-hover h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    icon={<Icon glyph={Plus} size={18} />}
+                    onClick={() => onViewChange('new_request')}
+                >
+                    Demander un équipement
+                </Button>
+            )}
+        </header>
+    );
+
+    /**
+     * **Le seul écran multi-zones de la vague** (03.1, bureau du 08/09). À 1280 : la
+     * bande de chiffres en ligne, puis la file (8/12) et les événements (4/12) **à même
+     * hauteur** — une porte chacune —, puis la mosaïque, *pesée sur ce que les cartes
+     * portent* : Budget 7 (une jauge et trois montants) et Inventaire 5 ; Types en
+     * tension 5 (une liste courte) et État du parc 7 (deux jauges côte à côte).
+     *
+     * Sans campagne en cours, la mosaïque n'a que trois cartes : l'État du parc prend
+     * alors la rangée entière plutôt que de laisser un trou de cinq colonnes.
+     */
+    const mosaique = campagne
+        ? [
+              { cle: 'budget', span: 'col-span-7', contenu: budget },
+              { cle: 'inventaire', span: 'col-span-5', contenu: inventaire },
+              { cle: 'tension', span: 'col-span-5', contenu: typesEnTension },
+              { cle: 'etat', span: 'col-span-7', contenu: etatDuParc },
+          ]
+        : [
+              { cle: 'budget', span: 'col-span-7', contenu: budget },
+              { cle: 'tension', span: 'col-span-5', contenu: typesEnTension },
+              { cle: 'etat', span: 'col-span-12', contenu: etatDuParc },
+          ];
+
+    /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
+    const CASE_GRILLE =
+        'flex min-w-0 flex-col [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
+
+    return (
+        <div className="bg-background flex min-w-0 flex-1 flex-col">
+            {/* `.page` — gouttière de 16, intérieur 16 / 16 / 24 ; 24 au-delà du rail. */}
+            <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
+                <Reading className="flex flex-col gap-4">
+                    {/* L'en-tête change de forme, jamais de contenu : le prénom, la
+                        charge, les gestes. Au téléphone ils sont sous le titre et pleine
+                        largeur ; au bureau ils tiennent sur sa ligne. */}
+                    {large ? enTeteBureau : enTete}
+                    {!large && gestes}
+                    {large && isManager && bande}
+
+                    {bureau && isManager ? (
+                        <>
+                            {/* `.zones` — 8/12 et 4/12, à hauteur égale : les événements
+                                sont **bornés à la hauteur de la file** au lieu de courir
+                                le long de la page. */}
+                            <div className="grid grid-cols-12 items-stretch gap-4">
+                                {/*
+                                  **C'est la file qui donne sa hauteur à la rangée, jamais
+                                  l'inverse.** Le héro garde donc sa hauteur naturelle : au
+                                  régime vide il tient en deux lignes, et l'étirer
+                                  fabriquerait un pan sombre de 400 px pour dire « rien à
+                                  traiter ». Les événements, eux, s'étirent — c'est ce que
+                                  la planche demande : qu'ils cessent de courir le long de
+                                  la page.
+                                */}
+                                <div className="col-span-8 flex min-w-0 flex-col">{aTraiter}</div>
+                                <div className={cn(CASE_GRILLE, 'col-span-4')}>{evenements}</div>
+                            </div>
+
+                            <div className="grid grid-cols-12 items-stretch gap-4">
+                                {mosaique.map((carte) => (
+                                    <div key={carte.cle} className={cn(CASE_GRILLE, carte.span)}>
+                                        {carte.contenu}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {aTraiter}
+                            {/* Au bureau, « Le parc » **est** la bande : pas de tuile
+                                neuve, la planche l'écrit. */}
+                            {!(large && isManager) && leParc}
+                            {isManager ? (
+                                <>
+                                    {campagne && inventaire}
+                                    {typesEnTension}
+                                    {etatDuParc}
+                                    {budget}
+                                </>
+                            ) : (
+                                <>
+                                    {mesEquipements}
+                                    {garantie}
+                                </>
+                            )}
+                            {evenements}
+                        </>
+                    )}
                 </Reading>
             </div>
         </div>

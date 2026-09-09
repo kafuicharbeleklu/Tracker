@@ -2,10 +2,10 @@ import React, { useMemo, useState } from 'react';
 import {
     CaretRight,
     DoorOpen,
+    DotsThreeVertical,
     Hourglass,
     Info,
     MapPin,
-    PencilSimple,
     Plus,
 } from '@phosphor-icons/react';
 
@@ -16,13 +16,13 @@ import InputField from '../../../components/ui/InputField';
 import ListRow from '../../../components/ui/ListRow';
 import Modal from '../../../components/ui/Modal';
 import ScreenState from '../../../components/ui/ScreenState';
-import { GLOSSARY } from '../../../constants/glossary';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
 import { ViewType } from '../../../types';
 import { countryCodeOf } from '../lib/siteCode';
+import Menu from '../../../components/ui/Menu';
 
 interface SiteDetailsPageProps {
     siteName: string;
@@ -177,10 +177,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
      */
     const closeSite = () => {
         if (locals.length > 0) {
-            showToast(
-                "Le site n'a pas pu être fermé — un local y est rattaché. Déplacez-le d'abord.",
-                'error',
-            );
+            showToast('Fermeture refusée : un local y est rattaché.', 'error');
             return;
         }
         requestConfirmation({
@@ -275,7 +272,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             </span>
                             <span className="text-on-nav-surface-variant mt-0.5 flex items-center gap-0.5 overflow-hidden text-[12px] leading-4 font-normal whitespace-nowrap">
                                 {relay.label}
-                                <Icon glyph={CaretRight} size={14} className="shrink-0" />
+                                <Icon glyph={CaretRight} size={18} className="shrink-0" />
                             </span>
                         </Button>
                     ))}
@@ -302,19 +299,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             Fermer le site
                         </Button>
                     </>
-                ) : (
-                    <Button
-                        variant="text"
-                        className="text-inverse-on-surface h-12 min-h-12 rounded-[4px] bg-white/[0.12] text-[16px] hover:bg-white/20"
-                        icon={<Icon glyph={PencilSimple} size={20} />}
-                        onClick={() => {
-                            setRenameValue(siteName);
-                            setIsRenameOpen(true);
-                        }}
-                    >
-                        Modifier le site
-                    </Button>
-                )}
+                ) : null}
             </div>
         </section>
     );
@@ -401,19 +386,53 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
             </Modal>
 
             <DetailTemplate
-                /* Le fil d'Ariane prend la place du titre dans la barre : le nom du site
-                   est porté par le héro, à 28 px, juste dessous. 14/20, la mesure de
-                   `.crumb`. */
-                code={
-                    <span className="text-text-secondary flex min-w-0 items-center gap-1 text-[14px] leading-5 font-normal">
-                        <span className="truncate">{GLOSSARY.LOCATIONS}</span>
-                        <Icon glyph={CaretRight} size={18} className="text-text-muted shrink-0" />
-                        <span className="truncate">{country}</span>
-                        <Icon glyph={CaretRight} size={18} className="text-text-muted shrink-0" />
-                        <span className="text-on-surface truncate font-medium">{siteName}</span>
-                    </span>
-                }
+                /* **Le nom commun, comme les trois autres fiches.** La barre portait un
+                   fil d'Ariane en 14 sur 20 — « Emplacements › Togo › Lomé Siège » —, une
+                   quatrième taille de caractère pour la même barre que Type (17/24),
+                   Modèle (17/24) et Demande (17/24), et trois faits que le héro écrit
+                   déjà juste dessous. `.tid .code` de 17.8 est **une ligne, Archivo 600,
+                   17 sur 24**. */
+                code="Site"
                 onBack={onBack}
+                /* Les deux actes du site descendent au ⋮, comme sur le type et le modèle :
+                   ils vivaient dans le héro, où le geste primaire est déjà pris. */
+                menu={
+                    <Menu
+                        align="end"
+                        items={[
+                            {
+                                id: 'rename',
+                                label: 'Modifier le site',
+                                description: 'son nom ; les actifs gardent leur lieu',
+                                onSelect: () => {
+                                    setRenameValue(siteName);
+                                    setIsRenameOpen(true);
+                                },
+                            },
+                            {
+                                id: 'close',
+                                label: 'Fermer le site',
+                                description:
+                                    locals.length > 0
+                                        ? `${locals.length} ${locals.length > 1 ? 'locaux' : 'local'} y ${locals.length > 1 ? 'sont' : 'est'} rattaché${locals.length > 1 ? 's' : ''}`
+                                        : "il sort des sélecteurs d'emplacement",
+                                destructive: true,
+                                dividerBefore: true,
+                                onSelect: closeSite,
+                            },
+                        ]}
+                        trigger={
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Actes du site"
+                                className="text-on-surface hover:bg-surface-container flex h-12 w-12 items-center justify-center rounded-md p-0"
+                            >
+                                <Icon glyph={DotsThreeVertical} size={20} />
+                            </Button>
+                        }
+                    />
+                }
                 hero={hero}
             >
                 {/* RÉFÉRENCE — ce que le site est, et ce qui lui manque. */}
@@ -438,8 +457,11 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                         {locals.length > 0 && (
                             <div className="border-outline-variant border-t">
                                 {locals.map((local) => {
+                                    /* `item.service` n'existe pas sur `Equipment` : le
+                                       compte valait **0 sur tous les locaux**. Le champ
+                                       est `local` — le même que 16.1 compte. */
                                     const localAssets = siteEquipment.filter(
-                                        (item) => item.service === local,
+                                        (item) => item.local === local,
                                     ).length;
                                     return (
                                         <ListRow

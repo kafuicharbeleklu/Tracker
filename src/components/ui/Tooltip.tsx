@@ -159,9 +159,10 @@ const Tooltip: React.FC<TooltipProps> = ({
     const mergedDescribedBy = visible
         ? [existingDescribedBy, tooltipId].filter(Boolean).join(' ')
         : existingDescribedBy;
-    const mergedChild = React.cloneElement(childElement, {
-        'aria-describedby': mergedDescribedBy as string | undefined,
-    });
+    const mergedChild = React.cloneElement(
+        childElement as React.ReactElement<{ 'aria-describedby'?: string }>,
+        { 'aria-describedby': mergedDescribedBy as string | undefined },
+    );
 
     const bubble = visible ? (
         <div

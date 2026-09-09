@@ -7,12 +7,27 @@
  * Un fichier de cent mégaoctets partait donc dans la lecture, et l'écran restait sur
  * son attente sans jamais rien dire.
  *
- * La valeur est un arbitrage rendu par défaut le 06/09, revocable : elle vit ici, une
- * seule fois, et 14.1 la rendra réglable le jour où l'organisation le demande.
+ * La valeur est un arbitrage rendu par défaut le 06/09, revocable — et **14.1 la rend
+ * réglable** : elle est désormais une rangée de « L'entreprise », `maxImportFileMb`.
+ * Le module garde la borne courante pour que les neuf emplois la lisent sans que neuf
+ * composants d'interface aient à connaître le contexte de données ; `DataContext` la
+ * repose à chaque fois que le réglage change, et le défaut vaut avant toute session.
  */
 
-/** 5 Mo, la borne de 17.10. */
+/** 5 Mo, la borne d'origine de 17.10 — le défaut, quand rien n'a été réglé. */
 export const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+
+let borneCourante = MAX_IMPORT_FILE_BYTES;
+
+/** La borne en vigueur. À appeler au moment de s'en servir, jamais à figer à l'import. */
+export const getImportLimitBytes = (): number => borneCourante;
+
+/** Posée par `DataContext` depuis `settings.maxImportFileMb`. */
+export const setImportLimitMb = (mo: number): void => {
+    /* Une borne à zéro ou négative refuserait tout fichier sans rien expliquer : on
+       retombe alors sur le défaut plutôt que de rendre le dépôt impossible. */
+    borneCourante = mo > 0 ? Math.round(mo * 1024 * 1024) : MAX_IMPORT_FILE_BYTES;
+};
 
 /** « 5 Mo », « 12,4 Mo » — la taille telle qu'on la lit dans un refus. */
 export const formatFileSize = (bytes: number): string => {
@@ -32,7 +47,7 @@ export const formatFileSize = (bytes: number): string => {
  */
 export const partitionBySize = (
     files: File[],
-    limit: number = MAX_IMPORT_FILE_BYTES,
+    limit: number = getImportLimitBytes(),
 ): { accepted: File[]; rejected: File[] } => ({
     accepted: files.filter((file) => file.size <= limit),
     rejected: files.filter((file) => file.size > limit),
@@ -41,7 +56,7 @@ export const partitionBySize = (
 /** La phrase du refus — ≤ 60 signes quand un seul fichier dépasse (17.5). */
 export const rejectionMessage = (
     rejected: File[],
-    limit: number = MAX_IMPORT_FILE_BYTES,
+    limit: number = getImportLimitBytes(),
 ): string | null => {
     if (rejected.length === 0) return null;
     if (rejected.length === 1) {

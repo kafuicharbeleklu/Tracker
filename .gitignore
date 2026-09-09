@@ -21,6 +21,7 @@ backend/data/inventory-import-preview.json
 # Import assets and Firebase service account used only for local bootstrap
 Inventaire_Neemba_Togo_2026.xlsx
 tracker-c801e-firebase-adminsdk-fbsvc-5dc59cd3fa.json
+FLOTTE MOBILE_NEEMBA_TOGO_DOTATION 27_03_2026.xlsx
 
 # Artefact d'origine inconnue (mars 2026), non référencé — ignoré en attendant identification
 projects_data.json

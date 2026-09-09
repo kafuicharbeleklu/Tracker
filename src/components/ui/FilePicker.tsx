@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 
-import { MAX_IMPORT_FILE_BYTES, partitionBySize, rejectionMessage } from '../../lib/fileImport';
+import { getImportLimitBytes, partitionBySize, rejectionMessage } from '../../lib/fileImport';
 
 /**
  * **Le champ de fichier caché**, et rien d'autre.
@@ -32,7 +32,7 @@ interface FilePickerProps {
 }
 
 const FilePicker = forwardRef<HTMLInputElement, FilePickerProps>(
-    ({ accept, multiple = false, onFiles, onReject, maxSize = MAX_IMPORT_FILE_BYTES }, ref) => (
+    ({ accept, multiple = false, onFiles, onReject, maxSize = getImportLimitBytes() }, ref) => (
         <input
             ref={ref}
             type="file"

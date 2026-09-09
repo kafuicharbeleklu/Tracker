@@ -14,7 +14,8 @@ import Button from '../../../components/ui/Button';
 import FacetChip from '../../../components/ui/FacetChip';
 import Icon from '../../../components/ui/Icon';
 import { cn } from '../../../lib/utils';
-import { ALL_VALUE, buildRowKey, formatSince, PlaceAuditRow } from '../placeAudit';
+import { ALL_VALUE, buildRowKey, enRetard, formatSince, PlaceAuditRow } from '../placeAudit';
+import { useData } from '../../../context/DataContext';
 
 /**
  * **Le périmètre d'un comptage est un lieu et un état** — 16.1 : *« Pays, puis le
@@ -126,6 +127,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     totalRowCount,
 }) => {
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const { settings } = useData();
+
+    /** Combien de lieux ont dépassé la périodicité réglée dans Paramètres (14.1). */
+    const retards = useMemo(
+        () => rows.filter((row) => enRetard(row, settings.inventoryPeriodMonths)).length,
+        [rows, settings.inventoryPeriodMonths],
+    );
 
     const activeFilterCount = useMemo(
         () =>
@@ -323,6 +331,8 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     return (
         <>
             <ListTemplate
+                /* 16.1 range ses lieux en file : rangées de 56, marque ronde. */
+                skeleton="file"
                 title={openedSite ? openedSite.site : 'Inventaire'}
                 onBack={openedSite ? onCloseSite : undefined}
                 hero={hero}
@@ -363,7 +373,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     total: rows.length,
                     noun: openedSite
                         ? `lieu${rows.length > 1 ? 'x' : ''} à compter · en cours d'abord`
-                        : `${rows.length === totalRowCount ? '' : `des ${scopedPlaceCount} · `}lieu${rows.length > 1 ? 'x' : ''} · les jamais vérifiés d'abord`,
+                        : `${rows.length === totalRowCount ? '' : `des ${scopedPlaceCount} · `}lieu${rows.length > 1 ? 'x' : ''} · ${
+                              /* La périodicité de 14.1 rend « en retard » disable : au-delà
+                                 d'elle, un lieu que personne n'a recompté est en dette. Le
+                                 dire ici plutôt que dans la sous-ligne d'une rangée — la
+                                 sous-ligne est tronquée, la ligne d'ordre ne l'est pas. */
+                              retards > 0 ? `${retards} en retard` : 'les jamais vérifiés d’abord'
+                          }`,
                 }}
                 empty={empty}
                 hasRows={rows.length > 0}

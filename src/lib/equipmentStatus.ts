@@ -18,10 +18,16 @@ import type { Equipment } from '../types';
  * *Attribué*, un actif **sans porteur** est *Disponible*. C'est la lecture qu'en fait
  * déjà le reste du produit, où le porteur et l'état ne se contredisent jamais.
  *
- * *Autre* n'est pas traduit. Seize objets le portent, et rien dans la donnée ne dit
- * lequel des neuf états il vaut : le deviner ferait entrer dans l'inventaire une
- * certitude que la source n'a pas. Ils gardent leur mot, comptent dans le total, et
- * n'apparaissent dans aucun compteur d'état — ce qui est exact.
+ * *Autre* se lit **comme *Actif***, et c'est le tableur qui le dit. Il n'était pas
+ * traduit : seize objets gardaient ce mot, comptaient dans le total et n'entraient dans
+ * aucun compteur — si bien que la barre du parc restait courte de seize.
+ *
+ * Les seize lignes, regardées une à une, ne portent pas un état : elles portent **le
+ * choix le moins engageant d'une liste déroulante**. Trois ont un utilisateur nommé
+ * (Nalle Tchamsi ASSOULIAN, Kokou SODOFIA, Difézi OURO-BAYAI), les treize autres n'en ont
+ * aucun — des écrans, des tablettes et une station d'accueil en réserve. Le porteur est
+ * donc renseigné, et c'est **lui** qui dit l'état, exactement comme pour *Actif* :
+ * déduire n'est pas deviner quand la donnée porte de quoi déduire.
  *
  * ## La casse et les accents
  *
@@ -38,11 +44,7 @@ import type { Equipment } from '../types';
 
 /** Sans casse, sans accent, sans espaces de bord — la clé de comparaison. */
 const clef = (valeur: string): string =>
-    valeur
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .trim()
-        .toLowerCase();
+    valeur.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
 /**
  * Les mots de la source qui ont un équivalent certain. `null` = l'état se lit sur
@@ -50,6 +52,7 @@ const clef = (valeur: string): string =>
  */
 const CORRESPONDANCE: Record<string, Equipment['status'] | null> = {
     actif: null,
+    autre: null,
     'hors service': 'Retiré',
     defectueux: 'En réparation',
     // Les neuf états du produit se reconnaissent eux-mêmes : une base déjà propre

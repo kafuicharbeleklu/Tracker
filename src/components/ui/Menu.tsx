@@ -23,7 +23,12 @@ export interface MenuItem {
 }
 
 interface MenuProps {
-    trigger: React.ReactElement;
+    /**
+     * Le déclencheur. Le menu lui **greffe** `id`, `aria-*`, `onClick` et `onKeyDown` :
+     * son type doit donc dire qu'il accepte des attributs d'élément, sinon
+     * `trigger.props` reste `unknown` et le clonage se fait à l'aveugle.
+     */
+    trigger: React.ReactElement<React.HTMLAttributes<HTMLElement> & { id?: string }>;
     items: MenuItem[];
     title?: string;
     align?: 'start' | 'end';

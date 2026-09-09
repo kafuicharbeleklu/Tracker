@@ -37,9 +37,11 @@ const loadTesseract = async (): Promise<TesseractModule> => {
 
 const extractPdfNativeText = async (pdfData: ArrayBuffer, maxPages: number): Promise<string> => {
     const pdfjs = await loadPdfJs();
+    /* `disableWorker` n'existe plus dans les paramètres de pdf.js 5 : la clé était
+       ignorée à l'exécution depuis la montée de version. Le module ne fixe aucun
+       `GlobalWorkerOptions.workerSrc`, donc pdf.js retombe déjà sur son faux worker. */
     const loadingTask = pdfjs.getDocument({
         data: pdfData,
-        disableWorker: true,
         useSystemFonts: true,
     });
 
@@ -72,9 +74,11 @@ const renderPdfPagesAsDataUrls = async (
     maxPages: number,
 ): Promise<string[]> => {
     const pdfjs = await loadPdfJs();
+    /* `disableWorker` n'existe plus dans les paramètres de pdf.js 5 : la clé était
+       ignorée à l'exécution depuis la montée de version. Le module ne fixe aucun
+       `GlobalWorkerOptions.workerSrc`, donc pdf.js retombe déjà sur son faux worker. */
     const loadingTask = pdfjs.getDocument({
         data: pdfData,
-        disableWorker: true,
         useSystemFonts: true,
     });
 
@@ -95,7 +99,11 @@ const renderPdfPagesAsDataUrls = async (
         canvas.width = Math.max(1, Math.floor(viewport.width));
         canvas.height = Math.max(1, Math.floor(viewport.height));
 
+        /* pdf.js 5 exige le **canevas** en plus de son contexte : sans lui, le rendu
+           d'une page en image échoue à l'exécution — c'est le chemin d'OCR d'un PDF
+           scanné qui tombait. */
         await page.render({
+            canvas,
             canvasContext: context,
             viewport,
         }).promise;

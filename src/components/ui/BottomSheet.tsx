@@ -1,6 +1,8 @@
 import React, { useEffect, useCallback, useRef, useState, useId } from 'react';
 import { cn } from '../../lib/utils';
 import CloseButton from './CloseButton';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
 
 interface BottomSheetProps {
     /** Optional id for aria-controls linkage */
@@ -23,10 +25,23 @@ interface BottomSheetProps {
 }
 
 /**
- * MD3 Modal Bottom Sheet — full-width on compact and centered on larger screens.
- * Includes scrim overlay, drag handle, focus trap, escape support, and close animation.
+ * **La feuille d'acte — et ce qu'elle devient dès qu'il y a de la place** (00.5).
  *
- * @see https://m3.material.io/components/bottom-sheets/overview
+ * Au téléphone elle monte du bas, pleine largeur, avec sa poignée : c'est une surface
+ * qu'on attrape au pouce. Au-delà de 600 px il n'y a plus de pouce, et la planche
+ * tranche : *« à 768 px la feuille ne s'étire pas : elle se centre, à la mesure de
+ * 560 px, et le voile couvre tout, rail compris »*.
+ *
+ * **Les blocs ne changent pas** — mêmes champs, même pied, même ordre. *« Ce qui change
+ * est l'air autour, pas la feuille. »* C'est la règle des vues de référence : une seule
+ * vue, posée autrement, jamais une seconde vue à maintenir.
+ *
+ * Et la poignée disparaît avec le geste qu'elle promettait : on ne fait pas glisser un
+ * dialogue. Échap et le voile referment ; une feuille titrée garde sa croix.
+ *
+ * *Un écart de planche assumé : 00.3 §4 écrivait 440 px et un seuil à 840. 00.5 est la
+ * planche dédiée à ce gabarit — elle fixe 560 et le démontre à 768. C'est elle qui vaut,
+ * et le seuil est pris au premier palier du produit, 600.*
  */
 const BottomSheet: React.FC<BottomSheetProps> = ({
     id,
@@ -47,6 +62,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     const [visible, setVisible] = useState(false);
     const [closing, setClosing] = useState(false);
     const titleId = useId();
+    /** Sous 600 px, la feuille monte du bas ; au-delà, elle se centre (00.5). */
+    const compact = useMediaQuery(MEDIA.compact);
 
     useEffect(() => {
         if (open) {
@@ -165,7 +182,12 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     if (!visible) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+        <div
+            className={cn(
+                'fixed inset-0 z-[100] flex justify-center',
+                compact ? 'items-end' : 'items-center p-4',
+            )}
+        >
             {/* Scrim */}
             <div
                 className={cn(
@@ -188,18 +210,26 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 aria-label={title ? undefined : 'Panneau inférieur'}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    'bg-surface shadow-elevation-4 border-outline-variant relative flex max-h-[90vh] w-full flex-col rounded-t-xl border',
+                    'bg-surface shadow-elevation-4 border-outline-variant relative flex max-h-[90vh] w-full flex-col border',
+                    /* La mesure du contenu d'un flux — 560, et elle ne dépend pas de
+                       l'écran. Un champ de 680 px pour un numéro de série est plus
+                       difficile à viser, à relire, et il fait mentir la hiérarchie. */
+                    compact ? 'rounded-t-xl' : 'max-w-[560px] rounded-xl',
                     closing
-                        ? 'animate-out slide-out-to-bottom-4 fade-out duration-300'
-                        : 'animate-in slide-in-from-bottom-4 duration-300',
-                    'expanded:max-w-[640px]',
+                        ? 'animate-out fade-out duration-200'
+                        : 'animate-in fade-in duration-200',
+                    compact &&
+                        (closing
+                            ? 'slide-out-to-bottom-4 duration-300'
+                            : 'slide-in-from-bottom-4 duration-300'),
+                    !compact && (closing ? 'zoom-out-95' : 'zoom-in-95'),
                     !isDragging && 'duration-short4 ease-emphasized transition-transform',
                     className,
                 )}
                 style={dragOffset > 0 ? { transform: `translateY(${dragOffset}px)` } : undefined}
             >
-                {/* Drag handle */}
-                {dragHandle && (
+                {/* La poignée n'existe qu'avec le geste qu'elle annonce. */}
+                {dragHandle && compact && (
                     <div
                         className="flex cursor-grab touch-none justify-center pt-2 pb-0.5"
                         onPointerDown={handlePointerDown}

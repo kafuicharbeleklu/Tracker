@@ -4,19 +4,24 @@ import {
     ArrowLeft,
     Funnel,
     List,
+    Rows,
     SortAscending,
+    Table,
     X,
+    type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import SearchField from '../ui/SearchField';
 import FacetChip from '../ui/FacetChip';
-import { SkeletonList } from '../ui/Skeleton';
+import { SkeletonList, SkeletonQueue } from '../ui/Skeleton';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useData } from '../../context/DataContext';
+import { OfflineState } from '../ui/ScreenState';
 import SelectionTopBar from '../ui/SelectionTopBar';
 import { useDeclareSelectionRegime } from '../../context/SelectionRegimeContext';
 import BulkActionBar from '../ui/BulkActionBar';
-import { OfflineBanner } from '../ui/ContextBanner';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { MEDIA } from '../../constants/breakpoints';
@@ -140,6 +145,12 @@ interface ListTemplateProps {
 
     count?: { total: number; shown?: number; noun: string };
     sort?: { label: string; onClick: () => void };
+    /**
+     * **Cartes ou tableau** — la coexistence arbitrée par la recherche bureau du 08/09,
+     * son sélecteur posé « à côté du tri », donc dans le cinquième slot de 17.8. Absent :
+     * la liste n'a qu'une forme, et il n'y a rien à choisir.
+     */
+    view?: { value: 'cartes' | 'tableau'; onChange: (value: 'cartes' | 'tableau') => void };
 
     /** Mode sélection (17.2). Absent : l'écran ne sélectionne pas. */
     selection?: {
@@ -171,6 +182,15 @@ interface ListTemplateProps {
     note?: React.ReactNode;
 
     loading?: boolean;
+    /**
+     * **La forme du squelette suit celle de la liste qu'il annonce** — A2 de 17.3 :
+     * *« même hauteur de rangée, même vignette, même nombre de lignes »*. Une liste
+     * d'objets a des rangées de 68 à vignette carrée ; une **file** en a de 56 à
+     * marque ronde (03.3). Le gabarit posait la première forme sur les deux, si bien
+     * que Tâches, Historique et Inventaire sautaient de douze pixels par rangée à
+     * l'arrivée de la donnée — ce que le squelette est précisément là pour éviter.
+     */
+    skeleton?: 'liste' | 'file';
     /** Ce que l'écran montre quand il n'y a rien — un `ScreenState` (17.1). */
     empty?: React.ReactNode;
     /** Le pied de liste : ce que la liste compte, ou ce qu'elle attend. */
@@ -205,10 +225,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     origin,
     count,
     sort,
+    view,
     selection,
     hero,
     note,
     loading = false,
+    skeleton = 'liste',
     empty,
     footer,
     fab,
@@ -221,7 +243,18 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     /* La coque doit savoir qu'on est en sélection : c'est elle qui porte la barre du
        bas, à qui le pied d'actes prend la place (17.2). */
     useDeclareSelectionRegime(Boolean(selection?.active));
-    const showSkeleton = useDelayedPending(loading);
+    /*
+     * **Le squelette se déclenche à l'hydratation, pas sur demande de la page.**
+     * 17.3 pose trois formes pour vingt-huit écrans ; elles étaient définies et
+     * **aucun écran ne les montrait**, parce que chaque page aurait dû penser à
+     * passer `loading`, et aucune ne le faisait. L'attente est un fait de la couche
+     * de données : le gabarit la lit lui-même. A5 tient toujours — `useDelayedPending`
+     * ne montre rien avant 300 ms.
+     */
+    const { derniereLecture, isHydrating } = useData();
+    const showSkeleton = useDelayedPending(loading || isHydrating);
+    const enLigne = useOnlineStatus();
+    const horsLigne = !enLigne;
     const hasRows = hasRowsOverride ?? React.Children.count(children) > 0;
 
     /** Le bandeau ne s'affiche que si une facette autre que la partition est posée. */
@@ -266,16 +299,50 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <> · {count.shown} affichés</>
                     )}
                 </span>
-                {sort && (
-                    <button
-                        type="button"
-                        onClick={sort.onClick}
-                        className="text-on-surface flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent text-[12px] leading-4 font-medium"
-                    >
-                        <Icon glyph={SortAscending} size={14} className="text-text-muted" />
-                        {sort.label}
-                    </button>
-                )}
+                <span className="flex shrink-0 items-center gap-3">
+                    {sort && (
+                        <button
+                            type="button"
+                            onClick={sort.onClick}
+                            className="text-on-surface flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent text-[12px] leading-4 font-medium"
+                        >
+                            <Icon glyph={SortAscending} size={18} className="text-text-muted" />
+                            {sort.label}
+                        </button>
+                    )}
+                    {/*
+                      **Le sélecteur de forme**, à droite du tri. Deux glyphes dans un
+                      creux, pas deux mots : la ligne est une ligne de service en 12, et
+                      « Cartes / Tableau » y prendrait plus de place que le compte
+                      lui-même. Chaque cran dit son nom à qui ne voit pas les glyphes, et
+                      porte `aria-pressed` — c'est un état, pas une destination.
+                    */}
+                    {view && (
+                        <span className="bg-surface-container flex shrink-0 items-center rounded-[4px] p-0.5">
+                            {[
+                                { id: 'cartes' as const, glyph: Rows, mot: 'Cartes' },
+                                { id: 'tableau' as const, glyph: Table, mot: 'Tableau' },
+                            ].map((cran) => (
+                                <button
+                                    key={cran.id}
+                                    type="button"
+                                    onClick={() => view.onChange(cran.id)}
+                                    aria-pressed={view.value === cran.id}
+                                    aria-label={cran.mot}
+                                    title={cran.mot}
+                                    className={cn(
+                                        'flex h-7 w-7 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent',
+                                        view.value === cran.id
+                                            ? 'bg-surface text-on-surface shadow-[0_1px_2px_rgba(10,25,29,0.10)]'
+                                            : 'text-text-muted hover:text-on-surface',
+                                    )}
+                                >
+                                    <Icon glyph={cran.glyph} size={18} />
+                                </button>
+                            ))}
+                        </span>
+                    )}
+                </span>
             </div>
         ) : null;
 
@@ -412,8 +479,6 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 </div>
             )}
 
-            <OfflineBanner />
-
             {!isCompact && hasSeekBand && seekBand}
             {!isCompact && orderRow && <div className="px-page pt-3">{orderRow}</div>}
 
@@ -452,7 +517,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             {origin.displayToken === false && (
                                 <Icon
                                     glyph={ArrowBendDownLeft}
-                                    size={16}
+                                    size={18}
                                     className="text-text-secondary shrink-0"
                                 />
                             )}
@@ -507,7 +572,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 {showSkeleton ? (
                     <Reading>
                         <div className="bg-surface rounded-xl px-4">
-                            <SkeletonList />
+                            {skeleton === 'file' ? <SkeletonQueue rows={5} /> : <SkeletonList />}
                         </div>
                     </Reading>
                 ) : hasRows ? (
@@ -520,12 +585,19 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         )}
                     </Reading>
                 ) : (
-                    !loading && (
+                    !loading &&
+                    /* 17.1, règle 2 : hors ligne, l'état se dit **dans la forme de
+                       l'état vide** — et jamais en bandeau. Quand il n'y a rien à
+                       lire, c'est la coupure qu'il faut nommer, pas l'absence de
+                       donnée : « aucun équipement » serait faux. */
+                    (horsLigne ? (
+                        <OfflineState depuis={derniereLecture} />
+                    ) : (
                         <>
                             {empty}
                             {children}
                         </>
-                    )
+                    ))
                 )}
 
                 {note && <Reading>{note}</Reading>}
@@ -555,7 +627,10 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     {selection.actions}
                 </BulkActionBar>
             ) : (
-                fab
+                /* *« Les gestes qui écrivent disparaissent — pas grisés, absents. »*
+                   Un bouton barré demande de comprendre pourquoi ; l'absence ne
+                   demande rien (17.1, règle 2 ; interdit n°8). */
+                !horsLigne && fab
             )}
         </div>
     );

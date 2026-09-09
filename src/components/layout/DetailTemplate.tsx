@@ -4,7 +4,8 @@ import { ArrowLeft } from '@phosphor-icons/react';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import { SkeletonDetail } from '../ui/Skeleton';
-import { OfflineBanner } from '../ui/ContextBanner';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useData } from '../../context/DataContext';
 import { MEDIA } from '../../constants/breakpoints';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
@@ -68,6 +69,13 @@ interface DetailTemplateProps {
     onBack?: () => void;
     /** Le menu de débordement : les actes nommés, l'irréversible en dernier. */
     menu?: React.ReactNode;
+    /**
+     * Le geste d'ajout d'une fiche — **le bouton flottant de 17.6**. Une fiche qui
+     * contient une liste (les modèles d'un type, les unités d'un modèle) a un acte de
+     * création, et cet acte ne se range pas en pied de carte : il flotte, comme sur les
+     * listes.
+     */
+    fab?: React.ReactNode;
 
     /**
      * Le héro — un `DetailHero`. C'est la seule zone inversée de l'écran.
@@ -118,6 +126,7 @@ interface DetailTemplateProps {
 
 const DetailTemplate: React.FC<DetailTemplateProps> = ({
     code,
+    fab,
     onBack,
     menu,
     hero,
@@ -129,7 +138,21 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     className,
 }) => {
     const twoColumnCapable = useMediaQuery(MEDIA.twoColumn);
-    const showSkeleton = useDelayedPending(loading);
+    /*
+     * **Le squelette se déclenche à l'hydratation, pas sur demande de la page.**
+     * 17.3 pose trois formes pour vingt-huit écrans ; elles étaient définies et
+     * **aucun écran ne les montrait**, parce que chaque page aurait dû penser à
+     * passer `loading`, et aucune ne le faisait. L'attente est un fait de la couche
+     * de données : le gabarit la lit lui-même. A5 tient toujours — `useDelayedPending`
+     * ne montre rien avant 300 ms.
+     */
+    const { isHydrating } = useData();
+    const showSkeleton = useDelayedPending(loading || isHydrating);
+    /* 17.1, règle 2 : hors ligne, le geste qui écrit **disparaît**. Sur une fiche,
+       c'est le bouton flottant — « Remettre », « Déclarer un incident ». Le bandeau
+       qui vivait ici est retiré : la planche dit l'état par la forme de l'état vide,
+       pas par une bande au-dessus du contenu. */
+    const horsLigne = !useOnlineStatus();
     /* La colonne de gauche n'existe que si quelque chose la remplit. Vide, elle
        laissait 440 px de blanc à côté des cartes au-delà de 1280. */
     const twoColumn = twoColumnCapable && Boolean(hero || error || aside || banner);
@@ -170,8 +193,6 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                 {menu}
             </div>
 
-            <OfflineBanner />
-
             {showSkeleton ? (
                 <SkeletonDetail />
             ) : (
@@ -202,6 +223,8 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                     </div>
                 </div>
             )}
+
+            {!horsLigne && fab}
         </div>
     );
 };

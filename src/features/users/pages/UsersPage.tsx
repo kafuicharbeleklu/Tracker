@@ -18,7 +18,9 @@ import useSelection from '../../../hooks/useSelection';
 import { ViewType, UserRole, type User } from '../../../types';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
-import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
+import ListRow, { TONE_CLASS, type ListRowStatus } from '../../../components/ui/ListRow';
+import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
+import { useListView } from '../../../hooks/useListView';
 import ScreenState from '../../../components/ui/ScreenState';
 import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
@@ -316,6 +318,79 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
         ];
     }, [users]);
 
+    /**
+     * **Cartes ou tableau** (recherche bureau du 08/09) — même geste que sur 04.1, même
+     * mémoire, et ses propres colonnes : *Nom · Rôle · Site · Actifs portés · Dernière
+     * connexion*. Ce que la carte porte en plus — la marque de compte, le service —
+     * reste sur la carte et dans la fiche : cinq colonnes disent qui est là et ce qu'il
+     * détient, le reste est du détail de personne.
+     */
+    const vue = useListView('users');
+    const enTableau = vue.view === 'tableau';
+
+    const colonnes = useMemo<DataColumn<User>[]>(
+        () => [
+            {
+                id: 'nom',
+                header: 'Nom',
+                width: '240px',
+                title: (user) => user.name,
+                cell: (user) => <span className="text-on-surface font-medium">{user.name}</span>,
+            },
+            {
+                id: 'role',
+                header: 'Rôle',
+                width: '150px',
+                cell: (user) => ROLE_LABEL[user.role],
+            },
+            {
+                id: 'site',
+                header: 'Site',
+                width: '180px',
+                title: (user) => user.site || user.department || undefined,
+                /* Le lieu d'abord, le service à défaut — la même substitution que la
+                   carte, pour que les deux formes ne racontent pas deux choses. */
+                cell: (user) =>
+                    user.site || user.department || <span className="text-text-tertiary">—</span>,
+            },
+            {
+                id: 'objets',
+                header: 'Objets',
+                width: '100px',
+                numeric: true,
+                cell: (user) => {
+                    const nombre = holdings(user);
+                    /* Un zéro en encre tertiaire : c'est un fait, pas une valeur qu'on
+                       vient lire. La colonne se balaie pour trouver qui porte beaucoup. */
+                    return nombre > 0 ? nombre : <span className="text-text-tertiary">0</span>;
+                },
+            },
+            {
+                id: 'compte',
+                header: 'État du compte',
+                width: '160px',
+                cell: (user) => {
+                    /* La **même** marque que la carte — `accountMark` : un compte ne
+                       change pas d'état parce qu'on l'a mis dans une colonne. Sans
+                       marque, le compte est simplement actif, et la planche l'écrit. */
+                    const marque = accountMark(user);
+                    if (!marque) return <span className="text-text-tertiary">Actif</span>;
+                    return (
+                        <span className="flex min-w-0 items-center gap-1.5">
+                            <Icon
+                                glyph={marque.icon}
+                                size={18}
+                                className={cn('shrink-0', TONE_CLASS[marque.tone])}
+                            />
+                            <span className="truncate">{marque.label}</span>
+                        </span>
+                    );
+                },
+            },
+        ],
+        [holdings],
+    );
+
     const selectedUsers = useMemo(
         () => filteredUsers.filter((user) => selection.isSelected(user.id)),
         [filteredUsers, selection],
@@ -489,6 +564,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 count={{ total: users.length, shown: filteredUsers.length, noun: 'personnes' }}
                 /* « Nom » suffit : la planche n'écrit pas le sens du tri sur la ligne du
                    décompte, elle le laisse au glyphe. */
+                view={vue.canChoose ? { value: vue.view, onChange: vue.setView } : undefined}
                 sort={{
                     label: 'Nom',
                     onClick: () => setAscending((previous) => !previous),
@@ -521,6 +597,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         />
                     ) : undefined,
                 }}
+                hasRows={filteredUsers.length > 0}
                 empty={
                     <ScreenState
                         icon={UsersThree}
@@ -582,42 +659,64 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                     ) : undefined
                 }
             >
-                {filteredUsers.map((user) => {
-                    const held = holdings(user);
-                    /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
+                {/*
+                  **Cartes ou tableau** — la même liste, la même donnée, deux formes. Le
+                  tableau lit `filteredUsers`, garde la sélection et l'état vide du
+                  gabarit : c'est la forme qui change, jamais ce qu'on regarde.
+                */}
+                {enTableau ? (
+                    <DataTable<User>
+                        columns={colonnes}
+                        rows={filteredUsers}
+                        rowId={(user) => user.id}
+                        onOpen={(user) => onUserClick?.(user.id)}
+                        rowLabel={(user) => `${user.name}, ouvrir la fiche`}
+                        selection={{
+                            isActive: selection.isActive,
+                            isSelected: (id) => selection.isSelected(id),
+                            toggle: (id) => selection.toggle(id),
+                        }}
+                    />
+                ) : (
+                    filteredUsers.map((user) => {
+                        const held = holdings(user);
+                        /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
                        À défaut de site, le service prend sa place : c'est déjà la
                        substitution que la planche dessine sur la vue « choisir un
                        destinataire », où le site est l'en-tête du groupe. */
-                    const place = user.site || user.department || '—';
-                    return (
-                        <ListRow
-                            key={user.id}
-                            vignette={
-                                <span
-                                    className={cn(
-                                        'font-brand flex h-full w-full items-center justify-center text-[15px] font-semibold',
-                                        VIGNETTE_TONE[user.role],
-                                    )}
-                                >
-                                    {initials(user.name)}
-                                </span>
-                            }
-                            title={user.name}
-                            /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
+                        const place = user.site || user.department || '—';
+                        return (
+                            <ListRow
+                                key={user.id}
+                                vignette={
+                                    <span
+                                        className={cn(
+                                            'font-brand flex h-full w-full items-center justify-center text-[15px] font-semibold',
+                                            VIGNETTE_TONE[user.role],
+                                        )}
+                                    >
+                                        {initials(user.name)}
+                                    </span>
+                                }
+                                title={user.name}
+                                /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
                                La charge disparaît quand elle est nulle — « aucun
                                équipement » sur six rangées sur onze était du bruit. */
-                            holder={
-                                held > 0 ? `${place} · ${held} objet${held > 1 ? 's' : ''}` : place
-                            }
-                            mark={accountMark(user)}
-                            onOpen={() => onUserClick?.(user.id)}
-                            selectionActive={selection.isActive}
-                            selected={selection.isSelected(user.id)}
-                            onToggle={() => selection.toggle(user.id)}
-                            onLongPress={() => selection.enter(user.id)}
-                        />
-                    );
-                })}
+                                holder={
+                                    held > 0
+                                        ? `${place} · ${held} objet${held > 1 ? 's' : ''}`
+                                        : place
+                                }
+                                mark={accountMark(user)}
+                                onOpen={() => onUserClick?.(user.id)}
+                                selectionActive={selection.isActive}
+                                selected={selection.isSelected(user.id)}
+                                onToggle={() => selection.toggle(user.id)}
+                                onLongPress={() => selection.enter(user.id)}
+                            />
+                        );
+                    })
+                )}
             </ListTemplate>
 
             {/* Feuille montante de filtrage (05.1) */}

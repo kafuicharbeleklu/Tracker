@@ -872,7 +872,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             <span className="inline-flex items-center gap-1.5">
                                 <Icon
                                     glyph={SignOut}
-                                    size={16}
+                                    size={18}
                                     className="text-[var(--tk-color-live-ambre)]"
                                 />
                                 Départ le {departure}

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import ConfirmationSheet, {
     ConfirmationDetail,
     ConfirmationReason,
@@ -30,7 +29,12 @@ interface ConfirmationOptions {
     /** C3 — le verbe. « Supprimer », « Suspendre », jamais « OK ». */
     confirmText?: string;
     cancelText?: string;
-    icon?: PhosphorGlyph;
+    /**
+      * **Retirée.** La feuille d'acte a perdu son cercle-icône de tête — *« il illustrait
+      * une décision au lieu de la dire »*. L'option survivait au geste : deux appelants la
+      * posaient encore, et elle n'atteignait plus rien. Ce qui porte un glyphe dans la
+      * feuille, ce sont les **détails** (`ConfirmationDetail.icon`) et le sujet.
+      */
     /** Les faits qui pèsent sur la décision — détenteur, valeur, mouvements. */
     details?: ConfirmationDetail[];
     /** Le motif, quand l'acte en réclame un ; il est transmis tel quel. */
@@ -108,7 +112,6 @@ export const ConfirmationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 irreversible={options.irreversible ?? false}
                 confirmText={options.confirmText}
                 cancelText={options.cancelText}
-                icon={options.icon}
                 details={options.details}
                 reason={options.reason}
                 confirmKeyword={options.confirmKeyword}

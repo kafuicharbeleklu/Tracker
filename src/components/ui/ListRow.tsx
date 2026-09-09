@@ -177,11 +177,27 @@ const ListRow: React.FC<ListRowProps> = ({
             <span className="min-w-0 flex-1">
                 {/* Ligne 1 : Nom/Code à gauche, Type à droite */}
                 <span className="flex items-baseline gap-2.5">
-                    <span className="text-on-surface truncate text-[17px] leading-6 tracking-[-0.01em]">
+                    {/* `.l1 .c` — **16 sur 24, sans interlettrage** : le code est la
+                        donnée qu'on lit à voix haute au support, pas un titre.
+
+                        Il porte `min-w-0`, **pas `shrink-0`** : la planche l'écrit
+                        `flex:0 0 auto` parce que ses codes tiennent en dix caractères
+                        (`LPT-HQ-01`). Le parc réel en porte de trente-quatre —
+                        `Togo-AP55C-A400474CC7A47E7-NEW-BAT` — et un `shrink-0` fait alors
+                        **déborder la rangée** hors de sa carte. L'ordre de cession est
+                        tenu autrement : le type est **borné à 45 %** de la ligne — il
+                        cède d'abord, mais il ne s'évanouit pas. En `flex-1` (base 0) il
+                        disparaissait entièrement dès qu'un code prenait toute la largeur,
+                        et une rangée sans type ne dit plus ce qu'est l'objet. */}
+                    <span className="text-on-surface min-w-0 truncate text-[16px] leading-6">
                         {title}
                     </span>
                     {type && (
-                        <span className="text-text-muted ml-auto shrink-0 text-[12px] leading-4 whitespace-nowrap">
+                        /* `.l1 .ty` — **c'est le type qui cède, jamais le code** (04.1) :
+                            il prend le reste de la ligne, se cale à droite et s'y coupe.
+                            Il était `shrink-0` avec `ml-auto` : à deux libellés longs, le
+                            **code** se tronquait pour lui laisser sa place entière. */
+                        <span className="text-text-muted ml-auto max-w-[45%] min-w-0 shrink-0 truncate text-right text-[12px] leading-4 whitespace-nowrap">
                             {type}
                         </span>
                     )}

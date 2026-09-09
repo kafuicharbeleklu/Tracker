@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
+import { WifiSlash } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
@@ -106,5 +107,40 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         {after && <div className="rounded-card bg-surface mt-1 w-full p-4 text-left">{after}</div>}
     </div>
 );
+
+/**
+ * **Hors ligne** — 17.1, règle 2 : *« on lit, on n'écrit pas »*.
+ *
+ * L'état se dit **dans la forme de l'état vide** — motif, titre, phrase, et l'heure
+ * de la dernière lecture — et **jamais en bandeau**. Le produit portait un bandeau
+ * sous la barre du haut : il annonçait la coupure sans dire ce qu'on pouvait encore
+ * faire, et il restait à l'écran par-dessus un contenu parfois vide.
+ *
+ * L'autre moitié de la règle vit dans les gabarits : sur une page **déjà chargée**,
+ * les gestes qui écrivent *disparaissent* — pas grisés, absents. Un bouton barré
+ * demande de comprendre pourquoi ; l'absence ne demande rien.
+ */
+export const OfflineState: React.FC<{ depuis?: string | null; className?: string }> = ({
+    depuis,
+    className,
+}) => (
+    <ScreenState
+        icon={WifiSlash}
+        title="Hors ligne"
+        description="Ce qui est déjà chargé reste lisible. Créer, attribuer et déclarer reviendront avec le réseau."
+        footnote={depuis ? `Dernière mise à jour ${depuisQuand(depuis)}.` : undefined}
+        className={className}
+    />
+);
+
+/** « il y a 6 minutes » — la forme que la planche écrit sous l'état hors ligne. */
+const depuisQuand = (iso: string): string => {
+    const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (minutes < 1) return "à l'instant";
+    if (minutes < 60) return `il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+    const heures = Math.floor(minutes / 60);
+    if (heures < 24) return `il y a ${heures} heure${heures > 1 ? 's' : ''}`;
+    return `il y a ${Math.floor(heures / 24)} jour${Math.floor(heures / 24) > 1 ? 's' : ''}`;
+};
 
 export default ScreenState;

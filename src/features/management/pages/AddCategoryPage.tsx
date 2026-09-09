@@ -284,6 +284,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                     {/* Inputs Numériques */}
                     <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
                         <InputField
+                            mesure="courte"
                             label="Durée d'usage (Années)"
                             type="number"
                             value={formData.years.toString()}
@@ -294,6 +295,7 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                             icon={<MaterialIcon name="calendar_today" size={16} />}
                         />
                         <InputField
+                            mesure="courte"
                             label="Valeur Résiduelle (%)"
                             type="number"
                             value={formData.salvageValuePercent.toString()}

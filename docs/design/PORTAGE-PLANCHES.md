@@ -44,7 +44,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 03.1 | Tableau de bord | `DashboardPage` | **portée** — repassée le 06/09 sur la passe du 05/09 (carte « Le parc », cartes à 16, rangées sans verbe, image de cartouche) |
 | 03.2 | « À traiter » | zone du tableau de bord | porté avec 03.1 |
 | 03.3 | Tâches | `TasksPage` | **porté** |
-| 04.1 | Liste équipements | `InventoryPage` | **portée** (mesurée) |
+| 04.1 | Liste équipements | `InventoryPage`, `ListRow` | **portée** — en-tête 17.8, filtre en feuille, rangée de 68 mesurée le 07/09 |
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
 | 04.3 | Créer, corriger, sortir | `AddEquipmentPage`, `ImportEquipmentPage`, `IncidentSheet`, `RetireSheet` | **portée** (mesurée) |
 | 04.4 | La suite de l'incident | — (entité `Incident`, lot 8 non appliqué) | **non porté** |
@@ -57,14 +57,15 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 06.4 | Demander un équipement | `RequestSheet` (`NewRequestPage` supprimée) | **portée** — feuille sur la page, choix du type en tuiles, deux crans d'urgence, destination dite avant le geste |
 | 06.5 | Arbitrer une demande | `ApprovalDetailsPage` (`/tasks/request/:id`) | **portée** — le détail qu'une rangée ouvre : le motif, ce qu'il détient, le parcours, et les gestes selon qui lit |
 | 07.1 | Mon compte | `SettingsPage` (`/settings/account`) | **non porté** |
-| 09.1 | Catalogue | `ManagementPage`, `CategoryDetailsPage`, `AddCategoryPage` | **partiel** — liste et fiche de type reprises à la mesure du 03/09 ; restent le vide, la feuille d'ajout et les partitions |
+| 09.1 | Catalogue | `ManagementPage`, `CategoryDetailsPage`, `AddCategoryPage` | **portée** — en-tête 17.8, partitions en feuille, vide et feuille d'ajout (07/09) |
 | 09.2 | Fiche de modèle et imports | `ModelDetailsPage`, `ReferentialImportTemplate` | **portée** — la fiche du modèle et les deux imports, mesurés |
 | 10.1 | Emplacements | `LocationsPage`, `SiteDetailsPage` | **porté** |
 | 11.1 | Accès | `RbacPage` | **non porté** — refonte, arbitrage en attente |
 | 14.1 | Paramètres | `SettingsPage` | **non porté** |
-| 15.1 | Finances et rapports | `FinanceManagementPage`, `ExpenseJournalPage`, `ReportsPage` | **non porté** |
+| 15.1 | Finances et rapports | `FinanceManagementPage`, `ExpenseJournalPage`, `ReportsPage` | **partiel** — l'exercice en cours porté le 07/09 ; restent les exercices, la saisie et les rapports |
 | 16.1 | Inventaire — vue globale | `AuditPage`, `placeAudit`, `AuditOverview*` | **portée** — les deux niveaux, le héro, le périmètre à deux axes ; sur le gabarit 17.8 |
 | 16.2 | Inventaire — la campagne | `AuditDetailsPage` | **portée** — le parc et les écarts en deux écrans, le scan dans le héro, la clôture au ⋮ |
+| 18.1 | Historique — le journal | `HistoryPage` | **portée** — le journal par jour, les natures en chips, un fait ouvert |
 
 ## Les composants partagés — 17.
 
@@ -672,6 +673,239 @@ ajouté par-dessus : l'identifiant technique s'en trouvait étiré deux fois.
 *(04.2 écrit bien 16/20 pour son `.code` — mais c'est la seule des quatre planches à barre :
 05.2, 09.2 et 16.2 écrivent 17/24, et 17.8 le déclare pour les huit écrans.)*
 
+### La rangée qui débordait — et deux choses qu'elle cachait
+
+Relevé du commanditaire : *« il y a un bug sur la liste équipement, elle déborde »*. Le bug
+est de moi, posé la veille : j'avais mis `shrink-0` sur le code de `ListRow`, parce que la
+planche l'écrit `flex:0 0 auto`. Elle peut : ses codes tiennent en dix caractères
+(`LPT-HQ-01`). Le parc réel en porte de **trente-quatre** —
+`Togo-AP55C-A400474CC7A47E7-NEW-BAT` — et un élément qui ne peut pas rétrécir **sort de sa
+carte**. Le code porte donc `min-w-0` : l'ordre de cession est tenu autrement, par un type
+**borné à 45 %** de la ligne. En `flex-1` (base 0) il disparaissait entièrement dès qu'un
+code prenait toute la largeur, et une rangée sans type ne dit plus ce qu'est l'objet.
+
+Une fois le débordement levé, la capture a montré ce qu'il masquait : **les 243 vignettes
+étaient des images cassées**. L'import posait une photo d'illustration Unsplash par famille
+de feuille — la même image de portable pour les 89 ordinateurs, la même borne pour les
+8 points d'accès. Trois défauts en un : ce n'est **pas la photo de l'objet**, le domaine est
+**bloqué** par la politique de ressources croisées du navigateur, et une adresse externe
+dans une fiche d'inventaire est une dépendance qu'on ne contrôle pas. L'import ne pose plus
+rien, et la rangée passe par `Thumbnail`, qui écoute l'échec et rend le **pictogramme de la
+catégorie** — celui que 09.1 arrête pour les huit familles.
+
+### 15.1 — l'exercice en cours
+
+L'accueil des finances portait la bonne matière dans une autre grammaire que les quatre
+domaines voisins (04, 09, 10, 16), qui écrivent tous le même héro.
+
+| Élément | Planche | Avant |
+| --- | --- | --- |
+| `.hero` | intérieur `22 / 20 / 20` | 16 |
+| `.ty` | 12/16, `.07em`, **capitales** | 12/17, ni l'un ni l'autre |
+| `.big` | Archivo **44 / 48**, `-.03em` | **28**, `tracking-tight` |
+| ce sur quoi il se compte | une ligne à part, 14/20 | fondu dans un `span` coupé par un `<br>` |
+| `.prog` | 6 px sur le voile à 12 %, remplissage vert d'état | **absente** |
+| `.pk` | deux faits, un de chaque côté | une phrase |
+| les filets | aucun | deux |
+
+La jauge manquait, et c'est le seul dessin qui dise d'un coup où en est l'exercice.
+
+**La carte des postes** : titre de carte en 13 px au lieu de **17/24**, et le montant affecté
+rendu dans un `<s>` — **barré**, ce qui dit « annulé » d'un montant qui ne l'est pas. La
+jauge tirait le bleu ; la planche déclare le vert d'état, l'orange à l'épuisement.
+L'étiquette CAPEX/OPEX était une pastille ronde en 11 px : `.tag` fait 20 de haut, rayon 4,
+sur le creux — c'est une étiquette de donnée.
+
+**L'en-tête** passait par `PageHeader`, qui pose un fil d'Ariane « Finances » au-dessus
+d'un titre « Finances » et n'a pas l'échelle du palier haut. Il devient le `.top` des autres
+domaines — fond de surface, un filet, intérieur `8 / 16 / 12`, titre **28 sur 32** — et la
+vue entre dans `adnMobileViews`, sans quoi la coque écrivait « Finances » une troisième
+fois au-dessus.
+
+**« Aller à »** remplace « Dernières dépenses ». 15.1 le dit : *« l'accueil du domaine porte
+un exercice et **deux destinations** : ses lignes, ses dépenses »*. La carte montrait à la
+place un extrait de trois lignes de la page voisine, qu'il fallait lire jusqu'au bout pour
+découvrir qu'elle existait. Les deux rangées la nomment et la comptent — « 11 lignes ·
+42 700 000 XOF affectés », « 0 écriture ».
+
+### 09.1 — le vide, et la feuille d'ajout
+
+Les deux derniers états de la planche.
+
+**Le référentiel vide portait un bouton que 09.1 ne dessine pas.** Sa colonne 5 est
+explicite : *« un seul geste d'ajout, le FAB, le même qu'au repos ; la phrase dit par quoi
+commencer »*. L'écran avait un « Créer le premier type » en plein milieu **et** une note de
+pied sur l'import — et, pire, **le bouton flottant s'effaçait justement là**
+(`!isReferentialEmpty`), c'est-à-dire au seul moment où il est le seul chemin. Le geste
+reste donc au même endroit, vide ou non ; la phrase devient celle de la planche, et le
+pictogramme les livres plutôt qu'un dossier.
+
+**La feuille d'ajout portait quatre chemins, la planche en déclare trois** — et dans
+l'ordre inverse. *Un type* passe en tête : un modèle se range **sous** un type, et l'import
+lit des types au catalogue ; commencer par le modèle proposait le second étage avant le
+premier. Le quatrième — « des types, depuis un CSV » — sort : 09.1 renvoie cet import aux
+Paramètres, *« il demande les clés de la donnée, que personne ne connaît avant d'avoir créé
+un type à la main »*.
+
+Chaque chemin reprend sa **vignette teintée** — le type en bleu, le modèle en vert,
+l'import en ambre. Les trois portaient le même creux gris et le même glyphe `+` : aucune ne
+se reconnaissait avant d'être lue. Mesuré : rangées de 64, gouttière 12, vignettes de 40.
+
+### 04.1 — la rangée de référence, deux mesures
+
+La liste des actifs était déjà sur le gabarit : en-tête 17.8 (titre 28/32, bloc `8/16/12`,
+gouttière 12), le scan comme **seule action de page du corpus**, le filtre en feuille avec
+ses quatre axes, le bouton flottant et ses trois chemins, la ligne de compte à 12/16. Deux
+mesures divergeaient sur `ListRow`, le composant que six listes emploient :
+
+| Élément | Planche | Avant |
+| --- | --- | --- |
+| `.l1 .c`, le code | **16 sur 24**, sans interlettrage | 17/24 en `-.01em`, la marche des titres de carte |
+| `.l1 .ty`, le type | `flex:1`, **aligné à droite**, il s'y coupe | `shrink-0` avec `ml-auto` |
+
+La seconde n'est pas cosmétique : 04.1 pose la règle en toutes lettres — *« le code entier
+et le type en petit à droite : **c'est le type qui cède, jamais le code** »*. Avec un type
+`shrink-0`, c'était l'inverse — sur `Togo-AP55C-A400474CC7A47E7-NEW-BAT · Borne Wi-Fi`,
+le **code** se tronquait pour laisser au type sa place entière, et c'est le code qu'on lit
+au téléphone avec le support.
+
+### Les cinq en-têtes, harmonisés — et trois gestes remis à leur place
+
+Suite du relevé du commanditaire, le 07/09. Cinq écrans, cinq corrections.
+
+**Le bouton « Ajouter » que j'avais posé dans l'en-tête du Catalogue était une faute.**
+17.8 le dit sans détour : *« une seule action de page dans le corpus : le scan de 04.1.
+Partout ailleurs le geste de création vit dans le "+" (17.6) : le gabarit autorise **zéro**
+action, et c'est le cas ordinaire. »* Et le Catalogue portait **déjà** son bouton
+flottant : j'avais ouvert une seconde porte vers la même feuille.
+
+**Quatre tailles de caractère pour la même barre.** Type et Modèle portaient leur nom
+commun en 17/24 ; la fiche d'un site portait un **fil d'Ariane en 14 sur 20** —
+« Emplacements › Togo › Lomé Siège » —, trois faits que le héro écrit déjà juste dessous.
+Elle dit maintenant **« Site »**, comme les autres. Les cinq en-têtes mesurent : listes
+**28/32** (Catalogue, Emplacements), fiches **17/24** (Type, Modèle, Site).
+
+**Trois fiches n'avaient pas de ⋮.** Le type alignait « Modifier » et « Supprimer » en
+boutons au bas de son contenu, après trois cartes ; le site posait « Modifier » dans son
+héro, où le geste primaire est déjà pris ; et aucun des deux ne suivait la fiche d'un
+modèle, qui a son menu depuis le début. Les trois l'ont, avec le même ordre : l'acte
+ordinaire, un filet, l'acte destructeur en encre de danger.
+
+**« Ajouter un modèle » vivait en pied de carte**, sous la liste des modèles d'un type, où
+il se découvrait après avoir défilé. Il passe au **bouton flottant** (17.6) — d'où une
+fente `fab` sur le gabarit de fiche : une fiche qui contient une liste a un acte de
+création, et cet acte flotte, comme sur les listes.
+
+**Et la ligne de compte d'Emplacements** vivait dans le contenu, comme celle du Catalogue :
+elle remonte dans le bloc fixe.
+
+### 09.1 — l'en-tête du Catalogue, et la rangée de filtres qui n'aurait pas dû exister
+
+Relevé du commanditaire : *« on avait convenu de ne pas avoir de ligne avec les options de
+filtre, et que les options seraient directement intégrées et accessibles depuis l'overlay
+du filtre. Catalogue n'est pas aligné avec ça. Le header de Catalogue ne l'est pas non
+plus. »*
+
+Le Catalogue portait **trois bandes** avant sa première rangée :
+
+| | Ce qu'il avait | Ce que 17.8 déclare |
+| --- | --- | --- |
+| La barre | 56 px, titre en **20 sur 28** | **un seul bloc**, titre **28 sur 32** |
+| La bande | un second bloc, filet propre, recherche et entonnoir | dans le même bloc |
+| Les familles | **une rangée de pastilles** qui défile | des **chips dans la feuille de filtre** |
+| La ligne de compte | dans le contenu, donc elle défilait | dans le bloc **fixe** |
+
+Le slot des partitions a été retiré du gabarit le 06/09 : *« là où une partition exclusive
+existe, elle est en chips dans la feuille de filtre, et la ligne de tri la nomme »* — et
+la règle qui le porte est plus large : *« tout ce qui restreint la liste vit dans l'en-tête
+ou dans sa feuille, jamais dans le contenu ; l'en-tête est fixe, le contenu défile »*.
+
+Les quatre familles sont donc dans la feuille, en tête de ses trois axes ; le badge de
+l'entonnoir les compte ; « Tout effacer » les rend ; et la ligne de compte les nomme —
+« 13 types · Informatique · 110 modèles · 243 actifs ». Les deux autres axes de la feuille,
+qui étaient des boutons dessinés à la main en 13 px, prennent la pastille partagée.
+
+Mesuré : titre 28/32, bloc `8 / 16 / 12` avec gouttière 12, une seule bande, plus de rangée
+de familles. Les barres des deux fiches — le type et le modèle — mesurent 56, intérieur
+`0 8 0 4`, code 17/24, **un étage**.
+
+### 18.1 — l'Historique, pour que la rangée mène quelque part
+
+La feuille « Plus » réservait la place d'*Historique* et la laissait vide, avec sa raison
+écrite dans le code : *« la page n'existe pas encore, et une rangée qui ne mène nulle part
+est pire qu'une rangée absente »*. La règle tenait ; il fallait l'écran. Le commanditaire
+a demandé le bouton le 07/09, la page a donc été portée.
+
+Elle prend le gabarit des huit listes (17.8) : titre, recherche « Identifiant, personne,
+lieu », entonnoir à badge, ligne de compte. Le journal se lit **groupé par jour** — la
+carte `.day`, son titre (« Aujourd'hui », « Hier », puis la date) et son compte —, et
+chaque rangée porte **un fait** : la marque ronde de 32 qui dit la nature par le
+pictogramme *et* la teinte, le fait en titre, qui l'a posé et par quelle méthode en
+sous-ligne, l'heure à droite. Un fait **système** est cerclé sans fond : il n'a pas
+d'auteur à teinter.
+
+Les six natures sont **des chips dans la feuille de filtre** (R11, comme 03.3 et 16.1),
+avec la période ; jamais des onglets. Et *« rien ne se refait ici »* : une rangée ouvre le
+fait, elle ne le modifie pas.
+
+Deux mesures corrigées dans la foulée : le gabarit portant déjà le titre, la vue entre
+dans `adnMobileViews` — sans quoi la coque en écrivait un second juste au-dessus ; et le
+titre d'une rangée est **le fait**, pas son sujet, sans quoi une connexion s'affichait
+« Kafui EKLU » au-dessus de « Kafui EKLU · Connexion réussie ».
+
+### Le menu contextuel — sans pictogramme et sans chevron
+
+Arbitrage du 07/09. Le menu de l'avatar portait trois vignettes pour trois libellés qui se
+lisent seuls, et un chevron par rangée dans une liste où **toutes** les rangées mènent
+ailleurs : le glyphe n'ajoutait rien au mot, la flèche ne distinguait rien de sa voisine.
+Les deux partent. La feuille « Plus » perd ses chevrons pour la même raison — elle garde
+ses vignettes, qui distinguent huit destinations entre elles.
+
+### La barre du parc — pourquoi elle n'était pas pleine
+
+Relevé du commanditaire : *« la barre 243 actifs n'est pas pleine, je pense que c'est lié à
+certains équipements dont le statut n'est pas défini »*. Deux causes, dont une était bien
+celle-là.
+
+**Seize actifs portaient le mot *Autre*.** Le normaliseur d'états le laissait passer tel
+quel, sur une décision antérieure : *« rien dans la donnée ne dit lequel des neuf états il
+vaut ; le deviner ferait entrer une certitude que la source n'a pas »*. Les seize lignes,
+regardées une à une, disent le contraire : ce n'est pas un état, c'est **le choix le moins
+engageant d'une liste déroulante**. Trois portent un utilisateur nommé, les treize autres
+n'en ont aucun — des écrans, des tablettes, une station d'accueil en réserve. Le porteur
+est renseigné, et le produit sait déjà en déduire l'état : c'est exactement ce qu'il fait
+pour *Actif*. `autre` se lit donc comme `actif` — **déduire n'est pas deviner quand la
+donnée porte de quoi déduire**. Zéro actif non classé après correction.
+
+**La barre n'avait pas de fond.** La planche compte trois états et sa fixture s'y épuise
+(7 + 5 + 2 = 14) ; le parc réel n'a aucune raison de s'y épuiser — un actif *retiré* ou
+*manquant* n'est ni attribué, ni disponible, ni en réparation. Sans fond, ce reste laissait
+un blanc et la barre paraissait inachevée. Elle prend le creux de la page, le même que la
+jauge `.wbar` de la carte voisine : il dit « le reste du parc », il ne le peint pas en état.
+
+Et le reste est **nommé état par état** sous les trois compteurs — « 34 retirés,
+11 manquants » —, dans l'idiome `.calm` de la carte voisine. « 45 hors des trois états »
+aurait demandé d'aller chercher lesquels.
+
+### Le menu de l'avatar — l'identité en tête, et l'aide qui manquait
+
+Le 06/09 j'ai lu *« le menu contextuel de l'avatar ne reprend pas l'avatar »* comme une
+consigne — retirer la pastille — alors que c'était **le relevé d'un manque**. Le
+commanditaire l'a redit le 07/09 : la ligne d'identité revient, avec la pastille, le nom,
+le rôle et son rattachement.
+
+Ce que l'arbitrage du 06/09 écartait vraiment, et qui reste écarté : **« Mon profil »**,
+qui n'a pas de page dans ce produit.
+
+**« Aide et support »** était tombée dans la même passe. Elle revient, mais pas sur son
+ancienne destination : elle pointait `/documentation/ui-flow-map`, une adresse qu'aucune
+route ne sert — le geste ne faisait rien. Elle ouvre désormais le courrier au support
+informatique, la seule aide que ce produit possède réellement depuis que le « Centre
+d'aide » et ses quatre pavés ont été réduits à une ligne dans Paramètres.
+
+Le menu porte donc : l'identité, **Mon compte · Paramètres · Aide et support**, un filet,
+puis la sortie en encre de danger.
+
 ### R16 — une barre n'a pas de sous-titre
 
 Relevé du commanditaire : *« on avait convenu dans nos règles que les header ne devaient
@@ -1041,3 +1275,1147 @@ point de départ.
 valeur en lecture — « Aujourd'hui » — comme sur la planche, qui ne lui donne ni sélecteur
 ni affordance. Remettre à une date future n'existe donc toujours pas ; l'assistant ne le
 savait pas non plus.
+
+
+---
+
+## 14.1 — les deux bornes qui n'existaient nulle part, et une barre qui redisait
+
+Paramètres était porté depuis la passe des groupes à filets : quatre groupes au lieu de
+onze cartes, la valeur à droite, le réglage qui s'applique au geste. Trois choses
+restaient, et deux d'entre elles ne se voyaient qu'en mesurant.
+
+### La barre — R16, et deux tailles au lieu d'une
+
+`SettingsBar` écrivait le même titre à **22/28** sur les six vues, avec, sous lui, le
+propriétaire du réglage : *« Paramètres · vous »*, *« Paramètres · l'entreprise »*. C'est
+exactement ce que **R16** interdit — *une barre porte un titre, un étage, jamais un
+sous-titre* — et le renseignement était déjà donné par le groupe à filets d'où l'on
+venait.
+
+14.1 n'écrit d'ailleurs pas la même barre sur ses trois colonnes, et la différence n'est
+pas cosmétique :
+
+| | forme | déclaration de la planche | mesuré après |
+|---|---|---|---|
+| l'index | `.top` — c'est une **liste de destinations** | `h1` 28/32 Archivo 600 `-.02em` | `28px/32px 600 -0.56px` Archivo |
+| une sous-vue | `.tbar` — c'est **un réglage ouvert** | `.tid .code` 17/24 `-.01em`, barre `min-height:56px`, `padding:0 8px 0 4px` | `17px/24px 600 -0.17px`, `min-h:56px`, `p: 0/8/0/4` |
+
+L'index rejoint donc la barre des cinq autres listes (Actifs, Catalogue, Emplacements,
+Finances, Équipe) et les sous-vues celle des fiches. Aucune des six ne porte plus rien
+sous son titre — vérifié à la mesure sur les six.
+
+### Les deux bornes de la passe du 05/09
+
+La planche a reçu le 05/09 deux rangées sous « L'entreprise » que le code n'avait pas.
+Toutes deux existaient dans le produit **sans écran pour les régler** :
+
+- **Périodicité de l'inventaire — 12 mois.** Elle n'existait nulle part. « En retard »
+  n'avait aucun sens faute de savoir sur quoi : `placeAudit.ts` gagne `enRetard()`, et
+  16.1 le dit **dans sa ligne d'ordre** — « 1 lieu · 1 en retard » — et non dans la
+  sous-ligne d'une rangée, qui est tronquée et n'aurait rien pu porter de plus.
+- **Taille maximale d'un fichier — 5 Mo.** Elle vivait en dur dans `lib/fileImport.ts`,
+  dont le commentaire annonçait déjà *« 14.1 la rendra réglable le jour où
+  l'organisation le demande »*. Le module garde maintenant la borne courante
+  (`getImportLimitBytes`), `DataContext` la repose quand le réglage change, et les neuf
+  emplois la lisent au moment de refuser un fichier — sans qu'un composant d'interface
+  ait à connaître le contexte de données. Vérifié de bout en bout : régler « 2 Mo » puis
+  revenir au sommaire, la rangée lit « 2 Mo ».
+
+Les deux ouvrent une liste de paliers sur le patron déjà en place (« Retenue » + glyphe,
+application au geste, aucun bouton d'enregistrement).
+
+### Ce que la mesure a trouvé, et que l'œil aurait laissé passer
+
+En mesurant la largeur **disponible** pour le titre de chaque rangée contre la largeur
+**nécessaire** :
+
+| rangée | disponible | nécessaire | |
+|---|---|---|---|
+| Devise et année fiscale | 171 | 174 | coupée de **3 px** |
+| Contacter le support | 88 | 155 | coupée de **67 px** |
+
+Les deux venaient de leur **valeur**, pas de leur titre. « Contacter le support » portait
+l'adresse entière en valeur, là où la planche ne met **aucune** valeur sur une rangée qui
+mène ailleurs : l'adresse passe en sous-titre. Et « XOF · 1<sup>er</sup> janv. » se
+compose comme la planche l'écrit — l'ordinal en exposant — ce qui rend les trois pixels
+manquants. Après : la pire rangée a **1 px de marge**, aucune n'est coupée.
+
+Deux écarts de gabarit trouvés au passage, tous deux corrigés sur `RuleGroup` et valables
+pour les cinq écrans qui s'en servent :
+
+- **la gouttière d'une rangée valait 16, la planche dit 12** (11.1 `.row{gap:12px}`) ;
+- **le titre ne tenait pas sur une ligne** : 11.1 écrit `white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis` sur `.row .t`, et sans lui « Compte et
+  sécurité » passait à la ligne dès qu'une valeur un peu longue lui prenait sa place —
+  la rangée de 60 px en faisait 98, et les quatre groupes ne tenaient plus dans l'écran.
+
+### Le chevron qui promettait un écran de plus
+
+Les quatre listes de paliers — mois fiscal, méthode d'amortissement, périodicité, borne
+de fichier — portaient un `>` sur chaque ligne. Une rangée qui **choisit** n'ouvre rien :
+`RuleGroup.Row` reçoit `choice`, et le chevron tombe. C'est la même règle que pour la
+feuille « Plus », dont les flèches ont sauté le 06/09 ; l'état retenu était déjà dit par
+le glyphe et le mot (I3).
+
+### Une phrase qui mentait
+
+« À propos » portait en note : *« Les éléments de démonstration (équipements,
+utilisateurs) sont restaurés à chaque chargement. »* Le jeu de démonstration a été retiré
+et le parc est celui du tableur. La note décrivait un produit qui n'existe plus, dans le
+dernier écran où l'on puisse se le permettre. Elle est supprimée. Et « Thème » rend sa
+phrase de 69 signes à la valeur, comme la planche : `Thème | Clair — identité Neemba`.
+
+**Ce qui reste sur 14.1.** Les rangées à sous-titre long font **84 px** au lieu des 60 de
+la planche : le sous-titre passe à la ligne. C'est le prix de porter **et** une valeur
+**et** une conséquence sur la même rangée, là où la planche choisit l'une ou l'autre —
+« Mon compte » n'y a pas de valeur, « Version » n'y a pas de sous-titre. `min-height`
+reste un minimum, et rien n'est coupé ; c'est un écart assumé, pas un défaut de gabarit.
+
+
+---
+
+## 07.1 — Mon compte, et la carte qui manquait entièrement
+
+`/settings/account` existait, atteint depuis l'avatar (03.1) et depuis « Vous » (14.1).
+Il portait trois groupes à filets — *qui est connecté*, *sécurité*, *session* — c'est-à-dire
+la forme d'un écran de réglages appliquée à un écran d'actes. 07.1 en donne une autre :
+**un héro d'identité, puis une carte par sujet, une rangée par acte**.
+
+### Ce que la mesure a confirmé
+
+| | déclaré par 07.1 | mesuré |
+|---|---|---|
+| la barre | `.code` 17/24 Archivo | `Mon compte · 17px/24px` |
+| une rangée d'acte | `.arow` `min-height:56px` | 60 px, aucune ne grandit |
+| le héro | `.av` 56, `.ty` 12/16 `.07em`, `.nm` 28/32, `.md` 14/20 | les quatre présents |
+
+`.card` et `.arow` sont montés en primitive — `components/ui/ActionCard.tsx`. Ce n'est pas
+un rangement : la garde DS a refusé le `<button>` tant qu'il vivait dans la page, et elle
+avait raison. Une **rangée d'acte** (vignette, chevron, un geste) et une **rangée de
+réglage** (`RuleGroup`, une valeur à droite) ne sont pas la même chose, et les confondre
+ferait promettre une valeur là où il y a un acte.
+
+### La carte « Prouver une remise » — la promesse que la destination ne tenait pas
+
+`NavigationBar` affichait déjà, sur la rangée « Mon compte » de la feuille « Plus », le
+fait *« code PIN à définir »* — le seul fait que 17.7 autorise à remonter jusqu'à la barre.
+`DataContext.setUserPin` était écrit, documenté *« 02.2 écran 3 et **07.1 pour soi** »*, et
+consigné au journal comme fait de sécurité. **Il n'y avait aucun écran pour l'appeler sur
+soi.** La feuille « Plus » annonçait un manque, l'onglet portait le point, et la
+destination ne parlait pas du code.
+
+La feuille du code suit 06.2 : six chiffres, `PinField`, la sixième frappe valide seule, et
+le refus **garde les chiffres** en disant ce qui ne va pas. Elle ne demande pas l'ancien
+code — `setUserPin` ne le vérifie pas, et un champ de plus laisserait croire qu'un code
+oublié protège quelque chose. Vérifié de bout en bout : `123456` refusé
+(*« Ni une suite, ni six fois le même chiffre »*), puis un code valide accepté, et la
+rangée passe de « Définir » à « Remplacer ».
+
+### Trois défauts trouvés en chemin, tous hors de cet écran
+
+- **`DetailHero` perdait sa sous-ligne sous un avatar.** La variante à avatar ne rendait
+  pas `subtitle` : un appelant qui passait les deux la perdait en silence. 07.1 est la
+  seule planche qui dessine cette ligne sous un avatar (`.md`, 14/20) ; elle est rendue.
+- **Le pavé du code n'avait jamais le focus.** `PinField` le prend dans un effet, mais
+  `BottomSheet` pose ensuite le focus sur son premier élément atteignable — la croix — et
+  React exécute les effets de l'enfant avant ceux du parent. L'écran demandait six chiffres
+  avec le curseur sur le bouton de fermeture. La prise de focus attend une image.
+  **Vaut pour toutes les feuilles à code**, `Attestation` comprise.
+- **`AuthContext.currentUser` est un instantané qui ne relit jamais le magasin.** Poser son
+  propre code le laissait invisible à `Attestation`, qui reçoit `signer.pin` depuis
+  `currentUser` sur la fiche d'un objet, dans la file et sur une demande : on posait son
+  code, l'écran disait « défini », et la remise suivante réclamait une signature.
+  `patchCurrentUser` a été ajouté, et `setUserPin` l'appelle quand la personne se modifie
+  elle-même.
+
+### Ce que la 2FA a cédé
+
+La rangée « Compte et sécurité » de 14.1 portait un état *« 2FA active / inactive »* lu
+d'un `useState` local — inventé à chaque montage, remis à *inactive* au rechargement, et
+sans aucun second facteur derrière. Elle porte désormais l'état du **code PIN**, qui est
+réel, qui décide de la façon dont une remise s'atteste, et que 05.2 met exactement là
+(*« Sécurité et connexion · Code PIN non défini »*). La bascule 2FA de l'ancienne vue est
+retirée avec elle.
+
+**Ce qui reste sur 07.1, et pourquoi.**
+
+- **La signature enregistrée** — importée, recadrée, apposée d'elle-même — n'existe pas
+  dans ce produit : `Attestation` fait *tracer* la signature au moment de la remise et
+  n'en garde rien. La rangée dit donc ce qui est et n'ouvre rien, plutôt que d'offrir une
+  porte vers un écran de recadrage qui n'a pas de magasin derrière lui.
+- **« Mes sessions »** est absent : il n'y a pas de magasin de sessions. Reste
+  « Se déconnecter · de cet appareil seulement », qui est vrai.
+- **« Changer mon mot de passe » est un geste mort**, et c'est le point à arbitrer :
+  `authService.changePassword` travaille sur `mockAppUsers`, n'écrit **aucun** mot de
+  passe — elle ne fait que retomber `MustChangePassword` — et jette d'emblée quand le
+  magasin est Firebase. `AuthContext` n'en vérifie d'ailleurs aucun à l'ouverture : la
+  session s'ouvre sur l'adresse. La rangée est **conservée telle quelle** — la retirer
+  ferait disparaître un contrôle que l'utilisateur croit actif — mais elle ne fait rien,
+  et cela doit être tranché plutôt que masqué par une phrase.
+
+
+---
+
+## 11.1 — Accès : la liste reprend la forme des cinq autres, et deux zéros étaient faux
+
+L'écran était porté sur une lecture antérieure de 11.1 : un titre à 22/28, un champ de
+recherche toujours ouvert, deux jetons « Rôles 8 · Groupes 5 », puis **six cartes** rangeant
+les rôles par portée déclarée, chacune avec son décompte de permissions et ses encarts
+d'analyse. C'est un écran de diagnostic. La passe du 05/09 de la planche en donne un autre,
+*« alignée sur 09 et 10 »* : un en-tête de liste, une carte de rôles, une carte qui mène aux
+groupes.
+
+### Les jetons étaient une barre d'onglets
+
+17.8 avait relevé qu'il **n'y a pas d'onglets dans le corpus**. « Rôles 8 / Groupes 5 » en
+était une, déguisée en facettes — et 11.1 dessine bien **deux écrans de liste**, « Accès »
+puis « Groupes », chacun avec son propre en-tête. Les deux sont désormais deux écrans, et
+la seconde carte d'« Accès » ne liste pas les groupes : elle y mène (*« 5 groupes · ce qui
+s'ajoute aux rôles »*).
+
+Le passage sur `ListTemplate` donne le reste sans l'écrire : en-tête, fente de recherche,
+ligne d'ordre, état vide, et le FAB de 17.6 — *« Créer : un rôle, un groupe, affecter une
+personne »*, les trois gestes que la planche met sous le bouton et que l'écran offrait en
+deux boutons empilés au bas de la liste.
+
+**Les treize en-têtes du produit sont maintenant à la même mesure** : douze listes à 28/32
+Archivo, les fiches à 17/24. « Accès » était la dernière à 22/28. La destination change de
+nom avec elle — `DESTINATIONS.rbac` disait « Rôles & accès » quand la page dit « Accès ».
+
+### Les deux zéros
+
+- **« 0 affectations »** dans la ligne d'ordre, et le décompte de droite qui montrait le
+  nombre de *permissions* d'un rôle. 11.1 met à droite les **porteurs**, sous un en-tête
+  qui le dit. Le zéro venait de ne compter que `rbacRoleIds` : un compte porte son rôle de
+  deux façons, et sur ce parc **les 59 comptes** passent par l'autre, le champ historique
+  `role` que `SYSTEM_ROLE_ID_BY_USER_ROLE` rattache. Mesuré après : *SuperAdmin 1,
+  Employé 58*, ce qui est exactement l'état du parc importé.
+- **« 0 membre »**, que j'ai introduit puis corrigé dans la même passe : j'avais écrit
+  `group.memberIds`, un champ que `RbacGroup` ne porte pas — `?.` l'a laissé passer au
+  typage, et le zéro était le même mensonge que celui que je venais de retirer.
+  L'appartenance vit dans `User.rbacGroupIds`. Le zéro qui s'affiche maintenant est
+  **vrai** : aucun compte du parc n'appartient encore à un groupe.
+
+### Ce que la valeur d'une rangée dit, et sur quel ton
+
+`.v.q` de 11.1 pose la valeur en chasse normale sur l'encre tertiaire : un nombre de
+porteurs se lit, il ne se martèle pas. `RuleGroup.Row` reçoit `quiet` pour cela — la
+graisser la mettait au même rang que le nom du rôle.
+
+**Ce qui reste sur 11.1.**
+
+- **Le ⋮ « Exporter les accès »** n'est pas posé : il n'existe aucun utilitaire d'export
+  dans le dépôt, et une entrée de menu sans destination est un geste mort.
+- **Les trois fiches** — les accès d'une personne, un rôle ouvert, un groupe ouvert — gardent
+  leur forme actuelle. La planche leur donne un héro à deux tuiles et un geste, et une
+  feuille de paliers à radio ; c'est le morceau suivant.
+- L'analyse qui vivait dans la liste — le classement par portée, l'encart sur les branches
+  en dur, le repli du périmètre global — **n'est pas perdue** : le fait qui comptait, *« la
+  portée écrite sous un nom est déclarée, pas appliquée »*, est passé au pied de la carte
+  des rôles, où il se lit en une phrase au lieu de six cartes.
+
+---
+
+## 17.1 et 17.3 — l'attente et les portes fermées, portées le 08/09
+
+Les deux planches étaient **à moitié portées** : les composants existaient, mais rien ne
+les déclenchait, et un des quatre états avait la mauvaise forme.
+
+### 17.3 — les squelettes existaient et personne ne les voyait
+
+`Skeleton.tsx` porte les trois formes de la planche aux bonnes mesures depuis le 06/09 —
+liste 68, file 56 à marque ronde, fiche avec son héro. **Aucun écran ne les montrait.**
+`ListTemplate` et `DetailTemplate` n'affichaient un squelette que si la page leur passait
+`loading`, et **aucune des treize pages ne le passait**. Le squelette de file
+(`SkeletonQueue`) n'avait ainsi jamais été rendu une seule fois.
+
+Deux corrections, toutes deux au niveau du gabarit plutôt qu'aux treize appels :
+
+- **L'attente est un fait de la couche de données**, pas une décision de page : les deux
+  gabarits lisent `isHydrating` du `DataContext` et le combinent au `loading` reçu. A5
+  tient — `useDelayedPending` ne montre toujours rien avant 300 ms.
+- **La forme du squelette suit celle de la liste qu'elle annonce** (A2). `ListTemplate`
+  reçoit `skeleton="liste" | "file"` ; Tâches (03.3), Historique (18.1) et Inventaire
+  (16.1) déclarent `file`. Ils annonçaient des rangées de 68 pour des rangées de 56 :
+  douze pixels de saut par rangée à l'arrivée de la donnée, ce que le squelette est
+  précisément là pour éviter.
+
+### 17.1 — le hors-ligne avait la forme que la planche refuse
+
+Trois des quatre états étaient portés : l'erreur d'acte (`InlineError` + « Réessayer »),
+la page introuvable et l'accès refusé, tous sur `ScreenState` au canon du 06/09.
+
+**Le quatrième était un bandeau.** La règle 2 dit l'état hors ligne *« dans la forme de
+l'état vide : le motif, le titre, la phrase, et l'heure de la dernière lecture »* — et le
+produit portait un `OfflineBanner` sous la barre du haut, en cinq endroits. Un bandeau
+annonce la coupure sans dire ce qu'on peut encore faire, et il restait affiché par-dessus
+un contenu parfois vide.
+
+- `OfflineState` est né dans `ScreenState.tsx` : motif, titre, phrase, et **l'heure de la
+  dernière lecture** — qui n'existait nulle part. `DataContext` expose désormais
+  `derniereLecture`, posée à chaque fin d'hydratation.
+- `ListTemplate` la montre **à la place de l'état vide** quand le réseau manque : sur une
+  liste sans rangée, c'est la coupure qu'il faut nommer, pas l'absence de donnée —
+  « aucun équipement » serait faux.
+- **Les gestes qui écrivent disparaissent** : le bouton flottant des deux gabarits n'est
+  plus rendu hors ligne. *Pas grisés, absents* — un bouton barré demande de comprendre
+  pourquoi, l'absence ne demande rien (interdit n°8).
+- `OfflineBanner` est retiré ; la galerie montre la nouvelle forme.
+
+Mesuré : liste filtrée à vide, en ligne → *« Aucun équipement ne correspond »* ; la même
+hors ligne → *« Hors ligne · Ce qui est déjà chargé reste lisible… · Dernière mise à jour
+à l'instant. »*, et le FAB a disparu. Le contenu déjà chargé, lui, reste lisible.
+
+### 17.1, règle 4 — l'accès refusé nomme quelqu'un
+
+*« Il nomme qui peut ouvrir la porte : un nom, jamais l'administrateur. »* L'écran ne le
+faisait pas, et son propre commentaire disait pourquoi : *« la planche demande un nom, que
+cet écran n'a pas »*. Il l'a : il vit sous `DataProvider`. Il prend le SuperAdmin du parc,
+à défaut un Admin, et son geste primaire devient **« Écrire à … »**. Sans aucun compte
+administrateur, la phrase générique revient — l'écran ne nomme jamais au hasard.
+
+**Ce qui reste sur 17.3** : le squelette ne se voit en pratique qu'au tout premier
+chargement, l'hydratation étant terminée avant qu'on atteigne une liste. C'est le
+comportement juste, mais il rend la forme difficile à vérifier à l'œil ; les trois formes
+se contrôlent dans la galerie du design system.
+
+---
+
+## 17.5 — le retour transitoire : la forme était juste, l'écriture ne l'était pas
+
+La **forme** de la planche était déjà portée, et bien : `Snackbar` rend `messages[0]` et
+rien d'autre — *« un seul à l'écran, le suivant attend son tour »* —, la durée est de
+4 000 ms sans exception, et les métriques concordent (56 de haut, gouttière 12, intérieur
+8 / 14, fond inversé, verbe en jaune de marque à 40 de haut). Le bandeau de 06.3
+(`ClosureBanner`) porte la quatrième réponse, celle où la vue a changé.
+
+Ce qui n'était pas porté, c'est la **règle d'écriture**, et elle est mesurable :
+
+> *« Si le message doit être lu en 4 secondes, il fait 60 signes au plus. Au-delà, ce
+> n'est pas un retour transitoire — c'est que la question de tri a été mal répondue. »*
+
+Mesure sur les 139 appels à `showToast` du produit : **15 dépassaient la borne**, jusqu'à
+89 signes. Et la planche avait raison sur la cause — deux d'entre eux n'étaient pas des
+retours transitoires du tout.
+
+### Treize messages raccourcis
+
+Le fait est gardé, ce que l'écran dit déjà est retiré. Quelques exemples :
+
+| avant | après |
+|---|---|
+| « Le site n'a pas pu être fermé — un local y est rattaché. Déplacez-le d'abord. » (77) | « Fermeture refusée : un local y est rattaché. » (44) |
+| « Action refusée: permissions insuffisantes pour ajouter des dépenses. » (68) | « Vous n'avez pas le droit d'ajouter une dépense. » (47) |
+| « Prévisualisation indisponible: aucun fichier source enregistré. » (63) | « Aucun fichier à prévisualiser. » (30) |
+| « Matériel sélectionné. En attente de validation par le Manager. » (62) | « En attente de validation par le manager. » (40) |
+
+Les deux-points collés — *« Action refusée: »* — sont passés à l'espace française là où le
+message était réécrit.
+
+### Deux messages qui n'étaient pas des retours transitoires
+
+Les contrôles d'enregistrement de **04.3** passaient par un snackbar : *« Choisissez un
+modèle au catalogue : il porte le type et la marque »* (66) et *« Le numéro de série est le
+seul champ que rien ne connaît : lisez-le sur l'étiquette »* (84). Un champ précis est en
+cause — c'est la **troisième réponse** de la question de tri, pas la deuxième : le message
+va **au champ**. Il s'effaçait au bout de quatre secondes, loin du champ fautif, et il
+fallait deux tentatives pour savoir lequel des deux manquait.
+
+`AddEquipmentPage` porte maintenant un état d'erreurs de champ, effacé à la frappe. Mesuré
+sur l'écran vivant : enregistrer à vide pose **deux phrases aux deux champs** et
+**n'ouvre aucun snackbar**.
+
+### Après la passe
+
+**137 messages, aucun au-dessus de 60 signes**, le plus long à 60 exactement, moyenne 38.
+
+---
+
+## 04.3 — la passe du 05/09 n'était pas descendue dans le formulaire
+
+Les quatre colonnes de 04.3 existent toutes dans le produit : la saisie
+(`AddEquipmentPage`), l'import (`ImportEquipmentPage`), l'incident (`IncidentSheet`) et
+la sortie du parc (`RetireSheet`). Ce qui manquait, c'est **la passe sobre du 05/09** —
+celle qui a retiré les tuiles d'icône et ramené les cartes à 16.
+
+### La tuile de section tombe
+
+`.sh .si{display:none}` est déclaré **à l'identique par 04.3, 04.4 et 05.3**. Le composant
+`FormSection` portait encore la tuile : un carré de 32 teinté « par nature » — bleu pour
+la référence, vert pour la configuration, orange pour l'achat. Cette nature ne voulait
+rien dire : deux formulaires voisins n'attribuaient pas les mêmes couleurs aux mêmes
+idées, et un titre de section se lit sans être annoncé par un carré coloré. C'est ce que
+09 et 10 font depuis la passe sobre.
+
+L'intérieur de carte passe de **20 à 16** dans le même mouvement, et la précision (`.cs`)
+se pose **au bout de la ligne du titre** au lieu de s'empiler dessous.
+
+Dix appels, deux fichiers ; les props `glyph` et `tint` sortent du composant plutôt que de
+rester inertes — une fente inutilisée invite à remettre ce qu'on vient d'ôter. Huit
+glyphes d'import sont devenus orphelins et partent avec.
+
+Mesuré : `intérieur 16px · gouttière 16px · rayon 8px`, en-tête `min-h 24px`, titre
+`17px/24px 500`, **zéro tuile** — et les cinq sections de 04.2 dans l'ordre.
+
+### R16, encore — et cette fois dans un gabarit
+
+Le rendu a montré ce que la mesure ne voyait pas : la barre affichait
+*« Nouvel équipement »* **et**, dessous, *« L'identifiant se déduit à l'enreg… »*. Un
+sous-titre de 42 signes dans une barre qui en montre une trentaine — tronqué, donc, et
+disant ce que l'écran dit déjà sous le champ de série.
+
+Les barres de 04.3 et 05.3 ne portent que leur titre. La fente `subtitle` est retirée de
+`FullScreenLayout` **et** de `FullScreenFormLayout`, pas seulement son contenu : c'est la
+troisième fois que R16 est enfreinte au même endroit du système, et une fente qui existe
+finit par être remplie.
+
+**Ce qui reste sur 04.3** : la sous-ligne du sélecteur de modèle se tronque au téléphone
+(« le type et la marque en vi… ») ; la planche la déclare tronquable, mais elle tient dans
+son cadre et pas dans le nôtre — à reprendre avec le libellé, pas avec la mesure.
+
+---
+
+## 04.4, premier acte — « Prendre en charge » annonçait ce qu'il n'écrivait pas
+
+Le ⋮ de la fiche d'un objet en réparation proposait **Prendre en charge**. Le geste
+posait un retour transitoire — *« Prise en charge de l'intervention enregistrée »* — et
+**n'enregistrait rien** : ni le réparateur, ni la date de retour, ni le coût. C'est le
+pire des gestes morts, celui qui affirme avoir réussi.
+
+`TakeChargeSheet` porte la première colonne de 04.4, et le modèle gagne les quatre champs
+qui manquaient : `repairer`, `repairExpectedReturn`, `repairCost`, `repairTicket`.
+
+### La garantie décide de la route, et le pied nomme ce qui va se passer
+
+*« Prendre en charge ne demande que ce qui ne se déduit pas. »* Le réparateur n'est donc
+pas un champ : sous garantie c'est la **marque**, avec enlèvement sur site ; hors
+garantie, l'**atelier du site**. Le coût suit la même règle — « pris en charge » d'un
+côté, un montant de l'autre — et le verbe du pied change avec lui : **Prendre en charge**
+sous garantie, **Demander la validation** hors garantie, parce qu'un montant part alors
+en validation avant que quiconque répare.
+
+Sans date de fin de garantie déclarée, l'écran suppose que l'objet **n'est pas couvert** :
+se tromper dans ce sens fait passer un montant en validation, tandis que l'inverse ferait
+réparer aux frais de personne.
+
+### Une information n'est dite qu'une fois
+
+La planche l'écrit : *« le bandeau porte la garantie, le bloc de conséquences porte la
+suite, et rien ne se répète entre les deux »*. Le bandeau ne redit pas le montant ; les
+conséquences ne redisent pas l'état de la garantie.
+
+Vérifié au rendu : bandeau vert *« Sous garantie jusqu'au 1ᵉʳ janvier »*, « Qui répare »
+déduit sur la marque avec *enlèvement sur site*, coût en lecture *pris en charge*, deux
+conséquences, et le pied qui dit **Prendre en charge**. Le premier du mois prend son
+ordinal — `toLocaleDateString` rendait « 1 janvier », qui ne se dit pas.
+
+### Une divergence relevée, non tranchée
+
+`.seg` — le segment d'un choix à deux termes — est déclaré **44 de haut, rayon 6, texte 15**
+par 04.4 et **36, rayon 4, texte 14** par 06.4. Le composant `Segmented` suit 06.4 ; je
+n'ai pas changé de valeur, parce qu'ajouter une troisième mesure serait pire que de garder
+la deuxième. §2.26 demande une déclaration par rôle : **à trancher**.
+
+### Un défaut d'outillage, relevé en passant
+
+`tsc` **ne vérifie pas les props JSX** dans ce dépôt : une prop inexistante passée à un
+composant ne produit aucune erreur (testé : `zzzInexistant="x"` sur `SubjectRow` passe,
+tandis qu'un `const x: number = 'abc'` est bien vu). J'avais inventé deux props en écrivant
+la feuille — `tint` sur `SubjectRow`, `text` au lieu de `content` sur `Consequences` — et
+seul la relecture les a trouvées. **Le typage ne protège pas les formulaires de ce dépôt** ;
+tant que `tsconfig.json` n'a pas `"strict": true`, toute nouvelle feuille se relit à la
+main.
+
+**Ce qui reste sur 04.4** : les deux autres colonnes — le **remplacement lié** (et la dette
+qu'il crée) et la **réception du retour** (qui la solde) — ainsi que le **fil d'étapes** que
+le porteur lit sur sa fiche pendant la réparation.
+
+---
+
+## 04.4, troisième acte — un objet réparé repart chez son porteur
+
+« Clore l'intervention » ouvrait une confirmation qui posait **toujours la même issue** :
+l'objet repassait *Disponible*. Deux erreurs dans un seul geste.
+
+**Un retour de réparation n'a pas une issue mais trois**, et elles ne mènent pas au même
+endroit : réparé, réparé mais diminué, irréparable. La confirmation n'en offrait aucune —
+elle affirmait la première.
+
+**Et un objet réparé repart chez son porteur**, pas au stock. Le renvoyer aux disponibles
+oblige à le réattribuer à la main, et pendant ce temps il apparaît libre alors que
+quelqu'un l'attend.
+
+### Le porteur était effacé sans être retenu
+
+C'est le défaut de fond, et il était invisible depuis l'écran : `declareIncident` posait
+`user = null` en immobilisant l'objet, **sans garder trace de qui le détenait**. À la
+réception, le produit ne pouvait donc pas le rendre — il ne savait plus à qui. Le modèle
+gagne `repairPreviousUser`, posé à l'immobilisation et vidé à la réception.
+
+L'objet revient alors en **`PENDING_DELIVERY`**, pas en attribution acquise : son porteur
+doit confirmer, comme dans toute remise (06.1).
+
+### Les trois crans, nommés par leur conséquence
+
+C'est la grammaire de 04.3 et de 06.1 : un cran dit ce qu'il **fait**. « Irréparable »
+n'enregistre donc rien tout seul — il ouvre **Sortir du parc**, motif déjà écrit, et le
+verbe du pied devient *Sortir du parc*. Sortir un objet du parc est un acte à part,
+irréversible ; il ne se glisse pas dans la fermeture d'une intervention.
+
+La réserve de « réparé, mais diminué » **s'ajoute** à la note de la fiche au lieu de
+l'écraser : ce qui y était dit reste vrai.
+
+Vérifié au rendu : les trois crans, le cran pris en rouge, les conséquences qui changent
+avec lui, et le pied qui passe de *Réceptionner* à *Sortir du parc*.
+
+### Le typage, encore
+
+Deux valeurs inventées ont passé `tsc` sans un mot : `conditionNote`, un champ qui
+n'existe pas sur `Equipment`, et `assignmentStatus: 'PENDING'`, qui n'est pas une valeur
+de l'énumération. Seule la relecture des types les a trouvées. C'est le deuxième acte de
+suite où cela arrive — voir la note sur `"strict"` plus haut.
+
+**Ce qui reste sur 04.4** : le **remplacement lié** (colonne 2) et son règlement à la
+réception, qui demandent un sélecteur d'objet disponible que le produit n'a pas encore ;
+et le **fil d'étapes** que le porteur lit sur sa fiche pendant la réparation.
+
+---
+
+## 03.1 — Le tableau de bord, relu sur la passe du 05/09
+
+La planche a été redessinée (carte `2620x2320`, sous-titre « Passe du 05/09 ; bureau
+redessiné le 08/09 ») et la page ne l'avait pas suivie. Six écarts, dont deux qui
+faisaient dire au produit des choses fausses.
+
+### Ce qui manquait : « Inventaire en cours »
+
+La passe du 05/09 glisse une carte entre « Le parc » et « Types en tension » : le lieu
+compté, la part de son parc retrouvée, et la reprise de la campagne. C'est **la seule
+carte de l'écran qui mène à un travail commencé** plutôt qu'à une liste, et elle
+n'existait pas.
+
+Elle n'existe que **pendant** un comptage — `useCurrentCampaign` : au moins un objet
+retrouvé, pas tous. À 0 % il n'y a rien à reprendre, à 100 % plus rien à faire, et une
+carte qui réclame un geste quand aucun n'est dû est une carte de trop. Un **écart** s'y
+compte comme en 16.1 (les alignements de scan), jamais les manquants : tant que le tour
+du lieu n'est pas fini, ce qui n'a pas été vu n'est pas perdu (règle V2).
+
+« Reprendre » ne repasse pas par la vue globale : le renvoi retient le lieu et ouvre le
+comptage (16.2) là où il en était. La clé de portée était **écrite en dur dans deux
+fichiers** ; elle devient une seule déclaration, `src/lib/auditScope.ts`, parce qu'un
+troisième écran la touche désormais.
+
+### Le budget mesurait un rythme qui n'existe pas
+
+La planche pose le repère de `.wbar b` à **67 % au 3 septembre** — la part d'exercice
+écoulée — et date sa phrase du jour. Le code comparait à **25 %** toute l'année : au
+8 septembre, il annonçait « 25 points sous le rythme **au quart de l'exercice** » sur un
+exercice aux deux tiers passé. Le repère suit maintenant le temps, la phrase porte la
+date du jour, et sur un exercice qui n'est pas en cours il n'y a **pas** de rythme à
+tenir : la jauge reste seule.
+
+Le chiffre de tête devient le **pourcentage**, l'enveloppe passe au libellé (« 72 % · de
+42 000 000 XOF consommés ») : un montant engagé ne se compare à rien tant qu'on n'a pas
+lu l'enveloppe qui le suit.
+
+### « 243 sur 243 en fin de vie comptable »
+
+Relevé au rendu, hors planche. `calculateLinearDepreciation` rend `progressPercent: 100`
+quand le montant amortissable est nul — une valeur de repli devant une division
+impossible. Le parc importé porte `purchasePrice: 0` sur ses 243 actifs : la carte
+annonçait donc **tout le parc en fin de vie**, jauge pleine. Sans prix d'achat il n'y a
+pas de vie comptable, donc pas de fin : la lecture écarte ces actifs. *Le repli à 100 %
+reste dans `lib/financial.ts` et sert ailleurs (Finances, fiche d'un actif) — à
+arbitrer.*
+
+### Trois écarts de forme
+
+- **Quatre rangées** dans « À traiter » au régime `forte`, pas trois : la planche en
+  dessine quatre à 393 comme à 1280. *(Sa colonne mobile écrit « Voir les 14 autres »
+  sous quatre rangées d'un total de 17 — l'étiquette d'un dessin à trois. Le bureau, lui,
+  est cohérent : quatre rangées, « les 13 autres ». C'est l'étiquette mobile qui est
+  restée en arrière.)*
+- **Le compte de l'en-tête** n'appartient qu'au gestionnaire : la colonne du porteur n'en
+  porte aucun — sa zone ne compte pas, elle montre ce qui l'attend.
+- **Une file ne vous nomme pas à vous.** La colonne du porteur l'écrit sans détour :
+  « Écran Dell U2722 · livré le 24 juillet », pas « Marc Finance · réception ». Le nom
+  disparaît quand c'est le vôtre ; la date de livraison, elle, n'existe pas au modèle
+  (`Approval` n'a pas de `deliveredAt`) — la nature seule reste, et l'inventer serait
+  pire.
+
+### Deux renvois
+
+« Tout l'historique » **existe** : la page Historique (18.1) a été écrite le 05/09 et le
+renvoi que la planche dessine n'est plus mort. Il est réservé à qui peut lire les
+rapports — c'est par là que le journal s'ouvre. Le porteur, lui, n'y a pas accès : son
+« Tout mon historique » reste sa fiche, qui porte les mêmes faits bornés à lui.
+
+Et la carte « Inventaire en cours » **ne loge pas son état dans `.mo`**, contrairement à
+la colonne mobile de la planche. Mesuré à 393 : le libellé prend 180 px, « commencée
+hier, 2 écarts » en prend 147, plus 18 de chevron et 20 de gouttières — **365 px pour 329
+disponibles**. La rangée tronquait, et ce qu'elle coupait était le nombre d'écarts,
+c'est-à-dire ce qui décide d'y retourner. La colonne bureau de la même planche avait déjà
+tranché : la phrase passe en `.wnote`, et `.mo` reprend son rôle — le lieu où l'on va,
+comme les quatre autres renvois de l'écran. C'est cette résolution qui est portée aux
+deux largeurs.
+
+### Une déclaration en double
+
+`Reading` — la mesure de lecture de §2.43 — était **recopiée dans la page**, à
+l'identique du composant partagé `components/layout/Reading`. La copie part.
+
+---
+
+## 03.1 (suite) — le menu de compte rejoint les neuf autres
+
+Le menu de l'avatar portait **sa propre boîte** : un voile fixe posé à la main, un bord,
+`shadow-elevation-3`, 300 px de large, des rangées séparées d'un filet, `p-2`. Le produit
+compte **neuf autres menus contextuels**, tous rendus par `components/ui/Menu`,
+c'est-à-dire par `menus.css` — rayon 8, une seule ombre `0 8px 24px rgba(10,25,29,.2)`,
+**aucun filet**, intérieur `8 0`, rangées de 48 (56 avec sous-ligne) à `8 16`, séparateur
+pleine largeur. Celui-ci était le seul à ne ressembler à aucun autre.
+
+Et le seul sans **navigation au clavier ni sémantique de menu** : pas de `role="menu"`,
+pas de `menuitem`, pas de flèches, pas de retour du focus au déclencheur. Il n'avait
+qu'Échap, ajouté à la main.
+
+Le contenu ne bouge pas — il vient des arbitrages du 06 et du 07/09 : ni pictogramme ni
+chevron sur les destinations, **Aide et support** qui ouvre le courrier plutôt qu'un
+centre d'aide inexistant, la sortie détachée par un filet en encre de danger. L'identité
+passe dans la **légende** du menu (`.cap`, 12 / 16, encre tertiaire), le seul en-tête que
+la feuille partagée déclare ; la pastille qui la précédait n'a pas suivi, elle redisait
+l'avatar qui ouvre le menu à 4 px de là. Le rattachement non plus : il vit dans Mon
+compte, et une légende de 12 qui passe à la ligne cesse d'en être une.
+
+Mesuré après coup : `role="menu"`, 236 de large, rayon 8, **bord 0**, l'ombre déclarée,
+intérieur `8px 0px`, rangées à `8px 16px` en 16 px, un séparateur, Échap referme.
+
+---
+
+## La dimension mobile seule est levée — 08/09
+
+`MOBILE_ONLY` repasse à **`false`** dans ses deux déclarations (`src/constants/breakpoints.ts`
+et `tailwind.config.js`). La fenêtre large reprend sa mise en page : le rail plutôt que la
+barre du bas, les 122 classes de fenêtre à nouveau vivantes, et plus de colonne de 393 px
+centrée sur le bureau — `MobileFrame` ne monte plus `.tk-frame`, c'est le document qui
+redevient le conteneur de défilement, ce que `getAppScroller` suivait déjà.
+
+**Ce que la levée ne fait pas :** porter les régimes 00.3 / 00.4 / 00.5. Ce qui apparaît
+au-delà de 600 px est l'état où le chantier bureau s'était arrêté le 06/09 — pas la passe
+du 08/09. Sur 03.1 en particulier, il manque tout §2.43 bis : la bande de chiffres en
+ligne, la file 8/12 et les événements 4/12 à même hauteur, la mosaïque 7/5 · 5/7, le rail
+clair à 240 avec ses trois groupes nommés et son pied d'identité.
+
+### Ce que la levée a mis au jour
+
+**Le rail ne tenait pas la fenêtre.** `Sidebar` et `NavigationRail` portaient `h-full`
+dans une rangée de hauteur *auto* : `height:100%` n'y vaut rien, et le rail s'arrêtait
+sous sa dernière entrée en laissant le fond nu jusqu'en bas. `stretch` l'aurait étiré à la
+hauteur du **contenu**, poussant « Déconnexion » loin sous le pli ; les deux prennent donc
+`sticky top-0 h-screen` — la hauteur de la fenêtre, et le corps défile dessous, comme
+`.side` dans le `.dsk` des planches. Personne ne l'avait vu : sous `MOBILE_ONLY`, aucun
+des deux n'était rendu.
+
+**La fiche à deux colonnes fonctionne enfin.** `MEDIA.twoColumn` (≥ 1280) était le piège
+relevé le 07/09 : il posait deux colonnes *dans* le cadre de 393, héro tronqué et cartes
+hors champ. Sans cadre, il rend ce qu'il devait rendre — héro à gauche, cartes à droite.
+
+Vérifié à 393, 768 et 1512 sur l'accueil, la liste des équipements, les tâches,
+l'inventaire physique, les accès et une fiche d'équipement : **aucun débordement
+horizontal, aucune erreur console**.
+
+### Ce que la fenêtre large confirme, et qui reste à arbitrer
+
+Le repli `progressPercent: 100` de `calculateLinearDepreciation` ne ment pas qu'au tableau
+de bord. Sur la fiche d'un actif importé (prix d'achat 0), « Garantie et valeur » affiche
+**« 100 % de la valeur amortie — 0 XOF restent à amortir · À renouveler cette année. »**
+C'est le même repli devant une division impossible, sur un second écran.
+
+---
+
+## 00.3 — la coque de bureau : une seule barre pour deux régimes
+
+La levée de `MOBILE_ONLY` a rendu visible une barre latérale que personne n'avait jamais
+regardée. Ce n'était pas celle de la planche.
+
+### Ce qui était là
+
+Un **dégradé sombre de 256 px**, dix destinations à plat, sans groupes, sans compte de
+tâches, sans pied. 00.1 donne la direction — sobre, claire ; 00.3 donne la mesure :
+**264 px sur `--surface`**, un filet à droite, des rangées de 48 au rayon 8, la courante
+en creux `--inset`. Au bureau, la seule zone inversée d'un écran reste « À traiter ».
+
+Elle portait aussi **un tiroir modal** — voile, piège à focus, bouton de fermeture — que
+plus rien ne montait : au téléphone, le débordement est la feuille « Plus » (17.7). Et
+ses props ne correspondaient plus à son unique appelant : `setIsCollapsed` et
+`onSettingsClick` étaient déclarées **requises et jamais passées** (le repli plantait au
+clic), `isModalMode` valait `true` par défaut — la barre *permanente* rendait donc la
+croix du tiroir et une rangée « Déconnexion » que 17.7 range dans le compte. Rien de cela
+n'était visible tant que le composant ne s'affichait pas. **`tsc` ne vérifie pas les props
+JSX** dans ce dépôt : c'est la quatrième fois cette semaine.
+
+### Le rail *est* la barre repliée
+
+Le produit tenait **deux** composants — `NavigationRail` (80 px, quatre entrées, un
+`onMenuClick` requis que personne ne passait non plus) et `Sidebar` — avec deux jeux de
+droits et deux réponses à « où suis-je ». 00.3 n'en décrit qu'un : *« le rail s'ouvre »*,
+*« la même liste de destinations, debout »*. `NavigationRail` est supprimé ; à `medium`,
+la barre est rendue repliée et ne se déploie pas (264 px sur 768 ne laisseraient pas ses
+360 px à une colonne, §3 de 00.3).
+
+Le repli à **88** — la mesure du rail — vient de la recherche bureau du 08/09, avec son
+raccourci `[` et son état retenu par personne. Replier ne fabrique donc pas une troisième
+forme de navigation : cela ramène la barre au régime qui la précède.
+
+### Trois déclarations qui n'en font plus qu'une
+
+- **Où l'on peut aller** (`useNavigationDestinations`). La feuille « Plus » ouvrait
+  *Référentiels* sur `canManageInventory`, la barre latérale la même rangée sur
+  `canViewManagement || canManageSystem` ; et la latérale ne portait **pas** *Historique*,
+  que la feuille porte depuis le 07/09. Le même compte n'avait pas les mêmes chemins selon
+  la largeur de la fenêtre.
+- **Où l'on est** (`SECTION_OF_VIEW`, dans le registre). Trois tables y répondaient :
+  `isNavSectionActive` (un `switch` de onze cas), `resolveBottomNavDestination`, et
+  `MORE_SECTION_OF_VIEW`.
+- **À quoi ressemble une destination** (`DESTINATIONS[id].glyph`). Les glyphes Phosphor
+  vivaient en table privée dans la barre du bas ; la latérale et le rail tiraient un nom
+  Material à la place — **deux dessins pour une même destination**, selon la surface.
+
+Et le **menu de la personne** (`useAccountMenu`) : le pied de la barre latérale ouvre
+désormais le même que l'avatar de l'accueil, au lieu d'une seconde liste à recopier.
+
+### Mesuré au rendu
+
+Déployée : **264** de large, `--surface`, filet de 1, intérieur `16px 12px`, rangées de
+**48** à `8px 12px`, rayon **8**, **14 px**, la courante sur `--inset`. Repliée : **88**,
+rangées de **64**, libellé court en **11**. `[` bascule dans les deux sens. Onze
+destinations, trois groupes, *Historique* comprise. Aucun débordement horizontal ni erreur
+console à 393, 768 et 1512, sur six écrans.
+
+Un mot trop long — « Emplacements » dans 64 px — **se tronque avec son ellipse et
+l'infobulle dit le reste**, la règle que la recherche du 08/09 tranche pour toute
+troncature. Il ne se raccourcit pas : une destination porte un nom, celui du registre.
+
+### Deux écarts de planche, à arbitrer
+
+1. **La largeur de la barre latérale.** 00.3 déclare `.side{width:264px}` et la recherche
+   du 08/09 dit « Sidebar 264 (§2.43) » ; la **colonne bureau de 03.1** en dessine **240**.
+   J'ai porté 264 — la référence système prime sur une planche de page —, mais les deux
+   documents datent du même jour.
+2. **La grille du tableau de bord à 1280.** La carte de 03.1 annonce *« bande de chiffres,
+   file 8/12 + événements 4/12 à même hauteur, puis mosaïque 7/5 · 5/7 »* ; la recherche du
+   08/09, elle, tranche *« la file de tâches à gauche (7 col./12), les mouvements récents à
+   droite (5 col./12) »* et écarte la mosaïque : *« Parc par site, garanties, incidents
+   restent des destinations — pas des tuiles »*. Ce n'est pas la même page. **Rien n'est
+   porté côté bureau de 03.1** tant que ce point n'est pas tranché.
+
+---
+
+## 04.1 au bureau — le tableau dense (recherche du 08/09, §2)
+
+Les deux formes **coexistent** : cartes et tableau, avec un sélecteur dans le cinquième
+slot de 17.8, à droite du tri. **Cartes par défaut sous 1280, tableau à partir de 1280**,
+le choix retenu par liste. Sous 840 il n'y a pas de sélecteur : six colonnes sur un
+téléphone ne se lisent pas, et l'en-tête n'a pas la place de poser le geste.
+
+Trois pièces neuves : `useListView` (quelle forme, et qui s'en souvient),
+`components/ui/DataTable` (le tableau), et un slot `view` sur `ListTemplate`.
+
+### Ce que le tableau tient
+
+- **Rangée de 48**, quand la carte en fait 72 — §2.43 : un écran large mérite *plus de
+  rangées*, pas des rangées plus hautes. Les cibles, elles, ne rétrécissent pas : la case
+  garde ses 40 × 40 dans une rangée de 48.
+- **En-tête figé** au défilement vertical et **colonne de tête figée** à l'horizontal.
+  Quand une case de sélection précède le code, **les deux** sont figées — la case à 0, le
+  code à 48 ; figer la case seule laisserait le code partir sous elle.
+- **Survol et focus se ressemblent** : fond `--inset`, case révélée à gauche, actes
+  secondaires à droite. Ce qui se découvre à la souris se découvre au clavier.
+- **Troncature** : une ligne, ellipse, infobulle. Les en-têtes ne se tronquent jamais.
+
+Les six colonnes tranchées : Code · Modèle · Porteur · Site / local · Statut · Dernier
+mouvement. Mesuré : en-têtes conformes, rangées à **48**, `thead` et colonne de tête en
+`sticky`, aucun débordement horizontal ; la bascule fait l'aller-retour et sa mémoire
+survit au rechargement ; à 393, ni tableau ni sélecteur.
+
+**Un écart avec la note** : elle prévoit « six colonnes sans troncature » à 990 px, sur
+des codes de dix caractères. Le parc réel en porte de trente-quatre
+(`Togo-AP55C-A400474CC7A47E7-NEW-BAT`) : le code se tronque, et c'est l'infobulle qui le
+rend — le repli que la note déclare elle-même.
+
+### « Dernier mouvement » lisait un champ qui n'existe pas
+
+La colonne annonçait « — » sur les 243 actifs : elle lisait `item.updatedAt`, et
+**`Equipment` n'a pas ce champ**. La carte le lit pourtant en repli à trois autres
+endroits de la même page (`item.confirmedAt || item.updatedAt`), depuis toujours. La
+colonne prend maintenant la plus récente des dates que l'objet **porte réellement** —
+remise, confirmation, demande de retour, départ ou retour d'atelier — et dit « jamais »
+quand il n'y en a aucune, ce qui est le cas d'un parc importé.
+
+---
+
+## La cause de six mois de props inventées : `@types/react` n'est pas installé
+
+C'est le vrai résultat de cette passe, et il dépasse le portage.
+
+`item.updatedAt` a résisté à `tsc`. En cherchant pourquoi, j'ai sondé le fichier avec des
+erreurs délibérées :
+
+| sonde | attendu | obtenu |
+| --- | --- | --- |
+| `const n: number = 'une chaîne'` | erreur | **erreur** ✔ |
+| `const n: number = item.name` (sur `Equipment[]`) | erreur | *rien* |
+| `item.zzzInexistant` | erreur | *rien* |
+
+`tsc` lit bien le fichier ; ce sont les valeurs venues de React qui ne sont pas typées.
+Vérification : **`node_modules/@types/react` est absent**, `@types/react-dom` aussi, et
+`package.json` ne déclare qu'un seul paquet de types, `@types/node`. `react` ne fournit
+pas ses propres déclarations.
+
+Conséquence : `import … from 'react'` résout un module **non typé**, donc `useMemo`,
+`useState`, `useCallback` rendent `any`, et `React.FC<Props>` ne contrôle **aucune prop**.
+
+C'est l'explication unique de tout ce que `tsc` a laissé passer cette semaine :
+`tint` sur `SubjectRow`, `subtitle` au lieu de `hint` sur `OptionRow`, `conditionNote`,
+`assignmentStatus: 'PENDING'`, `RbacGroup.memberIds`, `Sidebar` appelée sans ses props
+requises `setIsCollapsed` et `onSettingsClick`, `NavigationRail` sans `onMenuClick`, et
+`item.updatedAt`. Aucun de ces défauts n'était une inattention de relecture : **le
+compilateur ne pouvait pas les voir**.
+
+Ce n'est **pas** l'absence de `"strict"` — c'est l'absence des déclarations de React.
+Installer `@types/react` et `@types/react-dom` fera remonter d'un coup une dette
+accumulée sur tout le produit ; c'est un arbitrage, pas un correctif, et `npm install`
+échoue sur ce partage hgfs (les binaires natifs viennent de Windows). À trancher.
+
+---
+
+## 05.1 au bureau — et une planche qui contredit la note
+
+La colonne bureau de **05.1 a été dessinée le 08/09** (« §2.43 bis, patron de 04.1 :
+tableau à cinq colonnes »). Elle et la note de recherche du même jour ne disent pas la
+même chose :
+
+| | planche 05.1 | note du 08/09 |
+| --- | --- | --- |
+| colonne 4 | **Objets** | Actifs portés |
+| colonne 5 | **État du compte** | Dernière connexion |
+
+Les trois premières se recouvrent. **La planche l'emporte** : elle est le dessin de
+*cette* page, la note décrit un patron général. Et la mesure tranche dans le même sens —
+sur l'annuaire réel, « dernière connexion » vaut *jamais* sur les **59 rangées** : une
+colonne qui ne distingue personne. L'état du compte sépare l'actif du suspendu, de
+l'invité et du partant, et c'est ce qu'on vient chercher dans un annuaire.
+
+La colonne réutilise `accountMark`, la marque que la carte porte déjà : un compte ne
+change pas d'état parce qu'on l'a mis dans une colonne.
+
+Mesuré : cinq en-têtes conformes, rangées à **48**, colonne de tête figée, « Objets »
+aligné à droite en chiffres tabulaires, aucun débordement ; à 393, ni tableau ni
+sélecteur.
+
+**04.1, lui, n'a pas de colonne bureau dessinée** — sa carte ne mentionne aucune passe
+bureau. Ses six colonnes viennent donc de la note, seule autorité pour cette page.
+
+### Une destination portait deux noms
+
+La barre latérale déployée disait **« Utilisateurs »** et ouvrait une page titrée
+**« Équipe »** : le registre portait `GLOSSARY.USER_PLURAL` en libellé long et « Équipe »
+en libellé court. Les trois planches qui nomment cette destination écrivent « Équipe » —
+00.3, la barre de 03.1 bureau, et le titre de 05.1. Le registre s'aligne. C'est le même
+écart que 11.1 avait fait fermer sur « Accès ».
+
+### La largeur de la barre latérale — l'arbitrage se précise
+
+05.1 écrit « **Sidebar de 240** », comme 03.1. Deux planches de page à 240 contre 00.3 et
+la note de recherche à **264**. J'ai gardé 264 (la référence système prime sur une planche
+de page), mais la divergence est maintenant systématique, pas isolée : c'est une valeur à
+trancher une fois pour les deux familles de planches.
+
+---
+
+## La dette de types, mesurée — 99 erreurs, 28 fichiers
+
+`@types/react` étant absent, on ne savait pas ce que son installation coûterait. Je l'ai
+**mesuré sans rien installer** : les deux paquets tirés dans le bac à sable, un
+`tsconfig` de sonde qui les mappe par `paths`, et `tsc` lancé dessus. Le dépôt n'est pas
+touché.
+
+**99 erreurs, 28 fichiers** — contre 15 aujourd'hui. Deux fichiers en portent 45 à eux
+seuls (`TransactionTicketModal`, `AddBudgetModal`). Ce n'est pas « des centaines » : c'est
+une dette qu'on solde en une passe.
+
+| code | nombre | ce que c'est |
+| --- | --- | --- |
+| TS2339 | 58 | une propriété qui n'existe pas |
+| TS2322 | 19 | une valeur du mauvais type |
+| TS2345 | 8 | un argument du mauvais type |
+| autres | 14 | littéraux, conversions |
+
+### Ce que la sonde a trouvé dans mon propre travail
+
+Trois défauts réels, tous invisibles à `tsc` aujourd'hui, tous dans du code écrit cette
+semaine :
+
+- **`item.brand` n'existe pas sur `Equipment`** — `brand` vit sur `Model`. La feuille de
+  prise en charge (04.4) déduit le réparateur de la garantie : *« sous garantie, c'est la
+  marque »*. Elle lisait `item.brand || item.model`, donc **toujours le modèle**. La page
+  résout maintenant la marque au catalogue et la passe.
+- **`item.repairReason` n'existe pas non plus**, et les deux feuilles de 04.4 l'affichaient
+  dans leur sujet. Ce que le modèle porte est un **incident** (04.3) : une issue, des
+  photos, un commentaire libre. Le motif lisible est ce commentaire — `motifIncident`.
+  Sans commentaire, la feuille se tait plutôt que d'inventer.
+- **Trois glyphes hors de l'échelle** — `size={16}` alors que `IconSize` vaut
+  `18 | 20 | 24 | 32`. Deux sont dans les colonnes de statut que je venais d'écrire.
+
+Après correction : **93**. Le reste est antérieur — dont sept lectures de
+`item.updatedAt`, un champ que `Equipment` n'a pas.
+
+**La sonde est reproductible** : `<scratchpad>/sonde-types/tsconfig.sonde.json`. Elle sert
+de garde-fou tant que les paquets ne sont pas installés — c'est le seul moyen actuel de
+voir une prop inventée.
+
+---
+
+## Les types de React sont posés — 08/09
+
+`npm install` échoue sur ce partage hgfs (les binaires de `node_modules` viennent de
+Windows). Pose **manuelle**, donc :
+
+1. `npm pack @types/react@19 @types/react-dom@19 csstype@^3.2.2` dans le bac à sable ;
+2. détar de chaque paquet, puis `cp -r` vers `node_modules/@types/react`,
+   `node_modules/@types/react-dom` et `node_modules/csstype` ;
+3. deux lignes ajoutées à `devDependencies`, **en préservant les CRLF** du `package.json`
+   — écrit en LF, le diff réécrivait les 61 lignes du fichier.
+
+`csstype` n'est pas optionnel : `@types/react` en dépend, et sans lui rien ne résout.
+
+**Ce que ça ne casse pas.** `npm run build` vaut `vite build` : aucun typecheck. `npm run
+lint` est eslint seul. Le build vérifié après pose : **✓ built in 41.56s**. `tsc` reste
+une porte manuelle, et c'est elle qui passe de 15 à **93**.
+
+### Deux nettoyages dans la foulée — 93 → 71
+
+**`AddBudgetModal` (22 → 0), et un vrai défaut au passage.** `BudgetLine` ne déclarait pas
+`id` — un champ que six créations posaient et que trois lectures utilisaient. Les **trois
+lignes de départ** du formulaire, elles, n'en avaient pas : `removeLine(undefined)` ne
+filtrait rien, `updateLine(undefined)` ne trouvait personne, et React recevait trois clés
+`undefined` côte à côte. Le formulaire s'ouvrait donc sur trois lignes **qu'on ne pouvait
+ni corriger ni supprimer**. Vérifié après correction : le retrait d'une ligne de départ
+fonctionne.
+
+Au passage, `type` a quitté `BudgetLine` : il était posé sur ces trois lignes et **jamais
+relu** — à l'enregistrement la nature se recalcule de la catégorie
+(`getFinanceTypeFromCategory`). Deux sources pour un fait, dont une morte.
+
+### Ce qui reste : 71, et un mort de 23
+
+Le plus gros bloc est **`TransactionTicketModal` (23 erreurs)** : il n'est **importé nulle
+part** — la documentation le dit appelé par `DashboardPage`, qui ne l'importe plus — et il
+lit trois clés de `metadata` que **rien n'écrit** dans le produit (`equipmentSnapshot`,
+`userSnapshot`, `condition`). C'est un ticket qui ne pourrait afficher que des blancs. Le
+supprimer solde 23 des 71 ; c'est une suppression de composant, donc **votre arbitrage**.
+
+Le reste se répartit sur 23 fichiers, deux à sept erreurs chacun — dont les sept lectures
+de `item.updatedAt` déjà relevées.
+
+---
+
+## La dette soldée — `tsc` à zéro
+
+93 au moment de la pose des types, **0** à l'arrivée. Ce qui a été trouvé, par nature.
+
+### Des champs qui n'existent pas — dix lectures
+
+- **`Equipment.updatedAt`** (7 emplois) : le tri « par date d'ajout » retombait dessus, et
+  deux rangées sur trois y cherchaient une date de mouvement. Le champ n'a jamais existé.
+- **`Equipment.service`** (`SiteDetailsPage`) : le compte d'actifs **par local** d'un site
+  filtrait sur `item.service` — le champ est `local`. **Tous les locaux affichaient 0.**
+- **`Equipment.purchaseDate`** (`ReportsPage`) : la date d'achat vit dans `financial`. La
+  boucle qui calcule l'âge du parc ne s'exécutait jamais, et l'âge restait figé à trois ans.
+- **`HistoryEvent.userId`** (`ReportsPage`) : le « plus ancien mouvement » d'une personne
+  filtrait sur un champ absent — la liste était toujours vide, la date jamais affichée. Elle
+  se lit maintenant des rangées du rapport, dont le prédicat est déjà déclaré ailleurs.
+
+### Des props passées à des composants qui ne les acceptent pas
+
+- **`TopAppBar.onMenuClick`** : le rappel ouvrait le tiroir modal de l'ancienne barre
+  latérale, qui n'est plus monté. Retiré, avec l'état mort qu'il pilotait.
+- **`ConfirmationSheet.icon`** : la feuille d'acte a perdu son cercle-icône de tête — *« il
+  illustrait une décision au lieu de la dire »*. L'option lui survivait, et trois appelants
+  la posaient encore dans le vide.
+- **`Modal.className`** : `Modal` borne par `maxWidth`. Le `max-w-2xl` de l'aperçu d'un
+  rapport n'a jamais rien borné.
+- **`DetailTemplate.reference`**, **`ListActionFabItem.variant`** : deux props inventées
+  dans la galerie du système.
+
+### Des dérives de bibliothèque
+
+- **pdf.js 5** : `disableWorker` n'existe plus dans les paramètres — la clé était ignorée
+  depuis la montée de version. Et `page.render` **exige le canevas** en plus de son
+  contexte : sans lui, le rendu d'une page en image échoue, c'est-à-dire **le chemin d'OCR
+  d'un PDF scanné**.
+- **jspdf** : `getNumberOfPages` n'est pas déclaré sur `internal` ; la conversion passe par
+  `unknown`, comme TypeScript le demande.
+
+### Le reste
+
+Sept glyphes hors de l'échelle §0.2 (`14`, `16`, `26` — I2 n'en déclare que quatre), une
+`Icon` **sans glyphe** qui ne dessinait rien, deux `ScreenState` sans leur pictogramme
+(I3), un `.map(buildCsvLine)` qui passait l'**index** comme délimiteur — la deuxième ligne
+du fichier exporté changeait de séparateur —, et les littéraux de `mockData` qui perdaient
+leur type avant `.map`.
+
+### Vérifié
+
+`tsc` **0** · `eslint src` **0** (les 7 erreurs héritées sont parties avec) · les quatre
+gardes du socle vertes · `npm run build` ✓ en 46 s · parcours à 393, 768 et 1512 sur six
+écrans sans débordement ni erreur console · les deux tableaux (04.1, 05.1) et le retrait
+d'une ligne de budget re-vérifiés au rendu.
+
+**`tsc --noEmit` est désormais un garde-fou utilisable** : c'est ce qui manquait pour
+porter le bureau sans écrire de props inventées.
+
+---
+
+## 03.1 au bureau — la grille de §2.43 bis
+
+Arbitré : **la planche**, mosaïque comprise. Retirer quatre cartes au bureau donnerait
+moins au grand écran qu'au petit, ce que §2.43 refuse.
+
+### Onze morceaux, deux compositions
+
+Le fond de la reprise n'est pas la grille, c'est la **décomposition**. Les onze morceaux
+de l'écran — en-tête, gestes, à traiter, le parc, inventaire, types en tension, état du
+parc, budget, mes équipements, garantie, événements — sont nommés **une fois** et composés
+deux fois. Une carte qui change de place ne change pas de contenu ; sans cela, il aurait
+fallu deux tableaux de bord, et ils auraient divergé au premier correctif.
+
+### Ce que le bureau ajoute
+
+- **`.dhead`** : le prénom en 28/32, la charge en 14/20, **et les deux gestes sur la même
+  ligne** à 40 px. **L'avatar disparaît** — au bureau la personne vit au pied de la barre
+  latérale, et deux portes vers son compte en feraient une de trop. Cette règle vaut dès
+  600 px, où le rail porte déjà la personne.
+- **`.bande`** : cinq chiffres en ligne, chacun une porte vers la liste pré-filtrée. Elle
+  *reprend* « Le parc » du téléphone au lieu d'ajouter une tuile — *« pas de tuile
+  neuve »* — et « Le parc » disparaît donc du corps au-delà de 840. **Sauf « hors
+  garantie »** : le produit n'a pas ce filtre, le chiffre est rendu nu plutôt qu'en porte
+  morte.
+- **`.zones`** à 1280 : la file en 8/12, les événements en 4/12, **quatre lignes chacune**.
+- **`.mosaic`** : Budget 7 · Inventaire 5, puis Types en tension 5 · État du parc 7.
+
+### Deux règles que la planche ne pouvait pas écrire
+
+**C'est la file qui donne sa hauteur à la rangée, jamais l'inverse.** La planche dessine
+le régime à 17 tâches, où la file est la plus haute. Au **régime vide** — deux lignes —
+`align-items: stretch` fabriquait un pan sombre de 400 px pour dire « rien à traiter ». Le
+héro garde donc sa hauteur naturelle ; ce sont les événements qui s'étirent, ce que la
+planche demande explicitement (*« ils ne descendent plus le long de la page »*).
+
+**Sans campagne, la mosaïque n'a que trois cartes** : l'État du parc prend alors la rangée
+entière plutôt que de laisser un trou de cinq colonnes.
+
+### Le piège de l'extraction
+
+Sorti en constante, `inventaire` est **évalué à chaque rendu** — et son `campagne.site`
+sur un `null` faisait tomber tout l'écran derrière l'`ErrorBoundary`. Le garde ne peut pas
+rester au point d'appel quand le morceau devient une valeur : il est passé dans la
+constante. C'est la seule chose que cette décomposition change au comportement, et elle
+est corrigée.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · gardes DS vertes · `npm run build` ✓ 53 s · rendus à 393,
+768 et 1512, plus un **contrôle au régime chargé** (17 tâches forcées le temps d'une
+capture, forçage retiré et vérifié : 0 résidu) — la file à quatre rangées et son « Voir les
+13 autres », les événements bornés à sa hauteur avec « Tout l'historique » calé en bas, le
+compte 17 sur l'entrée Tâches du rail.
+
+---
+
+## 00.5 — les deux gabarits sans rail
+
+Les deux derniers de la vague : la feuille d'acte et le formulaire plein écran. Ils n'ont
+pas de navigation — *« c'est le seul cas du système où elle s'efface »* — et la planche
+leur donne **une mesure de contenu qui ne dépend pas de l'écran**.
+
+### La feuille se centre, elle ne s'étire pas
+
+Au téléphone elle monte du bas, pleine largeur, avec sa poignée : une surface qu'on
+attrape au pouce. Au-delà de **600** il n'y a plus de pouce, et elle **se centre à 560**,
+le voile couvrant tout, rail compris.
+
+**Les blocs ne changent pas** — mêmes champs, même pied, même ordre : *« ce qui change est
+l'air autour, pas la feuille »*. C'est la règle des vues de référence, et c'est pourquoi la
+bascule tient dans **un seul composant** : `BottomSheet`, et ses **39 emplois** basculent
+avec lui.
+
+La poignée disparaît avec le geste qu'elle promettait — on ne fait pas glisser un dialogue.
+Échap et le voile referment ; une feuille titrée garde sa croix.
+
+Mesuré : à 393 la feuille fait **393** de large, ancrée en bas, rayon `8 8 0 0`, poignée
+présente ; à 1512 elle fait **560**, centrée, rayon **8** partout, sans poignée.
+
+### Le formulaire se mesure, il ne s'élargit pas
+
+*« Une liste gagne des rangées quand l'écran s'élargit, et c'est un gain. Un formulaire n'y
+gagne rien : un champ de 680 px pour saisir un numéro de série est plus difficile à viser,
+plus difficile à relire, et il fait mentir la hiérarchie. »* Le contenu tenait **1024** ; il
+tient **560**, à toutes les largeurs.
+
+**Et le corollaire, celui qu'on oublie : le pied se borne à la même mesure.** Un
+« Continuer » collé au bord droit d'un écran de 768 px n'est plus au bout de ce qu'on vient
+de lire — il est ailleurs.
+
+`FullScreenLayout` n'a qu'un consommateur, `FullScreenFormLayout` : tous les écrans pleins
+du produit sont des formulaires, et la mesure n'a donc pas besoin d'un réglage.
+
+### Un troisième écart de planche
+
+00.3 §4 écrivait **440 px** et un seuil à **840** pour la même bascule ; 00.5, la planche
+dédiée à ce gabarit, fixe **560** et le démontre à **768**. J'ai porté 00.5 — c'est elle qui
+décrit l'objet — avec le seuil au premier palier du produit, **600**. À arbitrer avec les
+deux autres écarts (barre latérale 240/264, grille de 03.1).
+
+### Ce qui reste de 00.5
+
+*« Chaque champ garde la largeur de ce qu'il attend »* — court 200, date 240, nom la mesure
+entière. La règle structurante est portée ; l'application champ par champ se fait écran par
+écran, et elle n'est pas commencée.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · gardes DS vertes · `npm run build` ✓ · parcours à 393, 768 et
+1512 sans débordement ni erreur console · la feuille de filtre de 04.1 et le formulaire de
+création mesurés aux deux régimes.
+
+---
+
+## 00.5, seconde moitié — chaque champ garde la largeur de ce qu'il attend
+
+*« Un numéro de série court ne prend pas 560 px, une date en prend 240, un nom prend la
+mesure entière. C'est vrai à 393 px, où la contrainte le faisait seule ; cela doit rester
+vrai à 768, où plus rien ne l'impose. »*
+
+La règle vit dans le **champ**, pas dans les écrans : `InputField` gagne une `mesure`
+— `courte` (200), `date` (240), `pleine` (défaut). Et **`date` se déduit du type** : une
+date n'attend jamais autre chose, aucun appelant n'a à le déclarer. Les six champs de date
+du produit sont donc mesurés sans qu'on les touche.
+
+`courte` se déclare, parce qu'elle ne se déduit pas : une durée en années, un pourcentage
+résiduel, une fréquence en minutes, un prix d'achat, un montant de réparation. Sept
+emplois.
+
+Mesuré sur la fiche de création : `purchasePrice` **200**, `warrantyEnd` **240**,
+`os` et `supplier` **480** (la mesure entière du contenu de la carte), `serialNumber` 357
+— il partage sa rangée avec le scanner. C'est exactement la hiérarchie que la planche
+dessine.
+
+**Ce que la règle empêche** : qu'un champ court devienne une invitation à écrire long, que
+le pied d'acte s'éloigne du dernier champ, et que la colonne de gauche perde son bord.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · parcours à
+393, 768 et 1512 sans débordement ni erreur console.

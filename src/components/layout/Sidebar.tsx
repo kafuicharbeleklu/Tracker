@@ -1,466 +1,322 @@
-import React, { useEffect, useRef } from 'react';
-import { cn } from '../../lib/utils';
-import MaterialIcon from '../ui/MaterialIcon';
-import SidebarItem from './SidebarItem';
-import { ViewType } from '../../types';
-import { useAccessControl } from '../../hooks/useAccessControl';
-import { usePendingTasks } from '../../hooks/usePendingTasks';
-import { DESTINATIONS } from '../../constants/destinations';
-import Button from '../ui/Button';
-import CloseButton from '../ui/CloseButton';
-import { APP_CONFIG } from '../../config';
+import React, { useEffect } from 'react';
+import { CaretLeft, DotsThreeVertical, SidebarSimple } from '@phosphor-icons/react';
 
+import { cn } from '../../lib/utils';
+import { ViewType } from '../../types';
+import { DESTINATIONS, sectionOfView, type DestinationId } from '../../constants/destinations';
+import { useNavigationDestinations } from '../../hooks/useNavigationDestinations';
+import { useAccountMenu } from '../../hooks/useAccountMenu';
+import { usePendingTasks } from '../../hooks/usePendingTasks';
+import { APP_CONFIG } from '../../config';
+import Icon from '../ui/Icon';
+import Menu from '../ui/Menu';
+import Button from '../ui/Button';
+
+/**
+ * **La barre latérale — régime `expanded` (≥ 840), planche 00.3.**
+ *
+ * *« Le rail s'ouvre : chaque destination porte son mot entier, et le compte de ce qui
+ * attend un geste devient lisible. »* C'est le troisième des trois régimes que 00.3
+ * déclare — en bas, debout, écrite en toutes lettres — et le seul que le produit n'avait
+ * jamais reçu : sous `MOBILE_ONLY`, la barre latérale n'était pas rendue du tout, et ce
+ * qui dormait ici était **une autre barre**.
+ *
+ * ## Ce que la précédente était, et pourquoi rien n'en reste
+ *
+ * Un dégradé sombre de 256 px, dix destinations à plat, sans groupes, sans compte, sans
+ * pied. `00.1` donne la direction de forme — sobre, claire —, `00.3` donne la mesure :
+ * **264 px sur `--surface`**, un filet à droite, des rangées de 48 au rayon 8, la
+ * courante en creux `--inset`. Rien de sombre : au bureau, la seule zone inversée d'un
+ * écran reste « À traiter ».
+ *
+ * Elle portait aussi **un tiroir modal** — voile, piège à focus, bouton de fermeture —
+ * qui n'était plus monté nulle part : au téléphone, le débordement est la feuille
+ * « Plus » (17.7). Et ses props ne correspondaient plus à son seul appelant :
+ * `setIsCollapsed` et `onSettingsClick` étaient déclarées requises, jamais passées ;
+ * `isModalMode` valait `true` par défaut, si bien que la barre *permanente* rendait la
+ * croix du tiroir et une rangée « Déconnexion » que 17.7 range dans le compte. Rien de
+ * cela n'était visible tant que le composant ne s'affichait pas.
+ *
+ * ## Deux étages, et le second est nommé
+ *
+ * Les quatre **principales** — celles de la barre du bas —, puis les **groupes** que
+ * « Plus » range au téléphone : *Référentiels*, *Suivi*, *Administration* (17.7). Au
+ * bureau il n'y a plus de « Plus » : les groupes se déplient. La liste et ses droits
+ * viennent de `useNavigationDestinations`, la même réponse pour les quatre surfaces —
+ * la feuille et la barre latérale n'ouvraient pas les mêmes rangées au même compte.
+ *
+ * ## Repliée, elle devient le rail
+ *
+ * *« Repliable à 88 »* (recherche bureau du 08/09, motif de Linear). 88, c'est la mesure
+ * du rail de 00.3, et la rangée y prend la forme du rail : 72 × 64, glyphe puis mot en
+ * 11. Replier ne fabrique donc pas une troisième forme de navigation — cela ramène la
+ * barre latérale au régime qui la précède. Le raccourci est `[`, et l'état est retenu.
+ *
+ * ## Le pied porte la personne
+ *
+ * Avatar, nom, rôle, ⋮ — le motif « profil épinglé en bas » des outils d'équipe, retenu
+ * par la recherche du 08/09 et dessiné par la colonne bureau de 03.1. Le ⋮ ouvre le
+ * **même** menu que l'avatar de l'accueil (`useAccountMenu`) : Mon compte, Paramètres,
+ * Aide et support, et la sortie.
+ */
 interface SidebarProps {
-    isCollapsed: boolean;
-    setIsCollapsed: (value: boolean) => void;
     currentView: ViewType;
     onViewChange: (view: ViewType) => void;
-    onSettingsClick: () => void;
-    /** Déconnexion à 2 taps depuis le tiroir modal (§9.3) — non rendue en sidebar permanente. */
-    onLogout?: () => void;
-    /** Tiroir = complément de la barre/rail (§9.8, renverse Top 10 #3) : masque les 4
-        destinations primaires que la barre du bas ou le rail porte déjà — même fonction
-        pure des permissions que NavigationBar/NavigationRail, donc résultat identique
-        quelle que soit la page d'ouverture. Laisser false quand aucune barre n'est rendue
-        (fiches compactes : le tiroir est l'unique nav → tout afficher). */
-    subtractPrimaryDestinations?: boolean;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
+    /**
+     * Le régime autorise-t-il le déploiement ? À `medium` (600–839), non : 00.3 y tient
+     * **le rail**, et déployer 264 px sur 768 ne laisserait pas ses 360 px à une
+     * colonne. Le geste de repli et son raccourci n'existent donc pas là.
+     */
+    canExpand?: boolean;
     className?: string;
-    isModalMode?: boolean;
-    isMobileOpen?: boolean;
-    closeMobileMenu?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-    isCollapsed,
-    setIsCollapsed,
-    currentView,
-    onViewChange,
-    onSettingsClick,
-    onLogout,
-    subtractPrimaryDestinations = false,
-    className,
-    isModalMode = true,
-    isMobileOpen = false,
-    closeMobileMenu,
-}) => {
-    const { permissions } = useAccessControl();
-    const drawerRef = useRef<HTMLElement | null>(null);
-    const previousFocusedElementRef = useRef<HTMLElement | null>(null);
-
-    const handleItemClick = (view: ViewType) => {
-        onViewChange(view);
-        if (closeMobileMenu) closeMobileMenu();
-    };
-    const showModalDrawer = isModalMode && isMobileOpen;
-    const hidePrimary = isModalMode && subtractPrimaryDestinations;
-
-    /*
-      Le chiffre de « Tâches » vient du hook partagé, comme celui de la barre du bas et
-      celui de l'accueil. Il se comptait ici sur les **noms** des personnes
-      (`a.requester === currentUser.name`) et sur quatre statuts ouverts : deux surfaces
-      du même écran pouvaient donc annoncer deux nombres, et un homonyme les faussait
-      toutes les deux. La règle est celle qui était déjà arbitrée — ce qui attend un
-      geste de vous.
-    */
-    const { count: pendingCount } = usePendingTasks();
-    const isNavSectionActive = (
-        section:
-            | 'dashboard'
-            | 'equipment'
-            | 'users'
-            | 'tasks'
-            | 'finance'
-            | 'management'
-            | 'rbac'
-            | 'locations'
-            | 'audit'
-            | 'reports'
-            | 'settings',
-    ): boolean => {
-        switch (section) {
-            case 'dashboard':
-                return currentView === 'dashboard';
-            case 'equipment':
-                return [
-                    'equipment',
-                    'equipment_details',
-                    'add_equipment',
-                    'edit_equipment',
-                    'import_equipment',
-                    'assignment_wizard',
-                    'return_wizard',
-                ].includes(currentView);
-            case 'users':
-                return ['users', 'user_details', 'add_user', 'edit_user', 'import_users'].includes(
-                    currentView,
-                );
-            case 'tasks':
-                // La file absorbe « nouvelle demande » : c'est un geste de la file,
-                // plus une section à part (17.7).
-                return ['tasks', 'new_request'].includes(currentView);
-            case 'finance':
-                return ['finance', 'finance_expenses'].includes(currentView);
-            case 'management':
-                return [
-                    'management',
-                    'category_details',
-                    'model_details',
-                    'import_models',
-                    'add_category',
-                    'add_model',
-                ].includes(currentView);
-            case 'rbac':
-                return currentView === 'rbac';
-            case 'locations':
-                return ['locations', 'site_details', 'import_locations'].includes(currentView);
-            case 'audit':
-                return ['audit', 'audit_details'].includes(currentView);
-            case 'reports':
-                return currentView === 'reports';
-            case 'settings':
-                return currentView === 'settings';
-            default:
-                return false;
-        }
-    };
-
-    useEffect(() => {
-        if (!showModalDrawer || !drawerRef.current) {
-            return;
-        }
-
-        previousFocusedElementRef.current = document.activeElement as HTMLElement | null;
-        const drawerElement = drawerRef.current;
-        const previousBodyOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-
-        const focusableSelector = [
-            'a[href]',
-            'button:not([disabled])',
-            'textarea:not([disabled])',
-            'input:not([disabled])',
-            'select:not([disabled])',
-            '[tabindex]:not([tabindex="-1"])',
-        ].join(',');
-
-        const getFocusableElements = (): HTMLElement[] => {
-            const elements = Array.from(
-                drawerElement.querySelectorAll(focusableSelector),
-            ) as HTMLElement[];
-            return elements.filter((element) => {
-                const isDisabled = element.hasAttribute('disabled');
-                const isAriaHidden = element.getAttribute('aria-hidden') === 'true';
-                return !isDisabled && !isAriaHidden;
-            });
-        };
-
-        const focusableElements = getFocusableElements();
-        if (focusableElements.length > 0) {
-            focusableElements[0].focus();
-        } else {
-            drawerElement.focus();
-        }
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                closeMobileMenu?.();
-                return;
-            }
-
-            if (event.key !== 'Tab') {
-                return;
-            }
-
-            const focusable = getFocusableElements();
-            if (focusable.length === 0) {
-                event.preventDefault();
-                return;
-            }
-
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            const active = document.activeElement as HTMLElement | null;
-
-            if (!event.shiftKey && active === last) {
-                event.preventDefault();
-                first.focus();
-            } else if (event.shiftKey && active === first) {
-                event.preventDefault();
-                last.focus();
-            }
-        };
-
-        drawerElement.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            drawerElement.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = previousBodyOverflow;
-
-            const previous = previousFocusedElementRef.current;
-            if (previous) {
-                requestAnimationFrame(() => previous.focus());
-            }
-        };
-    }, [showModalDrawer, closeMobileMenu]);
+/** `.side>a` — 48 de haut, gouttière 12, rayon 8, 14 px ; en creux quand on y est. */
+const SideRow: React.FC<{
+    id: DestinationId;
+    active: boolean;
+    collapsed: boolean;
+    count?: number;
+    onSelect: () => void;
+}> = ({ id, active, collapsed, count, onSelect }) => {
+    const destination = DESTINATIONS[id];
+    const label = collapsed ? (destination.shortLabel ?? destination.label) : destination.label;
 
     return (
-        <>
-            {/* Mobile Overlay (Scrim) */}
+        <Button
+            variant="text"
+            layout="card"
+            onClick={onSelect}
+            aria-current={active ? 'page' : undefined}
+            /* Replié, le libellé court est visible mais peut se tronquer : le
+               `title` **redit** ce que la rangée montre déjà et que l'`aria-label`
+               vocalise — c'est le seul emploi que le socle autorise. */
+            aria-label={collapsed ? destination.label : undefined}
+            title={collapsed ? destination.label : undefined}
+            className={cn(
+                'h-auto min-w-0 shadow-none hover:bg-transparent',
+                'focus-visible:ring-focus-ring rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                collapsed
+                    ? /* `.rail>a` — 72 × 64, le glyphe puis le mot en 11. Le padding
+                         horizontal du bouton est neutralisé : à 16 px de chaque côté il
+                         ne restait que 40 px de texte, et six destinations sur onze
+                         partaient en « Catal… ». */
+                      'mx-auto flex min-h-16 w-[72px] flex-col items-center justify-center gap-1 !px-1 text-center text-[11px] leading-4'
+                    : 'flex min-h-12 w-full items-center gap-3 px-3 text-left text-[14px] leading-5',
+                active
+                    ? 'bg-surface-container text-on-surface font-medium'
+                    : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+            )}
+        >
+            <Icon
+                glyph={destination.glyph}
+                size={20}
+                emphasis={active ? 'fill' : 'regular'}
+                className="shrink-0"
+            />
+            {/*
+              **Une ligne, une ellipse, et l'infobulle dit le reste** — la règle que la
+              recherche bureau du 08/09 tranche pour toute troncature. Replié, la boîte
+              de 64 ne tient pas « Emplacements » ; le poser sur deux lignes le couperait
+              au caractère (« Emplaceme / nts »), et la césure automatique ne s'obtient
+              pas partout. Le mot ne se raccourcit pas non plus : une destination porte
+              **un** nom, celui du registre — deux noms pour une destination, c'est
+              l'écart que 11.1 a fait fermer.
+            */}
+            <span className={cn('min-w-0 truncate', collapsed ? 'max-w-full' : 'flex-1')}>
+                {label}
+            </span>
+            {/* `.side>a .n` — le compte de ce qui attend un geste, 12 tabulaire en encre
+                tertiaire. Replié, il n'y a pas la place : le rail le dira autrement. */}
+            {!collapsed && count !== undefined && count > 0 && (
+                <span className="text-text-tertiary ml-auto shrink-0 text-[12px] leading-4 tabular-nums">
+                    {count}
+                </span>
+            )}
+        </Button>
+    );
+};
+
+const Sidebar: React.FC<SidebarProps> = ({
+    currentView,
+    onViewChange,
+    isCollapsed,
+    onToggleCollapse,
+    canExpand = true,
+    className,
+}) => {
+    const { principales, groupes } = useNavigationDestinations();
+    const { count: pendingCount } = usePendingTasks();
+    const compte = useAccountMenu();
+    const section = sectionOfView(currentView);
+
+    /*
+      `[` replie et déplie — le raccourci de Linear, retenu par la recherche du 08/09.
+      Il ne se déclenche pas dans un champ : on écrit des crochets dans une recherche.
+    */
+    useEffect(() => {
+        if (!canExpand) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== '[' || event.metaKey || event.ctrlKey || event.altKey) return;
+            const cible = event.target as HTMLElement | null;
+            if (
+                cible &&
+                (cible.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(cible.tagName))
+            )
+                return;
+            event.preventDefault();
+            onToggleCollapse();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [canExpand, onToggleCollapse]);
+
+    const rangee = (id: DestinationId) => (
+        <SideRow
+            key={id}
+            id={id}
+            active={section === id}
+            collapsed={isCollapsed}
+            count={id === 'tasks' ? pendingCount : undefined}
+            onSelect={() => onViewChange(id)}
+        />
+    );
+
+    return (
+        <aside
+            aria-label="Navigation principale"
+            className={cn(
+                /* `.side` — sur la surface, un filet à droite, et elle tient la
+                   **fenêtre** : c'est le corps qui défile sous elle, comme `.side` dans
+                   le `.dsk` des planches. */
+                'bg-surface border-outline-variant sticky top-0 flex h-screen shrink-0 flex-col border-r py-4',
+                isCollapsed ? 'w-[88px] px-2' : 'w-[264px] px-3',
+                className,
+            )}
+        >
+            {/* `.sbrand` — le nom du produit, et le geste qui replie. */}
             <div
                 className={cn(
-                    'bg-scrim/[0.32] expanded:hidden duration-medium2 ease-emphasized fixed inset-0 z-[90] transition-opacity',
-                    showModalDrawer
-                        ? 'pointer-events-auto opacity-100'
-                        : 'pointer-events-none opacity-0',
+                    'flex min-h-10 items-center gap-2.5 pb-4',
+                    isCollapsed ? 'justify-center' : 'px-2',
                 )}
-                onClick={closeMobileMenu}
-                aria-hidden="true"
-            />
-
-            <aside
-                ref={drawerRef}
-                role={showModalDrawer ? 'dialog' : undefined}
-                aria-modal={showModalDrawer ? true : undefined}
-                aria-label={showModalDrawer ? 'Menu de navigation' : undefined}
-                tabIndex={showModalDrawer ? -1 : undefined}
-                className={cn(
-                    'fixed inset-y-0 left-0 z-[100]',
-                    'expanded:static expanded:z-auto',
-                    'duration-medium4 ease-emphasized flex h-full flex-col justify-between border-r border-white/[0.03] bg-[var(--color-sidebar-bg)] text-white transition-all',
-                    showModalDrawer
-                        ? 'w-[85vw] max-w-[360px] translate-x-0'
-                        : 'expanded:translate-x-0 -translate-x-full',
-                    isCollapsed ? 'expanded:w-[76px]' : 'expanded:w-64',
-                    className,
-                )}
-                style={{
-                    background:
-                        'linear-gradient(180deg, var(--color-sidebar-gradient-from) 0%, var(--color-sidebar-gradient-to) 100%)',
-                }}
             >
-                <div
-                    className={cn(
-                        'custom-scrollbar duration-medium2 ease-emphasized flex h-full flex-col overflow-y-auto transition-all',
-                        isCollapsed && !isMobileOpen ? 'p-3' : 'p-4',
-                    )}
-                >
-                    {/* Header / Logo — rétracté : TR puis chevron empilés sur 2 rangées, le
-                        chevron flottant (-right-3) chevauchait le badge TR de 15px (§9.5) */}
-                    <div
-                        className={cn(
-                            'duration-medium2 relative mb-6 flex min-h-11 items-center transition-all',
-                            isCollapsed && !isMobileOpen
-                                ? 'flex-col justify-center gap-1'
-                                : isCollapsed
-                                  ? 'justify-center'
-                                  : 'justify-between',
-                        )}
+                {!isCollapsed && (
+                    <span className="font-brand text-on-surface min-w-0 flex-1 truncate text-[15px] font-semibold tracking-[-0.01em]">
+                        {APP_CONFIG.appName}
+                    </span>
+                )}
+                {canExpand ? (
+                    <Button
+                        variant="text"
+                        iconOnly
+                        onClick={onToggleCollapse}
+                        aria-label={
+                            isCollapsed ? 'Déployer la navigation ([)' : 'Replier la navigation ([)'
+                        }
+                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 w-10 shrink-0 rounded-lg shadow-none"
                     >
-                        {isCollapsed && !isMobileOpen ? (
-                            <div className="text-body-small text-primary flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 font-black select-none">
-                                TR
-                            </div>
-                        ) : (
-                            <div className="duration-medium2 flex items-center gap-2 overflow-hidden transition-all">
-                                <span className="text-title-large font-brand font-extrabold whitespace-nowrap text-white">
-                                    {APP_CONFIG.appName}
-                                </span>
-                            </div>
-                        )}
+                        <Icon glyph={isCollapsed ? SidebarSimple : CaretLeft} size={20} />
+                    </Button>
+                ) : (
+                    /* Le rail garde la marque du produit, sans geste : deux lettres
+                       valent mieux qu'un espace vide au-dessus des destinations. */
+                    <span className="font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center text-[13px] font-semibold">
+                        {APP_CONFIG.appName.slice(0, 2).toUpperCase()}
+                    </span>
+                )}
+            </div>
 
-                        {isModalMode ? (
-                            <CloseButton
-                                onClick={closeMobileMenu}
-                                className="text-on-nav-surface-variant hover:text-on-nav-surface focus-visible:ring-primary duration-medium2 rounded-lg p-2 transition-all hover:bg-white/5"
+            <nav
+                aria-label="Destinations"
+                className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1"
+            >
+                {principales.map(rangee)}
+
+                {groupes.map((groupe) => (
+                    <React.Fragment key={groupe.label}>
+                        {isCollapsed ? (
+                            /* Replié, le nom du groupe n'a pas la place : un filet dit
+                               la même coupure sans mentir sur ce qu'il sépare. */
+                            <span
+                                aria-hidden="true"
+                                className="bg-outline-variant mx-auto my-2 block h-px w-10"
                             />
                         ) : (
-                            <Button
-                                variant="nav"
-                                size="sm"
-                                onClick={() => setIsCollapsed(!isCollapsed)}
-                                className={cn(
-                                    'expanded:flex duration-medium2 hidden h-auto rounded-lg border-none p-1.5 shadow-none transition-all',
-                                    isCollapsed &&
-                                        !isMobileOpen &&
-                                        'mx-auto h-11 min-h-11 w-11 min-w-11 p-0',
-                                )}
-                                aria-label={isCollapsed ? 'Déployer le menu' : 'Réduire le menu'}
-                                icon={
-                                    <MaterialIcon
-                                        name={isCollapsed ? 'chevron_right' : 'chevron_left'}
-                                        size={24}
-                                    />
-                                }
-                            />
-                        )}
-                    </div>
-
-                    {/* Navigation Items — tiroir-complément : les 4 destinations primaires ne
-                        sont rendues que si la barre/rail ne les porte pas déjà (§9.8) */}
-                    <nav
-                        aria-label={hidePrimary ? 'Autres sections' : 'Sections principales'}
-                        className={cn(
-                            'duration-medium2 space-y-1 transition-all',
-                            isCollapsed && !isMobileOpen && 'flex flex-col items-center',
-                        )}
-                    >
-                        {hidePrimary && (
-                            <p className="text-label-small text-on-nav-surface-variant px-3 pb-1 font-semibold tracking-wider uppercase">
-                                Autres sections
+                            <p className="text-text-tertiary px-3 pt-3 pb-1 text-[11px] leading-4 font-medium tracking-[0.06em] uppercase">
+                                {groupe.label}
                             </p>
                         )}
+                        {groupe.ids.map(rangee)}
+                    </React.Fragment>
+                ))}
+            </nav>
 
-                        {!hidePrimary && permissions.canViewInventory && (
-                            <>
-                                <SidebarItem
-                                    isCollapsed={isCollapsed && !isMobileOpen}
-                                    icon={DESTINATIONS.dashboard.icon}
-                                    label={DESTINATIONS.dashboard.label}
-                                    active={isNavSectionActive('dashboard')}
-                                    onClick={() => handleItemClick('dashboard')}
-                                />
-                                <SidebarItem
-                                    isCollapsed={isCollapsed && !isMobileOpen}
-                                    icon={DESTINATIONS.equipment.icon}
-                                    label={DESTINATIONS.equipment.label}
-                                    active={isNavSectionActive('equipment')}
-                                    onClick={() => handleItemClick('equipment')}
-                                />
-                            </>
-                        )}
-
-                        {!hidePrimary && permissions.canViewUsers && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.users.icon}
-                                label={DESTINATIONS.users.label}
-                                active={isNavSectionActive('users')}
-                                onClick={() => handleItemClick('users')}
-                            />
-                        )}
-
-                        {!hidePrimary && permissions.canViewApprovals && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.tasks.icon}
-                                label={DESTINATIONS.tasks.label}
-                                active={isNavSectionActive('tasks')}
-                                onClick={() => handleItemClick('tasks')}
-                                badge={pendingCount > 0 ? pendingCount : undefined}
-                            />
-                        )}
-
-                        {/*
-                          « Approbations » n'est plus une destination — planche 17.7.
-                          Sa matrice des douze destinations la marque en divergence :
-                          « Elle est un onglet de Tâches ; la barre latérale en fait
-                          pourtant une douzième entrée — deux portes vers la même file,
-                          à fermer côté latéral. » La barre du bas les avait déjà
-                          fusionnées, la feuille « Plus » ne l'a jamais portée. Fermée
-                          ici le 20/08, au rail avec elle, puis la page elle-même : ce
-                          n'était pas un détail d'arbitrage mais **une seconde liste** —
-                          `ApprovalsPage` ne prenait aucune prop et paginait la même
-                          donnée avec les mêmes règles. « Nouvelle demande » a rejoint la
-                          file, dont elle est un geste.
-                        */}
-
-                        {(permissions.canViewFinance || permissions.canManageFinance) && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.finance.icon}
-                                label={DESTINATIONS.finance.label}
-                                active={isNavSectionActive('finance')}
-                                onClick={() => handleItemClick('finance')}
-                            />
-                        )}
-
-                        {(permissions.canViewManagement || permissions.canManageSystem) && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.management.icon}
-                                label={DESTINATIONS.management.label}
-                                active={isNavSectionActive('management')}
-                                onClick={() => handleItemClick('management')}
-                            />
-                        )}
-
-                        {(permissions.canViewManagement || permissions.canManageSystem) && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.rbac.icon}
-                                label={DESTINATIONS.rbac.label}
-                                active={isNavSectionActive('rbac')}
-                                onClick={() => handleItemClick('rbac')}
-                            />
-                        )}
-
-                        {(permissions.canViewLocations || permissions.canManageLocations) && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.locations.icon}
-                                label={DESTINATIONS.locations.label}
-                                active={isNavSectionActive('locations')}
-                                onClick={() => handleItemClick('locations')}
-                            />
-                        )}
-
-                        {(permissions.canViewAudit ||
-                            permissions.canScanAudit ||
-                            permissions.canManageAudit) && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.audit.icon}
-                                label={DESTINATIONS.audit.label}
-                                active={isNavSectionActive('audit')}
-                                onClick={() => handleItemClick('audit')}
-                            />
-                        )}
-
-                        {permissions.canViewReports && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon={DESTINATIONS.reports.icon}
-                                label={DESTINATIONS.reports.label}
-                                active={isNavSectionActive('reports')}
-                                onClick={() => handleItemClick('reports')}
-                            />
-                        )}
-                    </nav>
-
-                    {/* Bottom Actions */}
-                    <nav
-                        aria-label="Actions secondaires"
-                        className={cn(
-                            'mt-auto space-y-1 pt-4',
-                            isCollapsed && !isMobileOpen && 'flex flex-col items-center',
-                        )}
-                    >
-                        <SidebarItem
-                            isCollapsed={isCollapsed && !isMobileOpen}
-                            icon={DESTINATIONS.settings.icon}
-                            label={DESTINATIONS.settings.label}
-                            active={isNavSectionActive('settings')}
-                            onClick={() => {
-                                onSettingsClick();
-                                if (closeMobileMenu) closeMobileMenu();
-                            }}
+            {/* `.sfoot` — la personne, épinglée en bas. */}
+            <div
+                className={cn(
+                    'border-outline-variant mt-auto flex items-center gap-2.5 border-t pt-3',
+                    isCollapsed ? 'justify-center' : 'px-1',
+                )}
+            >
+                {isCollapsed ? (
+                    /*
+                      **Repliée, c'est la pastille qui ouvre le menu.** Elle ne peut pas
+                      rester décorative : sans elle, ni Mon compte ni la sortie ne sont
+                      atteignables du rail — et un pied qui montre la personne sans
+                      donner accès à son compte est un cul-de-sac.
+                    */
+                    <Menu
+                        align="start"
+                        placement="top"
+                        title={compte.legende}
+                        items={compte.items}
+                        trigger={
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label={`Compte — ${compte.nom}`}
+                                className="font-brand h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[12px] font-semibold text-white shadow-none hover:opacity-90"
+                            >
+                                {compte.initiales}
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <>
+                        <span className="font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[12px] font-semibold text-white">
+                            {compte.initiales}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface block truncate text-[13px] leading-4">
+                                {compte.nom}
+                            </span>
+                            <span className="text-on-surface-variant block truncate text-[12px] leading-4">
+                                {compte.role}
+                            </span>
+                        </span>
+                        <Menu
+                            align="end"
+                            placement="top"
+                            title={compte.legende}
+                            items={compte.items}
+                            trigger={
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label={`Compte — ${compte.nom}`}
+                                    className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 w-10 shrink-0 rounded-lg shadow-none"
+                                >
+                                    <Icon glyph={DotsThreeVertical} size={20} />
+                                </Button>
+                            }
                         />
-                        {isModalMode && onLogout && (
-                            <SidebarItem
-                                isCollapsed={isCollapsed && !isMobileOpen}
-                                icon="logout"
-                                label="Déconnexion"
-                                onClick={() => {
-                                    if (closeMobileMenu) closeMobileMenu();
-                                    onLogout();
-                                }}
-                            />
-                        )}
-                    </nav>
-                </div>
-            </aside>
-        </>
+                    </>
+                )}
+            </div>
+        </aside>
     );
 };
 

@@ -115,7 +115,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
                         focusRing,
                     )}
                 >
-                    <Icon glyph={X} size={16} />
+                    <Icon glyph={X} size={18} />
                 </button>
             </span>
         );

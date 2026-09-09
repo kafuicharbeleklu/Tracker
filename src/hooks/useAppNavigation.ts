@@ -31,6 +31,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
     import_locations: 'Importer localisations',
     audit: DESTINATIONS.audit.label,
     audit_details: 'Détails audit',
+    history: DESTINATIONS.history.label,
     reports: DESTINATIONS.reports.label,
     assignment_wizard: "Remettre l'équipement",
     return_wizard: 'Rendre et réceptionner',
@@ -121,6 +122,8 @@ export const useAppNavigation = () => {
             if (action === 'details') computedView = 'audit_details';
             else if (action === 'overview') computedView = 'audit';
             else computedView = 'audit';
+        } else if (section === 'history') {
+            computedView = 'history';
         } else if (section === 'reports') {
             computedView = 'reports';
         } else if (section === 'finance') {

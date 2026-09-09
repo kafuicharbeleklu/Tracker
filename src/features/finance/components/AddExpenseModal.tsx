@@ -361,10 +361,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         setIsScanning(false);
 
         if (permissionDenied) {
-            showToast(
-                'Action refusée: permissions insuffisantes pour ajouter des dépenses.',
-                'error',
-            );
+            showToast("Vous n'avez pas le droit d'ajouter une dépense.", 'error');
             return;
         }
 
@@ -373,7 +370,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         }
 
         showToast(
-            `Import lot: ${imported} ajoutées, ${duplicates} doublons, ${reviewRequired} à vérifier, ${failed} en échec.`,
+            `${imported} dépense(s) ajoutée(s) · ${duplicates + reviewRequired + failed} écartée(s)`,
             reviewRequired > 0 || failed > 0 ? 'warning' : 'success',
         );
     };
@@ -416,10 +413,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         if (!createdExpense.ok) {
             await cleanupPreparedSourceFile(preparedSource);
             if (createdExpense.reason === 'forbidden') {
-                showToast(
-                    'Action refusée: permissions insuffisantes pour ajouter des dépenses.',
-                    'error',
-                );
+                showToast("Vous n'avez pas le droit d'ajouter une dépense.", 'error');
                 return;
             }
             showToast('Dépense déjà importée. Aucun doublon ajouté.', 'warning');

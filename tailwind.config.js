@@ -1,10 +1,11 @@
 /**
- * **Le produit est tenu en dimension mobile** (arbitrage du 06/09). Doit rester égal à
+ * **La mise en attente de la dimension bureau, levée le 08/09.** Doit rester égal à
  * `MOBILE_ONLY` de `src/constants/breakpoints.ts`, où la décision est expliquée : ici
- * la couche CSS, là-bas la couche JavaScript. Les deux se remettent à `false` ensemble
- * le jour où le régime tablette et bureau se porte.
+ * la couche CSS, là-bas la couche JavaScript. À `false`, les 122 classes de fenêtre
+ * redeviennent vivantes ; les deux se remettent à `true` ensemble si le produit doit
+ * être retenu au téléphone.
  */
-const MOBILE_ONLY = true;
+const MOBILE_ONLY = false;
 
 /** Une requête qui ne s'applique jamais — les 122 classes de fenêtre deviennent inertes. */
 const JAMAIS = { raw: 'not all' };

@@ -88,10 +88,7 @@ export const useExpenseActions = () => {
         async (expense: FinanceExpense) => {
             const source = await resolveExpenseSource(expense);
             if (!source) {
-                showToast(
-                    'Prévisualisation indisponible: aucun fichier source enregistré.',
-                    'warning',
-                );
+                showToast('Aucun fichier à prévisualiser.', 'warning');
                 return;
             }
 
@@ -115,10 +112,7 @@ export const useExpenseActions = () => {
         async (expense: FinanceExpense) => {
             const source = await resolveExpenseSource(expense);
             if (!source) {
-                showToast(
-                    'Téléchargement indisponible: aucun fichier source enregistré.',
-                    'warning',
-                );
+                showToast('Aucun fichier à télécharger.', 'warning');
                 return;
             }
 

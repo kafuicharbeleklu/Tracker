@@ -431,7 +431,9 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                     <Segmented
                         label="Urgence"
                         value={urgence}
-                        onChange={setUrgence}
+                        /* `Segmented` rend une chaîne libre : c'est à l'appelant de la
+                           ramener dans son propre jeu de valeurs. */
+                        onChange={(valeur) => setUrgence(valeur === 'high' ? 'high' : 'normal')}
                         options={[
                             { value: 'normal', label: 'Normale' },
                             { value: 'high', label: 'Urgente' },

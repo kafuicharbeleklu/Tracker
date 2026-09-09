@@ -65,8 +65,18 @@ const PinField: React.FC<PinFieldProps> = ({
     /** L'index de la dernière frappe : c'est le seul chiffre qui reste lisible. */
     const [lastTyped, setLastTyped] = useState<number | null>(null);
 
+    /*
+     * **La prise de focus attend une image.** Le pavé vit presque toujours dans une
+     * feuille (`BottomSheet`), et celle-ci pose le focus sur son premier élément
+     * atteignable — le bouton de fermeture — dans son propre effet. React exécute les
+     * effets de l'enfant avant ceux du parent : le pavé prenait le focus, la feuille
+     * le lui reprenait aussitôt, et l'écran demandait six chiffres avec le curseur sur
+     * la croix. Repousser d'une image remet la frappe là où elle est attendue.
+     */
     useEffect(() => {
-        if (autoFocus) refs.current[0]?.focus();
+        if (!autoFocus) return;
+        const image = requestAnimationFrame(() => refs.current[0]?.focus());
+        return () => cancelAnimationFrame(image);
     }, [autoFocus]);
 
     useEffect(() => {

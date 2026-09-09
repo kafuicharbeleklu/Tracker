@@ -12,7 +12,6 @@ import {
 import Reading from '../../../components/layout/Reading';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
-import { OfflineBanner } from '../../../components/ui/ContextBanner';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
@@ -257,6 +256,24 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
         />
     );
 
+    /**
+     * `.ord` — **le cinquième slot de 17.8, dans le bloc fixe.** Deux faits, un de
+     * chaque côté, à 12 sur 16. Il vivait dans le contenu, donc il défilait : tout ce
+     * qui restreint la liste vit dans l'en-tête ou dans sa feuille, jamais dans le
+     * contenu.
+     */
+    const ordLine = (
+        <Reading className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
+            <span className="truncate tabular-nums">
+                {sites.length} site{sites.length > 1 ? 's' : ''} · {locationData.countries.length}{' '}
+                pays
+            </span>
+            <span className="shrink-0 tabular-nums">
+                {localisedAssets} actif{localisedAssets > 1 ? 's' : ''}
+            </span>
+        </Reading>
+    );
+
     return (
         <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
             {/* « Ajouter un emplacement » — la feuille de 10.1 : **quatre chemins, pas
@@ -338,7 +355,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     ))}
                 </div>
             </BottomSheet>
-
             <Modal
                 isOpen={Boolean(newKind)}
                 onClose={closeCreate}
@@ -374,16 +390,18 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     )}
                 </div>
             </Modal>
-
             {/* `.top` — **un seul bloc** : le titre à 28 px et la recherche sous lui,
                 sur le même fond de surface, séparés de 12. La planche ne met plus de
                 bande de filtres entre les deux. */}
             {isCompact ? (
                 <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
-                    <h1 className="font-brand text-on-surface min-w-0 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
-                        {GLOSSARY.LOCATIONS}
-                    </h1>
+                    <div className="flex min-h-12 items-center">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            {GLOSSARY.LOCATIONS}
+                        </h1>
+                    </div>
                     {!isReferentialEmpty && searchField}
+                    {!isReferentialEmpty && ordLine}
                 </div>
             ) : (
                 <div className="px-page flex flex-col gap-3 pt-5">
@@ -407,11 +425,9 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                         </Button>
                     </div>
                     {!isReferentialEmpty && <Reading>{searchField}</Reading>}
+                    {!isReferentialEmpty && ordLine}
                 </div>
             )}
-
-            <OfflineBanner />
-
             {/* `.page` — gouttière de 16, et 96 px de pied quand le FAB est là. */}
             <div
                 className={cn(
@@ -436,18 +452,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     />
                 ) : (
                     <Reading className="flex flex-col gap-4">
-                        {/* `.ord` — deux faits, un de chaque côté, à 12/16. C'est ce qui
-                            reste du porte-voix et de la note de pied réunis. */}
-                        <div className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
-                            <span className="truncate tabular-nums">
-                                {sites.length} site{sites.length > 1 ? 's' : ''} ·{' '}
-                                {locationData.countries.length} pays
-                            </span>
-                            <span className="shrink-0 tabular-nums">
-                                {localisedAssets} actif{localisedAssets > 1 ? 's' : ''}
-                            </span>
-                        </div>
-
                         {visibleSites.length > 0 ? (
                             families.map(({ country, items, code, tint }) => (
                                 /* `.fam` — l'en-tête coiffe la carte sans être dedans
@@ -525,7 +529,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                                             `${site.assetCount} actif${site.assetCount > 1 ? 's' : ''}`,
                                                             `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
                                                             site.locals.length > 0
-                                                                ? `${site.locals.length} local${site.locals.length > 1 ? 'aux' : ''}`
+                                                                ? `${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}`
                                                                 : null,
                                                         ]
                                                             .filter(Boolean)
@@ -555,7 +559,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     </Reading>
                 )}
             </div>
-
             {isCompact && !isReferentialEmpty && (
                 <FabContainer
                     description="Ajouter un emplacement"

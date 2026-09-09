@@ -3,6 +3,7 @@ import {
     CaretRight,
     DotsThreeVertical,
     Handshake,
+    Package,
     PencilSimple,
     Plus,
 } from '@phosphor-icons/react';
@@ -106,7 +107,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
             item.site || '',
             item.type,
         ]);
-        const csvContent = [buildCsvLine(headers), ...rows.map(buildCsvLine)].join('\n');
+        /* `.map` passe l'**index** en second argument, que `buildCsvLine` lit comme
+           son délimiteur : la deuxième ligne changeait de séparateur. */
+        const csvContent = [buildCsvLine(headers), ...rows.map((row) => buildCsvLine(row))].join(
+            '\n',
+        );
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -118,6 +123,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
     if (!model) {
         return (
             <ScreenState
+                icon={Package}
                 title="Modèle introuvable"
                 description="Le modèle demandé a peut-être été supprimé du catalogue."
                 actions={

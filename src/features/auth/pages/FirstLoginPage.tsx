@@ -569,7 +569,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
             <main className={cn(AUTH_MEASURE, 'flex flex-1 flex-col items-center px-5 pt-7 pb-5 text-center')}>
                 <div className="flex flex-col items-center pt-2 pb-7">
                     <span className="bg-tint-bleu text-on-tint-bleu mb-5 flex h-14 w-14 items-center justify-center rounded-full">
-                        <Icon glyph={Key} size={26} />
+                        <Icon glyph={Key} size={24} />
                     </span>
                     <p className={TITLE_CLASSES}>Votre code de remise</p>
                     <p className="text-on-surface-variant max-w-[300px] text-[14px] leading-5 text-pretty">

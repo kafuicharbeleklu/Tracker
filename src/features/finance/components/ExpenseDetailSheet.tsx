@@ -136,7 +136,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
         });
 
         if (!isUpdated) {
-            showToast('Modification impossible: données invalides ou doublon détecté.', 'error');
+            showToast('Modification refusée : doublon ou donnée invalide.', 'error');
             return;
         }
 

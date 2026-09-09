@@ -128,25 +128,31 @@ const ReportsPage = () => {
         const now = Date.now();
         let maxYears = 3;
         equipment.forEach((item) => {
-            if (item.purchaseDate) {
-                const age = (now - new Date(item.purchaseDate).getTime()) / (365.25 * 86400000);
+            /* La date d'achat vit dans `financial`, pas à la racine : la boucle ne
+               s'exécutait jamais et l'âge du parc restait bloqué à trois ans. */
+            const achat = item.financial?.purchaseDate;
+            if (achat) {
+                const age = (now - new Date(achat).getTime()) / (365.25 * 86400000);
                 if (age > maxYears) maxYears = Math.floor(age);
             }
         });
         return maxYears;
     }, [agingRows, equipment]);
 
+    /**
+     * **Le plus ancien mouvement se lit des rangées du rapport**, pas d'un second
+     * filtre. Celui qui était ici comparait `e.userId` — un champ que `HistoryEvent`
+     * n'a pas : la liste était toujours vide, et la date jamais affichée. Le prédicat
+     * qui décide de ce qui appartient à une personne vit dans `buildUserMovementReportRows`
+     * (bénéficiaire ou porteur précédent), et il n'a pas à être récrit ici.
+     */
     const userOldestEventDate = useMemo(() => {
-        if (!selectedUser || userMovementRows.length === 0) return null;
-        const userEvents = events.filter((e) => e.userId === selectedUser.id);
-        if (userEvents.length === 0) return null;
-        const dates = userEvents
-            .map((e) => new Date(e.timestamp || '').getTime())
+        const dates = userMovementRows
+            .map((row) => new Date(String(row.Date)).getTime())
             .filter((t) => !Number.isNaN(t));
         if (dates.length === 0) return null;
-        const minDate = new Date(Math.min(...dates));
-        return formatFrenchDate(minDate);
-    }, [selectedUser, userMovementRows, events]);
+        return formatFrenchDate(new Date(Math.min(...dates)));
+    }, [userMovementRows]);
 
     const getReportDetails = (reportId: ReportId) => {
         switch (reportId) {
@@ -279,8 +285,11 @@ const ReportsPage = () => {
                 alternateRowStyles: { fillColor: [244, 242, 239] },
             });
 
+            /* `jspdf` ne déclare pas `getNumberOfPages` sur `internal` : la conversion
+               passe donc par `unknown`, comme TypeScript le demande entre deux formes
+               qui ne se recouvrent pas. La méthode existe bien à l'exécution. */
             const pageCount = (
-                doc.internal as { getNumberOfPages: () => number }
+                doc.internal as unknown as { getNumberOfPages: () => number }
             ).getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
@@ -509,7 +518,9 @@ const ReportsPage = () => {
                     isOpen={Boolean(preview)}
                     onClose={() => setPreview(null)}
                     title={activePreview.title}
-                    className="max-w-2xl"
+                    /* `Modal` n'expose pas `className` : la largeur passe par `maxWidth`,
+                       et le `max-w-2xl` posé ici n'a jamais rien borné. */
+                    maxWidth="max-w-2xl"
                     footer={
                         <>
                             <Button variant="text" onClick={() => setPreview(null)}>

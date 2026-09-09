@@ -12,13 +12,12 @@ import {
     PlaceAuditRow,
     STATUS_LABELS,
 } from '../placeAudit';
+import { rememberAuditScope } from '../../../lib/auditScope';
 import { AuditOverview } from './AuditOverview';
 
 interface AuditOverviewContainerProps {
     onViewChange?: (view: ViewType) => void;
 }
-
-const AUDIT_SCOPE_PREF_KEY = 'audit_scope_pref';
 
 /** Options du filtre « statut de campagne » — source unique des deux rendus. */
 const STATUS_OPTIONS = [
@@ -308,7 +307,10 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
      * quand des objets y échappent. Sans cette dernière rangée, 211 des 243 actifs du
      * parc réel sortiraient de l'inventaire physique sans qu'aucun écran ne le dise.
      */
-    const localRows = useMemo(() => {
+    /* Le type est **déclaré** : le `...(local === undefined ? … : …)` produit sinon une
+       union de deux formes, dont l'une n'a pas `local` — et tout ce qui lit `row.local`
+       en aval cesse de compiler alors que la rangée est bien une `PlaceAuditRow`. */
+    const localRows = useMemo<PlaceAuditRow[]>(() => {
         if (!openedSite) return [];
         const { country, site } = openedSite;
         const morceaux = morceauxDuSite(country, site);
@@ -428,21 +430,13 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
         };
     }, [countryOptions, scopedRows, siteRows]);
 
-    const persistScopePreference = (row: PlaceAuditRow) => {
-        try {
-            sessionStorage.setItem(
-                AUDIT_SCOPE_PREF_KEY,
-                JSON.stringify({
-                    country: row.country,
-                    site: row.site,
-                    local: row.local ?? '',
-                    horsLocal: Boolean(row.horsLocal),
-                }),
-            );
-        } catch {
-            // Ignore storage failures.
-        }
-    };
+    const persistScopePreference = (row: PlaceAuditRow) =>
+        rememberAuditScope({
+            country: row.country,
+            site: row.site,
+            local: row.local,
+            horsLocal: row.horsLocal,
+        });
 
     const openAuditDetails = (row: PlaceAuditRow) => {
         persistScopePreference(row);

@@ -31,6 +31,18 @@ interface AuthContextType {
     loginWithMicrosoft: () => Promise<void>;
     logout: () => void;
     checkAuthStatus: () => Promise<void>;
+    /**
+     * **Rafraîchir la copie de la personne connectée.**
+     *
+     * `currentUser` est un instantané pris à l'ouverture de session : il ne relit
+     * jamais le magasin. Tant qu'on ne modifiait que *les autres*, cela ne se voyait
+     * pas. Mais 07.1 laisse une personne poser **son propre** code de remise, et le
+     * code a des lecteurs immédiats — `Attestation` reçoit `signer.pin` depuis
+     * `currentUser` sur la fiche d'un objet, dans la file et sur une demande. Sans ce
+     * rafraîchissement, on posait son code, l'écran disait « défini », et la remise
+     * suivante réclamait quand même une signature. La copie devait suivre.
+     */
+    patchCurrentUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,7 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 if (result.success && result.user) {
                     const demoUser = mockAllUsersExtended.find(
-                        (user) => user.email.toLowerCase() === result.user.MicrosoftEmail.toLowerCase(),
+                        (user) =>
+                            user.email.toLowerCase() === result.user.MicrosoftEmail.toLowerCase(),
                     );
                     const appUser: User = demoUser
                         ? {
@@ -209,6 +222,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionStorage.clear();
     };
 
+    /** Voir `patchCurrentUser` dans le contrat : l'instantané suit le magasin. */
+    const patchCurrentUser = useCallback((patch: Partial<User>) => {
+        setCurrentUser((precedent) => (precedent ? { ...precedent, ...patch } : precedent));
+    }, []);
+
     return (
         <AuthContext.Provider
             value={{
@@ -225,6 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 loginWithMicrosoft,
                 logout,
                 checkAuthStatus,
+                patchCurrentUser,
             }}
         >
             {children}

@@ -18,12 +18,14 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useDebounce } from '../../../hooks/useDebounce';
 import useSelection from '../../../hooks/useSelection';
-import { ViewType } from '../../../types';
+import { ViewType, type Equipment } from '../../../types';
 
 import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
 import FilterButton from '../../../components/ui/FilterButton';
 import FacetChip from '../../../components/ui/FacetChip';
-import ListRow from '../../../components/ui/ListRow';
+import ListRow, { TONE_CLASS } from '../../../components/ui/ListRow';
+import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
+import { useListView } from '../../../hooks/useListView';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -37,7 +39,10 @@ import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/busine
 import { getCategoryLabel } from '../../../constants/glossary';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
 import { buildCsvLine } from '../../../lib/csv';
+import { cn } from '../../../lib/utils';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
+import Thumbnail from '../../../components/ui/Thumbnail';
+import { getCategoryGlyph } from '../../../constants/categoryIcons';
 
 /**
  * Liste des équipements — **portée sur la planche 04.1** (gabarit `ListTemplate`).
@@ -113,6 +118,33 @@ const FAMILY_TYPE_KEYS: Record<EquipmentFamily, readonly string[]> = {
 
 const PERIODS = ['Toute période', '30 derniers jours', 'Cette année'] as const;
 const PAGE_SIZE = 20;
+
+/**
+ * **Le dernier mouvement d'un actif** — la sixième colonne de 04.1 au bureau.
+ *
+ * Ce n'est **pas** `updatedAt` : le champ n'existe pas sur `Equipment` — la carte le lit
+ * pourtant en repli (`item.confirmedAt || item.updatedAt`), et il y vaut `undefined`
+ * depuis toujours ; `tsc` ne le disait pas, la liste étant typée `unknown[]` jusqu'ici.
+ * Un mouvement est un **acte** — remise, confirmation, demande de retour, départ ou
+ * retour d'atelier — et la date à montrer est la plus récente de celles que l'objet
+ * porte réellement. Aucune : l'objet n'a jamais bougé, et la colonne
+ * le dit en toutes lettres plutôt qu'avec un tiret qu'on lit comme une donnée manquante.
+ */
+const dernierMouvement = (item: Equipment): string | null => {
+    const dates = [
+        item.confirmedAt,
+        item.assignedAt,
+        item.returnRequestedAt,
+        item.repairEndDate,
+        item.repairStartDate,
+        item.returnInspectedAt,
+        item.reservedAt,
+    ]
+        .filter((valeur): valeur is string => Boolean(valeur))
+        .map((valeur) => new Date(valeur).getTime())
+        .filter((instant) => !Number.isNaN(instant));
+    return dates.length > 0 ? new Date(Math.max(...dates)).toISOString() : null;
+};
 
 const formatDate = (isoOrDate?: string | Date): string => {
     if (!isoOrDate) return '—';
@@ -288,7 +320,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         }
     }, [initialStatus]);
 
-    const filteredEquipment = useMemo(() => {
+    /* Le type est **déclaré**, pas déduit : la chaîne de filtres part de
+       `filterEquipment`, dont une branche rend `[]`, et l'inférence retombait sur
+       `unknown[]` — le tableau ne pouvait alors typer aucune de ses colonnes. */
+    const filteredEquipment = useMemo<Equipment[]>(() => {
         if (!isManager) {
             return userEquipment;
         }
@@ -320,11 +355,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             // Filtre Période
             let matchesPeriod = true;
             if (periodFilter === '30 derniers jours') {
-                const itemDate = new Date(item.financial?.purchaseDate || item.updatedAt).getTime();
+                const itemDate = new Date(item.financial?.purchaseDate ?? 0).getTime();
                 matchesPeriod = itemDate >= thirtyDaysAgo;
             } else if (periodFilter === 'Cette année') {
                 const itemYear = new Date(
-                    item.financial?.purchaseDate || item.updatedAt,
+                    item.financial?.purchaseDate,
                 ).getFullYear();
                 matchesPeriod = itemYear === currentYear;
             }
@@ -354,8 +389,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         if (activeSort === 'oldest') {
             return [...list].sort(
                 (a, b) =>
-                    new Date(a.financial?.purchaseDate || a.updatedAt).getTime() -
-                    new Date(b.financial?.purchaseDate || b.updatedAt).getTime(),
+                    new Date(a.financial?.purchaseDate ?? 0).getTime() -
+                    new Date(b.financial?.purchaseDate ?? 0).getTime(),
             );
         }
         // Par défaut / 'recent' : ordre naturel (ajout récent)
@@ -377,7 +412,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         setVisibleCount(PAGE_SIZE);
     }, [filteredEquipment]);
 
-    const visibleEquipment = useMemo(
+    const visibleEquipment = useMemo<Equipment[]>(
         () => filteredEquipment.slice(0, visibleCount),
         [filteredEquipment, visibleCount],
     );
@@ -410,6 +445,96 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             }),
         ];
     }, [accessibleEquipment]);
+
+    /**
+     * **Cartes ou tableau** (recherche bureau du 08/09). Le choix est retenu pour cette
+     * liste ; tant que personne n'y touche, la forme suit la fenêtre — tableau à partir
+     * de 1280, cartes en dessous. Le porteur, lui, n'a que ses cartes : sa vue tient en
+     * trois faits, et six colonnes n'y ajouteraient rien.
+     */
+    const vue = useListView('inventory');
+    const enTableau = isManager && vue.view === 'tableau';
+
+    /**
+     * **Les six colonnes de 04.1 au bureau**, dans l'ordre tranché le 08/09 : Code,
+     * Modèle, Porteur, Site / local, Statut, Dernier mouvement. *« Type et garantie
+     * passent dans la fiche et dans le tri »* — ce sont des critères, pas des colonnes.
+     *
+     * Le code est **figé** au défilement horizontal : c'est la seule colonne dont on ne
+     * peut pas perdre la trace sans perdre la rangée.
+     */
+    const colonnes = useMemo<DataColumn<Equipment>[]>(
+        () => [
+            {
+                id: 'code',
+                header: 'Code',
+                width: '260px',
+                title: (item) => item.name,
+                cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
+            },
+            {
+                id: 'modele',
+                header: 'Modèle',
+                width: '160px',
+                title: (item) => item.model || undefined,
+                cell: (item) => item.model || '—',
+            },
+            {
+                id: 'porteur',
+                header: 'Porteur',
+                width: '180px',
+                title: (item) => item.user?.name || undefined,
+                cell: (item) =>
+                    item.user?.name || <span className="text-text-tertiary">non attribué</span>,
+            },
+            {
+                id: 'lieu',
+                header: 'Site / local',
+                width: '180px',
+                title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
+                cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
+            },
+            {
+                id: 'statut',
+                header: 'Statut',
+                width: '150px',
+                cell: (item) => {
+                    /* La même présentation que la carte : un état ne change pas de nom
+                       parce qu'on l'a mis dans une colonne. */
+                    const etat = getStatusPresentation(
+                        getDisplayedEquipmentStatus({
+                            status: item.status,
+                            assignmentStatus: item.assignmentStatus,
+                        }),
+                    );
+                    return (
+                        <span className="flex min-w-0 items-center gap-1.5">
+                            <Icon
+                                glyph={etat.icon}
+                                size={18}
+                                className={cn('shrink-0', TONE_CLASS[etat.tone])}
+                            />
+                            <span className="truncate">{etat.label}</span>
+                        </span>
+                    );
+                },
+            },
+            {
+                id: 'mouvement',
+                header: 'Dernier mouvement',
+                width: '160px',
+                cell: (item) => {
+                    const quand = dernierMouvement(item);
+                    return quand ? (
+                        formatDate(quand)
+                    ) : (
+                        <span className="text-text-tertiary">jamais</span>
+                    );
+                },
+            },
+        ],
+        [],
+    );
 
     const selectedEquipment = useMemo(
         () => filteredEquipment.filter((item) => selection.isSelected(item.id)),
@@ -634,6 +759,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                           }
                         : undefined
                 }
+                view={
+                    isManager && vue.canChoose
+                        ? { value: vue.view, onChange: vue.setView }
+                        : undefined
+                }
                 selection={{
                     active: selection.isActive,
                     count: selection.count,
@@ -719,114 +849,144 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     ) : undefined
                 }
             >
-                {visibleEquipment.map((item) => {
-                    if (!isManager) {
-                        // Vue Utilisateur final (Colonne 3)
-                        const isRep = item.status === 'En réparation';
-                        const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
-                        const repairDays = getDaysSince(item.repairStartDate || item.updatedAt);
-                        /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
+                {/*
+                  **Cartes ou tableau** — la même liste, la même donnée, deux formes.
+                  Le tableau n'est pas une seconde page : il lit `visibleEquipment`,
+                  garde la sélection, la pagination et l'état vide du gabarit. C'est
+                  la forme qui change, jamais ce qu'on regarde.
+                */}
+                {enTableau ? (
+                    <DataTable<Equipment>
+                        columns={colonnes}
+                        rows={visibleEquipment}
+                        rowId={(item) => item.id}
+                        onOpen={(item) => onEquipmentClick?.(item.id)}
+                        rowLabel={(item) => `${item.name}, ouvrir la fiche`}
+                        selection={{
+                            isActive: selection.isActive,
+                            isSelected: (id) => selection.isSelected(id),
+                            toggle: (id) => selection.toggle(id),
+                        }}
+                    />
+                ) : (
+                    visibleEquipment.map((item) => {
+                        if (!isManager) {
+                            // Vue Utilisateur final (Colonne 3)
+                            const isRep = item.status === 'En réparation';
+                            const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
+                            const repairDays = getDaysSince(item.repairStartDate);
+                            /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
                            mouvement. La planche n'écrit jamais une date absente ;
                            sans date, la rangée dit l'état, qui reste vrai. */
-                        const sinceDate = formatDate(item.confirmedAt || item.updatedAt);
+                            const sinceDate = formatDate(item.confirmedAt);
 
-                        const userStatus = isRep
-                            ? {
-                                  label:
-                                      repairDays > 0
-                                          ? `En réparation · ${repairDays} j`
-                                          : 'En réparation',
-                                  icon: Warning,
-                                  tone: 'attention' as const,
-                              }
-                            : isPending
-                              ? {
-                                    label: 'Réception à confirmer',
-                                    icon: Clock,
-                                    tone: 'pending' as const,
-                                }
-                              : {
-                                    label:
-                                        sinceDate === '—' ? 'Attribué' : `Depuis le ${sinceDate}`,
-                                    icon: ArrowCircleRight,
-                                    tone: 'info' as const,
-                                };
+                            const userStatus = isRep
+                                ? {
+                                      label:
+                                          repairDays > 0
+                                              ? `En réparation · ${repairDays} j`
+                                              : 'En réparation',
+                                      icon: Warning,
+                                      tone: 'attention' as const,
+                                  }
+                                : isPending
+                                  ? {
+                                        label: 'Réception à confirmer',
+                                        icon: Clock,
+                                        tone: 'pending' as const,
+                                    }
+                                  : {
+                                        label:
+                                            sinceDate === '—'
+                                                ? 'Attribué'
+                                                : `Depuis le ${sinceDate}`,
+                                        icon: ArrowCircleRight,
+                                        tone: 'info' as const,
+                                    };
 
-                        return (
-                            <ListRow
-                                key={item.id}
-                                vignette={
-                                    item.image ? (
-                                        <img
+                            return (
+                                <ListRow
+                                    key={item.id}
+                                    /* **La vignette retombe sur son pictogramme** : un `<img>`
+                                   nu affiche une image cassée quand l'adresse ne répond
+                                   pas — et les 243 actifs importés portaient tous une
+                                   photo d'illustration externe, bloquée par le
+                                   navigateur. `Thumbnail` écoute l'échec et rend le
+                                   glyphe de la catégorie à la place. */
+                                    vignette={
+                                        <Thumbnail
                                             src={item.image}
                                             alt=""
                                             className="h-full w-full object-cover"
+                                            fallback={
+                                                <Icon
+                                                    glyph={getCategoryGlyph(item.type)}
+                                                    size={20}
+                                                />
+                                            }
                                         />
-                                    ) : (
-                                        <Icon glyph={Package} size={20} />
-                                    )
-                                }
-                                title={item.name}
-                                type={getCategoryLabel(item.type)}
-                                status={userStatus}
-                                holder=""
-                                reference=""
-                                onOpen={() => onEquipmentClick?.(item.id)}
-                            />
+                                    }
+                                    title={item.name}
+                                    type={getCategoryLabel(item.type)}
+                                    status={userStatus}
+                                    holder=""
+                                    reference=""
+                                    onOpen={() => onEquipmentClick?.(item.id)}
+                                />
+                            );
+                        }
+
+                        // Vue Gestionnaire (Colonnes 2 et 4)
+                        const status = getStatusPresentation(
+                            getDisplayedEquipmentStatus({
+                                status: item.status,
+                                assignmentStatus: item.assignmentStatus,
+                            }),
                         );
-                    }
 
-                    // Vue Gestionnaire (Colonnes 2 et 4)
-                    const status = getStatusPresentation(
-                        getDisplayedEquipmentStatus({
-                            status: item.status,
-                            assignmentStatus: item.assignmentStatus,
-                        }),
-                    );
-
-                    /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
+                        /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
                        « Disponible » sous le code d'un actif libre — pas son site :
                        un actif disponible à Paris se lit d'abord *disponible*, et le
                        site n'ajoute rien qu'on soit venu chercher. Le porteur prend
                        la place dès qu'il existe, et un local en tient lieu quand
                        l'objet est attribué à une pièce (« Salle serveurs »). */
-                    const repairDays = getDaysSince(item.repairStartDate || item.updatedAt);
-                    const holderText =
-                        item.status === 'En réparation'
-                            ? repairDays > 0
-                                ? `En réparation · ${repairDays} j`
-                                : 'En réparation'
-                            : (item.user?.name ??
-                              (item.status === 'Attribué' ? item.site : undefined) ??
-                              status.label);
+                        const repairDays = getDaysSince(item.repairStartDate);
+                        const holderText =
+                            item.status === 'En réparation'
+                                ? repairDays > 0
+                                    ? `En réparation · ${repairDays} j`
+                                    : 'En réparation'
+                                : (item.user?.name ??
+                                  (item.status === 'Attribué' ? item.site : undefined) ??
+                                  status.label);
 
-                    return (
-                        <ListRow
-                            key={item.id}
-                            vignette={
-                                item.image ? (
-                                    <img
+                        return (
+                            <ListRow
+                                key={item.id}
+                                vignette={
+                                    <Thumbnail
                                         src={item.image}
                                         alt=""
                                         className="h-full w-full object-cover"
+                                        fallback={
+                                            <Icon glyph={getCategoryGlyph(item.type)} size={20} />
+                                        }
                                     />
-                                ) : (
-                                    <Icon glyph={Package} size={20} />
-                                )
-                            }
-                            title={item.name}
-                            type={getCategoryLabel(item.type)}
-                            status={status}
-                            holder={holderText}
-                            reference={item.assetId}
-                            onOpen={() => onEquipmentClick?.(item.id)}
-                            selectionActive={selection.isActive}
-                            selected={selection.isSelected(item.id)}
-                            onToggle={() => selection.toggle(item.id)}
-                            onLongPress={() => selection.enter(item.id)}
-                        />
-                    );
-                })}
+                                }
+                                title={item.name}
+                                type={getCategoryLabel(item.type)}
+                                status={status}
+                                holder={holderText}
+                                reference={item.assetId}
+                                onOpen={() => onEquipmentClick?.(item.id)}
+                                selectionActive={selection.isActive}
+                                selected={selection.isSelected(item.id)}
+                                onToggle={() => selection.toggle(item.id)}
+                                onLongPress={() => selection.enter(item.id)}
+                            />
+                        );
+                    })
+                )}
 
                 {isManager && visibleEquipment.length < filteredEquipment.length && (
                     /* `.more` : 48 de haut, un filet au-dessus, **15 en 500** sur

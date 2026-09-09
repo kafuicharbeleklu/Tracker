@@ -61,7 +61,12 @@ export interface DetailHeroStatus {
     icon: PhosphorGlyph;
     label: string;
     /** Teinte du glyphe sur surface inversée — famille `--live-*` du registre §2.10. */
-    tone?: 'positive' | 'info' | 'pending' | 'attention';
+    /**
+     * `muted` manquait : une demande **annulée** ou **classée** est un état comme un
+     * autre, et 06.5 la peint en gris. Sans lui, la page d'une demande close ne
+     * compilait pas sa propre teinte.
+     */
+    tone?: 'positive' | 'info' | 'pending' | 'attention' | 'muted';
 }
 
 const STATUS_TONE: Record<NonNullable<DetailHeroStatus['tone']>, string> = {
@@ -69,6 +74,9 @@ const STATUS_TONE: Record<NonNullable<DetailHeroStatus['tone']>, string> = {
     info: 'text-[var(--tk-color-live-bleu)]',
     pending: 'text-[var(--tk-color-live-ambre)]',
     attention: 'text-[var(--tk-color-live-orange)]',
+    /* Le héro est sur fond inversé : le gris d'état y serait illisible. L'encre
+       secondaire de la surface sombre dit « classé » sans crier. */
+    muted: 'text-[var(--tk-color-on-dark-2)]',
 };
 
 export interface DetailHeroFact {
@@ -209,6 +217,17 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
+                {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
+                    rendue que dans la variante sans avatar : un appelant qui passait
+                    les deux perdait sa sous-ligne en silence, et « Mon compte » n'a
+                    pas d'autre endroit où écrire l'adresse. 07.1 est la seule planche
+                    qui la dessine sous un avatar, et elle la déclare en 14/20 ; la
+                    variante à pastille garde ses 13/19, qu'aucune planche ne conteste. */}
+                {subtitle && (
+                    <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
+                        {subtitle}
+                    </p>
+                )}
             </div>
         ) : (
             <>

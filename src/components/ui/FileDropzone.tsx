@@ -4,7 +4,7 @@ import MaterialIcon from './MaterialIcon';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 import {
-    MAX_IMPORT_FILE_BYTES,
+    getImportLimitBytes,
     formatFileSize,
     partitionBySize,
     rejectionMessage,
@@ -31,7 +31,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     label = 'Glisser-déposer votre fichier',
     subLabel = 'ou cliquez pour parcourir',
     isProcessing = false,
-    maxSize = MAX_IMPORT_FILE_BYTES,
+    maxSize = getImportLimitBytes(),
     className,
 }) => {
     const [isDragging, setIsDragging] = useState(false);
@@ -130,77 +130,80 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
     return (
         <>
-        <div
-            role="button"
-            tabIndex={0}
-            aria-label={label}
-            aria-busy={isProcessing || undefined}
-            aria-disabled={isProcessing || undefined}
-            className={cn(
-                'medium:p-12 duration-short4 ease-emphasized group relative flex flex-col items-center justify-center overflow-hidden rounded-md border-2 border-dashed p-8 text-center transition-all',
-                'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                isProcessing ? 'cursor-progress' : 'cursor-pointer',
-                isDragging
-                    ? 'border-primary bg-primary-container/20 scale-[1.01]'
-                    : 'border-outline-variant hover:border-primary/50 hover:bg-surface-container-low',
-                className,
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onKeyDown={handleKeyDown}
-            onClick={openFilePicker}
-        >
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept={accept}
-                multiple={multiple}
-                onChange={handleFileChange}
-                disabled={isProcessing}
-            />
+            <div
+                role="button"
+                tabIndex={0}
+                aria-label={label}
+                aria-busy={isProcessing || undefined}
+                aria-disabled={isProcessing || undefined}
+                className={cn(
+                    'medium:p-12 duration-short4 ease-emphasized group relative flex flex-col items-center justify-center overflow-hidden rounded-md border-2 border-dashed p-8 text-center transition-all',
+                    'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                    isProcessing ? 'cursor-progress' : 'cursor-pointer',
+                    isDragging
+                        ? 'border-primary bg-primary-container/20 scale-[1.01]'
+                        : 'border-outline-variant hover:border-primary/50 hover:bg-surface-container-low',
+                    className,
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onKeyDown={handleKeyDown}
+                onClick={openFilePicker}
+            >
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept={accept}
+                    multiple={multiple}
+                    onChange={handleFileChange}
+                    disabled={isProcessing}
+                />
 
-            {isProcessing ? (
-                <div className="animate-in fade-in zoom-in duration-medium2 flex flex-col items-center">
-                    <div className="border-outline-variant bg-surface relative mb-4 flex h-14 w-14 items-center justify-center rounded-lg border">
-                        <MaterialIcon
-                            name="progress_activity"
-                            size={28}
-                            className="text-primary animate-spin"
-                        />
+                {isProcessing ? (
+                    <div className="animate-in fade-in zoom-in duration-medium2 flex flex-col items-center">
+                        <div className="border-outline-variant bg-surface relative mb-4 flex h-14 w-14 items-center justify-center rounded-lg border">
+                            <MaterialIcon
+                                name="progress_activity"
+                                size={28}
+                                className="text-primary animate-spin"
+                            />
+                        </div>
+                        <p className="text-title-small text-on-surface">Traitement en cours...</p>
                     </div>
-                    <p className="text-title-small text-on-surface">Traitement en cours...</p>
-                </div>
-            ) : (
-                <>
-                    <div
-                        className={cn(
-                            'duration-medium2 ease-emphasized border-outline-variant mb-4 flex h-14 w-14 items-center justify-center rounded-lg border transition-all',
-                            isDragging
-                                ? 'bg-primary text-on-primary'
-                                : 'bg-surface-container-high text-on-surface-variant group-hover:text-on-surface group-hover:bg-surface-container-low shadow-elevation-1',
-                        )}
-                    >
-                        <MaterialIcon name="cloud_upload" size={32} />
-                    </div>
-                    <p className="text-title-small text-on-surface mb-1">{label}</p>
-                    <p className="text-body-small text-on-surface-variant">{subLabel}</p>
-                    <p className="text-on-surface-variant mt-2 text-[12px] leading-4">
-                        {formatFileSize(maxSize)} par fichier au plus
-                    </p>
-                </>
-            )}
-        </div>
+                ) : (
+                    <>
+                        <div
+                            className={cn(
+                                'duration-medium2 ease-emphasized border-outline-variant mb-4 flex h-14 w-14 items-center justify-center rounded-lg border transition-all',
+                                isDragging
+                                    ? 'bg-primary text-on-primary'
+                                    : 'bg-surface-container-high text-on-surface-variant group-hover:text-on-surface group-hover:bg-surface-container-low shadow-elevation-1',
+                            )}
+                        >
+                            <MaterialIcon name="cloud_upload" size={32} />
+                        </div>
+                        <p className="text-title-small text-on-surface mb-1">{label}</p>
+                        <p className="text-body-small text-on-surface-variant">{subLabel}</p>
+                        <p className="text-on-surface-variant mt-2 text-[12px] leading-4">
+                            {formatFileSize(maxSize)} par fichier au plus
+                        </p>
+                    </>
+                )}
+            </div>
 
-        {/* Le refus, sous la zone : 14 sur 20, glyphe de 18, encre danger — la forme
+            {/* Le refus, sous la zone : 14 sur 20, glyphe de 18, encre danger — la forme
             du message au champ de 17.5. Il nomme le fichier et sa taille. */}
-        {refus && (
-            <p className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5" role="alert">
-                <Icon glyph={XCircle} size={18} className="mt-px" />
-                <span>{refus}</span>
-            </p>
-        )}
+            {refus && (
+                <p
+                    className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5"
+                    role="alert"
+                >
+                    <Icon glyph={XCircle} size={18} className="mt-px" />
+                    <span>{refus}</span>
+                </p>
+            )}
         </>
     );
 };

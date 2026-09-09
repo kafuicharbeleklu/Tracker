@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CaretRight, Info, Plus, Warning } from '@phosphor-icons/react';
+import { CaretRight, DotsThreeVertical, FolderOpen, Info, Warning } from '@phosphor-icons/react';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
@@ -14,6 +14,8 @@ import AddModelPage from './AddModelPage';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useToast } from '../../../context/ToastContext';
 import AddCategoryPage from './AddCategoryPage';
+import Menu from '../../../components/ui/Menu';
+import ListActionFab from '../../../components/ui/ListActionFab';
 
 /**
  * « on ne peut pas créer **de serveur** », « **d'écran** » — la conséquence se dit
@@ -54,6 +56,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
     if (!category) {
         return (
             <ScreenState
+                icon={FolderOpen}
                 title="Catégorie introuvable"
                 description="La catégorie demandée n'existe pas ou a été retirée du catalogue."
                 actions={
@@ -102,6 +105,78 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
         <DetailTemplate
             code="Type"
             onBack={onBack}
+            /* **Les deux actes du type sont au ⋮**, comme sur la fiche d'un modèle : une
+               fiche n'aligne pas ses actes en boutons au bas de son contenu, où ils se
+               découvrent après trois cartes. Le destructeur est le dernier, derrière un
+               filet, en encre de danger. */
+            menu={
+                <Menu
+                    align="end"
+                    items={[
+                        {
+                            id: 'edit',
+                            label: 'Modifier le type',
+                            description: 'nom, famille, amortissement, pictogramme',
+                            onSelect: () => setIsEditOpen(true),
+                        },
+                        {
+                            id: 'delete',
+                            label: 'Supprimer le type',
+                            description:
+                                categoryEquipment.length > 0
+                                    ? `${categoryEquipment.length} actif${categoryEquipment.length > 1 ? 's' : ''} le portent encore`
+                                    : 'aucun actif ne le porte',
+                            destructive: true,
+                            dividerBefore: true,
+                            onSelect: () =>
+                                requestConfirmation({
+                                    title: `Supprimer « ${displayName} » du catalogue ?`,
+                                    message:
+                                        categoryEquipment.length > 0
+                                            ? `${categoryEquipment.length} actif(s) portent ce type. Ils ne sont pas supprimés, mais plus rien ne définira ce qu'ils sont.`
+                                            : 'Aucun actif ne porte ce type. Les modèles qui en dépendent perdent leur rattachement.',
+                                    confirmText: 'Supprimer le type',
+                                    tone: 'destructive',
+                                    irreversible: true,
+                                    onConfirm: () => {
+                                        deleteCategory(category.id);
+                                        showToast(
+                                            `« ${displayName} » supprimé du catalogue.`,
+                                            'success',
+                                        );
+                                        onBack();
+                                    },
+                                }),
+                        },
+                    ]}
+                    trigger={
+                        <Button
+                            variant="text"
+                            iconOnly
+                            aria-label="Actes du type"
+                            className="text-on-surface hover:bg-surface-container flex h-12 w-12 items-center justify-center rounded-md p-0"
+                        >
+                            <Icon glyph={DotsThreeVertical} size={20} />
+                        </Button>
+                    }
+                />
+            }
+            /* `.fab` — **le geste d'ajout est flottant** (17.6) : « Ajouter un modèle »
+               vivait en pied de carte, sous la liste des modèles, où il se découvrait
+               après avoir défilé. Un acte de création ne se cherche pas. */
+            fab={
+                <ListActionFab
+                    label="modèle"
+                    actions={[
+                        {
+                            id: 'add-model',
+                            label: 'Ajouter un modèle',
+                            icon: 'add',
+                            onSelect: () => setIsAddModelOpen(true),
+                        },
+                    ]}
+                />
+            }
             /*
              * **La passe sobre du 03/09 redonne un héro à la fiche d'un type.** Le
              * portage précédent l'avait retiré, sur une lecture antérieure de 09.1 ; la
@@ -242,16 +317,6 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                 />
                             ))}
                         </div>
-                        {/* `.more.center` — le geste d'ajout ne vit pas qu'à l'état vide :
-                            la planche le pose sous les quatre modèles du type ouvert. */}
-                        <button
-                            type="button"
-                            onClick={() => setIsAddModelOpen(true)}
-                            className="border-outline-variant text-on-surface hover:text-text-secondary mt-2 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-0 border-t bg-transparent pt-2 text-[14px] font-medium transition-colors"
-                        >
-                            <Icon glyph={Plus} size={18} className="text-text-secondary" />
-                            Ajouter un modèle
-                        </button>
                     </>
                 ) : (
                     /* Un type inutilisable **ne s'excuse pas et ne clignote pas** (09.1,
@@ -366,38 +431,6 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                         <span>Voir les {categoryEquipment.length} actifs dans l'inventaire</span>
                     </Button>
                 )}
-            </section>
-
-            {/* Les deux actes du type. **Rien de destructif dans une rangée** : une
-                suppression se décide devant l'objet, jamais en le survolant dans une
-                liste (04.1). Ils étaient au survol d'une carte du catalogue. */}
-            <section className="flex flex-col gap-3">
-                <Button variant="outlined" onClick={() => setIsEditOpen(true)}>
-                    Modifier le type
-                </Button>
-                <Button
-                    variant="text"
-                    className="text-error"
-                    onClick={() =>
-                        requestConfirmation({
-                            title: `Supprimer « ${displayName} » du catalogue ?`,
-                            message:
-                                categoryEquipment.length > 0
-                                    ? `${categoryEquipment.length} actif(s) portent ce type. Ils ne sont pas supprimés, mais plus rien ne définira ce qu'ils sont.`
-                                    : 'Aucun actif ne porte ce type. Les modèles qui en dépendent perdent leur rattachement.',
-                            confirmText: 'Supprimer le type',
-                            tone: 'destructive',
-                            irreversible: true,
-                            onConfirm: () => {
-                                deleteCategory(category.id);
-                                showToast(`« ${displayName} » supprimé du catalogue.`, 'success');
-                                onBack();
-                            },
-                        })
-                    }
-                >
-                    Supprimer le type
-                </Button>
             </section>
 
             <AddCategoryPage

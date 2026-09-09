@@ -1,16 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    Camera,
-    Check,
-    Cpu,
-    FileText,
-    Info,
-    MapPin,
-    Package,
-    Scan,
-    ShieldCheck,
-    Tag,
-} from '@phosphor-icons/react';
+import { Camera, Check, FileText, Info, Package, Scan, Tag } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -23,6 +12,7 @@ import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormL
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { getCategoryLabel } from '../../../constants/glossary';
+import { getStatusPresentation } from '../../../constants/statusPresentation';
 import { resolveDepreciationConfig } from '../../../lib/financial';
 import {
     countryCode,
@@ -312,21 +302,22 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         ]);
     };
 
+    /**
+     * **Un champ précis en cause se dit au champ** — 17.5, troisième réponse de la
+     * question de tri. Les deux contrôles de l'enregistrement passaient par un
+     * snackbar : le message s'effaçait au bout de quatre secondes, loin du champ
+     * fautif, et il faisait 66 et 84 signes là où un retour transitoire en tient 60.
+     * Ce n'était pas un retour transitoire mal écrit, c'était un tri mal fait.
+     */
+    const [erreursChamp, setErreursChamp] = useState<{ model?: string; serialNumber?: string }>({});
+
     const handleSave = () => {
-        if (!formData.model) {
-            showToast(
-                'Choisissez un modèle au catalogue : il porte le type et la marque.',
-                'error',
-            );
-            return;
-        }
-        if (!formData.serialNumber.trim()) {
-            showToast(
-                "Le numéro de série est le seul champ que rien ne connaît : lisez-le sur l'étiquette.",
-                'error',
-            );
-            return;
-        }
+        const manques: { model?: string; serialNumber?: string } = {};
+        if (!formData.model) manques.model = 'Choisissez un modèle au catalogue.';
+        if (!formData.serialNumber.trim())
+            manques.serialNumber = "Lisez-le sur l'étiquette de l'objet.";
+        setErreursChamp(manques);
+        if (manques.model || manques.serialNumber) return;
 
         const readableId = resolvedId || formData.model;
 
@@ -378,11 +369,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
         <>
             <FullScreenFormLayout
                 title={isEditMode ? 'Modifier la fiche' : 'Nouvel équipement'}
-                subtitle={
-                    isEditMode
-                        ? `${existing?.name || internalCode} · fiche existante`
-                        : "L'identifiant se déduit à l'enregistrement"
-                }
                 onCancel={onCancel}
                 onSave={handleSave}
                 saveLabel="Enregistrer"
@@ -391,7 +377,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             >
                 <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
                     {/* ── Référence ───────────────────────────────────────────────── */}
-                    <FormSection title="Référence" glyph={Package} tint="bleu">
+                    <FormSection title="Référence">
                         <div>
                             <FieldLabel>Modèle</FieldLabel>
                             {/* `.pick` — 56 de haut, sur le creux, rayon 4 : la même
@@ -435,6 +421,11 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     {selectedModel ? 'Changer' : 'Choisir'}
                                 </Button>
                             </div>
+                            {erreursChamp.model && (
+                                <p className="text-error mt-1.5 text-[14px] leading-5">
+                                    {erreursChamp.model}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -443,8 +434,12 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 <InputField
                                     name="serialNumber"
                                     value={formData.serialNumber}
-                                    onChange={handleChange}
+                                    onChange={(event) => {
+                                        setErreursChamp((e) => ({ ...e, serialNumber: undefined }));
+                                        handleChange(event);
+                                    }}
                                     placeholder="tel qu'il figure sur l'étiquette"
+                                    error={erreursChamp.serialNumber}
                                     containerClassName="flex-1 min-w-0"
                                 />
                                 {/* `.act` de la planche : une pastille sur encart, pas un
@@ -509,12 +504,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Configuration ────────────────────────────────────────────── */}
-                    <FormSection
-                        title="Configuration"
-                        glyph={Cpu}
-                        tint="vert"
-                        caption="pré-remplie par le modèle"
-                    >
+                    <FormSection title="Configuration" caption="pré-remplie par le modèle">
                         <div className="flex gap-2.5">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Mémoire</FieldLabel>
@@ -551,7 +541,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Où, et dans quel état ────────────────────────────────────── */}
-                    <FormSection title="Où, et dans quel état" glyph={MapPin} tint="ambre">
+                    <FormSection title="Où, et dans quel état">
                         <div className="flex gap-2.5">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Pays</FieldLabel>
@@ -593,8 +583,11 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             {stateComesFromAGesture ? (
                                 <>
                                     <p className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
+                                        {/* Une `Icon` sans `glyph` ne dessine rien : la
+                                            rangée annonçait un état sans son
+                                            pictogramme, et I3 en demande les deux. */}
                                         <Icon
-                                            glyph={MapPin}
+                                            glyph={getStatusPresentation(formData.status).icon}
                                             size={18}
                                             className="text-on-surface-variant"
                                         />
@@ -637,7 +630,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Achat et garantie ────────────────────────────────────────── */}
-                    <FormSection title="Achat et garantie" glyph={ShieldCheck} tint="orange">
+                    <FormSection title="Achat et garantie">
                         <div>
                             <FieldLabel>Fournisseur</FieldLabel>
                             <InputField
@@ -660,6 +653,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Prix d'achat</FieldLabel>
                                 <InputField
+                                    mesure="courte"
                                     type="number"
                                     name="purchasePrice"
                                     value={formData.purchasePrice}
@@ -691,7 +685,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     </FormSection>
 
                     {/* ── Documents ────────────────────────────────────────────────── */}
-                    <FormSection title="Documents" glyph={FileText} tint="bleu">
+                    <FormSection title="Documents">
                         {/* `.shots` — les deux pièces de la planche, chacune dans sa
                             case de 56. La case et le champ caché sont des primitives :
                             trois écrans joignent des pièces, et chacun réécrivait sa

@@ -1,17 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CaretRight, DotsThreeVertical, Plus } from '@phosphor-icons/react';
+import {
+    Calculator,
+    CaretRight,
+    DotsThreeVertical,
+    ListBullets,
+} from '@phosphor-icons/react';
 
 import { PageContainer } from '../../../components/layout/PageContainer';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import Reading from '../../../components/layout/Reading';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import SelectField from '../../../components/ui/SelectField';
-import { MEDIA } from '../../../constants/breakpoints';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { formatCurrency } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import { FinanceBudgetItem, ViewType } from '../../../types';
@@ -19,7 +21,6 @@ import { AddBudgetModal } from '../components/AddBudgetModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import ExpenseDetailSheet from '../components/ExpenseDetailSheet';
 import { useBudgetExercise } from '../hooks/useBudgetExercise';
-import { formatExpenseDate } from '../lib/expensePresentation';
 
 interface FinanceManagementPageProps {
     onViewChange: (view: ViewType) => void;
@@ -64,7 +65,6 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     const [isAddBudgetModalOpen, setIsAddBudgetModalOpen] = useState(false);
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-    const isCompact = useMediaQuery(MEDIA.compact);
 
     const [selectedYear, setSelectedYear] = useState<number>(
         () => financeBudgets[0]?.year || new Date().getFullYear(),
@@ -85,24 +85,6 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
             new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date()),
         [],
     );
-
-    const paceNote = useMemo(() => {
-        const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const dayOfYear = Math.floor(
-            (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
-        );
-        const expectedPace = (dayOfYear / 365) * 100;
-        const diff = spentPercent - expectedPace;
-
-        if (diff > 12) {
-            return `soit un rythme supérieur aux prévisions de l'exercice.`;
-        }
-        if (diff < -12) {
-            return `soit une consommation maîtrisée sur le calendrier de l'exercice.`;
-        }
-        return `en ligne avec le rythme prévisionnel de l'exercice.`;
-    }, [spentPercent]);
 
     const budgetYearOptions = useMemo(() => {
         if (financeBudgets.length > 0) {
@@ -138,115 +120,130 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
 
             <PageContainer>
                 {/* Le héro dit l'exercice et son état : un sous-titre de page le
-                    redirait une ligne plus haut (15.1). */}
-                <PageHeader
-                    title="Finances"
-                    breadcrumb="Finances"
-                    actions={
-                        /* Sur téléphone la planche range les deux actes derrière le
-                           « ⋮ » de sa barre : trois contrôles empilés pleine largeur
-                           repousseraient le héro — le seul chiffre pour lequel on
-                           ouvre cette page — sous la ligne de flottaison. */
-                        <div className="medium:w-auto medium:gap-3 flex w-full items-center gap-2">
-                            <SelectField
-                                name="finance-year"
-                                value={selectedYear.toString()}
-                                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                options={budgetYearOptions}
-                                placeholder="Choisir un exercice"
-                                className="medium:w-44 medium:flex-none flex-1 space-y-0"
-                            />
-                            {isCompact ? (
-                                <Menu
-                                    align="end"
-                                    items={[
-                                        {
-                                            id: 'budget',
-                                            label: 'Définir le budget',
-                                            icon: 'add',
-                                            onSelect: () => setIsAddBudgetModalOpen(true),
-                                        },
-                                        {
-                                            id: 'expense',
-                                            label: 'Enregistrer une dépense',
-                                            icon: 'receipt_long',
-                                            onSelect: () => setIsAddExpenseModalOpen(true),
-                                        },
-                                    ]}
-                                    trigger={
-                                        <Button
-                                            variant="text"
-                                            iconOnly
-                                            aria-label="Actions de l'exercice"
-                                        >
-                                            <Icon glyph={DotsThreeVertical} />
-                                        </Button>
-                                    }
-                                />
-                            ) : (
-                                <>
-                                    <Button
-                                        variant="outlined"
-                                        icon={<Icon glyph={Plus} size={18} />}
-                                        onClick={() => setIsAddBudgetModalOpen(true)}
-                                        className="whitespace-nowrap"
-                                    >
-                                        Définir le budget
-                                    </Button>
-                                    <Button
-                                        variant="filled"
-                                        icon={<Icon glyph={Plus} size={18} />}
-                                        onClick={() => setIsAddExpenseModalOpen(true)}
-                                        className="whitespace-nowrap"
-                                    >
-                                        Enregistrer une dépense
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    }
-                />
+                {/*
+                  **`.top` de 15.1** — le même bloc que les autres domaines : fond de
+                  surface, un filet dessous, intérieur `8 / 16 / 12`, gouttière 12, et le
+                  titre en **28 sur 32**. Il passait par `PageHeader`, qui pose un fil
+                  d'Ariane « Finances » au-dessus d'un titre « Finances » et n'a pas
+                  l'échelle du palier haut.
+
+                  Les deux actes restent au ⋮ : *« trois contrôles empilés pleine largeur
+                  repousseraient le héro — le seul chiffre pour lequel on ouvre cette
+                  page — sous la ligne de flottaison. »*
+                */}
+                <div className="border-outline-variant bg-surface -mx-page -mt-page mb-4 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+                    <div className="flex min-h-12 items-center gap-2">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            Finances
+                        </h1>
+                        <Menu
+                            align="end"
+                            items={[
+                                {
+                                    id: 'budget',
+                                    label: 'Définir le budget',
+                                    description: 'les postes de l’exercice et leurs enveloppes',
+                                    onSelect: () => setIsAddBudgetModalOpen(true),
+                                },
+                                {
+                                    id: 'expense',
+                                    label: 'Enregistrer une dépense',
+                                    description: 'une écriture sur un poste',
+                                    onSelect: () => setIsAddExpenseModalOpen(true),
+                                },
+                            ]}
+                            trigger={
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label="Actes de l’exercice"
+                                    className="text-on-surface hover:bg-surface-container flex h-12 w-12 shrink-0 items-center justify-center rounded-md p-0"
+                                >
+                                    <Icon glyph={DotsThreeVertical} size={20} />
+                                </Button>
+                            }
+                        />
+                    </div>
+                    {/* Changer d'exercice — 15.1 en fait un geste du héro qui mène à
+                        l'écran « Exercices » ; celui-ci n'existe pas encore, le sélecteur
+                        tient la place et reste dans le bloc fixe. */}
+                    <SelectField
+                        name="finance-year"
+                        value={selectedYear.toString()}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        options={budgetYearOptions}
+                        placeholder="Choisir un exercice"
+                        className="space-y-0"
+                    />
+                </div>
 
                 {/* **Une seule largeur de lecture — 960 px** (§2.43). */}
                 <Reading className="animate-in fade-in slide-in-from-bottom-4 duration-medium2">
                     <div className="space-y-5">
-                        {/* HERO PLANCHE 15.1 */}
-                        <section className="shadow-elevation-1 flex flex-col gap-3 rounded-lg bg-[var(--tk-color-dark)] p-4 text-[var(--tk-color-on-dark)]">
-                            <p className="text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">
+                        {/*
+                          **LE HÉRO DE 15.1**, dans la grammaire des quatre autres domaines
+                          (09, 10, 16, 04) : surtitre en capitales, **le restant en 44**,
+                          l'unité à côté, ce sur quoi il se compte dessous, la jauge, puis
+                          la ligne de lecture — deux faits, un de chaque côté.
+
+                          Il tenait un intérieur de 16 au lieu de `22 / 20 / 20`, un chiffre
+                          en **28** au lieu de 44, deux filets que la planche ne déclare pas,
+                          un « restants sur / une enveloppe de » coupé par un `<br>`, et
+                          **aucune jauge** — le seul dessin qui dise d'un coup où en est
+                          l'exercice.
+                        */}
+                        <section className="bg-inverse-surface text-inverse-on-surface rounded-lg px-5 pt-[22px] pb-5">
+                            <span className="block text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                                 Exercice {selectedYear} · {currentBudget.status.toLowerCase()}
-                            </p>
-                            <div className="flex items-baseline gap-2.5 border-t border-[var(--tk-color-dark-line)] pt-3.5">
-                                <b className="font-brand text-[28px] font-semibold tracking-tight text-[var(--tk-color-on-dark)] tabular-nums">
+                            </span>
+                            <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
+                                <b className="font-brand text-[44px] leading-[48px] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
                                     {formatCurrency(
                                         budgetStats.remaining,
                                         settings.currency,
                                         settings.compactNotation,
                                     )}
                                 </b>
-                                <span className="text-[13px] leading-[19px] text-[var(--tk-color-on-dark-2)]">
-                                    restants sur
-                                    <br />
-                                    une enveloppe de{' '}
-                                    {formatCurrency(
-                                        budgetStats.totalAllocated,
-                                        settings.currency,
-                                        settings.compactNotation,
-                                    )}
-                                </span>
                             </div>
-                            <p className="mt-1 border-t border-[var(--tk-color-dark-line)] pt-2.5 text-[12px] leading-[17px] text-[var(--tk-color-on-dark-2)]">
-                                {spentPercent.toFixed(0)} % consommés au {currentFrenchDate} —{' '}
-                                {paceNote}
-                            </p>
+                            <span className="mt-1 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                restants sur{' '}
+                                {formatCurrency(
+                                    budgetStats.totalAllocated,
+                                    settings.currency,
+                                    settings.compactNotation,
+                                )}
+                            </span>
+                            {budgetStats.totalAllocated > 0 && (
+                                <>
+                                    {/* `.prog` — 6 px, rayon 2, sur le voile à 12 %. */}
+                                    <div className="mt-5 h-1.5 overflow-hidden rounded-sm bg-white/[0.12]">
+                                        <i
+                                            className="block h-full bg-[var(--tk-color-live-vert)]"
+                                            style={{ width: `${Math.min(spentPercent, 100)}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex justify-between gap-3 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                        <span>
+                                            <b className="text-inverse-on-surface font-medium">
+                                                {spentPercent.toFixed(0)} %
+                                            </b>{' '}
+                                            consommés
+                                        </span>
+                                        <span>au {currentFrenchDate}</span>
+                                    </div>
+                                </>
+                            )}
                         </section>
 
                         {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
                         <section className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
-                            <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[13px] font-medium">
+                            {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
+                                le compte en 14 sur 20. Il tenait 13 px des deux côtés. */}
+                            <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
+                                <h3 className="text-on-surface text-[17px] leading-6 font-medium">
                                     Les postes
                                 </h3>
-                                <span className="text-on-surface-variant text-[13px] tabular-nums">
+                                <span className="text-on-surface-variant text-[14px] leading-5 tabular-nums">
                                     {currentBudget.items.length}
                                 </span>
                             </div>
@@ -261,49 +258,58 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         const isOver = itemRemaining < 0 || itemPercent >= 100;
                                         const classification = budgetCapitalization(item);
                                         return (
-                                            <div
-                                                key={idx}
-                                                className="space-y-1.5 py-2.5 first:pt-1 last:pb-1"
-                                            >
+                                            <div key={idx} className="flex flex-col gap-2 py-3">
+                                                {/* `.bt` — le nom en 16/24, puis **le
+                                                    consommé sur l'affecté** : le premier en
+                                                    encre pleine, le second en secondaire.
+                                                    Il était barré (`<s>`), ce qui dit
+                                                    « annulé » d'un montant qui ne l'est
+                                                    pas. */}
                                                 <div className="flex items-baseline justify-between gap-3">
-                                                    <span className="text-on-surface text-[14px] font-normal">
+                                                    <span className="text-on-surface text-[16px] leading-6">
                                                         {item.category}
                                                     </span>
-                                                    <span className="text-on-surface text-[14px] font-medium whitespace-nowrap tabular-nums">
-                                                        {formatCurrency(
-                                                            item.spent,
-                                                            settings.currency,
-                                                            settings.compactNotation,
-                                                        )}{' '}
-                                                        <s className="text-[11px] font-normal text-[var(--tk-color-text-muted)] no-underline">
-                                                            /{' '}
+                                                    <span className="text-on-surface-variant text-[14px] leading-5 whitespace-nowrap tabular-nums">
+                                                        <b className="text-on-surface text-[16px] font-medium">
                                                             {formatCurrency(
-                                                                item.allocated,
+                                                                item.spent,
                                                                 settings.currency,
                                                                 settings.compactNotation,
                                                             )}
-                                                        </s>
+                                                        </b>{' '}
+                                                        /{' '}
+                                                        {formatCurrency(
+                                                            item.allocated,
+                                                            settings.currency,
+                                                            settings.compactNotation,
+                                                        )}
                                                     </span>
                                                 </div>
-                                                <div className="h-1.5 overflow-hidden rounded-xs bg-[var(--tk-color-surface-container)]">
+                                                {/* `.gauge` — **le vert d'état**, l'orange
+                                                    quand l'enveloppe est épuisée. Elle
+                                                    tirait le bleu, qui ne dit rien ici. */}
+                                                <div className="bg-surface-container h-1.5 overflow-hidden rounded-sm">
                                                     <div
                                                         className={cn(
-                                                            'h-full rounded-xs transition-all duration-300',
+                                                            'h-full transition-all duration-300',
                                                             isOver
                                                                 ? 'bg-[var(--tk-color-st-orange)]'
-                                                                : 'bg-[var(--tk-color-st-bleu)]',
+                                                                : 'bg-[var(--tk-color-st-vert)]',
                                                         )}
                                                         style={{
                                                             width: `${Math.min(itemPercent, 100)}%`,
                                                         }}
                                                     />
                                                 </div>
-                                                <div className="text-on-surface-variant flex items-center gap-2 text-[12px]">
+                                                <div className="text-on-surface-variant flex items-center gap-2 text-[12px] leading-4">
                                                     {/* Une ligne qui ne porte pas son classement **n'affiche rien** : un
                                                         blanc se remarque et se corrige, une supposition se recopie
                                                         dans le rapport de clôture (15.1). */}
                                                     {classification && (
-                                                        <span className="text-on-surface-variant rounded-full bg-[var(--tk-color-surface-container)] px-2 py-0.5 text-[11px] font-medium tracking-wide">
+                                                        /* `.tag` — 20 de haut, rayon **4**,
+                                                            creux : c'est une étiquette de
+                                                            donnée, pas une pastille. */
+                                                        <span className="bg-surface-container text-on-surface-variant inline-flex h-5 items-center rounded-[4px] px-1.5 font-medium">
                                                             {classification}
                                                         </span>
                                                     )}
@@ -324,80 +330,73 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             </div>
                         </section>
 
-                        {/* SECTION 2 : DERNIÈRES DÉPENSES (PLANCHE 15.1) */}
-                        <section className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
-                            <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[13px] font-medium">
-                                    Dernières dépenses
+                        {/*
+                          **« ALLER À » — deux destinations, pas un aperçu.** 15.1 :
+                          *« l'accueil du domaine porte un exercice et **deux
+                          destinations** : ses lignes, ses dépenses »*. La carte listait à
+                          la place les trois dernières dépenses, avec un lien au bout :
+                          un extrait de la page voisine, qu'il fallait lire pour découvrir
+                          qu'elle existait. Les deux rangées la nomment et la comptent.
+                        */}
+                        <section className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border px-5 py-2">
+                            <div className="flex min-h-12 items-center pt-2 pb-1">
+                                <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                                    Aller à
                                 </h3>
-                                <span className="text-on-surface-variant text-[13px] tabular-nums">
-                                    {Math.min(3, financeExpenses.length)} sur{' '}
-                                    {financeExpenses.length}
-                                </span>
                             </div>
-                            <div className="divide-outline-variant divide-y">
-                                {financeExpenses.length > 0 ? (
-                                    financeExpenses.slice(0, 3).map((exp) => (
-                                        <div
-                                            key={exp.id}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setSelectedExpenseId(exp.id)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    setSelectedExpenseId(exp.id);
-                                                }
-                                            }}
-                                            className="hover:bg-surface-container/50 focus-visible:ring-primary -mx-2 flex min-h-[56px] cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors outline-none focus-visible:ring-2"
-                                        >
-                                            <div className="flex min-w-0 flex-col">
-                                                <span className="text-on-surface truncate text-[14px] font-normal">
-                                                    {exp.supplier}
-                                                </span>
-                                                <span className="text-on-surface-variant truncate text-[12px] leading-[17px]">
-                                                    {formatExpenseDate(exp.date)} ·{' '}
-                                                    {exp.invoiceNumber ||
-                                                        exp.description ||
-                                                        'Facture'}
-                                                </span>
-                                            </div>
-                                            <div className="flex shrink-0 items-center gap-2">
-                                                <span className="text-on-surface text-[14px] font-medium whitespace-nowrap tabular-nums">
-                                                    {formatCurrency(
-                                                        exp.amount,
-                                                        exp.currencyCode || settings.currency,
-                                                        settings.compactNotation,
-                                                    )}
-                                                </span>
-                                                <Icon
-                                                    glyph={CaretRight}
-                                                    size={18}
-                                                    className="text-on-surface-variant shrink-0"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-body-small text-text-muted py-4 text-center">
-                                        Aucune dépense enregistrée sur cet exercice.
-                                    </p>
-                                )}
-                            </div>
-                            {financeExpenses.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => onViewChange('finance_expenses')}
-                                    className="border-outline-variant text-on-surface hover:text-on-surface-variant mt-2 flex min-h-[48px] w-full cursor-pointer items-center gap-2.5 border-0 border-t bg-transparent pt-2 text-left text-[14px] font-medium transition-colors"
+                            {(
+                                [
+                                    {
+                                        id: 'lignes',
+                                        glyph: Calculator,
+                                        titre: 'Les lignes du budget',
+                                        detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatCurrency(budgetStats.totalAllocated, settings.currency, settings.compactNotation)} affectés`,
+                                        aller: () => setIsAddBudgetModalOpen(true),
+                                    },
+                                    {
+                                        id: 'depenses',
+                                        glyph: ListBullets,
+                                        titre: 'Les dépenses',
+                                        detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''} · ${formatCurrency(budgetStats.totalSpent, settings.currency, settings.compactNotation)}`,
+                                        aller: () => onViewChange('finance_expenses'),
+                                    },
+                                ] as const
+                            ).map((rangee, index) => (
+                                /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
+                                <div
+                                    key={rangee.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={rangee.aller}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            rangee.aller();
+                                        }
+                                    }}
+                                    className={cn(
+                                        'flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                        index > 0 && 'border-outline-variant border-t',
+                                    )}
                                 >
+                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                        <Icon glyph={rangee.glyph} size={20} />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="text-on-surface block truncate text-[16px] leading-6">
+                                            {rangee.titre}
+                                        </span>
+                                        <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                            {rangee.detail}
+                                        </span>
+                                    </span>
                                     <Icon
                                         glyph={CaretRight}
-                                        size={18}
-                                        className="text-on-surface-variant shrink-0"
+                                        size={20}
+                                        className="text-text-tertiary shrink-0"
                                     />
-                                    Voir les {financeExpenses.length} dépenses de l'exercice
-                                </button>
-                            )}
+                                </div>
+                            ))}
                         </section>
                     </div>
                 </Reading>

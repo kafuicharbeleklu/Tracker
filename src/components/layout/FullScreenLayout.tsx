@@ -14,7 +14,6 @@ interface FullScreenLayoutProps {
      * sur quoi on travaille**, pas ce que fait l'écran ; sans elle, une saisie et une
      * correction portent exactement le même en-tête.
      */
-    subtitle?: string;
     onClose: () => void;
     onBack?: () => void;
     headerContent?: React.ReactNode;
@@ -26,7 +25,6 @@ interface FullScreenLayoutProps {
 
 export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
     title,
-    subtitle,
     onClose,
     onBack,
     headerContent,
@@ -84,11 +82,6 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 >
                                     {title}
                                 </h1>
-                                {subtitle && (
-                                    <p className="text-on-surface-variant truncate text-[12px] leading-4">
-                                        {subtitle}
-                                    </p>
-                                )}
                             </div>
 
                             <div className="flex items-center justify-end">
@@ -118,11 +111,6 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                     >
                                         {title}
                                     </h1>
-                                    {subtitle && (
-                                        <p className="text-on-surface-variant truncate text-[12px] leading-4">
-                                            {subtitle}
-                                        </p>
-                                    )}
                                 </div>
                             </div>
 
@@ -147,11 +135,18 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                 )}
             </div>
 
-            {/* Content */}
+            {/*
+              **Le contenu d'un flux s'arrête à 560 px, à toutes les largeurs** (00.5).
+              Une liste gagne des rangées quand l'écran s'élargit — c'est du gain sans
+              décision. Un formulaire n'y gagne rien : *« un champ de 680 px pour saisir
+              un numéro de série est plus difficile à viser, plus difficile à relire, et
+              il fait mentir la hiérarchie — un champ large a l'air d'attendre un long
+              texte »*. Il tenait ici 1024.
+            */}
             <div className="w-full flex-1 overflow-y-auto scroll-smooth">
                 <div
                     className={cn(
-                        'px-page-sm medium:px-page mx-auto max-w-5xl',
+                        'px-page-sm medium:px-page mx-auto max-w-[560px]',
                         isCompactLandscape ? 'py-4' : 'py-8',
                     )}
                 >
@@ -167,7 +162,15 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                         isCompactLandscape ? 'p-3' : 'p-4',
                     )}
                 >
-                    <div className="mx-auto flex max-w-5xl justify-end gap-3">{footerActions}</div>
+                    {/*
+                      **Le corollaire, et c'est celui qu'on oublie : le pied se borne à la
+                      même mesure.** Un « Continuer » collé au bord droit d'un écran de
+                      768 px n'est plus au bout de ce qu'on vient de lire — il est
+                      ailleurs.
+                    */}
+                    <div className="mx-auto flex max-w-[560px] justify-end gap-3">
+                        {footerActions}
+                    </div>
                 </div>
             )}
         </div>

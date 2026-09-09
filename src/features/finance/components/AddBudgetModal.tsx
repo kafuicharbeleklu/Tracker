@@ -35,9 +35,20 @@ interface AddBudgetModalProps {
 }
 
 interface BudgetLine {
+    /**
+     * **L'identité d'une ligne en cours de saisie.** Elle sert de clé de rendu, et c'est
+     * par elle que « retirer » et « modifier » désignent leur ligne : deux enveloppes
+     * peuvent porter le même nom tant qu'on les tape. Le champ était **écrit partout et
+     * déclaré nulle part** — six créations le posaient, trois lectures s'en servaient.
+     */
+    id: string;
     category: string;
     amount: string;
-    type: FinanceExpenseType;
+    /**
+     * **`type` a été retiré.** Il était posé sur les trois lignes de départ et jamais
+     * relu : à l'enregistrement, la nature se **recalcule** de la catégorie
+     * (`getFinanceTypeFromCategory`). Deux sources pour un même fait, dont une morte.
+     */
     capitalization?: 'CAPEX' | 'OPEX';
 }
 
@@ -85,15 +96,32 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const [year, setYear] = useState(new Date().getFullYear().toString());
     const requiresLowConfidenceReview = Boolean(importedFile && importMeta?.confidence === 'low');
 
+    /*
+      **Les trois lignes de départ n'avaient pas d'identité**, et `id` sert de clé de
+      rendu *et* de désignation à « retirer » et « modifier » : `removeLine(undefined)`
+      ne filtrait rien, `updateLine(undefined)` ne trouvait personne, et React recevait
+      trois clés `undefined` côte à côte. Le formulaire s'ouvrait donc sur trois lignes
+      qu'on ne pouvait ni corriger ni supprimer.
+    */
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
-        { category: 'Matériel IT', amount: '25000', type: 'Purchase', capitalization: 'CAPEX' },
         {
+            id: 'depart-materiel',
+            category: 'Matériel IT',
+            amount: '25000',
+            capitalization: 'CAPEX',
+        },
+        {
+            id: 'depart-licences',
             category: 'Licences & Logiciels',
             amount: '12000',
-            type: 'License',
             capitalization: 'OPEX',
         },
-        { category: 'Infrastructure Cloud', amount: '8000', type: 'Cloud', capitalization: 'OPEX' },
+        {
+            id: 'depart-cloud',
+            category: 'Infrastructure Cloud',
+            amount: '8000',
+            capitalization: 'OPEX',
+        },
     ]);
 
     const totalBudget = useMemo(() => {
