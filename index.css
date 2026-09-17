@@ -53,7 +53,8 @@
     /* ---- Crans neutres de forme / élévation / voile ---- */
     --tk-radius-none: 0px;
     --tk-elevation-0: 0px 0px 0px 0px rgba(0, 0, 0, 0);
-    --tk-color-scrim: #000000;
+    /* `.scrim` des planches : le sombre du produit, pas le noir — les feuilles le posent à 42 %. */
+    --tk-color-scrim: var(--tk-color-dark);
 
     /* ---- TYPOGRAPHIE (compléments — le bloc sémantique de fin définit le reste) ---- */
     --tk-type-display-large-size: 57px;
@@ -656,6 +657,18 @@ body {
     --color-anthracite: #2e2725;
     --color-anthracite-strong: #1c1917;
 
+    /* ---- Le système LIVE de Neemba : quatre familles, quatre teintes ----
+       Angles emboîtés, losange, cercles concentriques, triangles en moulin — relevées
+       le 09/09 sur le cartouche de la charte (`images/imgdownloader-76bd8c9f.png`).
+       Ce sont des teintes de **marque**, pas de statut : rien dans le produit ne les
+       consomme en direct, seul le filigrane du bandeau de 02.1 les mélange au sombre
+       (`--color-login-live-*`, plus bas). Un composant qui voudrait s'en servir pour
+       dire un état aurait tort deux fois. */
+    --ref-live-vert: #9be767;
+    --ref-live-jaune: #ffe34d;
+    --ref-live-orange: #ff6b39;
+    --ref-live-bleu: #62c2ff;
+
     /* Échelle de référence marque (spec §2.1) — courte à dessein (Q-V5) :
        50/100/200 pour fonds/bordures d'accent ; 500/600/700 ci-dessous
        (= brand / brand-hover / brand-dark). Tout palier de plus doit être justifié. */
@@ -711,7 +724,10 @@ body {
        famille chaude que `--tk-color-surface-muted`, un cran plus appuyé. */
     --tk-color-surface-muted-strong: #edeae3;
     --tk-color-text-primary: #1a1917; /* 15,42:1 sur le canevas (avant : #1C1917) */
-    --tk-color-text-secondary: #57514a;
+    /* **L'encre secondaire est `--ink2`.** Les planches n'ont que trois encres de texte
+       et la note ; celle-ci valait un gris plus sombre qu'aucune planche ne dessine,
+       relevé sur 18 écrans le 13/09 (libellés de fiche, notes, boutons texte). */
+    --tk-color-text-secondary: var(--tk-color-text-muted);
     /* Aligné sur `--ink2` du socle des planches (#6C6862, était #6E675F). Le design
        system a arrêté cette valeur pour le contraste — « AA 4,86:1 sur canvas ; le
        #726E66 employé sur 32 planches tombait à 4,45:1 » — et c'est l'encre que
@@ -832,7 +848,9 @@ body {
        Ces deux rôles évitent aux primitives (`Button variant=nav`, `IconButton`,
        `NavButton`) de consommer directement le primitif --color-neutral-400. */
     --tk-color-on-nav-surface: #ffffff;
-    --tk-color-on-nav-surface-variant: var(--color-neutral-400);
+    /* Sur le sombre, la seconde encre est `--on-dark-2` : le neutre chaud d'avant
+       n'appartient à aucune planche (13/09 : le héro et ses tuiles, 23 écrans). */
+    --tk-color-on-nav-surface-variant: var(--tk-color-on-dark-2);
 
     /* ---- Couleurs live sur fond sombre (§2.10) ---- */
     --tk-color-dark: #0a191d;
@@ -887,6 +905,15 @@ body {
     --tk-elevation-4: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.04);
     --tk-elevation-5: 0 24px 60px rgb(15 23 42 / 0.16);
 
+    /* ---- Élévation des planches — trois ombres, et rien d'autre ne flotte (17.11) ----
+       La feuille qui monte du bas porte son ombre vers le haut ; le dialogue centré, une
+       ombre descendante plus large ; le geste d'ajout, une ombre courte. Toutes trois
+       dans le sombre du produit. Les élévations MD3 ci-dessus ne sont dessinées par
+       aucune planche : elles restent le temps que les derniers emplois tombent. */
+    --tk-shadow-sheet: 0 -10px 30px rgba(10, 25, 29, 0.22);
+    --tk-shadow-dialog: 0 12px 40px rgba(10, 25, 29, 0.24);
+    --tk-shadow-fab: 0 4px 14px rgba(10, 25, 29, 0.22);
+
     /* ---- Espacement — crans nommés du DS (pont Tailwind : p-page, p-card…) ----
        Étaient des littéraux dans tailwind.config.js : tokenisés ici pour que
        l'espacement soit lisible et surchargeable comme le reste du tier 2. */
@@ -902,8 +929,14 @@ body {
     /* ---- Typographie — crans hérités encore consommés par les classes
        .page-title / .section-title / body (doublons de l'échelle ci-dessous,
        à consolider : voir DESIGN_SYSTEM.md §5). ---- */
-    --tk-type-page-title-size: 1.875rem;
-    --tk-type-section-title-size: 1.125rem;
+    /* **Les deux seules mesures de titre de page** (R15, et les vingt planches).
+       `page-title` est le `.top h1` d'une destination : **28 sur 32**, Archivo 600,
+       chasse −.02em. Il valait 30, une marche que l'échelle 28 · 22 · 17 · 16 · 14 · 12
+       ne déclare pas. `section-title` est le `.sttl h3` d'une feuille ou d'une boîte :
+       **22 sur 28**, chasse −.015em. Il valait 18, une marche de plus inventée, et la
+       barre du haut la portait au-dessus de barres qui, elles, écrivaient 17. */
+    --tk-type-page-title-size: 1.75rem;
+    --tk-type-section-title-size: 1.375rem;
     --tk-type-base-size: 0.875rem;
 
     /* ---- Typographie — échelle de rôles ---- */
@@ -1023,7 +1056,10 @@ body {
     /* 6px — vignette de rangée et porte-glyphe. Rôle fixé par REGLES-TRANSVERSES §2.2
        et §2.31 (40 × 40, rayon 6), employé 88 fois dans les planches ; il n'avait aucune
        classe au pont, ce qu'un portage a fait apparaître le 08/08. */
-    --tk-radius-vignette: 6px;
+    /* **La vignette prend le rayon 4** — arbitré le 13/09. Les planches de liste (04.1
+       `.lth`, 05.1 et 03.3 `.vig`) le dessinent, et l'échelle du socle est 2 · 4 · 8 ;
+       le 6 ne survivait que dans des planches antérieures (04.2 `.doc`, 00.4, 00.5). */
+    --tk-radius-vignette: 4px;
 
     /* ---- §3 Espacement — crans mobiles (grille 4 pt) ----
        Les fourchettes du brief (gap 10–12, padding interne 14–16) sont arrondies
@@ -1092,6 +1128,41 @@ body {
        / slate-400) qu'il ne porte plus depuis le portage de 02.1 — il pointe la couche
        sémantique, qui vaut #B8B2A9, la valeur que §2.22 déclare pour `.brand p`. */
     --color-login-hero-text-muted: var(--tk-color-text-on-inverse-muted);
+
+    /* Le filigrane LIVE du bandeau de marque (02.1, 02.2) — le **cartouche des cartes
+       LIVE** : chaque famille dans sa teinte, **éteinte à 30 % sur le sombre**, et un
+       seul accent en couleur pleine. Relevé du 09/09 sur la charte : ses filets de fond
+       ne sont pas blancs, ils portent la couleur de leur famille rabattue sur le fond,
+       entre 21 et 29 % selon la famille — 30 ici, pour qu'ils se lisent au téléphone
+       (24 s'était perdu). Le blanc à 16 % qu'ils remplaçaient donnait la même luminance,
+       mais gris : ce n'était plus le système LIVE, c'était un motif.
+
+       `--color-login-live-accent` est l'orange **plein** : les arcs de l'angle bas-droit,
+       comme au dos des cartes. C'est la seule couleur vive du bandeau avec le filet
+       jaune, et elle ne dit rien d'autre que la marque — elle n'existe hors session. */
+    --color-login-live-vert: color-mix(in srgb, var(--ref-live-vert) 30%, var(--tk-color-inverse-surface));
+    --color-login-live-jaune: color-mix(in srgb, var(--ref-live-jaune) 30%, var(--tk-color-inverse-surface));
+    --color-login-live-orange: color-mix(in srgb, var(--ref-live-orange) 30%, var(--tk-color-inverse-surface));
+    --color-login-live-bleu: color-mix(in srgb, var(--ref-live-bleu) 30%, var(--tk-color-inverse-surface));
+    --color-login-live-accent: var(--ref-live-orange);
+}
+
+/* **Deux graisses** (R15) : 400 pour le texte, 500 pour ce qui se détache. Un `<b>` ou
+   un `<strong>` hérite du 700 du navigateur, qui n'existe nulle part dans les planches
+   (`b{font-weight:500}` y est global) ; il est ramené ici une fois pour tout le produit.
+
+   **Dans `@layer base`, et c'est tout le sujet.** Sans couche, la règle l'emporte sur
+   `@layer utilities` — le piège que ce fichier documente déjà plus bas pour `h1 {…}` —
+   et **elle avalait alors le 600 d'Archivo** partout où un `<b>` porte un chiffre de
+   héro : le restant de 15.1 en 44, celui de 16.1, les trois totaux de 11.1, le compte
+   de l'import. Mesuré le 10/09 : `fontWeight: 500` sur un `<b class="font-semibold">`.
+   Posée dans `base`, elle ne corrige plus que le 700 du navigateur, et n'importe quelle
+   classe de graisse la reprend. */
+@layer base {
+    b,
+    strong {
+        font-weight: 500;
+    }
 }
 
 html,
@@ -1281,10 +1352,11 @@ body {
 
 .page-title {
     color: var(--tk-color-text-primary);
+    font-family: var(--tk-type-font-brand);
     font-size: var(--tk-type-page-title-size);
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: 0;
+    line-height: 2rem;
+    letter-spacing: -0.02em;
 }
 
 /*
@@ -1301,7 +1373,7 @@ body {
     font-family: var(--tk-type-font-brand);
     font-size: var(--tk-type-section-title-size);
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.75rem;
     letter-spacing: -0.015em;
 }
 

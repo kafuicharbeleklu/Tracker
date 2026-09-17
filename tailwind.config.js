@@ -155,6 +155,17 @@ module.exports = {
                     DEFAULT: 'var(--tk-color-on-surface)',
                     variant: 'var(--tk-color-on-surface-variant)',
                 },
+                /* Les deux crans du creux, sous leur nom du socle — `--inset` et
+                   `--inset-2` des planches. Le pont ne portait que `surface-container`
+                   (= `--inset`) : `--inset-2` n'avait aucune classe, si bien que
+                   `bg-surface-muted-strong`, écrit dans `ListTemplate`, ne produisait
+                   **rien** et que la rangée courante de la barre latérale prenait
+                   `surface-container-high` (#f4f2ef) au lieu du second cran (#edeae3).
+                   Une classe absente du thème ne lève aucune erreur : elle s'efface. */
+                'surface-muted': {
+                    DEFAULT: 'var(--tk-color-surface-muted)',
+                    strong: 'var(--tk-color-surface-muted-strong)',
+                },
                 // Conteneurs de surface
                 'surface-container': {
                     lowest: 'var(--tk-color-surface-container-lowest)',
@@ -218,6 +229,10 @@ module.exports = {
                 'elevation-3': 'var(--tk-elevation-3)',
                 'elevation-4': 'var(--tk-elevation-4)',
                 'elevation-5': 'var(--tk-elevation-5)',
+                /* Les trois ombres des planches (index.css) : feuille, dialogue, geste d'ajout. */
+                'sheet': 'var(--tk-shadow-sheet)',
+                'dialog': 'var(--tk-shadow-dialog)',
+                'fab': 'var(--tk-shadow-fab)',
             },
 
             /* ---- FORME (rayons) ---- */

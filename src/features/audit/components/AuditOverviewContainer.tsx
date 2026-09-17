@@ -4,6 +4,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useData } from '../../../context/DataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 import {
     ALL_VALUE,
     buildRowKey,
@@ -17,6 +19,8 @@ import { AuditOverview } from './AuditOverview';
 
 interface AuditOverviewContainerProps {
     onViewChange?: (view: ViewType) => void;
+    /** La flèche du `.top` de 16.1 — quitter l'inventaire, quand aucun site n'est ouvert. */
+    onLeave?: () => void;
 }
 
 /** Options du filtre « statut de campagne » — source unique des deux rendus. */
@@ -29,6 +33,28 @@ const STATUS_OPTIONS = [
 ];
 
 const normalize = (value?: string): string => (value || '').trim().toLowerCase();
+
+/**
+ * Les chiffres d'un ensemble de lieux. Il en faut **deux** au bureau : ceux du parc, que
+ * la bande porte, et ceux du site choisi, que le panneau porte — et le second ne doit pas
+ * remplacer le premier quand on sélectionne.
+ */
+const totauxDe = (base: PlaceAuditRow[]) => {
+    const expected = base.reduce((sum, row) => sum + row.expected, 0);
+    const found = base.reduce((sum, row) => sum + row.found, 0);
+    const missing = base.reduce((sum, row) => sum + row.missing, 0);
+    const exceptions = base.reduce((sum, row) => sum + row.exceptions, 0);
+    const coverage = expected > 0 ? Math.round((found / expected) * 100) : 0;
+    const activeCampaigns = base.filter((row) => row.status === 'En cours').length;
+    const lastScanAt = base.reduce<string | null>((latest, row) => {
+        if (!row.lastScanAt) return latest;
+        if (!latest) return row.lastScanAt;
+        return new Date(row.lastScanAt).getTime() > new Date(latest).getTime()
+            ? row.lastScanAt
+            : latest;
+    }, null);
+    return { expected, found, missing, exceptions, coverage, activeCampaigns, lastScanAt };
+};
 
 const readMetadata = (value: unknown): Record<string, unknown> | null => {
     if (!value || typeof value !== 'object') return null;
@@ -47,8 +73,17 @@ const readString = (value: unknown): string => (typeof value === 'string' ? valu
  * Le périmètre a **deux axes**, pas quatre : *« Pays, puis le statut : la liste est déjà
  * celle des sites. »* Le site ne se filtre plus, il s'ouvre ; et le service a été retiré
  * le 06/09 — il n'est pas un lieu et ne bornait rien qu'on puisse aller compter.
+ *
+ * **Au bureau (≥ 1280), les deux niveaux tiennent côte à côte** (16.1, colonne bureau) :
+ * les sites restent à gauche pendant qu'on lit le site choisi à droite. Le calcul en tire
+ * deux conséquences — la liste des sites est filtrée **en permanence**, et non plus
+ * seulement quand aucun site n'est ouvert ; et les chiffres du parc (la bande) se
+ * calculent à part de ceux du site choisi.
  */
-export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ onViewChange }) => {
+export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
+    onViewChange,
+    onLeave,
+}) => {
     const { showToast } = useToast();
     const { navigateToView } = useAppNavigation();
     const { locationData, equipment, events } = useData();
@@ -65,6 +100,9 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
     const [openedSite, setOpenedSite] = useState<{ country: string; site: string } | null>(null);
 
     const debouncedSearch = useDebounce(searchQuery, 250);
+    /* Les deux niveaux côte à côte : cela change ce qu'on calcule, pas seulement ce
+       qu'on dessine. */
+    const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
 
     useEffect(() => {
         if (selectedCountry === ALL_VALUE) return;
@@ -326,31 +364,41 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
     const allRows = openedSite ? localRows : siteRows;
 
     /** Le périmètre ne s'applique qu'au premier niveau : le second **est** un site. */
-    const scopedRows = useMemo(() => {
-        if (openedSite) return localRows;
-        return siteRows.filter(
-            (row) => selectedCountry === ALL_VALUE || row.country === selectedCountry,
-        );
-    }, [localRows, openedSite, selectedCountry, siteRows]);
+    const sitesDuPerimetre = useMemo(
+        () =>
+            siteRows.filter(
+                (row) => selectedCountry === ALL_VALUE || row.country === selectedCountry,
+            ),
+        [selectedCountry, siteRows],
+    );
 
-    const displayedRows = useMemo(() => {
+    const scopedRows = openedSite ? localRows : sitesDuPerimetre;
+
+    /**
+     * Les sites retenus — périmètre, statut, recherche —, **calculés en permanence**.
+     * Au téléphone ils ne servent qu'au premier niveau ; au bureau ils restent à gauche
+     * pendant qu'on lit le site choisi à droite.
+     */
+    const sitesAffiches = useMemo(() => {
         const query = debouncedSearch.trim().toLowerCase();
-        const retenues = openedSite
-            ? scopedRows
-            : scopedRows.filter((row) => {
-                  const matchesStatus =
-                      selectedStatus === ALL_VALUE || row.status === selectedStatus;
-                  const matchesSearch =
-                      query.length === 0 ||
-                      row.site.toLowerCase().includes(query) ||
-                      row.country.toLowerCase().includes(query) ||
-                      (locauxDuSite.get(normalize(row.site)) ?? []).some((local) =>
-                          local.toLowerCase().includes(query),
-                      );
-                  return matchesStatus && matchesSearch;
-              });
+        const retenues = sitesDuPerimetre.filter((row) => {
+            const matchesStatus = selectedStatus === ALL_VALUE || row.status === selectedStatus;
+            const matchesSearch =
+                query.length === 0 ||
+                row.site.toLowerCase().includes(query) ||
+                row.country.toLowerCase().includes(query) ||
+                (locauxDuSite.get(normalize(row.site)) ?? []).some((local) =>
+                    local.toLowerCase().includes(query),
+                );
+            return matchesStatus && matchesSearch;
+        });
         return [...retenues].sort(compareByProgress);
-    }, [debouncedSearch, locauxDuSite, openedSite, scopedRows, selectedStatus]);
+    }, [debouncedSearch, locauxDuSite, selectedStatus, sitesDuPerimetre]);
+
+    const displayedRows = useMemo(
+        () => (openedSite ? [...localRows].sort(compareByProgress) : sitesAffiches),
+        [localRows, openedSite, sitesAffiches],
+    );
 
     useEffect(() => {
         if (!selectedRowKey) return;
@@ -364,23 +412,16 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
      * parc retenu par le pays, au second le site ouvert dans son entier — locaux
      * compris, et y compris ce qui n'est dans aucun.
      */
-    const totals = useMemo(() => {
-        const base = openedSite ? localRows : scopedRows;
-        const expected = base.reduce((sum, row) => sum + row.expected, 0);
-        const found = base.reduce((sum, row) => sum + row.found, 0);
-        const missing = base.reduce((sum, row) => sum + row.missing, 0);
-        const exceptions = base.reduce((sum, row) => sum + row.exceptions, 0);
-        const coverage = expected > 0 ? Math.round((found / expected) * 100) : 0;
-        const activeCampaigns = base.filter((row) => row.status === 'En cours').length;
-        const lastScanAt = base.reduce<string | null>((latest, row) => {
-            if (!row.lastScanAt) return latest;
-            if (!latest) return row.lastScanAt;
-            return new Date(row.lastScanAt).getTime() > new Date(latest).getTime()
-                ? row.lastScanAt
-                : latest;
-        }, null);
-        return { expected, found, missing, exceptions, coverage, activeCampaigns, lastScanAt };
-    }, [localRows, openedSite, scopedRows]);
+    const totals = useMemo(
+        () => totauxDe(openedSite ? localRows : scopedRows),
+        [localRows, openedSite, scopedRows],
+    );
+
+    /**
+     * Les chiffres du **parc retenu** — la bande du bureau. Ils ne bougent pas quand on
+     * choisit un site : la bande dit où l'on en est, le panneau dit ce qu'on regarde.
+     */
+    const totalsParc = useMemo(() => totauxDe(sitesDuPerimetre), [sitesDuPerimetre]);
 
     /**
      * Combien de locaux la portée compte — la tuile du héro. Au premier niveau c'est la
@@ -455,7 +496,11 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
     const handleOpenPlace = (row: PlaceAuditRow) => {
         if (!row.local && !row.horsLocal && (row.localCount ?? 0) > 0) {
             setOpenedSite({ country: row.country, site: row.site });
-            setSearchQuery('');
+            /* Au téléphone, ouvrir un site remplace la liste : la recherche qui avait
+               servi à le trouver ne veut plus rien dire au niveau des locaux. Au bureau
+               les deux niveaux coexistent — l'effacer viderait la liste de gauche de son
+               filtre au moment même où l'on désigne une rangée. */
+            if (!enDeuxNiveaux) setSearchQuery('');
             return;
         }
         openAuditDetails(row);
@@ -463,7 +508,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
 
     const closeSite = () => {
         setOpenedSite(null);
-        setSearchQuery('');
+        if (!enDeuxNiveaux) setSearchQuery('');
     };
 
     /**
@@ -493,7 +538,10 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({ 
 
     return (
         <AuditOverview
+            onLeave={onLeave}
             rows={displayedRows}
+            sites={sitesAffiches}
+            totalsParc={totalsParc}
             scopedPlaceCount={scopedRows.length}
             scopedLocalCount={scopedLocalCount}
             totals={totals}

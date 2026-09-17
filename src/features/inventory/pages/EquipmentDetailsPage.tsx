@@ -9,9 +9,7 @@ import {
     ClockCounterClockwise,
     DotsThreeVertical,
     FileText,
-    Laptop,
     Package,
-    ShieldWarning,
     Warning,
     Wrench,
 } from '@phosphor-icons/react';
@@ -22,7 +20,11 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 
-import { RETIREMENT_REASON_LABELS, type RetirementReason } from '../../../types';
+import {
+    RETIREMENT_REASON_LABELS,
+    type AttestationMethod,
+    type RetirementReason,
+} from '../../../types';
 import { getCategoryLabel } from '../../../constants/glossary';
 import HandoverTrail, { type TrailStep } from '../../../components/ui/HandoverTrail';
 import RuleGroup from '../../../components/ui/RuleGroup';
@@ -47,6 +49,7 @@ import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
 import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
+import { cn } from '../../../lib/utils';
 import { GLOSSARY } from '../../../constants/glossary';
 
 /**
@@ -338,7 +341,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             message: (
                 <>
                     L’objet redevient{' '}
-                    <strong className="text-on-surface font-medium">disponible</strong> et sort de
+                    <strong className="text-on-surface font-normal">disponible</strong> et sort de
                     la file de {item.user?.name || 'la personne'}. L’attestation déjà donnée reste
                     au journal.
                 </>
@@ -383,8 +386,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         setIsRetireSheetOpen(true);
     };
 
-    const handleRetireConfirmed = (reason: RetirementReason) => {
-        if (deleteEquipment(item.id, reason)) {
+    const handleRetireConfirmed = (reason: RetirementReason, method: AttestationMethod) => {
+        if (deleteEquipment(item.id, reason, method)) {
             showToast(
                 `${item.name} est sorti du parc — ${RETIREMENT_REASON_LABELS[reason]}.`,
                 'success',
@@ -442,6 +445,14 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         ];
     })();
 
+    /**
+     * `.btn-d` de 04.2 — **le geste secondaire posé sur le héro sombre** : blanc à 12 %,
+     * encre claire. `tonal` peignait un fond presque noir sur un héro presque noir : le
+     * bouton ne se distinguait plus du voile, et « Restituer » se lisait comme un texte.
+     */
+    const BOUTON_SUR_HERO =
+        'bg-white/[0.12] text-inverse-on-surface shadow-none hover:bg-white/[0.18]';
+
     /** Le geste primaire **suit l'état** — c'est la règle du héro (04.2). */
     const primaryAction = (() => {
         /* Une réception en attente passe **avant** la branche du porteur : le
@@ -477,12 +488,17 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 <div className="grid w-full grid-cols-2 gap-3">
                     <Button
                         variant="filled"
+                        className="px-3"
                         icon={<Icon glyph={BellRinging} size={20} />}
                         onClick={handleRemindHolder}
                     >
                         Relancer
                     </Button>
-                    <Button variant="tonal" onClick={handleCancelHandover}>
+                    <Button
+                        variant="tonal"
+                        className={cn(BOUTON_SUR_HERO, 'px-3')}
+                        onClick={handleCancelHandover}
+                    >
                         Annuler la remise
                     </Button>
                 </div>
@@ -490,19 +506,30 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         }
 
         if (!permissions.canManageInventory) {
+            /*
+              `.hact.two` de 04.2, « Vue — porteur » : *« deux gestes de même largeur »*,
+              **côte à côte**, 12 entre eux et 12 d'intérieur. Ils étaient empilés, en pleine
+              largeur, avec 10 d'écart — deux rangées de 48 là où la planche en tient une.
+
+              « Incident », pas « Déclarer un incident » : à 154 px, la moitié du héro, le
+              libellé long ne tient pas, et le pictogramme d'alerte dit déjà l'acte. La
+              feuille qui s'ouvre porte le nom entier dans son titre. « Restituer » prend le
+              blanc à 12 % de `.btn-d`, le jaune restant au geste qui signale.
+            */
             return (
-                <div className="flex w-full flex-col gap-2.5">
+                <div className="grid w-full grid-cols-2 gap-3">
                     <Button
                         variant="filled"
-                        className="w-full"
+                        className="px-3"
                         icon={<Icon glyph={Warning} size={20} />}
                         onClick={handleDeclareIncident}
+                        aria-label="Déclarer un incident"
                     >
-                        Déclarer un incident
+                        Incident
                     </Button>
                     <Button
                         variant="tonal"
-                        className="w-full"
+                        className={cn(BOUTON_SUR_HERO, 'px-3')}
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                         onClick={() =>
                             navigate(`/wizards/return?equipmentId=${encodeURIComponent(item.id)}`)
@@ -541,14 +568,17 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             );
         }
         if (item.status === 'En réparation') {
+            /* `.e-rep` de 04.2 : **« Réceptionner le retour »**, le geste de 04.4 qui
+               referme l'incident — « Clore l'intervention » nommait l'effet, pas l'acte
+               (10/09). Le glyphe est celui du retour, comme sur « Restituer ». */
             return (
                 <Button
                     variant="filled"
                     className="w-full"
-                    icon={<Icon glyph={Check} size={20} />}
+                    icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                     onClick={handleEndRepair}
                 >
-                    Clore l’intervention
+                    Réceptionner le retour
                 </Button>
             );
         }
@@ -719,11 +749,15 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 }
             >
                 <section className="rounded-card bg-surface p-4">
-                    <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                        <Icon glyph={Laptop} size={18} className="text-on-surface-variant" />
-                        Référence technique
-                    </p>
-                    <div className="mt-3">
+                    {/* `.ch` — un titre de 17 sur 24 en 500, 24 de haut, 8 dessous ; **sans
+                        icône** (R15, comme 03.1 : une icône devant chaque titre était du
+                        bruit répété). Les rangées suivent à 8. */}
+                    <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                            Référence technique
+                        </h3>
+                    </header>
+                    <div className="mt-2">
                         {/* Le numéro de série passe en premier, et il est copiable : c'est le
                         seul champ qu'on lit à voix haute au téléphone avec le support. */}
                         <ReferenceRow
@@ -759,14 +793,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 {(warrantyPercent !== null ||
                     (financialStats && permissions.canManageInventory)) && (
                     <section className="rounded-card bg-surface p-4">
-                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                            <Icon
-                                glyph={ShieldWarning}
-                                size={18}
-                                className="text-on-surface-variant"
-                            />
-                            {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
-                        </p>
+                        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
+                            </h3>
+                        </header>
 
                         {warrantyPercent !== null && (
                             <ProportionRow
@@ -778,11 +809,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                     warrantyPercent < 100 ? (
                                         <>
                                             Toute réparation est{' '}
-                                            <strong className="text-on-surface font-medium">
+                                            <strong className="text-on-surface font-normal">
                                                 prise en charge par le fournisseur
                                             </strong>{' '}
                                             jusqu’au{' '}
-                                            <strong className="text-on-surface font-medium">
+                                            <strong className="text-on-surface font-normal">
                                                 {formatDate(item.warrantyEnd)}
                                             </strong>
                                             .
@@ -819,13 +850,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                     }
                                     note={
                                         financialStats.progressPercent > 80 ? (
-                                            <strong className="text-on-surface font-medium">
+                                            <strong className="text-on-surface font-normal">
                                                 À renouveler cette année.
                                             </strong>
                                         ) : (
                                             <>
                                                 Renouvellement à prévoir pour{' '}
-                                                <strong className="text-on-surface font-medium">
+                                                <strong className="text-on-surface font-normal">
                                                     {new Date(
                                                         item.financial.purchaseDate,
                                                     ).getFullYear() +
@@ -835,7 +866,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             </>
                                         )
                                     }
-                                    source="Amortissement issu du paramétrage par catégorie, pas d’une réévaluation."
                                 />
                                 {/* `.more` — **une rangée de renvoi, pas un bouton** :
                                     `flex`, gouttière 10, 48 de haut, un filet au-dessus,
@@ -885,44 +915,63 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
                 {permissions.canManageInventory && (
                     <section className="rounded-card bg-surface p-4">
-                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                            <Icon
-                                glyph={ClockCounterClockwise}
-                                size={18}
-                                className="text-on-surface-variant"
-                            />
-                            Historique
-                        </p>
+                        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                Historique
+                            </h3>
+                        </header>
                         {history.length > 0 ? (
                             <>
-                                <div className="mt-3">
+                                {/* `.ev` — la rangée d'événement de 04.2 : marque ronde de 32,
+                                    le fait en 16 sur 24, la date en 14 sur 20 ; 56 de haut,
+                                    12 de remplissage, un filet entre deux. Elle passait par
+                                    `ReferenceRow`, qui est une rangée de référence, pas de
+                                    récit. */}
+                                <div className="mt-2">
                                     {history.map((event) => (
-                                        <ReferenceRow
+                                        <div
                                             key={event.id}
-                                            label={event.title}
-                                            value={event.date}
-                                            quiet
-                                        />
+                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first:border-t-0"
+                                        >
+                                            <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                                                <Icon glyph={ClockCounterClockwise} size={18} />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="text-on-surface block text-[16px] leading-6">
+                                                    {event.title}
+                                                </span>
+                                                <span className="text-on-surface-variant mt-0.5 block text-[14px] leading-5 tabular-nums">
+                                                    {event.date}
+                                                </span>
+                                            </span>
+                                        </div>
                                     ))}
                                 </div>
-                                <Button
-                                    variant="text"
-                                    className="border-outline-variant mt-2 min-h-11 w-full justify-start gap-2.5 border-t px-0 hover:bg-transparent"
-                                    onClick={() => navigate('/audit/overview')}
+                                {/* `.more` — vers **l'Historique** (18.1), qui existe depuis le
+                                    05/09 : le renvoi menait à Audit, qui n'est pas là où le
+                                    journal se lit. */}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/history')}
+                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[16px] leading-6"
                                 >
                                     <span>
-                                        {history.length > 0
+                                        {history.length > 1
                                             ? `Les ${history.length} événements`
-                                            : 'Tout l’historique'}
+                                            : 'L’événement'}
                                     </span>
-                                    <span className="text-body-medium text-text-secondary ml-auto font-normal">
-                                        dans Audit
+                                    <span className="text-text-secondary flex-1 text-right text-[12px] leading-4 whitespace-nowrap">
+                                        dans l’Historique
                                     </span>
-                                    <Icon glyph={CaretDown} size={18} className="-rotate-90" />
-                                </Button>
+                                    <Icon
+                                        glyph={CaretDown}
+                                        size={18}
+                                        className="text-text-secondary -rotate-90"
+                                    />
+                                </button>
                             </>
                         ) : (
-                            <p className="text-body-medium text-text-secondary mt-3">
+                            <p className="text-on-surface-variant mt-2 text-[16px] leading-6">
                                 Aucun mouvement enregistré pour cet équipement.
                             </p>
                         )}
@@ -931,19 +980,38 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
                 {item.documents && item.documents.length > 0 && (
                     <section className="rounded-card bg-surface p-4">
-                        <p className="text-body-medium text-on-surface mb-1 flex items-center gap-2.5 font-medium">
-                            <Icon glyph={FileText} size={18} className="text-on-surface-variant" />
-                            Documents
-                            <DemoBadge className="ml-auto" />
-                        </p>
-                        <div className="mt-3">
+                        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                Documents
+                            </h3>
+                            <DemoBadge />
+                        </header>
+                        {/* `.doc` — vignette de 40, le nom en 16, la nature et le poids en 12,
+                            chevron en encre tertiaire ; 56 de haut. */}
+                        <div className="mt-2">
                             {item.documents.map((document) => (
-                                <ReferenceRow
+                                <div
                                     key={document.id}
-                                    label={document.name}
-                                    value={`${document.type}${document.size ? ` · ${document.size}` : ''}`}
-                                    quiet
-                                />
+                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-1.5 first:border-t-0"
+                                >
+                                    <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
+                                        <Icon glyph={FileText} size={18} />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="text-on-surface block truncate text-[16px] leading-6">
+                                            {document.name}
+                                        </span>
+                                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4 tabular-nums">
+                                            {document.type}
+                                            {document.size ? ` · ${document.size}` : ''}
+                                        </span>
+                                    </span>
+                                    <Icon
+                                        glyph={CaretDown}
+                                        size={18}
+                                        className="text-text-tertiary -rotate-90"
+                                    />
+                                </div>
                             ))}
                         </div>
                     </section>
@@ -967,7 +1035,11 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         title: item.name,
                         subtitle: [item.model || item.type, item.site].filter(Boolean).join(' · '),
                     }}
-                    signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
+                    signer={{
+                        name: currentUser?.name ?? '',
+                        pin: currentUser?.pin,
+                        id: currentUser?.id,
+                    }}
                     consequence={{
                         /* La conséquence se dit par un pictogramme, une teinte et un
                            mot — la feuille d'acte les exige tous les trois (I3). */
@@ -1077,6 +1149,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 open={isIncidentSheetOpen}
                 item={item}
                 declarerName={currentUser?.name || 'un gestionnaire'}
+                declarer={{ pin: currentUser?.pin, id: currentUser?.id }}
                 onClose={() => setIsIncidentSheetOpen(false)}
                 onDeclare={(payload) => {
                     const decision = declareIncident(item.id, payload);
@@ -1104,6 +1177,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         ? formatCurrency(financialStats.currentValue, settings.currency)
                         : undefined
                 }
+                actorName={currentUser?.name || 'un gestionnaire'}
+                actor={{ pin: currentUser?.pin, id: currentUser?.id }}
                 onClose={() => setIsRetireSheetOpen(false)}
                 onRetire={handleRetireConfirmed}
             />

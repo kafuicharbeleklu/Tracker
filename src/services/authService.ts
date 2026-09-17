@@ -1,5 +1,6 @@
 import { PIN_LENGTH } from '../lib/security';
 import { AppUser } from '../types';
+import { PASSWORD_MIN_LENGTH } from '../lib/passwordStrength';
 
 const MOCK_AUTH_BACKEND_ENABLED =
     import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH_BACKEND === 'true';
@@ -300,7 +301,11 @@ export const authService = {
         const user = mockAppUsers.find((u) => u.id === userId);
 
         if (!user) throw new Error('User not found');
-        if (newPass.length < 8) throw new Error('New password too short');
+        /* La longueur minimale se déclare **une fois** (`PASSWORD_MIN_LENGTH` = 12) :
+           ici elle valait 8, si bien qu'un mot de passe de 8 signes passait le service
+           après avoir été refusé par l'écran — ou l'inverse, selon le chemin. */
+        if (newPass.length < PASSWORD_MIN_LENGTH)
+            throw new Error('New password too short');
 
         const expectedTempPassword = mockTempPasswords.get(userId);
         if (user.MustChangePassword) {

@@ -9,6 +9,8 @@ import { useData } from '../../context/DataContext';
 import { MEDIA } from '../../constants/breakpoints';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
+import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
+import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
 import { cn } from '../../lib/utils';
 
 /**
@@ -52,11 +54,36 @@ import { cn } from '../../lib/utils';
  *
  * **Ce qui appelle un geste reste à gauche avec le sujet** — sinon deux colonnes
  * deviennent deux écrans.
+ *
+ * ## Au bureau, la barre devient un en-tête — 17.11
+ *
+ * 17.11 consolide le chrome des neuf écrans de bureau et donne à la fiche sa forme
+ * d'en-tête (`.dhead.fiche`) : **le retour, le nom en 28 sur 32 avec son fil dessous,
+ * puis les actes** — sans filet, et sans la barre de 56 qui appartient au téléphone.
+ * Le nom d'un objet n'est pas une étiquette de barre au bureau : c'est le titre de la
+ * page, à la même marche que « Équipe » ou « Historique ».
+ *
+ * Et la bascule à deux colonnes prend les proportions de la planche — **7/12 et
+ * 5/12**, sujet à gauche. Elle posait 440 px fixes à gauche : à 1512 la référence
+ * recevait 760 px, soit une colonne de consultation plus large que le sujet.
  */
 
 interface DetailTemplateProps {
     /** Le code de l'objet — l'identité, écrite ici et nulle part ailleurs. */
     code: React.ReactNode;
+    /**
+     * `.crumb` — **le fil, et seulement au bureau** (17.11) : « Inventaire physique ›
+     * campagne en cours ». Il dit d'où l'on vient quand l'écran est un second niveau ;
+     * au téléphone, le retour et le titre suffisent, et la barre de 56 n'a qu'un étage
+     * (R16).
+     */
+    crumb?: React.ReactNode;
+    /**
+     * Les actes nommés de l'en-tête du bureau — `.hbtn.g` de 17.11, à gauche du ⋮.
+     * Au téléphone ils restent dans le menu : la barre de 56 n'a pas la place, et un
+     * acte nommé y vaut mieux qu'un glyphe de plus.
+     */
+    actions?: React.ReactNode;
     /*
      * **La barre n'a pas de sous-titre** — R16 : *« un seul étage, jamais de sous-titre »*,
      * et 17.8 l'écrit pour son premier slot. La fente `reference` en était un : elle
@@ -126,6 +153,8 @@ interface DetailTemplateProps {
 
 const DetailTemplate: React.FC<DetailTemplateProps> = ({
     code,
+    crumb,
+    actions,
     fab,
     onBack,
     menu,
@@ -138,6 +167,8 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     className,
 }) => {
     const twoColumnCapable = useMediaQuery(MEDIA.twoColumn);
+    /* La barre de 56 est une forme de téléphone ; au-delà, l'en-tête de 17.11. */
+    const isCompact = useMediaQuery(MEDIA.compact);
     /*
      * **Le squelette se déclenche à l'hydratation, pas sur demande de la page.**
      * 17.3 pose trois formes pour vingt-huit écrans ; elles étaient définies et
@@ -169,46 +200,98 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
               gauche comme à droite, plus 4 de padding vertical qui poussaient la barre
               au-delà de 56 dès que la seconde ligne apparaissait.
             */}
-            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                {onBack && (
-                    <Button
-                        variant="text"
-                        iconOnly
-                        aria-label="Retour"
-                        onClick={onBack}
-                        className="shrink-0"
-                    >
-                        <Icon glyph={ArrowLeft} />
-                    </Button>
-                )}
-                <div className="min-w-0 flex-1 px-1">
-                    {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`, coupé
-                        à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit bien 16, mais
-                        c'est la seule des quatre planches à barre — 05.2, 09.2 et 16.2
-                        écrivent 17/24, et **17.8 le déclare pour les huit écrans**. */}
-                    <p className="font-brand text-on-surface truncate text-[17px] leading-6 font-semibold tracking-[-0.01em]">
-                        {code}
-                    </p>
+            {isCompact ? (
+                <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
+                    {onBack && (
+                        <Button
+                            variant="text"
+                            iconOnly
+                            aria-label="Retour"
+                            onClick={onBack}
+                            className="shrink-0"
+                        >
+                            <Icon glyph={ArrowLeft} />
+                        </Button>
+                    )}
+                    <div className="min-w-0 flex-1 px-1">
+                        {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`,
+                            coupé à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit
+                            bien 16, mais c'est la seule des quatre planches à barre —
+                            05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
+                            les huit écrans**. */}
+                        <p className="font-brand text-on-surface truncate text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                            {code}
+                        </p>
+                    </div>
+                    {menu}
                 </div>
-                {menu}
-            </div>
+            ) : (
+                /*
+                  `.dhead.fiche` — **le nom devient le titre de la page** : 28 sur 32,
+                  le retour à sa gauche en carré de 40, les actes et le ⋮ à sa droite.
+                  Pas de filet : le chrome du bureau n'en pose ni sous l'en-tête ni au
+                  bord de la barre latérale (17.11).
+                */
+                <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                    {onBack && (
+                        <Button
+                            variant="text"
+                            iconOnly
+                            aria-label="Retour"
+                            onClick={onBack}
+                            className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                        >
+                            <Icon glyph={ArrowLeft} size={20} />
+                        </Button>
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            {code}
+                        </h1>
+                        {crumb && (
+                            <span className="text-text-muted block truncate text-[13px] leading-4">
+                                {crumb}
+                            </span>
+                        )}
+                    </div>
+                    {/* Au bureau, les gestes d'en-tête sont des carrés de 40 (17.11). */}
+                    <IconGestureSizeContext.Provider value={40}>
+                        {actions}
+                        {/* Le geste d'ajout monte dans l'en-tête, avant le ⋮ (17.11). */}
+                        {!horsLigne && fab && (
+                            <AddGesturePlacementContext.Provider value="header">
+                                {fab}
+                            </AddGesturePlacementContext.Provider>
+                        )}
+                        {menu}
+                    </IconGestureSizeContext.Provider>
+                </div>
+            )}
 
             {showSkeleton ? (
                 <SkeletonDetail />
             ) : (
-                <div className="medium:px-page flex flex-1 flex-col gap-5 px-5 pt-4 pb-5">
+                /* `.page` des fiches (04.2, 05.2, 09.2) : 16 d'écart, 16 de côté, 24 en
+                   bas — remesuré le 10/09, le code portait 20 partout. Au bureau les
+                   colonnes gardent le même 16 (`.zones{gap:16}`). */
+                <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
                     <div
                         className={cn(
-                            'mx-auto flex w-full gap-5',
-                            twoColumn ? 'max-w-[1280px] items-start' : 'max-w-[960px] flex-col',
+                            'mx-auto flex w-full gap-4',
+                            twoColumn
+                                ? 'max-w-[1280px] items-start'
+                                : 'large:max-w-none max-w-[960px] flex-col',
                         )}
                     >
-                        {/* Le sujet, et tout ce qui appelle un geste. */}
+                        {/* Le sujet, et tout ce qui appelle un geste — **7 douzièmes**
+                            (17.11). Il tenait 440 px fixes, ce qui laissait 760 px à la
+                            référence : la colonne qu'on consulte était plus large que
+                            celle où l'on agit. */}
                         {(hero || error || aside) && (
                             <div
                                 className={cn(
-                                    'flex flex-col gap-5',
-                                    twoColumn && 'w-[440px] shrink-0',
+                                    'flex flex-col gap-4',
+                                    twoColumn && 'min-w-0 shrink grow-[7] basis-0',
                                 )}
                             >
                                 {banner}
@@ -218,13 +301,20 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             </div>
                         )}
 
-                        {/* La référence — bornée, jamais parcourue. */}
-                        <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>
+                        {/* La référence — bornée, jamais parcourue : **5 douzièmes**. */}
+                        <div
+                            className={cn(
+                                'flex min-w-0 flex-col gap-4',
+                                twoColumn ? 'shrink grow-[5] basis-0' : 'flex-1',
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {!horsLigne && fab}
+            {!horsLigne && isCompact && fab}
         </div>
     );
 };

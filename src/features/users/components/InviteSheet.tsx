@@ -152,7 +152,7 @@ const InviteSheet: React.FC<InviteSheetProps> = ({ open, onClose, onInvited, onO
     return (
         <BottomSheet open={open} onClose={close} title="Inviter une personne">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[14px] leading-5">
                     Elle complète son profil à sa première connexion.
                 </p>
 
@@ -270,7 +270,7 @@ const InviteSheet: React.FC<InviteSheetProps> = ({ open, onClose, onInvited, onO
                     ]}
                 />
 
-                <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={close}>
                         Annuler
                     </Button>

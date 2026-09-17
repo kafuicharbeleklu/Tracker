@@ -524,8 +524,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             title={item.label}
                             className={cn(
                                 'relative flex h-full min-h-16 flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[12px] leading-4 transition-colors',
+                                // `.nav>a.on` ne change que la couleur : la case active portait
+                                // une graisse de 500 que la planche ne lui donne pas (13/09).
                                 item.active
-                                    ? 'on font-medium text-[var(--tk-color-nav-active)]'
+                                    ? 'on text-[var(--tk-color-nav-active)]'
                                     : 'text-on-surface-variant hover:text-on-surface',
                                 // La case ouverte s'allume : elle est au-dessus du voile,
                                 // et c'est le seul indice qu'elle est encore pressable.

@@ -17,9 +17,9 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | --- | --- | --- | --- |
 | 00.1 | Direction esthétique | `index.css` — les 58 valeurs du socle | **acquis** (bascule du 15/08) |
 | 00.2 | Lexique | vocabulaire des écrans | non relevé |
-| 00.3 | Les trois régimes | `AppLayout`, les bascules 600 / 840 | **non porté** |
-| 00.4 | Le rail | `NavigationRail`, `Sidebar`, gabarits ≥ 768 | **non porté** |
-| 00.5 | Sans rail | `FullScreenFormLayout` (`WizardLayout` supprimé le 06/09 : 17.4 proscrit les assistants) | **non porté** |
+| 00.3 | Les trois régimes | `AppLayout`, les bascules 600 / 840 | **portée** le 08/09 — coque, barre latérale, rail ; mesures reprises par 17.11 le 09/09 |
+| 00.4 | Le rail | `Sidebar` repliée (`NavigationRail` supprimé) | **portée** le 08/09 — le rail *est* la barre repliée, 88 |
+| 00.5 | Sans rail | `FullScreenFormLayout` (`WizardLayout` supprimé le 06/09 : 17.4 proscrit les assistants) | **portée** le 09/09 — feuille centrée à 560, formulaire borné, chaque champ à sa mesure |
 
 > 00.3 à 00.5 tiennent le **régime tablette et bureau**. Tout ce qui a été porté jusqu'ici
 > l'a été au téléphone.
@@ -39,11 +39,11 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 
 | | Planche | Écran(s) | État |
 | --- | --- | --- | --- |
-| 02.1 | Connexion | `LoginPage` | **portée** le 06/09, mesurée (repos · erreur au champ · mot de passe oublié · lien envoyé) |
+| 02.1 | Connexion | `LoginPage` | **portée** le 06/09, mesurée (repos · erreur au champ · mot de passe oublié · lien envoyé) ; filigrane LIVE recalé et teinté le 09/09 |
 | 02.2 | Première connexion | `FirstLoginPage` (`#/invite/:jeton`) | **portée** le 06/09 — lot 15 : invitation, mot de passe, code de remise, quatre cas d'échec |
 | 03.1 | Tableau de bord | `DashboardPage` | **portée** — repassée le 06/09 sur la passe du 05/09 (carte « Le parc », cartes à 16, rangées sans verbe, image de cartouche) |
 | 03.2 | « À traiter » | zone du tableau de bord | porté avec 03.1 |
-| 03.3 | Tâches | `TasksPage` | **porté** |
+| 03.3 | Tâches | `TasksPage` | **portée** — la file, la feuille d'une tâche ; **bureau porté le 09/09** : file 7/12, tâche choisie en panneau 5/12, porte vers le détail d'une demande |
 | 04.1 | Liste équipements | `InventoryPage`, `ListRow` | **portée** — en-tête 17.8, filtre en feuille, rangée de 68 mesurée le 07/09 |
 | 04.2 | Détail équipement | `EquipmentDetailsPage` | **porté** (pilote) |
 | 04.3 | Créer, corriger, sortir | `AddEquipmentPage`, `ImportEquipmentPage`, `IncidentSheet`, `RetireSheet` | **portée** (mesurée) |
@@ -56,16 +56,20 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 06.3 | Fins de flux | `ClosureBanner`, `DetailTemplate.banner` | **partiel** — les formes 1 et 2 sont portées et mesurées ; restent la forme 3 et « signaler un écart » |
 | 06.4 | Demander un équipement | `RequestSheet` (`NewRequestPage` supprimée) | **portée** — feuille sur la page, choix du type en tuiles, deux crans d'urgence, destination dite avant le geste |
 | 06.5 | Arbitrer une demande | `ApprovalDetailsPage` (`/tasks/request/:id`) | **portée** — le détail qu'une rangée ouvre : le motif, ce qu'il détient, le parcours, et les gestes selon qui lit |
-| 07.1 | Mon compte | `SettingsPage` (`/settings/account`) | **non porté** |
+| 07.1 | Mon compte | `SettingsPage` (`/settings/account`) | **portée** (10/09) — le héro d'identité, les trois cartes d'actes, la feuille de mot de passe et les trois états de la signature, mesurés |
 | 09.1 | Catalogue | `ManagementPage`, `CategoryDetailsPage`, `AddCategoryPage` | **portée** — en-tête 17.8, partitions en feuille, vide et feuille d'ajout (07/09) |
 | 09.2 | Fiche de modèle et imports | `ModelDetailsPage`, `ReferentialImportTemplate` | **portée** — la fiche du modèle et les deux imports, mesurés |
 | 10.1 | Emplacements | `LocationsPage`, `SiteDetailsPage` | **porté** |
 | 11.1 | Accès | `RbacPage` | **non porté** — refonte, arbitrage en attente |
-| 14.1 | Paramètres | `SettingsPage` | **non porté** |
-| 15.1 | Finances et rapports | `FinanceManagementPage`, `ExpenseJournalPage`, `ReportsPage` | **partiel** — l'exercice en cours porté le 07/09 ; restent les exercices, la saisie et les rapports |
-| 16.1 | Inventaire — vue globale | `AuditPage`, `placeAudit`, `AuditOverview*` | **portée** — les deux niveaux, le héro, le périmètre à deux axes ; sur le gabarit 17.8 |
-| 16.2 | Inventaire — la campagne | `AuditDetailsPage` | **portée** — le parc et les écarts en deux écrans, le scan dans le héro, la clôture au ⋮ |
-| 18.1 | Historique — le journal | `HistoryPage` | **portée** — le journal par jour, les natures en chips, un fait ouvert |
+| 14.1 | Paramètres | `SettingsPage` | **portée** (10/09) — les cinq groupes à filets, une icône par réglage, ni sous-ligne ni note ; les écrans de réglage derrière |
+| 15.1 | Finances — l'exercice | `FinanceManagementPage` | **portée** — l'exercice en cours porté le 07/09, **mesuré et repris le 10/09** ; reste l'écran « Exercices » (le sélecteur en tient lieu) |
+| 15.2 | Finances — les lignes | `AddBudgetModal` | **non portée** — les lignes se règlent en modale, la planche en fait une page |
+| 15.3 | Finances — les dépenses | `ExpenseJournalPage` | **portée** (10/09) — le journal par mois sur le gabarit 17.8, héro, recherche, filtre en feuille ; l'axe « poste » manque, faute de lien dépense → ligne de budget |
+| 15.4 | Finances — la saisie | `AddExpenseModal` | **partielle** — deux modes (fichier, saisie) ; non mesurée contre la planche |
+| 15.5 | Finances — les rapports | `ReportsPage` | **non portée** |
+| 16.1 | Inventaire — vue globale | `AuditPage`, `placeAudit`, `AuditOverview*` | **portée** — les deux niveaux, le héro, le périmètre à deux axes ; sur le gabarit 17.8. **Bureau porté le 09/09** : bande de chiffres, sites en tableau 8/12, site choisi en panneau 4/12 |
+| 16.2 | Inventaire — la campagne | `AuditDetailsPage` | **portée** — le parc et les écarts en deux écrans, le scan dans le héro, la clôture au ⋮. **Bureau porté le 09/09** : campagne 7/12, écarts 5/12 en panneau, « Saisir un code » à la place du scan |
+| 18.1 | Historique — le journal | `HistoryPage` | **portée** — le journal par jour au téléphone ; **bureau porté le 09/09** : tableau à cinq colonnes, jours en rangées de 36, pastilles de nature et de période sur la ligne d'outils, export dans l'en-tête |
 
 ## Les composants partagés — 17.
 
@@ -82,6 +86,7 @@ Ils portent la moitié du produit : une décision y vaut pour N écrans.
 | 17.7 | La barre du bas (28 écrans) | `NavigationBar` | **portée** le 06/09 — 64 / 24 / 12, badge chiffré, feuille « Plus » en trois groupes sur le canon des rangées de 56 |
 | 17.8 | L'en-tête de liste (8 emplois) | `ListTemplate` | **partiel** — bloc aux mesures du 06/09, ligne de tri rentrée dans le bloc fixe ; **les chips de partition restent dans l'en-tête** |
 | 17.9 | La donnée et son explication | `InfoTip` | **non porté** |
+| 17.11 | Le chrome du bureau (9 écrans) | `Sidebar`, `ListTemplate`, `DetailTemplate`, `DataTable`, `SearchField`, `FacetChip` | **portée aux neuf écrans** (09/09) — barre latérale, en-tête de liste et ligne d'outils, en-tête de fiche, patrons « tableau », « fiche 7/5 » et « deux niveaux ». Restent trois détails, listés plus bas |
 
 ---
 
@@ -2419,3 +2424,1238 @@ le pied d'acte s'éloigne du dernier champ, et que la colonne de gauche perde so
 
 `tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · parcours à
 393, 768 et 1512 sans débordement ni erreur console.
+
+---
+
+## 17.11 — le chrome du bureau, dessiné le 09/09 et porté le jour même
+
+La vague bureau des 08 et 09/09 a donné une vue à 1280 à neuf écrans, et **chacun
+redessinait la barre latérale et l'en-tête dans sa planche**. 17.11 les dessine une fois
+et dit ce qui varie : le titre, le compte, le geste de page, les pastilles. Ce qui ne
+varie jamais : la barre latérale de 240, les rayons 2 · 4 · 8, et **l'absence de filet**
+— entre les chiffres d'une bande, entre les rangées, au bord de la barre latérale.
+
+### La barre latérale : 240, rangée de 40, rayon 4 — et un creux qui n'existait pas
+
+Elle avait été portée le 08/09 d'après 00.3 et la note de recherche : **264**, rangées de
+48 au rayon 8, texte 14. 17.11 tranche à **240**, rangée **40**, **13 sur 18**, gouttière
+10, rayon **4** — et les colonnes bureau de 03.1, 05.1, 18.1 et 03.3 disaient déjà cela.
+Le filet de droite part : *« le fond `--surface` la sépare du canevas, sans filet »*.
+
+Deux choses que seule la mesure a montrées :
+
+- **La rangée courante prenait la mauvaise teinte.** La planche demande `--inset-2`
+  (#edeae3) ; le code écrivait `bg-surface-container-high`, qui vaut #f4f2ef. Le pont
+  Tailwind ne portait aucune classe pour `--inset-2` — et `bg-surface-muted-strong`,
+  écrit dans `ListTemplate` pour le bandeau de provenance, était donc **une classe
+  inerte** de plus (cf. `text-text-muted`, 57 emplois, 04/09). Le jeton est déclaré :
+  `surface-muted` / `surface-muted-strong`.
+- **Toutes les rangées étaient en graisse d'appui**, parce que `Button` pose `font-medium`
+  pour tout le monde. La planche ne l'accorde qu'à la courante.
+
+Le rail (88) **garde le compte** — *« le rail garde les icônes et le compte »* — en
+pastille au coin de la boîte de 72 × 64 ; il ne le retirait pas seulement, il posait un
+filet entre les groupes que la planche ne dessine pas.
+
+### L'en-tête de liste : trois bandes deviennent deux
+
+Au bureau, `ListTemplate` empilait le titre à 20, la bande de recherche du téléphone,
+puis la ligne de service. 17.11 rassemble : **`.dhead`** — titre **28 sur 32**, compte à
+côté en **13 sur 16**, geste de page à droite — puis **une seule ligne d'outils** :
+recherche à **320** (cernée, 40 de haut), pastilles, tri et sélecteur cartes/tableau
+poussés à droite. Mesuré à 1512 : en-tête 52 de haut, gouttière 16 ; ligne d'outils
+gouttière 12 ; champ 320 × 40 ; cran du sélecteur 40 × 38 ; bouton de page 40, rayon 4.
+
+`SearchField` et `FacetChip` reçoivent pour cela un régime **`dense`** : le téléphone
+garde le creux de 48 en 16, le bureau prend le cerné de 40 en 14 (et la pastille en 13).
+
+### Le geste d'ajout ne flotte plus — `pageAction`
+
+*« Rien ne flotte sauf ce qui flotte »* (17.11 : dialogue, menu, infobulle). Le bouton
+rond restait posé au-dessus du vide en bas à droite d'un écran de 1512. La page **déclare
+maintenant son geste** (`pageAction`), et le gabarit le place : bouton rond au-dessus de
+la barre du bas au téléphone (17.6), bouton jaune de l'en-tête au bureau. Une déclaration,
+deux placements — au lieu de deux copies, comme c'était déjà le cas pour 04.1 et 05.1.
+
+**Et le scan quitte le bureau** : *« le geste de la caméra reste au téléphone »*. Au
+bureau, c'est la recherche qui prend le code.
+
+### Le tableau prend la largeur ; la carte garde ses 960
+
+§2.43 borne la lecture à 960 **et déclare l'exception** : *« un tableau que l'on vient
+comparer prend toute la largeur ; ce n'est pas de la lecture, c'est du balayage »*. Le
+tableau dense de 04.1 et 05.1 tenait dans les 960 de lecture, **et dans une carte** : il
+faisait donc une carte dans une carte, avec 16 px d'intérieur entre les deux, sous une
+ligne d'outils large de 1 464. Il prend maintenant le corps entier (1 224 à 1512).
+
+### La fiche : le nom devient le titre, et les colonnes passent à 7/5
+
+`DetailTemplate` gardait au bureau la barre de 56 du téléphone, filet compris, avec le
+code en 17. 17.11 en fait un **en-tête de page** : retour en carré de 40, nom en **28 sur
+32**, fil (`crumb`) dessous si l'écran est un second niveau, actes et ⋮ à droite, sans
+filet. La bascule à deux colonnes prend enfin les proportions de la planche — **7/12 et
+5/12** au lieu de 440 px fixes, qui laissaient 760 px à la référence : la colonne qu'on
+consulte était plus large que celle où l'on agit.
+
+### 18.1 — le journal en tableau
+
+*« Le patron de 04.1 pour le temps. »* La sous-ligne du téléphone se déplie en trois
+colonnes — **Par**, **Attestation**, **Lieu** — et ne garde que le complément du fait ;
+l'heure ferme la rangée. **Les jours restent** : `DataTable` reçoit `groupOf`, qui pose
+une rangée de séparation de **36** sur le canevas, avec son compte, chaque fois que la
+clé change.
+
+### Ce qui reste de 17.11
+
+*(Réglé le même jour — voir « La ligne d'outils, l'export et deux mesures », plus bas :
+les pastilles de 18.1 et 03.3, l'export du journal, les trois mesures de 03.1 et le geste
+du héro de 16.2.)*
+
+- **« Personne ou objet »**, le troisième filtre que 18.1 pose sur sa ligne d'outils : le
+  produit n'a pas cet axe, ni au téléphone ni au bureau. Il se porterait avec le sélecteur
+  de personne de la feuille, que la planche dessine et que le code n'a pas encore.
+
+### 03.3 au bureau, et l'écart avec 06.5 — tranché par une porte
+
+17.11 et la colonne bureau de 03.3 posent **la tâche choisie en panneau à droite** —
+contexte, deux décisions, puis les portes —, y compris pour une **demande**. Mais 06.5,
+portée le 06/09, tranche l'inverse au téléphone : *« la rangée d'une demande ouvre son
+détail »*, et ce détail est un **écran** (`ApprovalDetailsPage`), pas une feuille.
+
+Les deux planches veulent la même chose à des endroits différents, et la sortie est celle
+que 03.3 dessine elle-même : **le panneau porte des portes**. Au bureau, une rangée de
+demande **sélectionne** — le panneau montre le motif, le contexte et les décisions — et
+une ligne nommée, « Ouvrir le détail de la demande », mène à l'écran de 06.5, qui garde
+le parcours et ce que la personne détient. Au téléphone, rien ne change : la rangée
+ouvre le détail.
+
+Le contenu de la feuille est devenu **une fonction, deux logements** (`contenuDeLaTache`) :
+la feuille au téléphone, le panneau au bureau, à la croix près — une colonne ne se
+referme pas, on y choisit la tâche suivante.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes (`ds:check`, tokens, `cn()`,
+encodage) · `npm run build` ✓ · parcours **393 · 768 · 1280 · 1512** sur six écrans
+(accueil, actifs, équipe, tâches, historique, inventaire) : **aucun débordement
+horizontal, aucune erreur console** · barre latérale, en-tête, ligne d'outils, sélecteur
+et tableau **mesurés** au `getComputedStyle` contre les déclarations de 17.11.
+
+> **Un piège de formatage, pour mémoire.** `npx prettier --write tailwind.config.js`
+> retire les guillemets des clés d'un seul mot (`'page'` → `page`) — et la garde
+> `check-cn-merge.mjs` compte les espacements nommés avec une regex qui ne voit que les
+> clés **entre guillemets** : 5 devenaient 2, et la sonde tombait. Le fichier de config
+> ne passe pas par Prettier.
+
+---
+
+## Le patron « deux niveaux » — 16.1 et 16.2 au bureau (09/09)
+
+*« Le téléphone empile trois niveaux, un par écran ; le bureau en pose deux côte à
+côte »* (16.1). Les deux planches d'inventaire l'écrivent au même endroit : la liste à
+gauche, ce que le téléphone ouvrait en second écran à droite — **et cliquer une rangée
+sélectionne au lieu de naviguer**.
+
+### Ce que le gabarit reçoit
+
+`ListTemplate` gagne `panel` et `panelRatio` (4 ou 5). Le panneau n'existe **qu'à partir
+de 1280**, il disparaît en sélection groupée — la page ne traite plus un sujet, elle en
+désigne plusieurs (17.2) —, et il ne défile pas avec la liste : c'est elle qui défile
+sous lui.
+
+Une conséquence qu'il fallait tirer : **la mesure de lecture ne s'applique pas à une
+colonne**. La liste occupe déjà 7 ou 8 douzièmes du corps ; la borner une seconde fois à
+960 laissait un vide entre elle et le panneau dès 1 700 px de fenêtre.
+
+### 16.1 — la bande, le tableau des sites, le site choisi
+
+- **La bande de chiffres remplace le héro** : cinq nombres — attendus, sites et locaux,
+  jamais vérifiés, campagnes en cours, écarts relevés — avec le point de couleur de
+  l'état qu'ils comptent. Elle **ne suit pas la sélection** : la bande dit où l'on en
+  est, le panneau dit ce qu'on regarde.
+- **Les sites deviennent un tableau à cinq colonnes** (lieu, attendus, statut, geste),
+  rangée 64, la courante en `--inset-2`, la survolée en `--inset`. Le chevron disparaît :
+  la sélection le remplace.
+- **Le panneau est la colonne 2 de la planche, telle quelle** — même héro, mêmes rangées
+  de locaux, même note de pied.
+
+Le calcul a suivi la forme : `AuditOverviewContainer` filtre les sites **en permanence**
+et non plus seulement quand aucun n'est ouvert, et il calcule **deux jeux de chiffres**
+— ceux du parc pour la bande, ceux du site choisi pour le panneau. Ouvrir un site
+n'efface plus la recherche au bureau : elle filtre la liste de gauche, qui reste à
+l'écran.
+
+**Un état que la planche ne dessine pas** : tant qu'aucun site n'est choisi, le panneau
+porte une invitation d'une ligne. La planche montre toujours un site sélectionné ; faire
+apparaître le panneau au premier clic ferait sauter la largeur de la liste sous le
+curseur.
+
+### 16.2 — la campagne à gauche, les écarts à droite
+
+- **Les écarts n'ont plus d'écran ni de carte de tension** : ils sont la colonne de
+  droite, cartes de décision telles quelles, sous un en-tête de panneau qui dit ce qui
+  reste à trancher. *« La file est sous les yeux, c'est elle qui tient lieu d'alerte. »*
+- **La clôture dit ce qui la retient**, en pied de colonne : « Clôturer s'ouvrira dans le
+  ⋮ une fois les n écarts tranchés » — la phrase que la carte de tension portait au
+  téléphone.
+- **Pas de scan** (17.11) : au bureau, le héro dit **« Saisir un code »** et ouvre la
+  saisie qui accepte aussi le contenu d'un QR. Le geste ne disparaît pas, il change de
+  porte — un poste fixe n'a pas de caméra à approcher d'une étiquette.
+- **L'en-tête est celui d'une fiche** : retour, le lieu en 28, son fil dessous,
+  « Exporter » en acte nommé (il quitte donc le ⋮, où il ferait doublon) et le ⋮ pour
+  l'abandon et la clôture.
+- **Le local paraît en bout de rangée** : la colonne est assez large pour dire *où*
+  l'objet est attendu, et c'est ce qu'on cherche en parcourant un site entier.
+
+`DetailHero` reçoit `actionsInline` : au téléphone le geste s'étire, parce qu'on le vise
+au pouce ; au bureau il garde sa mesure — un bouton de 700 px n'est pas plus facile à
+viser, il est seulement plus grand que ce qu'il fait.
+
+### Ce qui reste de ces deux planches
+
+- Le héro de 16.2 pose son geste **à droite du sujet** au bureau (grille `1fr auto`) ; le
+  produit le garde sous la jauge, à sa mesure. C'est la dernière différence de forme.
+- 16.1 garde son entonnoir et sa feuille de périmètre ; la planche les laisse dans
+  l'en-tête, ce qui est déjà le cas.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · parcours
+**393 · 768 · 1280 · 1512** sur six écrans : aucun débordement, aucune erreur console ·
+la sélection d'un site et l'ouverture d'une campagne mesurées à 1512 · le second niveau
+du téléphone (site ouvert, retour, héro, rangées) revérifié à 393.
+
+---
+
+## 03.3 au bureau — la file et la tâche choisie (09/09)
+
+Le neuvième écran de 17.11, et le dernier. *« Une boîte de travail se traite sans quitter
+la page : cliquer une rangée la sélectionne, le panneau change. »*
+
+- **La file garde ses rangées** (56, marque ronde) et prend 7 douzièmes ; la rangée
+  choisie passe en `--inset-2`, comme la rangée courante de la barre latérale.
+- **La feuille devient le panneau** — même contenu, à la croix près : une colonne ne se
+  referme pas, on y choisit la tâche suivante. Le contenu est désormais **une fonction à
+  deux logements**, pas deux copies.
+- **La porte vers 06.5** clôt l'écart entre les deux planches : voir la section
+  précédente.
+- **File vide, pas de panneau** : « Vous êtes à jour » n'a pas besoin d'une colonne qui
+  invite à choisir ce qui n'existe pas.
+
+### Ce qui reste de 03.3
+
+Les trois partitions et les natures montent en **pastilles sur la ligne d'outils** dans la
+planche ; le produit les garde dans la feuille de filtre (R11), comme au téléphone. Le
+gabarit sait déjà les porter — `facets` les rend en pastilles denses — ; c'est la page qui
+doit les déclarer, et cela vaut aussi pour 18.1.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · une demande
+créée dans la session, puis **sélectionnée dans la file à 1512** : rangée en creux, motif
+cité, décision et porte dans le panneau, aucun débordement · le téléphone revérifié à
+393 : la feuille s'ouvre comme avant.
+
+---
+
+## La ligne d'outils, l'export et deux mesures — la fin de 17.11 (09/09)
+
+Les quatre détails que la passe précédente laissait ouverts.
+
+### Les axes de filtre montent sur la ligne d'outils — 18.1 et 03.3
+
+Au téléphone, un axe est un **groupe de puces dans la feuille** (R11) : elle a la place de
+les montrer toutes, avec leurs comptes, et on les compare avant de choisir. Au bureau la
+feuille n'existe pas, et un axe à sept valeurs prendrait la place de la recherche. D'où
+`FilterMenuChip` — **la pastille dense de 17.11, dont le geste ouvre au lieu de basculer** :
+elle dit ce qui est posé, son menu montre le reste avec les comptes, et elle reste cernée
+tant que l'axe est ouvert (une pastille sombre annonce un filtre, et « toutes les natures »
+n'en est pas un).
+
+- **18.1** : « Toutes les natures ▾ » et « 30 jours ▾ » remplacent l'entonnoir au bureau.
+  L'axe des natures est **multiple** — la feuille du téléphone en pose plusieurs — donc la
+  pastille sait dire « 3 natures » plutôt que la première d'entre elles.
+- **03.3** : les **trois partitions** deviennent des pastilles à compte (`facets` du
+  gabarit), la nature une pastille à menu, et **l'ordre monte à droite** en `sort` — il n'a
+  que deux valeurs, il se bascule.
+
+Un défaut est apparu à la mesure : le bandeau « n des m » du gabarit, qui rapporte une
+facette au tout, écrivait **« 1 des 0 »** sur la file — ses trois partitions sont
+**disjointes**, aucune n'est le tout des autres. `ListTemplate` reçoit `disjointFacets`, et
+le bandeau se tait là où il n'a rien à rapporter.
+
+### L'export du journal — 18.1
+
+Acte nommé dans l'en-tête, comme la planche le pose. Il exporte **ce qui est affiché**,
+filtres compris : un journal exporté en entier ne répond à aucune question, celui qu'on
+regarde en répond une. Six colonnes : date, heure, fait, par, attestation, lieu.
+
+### 03.1 — trois mesures, dont une invisible
+
+L'en-tête du tableau de bord tenait déjà la forme « Vue d'ensemble » (titre 28/32,
+sous-titre 14/20, gestes à droite, puis la bande). Trois écarts au relevé :
+
+- ses deux boutons faisaient **48** au lieu de 40 — `h-10` seul ne bat pas le `min-h-12` de
+  la taille `md` ; c'est le même piège que le bouton de page des listes ;
+- la légende de la bande sortait en **500** : `Button` pose sa graisse à tout ce qu'il
+  contient, et `.bande .k` n'en déclare aucune ;
+- et la page **n'avait pas de `h1`** — son titre était un `h2`, si bien que le plan du
+  document commençait à la deuxième marche.
+
+### 16.2 — le geste du héro remonte à droite du sujet
+
+`DetailHero` reçoit `actionsInline` : le héro passe alors en **grille `minmax(0,1fr) auto`**
+— l'identité en colonne 1, le geste en colonne 2 sur la première rangée, **les chiffres et
+la jauge en travers** (`1/-1`), exactement comme 16.2 les dessine. Au téléphone rien ne
+change : le geste s'étire sous la jauge, où le pouce l'atteint.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · les deux
+lignes d'outils **mesurées à 1512** (18.1 : recherche 320, deux pastilles à menu, export ;
+03.3 : recherche, nature, trois partitions, ordre à droite) · l'en-tête du tableau de bord
+remesuré (titre 28/32, sous-titre 14/20, gestes **40**, bande 22/26 et 12/16 en 400) · le
+héro de 16.2 revu à 1512 · parcours **393 · 768 · 1280 · 1512**, aucun débordement, aucune
+erreur console.
+
+---
+
+## Lot 28 — la signature enregistrée, et un seul pavé (09/09)
+
+Premier des cinq bons de travail 28 à 32 (`PROMPT-LOTS-28-32.md`). *« Importer, recadrer et
+garder une signature ; quand le code PIN vaut, l'apposer d'elle-même comme preuve
+visuelle. »* Planches 07.1, 17.4, 17.10.
+
+### D4 — un seul pavé, et il est personnel
+
+`SecurityGate` et son `ADMIN_PIN` sont **supprimés**. Un code administrateur unique, écrit
+en clair et connu de toute l'informatique, prouvait seulement que *quelqu'un* de l'équipe
+avait tapé le secret d'équipe : il ne disait pas qui. Ses deux appelants (03.1, 03.3)
+étaient déjà passés à la feuille d'acte lors de la passe sobre ; il ne restait que le
+composant, mort, et sa fonction de vérification.
+
+**Deux actes reçoivent le bloc 4** qui leur manquait : **déclarer un incident** et **sortir
+du parc**. Ce sont deux des neuf actes de 17.4 — le premier retire un objet à quelqu'un, le
+second le retire au parc — et ni l'un ni l'autre ne demandait de preuve. Le verbe reste
+éteint tant que l'attestation n'est pas faite.
+
+### D1 — le service, et le type qui manquait
+
+`services/signatureService.ts` : **IndexedDB** (`tracker_signatures`, un `Blob` PNG par
+personne), et **la seule porte** vers le stockage — `get`, `getSavedAt`, `save`, `remove`.
+Une image ne va pas dans `localStorage` : en base64 elle pèse un tiers de plus, dans un
+quota partagé, relue en synchrone au démarrage. `User.signatureId` dit qu'elle existe ;
+l'image, elle, reste hors de la fiche — 61 fiches à 300 Ko feraient 18 Mo par lecture
+d'annuaire.
+
+`AttestationMethod` **quitte le composant pour le domaine** (`types/`) et gagne une
+troisième valeur : `pin+signature`. Ce n'est pas une méthode de plus, c'est le code qui a
+autorisé l'apposition. Son libellé est nommé une fois (`LIBELLE_ATTESTATION`) — le journal,
+la colonne « Attestation » du bureau et les feuilles d'acte l'écrivaient chacun de leur
+côté, et aucun des trois ne connaissait la troisième valeur.
+
+### D2 — 07.1 : « Ma signature », ses trois états
+
+La rangée disait la vérité de l'époque — *« tracée à chaque remise, jamais conservée »*.
+Elle ouvre maintenant :
+
+- **sans signature** : la feuille de source (17.6, sans pied) — « Choisir une image » ou
+  « Prendre en photo », le refus **dans la rangée** (17.10) : « trop-lourde.jpg fait 6 Mo,
+  au-delà de 5 Mo » ;
+- **le recadrage** : une page « Recadrer », `<canvas>` de 320 sur `--inset-2`, l'image
+  glissée au pointeur, un curseur de 0,5× à 4× (`Slider`, primitive neuve), un cadre à
+  quatre poignées **au rapport de la case d'attestation** — recadrer dans une forme et
+  apposer dans une autre ferait mentir l'aperçu. Aucune librairie : `SignaturePad` avait
+  déjà prouvé que le Canvas natif suffit ;
+- **avec signature** : la feuille qui la montre, dit ce qu'elle change, et porte les deux
+  gestes — Supprimer, Remplacer (qui purge l'ancienne avant d'écrire).
+
+La borne des 5 Mo n'a pas été réécrite : `lib/fileImport.ts` la portait déjà, **réglable en
+14.1** — la signature s'y range comme les autres pièces.
+
+### D3 — le bloc 4 lit deux faits
+
+`Attestation` reçoit la signature du signataire (lue par `ActSheet` via le service, **et
+seulement s'il a un code** : elle ne s'appose que pour celui qui saisit son propre code sur
+son propre appareil). Trois sorties :
+
+- code juste **et** signature : la case passe en teinte verte, l'image s'affiche, « apposée
+  · code PIN », `pin+signature` — **aucun tap de plus** ;
+- code juste, sans image : « Attesté par code PIN, 09:42. Sans signature enregistrée, le
+  code suffit. » ;
+- sans code : le tracé, inchangé.
+
+Un piège qui s'est vu à l'écran : `settle()` remonte la méthode à l'appelant mais ne
+changeait pas l'**état local** — la case restait le pavé et la note disait « sans signature
+enregistrée » alors que l'image était bien là. La méthode retenue est maintenant posée aux
+deux endroits.
+
+### Ce qui reste du lot 28
+
+- **L'enregistrement d'attestation sur les entités** (D1, seconde moitié) :
+  `{ method, at, by, onDeviceOf?, signatureRef? }` en remplacement de `handoverProof`
+  (chaîne libre) sur `Equipment`, `Incident` et `Approval`. La **méthode** part déjà au
+  journal pour l'incident et la sortie du parc (`metadata.method`, que 18.1 relit) ; c'est
+  la structure complète qui manque.
+- **La suspension d'un compte** (05.2), troisième acte cité par D4, n'a pas encore son
+  bloc 4.
+- Les **lots 29 à 32** (campagne d'inventaire objet, incident objet, budget, navigation)
+  ne sont pas commencés.
+
+### Vérifié
+
+`tsc` **0** · `eslint` **0** · les quatre gardes vertes · `npm run build` ✓ · et les
+vérifications du lot, dans le navigateur à 393 :
+
+1. import d'un PNG → recadrage → « Enregistrer » : la rangée dit « importée le 9
+   septembre », et `tracker_signatures` porte **un** enregistrement (14 Ko) ;
+2. code PIN posé, puis remise depuis 04.2 : **la signature s'appose seule**, « apposée ·
+   code PIN » ;
+3. sans image enregistrée, le même acte dit « Attesté par code PIN, 17:09 » ;
+5. un JPG de 6 Mo : refus **dans la rangée**, l'ancienne signature intacte ;
+6. `grep -rn "validateAdminPIN\|ADMIN_PIN" src/` : plus rien qu'un commentaire d'histoire ;
+7. `logSecurityAction` ne reçoit que la méthode et l'issue — aucun code n'est journalisé.
+
+> **Un piège d'outillage, pour mémoire.** `npx prettier --write src/` réécrit **tout** le
+> dossier : 50 fichiers changent de fin de ligne (l'arbre est en CRLF, `HEAD` en LF) et
+> quelques-uns se reformatent, pour zéro ligne de contenu. Formater **fichier par fichier**,
+> et jamais un dossier.
+
+## Le filigrane LIVE du bandeau de marque — 09/09 et 10/09
+
+Le « motif cartouche » de 02.1 est le **système LIVE de Neemba** : angles emboîtés,
+losange, cercles concentriques, quatre triangles (`images/imgdownloader-76bd8c9f.png`, et
+les cartes `…-26235495.webp`, `…-cd7fdb1d.webp`). Quatre temps, dans
+`src/features/auth/components/BrandBanner.tsx` et dans les planches 02.1 **et** 02.2 —
+02.2 reprend le bandeau « à l'identique », et avait gardé l'ancien tracé.
+
+1. **Recalé pour le téléphone.** À 393, trois montants passaient derrière « Tracker » et
+   la promesse ; le cadre suit la hauteur réelle du bandeau (393 × 199) ; trait 1,6 → 1,2.
+2. **Teinté.** Le cartouche de la charte ne pose pas ses filets en blanc : chaque famille
+   porte sa teinte, rabattue sur le fond entre 21 et 29 % (relevé à la pipette). Le blanc
+   à 16 % donnait la même luminance en gris — un motif, plus le système.
+3. **Dessiné entier, puis refusé.** Le commanditaire voyait les glyphes coupés « tronqués » ;
+   entiers et empilés dans la colonne de droite, ils se lisaient, mais en semis, « sans la
+   touche d'esthétique attendue ».
+4. **Le cartouche des cartes LIVE**, choisi sur une planche de quatre propositions (sonar,
+   cartouche, lame, cartouche avec accent — `scratchpad/propositions.html`) : les angles en
+   grand, coupés par la gauche, au-dessus du titre ; la diagonale olive par l'angle
+   haut-droit ; un triangle bleu au bord droit, ces deux-là fondus vers le texte par un
+   masque ; et **un seul accent en couleur pleine**, deux arcs orange dans l'angle bas-droit
+   (centre à 5 et 7 du coin, rayons 16 et 32, trait 6 — rentrés le 10/09 sur la capture
+   du commanditaire, où il n'en restait qu'une écharde). Filets à **30 %**, accent à 100 %.
+
+Où ça vit : hues en primitifs `--ref-live-{vert,jaune,orange,bleu}`, mélange en jetons de
+composant `--color-login-live-*` (`color-mix`, `index.css`) plus `--color-login-live-accent`
+(l'orange plein), consommés par le seul `BrandBanner.tsx` — ajouté aux propriétaires de
+`--color-login-` dans `scripts/check-design-tokens.mjs`. **Deux cadres** de 393 × 199 en
+`slice` : l'un ancré à gauche et en haut (les angles ; `-top-4` en forme courte, sinon le
+filet jaune tombe sur la troisième ligne), l'autre à droite et en bas (le reste et l'accent).
+Un écran large étire la bande sans étirer le dessin. Vérifié à 393 (long 199, court 167),
+360 et 1512 ; viewports remesurés : 02.1 → 1330 × 1606, 02.2 → 2160 × 2009.
+
+## Vérification mobile, page par page — 393 px (depuis le 09/09)
+
+Méthode : `getComputedStyle` sur la page rendue à 393, comparé aux déclarations de la
+planche (`portage-methode-mesure`). Une ligne par planche ; les écarts corrigés, puis
+ceux qu'on garde et pourquoi.
+
+- **02.1 Connexion** (09/09) — libellé et icône de champ en encre secondaire, sans
+  rougir ni foncer au focus (`InputField`). Gardé : la couronne de focus au jeton du
+  système plutôt qu'à `--ink` (Q-V2) ; pas de mode « annuaire » (le produit n'a pas de SSO).
+- **02.2 Première connexion** (09/09) — conforme.
+- **03.1 Tableau de bord** (10/09) — corrigé : l'avatar de l'en-tête à **44** (`iconOnly`
+  posait `min-h-12 min-w-12` que `h-11` ne battait pas) ; **plus de filet sous le titre**
+  des cartes à rangées (« Derniers événements », « Mes équipements », « Types en tension ») :
+  l'en-tête `.ch` est devenu `<header>`, sans quoi `first-of-type:border-t-0` sur des
+  rangées `div` ne visait jamais la première ; la rangée du héro `.trow` à **56 / 8 / 12**
+  (elle valait 68 / 12 / 16 — non mesurable ce jour, la session n'ayant rien à traiter).
+  Gardé : « Hors service : N retirés, M manquants » sous la barre du parc, que la planche ne
+  dessine pas parce que son jeu n'a pas de reste — c'est un chiffre, pas une note ; et
+  « Tout mon historique → Mon profil » pour le porteur, qui n'a pas accès au journal 18.1.
+- **03.3 Tâches** (10/09) — corrigé : la ligne `.ord` met **la partition en tête, en 500,
+  et le compte à droite** (« **À suivre** · les plus anciennes d'abord · 1 », « 6 des 17 »
+  avec une nature posée) — `count.regard` et `count.de` de `ListTemplate`, la forme
+  ordinaire (« **14** actifs · … ») ne bouge pas ; la rangée `.trow` à **56 / 8 / 12** (elle
+  portait 68 / 12 / 16, les mesures de la rangée d'actifs de 04.1) ; le titre d'une demande
+  est **l'objet** (« Ordinateur portable »), plus « Demande: objet » — la nature vit en
+  sous-ligne et dans la teinte (`RequestSheet`, nouvelles demandes seulement). Gardé : le
+  bloc du titre à 48 (la planche dit 44 sans action de page ; le gabarit garde la hauteur
+  d'un geste pour que le titre ne bouge pas d'une liste à l'autre), et la recherche à pleine
+  opacité sur la file vide (la planche l'éteint à 40 % ; un champ qui a l'air désactivé
+  sans l'être trompe). Non mesurable : la feuille d'une tâche et « À faire » côté
+  gestionnaire — la demande créée dans une session ne persiste pas (quota Firestore).
+- **04.1 Actifs** (10/09) — corrigé : le titre est **« Actifs »** pour les deux rôles (le mot
+  de la barre du bas, 17.7 ; le code disait « Équipements » / « Mes équipements »). Conforme
+  pour le reste : bloc 17.8, `.lrow` 68 / 12 / 16, vignette 40, `.l1` 16 + type 12, `.l2` 14
+  avec le glyphe d'état, identifiant en 12 à droite, « Charger la suite », FAB 56 à 80 / 16.
+  Gardé : la recherche à 68 du haut (04.1 dit 60, 17.8 dit 68 — le composant fait foi).
+- **04.2 Détail équipement** (10/09) — corrigé, et c'est la fiche pilote : la page à
+  **16 / 16 / 24, 16 d'écart** (`DetailTemplate`, qui portait 20 partout — les sept fiches en
+  héritent) ; les **en-têtes de carte à 17 / 500 / 24, sans icône** ; `ReferenceRow` à
+  **48 / 12 / 16** (elle portait 44 / 11 / 13, l'échelle d'avant R15 ; quatre emplois), valeur
+  sans graisse, creux en encre tertiaire, copie en 16 ; `ProportionRow` : libellé et
+  conséquence en **16 / 24**, `b` en 400 ; la provenance de l'amortissement retirée (R15 :
+  aucune note) ; l'historique en rangées `.ev` (marque 32, 16 / 24 + 14 / 20) et son renvoi
+  vers **l'Historique** (18.1) au lieu d'Audit ; les documents en rangées `.doc` ; le badge
+  d'état du héro en 400. Conforme : le héro (22 / 20 / 20, badge 28, `.ty` 12 capitales,
+  28 / 32, `.hrow` 56, tuiles 22 / 28 + 12 / 16, geste 48). Non mesurable : porteur en
+  réparation (ex-04.4), le compte suspendu.
+- **04.3 Créer, corriger, sortir** (10/09) — corrigé : la coque de formulaire
+  (`FullScreenLayout`) rend son retour en **Phosphor à 48** (il portait un glyphe Material
+  de 40) et la page à **16 / 24** (elle portait 32) ; le formulaire : colonnes à 12, `<b>` en
+  500, et **les trois notes retirées** (Configuration, Achat, Documents — R15, la planche ne les
+  dessine pas). Les feuilles « Déclarer un incident » et « Sortir du parc » sont conformes
+  (titre 22 / 28, sujet 40 + 16 / 14, crans de 56, conséquences 28 / 14, pied 48) ; leur croix
+  passe en Phosphor à 48 (`CloseButton`, toutes les feuilles du produit). Non mesuré : l'import
+  de fichier (arbitrage 17.6 / 04.3 en attente). **`<b>`/`<strong>` sont à 500 pour tout le
+  produit** (`index.css`) : deux graisses, et le 700 du navigateur n'en est pas une.
+  **Dette relevée** : `MaterialIcon` reste employé par une trentaine de composants (`Menu`,
+  `Chip`, `SelectField`, `Toggle`, `Pagination`, `EmptyState`, `UserAvatar`…) — I2 / I3
+  demandent Phosphor partout ; c'est un chantier à part, pas une retouche de planche.
+- **04.4 La suite de l'incident** (10/09) — mesuré après une déclaration signée dans la
+  session : la feuille « Prendre en charge » est conforme (titre 22 / 28 et sous-ligne, sujet
+  40 + 16 / 14, bandeau de garantie 14 / 20, réparateur en `.pick` 56, deux colonnes à 12,
+  champs 48, conséquences 28 / 14, pied 48). Corrigé sur la fiche en réparation (04.2,
+  `e-rep`) : le geste primaire est **« Réceptionner le retour »** (il disait « Clore
+  l'intervention ») ; le badge d'état dit **« En réparation »** en entier (il sortait
+  « En Répar. ») ; « L'événement » quand l'historique n'en compte qu'un. Non mesuré : le
+  remplacement lié (feuille de 06.1 depuis l'incident) et « Réceptionner » — ils demandent
+  une prise en charge enregistrée, que le quota Firestore ne garde pas.
+- **05.1 Équipe** (10/09) — corrigé : le nom en **17 / 24, chasse −.01em** (`ListRow`, prop
+  `person` ; il sortait en 16 comme un code d'actif). Conforme : bloc 17.8, `.ord` avec le tri
+  « Nom », rangée 68 / 12 / 16, sous-ligne « site · n objets » en 14 / 20, FAB. Gardé : `.ord`
+  avec le nombre en 500 (05.1 dit 400, 17.8 dit encre pleine — le composant fait foi).
+- **05.2 Fiche d'une personne** (10/09) — corrigé : les cartes à rangées (`RuleGroup`) à
+  **8 / 16** au lieu de 8 / 20, et la gouttière des rangées à **16** (elle était restée à 12
+  malgré son commentaire). Conforme : héro (initiale 56, `.ty`, 28 / 32, badge 28, tuiles,
+  geste 48), `.ch` 48 avec 17 / 500, rangées 60 / 10 en 16 / 24 + 14 / 20, valeur en 500.
+  Gardé : badge d'état en 400 (05.2 dit 500 ; 04.2, la fiche pilote, dit 400).
+- **05.3 Créer un compte** (10/09) — conforme : la feuille des deux chemins, « Inviter une
+  personne » (titre 22 / 28, phrase 14 / 20, adresse 48, crans de rôle 56 en 16 + 14,
+  conséquences, pied 48). Écart de modèle : Pays + Site en deux colonnes là où la planche
+  n'a qu'un site (le produit rattache par pays). Non mesuré : l'import d'équipe, le compte en
+  attente, « compléter la fiche » (mode édition de 05.2).
+- **06.1 Le parcours complet** (10/09) — « Remettre l'équipement » mesuré depuis la fiche :
+  conforme (titre 22 / 28 et phrase 14 / 20, sujet 40 + 16 / 14, « Remis à » en `.pick` 56 avec
+  le nom en 500, « À partir du » à 48, attestation à 120, conséquence 28 / 14, pied 48).
+  Écart de forme accepté : le destinataire se choisit **dans la feuille** (bloc 1 de 17.4 :
+  recherche 48, rangées 56) et non sur la page « Remettre à » de 05.1. Non mesurés : confirmer
+  la réception, rendre, réceptionner (ils demandent une remise persistée).
+- **06.2 L'attestation** (10/09) — sans code, la signature s'impose et la feuille le dit
+  (« Pas encore de code PIN : signez. ») : conforme. Le champ à six cases se mesure en 07.1.
+- **06.3 Fins de flux** (10/09) — la forme 2 mesurée sur « Demande envoyée » (bandeau 56,
+  titre 16 / 500, ligne 14 / 20, teinte) : conforme. Formes 1 et 3 non mesurées.
+- **06.4 Demander un équipement** (10/09) — conforme : feuille (titre 22 / 28, phrase 14 / 20,
+  `.pick` 56 avec « Choisir » en 15 / 500, motif à 96, sous-ligne 14 / 20, segment 44 aux crans
+  de 36 en 14, conséquence, pied 48). Non mesuré : la feuille de choix du type en tuiles.
+- **06.5 Arbitrer une demande** (10/09) — non mesurable ce jour : la demande créée dans la
+  session ne persiste pas (quota Firestore) et la rangée « À suivre » n'était plus là au
+  second passage. À reprendre quand le quota est rendu.
+- **07.1 Mon compte** (10/09) — corrigé : 16 d'écart entre le héro et les cartes (il valait
+  20). Conforme : barre 56 / 17, héro (56, `.ty`, 28 / 32, courriel 14 / 20), trois cartes à
+  8 / 16 avec `.ch` 48 et `.arow` 56 (vignette 40, 16 / 24 + 14 / 20). Gardé : « Définir mon
+  code PIN » en feuille (six cases de 44 × 56 à 10, chiffre 24 Archivo) là où 06.2 dessine une
+  page à deux étapes ; pas de « Mes sessions » ni de double authentification (le produit n'a
+  ni sessions nommées ni 2FA).
+- **09.1 Catalogue** (10/09) — corrigé : la page à **16 / 16 / 24** (96 sous le bouton
+  flottant), l'écart des familles à **16**, et la carte d'une famille à **4 / 16** — elle
+  portait 20 / 36, 20 d'écart et 16 d'intérieur. Conforme : bloc 17.8, en-tête de famille
+  hors carte (`.fh` 32 + 17 / 500 + compte 14 / 20), rangées 64, clé en chasse fixe à droite.
+- **10.1 Emplacements** (10/09) — conforme : bloc 17.8 sans entonnoir (l'arbre se descend,
+  il ne se filtre pas), `.ord` à 12 / 16, en-tête de pays à code en pastille, rangées de site
+  68 avec « n actifs · n personnes · n locaux », FAB. Rien à reprendre.
+- **11.1 Accès** (10/09) — corrigé : **une carte dans une carte**. Le corps de la page est
+  fait de groupes à filets, qui sont déjà des cartes ; le gabarit en posait une autour, et
+  les rangées s'en trouvaient rentrées de 16 de plus que sur les autres listes (297 au lieu
+  de 329). `ListTemplate` reçoit un troisième corps, **`body="cartes"`** : la mesure de
+  lecture reste, la carte du gabarit tombe, les enfants s'espacent de 16.
+- **14.1 Paramètres** (10/09) — conforme : barre 56, groupes à filets à 8 / 16 avec en-tête
+  17 / 500, rangées 60 / 10 (titre 16 / 24, conséquence 14 / 20, **valeur à droite en 500**),
+  note de pied en 12 / 16 sur le filet. La valeur ne redit jamais le sous-titre.
+- **18.1 Historique** (10/09) — corrigé : **un jour, une carte** (`.day`, surface, rayon 8,
+  8 / 16, 16 entre deux). Les jours étaient des sections à filet dans une carte unique : la
+  date se lisait comme un titre de rangée, pas comme l'en-tête de sa journée. Conforme
+  ailleurs : bloc 17.8 avec badge d'entonnoir, `.ord`, marque ronde de 32 teintée par la
+  nature, fait 16 / 24 + auteur et méthode 14 / 20, heure 12 tabulaire.
+
+- **07.1, « changer mon mot de passe »** (10/09, relevé par le commanditaire) — la feuille
+  la plus éloignée de sa planche du lot : titre « Mot de passe », trois champs nus, un pied à
+  deux boutons de largeurs inégales. Huit écarts corrigés : le titre devient **« Changer mon
+  mot de passe »**, la phrase de tête (« Vous resterez connecté sur cet appareil. ») revient,
+  la **jauge à quatre segments** paraît sous chacune des deux saisies, la règle de longueur
+  se lit **avant** la faute (12 caractères — le refus valait encore 8 là où
+  `PASSWORD_MIN_LENGTH` dit 12), « Confirmer » redevient « Confirmer le nouveau mot de
+  passe », la note « votre **code PIN** ne change pas : il signe, il n'ouvre pas » sépare les
+  deux secrets, le pied passe en **deux colonnes égales** avec « Enregistrer », et l'écart du
+  corps à 16. La jauge de 02.2 est extraite en `PasswordMeter` : deux planches la déclarent,
+  elle n'a donc qu'un dessin. **Arbitrage** : 02.2 la pose à 12 du champ, 07.1 à 10 — le
+  composant garde 12, la valeur de la planche qui l'a fait naître.
+
+- **07.1, « Vue — Mon compte »** (10/09, relevé par le commanditaire) — la géométrie était
+  juste (barre 56, page 16 / 16 / 24, héro 22 / 20 / 20 à avatar 56, cartes 8 / 16, rangées 56
+  à vignette 40, 16 / 24 + 14 / 20). L'écart était **dans ce que les rangées disent**.
+  *« Chaque acte n'a qu'une entrée, l'état se lit en sous-ligne »* : deux rangées sur trois le
+  faisaient (« aucune, à tracer à chaque remise », « sans lui, chaque remise se trace »), la
+  troisième portait une **règle** — « il ouvre la session, il ne signe pas » — et c'est
+  exactement la phrase que la feuille pose désormais sous ses champs : elle était donc dite
+  deux fois et n'apprenait rien du compte. Le modèle n'avait pas la donnée que la planche
+  écrit (« changé il y a 4 mois ») : `User.passwordChangedAt` est ajouté, la feuille l'inscrit
+  au succès comme `signatureId` s'inscrit, et la rangée lit « changé le … » ou « jamais changé
+  depuis l'ouverture du compte ». Au passage, `authService.changePassword` refusait à **8**
+  signes quand `PASSWORD_MIN_LENGTH` en déclare **12** — la même longueur est maintenant
+  déclarée une seule fois, du service à l'écran.
+  **Gardé, faute de produit** : « Double authentification » et « Mes sessions », que 07.1
+  dessine en colonnes 3 et 7 ; le produit n'a ni 2FA ni registre de sessions. La carte « Où je
+  suis connecté » n'a donc qu'une rangée et pas son décompte d'appareils.
+
+- **07.1, les trois états de la signature** (10/09, relevés par le commanditaire) —
+  **« D'où vient l'image »** : la phrase de tête manquait (« Une image de votre signature.
+  Avec votre code PIN, elle s'apposera d'elle-même. ») — la feuille demandait un fichier
+  sans dire ce qu'il deviendrait ; et le conseil de la photo reprend la formulation de la
+  planche, la nôtre se tronquant à 393.
+  **« Recadrer »** : cadre au rayon 8 (il valait 4), le curseur reçoit **le moins et le
+  plus** que `.zoom` déclare, sa piste passe à **4** et sa poignée à **24 carrée** (elle
+  valait 6 et une pastille ronde de 20 — le diamètre d'un bouton radio : une poignée qui se
+  glisse et une case qui se coche n'ont pas à se ressembler), la valeur à 14 sur 20 dans ses
+  40, et la phrase de garantie descend **sous** le réglage avec sa main — elle ne dit plus
+  quoi faire, elle dit ce que le geste garantit. Les crans vivent dans `Slider`, pas dans
+  l'écran : posés là, c'étaient deux contrôles natifs hors des primitives, et le contrôle DS
+  l'a refusé à juste titre.
+  **« Signature enregistrée »** : la phrase de tête, la **date en haut à droite**, le bloc
+  de conséquences repris — il s'intitulait « Ce que cela change » sans dire *quoi*, alors que
+  la question posée ici est « puis-je la supprimer », et 07.1 l'écrit : **« Si vous la
+  supprimez »** — avec ses deux pastilles de 28 teintées. L'aperçu passe de 120 à **160** :
+  120 était la hauteur de la case d'attestation, choisie pour relire l'image « dans la forme
+  qu'elle aura sur la preuve », mais à 120 **la date et le tracé se chevauchent** — une
+  signature claire passe par-dessus le coin où la date se pose. 07.1 donne 160 parce qu'ici
+  on juge l'image, alors que sur la preuve on la constate.
+  **Gardé** : les quatre poignées en équerres plutôt que les carrés blancs de la planche
+  (elles ne se saisissent pas, et un carré blanc promet qu'on peut les tirer) ; pas de voile
+  sombre autour du cadre, le canevas *étant* le cadre — ce qu'on voit est ce qui sera
+  enregistré ; et le pied du recadrage détaché par un filet plutôt que collé au bas, cette
+  vue vivant dans le flux des réglages et non dans une coque pleine page.
+
+- **14.1 + 07.1, la carte « L'application »** (10/09, demandée par le commanditaire) — la
+  dernière colonne de 07.1 dessine un écran de Paramètres à deux cartes : « Mon compte » et
+  **« L'application »** (Notifications · Langue et site · Aide), la version en pied. Le
+  produit portait les quatre groupes de **14.1**, qui fait foi sur cette page (§ une page,
+  une planche), mais **rien** des trois rangées de 07.1. Le groupe « L'application » est
+  ajouté entre « L'informatique » et « À propos ». **Ce qui n'a pas été redit** : la version
+  reste dans « À propos », où 14.1 la range — la reprendre en pied l'aurait mise deux fois ;
+  et « Contacter le support » **se déplace** au lieu de se dupliquer, sous le nom que 07.1
+  lui donne, « Aide ». **Deux rangées sur trois ne s'ouvrent pas, et c'est exact** : rien
+  n'est réglable derrière — les deux notifications sont celles que le produit émet, la langue
+  est le français, le site vient de la fiche où un gestionnaire le change (05.2). Un chevron
+  y promettrait un écran qui n'existe pas, ce que 14.1 a précisément fait tomber du Centre
+  d'aide. La sous-ligne d'« Aide » porte l'adresse et **ne promet pas de « documentation »** :
+  le produit n'en a aucune à ouvrir.
+
+- **14.1, la mise en page des rangées** (10/09, demandée par le commanditaire : « aligner
+  Paramètres sur le style de Mon compte, avec des icônes ; certains détails sont trop
+  longs »). Deux planches donnent deux grammaires à cette page : **14.1** pose la valeur à
+  droite et **aucune vignette** ; **07.1** pose une vignette de 40 et met l'état en
+  sous-ligne, sans valeur. Le commanditaire tranche pour la vignette, et « Mon compte »
+  l'emploie déjà — deux écrans atteints par le même menu ne gagnent rien à s'écrire dans
+  deux grammaires. `RuleGroup.Row` reçoit donc un `glyph` optionnel ; 05.2 et 11.1 ne le
+  passent pas et ne changent pas.
+  **Ce que la vignette coûte, et comment il est payé.** Elle prend 52 px, et titre + valeur
+  ne tenaient plus : « Périodicité de l'inventaire » sortait en « Périodicité de l'inve… ».
+  Un réglage qu'on ne peut pas nommer ne se règle pas — **avec une vignette, le titre passe
+  donc à la ligne au lieu de se couper** (sans elle, l'ellipse reste : 11.1 la veut, et ses
+  titres sont courts). Et la place se reprend sur les valeurs et les sous-lignes, jamais sur
+  les titres : « Code PIN à définir » devient **« À définir »** (le pictogramme d'alerte et
+  le titre disent le reste) ; « français · Lomé Siège » passe en sous-ligne, où 07.1 le met ;
+  les sous-lignes de « Devise », « Amortissement », « Périodicité », « Taille » et « Sources »
+  tombent, titre et valeur s'y suffisant.
+  **Rien n'est perdu au passage** : les deux portées chiffrées que 14.1 tient à montrer —
+  « décide de la valeur de N actifs », « donne son sens à “en retard” sur N sites » —
+  **descendent dans l'écran du réglage**, en pied de groupe, là où 14.1 les porte aussi et
+  là où l'on s'apprête à changer la valeur. Résultat : rangées de **60 à 69** au lieu de 60
+  à 104, aucun titre coupé, une icône par réglage.
+
+- **14.1, la passe de dépouillement** (10/09, demandée par le commanditaire : « il est plus
+  simple de garder les boutons sans les détails ou commentaires ; le nom des boutons Langue
+  et Thème est trop long »). La passe précédente avait raccourci les sous-lignes ; celle-ci
+  les **supprime**, et avec elles les notes grises de groupe. Ce qui tombe : les deux notes
+  de « Vous » et de « L'informatique » (trois lignes de gris pour une carte d'une rangée,
+  qui expliquaient le classement plutôt que le réglage) ; la sous-ligne de « Notifications »,
+  devenue sa **valeur** « Réceptions, relances » ; l'adresse sous « Aide », la flèche de
+  sortie disant déjà qu'on part écrire ; et la moitié qui plaidait dans « Clair — identité
+  Neemba ». Ce qui se raccourcit : **« Langue et site » devient « Langue »**, valeur
+  « Français » — le site, que la valeur portait en « français · Lomé Siège », est déjà sous
+  le nom dans le héro de Mon compte, et une rangée ne porte qu'un fait ; **« Thème »** garde
+  « Clair ». Les notes ne sont pas perdues : elles vivent dans l'écran du réglage, où elles
+  se lisent au moment d'agir. Relevé à 393 : rangées **60 · 60 · 60 · 61 · 61 · 61 · 68 · 68
+  · 69 · 69 · 69**, aucun titre coupé, une icône par réglage, et une page qui se parcourt
+  d'un regard au lieu de se lire.
+
+- **Une règle sans couche avalait le 600 d'Archivo** (10/09, trouvée en mesurant 15.1).
+  Le produit posait `b, strong { font-weight: 500 }` pour ramener le 700 du navigateur
+  dans les deux graisses de R15 — mais **hors de toute couche**, et une règle sans couche
+  l'emporte sur `@layer utilities` : c'est le piège que ce fichier documente déjà pour le
+  `h1 {…}` qui neutralisait les chasses négatives. Conséquence mesurée : tout `<b>` portant
+  `font-semibold` rendait **500 au lieu de 600** — le restant de 15.1 en 44, celui de 16.1,
+  les trois totaux de 11.1, le compte de l'import, les trois chiffres de 15.5 ; et
+  symétriquement les cinq `<strong className="font-normal">` de 04.2 rendaient 500 au lieu
+  de 400. La règle passe dans `@layer base` : elle corrige toujours le 700 du navigateur, et
+  n'importe quelle classe de graisse la reprend.
+
+- **15.1 au téléphone** (10/09) — conforme sur `.top` (8 / 16 / 12, gouttière 12, titre
+  28 sur 32), sur le héro (22 / 20 / 20, surtitre 12 en capitales espacées, jauge de 6,
+  ligne de lecture 12), sur `.ch` (48, 17 sur 24, compte 14 sur 20), sur `.post`
+  (12 d'intérieur, gouttière 8, nom 16 sur 24, montants 14 sur 20 dont le consommé en 16)
+  et sur `.lrow` (64, vignette 40, 16 sur 24 + 14 sur 20). **Six écarts relevés et repris** :
+  la page se peignait en `bg-surface`, **la couleur des cartes elles-mêmes**, si bien que
+  « Les postes » et « Aller à » se fondaient dans le fond et qu'un filet — qu'aucune planche
+  ne déclare — les détachait ; le fond passe au canevas et les deux cartes prennent la
+  grammaire du produit (rayon 8, intérieur 8 / 16, ni filet ni ombre). Les jauges portaient
+  le rayon 4 au lieu du **2** de `.prog` et de `.gauge`. Les blocs s'espaçaient de 20 au
+  lieu des **16** de `.page`. Le chiffre du héro avalait la devise — « 42 700 000 XOF »
+  **en 44** — quand `.big` met le nombre en 44 et l'unité en 14 à côté, comme 16.1 ; et la
+  même devise se répétait sur chaque poste, trois fois par rangée, trente-trois fois sur
+  l'écran. Enfin `.tb` manquait : la page s'atteint depuis « Plus » et **ne se quittait que
+  par la barre du bas**. Reste non porté : `.hact` « Changer d'exercice » et l'écran
+  « Exercices » (colonne 3), auxquels le sélecteur d'année du bloc fixe tient lieu de place.
+
+- **15.3 — le journal des dépenses, porté** (10/09). La page n'était pas portée du tout :
+  fil d'Ariane « Finances » au-dessus d'un titre de 30, une carte « Historique des
+  Transactions », un tableau à sept colonnes caché sous 600 **et** une liste de cartes
+  qui redisait les mêmes faits en dessous — deux corps pour une liste, aucune recherche,
+  aucun filtre, aucun mois. Elle prend le gabarit des huit listes (17.8) et la forme que
+  18.1 emploie déjà pour un journal : **une carte par mois, son total en tête**, rangées de
+  64 à vignette de 40, montant nu à droite et ⋮ au bout. S'y ajoutent le héro « Consommé à
+  ce jour » — que le filtre ne touche pas —, la bande de recherche (« Fournisseur, facture,
+  objet »), la feuille de filtre à deux axes en puces et le geste d'enregistrement.
+  **Trois écarts assumés** : l'axe **poste** de la feuille n'existe pas, une dépense du
+  produit ne portant aucun lien vers une ligne de budget — le panneau de détail le *devine*
+  encore, et 15.1 a précisément fait tomber la devinette ; « Modifier » ne se redit pas dans
+  le ⋮ de la rangée, la dépense ouverte le portant déjà ; et les trois chemins du bouton
+  flottant (photographier, importer, saisir) sont les **deux modes** de la feuille
+  d'enregistrement, l'appareil photo et le fichier ouvrant le même sélecteur au téléphone.
+  Mesuré à 393 sur quatre écritures saisies dans l'écran : mois 48 / 17 sur 24 avec son
+  total en 14 sur 20, rangées **64 · 65 · 65**, vignette 40 rayon 4, titre 16 sur 24,
+  sous-ligne 14 sur 20, montant 16 sur 24 tabulaire, ⋮ de 48 débordant de 12.
+  **Le compte ne s'écrit que filtré** : 15.3 ne dessine pas de ligne de service, son héro
+  disant déjà « consommés en 47 écritures » ; dès qu'un filtre ou une recherche restreint la
+  liste, la ligne revient et dit le rapport.
+
+- **16.1 au téléphone** (10/09) — conforme sur le bloc fixe (8 / 16 / 12, gouttière 12,
+  titre 28 sur 32, `.srch` et `.fbtn` à 48), sur le héro (22 / 20 / 20, chiffre Archivo 44
+  sur 48, unité 14 sur 20, `.hrow` à 20 avec deux `.hk` de 12 / 10 sur le voile blanc à 8 %,
+  valeur 22 sur 28 et clé 12 sur 16 à 2), et sur `.fnote` (14 sur 20, gouttière 8). **Trois
+  écarts repris** : `.trow` déclare **56** et la rangée tenait le plancher de 64 — celui de
+  la rangée d'objet de 04.1, quand 16.1 range des lieux *en file* ; `.mini`, l'avancement
+  dans la rangée, portait le rayon 4 au lieu de **2** ; et `.tb` manquait au premier niveau,
+  la page s'atteignant depuis « Plus » et ne se quittant que par la barre du bas — la flèche
+  ferme le site quand un site est ouvert, et quitte l'inventaire sinon.
+  **Deux écarts déjà arbitrés, laissés tels quels** : la ligne de service porte le compte à
+  gauche (« 1 lieu · 1 en retard ») là où 16.1 met le tri à gauche et le compte à droite —
+  c'est la forme ordinaire de 17.8, et *« le gabarit décide, pas la page »* ; et le bouton
+  flottant « Lancer une campagne » n'existe pas, la matrice de 17.8 refusant l'action de
+  page à cet écran (une campagne se lance depuis la rangée de son lieu).
+
+- **La ligne de compte fait un `.top`** (10/09, trouvé en mesurant le second niveau de
+  16.1). Le gabarit des listes ne posait l'intérieur `8 / 16 / 12` de `.top` que lorsqu'une
+  **bande de recherche** existait ; sinon il retombait sur `.tbar.plain`, la barre de 56
+  tout compris de 04.1. Or le second niveau de 16.1 — un site ouvert, qui ne se cherche pas
+  — porte bien une ligne de compte : elle se collait au filet, sans les 12 que la planche
+  déclare, et le bloc mesurait **65 au lieu de 97**. La condition regarde maintenant la
+  bande *ou* la ligne ; la barre de 56 reste pour ce qu'elle vise, un titre et rien dessous.
+
+- **16.2 au téléphone** (10/09) — conforme sur `.tbar` (56, retour 48, `.tid .code` Archivo
+  600 en 17 sur 24, ⋮ à 48), sur le sujet du héro (Archivo 28 sur 32 à 4 du surtitre), sur
+  `.hrow` (20, gouttière 12) et sur les trois `.hk` (valeur 22 sur 28, clé 12 sur 16).
+  **Cinq écarts repris** : `.md`, la ligne qui situe la campagne, tenait **13 sur 19** — une
+  marche que R15 ne déclare pas, héritée de l'ancien `body-medium` — au lieu de 14 sur 20,
+  et 4 de marge au lieu de 2 ; c'est le `DetailHero` partagé qui la portait, donc les sept
+  fiches la corrigent ensemble. `.prog` prenait le **rayon plein** au lieu de 2, sur un voile
+  à 16 % au lieu de 12. La ligne de lecture sous la jauge prenait le corps de la page,
+  **14 sur 21**, deux points de plus que la clé des tuiles juste au-dessus : elle passe au
+  12 sur 16 de `.pk`. Les cartes portaient une **ombre** qu'aucune planche ne déclare, et la
+  carte des rangées n'avait aucun intérieur vertical là où `.card` en veut 4 ; la carte de
+  décision `.ec` valait 16 / 14 au lieu de **16 / 20**. Enfin la page se peignait en
+  `surface-container-low` — **exactement la couleur de `surface`** dans les jetons du
+  produit, donc celle de ses propres cartes : sans l'ombre, elles disparaissaient. Elle
+  passe sur le canevas, comme `.phone` de la planche.
+  **Trois écarts laissés, et dits** : les rangées d'objets emploient la rangée partagée de
+  04.1 (**70**) là où `.trow` de 16.2 déclare 56 — deux planches, deux hauteurs pour le même
+  objet, et c'est la primitive qui tient ; les puces du parc emploient la pastille partagée
+  (40 de haut, 15 sur 20) là où `.chip` de 16.2 en veut 36 et 14 sur 20 ; et chaque rangée
+  porte son état en bout (« à scanner »), que la puce active dit déjà — la planche ne le
+  répète pas.
+
+- **Les en-têtes, ramenés à deux mesures** (10/09, demandé par le commanditaire :
+  « harmoniser la taille de tous les headers »). Relevé à 393 sur les vingt-trois écrans :
+  **quatre mesures coexistaient**, dont deux que R15 ne déclare pas.
+
+  | mesure | ce qui la portait | verdict |
+  | --- | --- | --- |
+  | **28 sur 32**, Archivo 600, −.02em | les douze listes, Paramètres, Finances | `.top` — la mesure d'une **destination** |
+  | **17 sur 24**, Archivo 600, −.01em | la fiche d'un objet, Mon compte, Amortissement, Recadrer | `.tbar` — la mesure de **ce qu'une rangée ouvre** |
+  | **18 sur 23** | la barre du haut, la modale, le panneau latéral (`.section-title`) | **inventée** — passe à 22 sur 28, le `.sttl h3` des feuilles |
+  | **30 sur 36** | Rapports (`.page-title`) | **inventée** — passe à 28 sur 32 |
+
+  **Le doublon des pages plein écran.** Ajouter un équipement écrivait « Équipement » dans
+  la barre du haut, en 18, puis « Nouvel équipement » douze pixels plus bas, en 17 : deux
+  barres, deux mesures, un écran. Neuf vues étaient dans ce cas — les six formulaires et
+  imports, plus les deux boîtes du Catalogue qui redisaient « Catalogue » au-dessus du
+  `.top` du Catalogue. Elles rejoignent `adnMobileViews`, la liste des vues qui portent
+  leur propre en-tête. La barre du haut, elle, prend la mesure de `.tbar` (56 de haut,
+  17 sur 24) au lieu de 64 et du titre de feuille.
+
+  **Rapports** portait le seul en-tête à trois étages du produit : un fil d'Ariane
+  « Rapports », un titre « Rapports » de 30, et au-dessus une barre « Rapports » de 18 —
+  trois fois le même mot à trois mesures. Il prend le `.top` des destinations, avec sa
+  flèche de retour. `PageHeader` et `DetailHeader` n'ont plus aucun emploi.
+
+  **« Mon compte » passe en 28 — arbitrage du commanditaire (11/09).** 07.1 le dessine
+  dans un `.tbar` à 17, comme tout ce qu'une rangée ouvre. Mais c'est le seul de ces
+  écrans à avoir son adresse propre (`/settings/account`), à s'atteindre par deux chemins
+  — Paramètres et l'avatar de 03.1 — et à porter un héro : vu de l'usage, c'est une
+  destination. Il prend donc le `.top` de Paramètres. **Les cinq écrans de réglage —
+  Devise, Amortissement, Périodicité, Fichiers, Sources — gardent le `.tbar` à 17** : eux
+  n'existent qu'au bout d'une rangée, et 14.1 les dessine ainsi.
+
+  **La flèche de retour, au même endroit partout** (11/09, mesuré en vérifiant Mon compte).
+  Les sept destinations qui en portent une la plaçaient à **trois** endroits : les listes du
+  gabarit à 8 du bord, titre à 60 ; Finances et Rapports à 0, titre à 56 ; Paramètres et
+  Mon compte à 16, titre à 68. Finances et Rapports se retiraient de 24 — l'intérieur du
+  bureau — dans une page qui n'en pose que 16 au téléphone : le bloc débordait de 8 à
+  gauche, à droite et **en haut**, si bien que le titre montait aussi de 8. Paramètres et
+  Mon compte ne rentraient pas leur flèche comme `.top .tt` le demande. Les sept sortent
+  maintenant à **flèche 8–56, titre à 60**, la mesure du gabarit.
+
+- **Les rangées d'acte disent un état, plus un commentaire** (10/09, même demande :
+  « garder les boutons sans les détails ou commentaire »). Mon compte portait des phrases
+  là où 07.1 écrit un état : « jamais changé depuis l'ouverture du compte » — coupé à
+  « …du comp » —, « sans lui, chaque remise se trace », « aucune, à tracer à chaque
+  remise », « de cet appareil seulement ». Elles deviennent **« jamais changé »**,
+  **« à définir »**, **« aucune »**, et « Se déconnecter » n'en porte plus du tout :
+  `subtitle` devient optionnel sur `ActionCard.Row`, une rangée sans état n'ayant pas à
+  inventer une seconde ligne. « à définir » est le mot que Paramètres emploie déjà pour le
+  même code PIN — deux écrans atteints par le même menu ne gagnent rien à le nommer
+  autrement. Une rangée de l'index avait échappé à la passe précédente,
+  « N machines détectées à valider · Elles attendent dans Tâches » : la flèche de sortie
+  dit la destination, le titre dit le reste.
+  **Les sous-lignes des écrans de réglage restent** — « Au bout de laquelle un objet ne
+  vaut plus rien au bilan », « 1 200 000 s'écrit 1,2 M » : 14.1 les déclare là, et c'est
+  au moment de changer une valeur qu'on a besoin de savoir ce qu'elle change.
+
+- **Le bandeau « Données de démonstration » est retiré** (11/09, demandé par le
+  commanditaire). Il paraissait en tête de chaque page quand Firestore ne répondait pas
+  — quota quotidien épuisé, réseau coupé — avec « Le magasin distant n'a pas répondu :
+  rien de ce qui est écrit ici n'y sera enregistré ». La coque ne le rend plus ; le
+  drapeau `remoteUnavailable` reste exposé par `DataContext`, pour un écran qui voudrait
+  un jour dire l'état hors ligne à sa place. Vérifié à 393 en coupant toute requête
+  Firestore : aucun bandeau sur l'accueil, les actifs ni les finances.
+  **Le retrait est conforme à 17.1**, qui dit l'état hors ligne *« dans la forme de l'état
+  vide, jamais en bandeau »* — `OfflineBanner` était déjà tombé le 08/09 pour cette raison ;
+  c'était le dernier bandeau de ce genre. **Ce que couvre l'état « Hors ligne » qui reste**,
+  relevé le 11/09 en coupant le réseau de l'appareil : il paraît sur une liste **qui n'a
+  rien à montrer** (Tâches) ; une liste déjà remplie (Actifs, Historique) garde ses rangées
+  sans le dire, et une fiche retire son geste d'écriture sans le dire. Il se règle sur
+  `navigator.onLine`, donc sur le réseau de l'appareil : **le quota Firestore épuisé, réseau
+  présent, n'est plus signalé nulle part** — c'était le seul cas propre au bandeau retiré.
+
+- **07.1, la feuille « Définir mon code PIN » remise sur un axe** (11/09, relevé du
+  commanditaire : « le formulaire de définition de PIN n'est pas aligné »). Le formulaire
+  de code est la vue de référence de 06.2, que 02.2 (écran 3) reprend telle quelle :
+  `.pinpage` y **centre tout** — la phrase, les six cases, l'indication, la note. La
+  feuille centrait les cases (`PinField` les pose ainsi partout) mais laissait le texte au
+  bord : la phrase partait à 21 px, les cases à 40, la note à 21, et aucun bloc ne tombait
+  sur l'axe d'un autre. La phrase et la note sont maintenant centrées sur 300 px au plus,
+  comme `.ps` et `.fine` ; la note passe de 12 sur 16 à **14 sur 20**, la mesure de `.fine` ;
+  et la phrase équilibre ses lignes (`text-wrap: balance`), sans quoi sa deuxième ligne
+  s'ouvrait sur un tiret seul. Mesuré à 393 : les trois blocs centrés à **197**, le milieu
+  de la feuille. Le titre de la feuille reste à gauche, comme dans toutes les feuilles.
+
+- **Le code PIN se saisit deux fois, comme un mot de passe** (11/09, demandé par le
+  commanditaire). La feuille de 07.1 n'en prenait qu'une, la sixième frappe enregistrant
+  seule : une faute de frappe devenait le code, et ne se découvrait qu'à la première remise,
+  devant la personne qui tend l'objet. 02.2 posait pourtant la règle — *« chacun se saisit
+  deux fois »* — et la première connexion l'appliquait déjà. **Les deux écrans partagent
+  maintenant un seul formulaire**, `PinConfirmation` (crochet `usePinConfirmation` +
+  composant), que 02.2 appelle *« le même fichier »* : saisie, puis confirmation ; `.pinsteps`
+  à deux temps ; une ligne d'indication qui dit quoi faire (« Vous le retaperez pour le
+  confirmer », « Retapez-le », « Les deux codes concordent ») ; et « Recommencer » quand les
+  deux diffèrent. Un code faible est refusé **dès la première saisie**, avant qu'on le
+  retape pour rien, avec le message exact de la règle (« ni une suite, ni six fois le même
+  chiffre » — la première connexion disait « un chiffre répété », ce qui écartait à tort
+  112233). La feuille gagne le pied de celle du mot de passe, **Annuler / Enregistrer**, et
+  « Enregistrer » ne s'allume que lorsque les deux saisies concordent. Sa note de bas
+  (« Sans code, la remise se prouve par un tracé ») tombe : la ligne d'indication en
+  occupe la place.
+  Parcouru à 393 : code faible refusé au premier temps ; premier code accepté, second temps
+  allumé, cases vidées ; second code différent, rouge et « Recommencer » ; Recommencer
+  ramène au premier temps ; deux codes identiques, vert et « Enregistrer » allumé. La
+  première connexion n'a pas été parcourue — elle exige un lien d'invitation, qu'on ne
+  crée pas sur la base du commanditaire —, mais elle rend désormais le même composant.
+
+- **Remplacer son code PIN exige l'actuel** (11/09, demandé par le commanditaire).
+  La feuille ne le demandait pas, et le disait : *« setUserPin ne le vérifie pas »*. Qui
+  trouvait le téléphone de quelqu'un ouvert pouvait donc poser son propre code et
+  attester des remises en son nom. Trois choses changent, et **la vérification est réelle,
+  pas décorative** :
+  1. **La règle métier l'exige.** `setUserPin(userId, pin, currentPin)` refuse le
+     remplacement de *son propre* code sans le code en place (« Le code actuel ne
+     correspond pas »), et refuse un nouveau code identique à l'ancien. Un écran qui
+     oublierait de le demander ne la contournerait pas. Poser un premier code (02.2, ou
+     après une réinitialisation) et poser le code d'autrui (05.2) n'en demandent pas.
+  2. **La feuille le demande en premier temps**, seul, avant le nouveau code et sa
+     confirmation : `.pinsteps` compte **trois** tirets au lieu de deux (`PinSteps`,
+     `stepsBefore` de `PinConfirmation`).
+  3. **Trois essais**, la borne de l'attestation — désormais une seule constante,
+     `PIN_MAX_ATTEMPTS`, que `Attestation` lit aussi. Le compte **survit à la fermeture de
+     la feuille** (stockage de session de l'onglet) : sans cela, la rouvrir rendait trois
+     essais neufs, et la borne ne bornait rien. Au bout, la feuille ne demande plus rien et
+     dit la seule issue : l'informatique réinitialise le code depuis la fiche (05.2), et le
+     premier code se pose alors sans ancien.
+  Parcouru à 393 sur un code posé dans la session : premier temps « Entrez votre code
+  actuel », un tiret sur trois ; faux, « Encore 2 essais » ; feuille refermée puis rouverte,
+  faux, « Dernier essai » ; juste, deux tirets sur trois ; nouveau code identique à
+  l'actuel, refusé ; nouveau code puis confirmation, « Enregistrer » allumé, « Code PIN
+  remplacé » ; trois essais faux, la feuille n'offre plus que « Fermer ».
+  **Limite à connaître** : la vérification se fait dans l'application, comme celle de
+  l'attestation d'une remise ; le code vit sur le compte, sans empreinte. Elle arrête qui
+  trouve un téléphone ouvert, pas qui ouvre les outils du navigateur.
+
+- **16.2, la campagne remise d'aplomb** (11/09, relevé du commanditaire : « campagne
+  n'est pas aligné »). Mesuré bloc par bloc à 393, trois écarts :
+  1. **La rangée de pastilles sortait de l'écran** — 16 → 466 px pour une page qui
+     s'arrête à 377 : « Manquants » était coupé. Elles prenaient la mesure de 04.1 et 15.3
+     (40 de haut, 15 sur 20, 14 d'intérieur) **et un pictogramme chacune**, là où `.chip`
+     de 16.2 fait 36, 14 sur 20, 12 d'intérieur, sans pictogramme, et **sur fond de
+     surface** — elles sont posées sur le canevas, où le creux d'une pastille de feuille
+     ne se détachait plus. `FacetChip` reçoit `compact` et `onCanvas` ; les trois tiennent
+     désormais entre 16 et 355.
+  2. **Le héro portait 16 px de vide au-dessus de son surtitre** : `DetailHero` posait
+     toujours `mt-4` sur `.ty`, une marge faite pour le séparer de la pastille d'état. Sans
+     pastille, le surtitre tombait à 38 du haut au lieu des 22 de `.hero`. La marge ne
+     s'applique plus qu'après une pastille — ce qui corrige aussi la fiche d'un modèle et
+     celle d'une catégorie, qui n'en ont pas. La fiche d'un équipement, qui en a une, ne
+     bouge pas.
+  3. **La légende de liste était rentrée de 2** au lieu des 4 de `.ord` et de la ligne de
+     compte de toutes les listes — sur le parc comme sur les écarts.
+  Remesuré : surtitre à 22, pastilles 16–121 · 129–234 · 242–355, légende 20–373, carte
+  16–377.
+
+- **04.2, les gestes du porteur remis à la planche** (11/09, relevé du commanditaire :
+  « les boutons d'action comme Restituer, Incident ne sont pas alignés avec les
+  planches »). Mesuré sur la fiche d'un ordinateur vue par son porteur :
+
+  | | `.hact.two` de 04.2 | produit avant |
+  | --- | --- | --- |
+  | disposition | deux colonnes égales, 12 d'écart | empilés pleine largeur, 10 d'écart |
+  | intérieur | 12 | 16 |
+  | premier geste | « Incident », jaune | « Déclarer un incident », jaune |
+  | « Restituer » | `.btn-d` : blanc à 12 % sur le héro | `tonal` : presque noir sur un héro presque noir |
+
+  Les deux gestes sont désormais côte à côte, 154,5 px chacun — **exactement sous les deux
+  tuiles du héro**, qui partagent la même grille. « Incident » garde son nom entier pour
+  qui ne voit pas l'écran (`aria-label`) ; la feuille qui s'ouvre le porte dans son titre.
+  Le blanc à 12 % devient `BOUTON_SUR_HERO`, repris par « Annuler la remise », le geste
+  secondaire du gestionnaire quand une remise attend, qui avait le même défaut.
+  **Écarts laissés dans la vue du porteur, non demandés** : 04.2 ne montre pas au porteur
+  sa propre rangée (« ABBEY Gianni »), écrit « Attribué — à vous » dans la pastille, et
+  remplace le prix par la date de remise dans une troisième tuile. « Réception non
+  confirmée » n'est pas un défaut des gestes : l'objet vient du tableur, sans date de
+  réception.
+
+**Restent à mesurer au téléphone** : 15.2, 15.4 et 15.5 (les lignes du budget, la saisie
+d'une dépense, les rapports), 17.1 à 17.10 (les
+composants partagés, mesurés en place dans les écrans mais jamais contre leur propre
+planche), et 06.5 (le détail d'une demande — la demande créée dans une session ne persiste
+pas, quota Firestore).
+
+**Comment mesurer un écran dont la donnée est vide.** Les dépenses n'existent pas dans la
+base : `FIREBASE_BACKEND_ENABLED` purge le stockage local à chaque démarrage, si bien qu'on
+ne peut pas semer un jeu d'essai par là. Le harnais de 15.3 saisit donc quatre écritures
+**par l'écran lui-même**, en coupant au passage toute écriture Firestore
+(`page.route` sur `:commit`, `/Write/`, `:batchWrite`) : la page reçoit ses rangées, la base
+ne reçoit rien. À reprendre pour tout écran dont l'état ne peut pas se fabriquer autrement.
+
+## Relevé mesuré de toute l'application, et ce qu'il a corrigé (13/09)
+
+**La demande** : *« dresse la liste de chaque élément des planches et vérifie-la sur toute
+l'application »* — le commanditaire relevait, passe après passe, *« un bouton, un
+espacement, un en-tête »* hors planche. La réponse n'est pas une relecture : c'est une
+mesure.
+
+**Comment.** Les 44 planches ont été rendues et chaque élément relevé par
+`getComputedStyle` (971 familles). L'application a été parcourue au téléphone (393), à la
+tablette (768) et au bureau (1280) — 165 états d'écran : chaque route, ses feuilles de
+filtre et d'ajout, la première rangée de chaque liste, chaque entrée des ⋮ et chaque geste
+de héro, le menu du compte, les rangées de Paramètres. Chaque élément mesuré est rattaché
+à son composant React par la fibre, puis comparé valeur par valeur à la famille de planche
+qu'il porte. Toute écriture Firestore était coupée (`page.route`) : rien n'a été écrit dans
+la base du commanditaire.
+
+**La ligne de base du 13/09** : 193 écarts — 10 de structure,
+157 visibles, 26 mineurs. **Après les corrections et les six arbitrages** :
+53 — 1 de structure, 49 visibles, 3 mineurs, sur les mêmes 165 états.
+
+### Ce qui a changé, par la cause et non par l'écran
+
+- **Aucun bouton ne porte d'ombre.** Les variantes pleines, bordées et « élevées » de
+  `Button` en portaient une (87 écrans). Le bouton texte passe à l'encre pleine (`.tb`,
+  `.btn-ghost`).
+- **Le carré d'un geste d'icône se reprend.** `iconOnly` forçait un minimum de 48 qu'une
+  hauteur posée par l'appelant ne battait pas — c'est le piège noté au 10/09, réglé à la
+  source. Dans le chrome du bureau, **c'est le gabarit qui passe le geste à 40**
+  (`IconGestureSizeContext`, posé par l'en-tête de `ListTemplate` et de `DetailTemplate`),
+  et `FilterButton` le lit aussi. Les flux (00.5) et les feuilles gardent 48.
+- **Trois ombres, et rien d'autre ne flotte** : `--tk-shadow-sheet`, `--tk-shadow-dialog`,
+  `--tk-shadow-fab` (classes `shadow-sheet`, `shadow-dialog`, `shadow-fab`). Les feuilles
+  perdent leur cerné, le voile passe au sombre du produit à 42 % (`--tk-color-scrim`), la
+  feuille d'acte se centre à 560 au-delà de 600, le `Modal` prend la forme de `.dial`. Les
+  cartes des fiches, des rapports et des imports perdent l'élévation MD3.
+- **Deux encres hors socle retirées par leur jeton** : l'encre secondaire (`#57514A`)
+  vaut désormais `--ink2`, et l'encre secondaire sur le sombre vaut `--on-dark-2`
+  (le héro et ses tuiles, 23 écrans).
+- **Le chrome du bureau** : `.sh2` en 400, l'avatar en Inter 12/500, la marque du rail en
+  16. Les en-têtes de Rapports, Finances, Paramètres et du rôle ouvert passent à la forme
+  du bureau au-delà de 600 ; Catalogue et Emplacements prennent le champ de 320 × 40 et
+  les boutons d'en-tête de 40.
+- **Plus de bouton flottant au bureau** : l'emplacement `fab` des gabarits monte dans
+  l'en-tête au-delà de 600, et `ListActionFab` y prend la forme `.hbtn`
+  (`AddGesturePlacementContext`).
+- **Rangées et tableaux** : `ListRow` retire les 2 px entre ses lignes (68, et non 70–71)
+  et passe le type en `--ink3` ; `DataTable` pose `0 10` et l'en-tête en `--ink2` ;
+  `RuleGroup` reçoit la forme `grp` de 14.1 (nom du groupe en 12/16, rangées de 56 qui
+  portent leurs côtés, note sur le creux).
+- **Contrôles** : l'interrupteur prend `.sw` (44 × 26, creux / sombre), l'étiquette d'un
+  champ multiligne `.lab` (12/16 500), la barre d'un formulaire `0 8 0 4`, le libellé des
+  feuilles de filtre de 05.1 `.fh`.
+- **Phosphor à la source** : `MaterialIcon` rend le glyphe que désigne
+  `CORRESPONDANCE-ICONES.md` (le geste d'ajout, la flèche de liste, le dépôt de fichier…) ;
+  un nom absent de la table garde l'ancien glyphe. Le bouton d'enregistrement du plein
+  écran perd sa disquette.
+- **La source d'un fichier au téléphone** (17.10) : plus de zone à glisser-déposer ; une
+  rangée de choix, et la feuille « Fichiers · Photothèque · Prendre en photo » quand une
+  image est un chemin possible. La zone reste au-delà de 600.
+
+### Ce que la mesure a écarté, et qu'il ne faut pas « corriger »
+
+- **Le rail tablette suit 17.11** (88, `16 8`, rangées de rayon 4, sans filet) : conforme.
+  C'est 00.4 qui est en retard et doit être redessinée.
+- **Les titres du tableau de bord et de la connexion** sont hors du bloc `.top` dans les
+  planches aussi.
+- **Les boutons texte** (« Hors service : … », le tri en 12/500) ne sont pas des `.btn`.
+- **Les rangées de menu** suivent `menus.css` (48 au moins, `8 16`) ; seule la seconde
+  ligne de description est un ajout du produit.
+
+### Les six arbitrages — tranchés le 13/09
+
+Les planches se contredisaient sur six points ; le commanditaire a délégué le choix. Deux
+règles ont tranché : **la planche de page la plus récente l'emporte sur la planche de
+référence plus ancienne**, et **à défaut, la majorité des planches** (§2.26).
+
+1. **Le rayon des vignettes : 4.** Les planches de liste (04.1 `.lth`, 05.1, 03.3 `.vig`)
+   le dessinent, et l'échelle du socle est 2 · 4 · 8. `--tk-radius-vignette` passe à 4.
+   *Planches à aligner* : 04.2 (`.doc`), 00.4, 00.5.
+2. **La rangée de liste : 68, partout.** 04.1 et 05.1 sont les dessins de page les plus
+   récents ; la rangée d'une personne perd aussi ses 2 px. *Planche à aligner* : 00.4 (72).
+3. **À 768, le chrome suit 17.11** : champ d'outils de 40, gestes d'en-tête de 40. Le rail
+   y suit déjà 17.11 ; l'en-tête le suit aussi, et `touch-target` garde une cible de 48 au
+   doigt. Aucun changement de code. *Planche à redessiner* : 00.4 (rail, recherche, gestes).
+4. **Les petits libellés prennent `.lab`** — 12/16 en 500, `--ink2`, sans capitales. Trois
+   planches contre trois : `.lab` l'emporte parce que c'est l'étiquette d'un champ, d'un
+   groupe de réglages et d'une légende de menu, et que les passes récentes ont retiré les
+   capitales. Appliqué aux feuilles de filtre (04.1, 05.1, 03.3) et à deux étiquettes de
+   05.2 et 03.3. L'en-tête de la liste des sites de 16.1 n'en est pas : 16.1 le dessine en
+   11, capitales espacées, encre tertiaire, et le code le suit (corrigé le 13/09 au soir,
+   l'arbitrage l'avait d'abord emporté à tort). *Planches à aligner* : 03.3, 04.1, 05.1.
+5. **La pastille d'état du héro : 500** — onze emplois contre deux. *Planche à aligner* :
+   04.2 (`.bst.att`).
+6. **Une entrée de menu tient sur une ligne** (`menus.css`, 05.2) : la conséquence d'un
+   acte se lit dans la feuille qu'il ouvre. La description n'est plus lue que par le
+   lecteur d'écran — sauf sur un acte impossible, où elle dit pourquoi, en bout de ligne
+   (17.6).
+
+### Restent à faire
+
+Les derniers `Modal` (ajout d'un type, d'un modèle, d'une dépense — 09.1 et 15.4 dessinent
+une feuille ou un plein écran), les styles typographiques hors échelle encore relevés
+(98 écrans : `13/19` et `11/16 .82` des pages anciennes), et les pages
+d'import de 05.3 et du budget, qui portent encore la palette MD3.
+
+### Le piège qui a faussé deux relevés
+
+Le serveur de dev ne voit **qu'une partie** des écritures sur hgfs : sur 45 fichiers édités,
+5 étaient encore servis dans leur version d'avant (`ListRow`, `ListActionFab`, `RbacPage`,
+`FullScreenFormLayout`, `ModelDetailsPage`). Le relevé les montrait « sans effet ». Vite
+relancé, le dernier relevé est le seul qui vaut. Avant toute mesure : relancer, puis
+vérifier une marque de l'édition dans le module servi.
+
+**Familles d'éléments entièrement conformes** : 32 sur 76 au relevé, 65 sur 74 après.
+
+### Vérifié
+
+`tsc --noEmit` 0 erreur ; `eslint --max-warnings=0` sur les fichiers touchés ;
+`check-ds-compliance`, `check-design-tokens`, `check-cn-merge` : OK. Prettier fichier par
+fichier sur les lignes touchées. Relevé complet repassé après chaque lot.
+
+### Élément par élément — la seconde passe du 13/09
+
+**Pourquoi une seconde mesure.** La première comparait des familles d'éléments (tous les
+boutons pleins, tous les en-têtes de liste) ; elle laissait passer ce que le commanditaire
+voyait encore : un libellé à 40 au lieu de 20, une sous-ligne qui passe à la ligne, un
+titre à 60 au lieu de 56. La seconde apparie chaque colonne de planche à l'écran qu'elle
+dessine (58 paires) et chaque élément par son texte d'interface, chiffres masqués
+(674 éléments). Pour chacun : famille, taille, graisse, casse et couleur ; la
+position du texte ; son retrait dans la surface peinte la plus proche ; la hauteur, le
+fond et le rayon de cette surface ; l'espace qui le sépare de l'élément du dessus.
+
+**Résultat** : 511 écarts visibles au premier appariement, 337 au dernier. Le
+relevé par famille passe de 53 à 50 (1 de structure, 46 visibles, 3 mineurs), 66 familles conformes sur 74.
+
+#### Ce que la seconde passe a corrigé
+
+- **Le corps d'une feuille** pose 12 au-dessus et 20 de côté (`.sbody`) : tout contenu
+  tombait 4 px trop bas, et dix phrases de tête le rattrapaient d'une marge négative. Les
+  feuilles de filtre ne redoublent plus la gouttière (libellés et pastilles à 20, et non
+  40) ; le pied `.sfoot` court d'un bord à l'autre, sans marge en trop (cinq feuilles de
+  filtre, neuf feuilles d'acte).
+- **Les pastilles de filtre suivent leur planche** : 14 sur 20 et 36 de haut, comme 04.1,
+  05.1, 09.1, 16.1 et 17.8 (Actifs, Catalogue, Inventaire, Dépenses). Seules 03.3 et 18.1
+  dessinent 15 et 40 : Tâches et Historique les gardent.
+- **La flèche de retour rentre de 12** — huit planches de page l'écrivent, 17.9 seule
+  écrivait 8 : le titre tombe à 56. Catalogue et Emplacements reçoivent la flèche que
+  09.1 et 10.1 dessinent ; au bureau, Finances et Rapports n'en portent plus.
+- **La barre du bas** : la case active ne change que de couleur (400, et non 500).
+- **Paramètres** : les rangées de 14.1 n'ont pas de vignette (titre à 32, et non 84).
+- **Les feuilles d'ajout** (Catalogue, Emplacements) : `.orow` sans marge de côté, titre
+  en 400 à 72 ; la sous-ligne ne passe plus à la ligne.
+- **Le bureau** : le tableau de bord n'est plus centré sur 960 — `.main` de 03.1 court
+  sur toute la largeur, `.zones` en 8fr / 4fr ; la légende de la bande tient une boîte de
+  24 (la bande mesure 82) ; l'en-tête de la liste des sites de 16.1 revient en 11,
+  capitales, encre tertiaire ; les cellules `td.dim` d'Équipe passent à l'encre secondaire.
+- **Les fiches** : en-têtes de carte en 17 / 500, comptes en 14 (09.1, 09.2) ; la carte
+  « Référence » d'un type en trois `.rrow` ; les unités d'un modèle en `.lrow` à vignette,
+  sa carte « Référence » et ses `.more` centrés ; les rangées d'accès de 05.2 à vignette ;
+  « à désigner » et « jamais » en encre tertiaire (10.1).
+
+#### Ce que la seconde passe écarte
+
+- les **appariements croisés** : un texte de planche retrouvé ailleurs dans l'écran (la
+  barre latérale, la note sous les jetons d'un import, la carte derrière une feuille) ;
+- le **survol** laissé par le robot sur la première rangée d'une feuille ;
+- les **largeurs de colonnes** d'un tableau, qui dépendent des données ;
+- les **sélections différentes** d'une planche à l'écran (« Tout » choisi ici,
+  « Périphériques » là).
+
+#### Restent — et deux demandent un choix
+
+- **Rapports (15.5)** : la planche range quatre rapports en rangées `.lrow`, l'export au
+  bout, sans choix de la personne ni jetons de colonnes ; l'écran porte des cartes et
+  « Historique par personne ». Aligner retire une fonction : à arbitrer.
+- **Paramètres (14.1)** : les rangées de la planche portent une sous-ligne chiffrée
+  (« Décide de la valeur de 14 actifs », « Vaut pour les 9 imports ») que le code avait
+  retirée à dessein ; la remettre suppose de calculer ces comptes : à arbitrer.
+- Sans arbitrage : les hauteurs des rangées de 11.1 ; la liste des sites de 16.1 au bureau
+  (rangées de 64 en creux, et non cartes de 96) ; la typographie de Finances au bureau ;
+  les métriques du héro de 04.2 au bureau ; la conséquence en rangées à pastille des
+  feuilles de 05.2 ; l'en-tête trié `th.sorted` des tableaux.
+
+#### Le piège qui a coûté une passe
+
+Une correction de ce journal **pendant** le relevé a fait recharger toutes les pages :
+Vite surveille la racine entière, `docs/` compris. La session démo est tombée, treize
+écrans ont été relevés sur la page de connexion ; la garde l'a vu, la passe a été
+refaite. Rien ne s'écrit sous la racine pendant une mesure.
+
+**Après le dernier relevé** : la clé de donnée de 09.1 passe en 14 sur 20 — le style des
+jetons d'import —, et non 14 sur 24 hérité de la rangée : c'était le seul écart neuf du
+relevé v12. Vérifié par `eslint`, Prettier, le contrôle DS et le module servi ; pas encore
+remesuré.
+
+### Les deux arbitrages, et le gréement refait (16/09)
+
+**Le gréement avait disparu.** Le scratchpad vivait sous `/tmp`, effacé au redémarrage :
+crawlers, moteur de règles, appariement, copies de planches et toutes les mesures. Les
+scripts se sont relus dans le transcript de la session (blocs d'outil `Write` et `cat >`),
+leur historique d'édition rejoué, et les deux qui manquaient — la mesure des planches et
+les rectangles de texte du crawler — ont été réécrits. Les 46 planches ont été reprises
+par `DesignSync` et vérifiées contre le projet vivant. Le gréement vit désormais dans
+`~/tracker-audit`, hors `/tmp`.
+
+**Un avertissement sur les chiffres** : le moteur rejoué n'est pas identique à celui du
+13/09 — il compte 75 familles là où l'autre en comptait 74. Le relevé v14 ne se compare
+donc pas chiffre pour chiffre au précédent : 53 écarts (2 de structure, 44 visibles,
+7 mineurs), 62 familles conformes sur 75 ; élément par élément, 345 écarts visibles sur
+682 éléments appariés.
+
+**Rapports (15.5) — la forme de la planche, la fonction du produit.** La planche range
+quatre rapports en rangées : vignette, nom, compte et colonnes en sous-ligne, export au
+bout (44 sur le creux) ; celui qui n'a rien le dit dans sa sous-ligne et perd son bouton.
+L'écran portait quatre cartes, des jetons de colonnes et un sélecteur de personne. La
+planche l'emporte sur la forme ; elle ne l'emporte pas sur une fonction qu'elle n'a jamais
+eue à dessiner — 15.5 date d'avant le rapport par personne et ne connaît pas le PDF. Les
+deux restent joignables : **la rangée ouvre l'aperçu**, et c'est là qu'on choisit la
+personne et le format. Écarts visibles de l'écran : 14 → 1, et le dernier tient à la
+donnée de démonstration (sans actif de plus de trois ans, la rangée prend l'état « rien à
+exporter »).
+
+**Paramètres (14.1) — la sous-ligne chiffrée revient, à sa mesure.** `RuleGroup` pose
+désormais 12 sur 16 dans un groupe de réglages et garde 14 sur 20 dans une carte : c'est
+cette confusion qui avait fait retirer les sous-lignes le 10/09, quand elles disputaient
+leur place à la valeur. Les comptes existaient déjà dans l'écran — actifs gouvernés par
+l'amortissement par défaut, sites que la périodicité concerne —, et le nombre d'imports
+est celui du produit (quatre), pas les neuf de la planche. **« Mon compte » garde sa valeur
+plutôt que la sous-ligne** : la planche n'y met aucune valeur, l'écran y dit l'état du code
+PIN, et le dire deux fois coûterait la lisibilité ; écart assumé de 6 px. Restent 9 écarts,
+presque tous dus au repli sur deux lignes des sous-lignes de la planche.
+
+**Le piège du jour** : remplacer un binaire dans `node_modules` **pendant que Vite tourne**
+tue son service esbuild, et toute écriture dans `node_modules` fait resynchroniser le
+partage depuis Windows — les quatre natifs Linux disparaissent d'un coup. Symptôme : le
+serveur sert des pages d'erreur, puis refuse de démarrer. La manœuvre des quatre paquets
+(`tracker-natifs-linux`) répare en une minute.
+
+### La mesure du bureau, les rangées de 11.1 et la feuille de 05.2 (17/09)
+
+**Au bureau, aucune planche ne borne son corps.** `.main` n'y porte qu'une gouttière de 24 :
+à 1280, les zones occupent 992. Le produit bornait chaque page à 960 **et la centrait** —
+le contenu tombait 16 px trop à droite et perdait 32 de large. La mesure de lecture s'efface
+donc au-delà de 1200 (`Reading`, le gabarit des listes, celui des fiches, la page des accès) ;
+en deçà elle vaut, car c'est là qu'on lit des lignes de texte.
+
+**À deux niveaux, la bande de tête couvre les deux zones.** 16.1 la pose au-dessus de
+`.zones` ; le gabarit la posait dans la colonne de la liste, où ses cinq chiffres se
+partageaient 8/12 de la page : la légende « actifs attendus · tout le parc » passait à la
+ligne et la bande mesurait 98 au lieu de 82. Inventaire au bureau : 20 écarts visibles → 15.
+
+**Les rangées de 11.1 portent le nom de la page, et rien dessous.** La clé technique
+(`equipment.view`) tenait la sous-ligne de chaque permission : elle nommait le code plutôt
+que la page, et poussait la rangée de 60 à 65. Le rôle ouvert : 33 écarts → 18.
+
+**Accès reçoit sa flèche de retour**, comme Catalogue et Emplacements avant lui : on y arrive
+depuis « Plus », et 11.1 la dessine.
+
+**La feuille « Suspendre le compte » prend l'anatomie de 05.2** : la phrase de tête en 14 sur
+20 — la planche n'y met pas de bandeau teinté, et une alerte ambre pour un acte réversible dit
+le contraire du texte —, la rangée de la personne (vignette 40, nom en 16, ce qu'elle détient
+en 14), le bloc `.conseq` en creux où **chaque conséquence tient sa ligne** avec sa pastille de
+28, puis le motif et un pied à deux colonnes égales. L'écran portait une pilule ambre, une
+liste à puces en 13 et deux boutons alignés à droite.
+
+**Ce que la mesure écarte, et qu'il ne faut pas « corriger »** : au bureau, la liste des sites
+de 16.1 paraît en creux de 64 contre des cartes de 96 — la planche y dessine sa première
+rangée **survolée**, et c'est ce survol que la mesure lit comme une surface. Les rangées du
+produit font déjà 64. De même, la gouttière d'une carte varie d'une planche à l'autre — 16 en
+05.2 et 09.1, 20 en 09.2, 11.1 et 15.5 — : il n'y a pas une valeur à appliquer, et aucune ne
+sera choisie sans arbitrage.
+
+**Relevé v17** : 314 écarts visibles élément par élément (320 avant ce lot, 511 au premier
+appariement) ; par famille, 53 écarts (2 de structure, 44 visibles, 7 mineurs) et 62 familles
+conformes sur 75. La feuille « Suspendre » passe de 9 écarts à 3 — les deux qui restent tiennent
+à un mot (« Le nom sort des sélecteurs » contre « Elle sort des sélecteurs ») et à 12 px sous le
+champ du motif.
+
+**Un piège de mesure, deux fois** : la passe téléphone de v17 est revenue presque vide — listes
+de 56 rangées au lieu de 272, fiches manquantes faute de rangée à ouvrir. Ce n'est pas l'écran
+qui a changé, c'est la donnée qui n'était pas là. La garde des états l'a vu (74 états au lieu de
+83) ; la passe a été refaite seule, puis fusionnée avec le bureau du même relevé. **Un relevé
+dont le nombre d'états baisse ne se lit pas : il se refait.**
+

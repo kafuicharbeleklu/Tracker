@@ -5,6 +5,8 @@ import { AuditOverviewContainer } from '../components/AuditOverviewContainer';
 
 interface AuditPageProps {
     onViewChange: (view: ViewType) => void;
+    /** `.tb` du `.top` de 16.1 — quitter l'inventaire. */
+    onBack?: () => void;
 }
 
 /**
@@ -21,8 +23,8 @@ interface AuditPageProps {
  * Le `PageContainer` est parti avec : le gabarit porte son propre intérieur (`16 / 16 /
  * 24`), et l'envelopper d'un second en ajoutait un que la planche ne déclare pas.
  */
-const AuditPage: React.FC<AuditPageProps> = ({ onViewChange }) => (
-    <AuditOverviewContainer onViewChange={onViewChange} />
+const AuditPage: React.FC<AuditPageProps> = ({ onViewChange, onBack }) => (
+    <AuditOverviewContainer onViewChange={onViewChange} onLeave={onBack} />
 );
 
 export default AuditPage;

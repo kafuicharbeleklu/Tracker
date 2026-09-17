@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    ArrowLeft,
     CaretRight,
     DoorOpen,
     FileCsv,
@@ -51,6 +52,8 @@ const COUNTRY_TINT = [
 interface LocationsPageProps {
     onViewChange?: (view: ViewType) => void;
     onSiteClick?: (site: string) => void;
+    /** Le retour vers « Plus » — la flèche de 10.1, au téléphone seulement. */
+    onBack?: () => void;
 }
 
 /**
@@ -103,7 +106,7 @@ interface LocationsPageProps {
  * que la modale de création ne le demande pas. Le champ manque dans
  * `src/context/DataContext.tsx`, hors du périmètre de ce portage.
  */
-const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick }) => {
+const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick, onBack }) => {
     const { locationData, equipment, users, addLocation } = useData();
     const { showToast } = useToast();
     const isCompact = useMediaQuery(MEDIA.compact);
@@ -249,10 +252,13 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     const kindLabel = newKind === 'country' ? 'pays' : newKind === 'local' ? 'local' : 'site';
 
     const searchField = (
+        /* Au bureau, le champ cerné de la ligne d'outils (17.11), 320 × 40. */
         <SearchField
+            dense={!isCompact}
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Site, local, pays"
+            className={isCompact ? undefined : 'w-[320px] max-w-full'}
         />
     );
 
@@ -287,6 +293,9 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                 title="Ajouter un emplacement"
             >
                 <div className="divide-outline-variant flex flex-col divide-y">
+                    {/* `.orow` de 10.1 — le titre en 400, que le bouton ramenait à 500, et à
+                        72 du bord : la feuille pose déjà ses 20 de côté, la rangée n'en
+                        rajoute pas (relevé du 13/09). */}
                     {[
                         {
                             key: 'site',
@@ -327,7 +336,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                         <Button
                             key={option.key}
                             variant="text"
-                            className="flex min-h-16 w-full items-center justify-start gap-3 rounded-none px-5 py-2 text-left"
+                            className="flex min-h-16 w-full items-center justify-start gap-3 rounded-none px-0 py-2 text-left font-normal"
                             onClick={option.onSelect}
                         >
                             <span
@@ -349,7 +358,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             <Icon
                                 glyph={CaretRight}
                                 size={20}
-                                className="text-text-muted shrink-0"
+                                className="text-text-tertiary shrink-0"
                             />
                         </Button>
                     ))}
@@ -395,7 +404,18 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                 bande de filtres entre les deux. */}
             {isCompact ? (
                 <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
-                    <div className="flex min-h-12 items-center">
+                    <div className="flex min-h-12 items-center gap-1">
+                        {onBack && (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="text-on-surface hover:bg-surface-container -ml-3 shrink-0 rounded-md"
+                            >
+                                <Icon glyph={ArrowLeft} size={24} />
+                            </Button>
+                        )}
                         <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
@@ -411,15 +431,17 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                         </h1>
                         <Button
                             variant="outlined"
-                            icon={<Icon glyph={UploadSimple} size={18} />}
+                            icon={<Icon glyph={UploadSimple} size={20} />}
                             onClick={() => onViewChange?.('import_locations')}
+                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium"
                         >
                             Importer
                         </Button>
                         <Button
                             variant="filled"
-                            icon={<Icon glyph={Plus} size={18} />}
+                            icon={<Icon glyph={Plus} size={20} />}
                             onClick={() => setIsAddSheetOpen(true)}
+                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium"
                         >
                             Ajouter un emplacement
                         </Button>

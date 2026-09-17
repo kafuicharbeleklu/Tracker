@@ -3,6 +3,7 @@ import { Funnel } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import { useIconGestureSize } from '../../hooks/useIconGestureSize';
 
 /**
  * Le bouton de filtre de la bande de recherche — `.fbtn` des planches **04.1**,
@@ -14,6 +15,9 @@ import { cn } from '../../lib/utils';
  * écrans qui le portent l'avaient chacun retapé à la main, ce qui suffisait à les
  * faire diverger (deux d'entre eux gardaient le filet, un troisième une pastille
  * ronde).
+ *
+ * **Dans la ligne d'outils du bureau, il fait 40** comme le champ à côté de lui
+ * (17.11) : c'est le gabarit qui le dit, pas la page (`useIconGestureSize`).
  *
  * **La pastille de compte est carrée** — rayon 2, 18 de haut, 11 px en 500 sur
  * l'encre sombre —, et elle mord le coin du bouton de 6 px. Ronde, elle empruntait
@@ -34,30 +38,34 @@ const FilterButton: React.FC<FilterButtonProps> = ({
     count = 0,
     label = 'Filtrer',
     className,
-}) => (
-    <button
-        type="button"
-        onClick={onClick}
-        aria-label={
-            count > 0
-                ? `${label} — ${count} filtre${count > 1 ? 's' : ''} posé${count > 1 ? 's' : ''}`
-                : label
-        }
-        className={cn(
-            'bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
-            className,
-        )}
-    >
-        <Icon glyph={Funnel} size={20} />
-        {count > 0 && (
-            <span
-                aria-hidden="true"
-                className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-sm px-[5px] text-[11px] leading-[18px] font-medium tabular-nums"
-            >
-                {count}
-            </span>
-        )}
-    </button>
-);
+}) => {
+    const gestureSize = useIconGestureSize();
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-label={
+                count > 0
+                    ? `${label} — ${count} filtre${count > 1 ? 's' : ''} posé${count > 1 ? 's' : ''}`
+                    : label
+            }
+            className={cn(
+                'bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary relative flex shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
+                gestureSize === 40 ? 'h-10 w-10' : 'h-12 w-12',
+                className,
+            )}
+        >
+            <Icon glyph={Funnel} size={20} />
+            {count > 0 && (
+                <span
+                    aria-hidden="true"
+                    className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-sm px-[5px] text-[11px] leading-[18px] font-medium tabular-nums"
+                >
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+};
 
 export default FilterButton;

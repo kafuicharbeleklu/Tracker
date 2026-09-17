@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react';
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
+import { libelleAttestation } from '../../../components/ui/Attestation';
 import DetailHero from '../../../components/ui/DetailHero';
 import ActSheet from '../../../components/ui/ActSheet';
 import Button from '../../../components/ui/Button';
@@ -228,7 +229,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
     const trancher = (statut: ApprovalStatus, method: string, raison?: string) => {
         const decision = updateApproval(demande.id, statut, {
             reason: raison,
-            method: method === 'pin' ? 'code PIN' : 'signature',
+            method: libelleAttestation(method),
         });
         if (!decision.allowed) {
             setRefus(decision.reason || 'Action non autorisée pour cette demande.');
@@ -532,7 +533,11 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                                   ),
                               }
                     }
-                    signer={{ name: currentUser?.name ?? '', pin: currentUser?.pin }}
+                    signer={{
+                        name: currentUser?.name ?? '',
+                        pin: currentUser?.pin,
+                        id: currentUser?.id,
+                    }}
                     consequence={
                         acte === 'valider'
                             ? {

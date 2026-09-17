@@ -35,7 +35,15 @@ const COMPONENT_TOKEN_OWNERS = [
     prefix: '--color-sidebar-',
     owners: ['src/components/layout/Sidebar.tsx', 'src/components/layout/NavigationRail.tsx'],
   },
-  { prefix: '--color-login-', owners: ['src/features/auth/pages/LoginPage.tsx'] },
+  {
+    prefix: '--color-login-',
+    // Le bandeau de marque est la page de connexion vue de 02.2 aussi : il consomme
+    // les teintes LIVE (`--color-login-live-*`), qui n'ont pas d'autre lecteur.
+    owners: [
+      'src/features/auth/pages/LoginPage.tsx',
+      'src/features/auth/components/BrandBanner.tsx',
+    ],
+  },
 ];
 /** Primitifs exposés à dessein par le pont Tailwind (échelle de marque Q-V5). */
 const BRIDGE_PRIMITIVE_ALLOWLIST = ['--ref-brand-50', '--ref-brand-100', '--ref-brand-200'];

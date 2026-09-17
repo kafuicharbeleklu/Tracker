@@ -22,6 +22,15 @@ import { cn } from '../../lib/utils';
  * d'intérieur, rayon 4, **15 sur 20** — la troisième marche de R15 —, gouttière 7,
  * fond `inset`, et la sélection en `dark` pleine.
  *
+ * ## Au bureau, elle est cernée et plus petite — `dense`
+ *
+ * 17.11 : la ligne d'outils porte `.fchip` — **40 de haut, 12 d'intérieur, 13 sur 18
+ * en graisse d'appui, cernée sur `--surface`**, son compte en 400 sur l'encre
+ * secondaire. La sélection ne change pas de nature : elle reste la surface inversée.
+ * Le bureau descend d'une marche de texte parce que la ligne en porte quatre sortes
+ * d'objets — champ, pastilles, tri, sélecteur — et que le 15 du téléphone y ferait
+ * de chaque pastille un bouton de page.
+ *
  * **Ce qui la sépare de `Chip`** (§11) : `Chip` est la puce MD3 de 32 px dont la
  * sélection est **jaune plein** ; celle-ci est la pastille des planches — sélection
  * en **surface inversée**, un décompte en chiffres tabulaires. Le jaune n'y entre
@@ -52,6 +61,21 @@ interface FacetChipProps {
     /** Retire directement le filtre actif, sans devoir repasser par la feuille. */
     onClear?: () => void;
     clearLabel?: string;
+    /** Le régime du bureau (17.11) : 13 sur 18, 12 d'intérieur, cernée sur `--surface`. */
+    dense?: boolean;
+    /**
+     * **La mesure de 16.1 et 16.2** : `.chip` y fait 36 de haut, 12 d'intérieur, 14 sur 20
+     * — une marche de moins que les 40 et 15 sur 20 de 04.1 et 15.3. Sur le parc d'une
+     * campagne, trois pastilles doivent tenir côte à côte à 393 ; à la mesure ordinaire,
+     * la troisième sortait de l'écran.
+     */
+    compact?: boolean;
+    /**
+     * **Posée sur le canevas, pas dans une feuille** : 16.2 lui donne le fond `--surface`
+     * au repos. Le creux `--inset` d'une pastille de feuille, sur le canevas lui-même
+     * grisé, ne se détachait presque plus.
+     */
+    onCanvas?: boolean;
     className?: string;
 }
 
@@ -64,6 +88,9 @@ const FacetChip: React.FC<FacetChipProps> = ({
     onClick,
     onClear,
     clearLabel,
+    dense = false,
+    compact = false,
+    onCanvas = false,
     className,
 }) => {
     const content = (
@@ -75,7 +102,8 @@ const FacetChip: React.FC<FacetChipProps> = ({
             {typeof count === 'number' && (
                 <b
                     className={cn(
-                        'font-medium tabular-nums',
+                        'tabular-nums',
+                        dense ? 'font-normal' : 'font-medium',
                         selected ? 'text-[var(--tk-color-on-dark-2)]' : 'text-text-muted',
                     )}
                 >
@@ -91,7 +119,8 @@ const FacetChip: React.FC<FacetChipProps> = ({
         return (
             <span
                 className={cn(
-                    'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md text-[15px] leading-5 whitespace-nowrap',
+                    'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md whitespace-nowrap',
+                    dense ? 'text-[13px] leading-[18px] font-medium' : 'text-[15px] leading-5',
                     className,
                 )}
             >
@@ -100,7 +129,8 @@ const FacetChip: React.FC<FacetChipProps> = ({
                     onClick={onClick}
                     aria-pressed="true"
                     className={cn(
-                        'flex min-h-10 items-center gap-[7px] rounded-l-md pl-3.5',
+                        'flex min-h-10 items-center rounded-l-md',
+                        dense ? 'gap-1.5 pl-3' : 'gap-[7px] pl-3.5',
                         focusRing,
                     )}
                 >
@@ -127,11 +157,24 @@ const FacetChip: React.FC<FacetChipProps> = ({
             onClick={onClick}
             aria-pressed={selected}
             className={cn(
-                'flex min-h-10 shrink-0 items-center gap-[7px] rounded-md px-3.5 text-[15px] leading-5 whitespace-nowrap',
+                'flex shrink-0 items-center rounded-md whitespace-nowrap',
+                compact ? 'min-h-9' : 'min-h-10',
+                dense
+                    ? 'gap-1.5 border px-3 text-[13px] leading-[18px] font-medium'
+                    : compact
+                      ? 'gap-1.5 px-3 text-[14px] leading-5'
+                      : 'gap-[7px] px-3.5 text-[15px] leading-5',
                 focusRing,
                 selected
-                    ? 'bg-inverse-surface text-inverse-on-surface'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
+                    ? cn(
+                          'bg-inverse-surface text-inverse-on-surface',
+                          dense && 'border-inverse-surface',
+                      )
+                    : dense
+                      ? 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container'
+                      : onCanvas
+                        ? 'bg-surface text-on-surface hover:bg-surface-container'
+                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                 className,
             )}
         >

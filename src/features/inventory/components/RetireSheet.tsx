@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ClockCounterClockwise, Coins, Info, Package, SignOut } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
+import Attestation, { type AttestationMethod } from '../../../components/ui/Attestation';
+import { signatureService } from '../../../services/signatureService';
 import Button from '../../../components/ui/Button';
 import type { Equipment, RetirementReason } from '../../../types';
 
@@ -63,8 +65,15 @@ interface RetireSheetProps {
     historyCount: number;
     /** La valeur résiduelle, déjà formatée dans la devise du produit. */
     residualValue?: string;
+    /** Le nom au bas de l'attestation — la sortie du parc n'est jamais anonyme. */
+    actorName: string;
+    /**
+     * Qui sort l'objet, et de quoi il dispose pour l'attester — **bloc 4 de 17.4** (lot
+     * 28, D4). C'est l'acte le plus destructeur du parc : il se prouve.
+     */
+    actor?: { pin?: string; id?: string };
     onClose: () => void;
-    onRetire: (reason: RetirementReason) => void;
+    onRetire: (reason: RetirementReason, method: AttestationMethod) => void;
 }
 
 const RetireSheet: React.FC<RetireSheetProps> = ({
@@ -72,11 +81,34 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
     item,
     historyCount,
     residualValue,
+    actorName,
+    actor,
     onClose,
     onRetire,
 }) => {
     /** Aucun cran pris au départ : le motif est **obligatoire**, il se choisit. */
     const [reason, setReason] = useState<RetirementReason | null>(null);
+    /* Le bloc 4 : le motif dit pourquoi, l'attestation dit qui. */
+    const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
+        method: actor?.pin ? 'pin' : 'signature',
+        done: false,
+    });
+    const [signature, setSignature] = useState<Blob | null>(null);
+
+    useEffect(() => {
+        let vivant = true;
+        setAttestation({ method: actor?.pin ? 'pin' : 'signature', done: false });
+        if (!open || !actor?.pin || !actor?.id) {
+            setSignature(null);
+            return;
+        }
+        void signatureService.get(actor.id).then((image) => {
+            if (vivant) setSignature(image);
+        });
+        return () => {
+            vivant = false;
+        };
+    }, [open, actor?.pin, actor?.id]);
 
     const close = () => {
         setReason(null);
@@ -120,7 +152,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={close} title="Sortir du parc">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[14px] leading-5">
                     Irréversible. L'historique, lui, est conservé.
                 </p>
 
@@ -148,6 +180,14 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
                     </div>
                 </div>
 
+                {/* 4 · l'attestation — après le motif, avant les conséquences (17.4). */}
+                <Attestation
+                    signerName={actorName}
+                    signerPin={actor?.pin}
+                    signature={signature}
+                    onChange={setAttestation}
+                />
+
                 <Consequences label="Ce que cela change" lines={lines} />
 
                 <FormWarn glyph={Info}>
@@ -155,7 +195,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
                     devient <b className="font-medium">« Organiser la restitution »</b>.
                 </FormWarn>
 
-                <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={close}>
                         Annuler
                     </Button>
@@ -163,10 +203,10 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
                         qu'une fois le motif pris. */}
                     <Button
                         variant="danger"
-                        disabled={!reason}
+                        disabled={!reason || !attestation.done}
                         onClick={() => {
                             if (!reason) return;
-                            onRetire(reason);
+                            onRetire(reason, attestation.method);
                             close();
                         }}
                     >

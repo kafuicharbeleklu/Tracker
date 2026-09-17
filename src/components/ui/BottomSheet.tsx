@@ -191,7 +191,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             {/* Scrim */}
             <div
                 className={cn(
-                    'bg-scrim/[0.32] absolute inset-0',
+                    /* `.scrim` — le sombre du produit à 42 %, pas un noir à 32 %. */
+                    'bg-scrim/[0.42] absolute inset-0',
                     closing
                         ? 'animate-out fade-out duration-200'
                         : 'animate-in fade-in duration-200',
@@ -210,11 +211,18 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 aria-label={title ? undefined : 'Panneau inférieur'}
                 onAnimationEnd={handleAnimationEnd}
                 className={cn(
-                    'bg-surface shadow-elevation-4 border-outline-variant relative flex max-h-[90vh] w-full flex-col border',
+                    /* **Aucun filet autour de la feuille** : sa surface blanche sur le voile
+                       suffit à la détacher. Elle portait un cerné et l'élévation MD3 la plus
+                       haute (13/09, 44 écrans). */
+                    'bg-surface relative flex max-h-[90vh] w-full flex-col',
                     /* La mesure du contenu d'un flux — 560, et elle ne dépend pas de
                        l'écran. Un champ de 680 px pour un numéro de série est plus
-                       difficile à viser, à relire, et il fait mentir la hiérarchie. */
-                    compact ? 'rounded-t-xl' : 'max-w-[560px] rounded-xl',
+                       difficile à viser, à relire, et il fait mentir la hiérarchie.
+                       La feuille qui monte porte son ombre vers le haut ; le dialogue
+                       centré, l'ombre descendante de `.dial`. */
+                    compact
+                        ? 'shadow-sheet rounded-t-xl'
+                        : 'shadow-dialog max-w-[560px] rounded-xl',
                     closing
                         ? 'animate-out fade-out duration-200'
                         : 'animate-in fade-in duration-200',
@@ -262,8 +270,12 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                     </div>
                 )}
 
-                {/* Content */}
-                <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-4">{children}</div>
+                {/* `.sbody` — 12 au-dessus et 20 de côté ; les 12 du pied, la planche les donne
+                    à la feuille elle-même. Le corps en tenait 16 et 16 : tout contenu tombait
+                    4 px trop bas, et dix phrases de tête le rattrapaient d'une marge négative
+                    qui dépassait de 3 (relevé du 13/09). Le pied `.sfoot` d'une feuille court
+                    d'un bord à l'autre : il reprend les 20 de côté par une marge négative. */}
+                <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-3">{children}</div>
             </div>
         </div>
     );

@@ -12,6 +12,7 @@ import {
     DotsThreeVertical,
     Export,
     Info,
+    LockSimple,
     PlusCircle,
     QrCode,
     Question,
@@ -30,6 +31,8 @@ import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import ListRow, { type ListRowStatus } from '../../../components/ui/ListRow';
 import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
@@ -238,6 +241,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [vueEcarts, setVueEcarts] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
+    /**
+     * **Les deux niveaux côte à côte, à partir de 1280** — 16.2, colonne bureau : *« la
+     * campagne à gauche (7/12), les écarts à droite (5/12) : les cartes de décision
+     * telles quelles, plus d'écran « Écarts » ni de carte de tension — la file est sous
+     * les yeux, c'est elle qui tient lieu d'alerte »*.
+     */
+    const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
     const [scanRawValue, setScanRawValue] = useState('');
     const [scanHits, setScanHits] = useState<ScanHit[]>([]);
     const [auditStartedAt, setAuditStartedAt] = useState<string | null>(null);
@@ -987,6 +997,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     key={item.id}
                     vignette={<Icon glyph={getCategoryGlyph(item.type)} size={20} />}
                     title={item.assetId}
+                    /* **Le local en bout de rangée, au bureau** — 16.2 : la colonne est
+                       assez large pour dire *où* l'objet est attendu, et c'est ce qu'on
+                       cherche quand on parcourt un site entier. */
+                    type={enDeuxNiveaux ? item.local : undefined}
                     holder={`${item.model || item.name} · ${mode === 'missing' && item.status === 'En réparation' ? 'était en réparation' : holder}`}
                     mark={mark}
                 />
@@ -1069,7 +1083,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     'flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left',
                     closureBlocked
                         ? 'bg-tint-ambre text-on-tint-ambre'
-                        : 'bg-surface text-on-surface shadow-elevation-1',
+                        : /* `.tens.done` — la surface seule : la planche n'y met pas
+                             d'ombre, et l'écart tranché n'est plus une alerte. */
+                          'bg-surface text-on-surface',
                 )}
             >
                 <span
@@ -1137,12 +1153,18 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                           ]
                         : []),
                 ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
-            ).map(([id, label, count, glyph]) => (
+            ).map(([id, label, count]) => (
+                /* `.chip` de 16.2 — **36 de haut, 14 sur 20, sur fond de surface, sans
+                   pictogramme**. Les trois pastilles tenaient 434 px pour 361 de page : la
+                   troisième, « Manquants », sortait de l'écran. Le pictogramme doublait un
+                   mot qui se suffit — « À scanner » n'a pas besoin d'un cercle pointillé
+                   pour se comprendre —, et la planche n'en met pas. */
                 <FacetChip
                     key={id}
                     label={label}
                     count={count}
-                    icon={glyph}
+                    compact
+                    onCanvas
                     selected={activeTab === id}
                     onClick={() => setActiveTab(id)}
                 />
@@ -1227,19 +1249,26 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const heroGauge = sessionStarted ? (
         <>
+            {/* `.prog` de 16.2 — **6 de haut, rayon 2**, sur le voile blanc à 12 %.
+                Elle portait le rayon plein : une jauge de campagne n'est pas une pilule,
+                et les quatre autres du produit (15.1, 16.1, 02.2) sont carrées. */}
             <span
                 aria-hidden="true"
-                className="block h-1.5 overflow-hidden rounded-full bg-white/[0.16]"
+                className="block h-1.5 overflow-hidden rounded-xs bg-white/[0.12]"
             >
                 {/* La jauge prend l'encre de la surface inversée, pas une couleur
                     d'état : elle mesure une avancée, elle ne qualifie rien. Le vert
                     disait « tout va bien » à 12 % de relevé. */}
                 <span
-                    className="bg-inverse-on-surface block h-full rounded-full"
+                    className="bg-inverse-on-surface block h-full"
                     style={{ width: `${progressPercentage}%` }}
                 />
             </span>
-            <span className="mt-1.5 block tabular-nums">
+            {/* `.pk` — 12 sur 16 en encre estompée, comme la ligne de lecture de 16.1
+                et de 15.1. Elle prenait le corps de la page, 14 sur 21 : une mesure qui
+                n'est sur aucune marche, et deux points de plus que la clé des tuiles
+                juste au-dessus. */}
+            <span className="mt-2 block text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
                 {sessionFound} sur {sessionTotal} · {progressPercentage} %
                 {auditFinalized &&
                     sessionExceptions > 0 &&
@@ -1299,6 +1328,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         selectedPlace,
     ]);
 
+    /* Au bureau, l'export a son bouton nommé dans l'en-tête : le laisser aussi dans le
+       ⋮ donnerait deux portes au même acte, à trois centimètres l'une de l'autre. */
+    const overflowAffiche = enDeuxNiveaux
+        ? overflowItems.filter((item) => item.id !== 'export-releve')
+        : overflowItems;
+
     /**
      * Le héro **ne porte aucun geste** : la planche les pose en pied de contenu, en
      * pleine largeur, parce qu'on les atteint avec le pouce en tenant l'appareil d'une
@@ -1325,18 +1360,26 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             statusDetail={heroStatusDetail}
             subtitle={heroSubtitle}
             gauge={heroGauge}
+            /* Au bureau le geste tient sa mesure : 16.2 le pose à côté du sujet, pas
+               en barre sous la jauge. */
+            actionsInline={enDeuxNiveaux}
             /* `.hact` — **le scan est le geste du héro**, et le seul jaune de l'écran.
                Il vivait en pied de contenu, sous quarante rangées : dans un local, on
                tient l'appareil d'une main et on scanne — ce geste-là ne se cherche pas.
                Une campagne clôturée n'en a plus : la barre du haut porte l'export. */
+            /* **Pas de scan au bureau** — 17.11 : *« le geste de la caméra reste au
+               téléphone ; au bureau, le héro dit “Saisir un code” »*. Le geste ne
+               disparaît pas, il change de porte : la même saisie, celle qui accepte
+               aussi le contenu d'un QR, sans passer par une caméra qu'un poste fixe
+               n'a pas. */
             actions={
                 sessionStarted && !auditFinalized ? (
                     <Button
                         variant="filled"
-                        onClick={() => setScanOpen(true)}
+                        onClick={() => (enDeuxNiveaux ? setManualOpen(true) : setScanOpen(true))}
                         icon={<Icon glyph={QrCode} size={20} />}
                     >
-                        Scanner
+                        {enDeuxNiveaux ? 'Saisir un code' : 'Scanner'}
                     </Button>
                 ) : undefined
             }
@@ -1369,7 +1412,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
 
     return (
-        <div className="bg-surface-container-low flex h-full flex-col">
+        /* **Le canevas derrière les cartes.** `surface-container-low` vaut exactement
+           `surface` dans les jetons du produit : la page se peignait donc de la couleur
+           de ses propres cartes, et seule une ombre — qu'aucune planche ne déclare — les
+           détachait. `.phone` de 16.2 est sur le canevas, `.card` sur la surface. */
+        <div className="bg-background flex h-full flex-col">
             {/* `.tbar` — **une barre de 56, la même à toutes les largeurs** : retour,
                 l'identité de l'écran, le débordement. Les onglets « Vue globale / Détails »
                 en sont partis avec 17.8 (*« aucun onglet dans le corpus »*) : le retour dit
@@ -1378,45 +1425,100 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 Le titre est **« Campagne »**, pas « Campagne d'audit · Salle serveur · Togo » :
                 le héro porte le sujet et sa portée, juste dessous. La barre les redisait en
                 11 px, sous le titre — deux fois le même fait, dont une fois trop petit. */}
-            <div className="bg-surface border-outline-variant border-b">
-                <Reading className="flex min-h-14 items-center gap-1 px-1 pr-2">
+            {enDeuxNiveaux ? (
+                /*
+                  `.dhead.fiche` de 17.11 — **le lieu devient le titre de la page**, son
+                  fil dessous, l'export en acte nommé et le ⋮ pour le reste. Sans filet :
+                  le chrome du bureau n'en pose pas sous l'en-tête.
+                */
+                <div className="px-page flex min-h-10 items-center gap-2 pt-5">
                     <Button
                         variant="text"
-                        onClick={vueEcarts ? () => setVueEcarts(false) : onBack}
-                        className="text-on-surface h-12 w-12 min-w-0 shrink-0 rounded-md p-0"
-                        icon={<Icon glyph={ArrowLeft} size={24} />}
+                        iconOnly
+                        onClick={onBack}
                         aria-label="Retour"
-                    />
-                    <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
-                        {vueEcarts ? 'Écarts' : 'Campagne'}
-                    </span>
-                    {/* Après la clôture il n'y a plus rien à décider : le débordement se
-                        vide, et la barre porte le seul geste qui reste. */}
-                    {auditFinalized ? (
+                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                    >
+                        <Icon glyph={ArrowLeft} size={20} />
+                    </Button>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            {selectedPlace || 'Campagne'}
+                        </h1>
+                        <span className="text-on-surface-variant block truncate text-[13px] leading-4">
+                            Inventaire physique › {heroStatus.label}
+                        </span>
+                    </div>
+                    {sessionStarted && (
+                        /* `.hbtn.g` — l'export est un acte nommé au bureau ; il quitte
+                           donc le ⋮, où il ferait doublon. */
+                        <Button
+                            variant="outlined"
+                            onClick={exportRelevé}
+                            icon={<Icon glyph={Export} size={20} />}
+                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[14px] font-medium shadow-none"
+                        >
+                            Exporter
+                        </Button>
+                    )}
+                    {overflowAffiche.length > 0 && (
+                        <Menu
+                            align="end"
+                            items={overflowAffiche}
+                            trigger={
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label="Autres actes"
+                                    className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                                >
+                                    <Icon glyph={DotsThreeVertical} size={20} />
+                                </Button>
+                            }
+                        />
+                    )}
+                </div>
+            ) : (
+                <div className="bg-surface border-outline-variant border-b">
+                    <Reading className="flex min-h-14 items-center gap-1 px-1 pr-2">
                         <Button
                             variant="text"
-                            iconOnly
-                            onClick={exportRelevé}
-                            aria-label="Exporter le relevé"
-                        >
-                            <Icon glyph={Export} size={20} />
-                        </Button>
-                    ) : (
-                        !vueEcarts &&
-                        overflowItems.length > 0 && (
-                            <Menu
-                                align="end"
-                                items={overflowItems}
-                                trigger={
-                                    <Button variant="text" iconOnly aria-label="Autres actes">
-                                        <Icon glyph={DotsThreeVertical} size={20} />
-                                    </Button>
-                                }
-                            />
-                        )
-                    )}
-                </Reading>
-            </div>
+                            onClick={vueEcarts ? () => setVueEcarts(false) : onBack}
+                            className="text-on-surface h-12 w-12 min-w-0 shrink-0 rounded-md p-0"
+                            icon={<Icon glyph={ArrowLeft} size={24} />}
+                            aria-label="Retour"
+                        />
+                        <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                            {vueEcarts ? 'Écarts' : 'Campagne'}
+                        </span>
+                        {/* Après la clôture il n'y a plus rien à décider : le débordement se
+                        vide, et la barre porte le seul geste qui reste. */}
+                        {auditFinalized ? (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                onClick={exportRelevé}
+                                aria-label="Exporter le relevé"
+                            >
+                                <Icon glyph={Export} size={20} />
+                            </Button>
+                        ) : (
+                            !vueEcarts &&
+                            overflowItems.length > 0 && (
+                                <Menu
+                                    align="end"
+                                    items={overflowItems}
+                                    trigger={
+                                        <Button variant="text" iconOnly aria-label="Autres actes">
+                                            <Icon glyph={DotsThreeVertical} size={20} />
+                                        </Button>
+                                    }
+                                />
+                            )
+                        )}
+                    </Reading>
+                </div>
+            )}
 
             {/* Plus de FAB, donc plus de dégagement bas à réserver : le pied d'acte est
                 dans le flux, en fin de contenu. */}
@@ -1425,7 +1527,17 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 960 : on ouvrait un service et la page changeait de largeur sous le
                 doigt. Une largeur, une seule, et le reste est de la marge. */}
             <div className="overflow-y-auto">
-                <Reading className="p-page-sm medium:p-page space-y-4">
+                {/* **Deux zones au bureau** — 7 douzièmes pour la campagne, 5 pour les
+                    écarts (16.2). En deçà de 1280, la mesure de lecture reprend : une
+                    colonne de 960, et les écarts derrière leur carte de tension. */}
+                <div
+                    className={cn(
+                        'p-page-sm medium:p-page w-full',
+                        enDeuxNiveaux
+                            ? 'flex items-start gap-4'
+                            : 'mx-auto max-w-[960px] space-y-4',
+                    )}
+                >
                     {!scopeIsReady ? (
                         /* **Une campagne sans service n'est pas une campagne.** L'écran
                        n'ouvre plus trois sélecteurs pour s'en composer une : il renvoie
@@ -1444,23 +1556,37 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <>
                             {/* **Le parc et les écarts sont deux écrans**, pas deux onglets :
                                 la carte de tension mène à l'un, son retour ramène à l'autre. */}
-                            {!vueEcarts && (
-                                <>
+                            {(!vueEcarts || enDeuxNiveaux) && (
+                                <div
+                                    className={cn(
+                                        'space-y-4',
+                                        enDeuxNiveaux && 'min-w-0 shrink grow-[7] basis-0',
+                                    )}
+                                >
                                     {hero}
 
-                                    {carteDeTension}
+                                    {/* La carte de tension **n'existe pas au bureau** : elle
+                                        mène aux écarts, et les écarts sont déjà à droite.
+                                        Une alerte qui pointe vers ce qu'on regarde est du
+                                        décor. */}
+                                    {!enDeuxNiveaux && carteDeTension}
 
                                     {parcChips}
 
                                     {/* La légende de liste : le sujet à gauche, le compte à droite. */}
-                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-0.5">
+                                    {/* `.ord` — rentrée de **4**, comme la ligne de compte
+                                        de toutes les listes ; elle l'était de 2. */}
+                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
                                         <p className="text-text-secondary">{listCaption().title}</p>
                                         <p className="text-text-muted shrink-0 tabular-nums">
                                             {listCaption().count}
                                         </p>
                                     </div>
 
-                                    <section className="rounded-card bg-surface shadow-elevation-1 px-4">
+                                    {/* `.card` de 16.2 — surface, rayon 8, **4 / 16**, et
+                                        pas d'ombre : aucune planche n'en déclare sur une
+                                        carte de rangées. */}
+                                    <section className="rounded-card bg-surface px-4 py-1">
                                         {activeTab === 'todo' &&
                                             renderEquipmentRows(todoItems, 'todo')}
                                         {activeTab === 'scanned' &&
@@ -1521,7 +1647,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                 </p>
                                             )}
                                     </section>
-                                </>
+                                </div>
                             )}
 
                             {/* L'écart est le seul objet propre à cet écran : une **carte à décision**.
@@ -1529,21 +1655,45 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     inconnu — **avant** ses gestes. Un écart sans son fait ne se tranche pas, il
                     se devine. Et le geste principal est sombre, pas jaune : le jaune est pris
                     par le scan, et ceci est une décision de ligne, pas l'acte de l'écran. */}
-                            {vueEcarts && (
-                                <div className="space-y-3">
-                                    {/* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */}
-                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-0.5">
-                                        <p className="text-text-secondary">
-                                            {pendingExceptions.length > 0
-                                                ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
-                                                : sessionExceptions > 0
-                                                  ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
-                                                  : 'Aucun écart'}
-                                        </p>
-                                        <p className="text-text-muted shrink-0">
-                                            scannés hors attendus
-                                        </p>
-                                    </div>
+                            {(vueEcarts || enDeuxNiveaux) && (
+                                <div
+                                    className={cn(
+                                        'space-y-3',
+                                        enDeuxNiveaux && 'min-w-0 shrink grow-[5] basis-0',
+                                    )}
+                                >
+                                    {enDeuxNiveaux ? (
+                                        /* `.panh` — au bureau, les écarts sont une colonne,
+                                           pas un écran : elle porte son nom et son reste à
+                                           faire, comme une file. */
+                                        <div className="flex min-h-10 items-center gap-3 px-1">
+                                            <h2 className="font-brand text-on-surface min-w-0 flex-1 text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+                                                Écarts
+                                            </h2>
+                                            <span className="text-on-surface-variant shrink-0 text-[13px] leading-4 tabular-nums">
+                                                {pendingExceptions.length > 0
+                                                    ? `${pendingExceptions.length} à trancher`
+                                                    : 'aucun à trancher'}
+                                                {sessionExceptions - pendingExceptions.length > 0
+                                                    ? ` · ${sessionExceptions - pendingExceptions.length} tranché${sessionExceptions - pendingExceptions.length > 1 ? 's' : ''}`
+                                                    : ''}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        /* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */
+                                        <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
+                                            <p className="text-text-secondary">
+                                                {pendingExceptions.length > 0
+                                                    ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
+                                                    : sessionExceptions > 0
+                                                      ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
+                                                      : 'Aucun écart'}
+                                            </p>
+                                            <p className="text-text-muted shrink-0">
+                                                scannés hors attendus
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {exceptionsDisplay.length === 0
                                         ? /* Le vide d'un onglet n'est pas une carte : la carte
@@ -1575,7 +1725,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                               return (
                                                   <section
                                                       key={entry.id}
-                                                      className="rounded-card bg-surface shadow-elevation-1 px-4 py-3.5"
+                                                      /* `.ec` de 16.2 — **16 / 20**, sans ombre. */
+                                                      className="rounded-card bg-surface px-5 py-4"
                                                   >
                                                       <div className="flex items-center gap-3">
                                                           {/* La pastille de nature à gauche, comme le « pin » de la
@@ -1815,11 +1966,35 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                   </section>
                                               );
                                           })}
+
+                                    {/* `.warn` — au bureau, la clôture ne se cherche pas :
+                                        la colonne dit ce qui la retient et où elle
+                                        s'ouvrira. Au téléphone, c'est la carte de tension
+                                        qui porte cette phrase, en tête du parc. */}
+                                    {enDeuxNiveaux &&
+                                        !auditFinalized &&
+                                        pendingExceptions.length > 0 && (
+                                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-md px-4 py-3 text-[14px] leading-5">
+                                                <Icon
+                                                    glyph={LockSimple}
+                                                    size={18}
+                                                    className="mt-px shrink-0"
+                                                />
+                                                <span>
+                                                    <b className="font-medium">Clôturer</b>{' '}
+                                                    s'ouvrira dans le ⋮ une fois{' '}
+                                                    {pendingExceptions.length > 1
+                                                        ? `les ${pendingExceptions.length} écarts tranchés`
+                                                        : "l'écart tranché"}
+                                                    .
+                                                </span>
+                                            </div>
+                                        )}
                                 </div>
                             )}
                         </>
                     )}
-                </Reading>
+                </div>
             </div>
 
             {/* C6 — le canevas de 17.3, en **mode lot** : la caméra ne se referme pas entre

@@ -1,10 +1,13 @@
 import React, { useId, useState } from 'react';
+import { Plus } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import BottomSheet from './BottomSheet';
 import Button from './Button';
 import { FabContainer } from './FabContainer';
 import FloatingActionButton from './FloatingActionButton';
+import Icon from './Icon';
 import MaterialIcon from './MaterialIcon';
+import { useAddGesturePlacement } from '../../hooks/useAddGesturePlacement';
 
 /**
  * Un acte du geste d'ajout — une rangée de 48 px dans la feuille.
@@ -71,6 +74,7 @@ interface ListActionFabProps {
 const ListActionFab: React.FC<ListActionFabProps> = ({ label, sheetTitle, actions, className }) => {
     const [open, setOpen] = useState(false);
     const sheetId = `list-action-sheet-${useId().replace(/:/g, '')}`;
+    const placement = useAddGesturePlacement();
 
     /* Une page qui n'a aucun acte n'a pas de geste d'ajout : elle ne pose pas le
        bouton. Ce n'est pas le cas interdit par la planche — celui-là est le bouton
@@ -82,18 +86,36 @@ const ListActionFab: React.FC<ListActionFabProps> = ({ label, sheetTitle, action
 
     return (
         <>
-            <FabContainer description={`Actions ${label}`} className={className}>
-                <FloatingActionButton
-                    icon="add"
-                    size="medium"
-                    variant="primary"
-                    className="bg-primary text-on-primary"
-                    aria-label={soleAction ? soleAction.label : `Ouvrir les actions ${label}`}
+            {placement === 'header' ? (
+                /* `.hbtn` d'en-tête (17.11) — 40 de haut, rayon 4, 14 en 500, le plus en 20.
+                   L'acte unique porte son mot ; plusieurs actes, le titre de leur feuille. */
+                <Button
+                    variant="filled"
+                    className={cn(
+                        'h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium',
+                        className,
+                    )}
                     aria-controls={soleAction ? undefined : sheetId}
                     aria-expanded={soleAction ? undefined : open}
                     onClick={() => (soleAction ? soleAction.onSelect() : setOpen(true))}
-                />
-            </FabContainer>
+                >
+                    <Icon glyph={Plus} size={20} />
+                    {soleAction ? soleAction.label : (sheetTitle ?? 'Ajouter')}
+                </Button>
+            ) : (
+                <FabContainer description={`Actions ${label}`} className={className}>
+                    <FloatingActionButton
+                        icon="add"
+                        size="medium"
+                        variant="primary"
+                        className="bg-primary text-on-primary"
+                        aria-label={soleAction ? soleAction.label : `Ouvrir les actions ${label}`}
+                        aria-controls={soleAction ? undefined : sheetId}
+                        aria-expanded={soleAction ? undefined : open}
+                        onClick={() => (soleAction ? soleAction.onSelect() : setOpen(true))}
+                    />
+                </FabContainer>
+            )}
 
             {!soleAction && (
                 <BottomSheet

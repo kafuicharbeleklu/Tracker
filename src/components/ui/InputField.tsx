@@ -89,7 +89,9 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
         ref,
     ) => {
         const [showPassword, setShowPassword] = useState(false);
-        const [isFocused, setIsFocused] = useState(false);
+        /* Le focus n'a plus d'état à tenir ici : le cadre le dit (`focus:`), et ni le
+           libellé ni le pictogramme n'en changent (02.1). On garde la transmission des
+           deux gestionnaires à l'appelant, qui, lui, peut en avoir besoin. */
         const [internalValue, setInternalValue] = useState(() => {
             if (props.defaultValue === undefined || props.defaultValue === null) return '';
             return String(props.defaultValue);
@@ -162,13 +164,18 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                         className={cn(
                             /* `.lab` — 12 sur 16 en 500, encre secondaire, 8 px
                                au-dessus du champ. Elle valait 11 px avec une chasse
-                               ouverte : une capitale de plus que l'échelle. */
+                               ouverte : une capitale de plus que l'échelle.
+                
+                               **Et elle ne change jamais de teinte.** Le libellé passait
+                               au rouge en erreur et à l'encre pleine au focus ; 02.1
+                               dessine `.lab` en `--ink2` dans les trois états — champ au
+                               repos, champ actif, champ fauté — et le registre local ne
+                               connaît que « bordure `error`, message `role="alert"` »
+                               (DESIGN_SYSTEM.md §états). Teindre le **nom** du champ fait
+                               porter la faute à la question posée, alors qu'elle est dans
+                               la réponse : c'est le cadre et le message qui la disent. */
                             'duration-short4 mb-2 block text-[12px] leading-4 font-medium transition-colors',
-                            error
-                                ? 'text-error'
-                                : isFocused
-                                  ? 'text-on-surface'
-                                  : 'text-on-surface-variant',
+                            'text-on-surface-variant',
                             isDisabled && 'text-on-surface/[0.38]',
                             labelClassName,
                         )}
@@ -183,12 +190,12 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     {hasLeadingElement && (
                         <div
                             className={cn(
+                                /* `.field .ic` — encre secondaire, **quel que soit
+                                   l'état** : `.field.err` de 02.1 ne change que le
+                                   cadre. Un pictogramme rouge dans un champ rouge
+                                   répète l'alerte sans rien ajouter. */
                                 'duration-short4 pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2.5 transition-colors',
-                                error
-                                    ? 'text-error'
-                                    : isFocused
-                                      ? 'text-on-surface'
-                                      : 'text-on-surface-variant',
+                                'text-on-surface-variant',
                                 isDisabled && 'text-on-surface/[0.38]',
                                 leadingElementClassName,
                             )}
@@ -212,14 +219,8 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                         aria-required={resolvedAriaRequired}
                         aria-describedby={resolvedAriaDescribedBy}
                         onChange={handleChange}
-                        onFocus={(e) => {
-                            setIsFocused(true);
-                            props.onFocus?.(e);
-                        }}
-                        onBlur={(e) => {
-                            setIsFocused(false);
-                            props.onBlur?.(e);
-                        }}
+                        onFocus={props.onFocus}
+                        onBlur={props.onBlur}
                         className={cn(
                             /*
                              * `.field` de la passe sobre — **le creux, pas le filet.**

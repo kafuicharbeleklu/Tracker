@@ -149,6 +149,19 @@ export interface FinanceBudget {
 }
 
 // Entities
+/**
+ * **Comment un acte a été attesté** — 06.2 et 17.4, lot 28.
+ *
+ * Trois valeurs, et un seul fait les décide : la personne a-t-elle un code, et une
+ * signature enregistrée. `pin+signature` n'est pas une troisième méthode — c'est le code,
+ * qui a autorisé l'apposition de l'image (D3).
+ *
+ * Le type vit ici, et non dans le composant qui le produit : le journal, la décision d'une
+ * demande et la fiche d'un objet le gardent, et aucun des trois ne devrait avoir à importer
+ * un bloc d'interface pour nommer ce qu'il a écrit.
+ */
+export type AttestationMethod = 'pin' | 'signature' | 'pin+signature';
+
 export interface User {
     id: string;
     name: string;
@@ -200,6 +213,28 @@ export interface User {
      * pas défini, la fiche l'annonce — *« la remise se prouvera par signature »*.
      */
     pin?: string;
+
+    /**
+     * **La signature enregistrée** (07.1, lot 28) : l'identifiant de l'image gardée dans
+     * `tracker_signatures` (IndexedDB, cf. `services/signatureService`). Absent : aucune
+     * signature, et le tracé se fait à chaque remise.
+     *
+     * L'image elle-même n'est **pas** ici : une fiche de personne se lit, se trie et se
+     * synchronise ; une image de 300 Ko dans chacune des 61 fiches ferait de chaque
+     * lecture de l'annuaire un transfert de 18 Mo.
+     */
+    signatureId?: string;
+
+    /**
+     * **Quand le mot de passe a été changé pour la dernière fois** — la sous-ligne que
+     * 07.1 pose sur « Changer mon mot de passe » (*« changé il y a 4 mois »*). Sur cette
+     * page, *« chaque acte n'a qu'une entrée, l'état se lit en sous-ligne »* : sans cette
+     * date, la rangée n'avait pas d'état à dire et redisait une règle.
+     *
+     * Absente = jamais changé depuis l'ouverture du compte. Ce n'est pas une alarme :
+     * c'est le cas de tout compte récent.
+     */
+    passwordChangedAt?: string;
 
     // RBAC Overrides (optional, phase 1)
     rbacRoleIds?: string[];

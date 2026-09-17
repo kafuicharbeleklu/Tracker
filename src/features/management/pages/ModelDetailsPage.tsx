@@ -16,6 +16,7 @@ import DetailHero from '../../../components/ui/DetailHero';
 import { getCategoryLabel } from '../../../constants/glossary';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
+import { renderCategoryIcon } from '../../../constants/categoryIcons';
 import Menu from '../../../components/ui/Menu';
 import ScreenState from '../../../components/ui/ScreenState';
 import AddModelPage from './AddModelPage';
@@ -212,6 +213,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
     ];
 
     const firstThreeUnits = modelEquipment.slice(0, 3);
+    /* L'amortissement d'un modèle est celui de son type : la carte le lit là, et le dit. */
+    const amortissement = parentCategory
+        ? `${parentCategory.defaultDepreciation?.method === 'degressive' ? 'Dégressif' : 'Linéaire'} · ${parentCategory.defaultDepreciation?.years ?? 3} ans`
+        : null;
 
     return (
         <>
@@ -237,9 +242,8 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                             <Button
                                 variant="text"
                                 iconOnly
-                                size="sm"
                                 aria-label="Autres actions"
-                                className="text-on-surface hover:bg-surface-container flex h-12 w-12 items-center justify-center rounded-md p-0 transition-colors"
+                                className="text-on-surface hover:bg-surface-container rounded-md transition-colors"
                             >
                                 <Icon glyph={DotsThreeVertical} size={20} />
                             </Button>
@@ -350,95 +354,120 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     />
                 }
             >
-                {/* Carte 2 : Les unités */}
-                <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
-                    <div className="mb-1 flex items-baseline justify-between gap-3">
-                        <h3 className="text-on-surface text-[13px] font-medium">Les unités</h3>
-                        <span className="text-text-secondary text-[13px] tabular-nums">
+                {/*
+                  `.card` de 09.2, « Unités » — « 3 sur 14 » en tête, trois `.lrow` de 64 : la
+                  vignette du type, le numéro d'actif en 16 sur 24, puis qui le porte (ou son
+                  état) et où, en 14 ; `.more` au pied, centré, 15 en 500, sous un filet. Les
+                  rangées tenaient 56, sans vignette, le numéro en Archivo 14, et le lien
+                  portait un chevron à gauche (relevé du 13/09).
+                */}
+                <section className="bg-surface rounded-lg px-5 py-2">
+                    <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                            Unités
+                        </h3>
+                        <span className="text-text-muted text-[14px] leading-5 tabular-nums">
                             {firstThreeUnits.length} sur {totalUnits}
                         </span>
                     </div>
-
-                    <div className="divide-outline-variant mt-1 divide-y">
-                        {firstThreeUnits.length > 0 ? (
-                            firstThreeUnits.map((item) => (
-                                <div
-                                    key={item.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => navigateToItem('equipment_details', item.id)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            navigateToItem('equipment_details', item.id);
-                                        }
-                                    }}
-                                    className="hover:bg-surface-container flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-md px-1 py-2 text-left transition-colors"
-                                >
-                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                        <span className="text-on-surface font-['Archivo',sans-serif] text-[14px] font-semibold">
-                                            {item.assetId}
-                                        </span>
-                                        <span className="text-text-secondary truncate text-[12px] leading-[17px]">
-                                            {item.user?.name ? `${item.user.name} · ` : ''}
-                                            {item.status}
-                                            {item.site ? ` · ${item.site}` : ''}
-                                        </span>
-                                    </div>
-                                    <Icon
-                                        glyph={CaretRight}
-                                        size={18}
-                                        className="text-text-secondary shrink-0"
-                                    />
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-text-secondary py-3 text-[13px]">
-                                Aucune unité enregistrée pour ce modèle.
-                            </p>
-                        )}
-                    </div>
-
+                    {firstThreeUnits.length > 0 ? (
+                        firstThreeUnits.map((item) => (
+                            <div
+                                key={item.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => navigateToItem('equipment_details', item.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        navigateToItem('equipment_details', item.id);
+                                    }
+                                }}
+                                className="border-outline-variant hover:bg-surface-container flex min-h-16 w-full cursor-pointer items-center gap-3 border-t py-2 text-left transition-colors"
+                            >
+                                <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
+                                    {renderCategoryIcon(parentCategory, 20)}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="text-on-surface block truncate text-[16px] leading-6 tabular-nums">
+                                        {item.assetId}
+                                    </span>
+                                    <span className="text-text-muted block truncate text-[14px] leading-5">
+                                        {[item.user?.name || item.status, item.site]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </span>
+                                </span>
+                                <Icon
+                                    glyph={CaretRight}
+                                    size={20}
+                                    className="text-text-tertiary shrink-0"
+                                />
+                            </div>
+                        ))
+                    ) : (
+                        <p className="border-outline-variant text-text-muted border-t py-3 text-[14px] leading-5">
+                            Aucune unité enregistrée pour ce modèle.
+                        </p>
+                    )}
                     {totalUnits > 0 && (
-                        <Button
-                            variant="text"
+                        <button
+                            type="button"
                             onClick={() => navigateToView('equipment')}
-                            className="border-outline-variant text-on-surface hover:text-text-secondary mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left text-[14px] font-medium transition-colors"
+                            className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[15px] leading-5 font-medium transition-colors"
                         >
-                            <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
-                            <span>Voir les {totalUnits} unités dans l'inventaire</span>
-                        </Button>
+                            Voir les {totalUnits} unités
+                        </button>
                     )}
                 </section>
 
-                {/* Carte 3 : Spécifications honnêtes (Planche 09.2) */}
-                <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
-                    <div className="mb-1 flex items-baseline justify-between gap-3">
-                        <h3 className="text-on-surface text-[13px] font-medium">Spécifications</h3>
+                {/*
+                  `.card` de 09.2, « Référence » — l'amortissement, hérité du type et dit
+                  comme tel, puis les spécifications : leur texte sous la clé, ou « aucune
+                  saisie » en encre tertiaire à droite ; le geste en `.more`. La carte
+                  « Spécifications » posait un paragraphe en 13 et un bouton tonal pleine
+                  largeur.
+                */}
+                <section className="bg-surface rounded-lg px-5 py-2">
+                    <div className="flex min-h-12 items-center pt-2 pb-1">
+                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                            Référence
+                        </h3>
                     </div>
-
-                    {model.specs ? (
-                        <p className="text-on-surface mt-1 text-[13px] leading-[19px] whitespace-pre-wrap">
-                            {model.specs}
-                        </p>
-                    ) : (
-                        <p className="text-text-secondary mt-1 text-[12px] leading-[17px]">
-                            Aucune spécification n'a été saisie pour ce modèle.
-                        </p>
+                    {amortissement && (
+                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                            <span className="text-text-muted">Amortissement</span>
+                            <span className="text-on-surface text-right whitespace-nowrap">
+                                {amortissement}{' '}
+                                <span className="text-text-tertiary">(du type)</span>
+                            </span>
+                        </div>
                     )}
-
-                    <div className="border-outline-variant mt-3 border-t pt-3">
-                        <Button
-                            variant="tonal"
-                            className="w-full justify-center"
-                            icon={<Icon glyph={model.specs ? PencilSimple : Plus} size={18} />}
-                            onClick={() => setIsEditModalOpen(true)}
-                        >
-                            {model.specs
-                                ? 'Modifier les spécifications'
-                                : 'Ajouter les spécifications'}
-                        </Button>
-                    </div>
+                    {model.specs ? (
+                        <div className="border-outline-variant border-t py-3">
+                            <span className="text-text-muted block text-[16px] leading-6">
+                                Spécifications
+                            </span>
+                            <p className="text-on-surface mt-1 text-[14px] leading-5 whitespace-pre-wrap">
+                                {model.specs}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                            <span className="text-text-muted">Spécifications</span>
+                            <span className="text-text-tertiary whitespace-nowrap">
+                                aucune saisie
+                            </span>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[15px] leading-5 font-medium transition-colors"
+                    >
+                        <Icon glyph={model.specs ? PencilSimple : Plus} size={18} />
+                        {model.specs ? 'Modifier les spécifications' : 'Ajouter des spécifications'}
+                    </button>
                 </section>
             </DetailTemplate>
         </>

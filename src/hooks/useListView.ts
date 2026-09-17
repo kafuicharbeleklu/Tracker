@@ -8,8 +8,9 @@ import { MEDIA } from '../constants/breakpoints';
  *
  * Arbitrage de la recherche bureau du 08/09 : les deux formes **coexistent**, avec un
  * sélecteur dans l'en-tête de liste (17.8, à côté du tri) ; **cartes par défaut sous
- * 1280, tableau par défaut à 1280**. Le motif est une mesure : à 1280 moins les 264 de
- * la barre latérale, il reste 990 px, et six colonnes y tiennent sans troncature.
+ * 1280, tableau par défaut à 1280**. Le motif est une mesure : à 1280 moins les 240 de
+ * la barre latérale — 264 jusqu'au 09/09, où 17.11 a tranché à 240 —, il reste 1 016 px,
+ * et six colonnes y tiennent sans troncature.
  *
  * Le choix est **retenu par liste**. Il ne l'est pas par compte au sens strict — le
  * produit n'a pas de préférences serveur : c'est le navigateur qui s'en souvient, donc

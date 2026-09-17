@@ -1,14 +1,26 @@
 import React, { useMemo, useState } from 'react';
-import { CaretDown, Warning } from '@phosphor-icons/react';
+import {
+    ArrowLeft,
+    CaretDown,
+    ClockCountdown,
+    DownloadSimple,
+    Laptop,
+    ShieldWarning,
+    UsersThree,
+    Warning,
+} from '@phosphor-icons/react';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import Reading from '../../../components/layout/Reading';
-import { PageHeader } from '../../../components/layout/PageHeader';
 import { GLOSSARY } from '../../../constants/glossary';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
+import { cn } from '../../../lib/utils';
 import SelectField from '../../../components/ui/SelectField';
 import Modal from '../../../components/ui/Modal';
 import { jsPDF } from 'jspdf';
@@ -54,32 +66,13 @@ const formatFrenchDate = (date: Date): string => {
 const REPORT_ACTION_CLASS =
     'bg-surface-container text-on-surface hover:bg-surface-container-high min-h-12 flex-1 justify-center rounded-sm';
 
-const ReportExports: React.FC<{
-    canExport: boolean;
-    onOpen: (format: ExportFormat) => void;
-}> = ({ canExport, onOpen }) => (
-    <div className="flex items-center gap-2.5 pt-1">
-        {canExport ? (
-            (['csv', 'pdf'] as const).map((format) => (
-                <Button
-                    key={format}
-                    variant="text"
-                    className={REPORT_ACTION_CLASS}
-                    onClick={() => onOpen(format)}
-                >
-                    <Icon glyph={CaretDown} size={18} />
-                    {format.toUpperCase()}
-                </Button>
-            ))
-        ) : (
-            <Button variant="text" className={REPORT_ACTION_CLASS} onClick={() => onOpen('csv')}>
-                Aperçu
-            </Button>
-        )}
-    </div>
-);
+interface ReportsPageProps {
+    /** `.tb` du `.top` — la page s'atteint depuis « Plus ». */
+    onBack?: () => void;
+}
 
-const ReportsPage = () => {
+const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
+    const isCompact = useMediaQuery(MEDIA.compact);
     const { showToast } = useToast();
     const { equipment, users, events } = useData();
     const { permissions } = useAccessControl();
@@ -115,6 +108,10 @@ const ReportsPage = () => {
         [events, selectedUser],
     );
     const agingRows = useMemo(() => buildAgingReportRows(equipment, new Date()), [equipment]);
+    /* Le nombre de colonnes de l'inventaire — **compté sur la donnée**, jamais écrit en dur :
+       la sous-ligne de sa rangée l'annonce (15.5). */
+    const inventoryColumnCount =
+        inventoryRows.length > 0 ? Object.keys(inventoryRows[0]).length : 0;
     const warrantyRows = useMemo(() => buildWarrantyReportRows(equipment, new Date()), [equipment]);
 
     const dateIn90Days = useMemo(() => {
@@ -122,37 +119,6 @@ const ReportsPage = () => {
         d.setDate(d.getDate() + 90);
         return formatFrenchDate(d);
     }, []);
-
-    const oldestAgingYears = useMemo(() => {
-        if (agingRows.length === 0) return 0;
-        const now = Date.now();
-        let maxYears = 3;
-        equipment.forEach((item) => {
-            /* La date d'achat vit dans `financial`, pas à la racine : la boucle ne
-               s'exécutait jamais et l'âge du parc restait bloqué à trois ans. */
-            const achat = item.financial?.purchaseDate;
-            if (achat) {
-                const age = (now - new Date(achat).getTime()) / (365.25 * 86400000);
-                if (age > maxYears) maxYears = Math.floor(age);
-            }
-        });
-        return maxYears;
-    }, [agingRows, equipment]);
-
-    /**
-     * **Le plus ancien mouvement se lit des rangées du rapport**, pas d'un second
-     * filtre. Celui qui était ici comparait `e.userId` — un champ que `HistoryEvent`
-     * n'a pas : la liste était toujours vide, et la date jamais affichée. Le prédicat
-     * qui décide de ce qui appartient à une personne vit dans `buildUserMovementReportRows`
-     * (bénéficiaire ou porteur précédent), et il n'a pas à être récrit ici.
-     */
-    const userOldestEventDate = useMemo(() => {
-        const dates = userMovementRows
-            .map((row) => new Date(String(row.Date)).getTime())
-            .filter((t) => !Number.isNaN(t));
-        if (dates.length === 0) return null;
-        return formatFrenchDate(new Date(Math.min(...dates)));
-    }, [userMovementRows]);
 
     const getReportDetails = (reportId: ReportId) => {
         switch (reportId) {
@@ -311,6 +277,47 @@ const ReportsPage = () => {
         }
     };
 
+    /**
+     * Les quatre rapports de 15.5, dans l'ordre de la planche. Ce que chacun contient se lit
+     * dans sa sous-ligne — le compte et les colonnes —, et celui qui n'a rien à exporter le
+     * dit **là**, plutôt qu'en message après le clic.
+     */
+    const rapports = [
+        {
+            id: '1' as ReportId,
+            glyph: Laptop,
+            titre: 'Inventaire complet',
+            sousLigne: `${inventoryRows.length} ligne${inventoryRows.length > 1 ? 's' : ''} · ${inventoryColumnCount} colonnes`,
+            vide: inventoryRows.length === 0,
+        },
+        {
+            id: '2' as ReportId,
+            glyph: UsersThree,
+            titre: 'Historique par personne',
+            sousLigne: selectedUser
+                ? `${userMovementRows.length} mouvement${userMovementRows.length > 1 ? 's' : ''} · ${selectedUser.name}`
+                : 'la personne se choisit dans l’aperçu',
+            vide: userMovementRows.length === 0,
+        },
+        {
+            id: '3' as ReportId,
+            glyph: ClockCountdown,
+            titre: 'Équipement vieillissant',
+            sousLigne: `${agingRows.length} actif${agingRows.length > 1 ? 's' : ''} de plus de trois ans`,
+            vide: agingRows.length === 0,
+        },
+        {
+            id: '4' as ReportId,
+            glyph: ShieldWarning,
+            titre: 'Garanties qui expirent',
+            sousLigne:
+                warrantyRows.length > 0
+                    ? `${warrantyRows.length} équipement${warrantyRows.length > 1 ? 's' : ''} d’ici au ${dateIn90Days}`
+                    : 'aucune dans les 90 jours · rien à exporter',
+            vide: warrantyRows.length === 0,
+        },
+    ];
+
     const activePreview = preview ? getReportDetails(preview.id) : null;
     const previewSampleRows = activePreview?.rows.slice(0, 5) || [];
     /** Le nombre de colonnes du fichier — la planche le pose a cote du nombre de lignes :
@@ -324,192 +331,127 @@ const ReportsPage = () => {
         preview?.format === 'pdf' ? ['pdf', 'csv'] : ['csv', 'pdf'];
     const previewColumnCount =
         previewSampleRows.length > 0 ? Object.keys(previewSampleRows[0]).length : 0;
-    /*
-      Le nombre de colonnes de la carte d'inventaire — **compté sur la donnée**, comme
-      celui de l'aperçu. Il était écrit « 11 colonnes » en dur, à deux lignes d'un
-      commentaire qui affirmait le contraire : la carte aurait continué d'annoncer 11
-      si le rapport en gagnait une douzième.
-      Les six premières colonnes sont nommées ; le reste tient dans un « +N » qui se
-      compte lui aussi.
-    */
-    const INVENTORY_NAMED_COLUMNS = [
-        'Réf.',
-        'Modèle',
-        'N° de série',
-        'Statut',
-        'Détenteur',
-        'Emplacement',
-    ];
-    const inventoryColumnCount =
-        inventoryRows.length > 0 ? Object.keys(inventoryRows[0]).length : 0;
-    const inventoryExtraColumns = Math.max(
-        0,
-        inventoryColumnCount - INVENTORY_NAMED_COLUMNS.length,
-    );
-
     return (
         <PageContainer>
-            <PageHeader
-                title={GLOSSARY.REPORTS}
-                subtitle="Consultez et exportez les rapports opérationnels du parc."
-                breadcrumb={GLOSSARY.REPORTS}
-            />
+            {/*
+              **Le `.top` des destinations**, celui des douze listes : fond de surface, un
+              filet dessous, intérieur `8 / 16 / 12`, titre en **28 sur 32**.
 
-            {/* Les cartes de rapport tiennent dans la mesure de lecture (960 px, §2.43) :
-                deux colonnes de 468 px au-dela de 840, une seule en deca - `medium` reste
-                a une colonne, le rail ne laisse pas la place. */}
+              La page portait le seul en-tête à trois étages du produit — un fil d'Ariane
+              « Rapports » au-dessus d'un titre « Rapports » de 30, lui-même sous une barre
+              du haut qui écrivait « Rapports » en 18. Trois fois le même mot, à trois
+              mesures dont deux que l'échelle ne déclare pas.
+            */}
+            {/* Au-delà de 600, **l'en-tête du bureau** (17.11) : sur le canevas, sans filet, les
+                gestes d'icône en carrés de 40. Le bloc blanc du téléphone y faisait une seconde
+                surface au-dessus des cartes (13/09). */}
+            <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
+                <div
+                    className={cn(
+                        'mb-4 flex flex-col',
+                        isCompact
+                            ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
+                            : '-mt-1',
+                    )}
+                >
+                    <div className="flex min-h-12 items-center gap-1">
+                        {/* Au bureau, pas de flèche : le titre s'y pose au bord, et la
+                            barre latérale mène déjà partout. */}
+                        {onBack && isCompact && (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="text-on-surface hover:bg-surface-container -ml-3 shrink-0 rounded-md"
+                            >
+                                <Icon glyph={ArrowLeft} size={24} />
+                            </Button>
+                        )}
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            {GLOSSARY.REPORTS}
+                        </h1>
+                    </div>
+                </div>
+            </IconGestureSizeContext.Provider>
+
+            {/*
+              `.card` de 15.5 — **une rangée par rapport, pas une carte** : la vignette, le nom,
+              puis le compte et les colonnes en sous-ligne, et l'export au bout, 44 sur le creux.
+              Celui qui n'a rien à exporter le dit dans sa sous-ligne et perd son bouton
+              (`.lrow.void` : titre et vignette en encre secondaire). Le pied rappelle le format.
+
+              **Ce que la planche ne dessine pas reste joignable par la rangée** : elle ouvre
+              l'aperçu, où vivent le PDF et le choix de la personne. 15.5 ne connaît ni l'un ni
+              l'autre — elle date d'avant le rapport par personne —, et une planche ne retire pas
+              une fonction qu'elle n'a jamais eue à dessiner (arbitrage du 16/09).
+            */}
             <Reading>
-                <div className="expanded:grid-cols-2 grid grid-cols-1 gap-5">
-                    {/* Carte 1 : Inventaire complet */}
-                    <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-body-medium text-on-surface font-medium">
-                                Inventaire complet
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Tous les équipements et leurs détails, à la date d’aujourd’hui.
-                            </span>
-                            <div className="mt-1 flex items-baseline gap-2">
-                                <b className="font-brand text-on-surface text-[20px] font-semibold tabular-nums">
-                                    {inventoryRows.length}
-                                </b>
-                                <span className="text-body-small text-on-surface-variant">
-                                    lignes · {inventoryColumnCount} colonnes
-                                </span>
-                            </div>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                                {[
-                                    ...INVENTORY_NAMED_COLUMNS,
-                                    ...(inventoryExtraColumns > 0
-                                        ? [`+${inventoryExtraColumns}`]
-                                        : []),
-                                ].map((col) => (
-                                    <code
-                                        key={col}
-                                        className="bg-surface-container text-on-surface-variant rounded-xs px-1.5 py-0.5 font-mono text-[11px]"
-                                    >
-                                        {col}
-                                    </code>
-                                ))}
-                            </div>
-                        </div>
+                <section className="bg-surface rounded-lg px-5 py-2">
+                    <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                            Les rapports
+                        </h3>
+                        <span className="text-text-muted text-[14px] leading-5 tabular-nums">
+                            {rapports.length}
+                        </span>
+                    </div>
 
-                        {inventoryRows.length > 0 && (
-                            <ReportExports
-                                canExport={canExport}
-                                onOpen={(format) => setPreview({ id: '1', format })}
-                            />
-                        )}
-                    </section>
-
-                    {/* Carte 2 : Historique par personne */}
-                    <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-body-medium text-on-surface font-medium">
-                                Historique par personne
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Toutes les remises et restitutions d’une personne.
-                            </span>
-                            <div className="mt-1">
-                                <SelectField
-                                    name="report-user"
-                                    label="Personne"
-                                    options={userOptions}
-                                    value={selectedUserId}
-                                    onChange={(e) => setSelectedUserId(e.target.value)}
-                                />
-                            </div>
-                            <div className="mt-1 flex items-baseline gap-2">
-                                <b className="font-brand text-on-surface text-[20px] font-semibold tabular-nums">
-                                    {userMovementRows.length}
-                                </b>
-                                <span className="text-body-small text-on-surface-variant">
-                                    {userOldestEventDate
-                                        ? `mouvements depuis le ${userOldestEventDate}`
-                                        : 'mouvements enregistrés'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {userMovementRows.length > 0 && (
-                            <ReportExports
-                                canExport={canExport}
-                                onOpen={(format) => setPreview({ id: '2', format })}
-                            />
-                        )}
-                    </section>
-
-                    {/* Carte 3 : Équipement vieillissant */}
-                    <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-body-medium text-on-surface font-medium">
-                                Équipement vieillissant
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Plus de trois ans de service — pour la planification de
-                                l’amortissement.
-                            </span>
-                            <div className="mt-1 flex items-baseline gap-2">
-                                <b className="font-brand text-on-surface text-[20px] font-semibold tabular-nums">
-                                    {agingRows.length}
-                                </b>
-                                <span className="text-body-small text-on-surface-variant">
-                                    {oldestAgingYears > 0
-                                        ? `équipements · le plus ancien a ${oldestAgingYears} ans`
-                                        : 'équipements identifiés'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {agingRows.length > 0 && (
-                            <ReportExports
-                                canExport={canExport}
-                                onOpen={(format) => setPreview({ id: '3', format })}
-                            />
-                        )}
-                    </section>
-
-                    {/* Carte 4 : Garanties qui expirent */}
-                    <section className="bg-surface shadow-elevation-1 flex flex-col justify-between gap-3 rounded-lg p-4">
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-body-medium text-on-surface font-medium">
-                                Garanties qui expirent
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Dans les 90 prochains jours.
-                            </span>
-                            <div className="mt-1 flex items-baseline gap-2">
-                                <b
-                                    className={`font-brand text-[20px] font-semibold tabular-nums ${
-                                        warrantyRows.length === 0
-                                            ? 'text-on-surface-variant'
-                                            : 'text-on-surface'
-                                    }`}
+                    {rapports.map((rapport) => (
+                        <div
+                            key={rapport.id}
+                            className="border-outline-variant flex min-h-16 items-center gap-3 border-t py-2"
+                        >
+                            <Button
+                                variant="text"
+                                onClick={() => setPreview({ id: rapport.id, format: 'csv' })}
+                                className="flex h-auto min-h-0 min-w-0 flex-1 items-center justify-start gap-3 px-0 py-0 text-left font-normal hover:bg-transparent"
+                            >
+                                <span
+                                    className={cn(
+                                        'rounded-vignette bg-surface-container flex h-10 w-10 shrink-0 items-center justify-center',
+                                        rapport.vide
+                                            ? 'text-text-muted'
+                                            : 'text-on-surface-variant',
+                                    )}
                                 >
-                                    {warrantyRows.length}
-                                </b>
-                                <span className="text-body-small text-on-surface-variant">
-                                    équipement{warrantyRows.length > 1 ? 's' : ''} concerné
-                                    {warrantyRows.length > 1 ? 's' : ''} d’ici au {dateIn90Days}
+                                    <Icon glyph={rapport.glyph} size={20} />
                                 </span>
-                            </div>
-                            {warrantyRows.length === 0 && (
-                                <p className="text-body-small text-on-surface-variant mt-1">
-                                    Rien à exporter. La carte le dit <strong>avant</strong> le clic,
-                                    plutôt qu’un message après.
-                                </p>
+                                <span className="min-w-0 flex-1">
+                                    <span
+                                        className={cn(
+                                            'block truncate text-[16px] leading-6',
+                                            rapport.vide ? 'text-text-muted' : 'text-on-surface',
+                                        )}
+                                    >
+                                        {rapport.titre}
+                                    </span>
+                                    <span className="text-text-muted block truncate text-[14px] leading-5">
+                                        {rapport.sousLigne}
+                                    </span>
+                                </span>
+                            </Button>
+
+                            {canExport && !rapport.vide && (
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label={`Exporter « ${rapport.titre} » en CSV`}
+                                    onClick={() => handleExportCSV(rapport.id)}
+                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high -mr-1 h-11 max-h-11 min-h-11 w-11 shrink-0 rounded-[4px]"
+                                >
+                                    <Icon glyph={DownloadSimple} size={20} />
+                                </Button>
                             )}
                         </div>
+                    ))}
 
-                        {warrantyRows.length > 0 && (
-                            <ReportExports
-                                canExport={canExport}
-                                onOpen={(format) => setPreview({ id: '4', format })}
-                            />
-                        )}
-                    </section>
-                </div>
+                    {/* `.emp` — le pied dit le format, et où trouver le reste. */}
+                    <p className="border-outline-variant text-text-muted border-t pt-1 pb-3 text-[14px] leading-5">
+                        Chaque export part en CSV ; le PDF et le choix de la personne s'ouvrent
+                        depuis la rangée.
+                    </p>
+                </section>
             </Reading>
 
             {/* Modal d'aperçu d'un rapport (Planche 15.1 Colonne 4) */}
@@ -542,7 +484,19 @@ const ReportsPage = () => {
                     }
                 >
                     <div className="flex flex-col gap-4">
-                        <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
+                        {/* Le rapport par personne se lit d'abord : on choisit qui, et l'aperçu
+                            se refait sous le choix. La rangée de 15.5 n'a pas de place pour un
+                            sélecteur, et c'est ici qu'il sert. */}
+                        {preview?.id === '2' && (
+                            <SelectField
+                                name="report-user"
+                                label="Personne"
+                                options={userOptions}
+                                value={selectedUserId}
+                                onChange={(e) => setSelectedUserId(e.target.value)}
+                            />
+                        )}
+                        <section className="bg-surface rounded-lg p-4">
                             <div className="mb-2 flex items-baseline justify-between gap-3">
                                 <h3 className="text-body-medium text-on-surface font-semibold">
                                     Aperçu
@@ -589,7 +543,7 @@ const ReportsPage = () => {
                             </p>
                         </section>
 
-                        <section className="bg-surface shadow-elevation-1 flex flex-col gap-3 rounded-lg p-4">
+                        <section className="bg-surface flex flex-col gap-3 rounded-lg p-4">
                             <h3 className="text-body-medium text-on-surface font-semibold">
                                 Le fichier
                             </h3>

@@ -26,11 +26,11 @@ import FacetChip from '../../../components/ui/FacetChip';
 import ListRow, { TONE_CLASS } from '../../../components/ui/ListRow';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import { FabContainer } from '../../../components/ui/FabContainer';
-import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import BulkOverflow from '../../../components/ui/BulkOverflow';
@@ -163,18 +163,17 @@ const getDaysSince = (dateStr?: string): number => {
 };
 
 /**
- * `.sh` + `.sgrp` de la planche : le libellé du groupe en **12 sur 16**, capitales
- * espacées de 6 %, encre tertiaire — puis ses pastilles, gouttière 8, sur deux
- * lignes s'il le faut. Le libellé était deux crans trop sombre et sans sa mesure.
+ * `.sgrp` de la planche : le libellé du groupe prend **`.lab`** — 12 sur 16 en 500,
+ * encre secondaire, sans capitales (arbitré le 13/09 : la même étiquette qu'un champ,
+ * qu'un groupe de réglages et qu'une légende de menu) — puis ses pastilles, gouttière 8.
+ * Ces pastilles sont celles de 04.1 : 14 sur 20, 36 de haut (`.sgrp .chip`).
  */
 const SheetGroup: React.FC<{ label: string; children: React.ReactNode }> = ({
     label,
     children,
 }) => (
     <div>
-        <p className="text-text-tertiary text-[12px] leading-4 tracking-[0.06em] uppercase">
-            {label}
-        </p>
+        <p className="text-text-muted text-[12px] leading-4 font-medium">{label}</p>
         <div className="mt-2 flex flex-wrap gap-2">{children}</div>
     </div>
 );
@@ -358,9 +357,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 const itemDate = new Date(item.financial?.purchaseDate ?? 0).getTime();
                 matchesPeriod = itemDate >= thirtyDaysAgo;
             } else if (periodFilter === 'Cette année') {
-                const itemYear = new Date(
-                    item.financial?.purchaseDate,
-                ).getFullYear();
+                const itemYear = new Date(item.financial?.purchaseDate).getFullYear();
                 matchesPeriod = itemYear === currentYear;
             }
 
@@ -453,6 +450,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
      * trois faits, et six colonnes n'y ajouteraient rien.
      */
     const vue = useListView('inventory');
+    /* Le scan ne vit qu'au téléphone (17.11) — la coque le dit, pas le gabarit. */
+    const isCompact = useMediaQuery(MEDIA.compact);
     const enTableau = isManager && vue.view === 'tableau';
 
     /**
@@ -684,10 +683,19 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     return (
         <>
             <ListTemplate
-                title={isManager ? 'Équipements' : 'Mes équipements'}
+                /* **« Actifs », pour les deux rôles** — le mot de la barre du bas (17.7),
+                   et celui que 04.1 pose en titre dans ses deux vues (relu le 10/09) : le
+                   porteur n'a pas « ses équipements » sous un autre nom que celui de
+                   l'onglet qui l'y mène. « Équipements » / « Mes équipements » faisaient
+                   deux mots pour une destination. */
+                title="Actifs"
                 subtitle={isManager ? `${accessibleEquipment.length} au parc` : undefined}
+                /* **Le scan est un geste de téléphone** : *« le geste de la caméra reste
+                   au téléphone »* (17.11, « ce que le bureau ne fait pas »). Au bureau
+                   on cherche un code en le tapant — la recherche de la ligne d'outils
+                   accepte le code, l'identifiant et le modèle. */
                 actions={
-                    isManager ? (
+                    isManager && isCompact ? (
                         <button
                             type="button"
                             aria-label="Scanner une étiquette"
@@ -824,29 +832,24 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         }
                     />
                 }
-                /* La barre du bas fait 64 px : le bouton flottant se pose au-dessus,
-                   jamais dessus — la planche l'ancre à 80 px du bas (17.6, 06/09). */
-                fab={
-                    /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
-                       copie.** Il était réécrit à la main ici et sur l'autre liste, à
-                       deux fichiers de distance, et les deux copies avaient déjà
-                       divergé : deux jetons de texte pour le même contraste, et un
-                       ancrage retapé par-dessus celui du conteneur. L'ancrage se
-                       calcule une fois — 64 de barre + 16 de gouttière, la règle du
-                       06/09 — et il vit dans `FabContainer`. La feuille, elle, reste à la page : ses
-                       rangées portent une explication que 17.6 ne dessine pas. */
-                    isManager && !selection.isActive ? (
-                        <FabContainer description="Ajouter un équipement">
-                            <FloatingActionButton
-                                icon="add"
-                                size="medium"
-                                variant="primary"
-                                className="bg-primary text-on-primary"
-                                aria-label="Ajouter un équipement"
-                                onClick={() => setIsAddSheetOpen(true)}
-                            />
-                        </FabContainer>
-                    ) : undefined
+                /*
+                  **Le geste d'ajout se déclare, il ne se dessine plus ici.** Il était
+                  écrit à la main sur cette liste et sur celle des personnes, à deux
+                  fichiers de distance, et les deux copies avaient déjà divergé. Le
+                  gabarit le pose maintenant aux deux régimes : bouton rond au-dessus de
+                  la barre du bas au téléphone (17.6), bouton jaune de l'en-tête au
+                  bureau (17.11) — *« rien ne flotte »* au-delà du téléphone.
+                  La feuille, elle, reste à la page : ses rangées portent une explication
+                  que 17.6 ne dessine pas.
+                */
+                pageAction={
+                    isManager && !selection.isActive
+                        ? {
+                              label: 'Ajouter',
+                              description: 'Ajouter un équipement',
+                              onClick: () => setIsAddSheetOpen(true),
+                          }
+                        : undefined
                 }
             >
                 {/*
@@ -1015,6 +1018,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         <SheetGroup label="État">
                             {facets.map((facet) => (
                                 <FacetChip
+                                    compact
                                     key={facet.id}
                                     label={facet.label}
                                     count={facet.count}
@@ -1037,6 +1041,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         <SheetGroup label="Famille">
                             {FAMILIES.map((family) => (
                                 <FacetChip
+                                    compact
                                     key={family}
                                     label={family}
                                     selected={familyFilter === family}
@@ -1051,12 +1056,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         {familyFilter !== 'Toutes' && availableTypesForFamily.length > 0 && (
                             <SheetGroup label="Type">
                                 <FacetChip
+                                    compact
                                     label="Tous les types"
                                     selected={!typeFilter}
                                     onClick={() => setTypeFilter('')}
                                 />
                                 {availableTypesForFamily.map((type) => (
                                     <FacetChip
+                                        compact
                                         key={type}
                                         label={getCategoryLabel(type)}
                                         selected={typeFilter === type}
@@ -1069,6 +1076,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         <SheetGroup label="Emplacement">
                             {availableLocations.map((loc) => (
                                 <FacetChip
+                                    compact
                                     key={loc}
                                     label={loc}
                                     selected={locationFilter === loc}
@@ -1080,6 +1088,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         <SheetGroup label="Ajouté">
                             {PERIODS.map((period) => (
                                 <FacetChip
+                                    compact
                                     key={period}
                                     label={period}
                                     selected={periodFilter === period}
@@ -1089,8 +1098,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         </SheetGroup>
 
                         {/* `.sfoot` — **deux colonnes égales**, filet au-dessus. Le
-                            « voir » nomme son nombre ; il ne dit pas « appliquer ». */}
-                        <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
+                            « voir » nomme son nombre ; il ne dit pas « appliquer ». Il
+                            court d'un bord à l'autre de la feuille, 16 sous les pastilles
+                            et 4 au pied (relevé du 13/09). */}
+                        <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer
                             </Button>

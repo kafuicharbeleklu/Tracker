@@ -120,12 +120,6 @@ const CREATION_STATES: Array<{
     },
 ];
 
-const SOURCE_LABELS: Record<string, string> = {
-    equipment: 'réglée sur cette fiche',
-    category: 'héritée du type',
-    global: 'le défaut de Paramètres',
-};
-
 const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCancel, onSave }) => {
     const { showToast } = useToast();
     const { locationData, categories, equipment, models, addEquipment, updateEquipment, settings } =
@@ -505,7 +499,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                     {/* ── Configuration ────────────────────────────────────────────── */}
                     <FormSection title="Configuration" caption="pré-remplie par le modèle">
-                        <div className="flex gap-2.5">
+                        <div className="flex gap-3">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Mémoire</FieldLabel>
                                 <InputField
@@ -534,15 +528,11 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 placeholder="Windows 11 Pro"
                             />
                         </div>
-                        <FormNote>
-                            Trois champs que la fiche affiche et que rien ne déduit : deux unités du
-                            même modèle peuvent avoir des configurations différentes.
-                        </FormNote>
                     </FormSection>
 
                     {/* ── Où, et dans quel état ────────────────────────────────────── */}
                     <FormSection title="Où, et dans quel état">
-                        <div className="flex gap-2.5">
+                        <div className="flex gap-3">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Pays</FieldLabel>
                                 <SelectField
@@ -640,7 +630,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 placeholder="Dell Technologies"
                             />
                         </div>
-                        <div className="flex gap-2.5">
+                        <div className="flex gap-3">
                             <div className="min-w-0 flex-1">
                                 <FieldLabel>Date d'achat</FieldLabel>
                                 <InputField
@@ -672,16 +662,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 onChange={handleChange}
                             />
                         </div>
-                        <FormNote>
-                            Le <b>pourcentage amorti</b> et la <b>date de renouvellement</b> de la
-                            fiche se calculent à partir de ces trois valeurs et de la catégorie :
-                            ils ne se saisissent jamais. Règle appliquée ici —{' '}
-                            <b>
-                                {effectiveConfig.years} ans,{' '}
-                                {effectiveConfig.method === 'linear' ? 'linéaire' : 'dégressif'}
-                            </b>{' '}
-                            ({SOURCE_LABELS[effectiveConfig.source] || effectiveConfig.source}).
-                        </FormNote>
                     </FormSection>
 
                     {/* ── Documents ────────────────────────────────────────────────── */}
@@ -732,10 +712,6 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 onReject={(message) => showToast(message, 'error')}
                             />
                         </div>
-                        <FormNote>
-                            La pièce est rattachée à la fiche par son nom, sa nature et sa taille —
-                            c'est ce que la fiche en affiche.
-                        </FormNote>
                     </FormSection>
                 </div>
             </FullScreenFormLayout>

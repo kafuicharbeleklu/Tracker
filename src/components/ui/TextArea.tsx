@@ -67,7 +67,10 @@ export const TextArea: React.FC<TextAreaProps> = ({
                 <label
                     htmlFor={textAreaId}
                     className={cn(
-                        'duration-short4 mb-1.5 block text-[11px] font-medium tracking-[0.02em] transition-colors',
+                        /* `.lab` — 12 sur 16 en 500, sans interlettrage : la même étiquette
+                           que celle d'un champ d'une ligne (04.3, 05.3). Elle tenait 11 et
+                           un interlettrage que la planche ne déclare pas (13/09). */
+                        'duration-short4 mb-1.5 block text-[12px] leading-4 font-medium transition-colors',
                         error ? 'text-error' : 'text-on-surface-variant',
                         isDisabled && 'text-on-surface/[0.38]',
                     )}

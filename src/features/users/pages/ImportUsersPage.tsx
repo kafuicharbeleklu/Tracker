@@ -232,7 +232,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             isSaving={!previewMode || stats.valid === 0}
         >
             {!previewMode ? (
-                <div className="bg-surface rounded-card p-page shadow-elevation-1 border-outline-variant animate-in fade-in zoom-in-95 border duration-300">
+                <div className="bg-surface rounded-card p-page border-outline-variant animate-in fade-in zoom-in-95 border duration-300">
                     <h3 className="text-label-large text-on-surface mb-4 font-bold">
                         Étape 1: Télécharger le fichier CSV
                     </h3>
@@ -270,7 +270,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 </div>
             ) : (
                 <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
-                    <div className="bg-surface border-outline-variant shadow-elevation-1 flex items-center justify-between rounded-xl border p-4">
+                    <div className="bg-surface border-outline-variant flex items-center justify-between rounded-xl border p-4">
                         <div className="flex items-center gap-4">
                             <div className="bg-secondary-container text-secondary flex h-10 w-10 items-center justify-center rounded-lg">
                                 <MaterialIcon name="description" size={20} />
@@ -304,7 +304,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                         </Button>
                     </div>
 
-                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-xl border">
+                    <div className="bg-surface border-outline-variant overflow-hidden rounded-xl border">
                         <TableScrollArea
                             label="Aperçu des utilisateurs à importer"
                             scrollerClassName="max-h-[400px]"

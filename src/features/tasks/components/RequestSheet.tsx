@@ -217,7 +217,10 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
             createdAt: maintenant,
             updatedAt: maintenant,
             requester: currentUser.name,
-            equipmentName: `Demande: ${getCategoryLabel(type)}`,
+            /* Le nom est **l'objet** — « Ordinateur portable » —, comme le titre de rangée
+               de 03.3 : la nature (« ma demande ») vit en sous-ligne et dans la teinte de la
+               vignette. Le préfixe « Demande: » que le code posait la disait deux fois. */
+            equipmentName: getCategoryLabel(type),
             equipmentType: type,
             requestType: 'Attribution',
             requestDate: "Aujourd'hui",
@@ -239,7 +242,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
         return (
             <BottomSheet open onClose={() => setVue('demande')} title="Ce que je demande">
                 <div className="flex flex-col gap-4">
-                    <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                    <p className="text-on-surface-variant text-[14px] leading-5">
                         Un type ; le modèle, c’est l’informatique qui le choisit.
                     </p>
 
@@ -306,7 +309,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
     return (
         <BottomSheet open onClose={onClose} title="Demander un équipement">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[14px] leading-5">
                     {pourUnAutre
                         ? `Pour ${beneficiaire?.name.split(' ')[0]}, à votre nom.`
                         : 'Votre manager décide, l’informatique remet.'}
@@ -475,7 +478,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                 </div>
 
                 {/* `.sfoot` — deux verbes de même largeur, filet au-dessus. */}
-                <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
                         Annuler
                     </Button>

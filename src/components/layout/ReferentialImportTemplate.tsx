@@ -191,7 +191,7 @@ function ReferentialImportTemplate<T>({
                 <div className="flex flex-col gap-4">
                     {/* LE CONTRAT — `.cols` : chaque colonne, ce qu'elle porte, si elle
                         est requise. Avant le dépôt, pas après. */}
-                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
                         {/* `.sh` — un pictogramme de 32 teinté, puis le titre en 17 sur
                             24. Il valait 13 px : un titre de section se lisait comme une
                             étiquette de champ. */}
@@ -258,7 +258,7 @@ function ReferentialImportTemplate<T>({
                 <div className="flex flex-col gap-4">
                     {/* LE FICHIER LU, ET LES DEUX TOTAUX — `.fread` puis `.tals`.
                         Le décompte se lit **avant** d'écrire. */}
-                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
                         <div className="flex items-center gap-3">
                             <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={FileCsv} size={18} />
@@ -297,7 +297,7 @@ function ReferentialImportTemplate<T>({
                     {/* `.cgroup` — **le décompte avant l'écriture** : le nombre en 28,
                         ce qu'il compte à côté, et la proportion en barre de 6. Deux
                         cases de 24 disaient deux nombres sans dire leur rapport. */}
-                    <section className="rounded-card bg-surface shadow-elevation-1 flex flex-col gap-4 p-5">
+                    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
                         <div className="flex items-center gap-3">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={ListChecks} size={18} />

@@ -30,6 +30,9 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
 import DetailHero from '../../../components/ui/DetailHero';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { useRouter } from '../../../hooks/useRouter';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -238,8 +241,14 @@ const inheritanceFact = (
  * Chaque note est **déduite de ce que le groupe contient réellement** — jamais posée en
  * dur sur un nom de rôle, qui changerait sans que la phrase change.
  */
-const RbacPage: React.FC = () => {
+interface RbacPageProps {
+    /** Le retour vers « Plus » — la flèche de 11.1, au téléphone seulement. */
+    onBack?: () => void;
+}
+
+const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
     const { routeSegments, navigate } = useRouter();
+    const isCompact = useMediaQuery(MEDIA.compact);
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const {
@@ -406,28 +415,54 @@ const RbacPage: React.FC = () => {
 
         return (
             <div className="flex min-h-0 w-full flex-1 flex-col">
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
-                    <Button
-                        variant="text"
-                        iconOnly
-                        aria-label="Retour aux rôles"
-                        onClick={() => navigate('/rbac/roles')}
-                        className="shrink-0"
-                    >
-                        <Icon glyph={ArrowLeft} />
-                    </Button>
-                    <div className="min-w-0 flex-1 px-1">
-                        <p className="font-brand text-on-surface truncate text-base leading-5 font-semibold tracking-tight">
-                            {openRole.name}
-                        </p>
-                        <p className="text-label-small text-text-secondary truncate tracking-wide tabular-nums">
-                            {openRole.id}
-                        </p>
+                {isCompact ? (
+                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
+                        <Button
+                            variant="text"
+                            iconOnly
+                            aria-label="Retour aux rôles"
+                            onClick={() => navigate('/rbac/roles')}
+                            className="shrink-0"
+                        >
+                            <Icon glyph={ArrowLeft} />
+                        </Button>
+                        <div className="min-w-0 flex-1 px-1">
+                            <p className="font-brand text-on-surface truncate text-base leading-5 font-semibold tracking-tight">
+                                {openRole.name}
+                            </p>
+                            <p className="text-label-small text-text-secondary truncate tracking-wide tabular-nums">
+                                {openRole.id}
+                            </p>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    /* `.dhead.fiche` au bureau (17.11) — le nom du rôle en titre de page,
+                       le retour en carré de 40, l'identifiant dessous en fil. */
+                    <IconGestureSizeContext.Provider value={40}>
+                        <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Retour aux rôles"
+                                onClick={() => navigate('/rbac/roles')}
+                                className="text-on-surface-variant hover:text-on-surface -ml-2.5 shrink-0"
+                            >
+                                <Icon glyph={ArrowLeft} size={20} />
+                            </Button>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                                    {openRole.name}
+                                </h1>
+                                <span className="text-text-muted block truncate text-[13px] leading-4 tabular-nums">
+                                    {openRole.id}
+                                </span>
+                            </div>
+                        </div>
+                    </IconGestureSizeContext.Provider>
+                )}
 
                 <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
-                    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
+                    <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
                         <DetailHero
                             label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
                             subject={openRole.name}
@@ -476,12 +511,14 @@ const RbacPage: React.FC = () => {
                             {VIEW_KEYS.filter((key) =>
                                 editing ? true : allowed.some((rule) => rule.key === key),
                             ).map((key) => {
+                                /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
+                                   technique y tenait la sous-ligne : elle nommait le code plutôt
+                                   que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
                                 const rule = allowed.find((entry) => entry.key === key);
                                 return (
                                     <RuleGroup.Row
                                         key={key}
                                         title={permissionLabel(key)}
-                                        subtitle={key}
                                         value={ACCESS_LABEL[rule?.access ?? 'none']}
                                         valueTone={rule ? undefined : 'muted'}
                                         trailing={
@@ -513,12 +550,14 @@ const RbacPage: React.FC = () => {
                                     (editing || allowed.some((rule) => rule.key === key)) &&
                                     !denied.some((rule) => rule.key === key),
                             ).map((key) => {
+                                /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
+                                   technique y tenait la sous-ligne : elle nommait le code plutôt
+                                   que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
                                 const rule = allowed.find((entry) => entry.key === key);
                                 return (
                                     <RuleGroup.Row
                                         key={key}
                                         title={permissionLabel(key)}
-                                        subtitle={key}
                                         value={ACCESS_LABEL[rule?.access ?? 'none']}
                                         valueTone={rule ? undefined : 'muted'}
                                         trailing={
@@ -551,7 +590,6 @@ const RbacPage: React.FC = () => {
                                     <RuleGroup.Row
                                         key={rule.key}
                                         title={permissionLabel(rule.key)}
-                                        subtitle={rule.key}
                                         value="refusé"
                                         valueTone="refused"
                                         status={{ icon: Prohibit, tone: 'refused' }}
@@ -685,7 +723,7 @@ const RbacPage: React.FC = () => {
                  * liste** — « Accès » puis « Groupes » — chacun avec son en-tête.
                  */
                 title={view === 'groups' ? 'Groupes' : 'Accès'}
-                onBack={view === 'groups' ? () => navigate('/rbac/roles') : undefined}
+                onBack={view === 'groups' ? () => navigate('/rbac/roles') : onBack}
                 search={{
                     value: query,
                     onChange: setQuery,
@@ -758,6 +796,10 @@ const RbacPage: React.FC = () => {
                     )
                 }
                 hasRows={view === 'groups' ? filteredGroups.length > 0 : filteredRoles.length > 0}
+                /* Le corps de 11.1 est fait de **groupes à filets**, qui sont déjà des
+                   cartes : sans cela, le gabarit en posait une autour et les rangées se
+                   trouvaient rentrées de 16 de plus qu'ailleurs (10/09). */
+                body="cartes"
             >
                 {view === 'roles' ? (
                     <>

@@ -319,13 +319,15 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
     );
 
     /** `.rrow` — étiquette à gauche, valeur à droite, et un filet au-dessus. */
+    /* `.rrow` de 10.1 — une valeur qui manque (`.v.q` : « à désigner », « jamais ») se lit en
+       encre tertiaire ; elle tenait l'encre secondaire, celle de la clé (relevé du 13/09). */
     const referenceRow = (label: string, value: React.ReactNode, missing = false) => (
         <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
             <span className="text-text-secondary min-w-0 truncate">{label}</span>
             <span
                 className={cn(
                     'shrink-0 text-right whitespace-nowrap',
-                    missing ? 'text-text-muted' : 'text-on-surface',
+                    missing ? 'text-text-tertiary' : 'text-on-surface',
                 )}
             >
                 {value}
@@ -426,7 +428,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                                 variant="text"
                                 iconOnly
                                 aria-label="Actes du site"
-                                className="text-on-surface hover:bg-surface-container flex h-12 w-12 items-center justify-center rounded-md p-0"
+                                className="text-on-surface hover:bg-surface-container rounded-md"
                             >
                                 <Icon glyph={DotsThreeVertical} size={20} />
                             </Button>
@@ -436,7 +438,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                 hero={hero}
             >
                 {/* RÉFÉRENCE — ce que le site est, et ce qui lui manque. */}
-                <section className="rounded-card bg-surface shadow-elevation-1 px-4 py-1">
+                <section className="rounded-card bg-surface px-4 py-1">
                     {cardHeader('Référence')}
                     {referenceRow('Code pays', countryCode || 'à relever', !countryCode)}
                     {referenceRow('Correspondant', 'à désigner', true)}
@@ -452,7 +454,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     la note que R15 retire. Le geste ne se perd pas pour autant : la
                     feuille du FAB de 10.1 ouvre « Un local » et fait choisir son site. */}
                 {(!neverServed || locals.length > 0) && (
-                    <section className="rounded-card bg-surface shadow-elevation-1 px-4 py-1">
+                    <section className="rounded-card bg-surface px-4 py-1">
                         {cardHeader('Locaux', locals.length)}
                         {locals.length > 0 && (
                             <div className="border-outline-variant border-t">

@@ -42,9 +42,27 @@ const ActionCard: React.FC<{ title: string; children: React.ReactNode }> & {
 const ActionRow: React.FC<{
     glyph: PhosphorGlyph;
     title: string;
-    subtitle: string;
+    /**
+     * **L'état de l'acte, jamais son commentaire.** « changé le 5 septembre », « à
+     * définir », « aucune » : ce que la rangée apprend du compte, en deux ou trois mots.
+     * Elle portait des phrases — « sans lui, chaque remise se trace », « de cet appareil
+     * seulement » — qui expliquaient l'acte au lieu de le situer, et se coupaient à
+     * 245 px.
+     *
+     * **Absente quand il n'y a rien à dire** : « Se déconnecter » n'a pas d'état, et une
+     * sous-ligne inventée pour remplir la seconde ligne fait une rangée de 56 qui n'en
+     * dit pas plus qu'une de 48.
+     */
+    subtitle?: string;
+    /**
+     * **Le refus se lit dans la rangée** (17.10) — « 12 Mo, la limite est 5 Mo ». Il
+     * prend la place de la sous-ligne et son encre d'erreur : un toast serait parti
+     * avant qu'on ait compris ce qu'il fallait changer, et la rangée est l'endroit où
+     * l'on va recommencer.
+     */
+    tone?: 'refus';
     onOpen?: () => void;
-}> = ({ glyph, title, subtitle, onOpen }) => {
+}> = ({ glyph, title, subtitle, tone, onOpen }) => {
     const contenu = (
         <>
             <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
@@ -54,9 +72,16 @@ const ActionRow: React.FC<{
                 <span className="text-on-surface block truncate text-[16px] leading-6">
                     {title}
                 </span>
-                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
-                    {subtitle}
-                </span>
+                {subtitle && (
+                    <span
+                        className={cn(
+                            'block truncate text-[14px] leading-5',
+                            tone === 'refus' ? 'text-error' : 'text-on-surface-variant',
+                        )}
+                    >
+                        {subtitle}
+                    </span>
+                )}
             </span>
             {onOpen && <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />}
         </>

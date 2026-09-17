@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowLeft,
+    Camera,
     CheckCircle,
     Clock,
+    HandPointing,
+    ImageSquare,
     Key,
     LockKey,
     ShieldWarning,
     Signature,
     SignOut,
+    Trash,
     Warning,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
@@ -20,8 +24,17 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import DetailHero from '../../../components/ui/DetailHero';
 import ActionCard from '../../../components/ui/ActionCard';
+import PinConfirmation, { PinSteps, usePinConfirmation } from '../../../components/ui/PinConfirmation';
 import PinField from '../../../components/ui/PinField';
-import { isValidPinFormat, PIN_LENGTH } from '../../../lib/security';
+import { PIN_MAX_ATTEMPTS } from '../../../lib/security';
+import Slider from '../../../components/ui/Slider';
+import FilePicker from '../../../components/ui/FilePicker';
+import { formatFileSize, getImportLimitBytes } from '../../../lib/fileImport';
+import { signatureService } from '../../../services/signatureService';
+import { cn } from '../../../lib/utils';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import type { RuleRowTone } from '../../../components/ui/RuleGroup';
 import Notice from '../../../components/ui/Notice';
 import Reading from '../../../components/layout/Reading';
@@ -30,6 +43,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import { authService } from '../../../services/authService';
+import PasswordMeter from '../../../components/ui/PasswordMeter';
+import { measurePasswordStrength, PASSWORD_MIN_LENGTH } from '../../../lib/passwordStrength';
 import { parseAgentBatchContent } from '../../../lib/agentCheckin';
 import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
 import { APP_CONFIG } from '../../../config';
@@ -108,9 +123,18 @@ interface SettingsPageProps {
 
 /** Les vues de l'écran. Chacune est un état de Paramètres, pas une page du produit. */
 type SettingsView =
-    'index' | 'account' | 'currency' | 'depreciation' | 'inventory' | 'files' | 'sources';
+    | 'index'
+    | 'account'
+    | 'currency'
+    | 'depreciation'
+    | 'inventory'
+    | 'files'
+    | 'sources'
+    /** Le recadrage d'une signature importée — 07.1, lot 28 D2. */
+    | 'signature';
 
 const VIEW_TITLE: Record<SettingsView, string> = {
+    signature: 'Recadrer',
     index: 'Paramètres',
     account: 'Mon compte',
     currency: 'Devise et année fiscale',
@@ -253,6 +277,15 @@ const daysSince = (iso: string): number =>
  * Finances. Une sous-vue est **un objet ouvert** : elle porte la barre de fiche —
  * `.tbar`, le nom du réglage en `.code` à **17/24**, la flèche de retour à gauche.
  *
+ * **« Mon compte » prend la barre de liste, et c'est un arbitrage du commanditaire**
+ * (10/09). 07.1 le dessine en `.tbar`, comme tout ce qu'une rangée ouvre ; mais c'est
+ * le seul de ces écrans à avoir **son adresse propre** (`/settings/account`), à
+ * s'atteindre par deux chemins — Paramètres et l'avatar de 03.1 — et à porter un héro.
+ * Vu de l'usage c'est une destination, pas la valeur d'un réglage, et le commanditaire
+ * l'a relevé : « Mon compte a son header plus petit que les autres. » Les cinq écrans
+ * de réglage — Devise, Amortissement, Périodicité, Fichiers, Sources — gardent la
+ * barre de fiche : eux n'existent qu'au bout d'une rangée.
+ *
  * Ce qui tombe : la ligne « Paramètres · vous » sous le titre. R16 — *une barre porte
  * un titre, un étage, jamais un sous-titre* — et le propriétaire du réglage est déjà
  * dit par le groupe à filets d'où l'on vient (« Vous », « L'entreprise »,
@@ -265,13 +298,41 @@ const SettingsBar: React.FC<{
     /** L'index porte la barre de liste ; une sous-vue porte la barre de fiche. */
     variant: 'liste' | 'fiche';
 }> = ({ title, onBack, variant }) => {
+    const isCompact = useMediaQuery(MEDIA.compact);
     const retour = onBack && (
         <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="shrink-0">
             <Icon glyph={ArrowLeft} size={24} />
         </Button>
     );
 
+    /* Au-delà de 600, les deux barres prennent **l'en-tête du bureau** (17.11) : sur le
+       canevas, sans filet, le retour en carré de 40 et le titre en 28 sur 32 — la forme
+       des fiches du gabarit. Le bloc blanc du téléphone y faisait une seconde surface. */
+    if (!isCompact) {
+        return (
+            <IconGestureSizeContext.Provider value={40}>
+                <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                    {onBack && (
+                        <Button
+                            variant="text"
+                            iconOnly
+                            aria-label="Retour"
+                            onClick={onBack}
+                            className="text-on-surface-variant hover:text-on-surface -ml-2.5 shrink-0"
+                        >
+                            <Icon glyph={ArrowLeft} size={20} />
+                        </Button>
+                    )}
+                    <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        {title}
+                    </h1>
+                </div>
+            </IconGestureSizeContext.Provider>
+        );
+    }
+
     if (variant === 'fiche') {
+        /* `.tbar` — l'intérieur `0 8 0 4` place déjà la flèche à 4 du bord. */
         return (
             <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                 {retour}
@@ -282,10 +343,14 @@ const SettingsBar: React.FC<{
         );
     }
 
+    /* `.top .tt` — la rangée du titre rentre sa flèche de 12, et le titre tombe à 56 : huit
+       planches de page l'écrivent ainsi (04.1, 05.1, 09.1, 10.1, 11.1, 14.1, 16.1, 18.1). Le
+       retrait de 8 ne venait que de 17.9, et posait le titre à 60 sur toutes les pages du
+       menu (relevé du 13/09). */
     return (
         <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
             <div className="flex min-h-12 items-center gap-1">
-                {retour}
+                {retour && <span className="-ml-3 flex shrink-0">{retour}</span>}
                 <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                     {title}
                 </h1>
@@ -318,6 +383,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         detectedDevices,
         ingestAgentCheckIn,
         setUserPin,
+        updateUser,
     } = useData();
 
     const [view, setView] = useState<SettingsView>(initialSection ?? 'index');
@@ -334,6 +400,81 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
     const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
     const [pinSheetOpen, setPinSheetOpen] = useState(false);
+
+    /**
+     * **La signature enregistrée** — 07.1, lot 28. Trois états, et un seul fait les
+     * distingue : y a-t-il une image dans le magasin.
+     */
+    const [signatureBlob, setSignatureBlob] = useState<Blob | null>(null);
+    const [signatureSavedAt, setSignatureSavedAt] = useState<string | null>(null);
+    const [signatureSheetOpen, setSignatureSheetOpen] = useState(false);
+    const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+    /** Le refus se lit **dans la rangée** qui l'a demandé, jamais en toast (17.10). */
+    const [refusFichier, setRefusFichier] = useState<string | null>(null);
+    /** L'image choisie, en attente de recadrage. */
+    const [imageAImporter, setImageAImporter] = useState<File | null>(null);
+    const champImage = React.useRef<HTMLInputElement>(null);
+    const champPhoto = React.useRef<HTMLInputElement>(null);
+
+    const relireLaSignature = React.useCallback(async () => {
+        if (!currentUser?.id) return;
+        const [image, pose] = await Promise.all([
+            signatureService.get(currentUser.id),
+            signatureService.getSavedAt(currentUser.id),
+        ]);
+        setSignatureBlob(image);
+        setSignatureSavedAt(pose);
+    }, [currentUser?.id]);
+
+    useEffect(() => {
+        void relireLaSignature();
+    }, [relireLaSignature]);
+
+    /**
+     * Ce que la rangée accepte : une image, et **5 Mo au plus** (17.10). Le refus nomme
+     * le poids ou le format lu — « 12 Mo, la limite est 5 Mo » —, parce qu'un refus qui
+     * ne dit pas ce qui cloche fait recommencer à l'aveugle.
+     */
+    const choisirLImage = (fichier?: File | null) => {
+        if (!fichier) return;
+        if (!['image/png', 'image/jpeg'].includes(fichier.type)) {
+            setRefusFichier('format non lu : PNG ou JPG');
+            return;
+        }
+        if (fichier.size > getImportLimitBytes()) {
+            setRefusFichier(
+                `${formatFileSize(fichier.size)}, la limite est ${formatFileSize(getImportLimitBytes())}`,
+            );
+            return;
+        }
+        setRefusFichier(null);
+        setSourceSheetOpen(false);
+        setImageAImporter(fichier);
+        setView('signature');
+    };
+
+    const enregistrerLaSignature = async (image: Blob) => {
+        if (!currentUser?.id) return;
+        try {
+            const { id } = await signatureService.save(currentUser.id, image);
+            updateUser(currentUser.id, { signatureId: id });
+            await relireLaSignature();
+            setImageAImporter(null);
+            setView('account');
+            showToast('Signature enregistrée. Votre code PIN suffira à l’apposer.', 'success');
+        } catch {
+            showToast("La signature n'a pas pu être enregistrée sur cet appareil.", 'error');
+        }
+    };
+
+    const supprimerLaSignature = async () => {
+        if (!currentUser?.id) return;
+        await signatureService.remove(currentUser.id);
+        updateUser(currentUser.id, { signatureId: undefined });
+        await relireLaSignature();
+        setSignatureSheetOpen(false);
+        showToast('Signature supprimée. Le tracé revient à chaque remise.', 'success');
+    };
 
     /**
      * `.ty` du héro de 07.1 — *« Finances · Lomé Siège · mot de passe local »*. Le
@@ -367,6 +508,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
      * Ce que le réglage d'amortissement décide **réellement** : les actifs dont ni la
      * fiche ni le type ne portent de plan. Le chiffre est compté sur la donnée — la
      * planche en annonçait 14 sans avoir vu la cascade.
+     *
+     * **Il se lit aux deux endroits** (16/09) : en pied de l'écran du réglage, là où l'on
+     * s'apprête à changer la valeur, et en sous-ligne de la rangée, comme 14.1 la dessine.
+     * Le 10/09 l'avait retiré de la rangée parce qu'il y disputait sa place au titre : la
+     * sous-ligne y était rendue en 14 sur 20 au lieu des 12 sur 16 de la planche.
      */
     const governedAssets = useMemo(() => {
         const typedWithoutPlan = new Set(
@@ -397,6 +543,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
         [categories],
     );
+
+    /**
+     * 14.1 écrit « Vaut pour les 9 imports ». Le produit en porte **quatre** — équipements,
+     * modèles, emplacements, personnes : c'est ce nombre-là qui est vrai ici, et il se compte
+     * à la main faute d'un registre des écrans d'import.
+     */
+    const importSurfaces = 4;
 
     /** L'état d'une source : ce qu'elle a renvoyé, et quand. */
     const sourceState = useMemo(() => {
@@ -454,8 +607,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
      * s'atteste, et son absence est déjà signalée par la feuille « Plus ».
      */
     const codePin: { tone: RuleRowTone; icon: PhosphorGlyph; label: string } = currentUser?.pin
-        ? { tone: 'positive', icon: CheckCircle, label: 'Code PIN défini' }
-        : { tone: 'pending', icon: ShieldWarning, label: 'Code PIN à définir' };
+        /* **La valeur ne redit pas le titre.** « Code PIN défini » prenait 137 px à
+           droite de « Mon compte » : avec la vignette, le titre n'avait plus la place et
+           se coupait à « Mon… ». La rangée dit déjà de quel réglage il s'agit, et le
+           pictogramme dit déjà que c'est une alerte. */
+        ? { tone: 'positive', icon: CheckCircle, label: 'Défini' }
+        : { tone: 'pending', icon: ShieldWarning, label: 'À définir' };
 
     const openSourceSheet = (id: AutoCollectionSource) => {
         setSourceDraft(settings);
@@ -541,31 +698,34 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         <div className="flex min-h-0 w-full flex-1 flex-col">
             <SettingsBar
                 title={VIEW_TITLE[view]}
-                variant={view === 'index' ? 'liste' : 'fiche'}
+                variant={view === 'index' || view === 'account' ? 'liste' : 'fiche'}
                 onBack={view === 'index' ? onBack : goBack}
             />
 
             {/* `.page` de 14.1 — `16px 16px 24px`. La gouttière valait 20 : quatre pixels
                 pris de chaque côté à des rangées qui n'en avaient pas de trop. */}
             <div className="medium:px-page flex-1 overflow-y-auto px-4 pt-4 pb-6">
-                <Reading className="flex flex-col gap-5 pb-16">
+                {/* `.page` de 07.1 : 16 d'écart entre le héro et les cartes (10/09 ; il valait 20). */}
+                <Reading className="flex flex-col gap-4 pb-16">
                     {view === 'index' && (
                         <>
-                            <RuleGroup
-                                header="Vous"
-                                note="Une seule vue pour ces réglages, atteinte aussi depuis votre avatar. Cette ligne ne les refait pas, elle y mène."
-                            >
+                            {/* **La liste ne porte plus de note.** Chaque groupe en avait
+                                une, longue, qui expliquait le classement plutôt que les
+                                réglages : trois lignes de gris pour une carte d'une rangée.
+                                Ce qu'elles disaient appartient à l'écran du réglage, où il
+                                se lit au moment d'agir — c'est là que les notes restent. */}
+                            {/* **Ni vignette.** Les rangées de 14.1 ouvrent sur leur titre, à
+                                16 du bord de la carte : les glyphes le poussaient à 68 et
+                                ajoutaient six pixels à chaque rangée (relevé du 13/09). */}
+                            <RuleGroup form="grp" header="Vous">
                                 <RuleGroup.Row
                                     title="Mon compte"
-                                    /* Le sous-titre **ne répète pas le contenu** : il dit la
-                                       conséquence. « Mot de passe, double authentification,
-                                       session » énumérait ce qu'il y a derrière la porte —
-                                       ce que le chevron dit déjà. */
-                                    subtitle={
-                                        currentUser?.pin
-                                            ? 'Votre code atteste vos remises'
-                                            : 'Sans code, chaque remise se trace'
-                                    }
+                                    /* **Pas de sous-ligne quand la valeur dit déjà l'état.**
+                                       Elle en portait une, et la valeur « Code PIN à définir »
+                                       ne lui laissait qu'une centaine de pixels : la phrase
+                                       tombait sur trois lignes et la rangée passait de 60 à
+                                       104. Ce que le sous-titre disait — que sans code la
+                                       remise se trace — la valeur le dit en un mot. */
                                     status={{ icon: codePin.icon, tone: codePin.tone }}
                                     value={codePin.label}
                                     valueTone={codePin.tone}
@@ -573,10 +733,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 />
                             </RuleGroup>
 
-                            <RuleGroup header="L'entreprise">
+                            <RuleGroup form="grp" header="L'entreprise">
                                 <RuleGroup.Row
                                     title="Devise et année fiscale"
-                                    subtitle="Tout montant du produit s'écrit avec"
+                                    /* 14.1 ne lui donne aucune sous-ligne : la valeur
+                                       « XOF · 1ᵉʳ janv. » se suffit, et la phrase se coupait
+                                       à « Tout montant du produit s'écrit avec ». */
                                     /* 14.1 écrit `XOF · 1<sup>er</sup> janv.` — et
                                        l'exposant n'est pas un ornement : sans lui la
                                        valeur prenait trois pixels de trop et coupait
@@ -590,11 +752,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 />
                                 <RuleGroup.Row
                                     title="Amortissement par défaut"
-                                    subtitle={
-                                        governedAssets > 0
-                                            ? `Décide de la valeur de ${governedAssets} actif${governedAssets > 1 ? 's' : ''}`
-                                            : 'Sert quand ni le type ni la fiche ne portent le leur'
-                                    }
+                                    subtitle={`Décide de la valeur de ${governedAssets} actif${governedAssets > 1 ? 's' : ''}`}
                                     value={`${settings.defaultDepreciationYears} ans`}
                                     onOpen={() => setView('depreciation')}
                                 />
@@ -604,41 +762,29 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     d'aucun écran. */}
                                 <RuleGroup.Row
                                     title="Périodicité de l'inventaire"
-                                    subtitle={
-                                        sitesInventories > 0
-                                            ? `Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`
-                                            : 'Dit au bout de combien de temps un lieu est à recompter'
-                                    }
+                                    subtitle={`Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`}
                                     value={`${settings.inventoryPeriodMonths} mois`}
                                     onOpen={() => setView('inventory')}
                                 />
                                 <RuleGroup.Row
                                     title="Taille maximale d'un fichier"
-                                    subtitle="Vaut pour tout fichier déposé — tableur, pièce, photo"
+                                    subtitle={`Vaut pour les ${importSurfaces} imports`}
                                     value={`${settings.maxImportFileMb} Mo`}
                                     onOpen={() => setView('files')}
                                 />
                             </RuleGroup>
 
-                            <RuleGroup
-                                header="L'informatique"
-                                note={
-                                    <>
-                                        Ce que les sources produisent est{' '}
-                                        <strong className="text-text-secondary font-medium">
-                                            du travail
-                                        </strong>
-                                        , pas un réglage : il attend dans la file, avec le reste.
-                                        Paramètres règle les sources ; il ne garde pas leur produit.
-                                    </>
-                                }
-                            >
+                            <RuleGroup form="grp" header="L'informatique">
                                 <RuleGroup.Row
                                     title="Sources de collecte"
+                                    /* Sans source muette, la valeur — « Aucune active »,
+                                       « 2 actives sur 3 » — dit tout : la liste des trois
+                                       sources ne tenait pas dans les 113 px que la valeur
+                                       lui laisse, et repassait à la ligne. */
                                     subtitle={
                                         stalestSource
-                                            ? `${stalestSource.title} n'a rien renvoyé depuis ${stalestSource.days} jours`
-                                            : 'Agent local, annuaire, scan réseau'
+                                            ? `${stalestSource.title} muet depuis ${stalestSource.days} j`
+                                            : undefined
                                     }
                                     status={
                                         stalestSource ? { icon: Clock, tone: 'pending' } : undefined
@@ -657,12 +803,52 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     }
                                     onOpen={() => setView('sources')}
                                 />
+                                {/* Le titre dit « à valider » et la flèche dit qu'on sort :
+                                    « Elles attendent dans Tâches » ne faisait que nommer la
+                                    destination une seconde fois. */}
                                 {pendingDevices > 0 && (
                                     <RuleGroup.Row
                                         title={`${pendingDevices} machine${pendingDevices > 1 ? 's' : ''} détectée${pendingDevices > 1 ? 's' : ''} à valider`}
-                                        subtitle="Ce que les sources produisent attend dans Tâches › À faire"
                                         external
                                         onOpen={() => onNavigate?.('tasks')}
+                                    />
+                                )}
+                            </RuleGroup>
+
+                            {/*
+                              **L'application** — la carte que 07.1 dessine dans sa dernière
+                              colonne. Elle répond à trois questions qu'on se pose sur le
+                              produit lui-même, et non sur le parc : de quoi me préviendra-t-il,
+                              dans quelle langue et sur quel périmètre je le lis, à qui
+                              m'adresser.
+
+                              **Deux de ses rangées ne s'ouvrent pas, et c'est exact.** Rien
+                              n'est réglable derrière : les deux notifications sont celles que
+                              le produit émet, la langue est le français et le site vient de la
+                              fiche, où un gestionnaire le change (05.2). Leur poser un chevron
+                              promettrait un écran qui n'existe pas — c'est précisément ce que
+                              14.1 a fait tomber du Centre d'aide. Une rangée qui se lit sans
+                              s'ouvrir est le cas ordinaire d'« À propos », pas une exception.
+                            */}
+                            <RuleGroup form="grp" header="L'application">
+                                <RuleGroup.Row title="Notifications" value="Réceptions, relances" />
+                                {/* **« Langue »**, et la langue seule. Le titre portait
+                                    « Langue et site » pour une valeur « français · Lomé
+                                    Siège » : deux faits dans une rangée, dont un — le site —
+                                    que le héro de Mon compte affiche déjà sous le nom. */}
+                                <RuleGroup.Row title="Langue" value="Français" />
+                                {APP_CONFIG.supportEmail && (
+                                    /* `Aide` — 07.1 la range ici, et elle ne promet pas de
+                                       « documentation », le produit n'en ayant aucune à
+                                       ouvrir. L'adresse ne s'écrit pas non plus dans la
+                                       rangée : la flèche de sortie dit qu'on part écrire, et
+                                       le client de messagerie la montrera de toute façon. */
+                                    <RuleGroup.Row
+                                        title="Aide"
+                                        onOpen={() => {
+                                            window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
+                                        }}
+                                        external
                                     />
                                 )}
                             </RuleGroup>
@@ -672,29 +858,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 parc est désormais celui du tableur : la phrase décrivait un
                                 produit qui n'existe plus, et un écran de réglages est le
                                 dernier endroit où l'on peut se permettre de mentir. */}
-                            <RuleGroup header="À propos">
+                            <RuleGroup form="grp" header="À propos">
                                 <RuleGroup.Row title="Version" value={APP_CONFIG.version} />
-                                {/* 14.1 : `Thème | Clair — identité Neemba`. La décision
-                                    est **dans la valeur**, pas dans une phrase de 69
-                                    signes sous le titre — une rangée d'« À propos » se
-                                    lit, elle ne se plaide pas. */}
-                                <RuleGroup.Row title="Thème" value="Clair — identité Neemba" />
-                                {APP_CONFIG.supportEmail && (
-                                    /* La planche ne met **aucune valeur** sur cette
-                                       rangée : elle mène ailleurs, elle ne se lit pas.
-                                       L'adresse en valeur prenait 155 px pour 88
-                                       disponibles, et le titre partait en « Contacter
-                                       le su… ». Elle passe en sous-titre, où elle
-                                       reste lisible sans disputer la place. */
-                                    <RuleGroup.Row
-                                        title="Contacter le support"
-                                        subtitle={APP_CONFIG.supportEmail}
-                                        onOpen={() => {
-                                            window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
-                                        }}
-                                        external
-                                    />
-                                )}
+                                {/* « Clair », pas « Clair — identité Neemba » : la seconde
+                                    moitié justifiait le choix, et une rangée d'« À propos »
+                                    se lit, elle ne se plaide pas. */}
+                                <RuleGroup.Row title="Thème" value="Clair" />
                             </RuleGroup>
                         </>
                     )}
@@ -716,10 +885,29 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             />
 
                             <ActionCard title="Me connecter">
+                                {/* **La sous-ligne dit l'état, pas la règle** — 07.1 :
+                                    *« chaque acte n'a qu'une entrée, l'état se lit en
+                                    sous-ligne »*, et la planche y écrit « changé il y a
+                                    4 mois ». Elle portait « il ouvre la session, il ne
+                                    signe pas » : une règle, et la même que celle que la
+                                    feuille pose maintenant sous ses champs — la rangée la
+                                    disait donc deux fois et n'apprenait rien du compte.
+                                    « jamais changé depuis l'ouverture du compte » se
+                                    coupait d'ailleurs à « …du comp » : l'état tient en
+                                    deux mots. */}
                                 <ActionCard.Row
                                     glyph={LockKey}
                                     title="Changer mon mot de passe"
-                                    subtitle="il ouvre la session, il ne signe pas"
+                                    subtitle={
+                                        currentUser?.passwordChangedAt
+                                            ? `changé le ${new Date(
+                                                  currentUser.passwordChangedAt,
+                                              ).toLocaleDateString('fr-FR', {
+                                                  day: 'numeric',
+                                                  month: 'long',
+                                              })}`
+                                            : 'jamais changé'
+                                    }
                                     onOpen={() => setPasswordSheetOpen(true)}
                                 />
                             </ActionCard>
@@ -737,39 +925,65 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                             ? 'Remplacer mon code PIN'
                                             : 'Définir mon code PIN'
                                     }
-                                    subtitle={
-                                        currentUser?.pin
-                                            ? "l'ancien cessera aussitôt de valoir"
-                                            : 'sans lui, chaque remise se trace'
-                                    }
+                                    /* **Le même mot que dans Paramètres** — « défini » /
+                                       « à définir » —, les deux écrans étant atteints par
+                                       le même menu. Elle portait la conséquence (« sans
+                                       lui, chaque remise se trace »), que la feuille du
+                                       code énonce déjà au moment de le poser. */
+                                    subtitle={currentUser?.pin ? 'défini' : 'à définir'}
                                     onOpen={() => setPinSheetOpen(true)}
                                 />
-                                {/* 07.1 dessine une **signature enregistrée** — importée,
-                                    recadrée, apposée d'elle-même. Ce produit ne la porte
-                                    pas : `Attestation` fait tracer la signature au moment
-                                    de la remise, et rien ne la garde. La rangée dit donc
-                                    ce qui est, et n'ouvre rien : une porte qui ne mène
-                                    nulle part vaut moins qu'une phrase vraie. */}
+                                {/* **Ma signature** — 07.1, lot 28. Trois états, un seul
+                                    fait les sépare : y a-t-il une image enregistrée. Sans
+                                    elle, la rangée ouvre le choix de la source ; avec
+                                    elle, la feuille qui la montre, la remplace ou la
+                                    supprime. Le refus d'un fichier se lit ici même. */}
                                 <ActionCard.Row
                                     glyph={Signature}
                                     title="Ma signature"
-                                    subtitle="tracée à chaque remise, jamais conservée"
+                                    tone={refusFichier ? 'refus' : undefined}
+                                    subtitle={
+                                        refusFichier ??
+                                        (signatureSavedAt
+                                            ? `importée le ${new Date(signatureSavedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                                            : 'aucune')
+                                    }
+                                    onOpen={() => {
+                                        setRefusFichier(null);
+                                        if (signatureBlob) setSignatureSheetOpen(true);
+                                        else setSourceSheetOpen(true);
+                                    }}
                                 />
                             </ActionCard>
 
                             <ActionCard title="Où je suis connecté">
+                                {/* Aucun état à dire : « de cet appareil seulement »
+                                    commentait l'acte, et la carte « Où je suis connecté »
+                                    le situe déjà. */}
                                 <ActionCard.Row
                                     glyph={SignOut}
                                     title="Se déconnecter"
-                                    subtitle="de cet appareil seulement"
                                     onOpen={onLogout}
                                 />
                             </ActionCard>
                         </>
                     )}
+                    {view === 'signature' && imageAImporter && (
+                        <SignatureCrop
+                            fichier={imageAImporter}
+                            onAutreImage={() => {
+                                setImageAImporter(null);
+                                setView('account');
+                                setSourceSheetOpen(true);
+                            }}
+                            onEnregistrer={enregistrerLaSignature}
+                        />
+                    )}
+
                     {view === 'currency' && (
                         <>
                             <RuleGroup
+                                form="grp"
                                 header="Lecture des montants"
                                 note="Ces réglages ne changent pas un calcul mais une lecture : tous les montants du produit s'écrivent avec."
                             >
@@ -790,7 +1004,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 />
                             </RuleGroup>
 
-                            <RuleGroup header="Début de l'année fiscale">
+                            <RuleGroup form="grp" header="Début de l'année fiscale">
                                 {FISCAL_MONTHS.map((month) => (
                                     <RuleGroup.Row
                                         key={month.value}
@@ -826,6 +1040,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     {view === 'depreciation' && (
                         <>
                             <RuleGroup
+                                form="grp"
                                 header="Par défaut"
                                 note={
                                     <>
@@ -835,6 +1050,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                         categories.length > 0
                                             ? ` Les ${categories.length} types portent déjà le leur : ce plan ne sert donc qu'aux types créés sans lui.`
                                             : ` ${categories.length - typesWithOwnPlan} type(s) n'en portent pas : ce plan est le leur.`}{' '}
+                                        {governedAssets > 0 && (
+                                            <>
+                                                {' '}
+                                                Il décide aujourd'hui de la valeur de{' '}
+                                                <strong className="text-text-secondary font-medium">
+                                                    {governedAssets} actif
+                                                    {governedAssets > 1 ? 's' : ''}
+                                                </strong>
+                                                .
+                                            </>
+                                        )}{' '}
                                         Les changer{' '}
                                         <strong className="text-text-secondary font-medium">
                                             ne touche pas au passé
@@ -876,7 +1102,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <RuleGroup header="Durée et fin de vie">
+                            <RuleGroup form="grp" header="Durée et fin de vie">
                                 <RuleGroup.Row
                                     title="Durée"
                                     subtitle="Au bout de laquelle un objet ne vaut plus rien au bilan"
@@ -918,6 +1144,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             </RuleGroup>
 
                             <RuleGroup
+                                form="grp"
                                 header="Ce que porte chaque type"
                                 headerTrailing={`${typesWithOwnPlan} sur ${categories.length}`}
                             >
@@ -956,6 +1183,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     {view === 'inventory' && (
                         <>
                             <RuleGroup
+                                form="grp"
                                 header="Recompter un lieu"
                                 note={
                                     <>
@@ -966,6 +1194,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                         </strong>{' '}
                                         dans l'inventaire physique. Le réglage ne lance rien : il
                                         dit à partir de quand le silence devient un manque.
+                                        {sitesInventories > 0 && (
+                                            <>
+                                                {' '}
+                                                Il donne son sens à « en retard » sur{' '}
+                                                <strong className="text-text-secondary font-medium">
+                                                    {sitesInventories} site
+                                                    {sitesInventories > 1 ? 's' : ''}
+                                                </strong>
+                                                .
+                                            </>
+                                        )}
                                     </>
                                 }
                             >
@@ -1005,6 +1244,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     {view === 'files' && (
                         <>
                             <RuleGroup
+                                form="grp"
                                 header="Ce qu'un dépôt accepte"
                                 note="Un fichier au-delà de la borne est refusé au dépôt, nommé et mesuré — il ne part pas dans une lecture qui ne finira pas. La borne vaut pour toutes les formes : le tableur d'un import, la pièce jointe d'une facture, la photo d'un incident."
                             >
@@ -1039,7 +1279,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
                     {view === 'sources' && (
                         <>
-                            <RuleGroup note="L'état d'une source, c'est ce qu'elle a renvoyé et quand. Une source qui ne dit plus rien depuis six jours est le seul fait qui mérite d'être remonté au sommaire.">
+                            <RuleGroup
+                                form="grp"
+                                note="L'état d'une source, c'est ce qu'elle a renvoyé et quand. Une source qui ne dit plus rien depuis six jours est le seul fait qui mérite d'être remonté au sommaire."
+                            >
                                 {SOURCES.map((source) => {
                                     const enabled = Boolean(settings[source.enabledKey]);
                                     const state = sourceState.get(source.id);
@@ -1077,6 +1320,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             </RuleGroup>
 
                             <RuleGroup
+                                form="grp"
                                 header="Alimenter à la main"
                                 note="Une machine remontée n'entre pas au parc toute seule : elle attend une validation dans Tâches."
                             >
@@ -1286,9 +1530,140 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             <PinSheet
                 open={pinSheetOpen}
                 onClose={() => setPinSheetOpen(false)}
+                userId={currentUser?.id ?? ''}
                 dejaDefini={Boolean(currentUser?.pin)}
-                onSubmit={(pin) => setUserPin(currentUser?.id ?? '', pin)}
+                codeActuel={currentUser?.pin}
+                onSubmit={(pin, actuel) => setUserPin(currentUser?.id ?? '', pin, actuel)}
             />
+
+            {/*
+              **D'où vient l'image** — 17.6, feuille de choix **sans pied** : deux chemins,
+              et le choix *est* la validation. Le second passe par la caméra (`capture`),
+              parce qu'une signature se photographie plus souvent qu'elle ne se retrouve
+              dans un dossier.
+            */}
+            <BottomSheet
+                open={sourceSheetOpen}
+                onClose={() => setSourceSheetOpen(false)}
+                title="Ma signature"
+            >
+                <div className="flex flex-col pb-1">
+                    {/* `.slead` — **la raison avant les chemins.** Sans elle, la feuille
+                        demande un fichier sans dire ce qu'il deviendra ; c'est pourtant là
+                        que se gagne l'envie d'en déposer un. */}
+                    <p className="text-on-surface-variant mb-2 text-[14px] leading-5">
+                        Une image de votre signature. Avec votre code PIN, elle s'apposera
+                        d'elle-même.
+                    </p>
+                    {/* Les deux champs sont **cachés** : c'est la rangée qu'on voit, et
+                        c'est elle qui les déclenche (`FilePicker`, primitive de 17.10). */}
+                    <FilePicker
+                        ref={champImage}
+                        accept="image/png,image/jpeg"
+                        onFiles={(_, fichiers) => choisirLImage(fichiers?.[0])}
+                        onReject={(message) => setRefusFichier(message)}
+                    />
+                    <FilePicker
+                        ref={champPhoto}
+                        accept="image/png,image/jpeg"
+                        onFiles={(_, fichiers) => choisirLImage(fichiers?.[0])}
+                        onReject={(message) => setRefusFichier(message)}
+                    />
+                    <ActionCard.Row
+                        glyph={ImageSquare}
+                        title="Choisir une image"
+                        subtitle={`PNG ou JPG, ${formatFileSize(getImportLimitBytes())} au plus`}
+                        onOpen={() => champImage.current?.click()}
+                    />
+                    <ActionCard.Row
+                        glyph={Camera}
+                        title="Prendre en photo"
+                        /* La formulation de 07.1 — la mienne se tronquait à 393. */
+                        subtitle="sur une feuille blanche, bien éclairée"
+                        onOpen={() => {
+                            /* `capture` ne se déclare pas en prop de la primitive : on
+                               le pose sur le champ au moment d'ouvrir, pour que le
+                               téléphone offre la caméra plutôt que ses dossiers. */
+                            champPhoto.current?.setAttribute('capture', 'environment');
+                            champPhoto.current?.click();
+                        }}
+                    />
+                </div>
+            </BottomSheet>
+
+            {/*
+              **La signature enregistrée** — ce qu'elle change, et les deux gestes qui la
+              défont. Le bloc de conséquences dit ce que le code PIN suffit à faire : sans
+              lui, on croirait qu'il faut encore tracer.
+            */}
+            <BottomSheet
+                open={signatureSheetOpen}
+                onClose={() => setSignatureSheetOpen(false)}
+                title="Ma signature"
+            >
+                <div className="flex flex-col gap-4 pb-1">
+                    <p className="text-on-surface-variant text-[14px] leading-5">
+                        Avec votre code PIN, elle s'appose d'elle-même à chaque remise.
+                    </p>
+
+                    {signatureBlob && (
+                        <SignatureApercu
+                            image={signatureBlob}
+                            nom={currentUser?.name ?? ''}
+                            depuis={signatureSavedAt}
+                        />
+                    )}
+
+                    {/* `.conseq` — **le bloc répond à la question qu'on se pose ici**, et
+                        cette question est « puis-je la supprimer sans me bloquer ». Le
+                        libellé disait « Ce que cela change » : ce que *quoi* change ?
+                        L'image existe déjà ; c'est la suppression qui change quelque
+                        chose, et 07.1 l'écrit — « Si vous la supprimez ». */}
+                    <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
+                        <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                            Si vous la supprimez
+                        </p>
+                        <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                            <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={Key} size={18} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                Le code PIN <b className="font-medium">suffit</b> à attester.
+                            </span>
+                        </p>
+                        <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                            <span className="bg-tint-vert text-on-tint-vert flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={Signature} size={18} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                Un <b className="font-medium">tracé</b> reste possible à chaque
+                                remise.
+                            </span>
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <Button
+                            variant="tonal"
+                            icon={<Icon glyph={Trash} size={20} />}
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                            onClick={() => void supprimerLaSignature()}
+                        >
+                            Supprimer
+                        </Button>
+                        <Button
+                            variant="filled"
+                            className="justify-center"
+                            onClick={() => {
+                                setSignatureSheetOpen(false);
+                                setSourceSheetOpen(true);
+                            }}
+                        >
+                            Remplacer
+                        </Button>
+                    </div>
+                </div>
+            </BottomSheet>
 
             <BottomSheet
                 open={feedSheetOpen}
@@ -1309,47 +1684,362 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 };
 
 /**
+ * **La signature enregistrée** — 07.1 : une case de **160**, la date en haut à droite,
+ * le tracé au milieu, le nom au bas. On la relit ici avant de décider de la remplacer.
+ *
+ * Elle a valu 120, la hauteur de la case d'attestation (06.1), pour qu'on la relise
+ * « dans la forme qu'elle aura sur la preuve ». La raison ne tenait pas à l'usage : à
+ * 120, **la date et le tracé se chevauchent** — une signature claire sur fond blanc passe
+ * par-dessus le coin où la date se pose, et la date devient illisible. 07.1 donne 160
+ * précisément parce qu'ici on juge l'image, alors que sur la preuve on la constate.
+ */
+const SignatureApercu: React.FC<{ image: Blob; nom: string; depuis?: string | null }> = ({
+    image,
+    nom,
+    depuis,
+}) => {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const objet = URL.createObjectURL(image);
+        setUrl(objet);
+        return () => URL.revokeObjectURL(objet);
+    }, [image]);
+
+    if (!url) return null;
+
+    return (
+        <div className="bg-surface-container relative h-[160px] overflow-hidden rounded-md">
+            {/* `.tag` — **quand elle a été posée**, en haut à droite : c'est le seul fait
+                que l'image ne porte pas d'elle-même, et celui qui dit si elle est encore
+                la bonne. */}
+            {depuis && (
+                <span className="text-text-tertiary absolute top-3 right-3 text-[12px] leading-4">
+                    importée le{' '}
+                    {new Date(depuis).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                    })}
+                </span>
+            )}
+            <img
+                src={url}
+                alt={`Signature de ${nom}`}
+                className="absolute inset-x-0 top-9 mx-auto h-[70px] w-auto max-w-[70%] object-contain"
+            />
+            <span className="text-on-surface-variant absolute inset-x-0 bottom-2.5 text-center text-[14px] leading-5">
+                {nom}
+            </span>
+        </div>
+    );
+};
+
+/**
+ * **Recadrer** — 07.1, lot 28 D2. *« Un `<canvas>` (zone 320 de haut, fond `--inset-2`),
+ * l'image glissée au pointeur, pincer ou curseur pour le zoom, cadre fixe à quatre
+ * poignées. »*
+ *
+ * **Aucune librairie.** `SignaturePad` avait déjà prouvé que le Canvas natif suffit à
+ * dessiner ; il suffit aussi à recadrer — une image, une échelle, deux décalages. Ce
+ * qu'on voit dans le cadre *est* ce qui sera enregistré : le PNG sort du canvas
+ * lui-même, à sa définition, et pas d'un calcul parallèle qui pourrait en diverger.
+ *
+ * Le cadre a le **rapport de la case d'attestation** (3:1) : recadrer dans une forme et
+ * apposer dans une autre ferait mentir l'aperçu.
+ *
+ * Ni rotation ni seuil de contraste : ils étaient **suggérés, non confirmés** (le prompt
+ * des lots 28-32, §2), et une commande qu'on ajoute « au cas où » ne s'enlève plus.
+ */
+const SignatureCrop: React.FC<{
+    fichier: File;
+    onAutreImage: () => void;
+    onEnregistrer: (image: Blob) => void;
+}> = ({ fichier, onAutreImage, onEnregistrer }) => {
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const [image, setImage] = useState<HTMLImageElement | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [decalage, setDecalage] = useState({ x: 0, y: 0 });
+    const glisse = React.useRef<{ x: number; y: number } | null>(null);
+
+    /* La définition du PNG produit — 3:1, la forme de la case d'attestation. */
+    const LARGEUR = 900;
+    const HAUTEUR = 300;
+
+    useEffect(() => {
+        const url = URL.createObjectURL(fichier);
+        const element = new Image();
+        element.onload = () => setImage(element);
+        element.src = url;
+        return () => URL.revokeObjectURL(url);
+    }, [fichier]);
+
+    /* À l'ouverture, l'image **couvre** le cadre : on recadre ce qui déborde, on ne
+       cherche pas d'abord à faire tenir un timbre au milieu d'un vide. */
+    const echelleDeBase = useMemo(() => {
+        if (!image) return 1;
+        return Math.max(LARGEUR / image.width, HAUTEUR / image.height);
+    }, [image]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const contexte = canvas?.getContext('2d');
+        if (!canvas || !contexte || !image) return;
+        contexte.clearRect(0, 0, LARGEUR, HAUTEUR);
+        const echelle = echelleDeBase * zoom;
+        const largeur = image.width * echelle;
+        const hauteur = image.height * echelle;
+        contexte.drawImage(
+            image,
+            (LARGEUR - largeur) / 2 + decalage.x,
+            (HAUTEUR - hauteur) / 2 + decalage.y,
+            largeur,
+            hauteur,
+        );
+    }, [image, zoom, decalage, echelleDeBase]);
+
+    const pointeur = (event: React.PointerEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { x: 0, y: 0 };
+        const boite = canvas.getBoundingClientRect();
+        return {
+            x: ((event.clientX - boite.left) / boite.width) * LARGEUR,
+            y: ((event.clientY - boite.top) / boite.height) * HAUTEUR,
+        };
+    };
+
+    return (
+        <div className="flex flex-col gap-4">
+            {/* La zone de 320 porte le cadre **au format de la case d'attestation** : les
+                poignées épousent le canevas, pas la boîte — sinon elles promettent un
+                recadrage que l'enregistrement ne fait pas. Rayon 8 : c'est une surface de
+                la page, pas un champ. */}
+            <div className="bg-surface-muted-strong rounded-card flex h-[320px] items-center justify-center overflow-hidden">
+                <div className="relative aspect-[3/1] w-full">
+                    <canvas
+                        ref={canvasRef}
+                        width={LARGEUR}
+                        height={HAUTEUR}
+                        onPointerDown={(event) => {
+                            glisse.current = pointeur(event);
+                            event.currentTarget.setPointerCapture(event.pointerId);
+                        }}
+                        onPointerMove={(event) => {
+                            if (!glisse.current) return;
+                            const point = pointeur(event);
+                            const depart = glisse.current;
+                            glisse.current = point;
+                            setDecalage((precedent) => ({
+                                x: precedent.x + (point.x - depart.x),
+                                y: precedent.y + (point.y - depart.y),
+                            }));
+                        }}
+                        onPointerUp={() => {
+                            glisse.current = null;
+                        }}
+                        onPointerCancel={() => {
+                            glisse.current = null;
+                        }}
+                        className="absolute inset-0 h-full w-full cursor-grab touch-none"
+                    />
+                    {/* Les quatre poignées du cadre — elles disent où l'image sera coupée ;
+                    elles ne se saisissent pas : c'est l'image qui bouge, pas le cadre. */}
+                    {[
+                        'top-0 left-0 border-t-2 border-l-2',
+                        'top-0 right-0 border-t-2 border-r-2',
+                        'bottom-0 left-0 border-b-2 border-l-2',
+                        'bottom-0 right-0 border-b-2 border-r-2',
+                    ].map((coin) => (
+                        <span
+                            key={coin}
+                            aria-hidden="true"
+                            className={cn(
+                                'border-on-surface pointer-events-none absolute h-6 w-6',
+                                coin,
+                            )}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* `.zoom` — **le moins et le plus encadrent la piste** (07.1). Le curseur
+                seul demande un geste fin pour un réglage grossier ; les deux glyphes
+                donnent le cran, et disent au passage dans quel sens la piste travaille. */}
+            <Slider
+                label="Taille de la signature"
+                min={0.5}
+                max={4}
+                step={0.05}
+                stepperStep={0.25}
+                steppers
+                value={zoom}
+                onChange={setZoom}
+                valueText={`${zoom.toFixed(1).replace('.', ',')}×`}
+            />
+
+            {/* `.alt` — **sous le réglage, pas avant le cadre.** Elle ne dit plus quoi
+                faire (le cadre le montre) mais ce que le geste garantit : ce qu'on voit
+                est ce qui sera enregistré. C'est la phrase qui dispense de vérifier. */}
+            <p className="text-on-surface-variant flex items-start gap-2 text-[14px] leading-5">
+                <Icon
+                    glyph={HandPointing}
+                    size={18}
+                    className="text-text-tertiary mt-px shrink-0"
+                />
+                <span>
+                    Glissez l'image, pincez pour zoomer.{' '}
+                    <b className="text-on-surface font-medium">
+                        Le cadre garde ce qu'il contient.
+                    </b>
+                </span>
+            </p>
+
+            {/* `.pfoot` — deux gestes, le second enregistre, détachés par un filet.
+                07.1 les **colle au bas de l'écran** sur sa coque pleine page ; le
+                recadrage vit ici dans le flux des réglages, et une barre de surface
+                pleine largeur y flotterait au milieu du vide dès que la page est courte.
+                Le filet fait le même travail sans mentir sur la structure. */}
+            <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <Button
+                    variant="tonal"
+                    className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                    onClick={onAutreImage}
+                >
+                    Autre image
+                </Button>
+                <Button
+                    variant="filled"
+                    className="justify-center"
+                    onClick={() =>
+                        canvasRef.current?.toBlob((image) => {
+                            if (image) onEnregistrer(image);
+                        }, 'image/png')
+                    }
+                >
+                    Enregistrer
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+/** Le compte des essais sur le code actuel, gardé pour la session de l'onglet. */
+const cleEssaisPin = (userId: string) => `tracker.pin.essais.${userId}`;
+const lireEssaisPin = (userId: string): number => {
+    try {
+        return Number(sessionStorage.getItem(cleEssaisPin(userId))) || 0;
+    } catch {
+        return 0;
+    }
+};
+const ecrireEssaisPin = (userId: string, essais: number) => {
+    try {
+        if (essais > 0) sessionStorage.setItem(cleEssaisPin(userId), String(essais));
+        else sessionStorage.removeItem(cleEssaisPin(userId));
+    } catch {
+        /* Stockage refusé (navigation privée) : le compte vaut alors pour la feuille. */
+    }
+};
+
+/**
  * **Poser son code de remise** — 07.1, carte « Prouver une remise ».
  *
- * Le code vaut signature (06.2) : il n'a pas de « confirmer », il a **une seule
- * saisie qui se relit**. La sixième frappe valide seule — `PinField` le fait — et
- * le refus ne vide pas le pavé : il dit ce qui ne va pas.
+ * **Deux saisies, comme un mot de passe** (11/09, demandé par le commanditaire) : une
+ * faute de frappe devenait le code et ne se découvrait qu'à la première remise. Le
+ * formulaire est `PinConfirmation`, partagé avec la première connexion (02.2).
  *
- * Ce que la feuille **ne fait pas** : demander l'ancien code. `setUserPin` ne le
- * vérifie pas, et prétendre le contraire par un champ de plus donnerait à croire
- * qu'un code oublié protège quelque chose. La sous-ligne de la rangée dit à sa
- * place ce qui arrive à l'ancien : *« il cesse aussitôt de valoir »*.
+ * **Remplacer exige le code actuel** (11/09, même demande) — comme changer son mot de
+ * passe exige l'ancien. Il vient **en premier temps**, seul, avant le nouveau et sa
+ * confirmation : trois tirets au lieu de deux. La vérification n'est pas décorative :
+ * `setUserPin` refuse un remplacement sans le bon code actuel, et la feuille ne fait que
+ * le demander au bon moment.
+ *
+ * **Trois essais**, la borne de l'attestation (`PIN_MAX_ATTEMPTS`) : sans elle, la feuille
+ * serait un pavé où deviner le code de quelqu'un dont le téléphone est resté ouvert. Le
+ * compte **survit à la fermeture de la feuille** — la rouvrir ne rend pas d'essais — et
+ * vaut pour la session de l'onglet. Au bout, la feuille ne demande plus rien : elle dit
+ * que l'informatique peut réinitialiser le code depuis la fiche de la personne (05.2), et
+ * le premier code se pose alors sans ancien.
  */
 const PinSheet: React.FC<{
     open: boolean;
     onClose: () => void;
+    userId: string;
     dejaDefini: boolean;
-    onSubmit: (pin: string) => BusinessRuleDecision;
-}> = ({ open, onClose, dejaDefini, onSubmit }) => {
+    /** Le code en place, pour le premier temps — comme `Attestation` lit `signerPin`. */
+    codeActuel?: string;
+    onSubmit: (pin: string, codeActuel?: string) => BusinessRuleDecision;
+}> = ({ open, onClose, userId, dejaDefini, codeActuel, onSubmit }) => {
     const { showToast } = useToast();
-    const [pin, setPin] = useState('');
-    const [refus, setRefus] = useState<string | null>(null);
 
+    const [phase, setPhase] = useState<'actuel' | 'nouveau'>(dejaDefini ? 'actuel' : 'nouveau');
+    const [actuel, setActuel] = useState('');
+    const [refusActuel, setRefusActuel] = useState<string | null>(null);
+    const [essais, setEssais] = useState(() => lireEssaisPin(userId));
+
+    const saisie = usePinConfirmation({
+        validate: (code) =>
+            dejaDefini && code === actuel ? "Le nouveau code est identique à l'actuel." : null,
+    });
+    const { restart } = saisie;
+
+    const bloque = dejaDefini && essais >= PIN_MAX_ATTEMPTS;
+
+    /* À chaque ouverture, la feuille repart du premier temps et relit le compte des
+       essais ; refermée, elle oublie ce qui a été tapé — pas les essais. */
     useEffect(() => {
-        if (!open) {
-            setPin('');
-            setRefus(null);
-        }
-    }, [open]);
-
-    const poser = (code: string) => {
-        if (!isValidPinFormat(code)) {
-            setRefus('Ni une suite, ni six fois le même chiffre.');
+        if (open) {
+            setEssais(lireEssaisPin(userId));
             return;
         }
-        const decision = onSubmit(code);
+        setPhase(dejaDefini ? 'actuel' : 'nouveau');
+        setActuel('');
+        setRefusActuel(null);
+        restart();
+    }, [open, dejaDefini, userId, restart]);
+
+    const verifierActuel = (code: string) => {
+        if (code === codeActuel) {
+            ecrireEssaisPin(userId, 0);
+            setEssais(0);
+            setRefusActuel(null);
+            setPhase('nouveau');
+            return;
+        }
+        const suivant = essais + 1;
+        ecrireEssaisPin(userId, suivant);
+        setEssais(suivant);
+        setActuel('');
+        const restants = PIN_MAX_ATTEMPTS - suivant;
+        setRefusActuel(
+            restants > 1
+                ? `Code incorrect. Encore ${restants} essais.`
+                : restants === 1
+                  ? 'Code incorrect. Dernier essai.'
+                  : null,
+        );
+    };
+
+    const enregistrer = () => {
+        if (!saisie.matched) return;
+        const decision = onSubmit(saisie.pin, dejaDefini ? actuel : undefined);
         if (!decision.allowed) {
-            setRefus(decision.reason ?? "Le code n'a pas pu être posé.");
+            saisie.refuse(decision.reason ?? "Le code n'a pas pu être posé.");
             return;
         }
         showToast(dejaDefini ? 'Code PIN remplacé.' : 'Code PIN défini.', 'success');
         onClose();
     };
+
+    /* Le titre, la phrase et le pied ne changent pas d'un temps à l'autre : seul le
+       champ avance. Une feuille qui changerait de forme à chaque temps obligerait à la
+       relire. */
+    const phrase = bloque
+        ? 'Trois essais sans le bon code actuel.'
+        : phase === 'actuel'
+          ? 'Entrez votre code actuel.'
+          : dejaDefini
+            ? "Six chiffres. L'ancien cesse de valoir dès que le nouveau est posé."
+            : "Six chiffres. Il vaut signature à chaque remise — personne ne peut le lire, pas même l'informatique.";
 
     return (
         <BottomSheet
@@ -1357,31 +2047,88 @@ const PinSheet: React.FC<{
             onClose={onClose}
             title={dejaDefini ? 'Remplacer mon code PIN' : 'Définir mon code PIN'}
         >
+            {/*
+              **Un seul axe : le centre** — `.pinpage` de 06.2, repris par 02.2 (écran 3).
+              Le titre de la feuille reste à gauche, comme dans toutes les feuilles.
+            */}
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[14px] leading-5">
-                    Six chiffres. Il vaut signature à chaque remise — personne ne peut le lire, pas
-                    même l'informatique.
+                <p className="text-on-surface-variant mx-auto max-w-[300px] text-center text-[14px] leading-5 text-balance">
+                    {phrase}
                 </p>
-                <PinField
-                    value={pin}
-                    onChange={(suivant) => {
-                        setPin(suivant);
-                        if (refus && suivant.length < PIN_LENGTH) setRefus(null);
-                    }}
-                    onComplete={poser}
-                    state={refus ? 'error' : 'idle'}
-                    autoFocus
-                    label={dejaDefini ? 'Nouveau code PIN' : 'Code PIN'}
-                />
-                {refus ? (
-                    <p className="text-error text-[14px] leading-5">{refus}</p>
-                ) : (
-                    <p className="text-text-muted text-[12px] leading-4">
-                        {dejaDefini
-                            ? "L'ancien code cesse de valoir dès celui-ci posé."
-                            : 'Sans code, la remise se prouve par un tracé.'}
+
+                {bloque ? (
+                    <p className="text-on-surface mx-auto max-w-[300px] text-center text-[14px] leading-5 text-balance">
+                        Votre informatique peut réinitialiser votre code depuis votre fiche.
+                        Vous en poserez alors un nouveau.
                     </p>
+                ) : phase === 'actuel' ? (
+                    <div className="flex flex-col items-center">
+                        <PinField
+                            /* Un essai manqué rend six cases vides : on retape le code
+                               entier, on ne corrige pas un chiffre qu'on ne voit pas. */
+                            key={`actuel-${essais}`}
+                            value={actuel}
+                            onChange={(valeur) => {
+                                if (refusActuel) setRefusActuel(null);
+                                setActuel(valeur);
+                            }}
+                            onComplete={verifierActuel}
+                            state={refusActuel ? 'error' : 'idle'}
+                            autoFocus
+                            label="Code PIN actuel"
+                        />
+                        <PinSteps className="mt-4" total={3} current={0} />
+                        <p
+                            className={cn(
+                                'mt-2 max-w-[300px] text-center text-[14px] leading-5',
+                                refusActuel ? 'text-error' : 'text-on-surface-variant',
+                            )}
+                            role={refusActuel ? 'alert' : undefined}
+                            aria-live="polite"
+                        >
+                            {refusActuel ?? 'Ensuite, le nouveau code, deux fois.'}
+                        </p>
+                    </div>
+                ) : (
+                    <PinConfirmation
+                        model={saisie}
+                        autoFocus
+                        stepsBefore={dejaDefini ? 1 : 0}
+                        labels={{
+                            entry: dejaDefini ? 'Nouveau code PIN' : 'Code PIN',
+                            confirm: 'Confirmer le code PIN',
+                        }}
+                    />
                 )}
+
+                {/* `.sfoot` — le pied de la feuille du mot de passe, à l'identique. Bloquée,
+                    la feuille n'a plus qu'un geste. */}
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    {bloque ? (
+                        /* `.btn-ghost` — le creux, pas l'encre pleine : fermer n'est pas
+                           l'acte principal d'une feuille, c'est en sortir. */
+                        <Button
+                            variant="tonal"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high col-span-2 justify-center"
+                            onClick={onClose}
+                        >
+                            Fermer
+                        </Button>
+                    ) : (
+                        <>
+                            <Button variant="text" onClick={onClose}>
+                                Annuler
+                            </Button>
+                            <Button
+                                variant="filled"
+                                onClick={enregistrer}
+                                disabled={!saisie.matched}
+                            >
+                                Enregistrer
+                            </Button>
+                        </>
+                    )}
+                </div>
             </div>
         </BottomSheet>
     );
@@ -1394,6 +2141,9 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
     userId,
 }) => {
     const { showToast } = useToast();
+    /* La date part au compte comme `signatureId` le fait : c'est elle que la rangée de
+       07.1 relit ensuite. */
+    const { updateUser } = useData();
     const [current, setCurrent] = useState('');
     const [next, setNext] = useState('');
     const [confirm, setConfirm] = useState('');
@@ -1409,10 +2159,16 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
         }
     }, [open]);
 
+    /* La jauge de 07.1, la même qu'en 02.2 : elle décrit la robustesse, le refus vient
+       de la longueur. Le mot de passe se compare au nom et à l'adresse — un mot de passe
+       qui les contient perd un segment. */
+    const forceNouveau = measurePasswordStrength(next);
+    const forceConfirme = measurePasswordStrength(confirm);
+
     const submit = async () => {
         if (!userId) return;
-        if (next.length < 8) {
-            setError('Le nouveau mot de passe fait au moins 8 caractères.');
+        if (next.length < PASSWORD_MIN_LENGTH) {
+            setError(`Le nouveau mot de passe fait au moins ${PASSWORD_MIN_LENGTH} caractères.`);
             return;
         }
         if (next !== confirm) {
@@ -1423,6 +2179,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
         setPending(true);
         try {
             await authService.changePassword(userId, current, next);
+            updateUser(userId, { passwordChangedAt: new Date().toISOString() });
             showToast('Mot de passe modifié.', 'success');
             onClose();
         } catch {
@@ -1433,40 +2190,77 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
     };
 
     return (
-        <BottomSheet open={open} onClose={onClose} title="Mot de passe">
-            <div className="flex flex-col gap-3">
+        /* **La feuille de 07.1, colonne 2** — remesurée le 10/09 : elle portait le titre
+           « Mot de passe », trois champs nus et un pied à deux boutons de largeurs
+           inégales. La planche en demande huit choses, et chacune fait un travail :
+           l'ancien mot de passe (*« c'est ce qui distingue cet acte de celui de
+           l'administrateur »*), la phrase qui rassure avant le geste, la jauge sous
+           chacune des deux saisies, la règle de longueur en toutes lettres, et la note
+           qui sépare les deux secrets — la confusion que 02.2 passe un écran entier à
+           éviter se rejouerait ici sans elle. */
+        <BottomSheet open={open} onClose={onClose} title="Changer mon mot de passe">
+            <div className="flex flex-col gap-4">
+                <p className="text-on-surface-variant text-[14px] leading-5">
+                    Vous resterez connecté sur cet appareil.
+                </p>
+
                 <InputField
                     label="Mot de passe actuel"
                     type="password"
                     value={current}
                     onChange={(event) => setCurrent(event.target.value)}
                 />
-                <InputField
-                    label="Nouveau mot de passe"
-                    type="password"
-                    value={next}
-                    onChange={(event) => setNext(event.target.value)}
-                />
-                <InputField
-                    label="Confirmer"
-                    type="password"
-                    value={confirm}
-                    onChange={(event) => setConfirm(event.target.value)}
-                />
+
+                <div>
+                    <InputField
+                        label="Nouveau mot de passe"
+                        type="password"
+                        value={next}
+                        onChange={(event) => setNext(event.target.value)}
+                    />
+                    <PasswordMeter filled={forceNouveau.score} />
+                    {/* `.hint` — la règle se lit **avant** la faute, pas après : c'est la
+                        seule ligne de l'écran qui évite un aller-retour. */}
+                    <p className="text-on-surface-variant mt-2 text-[14px] leading-5">
+                        {PASSWORD_MIN_LENGTH} caractères minimum ; une phrase vaut mieux qu'un
+                        mot compliqué.
+                    </p>
+                </div>
+
+                <div>
+                    <InputField
+                        label="Confirmer le nouveau mot de passe"
+                        type="password"
+                        value={confirm}
+                        onChange={(event) => setConfirm(event.target.value)}
+                    />
+                    <PasswordMeter filled={forceConfirme.score} />
+                </div>
 
                 {error && (
-                    <p className="text-error flex gap-2 text-[12px] leading-[17px]">
+                    <p className="text-error flex gap-2 text-[14px] leading-5">
                         <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                         <span>{error}</span>
                     </p>
                 )}
 
-                <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
+                {/* `.alt` — **les deux secrets ne se confondent pas.** Une personne qui
+                    vient de changer « son code » doit repartir en sachant lequel. */}
+                <p className="text-on-surface-variant flex items-start gap-2 text-[14px] leading-5">
+                    <Icon glyph={Key} size={18} className="text-text-tertiary mt-px shrink-0" />
+                    <span>
+                        Votre <b className="text-on-surface font-medium">code PIN</b> ne change
+                        pas : il signe, il n'ouvre pas.
+                    </span>
+                </p>
+
+                {/* `.sfoot` — deux boutons de **même largeur**, le filet au-dessus. */}
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>
-                    <Button variant="filled" onClick={submit} disabled={pending} className="flex-1">
-                        Changer le mot de passe
+                    <Button variant="filled" onClick={submit} disabled={pending}>
+                        Enregistrer
                     </Button>
                 </div>
             </div>

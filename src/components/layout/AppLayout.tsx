@@ -12,9 +12,8 @@ import { scrollAppToTop } from '../../lib/appScroll';
 import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import ScreenState from '../ui/ScreenState';
-import { CloudSlash, MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
+import { MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
-import { useData } from '../../context/DataContext';
 import { SkeletonList } from '../ui/Skeleton';
 import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
 import RequestSheet from '../../features/tasks/components/RequestSheet';
@@ -126,8 +125,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         goBack,
     } = useAppNavigation();
     const { permissions, user: currentUser } = useAccessControl();
-    /* Le magasin distant n'a pas répondu : l'écran montre des données locales, et le dit. */
-    const { remoteUnavailable } = useData();
 
     /**
      * **Les deux assistants sont devenus des feuilles d'acte** (17.4) : *« jamais un
@@ -358,6 +355,28 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         /* Finances (15.1) porte son `.top` depuis le 07/09, avec son titre en 28 : la
            barre du haut écrivait « Finances » au-dessus de « Finances ». */
         'finance',
+        /*
+          **Les pages plein écran portent déjà leur barre**, et elles en recevaient une
+          seconde. `FullScreenFormLayout` et `ReferentialImportTemplate` posent le `.tbar`
+          des planches — 56, titre 17 sur 24 — ; la barre du haut écrivait au-dessus
+          « Équipement » puis « Nouvel équipement », « Import utilisateurs » puis
+          « Importer des utilisateurs » : **deux barres, deux mesures, un écran**.
+        */
+        'add_equipment',
+        'edit_equipment',
+        'import_equipment',
+        'add_user',
+        'edit_user',
+        'import_users',
+        'import_models',
+        'import_locations',
+        /* Ajouter une catégorie ou un modèle, c'est le Catalogue **et une boîte
+           par-dessus** : la barre du haut y redisait « Catalogue » au-dessus du `.top`
+           du Catalogue. */
+        'add_category',
+        'add_model',
+        /* Les Rapports portent le `.top` des destinations depuis le 10/09. */
+        'reports',
     ];
     const showTopAppBar = isCompact && !isCompactLandscape && !adnMobileViews.includes(currentView);
 
@@ -593,7 +612,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
 
             case 'finance':
-                return <FinanceManagementPage onViewChange={handleViewChange} />;
+                return <FinanceManagementPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'finance_expenses':
                 return <ExpenseJournalPage onBack={() => handleViewChange('finance')} />;
 
@@ -602,6 +621,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <ManagementPage
                         onViewChange={handleViewChange}
                         onCategoryClick={(id) => handleItemClick('category_details', id)}
+                        onBack={goBack}
                     />
                 );
             case 'add_category':
@@ -614,7 +634,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
             case 'rbac':
-                return <RbacPage />;
+                return <RbacPage onBack={goBack} />;
             case 'category_details':
                 return selectedItemId ? (
                     <CategoryDetailsPage
@@ -642,6 +662,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <LocationsPage
                         onViewChange={handleViewChange}
                         onSiteClick={(site) => handleItemClick('site_details', site)}
+                        onBack={goBack}
                     />
                 );
             case 'site_details':
@@ -662,7 +683,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <ImportLocationsPage onCancel={() => goBack()} onSave={() => goBack()} />;
 
             case 'audit':
-                return <AuditPage onViewChange={handleViewChange} />;
+                return <AuditPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'audit_details':
                 return (
                     <AuditDetailsPage
@@ -673,7 +694,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'history':
                 return <HistoryPage onBack={goBack} />;
             case 'reports':
-                return <ReportsPage />;
+                return <ReportsPage onBack={goBack} />;
             case 'settings':
                 return (
                     <SettingsPage
@@ -790,22 +811,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                             {/* L'accusé se pose **en tête de page**, là où la planche le
                                 dessine — au-dessus de ce que l'écran montrait déjà. */}
                             {/*
-                              **Ce qui est à l'écran n'est pas l'inventaire réel.** Quand
-                              Firestore ne répond pas — quota quotidien épuisé, réseau
-                              coupé —, l'application se rabat sur ses données de
-                              démonstration. Elle le taisait : on lisait « Ethan Employé »
-                              au milieu du parc de Neemba Togo en croyant à un mélange.
+                              **Plus de bandeau « Données de démonstration »** — retiré à la
+                              demande du commanditaire (11/09). Il paraissait en tête de
+                              chaque page quand Firestore ne répondait pas (quota quotidien
+                              épuisé, réseau coupé). Le drapeau `remoteUnavailable` reste
+                              exposé par `DataContext` : un écran qui voudrait un jour le
+                              dire, à sa place et à sa manière, n'a qu'à le lire.
                             */}
-                            {remoteUnavailable && (
-                                <div className="px-4 pt-4">
-                                    <ClosureBanner
-                                        tone="ambre"
-                                        glyph={CloudSlash}
-                                        title="Données de démonstration"
-                                        detail="Le magasin distant n’a pas répondu : rien de ce qui est écrit ici n’y sera enregistré."
-                                    />
-                                </div>
-                            )}
 
                             {cloture && (
                                 <div className="px-4 pt-4">

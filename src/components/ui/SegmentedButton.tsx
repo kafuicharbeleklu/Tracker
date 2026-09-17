@@ -58,7 +58,7 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
         <div
             role="group"
             className={cn(
-                'border-outline-variant bg-surface shadow-elevation-1 inline-flex gap-1 rounded-xl border p-1',
+                'border-outline-variant bg-surface inline-flex gap-1 rounded-xl border p-1',
                 disabled && 'cursor-not-allowed opacity-[0.38]',
                 className,
             )}
@@ -81,7 +81,7 @@ const SegmentedButton: React.FC<SegmentedButtonProps> = ({
                                 : 'text-label-large h-10 px-4',
                             'rounded-lg',
                             isSelected
-                                ? 'bg-primary text-on-primary shadow-sm'
+                                ? 'bg-primary text-on-primary'
                                 : 'bg-surface text-on-surface',
                             !disabled && !isSelected && 'hover:bg-surface-container',
                             !disabled && isSelected && 'hover:bg-primary/90',

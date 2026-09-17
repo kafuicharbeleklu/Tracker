@@ -4,7 +4,7 @@ import { CalendarBlank, Check, Hourglass, Laptop, User as UserIcon } from '@phos
 import ActSheet, { type ActChoice } from '../../../components/ui/ActSheet';
 import ActScanOverlay from './ActScanOverlay';
 import Icon from '../../../components/ui/Icon';
-import type { AttestationMethod } from '../../../components/ui/Attestation';
+import { LIBELLE_ATTESTATION, type AttestationMethod } from '../../../components/ui/Attestation';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
@@ -224,7 +224,9 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
         if (!objet || !destinataire) return;
         setRefus(null);
 
-        const preuve = method === 'pin' ? 'code PIN' : 'signature';
+        /* « Qui, quand, par quelle méthode » : le libellé vient du même endroit que
+           celui de l'historique, sinon les deux divergent au premier ajout. */
+        const preuve = LIBELLE_ATTESTATION[method];
         const maintenant = new Date().toISOString();
         const porteur = {
             id: destinataire.id,
@@ -474,7 +476,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                         </div>
                     ),
                 }}
-                signer={{ name: adminUser?.name ?? '', pin: adminUser?.pin }}
+                signer={{ name: adminUser?.name ?? '', pin: adminUser?.pin, id: adminUser?.id }}
                 consequence={{
                     tone: 'ambre',
                     glyph: Hourglass,

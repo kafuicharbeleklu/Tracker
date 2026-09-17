@@ -97,6 +97,12 @@ interface ListRowProps {
     vignette?: React.ReactNode;
     /** Ce qu'est l'objet : son code, son nom. */
     title: React.ReactNode;
+    /**
+     * **La rangée d'une personne** (05.1) : le nom en **17 sur 24, chasse −.01em** — la
+     * marche d'un titre de rangée de 03.3 —, là où le code d'un actif (04.1) reste en 16
+     * tabulaire. Un nom se lit, un code se relève.
+     */
+    person?: boolean;
     /** Le modèle, le type : aligné à droite sur la ligne 1. */
     type?: React.ReactNode;
     status?: ListRowStatus;
@@ -142,6 +148,7 @@ interface ListRowProps {
 const ListRow: React.FC<ListRowProps> = ({
     vignette,
     title,
+    person = false,
     type,
     status,
     holder,
@@ -189,7 +196,17 @@ const ListRow: React.FC<ListRowProps> = ({
                         cède d'abord, mais il ne s'évanouit pas. En `flex-1` (base 0) il
                         disparaissait entièrement dès qu'un code prenait toute la largeur,
                         et une rangée sans type ne dit plus ce qu'est l'objet. */}
-                    <span className="text-on-surface min-w-0 truncate text-[16px] leading-6">
+                    <span
+                        className={cn(
+                            'text-on-surface min-w-0 truncate',
+                            /* L'interligne suit le corps : `tailwind-merge` retire un
+                               `leading-*` posé *avant* une taille, puisque la taille en
+                               porte un. */
+                            person
+                                ? 'text-[17px] leading-6 tracking-[-0.01em]'
+                                : 'text-[16px] leading-6',
+                        )}
+                    >
                         {title}
                     </span>
                     {type && (
@@ -197,14 +214,18 @@ const ListRow: React.FC<ListRowProps> = ({
                             il prend le reste de la ligne, se cale à droite et s'y coupe.
                             Il était `shrink-0` avec `ml-auto` : à deux libellés longs, le
                             **code** se tronquait pour lui laisser sa place entière. */
-                        <span className="text-text-muted ml-auto max-w-[45%] min-w-0 shrink-0 truncate text-right text-[12px] leading-4 whitespace-nowrap">
+                        <span className="text-text-tertiary ml-auto max-w-[45%] min-w-0 shrink-0 truncate text-right text-[12px] leading-4 whitespace-nowrap">
                             {type}
                         </span>
                     )}
                 </span>
 
-                {/* Ligne 2 : Icône d'état + Porteur/État à gauche, Asset ID à droite */}
-                <span className="text-text-muted mt-0.5 flex min-w-0 items-center gap-2 text-[14px] leading-5">
+                {/* Ligne 2 : Icône d'état + Porteur/État à gauche, Asset ID à droite.
+                    **Les deux lignes se touchent** — 24 puis 20, soit les 44 de `.ltt` dans
+                    une rangée de 68 (04.1) ; gouttière 6. Les 2 px d'écart poussaient la
+                    rangée à 70 et 71 (13/09). La rangée d'une personne suit la même mesure :
+                    05.1 dessinait `.tt` à 46, arbitré le 13/09 pour 68 partout. */}
+                <span className="text-text-muted flex min-w-0 items-center gap-1.5 text-[14px] leading-5">
                     {status && (
                         <Icon
                             glyph={status.icon}

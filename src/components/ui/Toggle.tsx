@@ -13,9 +13,13 @@ interface ToggleProps {
 }
 
 /**
- * MD3 Switch component.
- * Track: 52x32, Thumb: 16px (off) / 24px (on)
- * Uses primary + primaryContainer tokens.
+ * L'interrupteur — `.sw` des planches **00.4** et **14.1**.
+ *
+ * **44 × 26, rayon plein** : le creux `--inset-2` au repos, le sombre du produit une fois
+ * posé, et un bouton rond de 20, blanc, à 3 du bord, qui glisse de 18 sans changer de
+ * taille. Il reprenait l'interrupteur MD3 — 52 × 32, cerné, jaune une fois posé, un
+ * bouton qui grossissait en changeant d'état — relevé sur 8 écrans le 13/09. Le jaune
+ * est la couleur d'un acte ; un réglage posé n'en est pas un.
  */
 const Toggle: React.FC<ToggleProps> = ({
     checked,
@@ -50,44 +54,26 @@ const Toggle: React.FC<ToggleProps> = ({
                 {/* Track */}
                 <div
                     className={cn(
-                        'duration-medium1 ease-emphasized h-[32px] w-[52px] rounded-full border-2 transition-all',
+                        'duration-medium1 ease-emphasized h-[26px] w-11 rounded-full transition-colors',
                         'peer-focus-visible:ring-focus-ring peer-focus-visible:ring-offset-surface peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2',
-                        checked
-                            ? 'bg-primary border-primary'
-                            : 'bg-surface-container-highest border-outline',
+                        checked ? 'bg-inverse-surface' : 'bg-surface-muted-strong',
                     )}
                     aria-hidden="true"
                 />
-                {/* Thumb (state layer + thumb) */}
+                {/* Thumb */}
                 <div
                     className={cn(
-                        'shadow-elevation-1 duration-medium1 ease-emphasized absolute flex transform items-center justify-center rounded-full transition-all',
-                        'before:duration-short2 before:absolute before:inset-[-8px] before:rounded-full before:bg-current before:opacity-0 before:transition-opacity group-hover:before:opacity-[0.08]',
-                        checked
-                            ? 'bg-on-primary top-[3px] h-6 w-6 translate-x-[24px]'
-                            : icon
-                              ? 'bg-surface-container-highest top-[3px] h-6 w-6 translate-x-[2px]'
-                              : 'bg-outline top-[7px] h-4 w-4 translate-x-[6px]',
+                        'duration-medium1 ease-emphasized bg-surface absolute top-[3px] left-[3px] flex h-5 w-5 items-center justify-center rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform',
+                        checked ? 'translate-x-[18px]' : 'translate-x-0',
                     )}
                     aria-hidden="true"
                 >
                     {icon && (
-                        <MaterialIcon
-                            name={icon}
-                            size={16}
-                            className={cn(
-                                'duration-medium1 transition-colors',
-                                checked ? 'text-on-primary-container' : 'text-on-surface-variant',
-                            )}
-                        />
+                        <MaterialIcon name={icon} size={14} className="text-on-surface-variant" />
                     )}
                 </div>
             </div>
-            {label && (
-                <span className="text-body-medium text-on-surface group-hover:text-on-surface duration-short4 transition-colors">
-                    {label}
-                </span>
-            )}
+            {label && <span className="text-on-surface text-[16px] leading-6">{label}</span>}
         </label>
     );
 };

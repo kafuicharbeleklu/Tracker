@@ -266,9 +266,9 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                 {expense && (
                     <div className="space-y-4">
                         {/* CARTE 1 : FICHIER SOURCE LU (PLANCHE 15.1 .fread) */}
-                        <div className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                        <div className="bg-surface border-outline-variant rounded-lg border p-4">
                             <div className="flex min-h-[48px] items-center gap-3">
-                                <div className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px]">
+                                <div className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                                     <Icon glyph={Receipt} size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -310,7 +310,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                         </div>
 
                         {/* CARTE 2 : CE QUE LA MACHINE A LU (PLANCHE 15.1 .xrow) */}
-                        <div className="bg-surface border-outline-variant shadow-elevation-1 rounded-lg border p-4">
+                        <div className="bg-surface border-outline-variant rounded-lg border p-4">
                             <div className="mb-2 flex items-baseline justify-between gap-3">
                                 <h3 className="text-on-surface text-[13px] font-medium">
                                     Ce que la machine a lu

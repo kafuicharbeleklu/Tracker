@@ -40,6 +40,10 @@ interface FloatingActionButtonProps extends React.ButtonHTMLAttributes<HTMLButto
 /**
  * Material Design 3 Floating Action Button (FAB).
  * Used for the primary action on a screen.
+ *
+ * **Une seule ombre, celle de `.fab` (17.6)** — courte, dans le sombre du produit, la
+ * même au repos, au survol et à l'appui. Il portait les élévations MD3 trois et quatre,
+ * une ombre bleutée et plus diffuse qu'aucune planche ne dessine (13/09, 16 écrans).
  */
 const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionButtonProps>(
     (
@@ -53,12 +57,12 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
             'inline-flex items-center justify-center shrink-0',
             'transition-all duration-short4 ease-emphasized',
             'cursor-pointer overflow-hidden',
-            'shadow-elevation-3 hover:shadow-elevation-4 active:shadow-elevation-3', // Standard FAB elevation
+            'shadow-fab',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2',
             // État désactivé : le composant acceptait `disabled` sans AUCUN rendu
             // associé — bouton mort d'aspect actif (Tracker DS v1, tâche 1).
             // `pointer-events-none` neutralise aussi la couche d'état `after:` ci-dessous.
-            'disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-[0.38] disabled:shadow-elevation-0',
+            'disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-[0.38] disabled:shadow-none',
             // State Layer
             'relative after:absolute after:inset-0 after:bg-current after:opacity-0 hover:after:opacity-[0.08] active:after:opacity-[0.12] after:transition-opacity after:pointer-events-none',
         );
@@ -91,7 +95,8 @@ const FloatingActionButton = React.forwardRef<HTMLButtonElement, FloatingActionB
                     baseStyles,
                     variants[variant],
                     isExtended ? extendedStyles : sizes[size],
-                    lowered && 'shadow-elevation-1 hover:shadow-elevation-2',
+                    /* Abaissé : le bouton se pose à plat sur le contenu qui défile. */
+                    lowered && 'shadow-none',
                     className,
                 )}
                 {...props}

@@ -25,6 +25,12 @@ interface ModalProps {
 /**
  * SmartProcure dialog with compact radius, white surface, and restrained elevation.
  * Includes focus trap for WCAG 2.1 compliance and exit animations.
+ *
+ * **Au-delà de 600, il prend la forme du `.dial` des planches** (00.3, 00.5) : le voile
+ * sombre du produit à 42 %, aucun filet autour de la boîte, l'ombre du dialogue, un
+ * titre sans filet dessous, et un pied bordé d'un seul filet, sans creux. Il portait
+ * un voile noir à 32 %, un cerné, l'élévation MD3 la plus haute et deux bandes grises
+ * — relevés sur 13 écrans le 13/09.
  */
 const Modal: React.FC<ModalProps> = ({
     isOpen,
@@ -174,7 +180,7 @@ const Modal: React.FC<ModalProps> = ({
     return (
         <div
             className={cn(
-                'medium:items-center medium:justify-center medium:p-4 bg-scrim/[0.32] fixed inset-0 z-[100] flex items-end',
+                'medium:items-center medium:justify-center medium:p-4 bg-scrim/[0.42] fixed inset-0 z-[100] flex items-end',
                 closing
                     ? 'animate-out fade-out duration-150'
                     : 'animate-in fade-in duration-medium2',
@@ -193,18 +199,19 @@ const Modal: React.FC<ModalProps> = ({
                 aria-describedby={resolvedDescriptionId}
                 className={cn(
                     // Compact: full-screen dialog (MD3 spec for mobile)
-                    'bg-surface border-outline-variant flex w-full flex-col overflow-hidden border',
+                    'bg-surface flex w-full flex-col overflow-hidden',
                     'h-full rounded-none',
                     // Medium+: centered modal dialog
-                    'medium:min-w-[280px] medium:h-auto medium:max-h-[90vh] medium:rounded-xl medium:shadow-elevation-4',
+                    'medium:min-w-[280px] medium:h-auto medium:max-h-[90vh] medium:rounded-xl medium:shadow-dialog',
                     closing
                         ? 'animate-out zoom-out-95 fade-out duration-150'
                         : 'animate-in slide-in-from-bottom medium:animate-in medium:zoom-in-95 duration-medium2',
                     maxWidthClasses[maxWidth],
                 )}
             >
-                {/* Header */}
-                <div className="border-outline-variant flex shrink-0 items-center justify-between border-b px-5 py-4">
+                {/* Header — `.dttl` : le filet ne reste qu'en plein écran, où il sépare la
+                    barre du contenu qui défile. */}
+                <div className="border-outline-variant medium:border-b-0 medium:pt-4 medium:pb-0 medium:pr-3 flex shrink-0 items-center justify-between border-b px-5 py-4">
                     <div className="flex items-center gap-3">
                         {icon && <span className="text-primary">{icon}</span>}
                         <h2 id={titleId} className="section-title">
@@ -222,9 +229,9 @@ const Modal: React.FC<ModalProps> = ({
                     {children}
                 </div>
 
-                {/* Actions */}
+                {/* Actions — `.dfoot` : un filet au-dessus, pas de creux. */}
                 {footer && (
-                    <div className="border-outline-variant bg-surface-container flex shrink-0 justify-end gap-2 border-t px-5 py-4">
+                    <div className="border-outline-variant flex shrink-0 justify-end gap-3 border-t px-5 pt-3.5 pb-3.5">
                         {footer}
                     </div>
                 )}

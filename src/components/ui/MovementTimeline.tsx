@@ -61,10 +61,7 @@ const MovementTimeline: React.FC<MovementTimelineProps> = ({
 
     return (
         <div
-            className={cn(
-                'bg-surface shadow-elevation-1 border-outline-variant p-card rounded-xl border',
-                className,
-            )}
+            className={cn('bg-surface border-outline-variant p-card rounded-xl border', className)}
         >
             <h3 className="text-label-large text-on-surface mb-6">{title}</h3>
             {items.length > 0 ? (

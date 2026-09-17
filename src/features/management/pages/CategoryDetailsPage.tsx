@@ -154,7 +154,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                             variant="text"
                             iconOnly
                             aria-label="Actes du type"
-                            className="text-on-surface hover:bg-surface-container flex h-12 w-12 items-center justify-center rounded-md p-0"
+                            className="text-on-surface hover:bg-surface-container rounded-md"
                         >
                             <Icon glyph={DotsThreeVertical} size={20} />
                         </Button>
@@ -203,81 +203,49 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 />
             }
         >
-            {/* Section 1 : Caractéristiques du type (Planche 09.1) */}
-            <section className="bg-surface shadow-elevation-1 divide-outline-variant divide-y rounded-lg p-4">
-                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-body-medium text-on-surface">Famille</span>
-                        {!family && (
-                            <span className="text-body-small text-text-secondary">
-                                aucune famille renseignée — le type ne remonte sous aucun filtre du
-                                catalogue
-                            </span>
-                        )}
-                    </div>
-                    <span
-                        className={`text-body-medium shrink-0 ${
-                            family ? 'text-on-surface font-medium' : 'text-text-muted font-normal'
-                        }`}
-                    >
-                        {family || 'à renseigner'}
-                    </span>
+            {/*
+              `.card` de 09.1, « Référence » — trois rangées `.rrow` : la clé à gauche sur
+              l'encre secondaire, la valeur à droite sans graisse, 48 de haut, 16 sur 24, un
+              filet au-dessus de chacune. La famille n'y est plus : le héro la porte déjà en
+              surtitre (« Sans famille » quand elle manque). Les sous-lignes qui expliquaient
+              chaque rangée non plus (R15) ; une clé non relevée se dit dans la valeur, en
+              encre tertiaire (relevé du 13/09).
+            */}
+            <section className="bg-surface rounded-lg px-4 py-1">
+                <div className="flex min-h-12 items-center pt-2 pb-1">
+                    <h3 className="text-on-surface text-[17px] leading-6 font-medium">Référence</h3>
                 </div>
-                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-body-medium text-on-surface">
-                            Attribuable à une personne
+                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                    <span className="text-text-muted">Clé de la donnée</span>
+                    {isDataKeyReleve ? (
+                        <span className="text-on-surface font-mono text-[14px] leading-5 whitespace-nowrap">
+                            {dataKey}
                         </span>
-                        <span className="text-body-small text-text-secondary">
-                            {isAssignable
-                                ? "décide si le type entre dans le sélecteur d'attribution"
-                                : 'ne se remet pas en main propre'}
-                        </span>
-                    </div>
-                    <span className="text-body-medium text-on-surface shrink-0 font-medium">
+                    ) : (
+                        <span className="text-text-tertiary whitespace-nowrap">à relever</span>
+                    )}
+                </div>
+                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                    <span className="text-text-muted">Attribuable</span>
+                    <span className="text-on-surface whitespace-nowrap">
                         {isAssignable ? 'Oui' : 'Non'}
                     </span>
                 </div>
-                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-body-medium text-on-surface">Clé de la donnée</span>
-                        <span className="text-body-small text-text-secondary">
-                            {isDataKeyReleve
-                                ? 'ce que lisent les imports et les intégrations'
-                                : 'aucune clé relevée — les imports ne savent pas nommer ce type'}
-                        </span>
-                    </div>
-                    <span
-                        className={`text-body-medium shrink-0 ${
-                            isDataKeyReleve
-                                ? 'text-on-surface font-medium'
-                                : 'text-text-muted font-normal'
-                        }`}
-                    >
-                        {isDataKeyReleve ? dataKey : 'à relever'}
-                    </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-body-medium text-on-surface">Amortissement</span>
-                        <span className="text-body-small text-text-secondary">
-                            décide de la valeur actuelle affichée en Finances
-                        </span>
-                    </div>
-                    <span className="text-body-medium text-on-surface shrink-0 text-right font-medium">
-                        {depreciationMethod}{' '}
-                        <span className="text-body-small text-text-secondary block font-normal">
-                            {depreciationYears} ans
-                        </span>
+                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                    <span className="text-text-muted">Amortissement</span>
+                    <span className="text-on-surface whitespace-nowrap">
+                        {depreciationMethod} · {depreciationYears} ans
                     </span>
                 </div>
             </section>
 
             {/* Section 2 : Modèles référencés */}
-            <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
-                <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <h3 className="text-body-medium text-on-surface font-semibold">Modèles</h3>
-                    <span className="font-brand text-body-medium text-text-secondary font-semibold tabular-nums">
+            <section className="bg-surface rounded-lg p-4">
+                {/* `.ch` de 09.1 — le titre en 17 sur 24 et 500, le compte en 14 sur l'encre
+                    secondaire, sans graisse : les deux étaient en 13 et en 600. */}
+                <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                    <h3 className="text-on-surface text-[17px] leading-6 font-medium">Modèles</h3>
+                    <span className="text-text-muted text-[14px] leading-5 tabular-nums">
                         {categoryModels.length}
                     </span>
                 </div>
@@ -349,7 +317,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 est en retard sur elle**. Sans cette carte, le vide de la liste des modèles
                 laisse croire que le type ne sert à rien. */}
             {categoryModels.length === 0 && categoryEquipment.length > 0 && (
-                <section className="bg-surface shadow-elevation-1 rounded-lg p-4">
+                <section className="bg-surface rounded-lg p-4">
                     <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
                         <Icon
                             glyph={Info}
@@ -386,7 +354,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
             )}
 
             {/* Section 3 : Note d'amortissement et actions */}
-            <section className="bg-surface shadow-elevation-1 flex flex-col gap-3 rounded-lg p-4">
+            <section className="bg-surface flex flex-col gap-3 rounded-lg p-4">
                 <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
                     <Icon glyph={Info} size={18} className="text-text-secondary mt-0.5 shrink-0" />
                     <span>

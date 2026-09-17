@@ -191,7 +191,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 <div
                     aria-hidden="true"
                     className={cn(
-                        'bg-scrim/[0.32] absolute inset-0',
+                        'bg-scrim/[0.42] absolute inset-0',
                         closing
                             ? 'animate-out fade-out duration-200'
                             : 'animate-in fade-in duration-medium2',

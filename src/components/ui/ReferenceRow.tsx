@@ -8,8 +8,12 @@ import { cn } from '../../lib/utils';
  * Rangée de référence — registre **§2.11**, planche **04.2**.
  *
  * Une étiquette à gauche, sa valeur à droite. C'est le composant de la moitié des
- * cartes du produit, et le registre en fixe **la déclaration entière** : 44 px de
- * haut, 11 px de gouttière, filet entre rangées, 13/19.
+ * cartes du produit, et la planche en fixe **la déclaration entière** — passe sobre du
+ * 05/09, `.rrow` de 04.2 et 09.2 : **48 px de haut, 12 de remplissage, 16 sur 24**,
+ * filet entre rangées, l'étiquette en encre secondaire, la valeur en encre pleine
+ * **sans graisse** (R15 : deux graisses, et 500 sur le geste seul), le creux en encre
+ * tertiaire. Le registre §2.11 disait 44 / 11 / 13 : c'était l'échelle d'avant R15,
+ * et 13 n'est sur aucune marche.
  *
  * **Le gris est porté par l'étiquette, jamais par la rangée.** C'est le point qui
  * compte, et c'est le seul mécanisme qui survive à une rangée portant un troisième
@@ -62,17 +66,18 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
     return (
         <div
             className={cn(
-                'border-outline-variant text-body-medium flex min-h-11 items-center justify-between gap-3.5 border-t py-[11px] leading-[19px] first:border-t-0',
+                'border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6 first:border-t-0',
                 className,
             )}
         >
-            <span className="text-text-secondary shrink-0">{label}</span>
+            <span className="text-on-surface-variant shrink-0">{label}</span>
 
             {copyable ? (
                 <button
                     type="button"
                     onClick={copy}
-                    className="touch-target text-body-large text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 font-medium outline-none focus-visible:ring-2"
+                    /* `.cp` — 44 de haut, 8 d'intérieur, en 16 tabulaire et sans graisse. */
+                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 text-[16px] leading-6 font-normal outline-none focus-visible:ring-2"
                 >
                     <span className="tracking-wide tabular-nums">{value}</span>
                     <Icon glyph={Copy} size={18} className="text-on-surface-variant" />
@@ -82,7 +87,7 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                 <span
                     className={cn(
                         'min-w-0 text-right break-words',
-                        quiet ? 'text-on-surface-variant' : 'text-on-surface font-medium',
+                        quiet ? 'text-text-tertiary' : 'text-on-surface',
                     )}
                 >
                     {value}

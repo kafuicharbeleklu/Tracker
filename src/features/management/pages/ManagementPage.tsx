@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ArrowLeft,
     Books,
     CaretRight,
     Clock,
@@ -21,6 +22,7 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import FacetChip from '../../../components/ui/FacetChip';
+import FilterButton from '../../../components/ui/FilterButton';
 import Icon from '../../../components/ui/Icon';
 import ListRow from '../../../components/ui/ListRow';
 import SelectionTopBar from '../../../components/ui/SelectionTopBar';
@@ -37,6 +39,7 @@ import { useToast } from '../../../context/ToastContext';
 import { CATEGORY_ICONS, renderCategoryIcon } from '../../../constants/categoryIcons';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { cn } from '../../../lib/utils';
 import { CATEGORY_FAMILIES, Category, ViewType } from '../../../types';
 import AddCategoryPage from './AddCategoryPage';
@@ -113,13 +116,14 @@ const METHOD_OPTIONS: { value: MethodFilter; label: string }[] = [
     { value: 'degressive', label: 'Dégressif' },
 ];
 
-/** La rangée d'une feuille de choix — 64 px, vignette de 40, chevron à droite. */
 /**
  * `.orow` de 09.1 — la rangée de la feuille d'ajout : **64 de haut, gouttière 12**, un
- * filet entre deux. Elle tenait `gap-3.5` et `py-2.5`.
+ * filet entre deux, et **aucune marge de côté** : la feuille pose déjà ses 20, et le titre
+ * tombe à 72. Elle en ajoutait 20 de plus — le titre à 92, et « Un nom et son type ; le
+ * reste plus tard » passait à la ligne (relevé du 13/09).
  */
 const ADD_ROW_CLASS =
-    'flex min-h-16 w-full items-center gap-3 border-t border-outline-variant px-5 py-2 text-left transition-colors first-of-type:border-t-0 hover:bg-surface-container';
+    'flex min-h-16 w-full items-center gap-3 border-t border-outline-variant py-2 text-left transition-colors first-of-type:border-t-0 hover:bg-surface-container';
 /**
  * `.vig` — **une teinte par chemin**, comme la planche les distingue : le type en bleu,
  * le modèle en vert, l'import en ambre. Les trois portaient le même creux gris et le
@@ -130,6 +134,8 @@ const ADD_ROW_GLYPH_CLASS = 'flex h-10 w-10 shrink-0 items-center justify-center
 interface ManagementPageProps {
     onCategoryClick?: (id: string) => void;
     onViewChange?: (view: ViewType) => void;
+    /** Le retour vers « Plus » — la flèche de 09.1, au téléphone seulement. */
+    onBack?: () => void;
     /** Lien profond /management/{categories|models}/add : modale ouverte au rendu. */
     initialAddModal?: 'category' | 'model';
 }
@@ -160,6 +166,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     onCategoryClick,
     onViewChange,
     initialAddModal,
+    onBack,
 }) => {
     const { equipment, categories, models, addCategory } = useData();
     const { showToast } = useToast();
@@ -488,9 +495,9 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             />
 
             {/* La feuille de filtre — deux axes, ceux de 09.1 : ce qui rend un type
-                inutilisable, et sa durée d'amortissement. Les pastilles de feuille
-                montent à 44 px (`.sgrp .chip`) : on les vise au pouce, on ne les
-                parcourt pas du regard comme la rangée de familles. */}
+                inutilisable, et sa durée d'amortissement. Les pastilles sont celles de
+                09.1 et de 17.8 : 14 sur 20, 36 de haut, 12 de côté. Elles tenaient 15 et
+                40, la mesure que seules 03.3 et 18.1 dessinent (relevé du 13/09). */}
             <BottomSheet
                 open={isFilterSheetOpen}
                 onClose={() => setIsFilterSheetOpen(false)}
@@ -503,12 +510,13 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         la ligne de tri la nomme »*. Elle occupait une bande sous la
                         recherche — une quatrième ligne de commandes avant la première
                         rangée du catalogue. */}
-                    <p className="text-on-surface-variant px-5 pt-3.5 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pb-2 text-[12px] leading-4 font-medium">
                         Famille
                     </p>
-                    <div className="flex flex-wrap gap-2 px-5">
+                    <div className="flex flex-wrap gap-2">
                         {familyFacets.map((facet) => (
                             <FacetChip
+                                compact
                                 key={facet.id}
                                 label={facet.label}
                                 count={facet.count}
@@ -518,12 +526,13 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant px-5 pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
                         État du type
                     </p>
-                    <div className="flex flex-wrap gap-2 px-5">
+                    <div className="flex flex-wrap gap-2">
                         {TYPE_STATE_OPTIONS.map((option) => (
                             <FacetChip
+                                compact
                                 key={option.label}
                                 label={option.label}
                                 selected={typeStateFilter === option.value}
@@ -532,12 +541,13 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant px-5 pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
                         Amortissement
                     </p>
-                    <div className="flex flex-wrap gap-2 px-5">
+                    <div className="flex flex-wrap gap-2">
                         {METHOD_OPTIONS.map((option) => (
                             <FacetChip
+                                compact
                                 key={option.label}
                                 label={option.label}
                                 selected={methodFilter === option.value}
@@ -546,7 +556,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                         <Button
                             variant="tonal"
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
@@ -573,7 +583,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 onClose={() => setIsAddSheetOpen(false)}
                 title="Ajouter au catalogue"
             >
-                <div className="flex flex-col py-2">
+                <div className="flex flex-col">
                     {/*
                       **Trois chemins, dans l'ordre de la planche** — et le type d'abord :
                       un modèle se range *sous* un type, et l'import lit des types au
@@ -689,8 +699,19 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         le geste de création vit dans le "+" (17.6) : le gabarit autorise
                         zéro action, et c'est le cas ordinaire. »* Le bouton « Ajouter »
                         posé ici le 07/09 était une **seconde porte** vers la feuille que
-                        le bouton flottant ouvre déjà en bas de l'écran. */}
-                    <div className="flex min-h-12 items-center">
+                        le bouton flottant ouvre déjà en bas de l'écran. La flèche de retour,
+                        elle, y est : on arrive ici depuis « Plus », comme sur 18.1. */}
+                    <div className="flex min-h-12 items-center gap-1">
+                        {isCompact && onBack && (
+                            <button
+                                type="button"
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                            >
+                                <Icon glyph={ArrowLeft} size={24} />
+                            </button>
+                        )}
                         <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                             Catalogue
                         </h1>
@@ -700,27 +721,29 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         qui n'existe pas apprend que l'écran est cassé. */}
                     {!isReferentialEmpty && (
                         <>
-                            <Reading className="flex items-center gap-2">
-                                <SearchField
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
-                                    placeholder="Type, modèle, marque"
-                                    className="flex-1"
-                                />
-                                <Button
-                                    variant="text"
-                                    aria-label="Filtrer le catalogue"
-                                    onClick={() => setIsFilterSheetOpen(true)}
-                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                                >
-                                    <Icon glyph={Funnel} size={20} />
-                                    {sheetFilterCount > 0 && (
-                                        <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
-                                            {sheetFilterCount}
-                                        </span>
+                            {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
+                                champ cerné de 320 × 40, et le filtre à 40 comme lui. */}
+                            <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
+                                <Reading
+                                    className={cn(
+                                        'flex items-center',
+                                        isCompact ? 'gap-2' : 'gap-3',
                                     )}
-                                </Button>
-                            </Reading>
+                                >
+                                    <SearchField
+                                        dense={!isCompact}
+                                        value={searchQuery}
+                                        onChange={setSearchQuery}
+                                        placeholder="Type, modèle, marque"
+                                        className={isCompact ? 'flex-1' : 'w-[320px] max-w-full'}
+                                    />
+                                    <FilterButton
+                                        label="Filtrer le catalogue"
+                                        count={sheetFilterCount}
+                                        onClick={() => setIsFilterSheetOpen(true)}
+                                    />
+                                </Reading>
+                            </IconGestureSizeContext.Provider>
 
                             {/*
                               `.ord` — **le cinquième slot, dans le bloc fixe.** Il vivait
@@ -772,8 +795,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 Restent 36 : sans eux, la dernière rangée passe sous le bouton. */}
             <div
                 className={cn(
-                    'medium:px-page flex flex-1 flex-col px-5 pt-4 pb-5',
-                    isCompact && !isReferentialEmpty && 'pb-9',
+                    /* `.page` de 09.1 : 16 de côté, 24 en bas, 96 quand le bouton
+                       flottant occupe le coin (10/09 ; le code posait 20 / 36). */
+                    'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
+                    isCompact && !isReferentialEmpty && 'pb-24',
                 )}
             >
                 {isReferentialEmpty ? (
@@ -810,7 +835,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                     L'en-tête de famille **coiffe** la carte sans être dedans
                                     (`.fh`, §2.36) : posé à l'intérieur, un nom de famille se
                                     lirait comme une rangée de plus. */}
-                                <div className="flex flex-col gap-5">
+                                <div className="flex flex-col gap-4">
                                     {categoriesByFamily.map(({ family, items }) => (
                                         <section key={family}>
                                             {/* `.fh` — le pictogramme de la famille, teinté,
@@ -837,7 +862,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                     {items.length} type{items.length > 1 ? 's' : ''}
                                                 </span>
                                             </div>
-                                            <div className="rounded-card bg-surface p-4">
+                                            <div className="rounded-card bg-surface px-4 py-1">
                                                 {items.map((cat) => {
                                                     const modelCount =
                                                         modelCountByType.get(cat.name) ?? 0;

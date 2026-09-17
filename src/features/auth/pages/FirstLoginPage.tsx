@@ -12,14 +12,14 @@ import {
 import Icon from '../../../components/ui/Icon';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
-import PinField, { type PinFieldState } from '../../../components/ui/PinField';
+import PinConfirmation, { usePinConfirmation } from '../../../components/ui/PinConfirmation';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import { useAuth } from '../../../context/AuthContext';
 import { useData, INVITATION_VALIDITY_DAYS } from '../../../context/DataContext';
 import { useRouter } from '../../../hooks/useRouter';
 import { APP_CONFIG } from '../../../config';
 import { measurePasswordStrength, PASSWORD_MIN_LENGTH } from '../../../lib/passwordStrength';
-import { isValidPinFormat, PIN_LENGTH } from '../../../lib/security';
+import PasswordMeter from '../../../components/ui/PasswordMeter';
 import { getStatusLabel } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
 import type { User } from '../../../types';
@@ -83,21 +83,6 @@ const FactRow: React.FC<{ label: string; value: string; detail?: string }> = ({
     </div>
 );
 
-/** `.meter` — quatre segments de 4, rayon 2, 6 d'air ; le vert de statut quand il se remplit. */
-const Meter: React.FC<{ filled: number }> = ({ filled }) => (
-    <div className="mt-3 flex gap-1.5" aria-hidden="true">
-        {[0, 1, 2, 3].map((i) => (
-            <span
-                key={i}
-                className={cn(
-                    'h-1 flex-1 rounded-[2px]',
-                    i < filled ? 'bg-[var(--tk-color-st-vert)]' : 'bg-outline-variant',
-                )}
-            />
-        ))}
-    </div>
-);
-
 const initialsOf = (name: string) =>
     name
         .split(' ')
@@ -136,10 +121,9 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
     const [passwordError, setPasswordError] = useState<string | undefined>();
     const [confirmError, setConfirmError] = useState<string | undefined>();
 
-    const [pinStep, setPinStep] = useState<'entry' | 'confirm'>('entry');
-    const [pin, setPin] = useState('');
-    const [pinConfirm, setPinConfirm] = useState('');
-    const [pinIssue, setPinIssue] = useState<string | null>(null);
+    /* Le code se pose en deux saisies — le formulaire de 06.2, partagé avec « Mon compte »
+       (07.1) : 02.2 le dit *« le même fichier »*, il n'a donc qu'une implémentation. */
+    const saisiePin = usePinConfirmation();
     const [pinSaving, setPinSaving] = useState(false);
 
     /* La personne : le compte invité tant qu'il n'est pas ouvert, puis le compte ouvert,
@@ -212,40 +196,13 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
         setScreen('pin');
     };
 
-    const pinState: PinFieldState = pinIssue
-        ? 'error'
-        : pinStep === 'confirm' && pinConfirm.length === PIN_LENGTH && pinConfirm === pin
-          ? 'ok'
-          : 'idle';
-    const pinMatched = pinStep === 'confirm' && pinConfirm === pin && pin.length === PIN_LENGTH;
-
-    const handlePinComplete = (value: string) => {
-        if (pinStep === 'entry') {
-            if (!isValidPinFormat(value)) {
-                setPinIssue('Ni une suite, ni un chiffre répété.');
-                return;
-            }
-            setPinStep('confirm');
-            setPinIssue(null);
-            return;
-        }
-        if (value !== pin) setPinIssue('Les deux codes diffèrent. Recommencez.');
-    };
-
-    const restartPin = () => {
-        setPin('');
-        setPinConfirm('');
-        setPinStep('entry');
-        setPinIssue(null);
-    };
-
     const savePin = () => {
-        if (!person || !pinMatched) return;
+        if (!person || !saisiePin.matched) return;
         setPinSaving(true);
-        const decision = setUserPin(person.id, pin);
+        const decision = setUserPin(person.id, saisiePin.pin);
         setPinSaving(false);
         if (!decision.allowed) {
-            setPinIssue(decision.reason ?? 'Le code n’a pas été enregistré.');
+            saisiePin.refuse(decision.reason ?? 'Le code n’a pas été enregistré.');
             return;
         }
         navigate('/dashboard');
@@ -487,7 +444,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                             leadingElementClassName="!left-3"
                             className={FIELD_CLASSES}
                         />
-                        <Meter filled={strength.score} />
+                        <PasswordMeter filled={strength.score} />
                     </section>
 
                     <section className="mb-7">
@@ -509,7 +466,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                             leadingElementClassName="!left-3"
                             className={FIELD_CLASSES}
                         />
-                        <Meter filled={confirmMatches ? 4 : 0} />
+                        <PasswordMeter filled={confirmMatches ? 4 : 0} />
                     </section>
 
                     {/* « Deux secrets, deux usages » — la seule confusion qui compte ici. */}
@@ -555,14 +512,6 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
 
     /* ---------- écran 3 : le code PIN, et ce qu'il emprunte à 06.2 ---------- */
 
-    const pinHint = pinIssue
-        ? pinIssue
-        : pinStep === 'entry'
-          ? 'Vous le retaperez pour le confirmer.'
-          : pinMatched
-            ? 'Les deux codes concordent.'
-            : 'Retapez-le pour le confirmer.';
-
     return (
         <AuthShell>
             <StepBar title="Étape 2 sur 2" onBack={() => setScreen('password')} />
@@ -579,51 +528,11 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     </p>
                 </div>
 
-                <PinField
-                    key={pinStep}
-                    value={pinStep === 'entry' ? pin : pinConfirm}
-                    onChange={(value) => {
-                        if (pinIssue) setPinIssue(null);
-                        if (pinStep === 'entry') setPin(value);
-                        else setPinConfirm(value);
-                    }}
-                    onComplete={handlePinComplete}
-                    state={pinState}
+                <PinConfirmation
+                    model={saisiePin}
                     autoFocus
-                    label={pinStep === 'entry' ? 'Code de remise' : 'Confirmer le code de remise'}
+                    labels={{ entry: 'Code de remise', confirm: 'Confirmer le code de remise' }}
                 />
-
-                {/* `.pinsteps` — deux temps, celui qu'on vit en encre pleine. */}
-                <div className="mt-4 flex gap-1.5" aria-hidden="true">
-                    <span className="bg-on-surface h-1 w-6 rounded-[2px]" />
-                    <span
-                        className={cn(
-                            'h-1 w-6 rounded-[2px]',
-                            pinStep === 'confirm' ? 'bg-on-surface' : 'bg-outline-variant',
-                        )}
-                    />
-                </div>
-                <p
-                    className={cn(
-                        'mt-2 text-[14px] leading-5',
-                        pinIssue ? 'text-error' : 'text-on-surface-variant',
-                    )}
-                    role={pinIssue ? 'alert' : undefined}
-                >
-                    {pinHint}
-                    {pinIssue && pinStep === 'confirm' && (
-                        <>
-                            {' '}
-                            <Button
-                                variant="text"
-                                onClick={restartPin}
-                                className="text-on-surface hover:text-on-surface h-auto !min-h-0 min-w-0 p-0 align-baseline text-[14px] leading-5 font-medium underline underline-offset-[3px] hover:bg-transparent"
-                            >
-                                Recommencer
-                            </Button>
-                        </>
-                    )}
-                </p>
 
                 <p className="text-text-tertiary mt-auto max-w-[300px] pt-6 text-[14px] leading-5 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-muted)]">
                     Ni <b>123456</b>, ni <b>000000</b>, ni une suite, ni votre année de naissance.{' '}
@@ -634,7 +543,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     <Button
                         variant="filled"
                         className={ACTION_CLASSES}
-                        disabled={!pinMatched || pinSaving}
+                        disabled={!saisiePin.matched || pinSaving}
                         loading={pinSaving}
                         onClick={savePin}
                     >

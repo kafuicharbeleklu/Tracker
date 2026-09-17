@@ -1,7 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Package, User, Warning, Wrench, XCircle } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
+import Attestation, { type AttestationMethod } from '../../../components/ui/Attestation';
+import { signatureService } from '../../../services/signatureService';
 import Button from '../../../components/ui/Button';
 import FilePicker from '../../../components/ui/FilePicker';
 import Icon from '../../../components/ui/Icon';
@@ -64,14 +66,27 @@ interface IncidentSheetProps {
     item: Equipment;
     /** Le nom au bas de la trace — la déclaration n'est jamais anonyme. */
     declarerName: string;
+    /**
+     * Qui déclare, et de quoi il dispose pour l'attester — **le bloc 4 de 17.4** (lot 28,
+     * D4). Un incident retire un objet à quelqu'un : c'est un des neuf actes de
+     * traçabilité, et il se prouve comme les autres.
+     */
+    declarer?: { pin?: string; id?: string };
     onClose: () => void;
-    onDeclare: (payload: { outcome: IncidentOutcome; photos: string[]; comment?: string }) => void;
+    onDeclare: (payload: {
+        outcome: IncidentOutcome;
+        photos: string[];
+        comment?: string;
+        /** La méthode d'attestation retenue — elle va au journal. */
+        method: AttestationMethod;
+    }) => void;
 }
 
 const IncidentSheet: React.FC<IncidentSheetProps> = ({
     open,
     item,
     declarerName,
+    declarer,
     onClose,
     onDeclare,
 }) => {
@@ -80,6 +95,27 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     /** Ce que la borne de 5 Mo a écarté — lu sous le champ des photos. */
     const [refusPhoto, setRefusPhoto] = useState<string | null>(null);
     const [comment, setComment] = useState('');
+    /* Le bloc 4 : tant qu'il n'est pas fait, il n'y a rien à déclarer. */
+    const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
+        method: declarer?.pin ? 'pin' : 'signature',
+        done: false,
+    });
+    const [signature, setSignature] = useState<Blob | null>(null);
+
+    useEffect(() => {
+        let vivant = true;
+        setAttestation({ method: declarer?.pin ? 'pin' : 'signature', done: false });
+        if (!open || !declarer?.pin || !declarer?.id) {
+            setSignature(null);
+            return;
+        }
+        void signatureService.get(declarer.id).then((image) => {
+            if (vivant) setSignature(image);
+        });
+        return () => {
+            vivant = false;
+        };
+    }, [open, declarer?.pin, declarer?.id]);
     const photoInput = useRef<HTMLInputElement>(null);
 
     const chosen = OUTCOMES.find((entry) => entry.value === outcome)!;
@@ -149,7 +185,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={close} title="Déclarer un incident">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[14px] leading-5">
                     Trace enregistrée au nom de {declarerName}.
                 </p>
 
@@ -236,18 +272,27 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                     placeholder="Décrire, si la photo ne suffit pas."
                 />
 
+                {/* 4 · l'attestation — le compte décide de la méthode (17.4). */}
+                <Attestation
+                    signerName={declarerName}
+                    signerPin={declarer?.pin}
+                    signature={signature}
+                    onChange={setAttestation}
+                />
+
                 <Consequences label="Ce que cela déclenche" lines={consequences} />
 
                 {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                <div className="border-outline-variant mt-2 grid grid-cols-2 gap-3 border-t pt-4">
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={close}>
                         Annuler
                     </Button>
                     <Button
                         variant="filled"
                         icon={<Icon glyph={Warning} size={18} />}
+                        disabled={!attestation.done}
                         onClick={() => {
-                            onDeclare({ outcome, photos, comment });
+                            onDeclare({ outcome, photos, comment, method: attestation.method });
                             close();
                         }}
                         className={cn(chosen.value === 'serves' && 'bg-primary')}

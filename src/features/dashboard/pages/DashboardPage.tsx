@@ -339,7 +339,11 @@ const Card: React.FC<{
     children: React.ReactNode;
 }> = ({ title, meta, children }) => (
     <section className="rounded-card bg-surface p-4">
-        <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
+        {/* `<header>`, pas `<div>` (10/09) : les rangées qui suivent sont des `div` et
+            comptent sur `first-of-type:border-t-0` — avec un en-tête `div`, la première
+            rangée n'était jamais la première de son type, et la planche (`.ev+.ev`,
+            `.brow:first-of-type{border-top:0}`) n'a pas de filet sous le titre. */}
+        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
             <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
                 {title}
             </h3>
@@ -348,7 +352,7 @@ const Card: React.FC<{
                     {meta}
                 </span>
             )}
-        </div>
+        </header>
         {children}
     </section>
 );
@@ -791,7 +795,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 variant="text"
                                 size="md"
                                 iconOnly
-                                className="font-brand focus-visible:ring-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[15px] font-semibold tracking-wide text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
+                                /* `.avat` — 44, rond. `iconOnly` pose `min-h-12 min-w-12` que `h-11`
+                                   ne bat pas : les deux minima sont abaissés avec (10/09). */
+                                className="font-brand focus-visible:ring-primary flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[15px] font-semibold tracking-wide text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
                                 aria-label={`Compte — ${compte.nom}`}
                             >
                                 {compte.initiales}
@@ -964,7 +970,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     variant="text"
                                     layout="card"
                                     onClick={openTasks}
-                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-[68px] w-full items-center gap-4 rounded-none border-t border-white/[0.14] px-0 py-3 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
+                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-14 w-full items-center gap-3 rounded-none border-t border-white/[0.14] px-0 py-2 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
                                 >
                                     {/* `.vig` — initiales quand une personne est
                                         nommée, le glyphe de l'objet sinon ; la teinte
@@ -1455,7 +1461,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             )}
                             {entree.valeur}
                         </span>
-                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4">
+                        {/* 400, pas 500 : `Button` pose sa graisse à tout ce qu'il
+                            contient, et `.bande .k` n'en déclare aucune. Et une boîte de
+                            24 sans marge — 16 de ligne, 4 de part et d'autre : dans 03.1 la
+                            légende est un `span` en ligne, qui prend la ligne de son lien
+                            et perd sa marge ; la bande y mesure 82, pas 76 (relevé du
+                            13/09). */}
+                        <span className="text-on-surface-variant block py-1 text-[12px] leading-4 font-normal">
                             {entree.mot}
                         </span>
                     </>
@@ -1464,7 +1476,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     <div
                         key={entree.cle}
                         className={cn(
-                            'min-w-0 flex-1 pr-4',
+                            'min-w-0 flex-1 py-0.5 pr-4',
                             index > 0 && 'border-outline-variant border-l pl-4',
                         )}
                     >
@@ -1495,16 +1507,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const enTeteBureau = (
         <header className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
-                <h2 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                {/* **Le titre de la page, et le seul** : l'écran n'avait aucun `h1` —
+                    le plan du document commençait donc à `h2`, et une lecture au clavier
+                    ou à la voix n'y trouvait pas d'entrée. */}
+                <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
                     Bonjour {firstName}
-                </h2>
+                </h1>
                 <p className="text-on-surface-variant mt-0.5 text-[14px] leading-5">{subtitle}</p>
             </div>
             {isManager && (
                 <>
                     <Button
                         variant="text"
-                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[14px] font-medium !shadow-none"
+                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[14px] font-medium !shadow-none"
                         icon={<Icon glyph={ArrowUUpLeft} size={18} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
@@ -1512,7 +1527,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </Button>
                     <Button
                         variant="filled"
-                        className="bg-primary hover:bg-primary-hover h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                         icon={<Icon glyph={ArrowCircleRight} size={18} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
@@ -1523,7 +1538,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {!isManager && (
                 <Button
                     variant="filled"
-                    className="bg-primary hover:bg-primary-hover h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                     icon={<Icon glyph={Plus} size={18} />}
                     onClick={() => onViewChange('new_request')}
                 >
@@ -1574,10 +1589,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
                     {bureau && isManager ? (
                         <>
-                            {/* `.zones` — 8/12 et 4/12, à hauteur égale : les événements
+                            {/* `.zones` — 8fr et 4fr, à hauteur égale : les événements
                                 sont **bornés à la hauteur de la file** au lieu de courir
-                                le long de la page. */}
-                            <div className="grid grid-cols-12 items-stretch gap-4">
+                                le long de la page. Pas huit colonnes sur douze : le partage
+                                de 03.1 ne compte pas les gouttières, et la colonne des
+                                événements tombait 5 px trop à droite (relevé du 13/09). */}
+                            <div className="grid grid-cols-[8fr_4fr] items-stretch gap-4">
                                 {/*
                                   **C'est la file qui donne sa hauteur à la rangée, jamais
                                   l'inverse.** Le héro garde donc sa hauteur naturelle : au
@@ -1587,8 +1604,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                   la planche demande : qu'ils cessent de courir le long de
                                   la page.
                                 */}
-                                <div className="col-span-8 flex min-w-0 flex-col">{aTraiter}</div>
-                                <div className={cn(CASE_GRILLE, 'col-span-4')}>{evenements}</div>
+                                <div className="flex min-w-0 flex-col">{aTraiter}</div>
+                                <div className={CASE_GRILLE}>{evenements}</div>
                             </div>
 
                             <div className="grid grid-cols-12 items-stretch gap-4">

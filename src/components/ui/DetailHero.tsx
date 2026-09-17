@@ -154,6 +154,19 @@ interface DetailHeroProps {
     image?: string;
     /** Les gestes. Le premier est le geste primaire, et il suit l'état. */
     actions?: React.ReactNode;
+    /**
+     * Le geste du héro **à droite du sujet, et à sa mesure** — le bureau (16.2 : `.hero`
+     * en grille `minmax(0,1fr) auto`, `.hact` en colonne 2, rangée 1).
+     *
+     * Au téléphone il s'étire sous la jauge : on le vise au pouce en tenant l'appareil
+     * d'une main. Au bureau, un bouton de 700 px n'est pas plus facile à viser, il est
+     * seulement plus grand que ce qu'il fait — et il gagne à se tenir en haut, où l'œil
+     * arrive, plutôt qu'après trois chiffres et une barre.
+     *
+     * Les chiffres et la jauge, eux, gardent **toute la largeur** (`1/-1`) : ce sont eux
+     * qui mesurent, et une mesure ne se rétrécit pas pour laisser passer un geste.
+     */
+    actionsInline?: boolean;
     className?: string;
 }
 
@@ -173,6 +186,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     relation,
     image,
     actions,
+    actionsInline = false,
     className,
 }) => (
     <section
@@ -180,6 +194,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             /* `.hero` — intérieur `22 / 20 / 20`. Il valait `20 / 16 / 16` : la carte
                était plus étroite que les cartes qu'elle surmonte. */
             'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-5 pt-[22px] pb-5',
+            /* La grille du bureau : tout ce qui identifie reste en colonne 1, le geste
+               monte en colonne 2 sur la première rangée, et les mesures traversent. */
+            actionsInline &&
+                'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 [&>*]:col-start-1',
             className,
         )}
     >
@@ -220,9 +238,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
                     rendue que dans la variante sans avatar : un appelant qui passait
                     les deux perdait sa sous-ligne en silence, et « Mon compte » n'a
-                    pas d'autre endroit où écrire l'adresse. 07.1 est la seule planche
-                    qui la dessine sous un avatar, et elle la déclare en 14/20 ; la
-                    variante à pastille garde ses 13/19, qu'aucune planche ne conteste. */}
+                    pas d'autre endroit où écrire l'adresse. Les deux variantes la
+                    posent désormais à la même mesure. */}
                 {subtitle && (
                     <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
                         {subtitle}
@@ -250,11 +267,21 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 )}
 
                 {label && (
-                    /* `.ty` — **12 sur 16**, interlettrage `.07em`, capitales, 16 au-dessus.
-                       Il tenait `text-label-small`, c'est-à-dire 11 : une marche sous la
-                       plus petite que R15 déclare, et la même étiquette valait 12 dans la
-                       variante à pastille juste au-dessus. */
-                    <p className="mt-4 text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
+                    /* `.ty` — **12 sur 16**, interlettrage `.07em`, capitales. Il tenait
+                       `text-label-small`, c'est-à-dire 11 : une marche sous la plus petite
+                       que R15 déclare.
+
+                       **Les 16 au-dessus séparent le surtitre de la pastille d'état** — et
+                       de rien d'autre. Ils s'appliquaient toujours : sans pastille (la
+                       campagne de 16.2, la fiche d'un modèle, celle d'une catégorie), le
+                       surtitre tombait à 38 du haut du héro au lieu des 22 de `.hero`, et
+                       le héro paraissait lesté d'une bande vide. Relevé le 11/09. */
+                    <p
+                        className={cn(
+                            status && 'mt-4',
+                            'text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase',
+                        )}
+                    >
                         {label}
                     </p>
                 )}
@@ -264,7 +291,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 </p>
 
                 {subtitle && (
-                    <p className="text-on-nav-surface-variant mt-1 text-[13px] leading-[19px]">
+                    /* `.md` — **14 sur 20, à 2 du sujet** (16.2). Elle tenait 13 sur 19,
+                       c'est-à-dire l'ancien `body-medium` : une marche que R15 ne déclare
+                       pas — l'échelle est 28 · 22 · 17 · 16 · 14 · 12 — et le seul endroit
+                       du héro où un 13 subsistait. */
+                    <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
                         {subtitle}
                     </p>
                 )}
@@ -294,7 +325,9 @@ const DetailHero: React.FC<DetailHeroProps> = ({
 
         {metrics && metricsStyle === 'boxes' && (
             /* `.hrow` / `.hk` — 09.1 : des cases de 12 sur 14, valeur en 22 sur 28. */
-            <div className={cn('flex gap-3', meter ? 'mt-3' : 'mt-5')}>
+            <div
+                className={cn('flex gap-3', meter ? 'mt-3' : 'mt-5', actionsInline && 'col-end-3')}
+            >
                 {metrics.map((metric, index) => (
                     <div
                         key={index}
@@ -321,10 +354,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             <div className="mt-3.5 flex gap-[18px] border-t border-white/[0.14] pt-3">
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
-                        <span className="font-brand text-[19px] leading-[23px] font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                        {/* `.hk .v` — 22 sur 28, comme les tuiles ; `.hk .k` en 12 sur 16 (11.1). */}
+                        <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                             {metric.value}
                         </span>
-                        <span className="text-label-small text-on-nav-surface-variant mt-0.5 block">
+                        <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
                             {metric.label}
                         </span>
                     </div>
@@ -332,7 +366,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             </div>
         )}
 
-        {gauge && <div className="mt-4">{gauge}</div>}
+        {gauge && <div className={cn('mt-4', actionsInline && 'col-end-3')}>{gauge}</div>}
 
         {facts && facts.length > 0 && (
             <div className="mt-3 flex flex-col gap-[7px] border-t border-white/[0.14] pt-3">
@@ -399,7 +433,16 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
                une règle de plus. Le seul filet du héro sépare la rangée de relation
                (planche 04.2 : `.hrow` porte une bordure, `.hact` n'a qu'une marge). */
-            <div className="mt-5 flex flex-col gap-3 [&>*]:w-full">{actions}</div>
+            <div
+                className={cn(
+                    'flex gap-3',
+                    actionsInline
+                        ? 'col-start-2! row-start-1 flex-wrap items-center'
+                        : 'mt-5 flex-col [&>*]:w-full',
+                )}
+            >
+                {actions}
+            </div>
         )}
 
         {note && (

@@ -3,7 +3,6 @@ import {
     CaretRight,
     EnvelopeSimple,
     FileCsv,
-    Funnel,
     Prohibit,
     SignOut,
     UsersThree,
@@ -25,9 +24,8 @@ import ScreenState from '../../../components/ui/ScreenState';
 import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import { FabContainer } from '../../../components/ui/FabContainer';
-import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import FilterButton from '../../../components/ui/FilterButton';
 import InviteSheet from '../components/InviteSheet';
 
 import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
@@ -341,7 +339,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 id: 'role',
                 header: 'Rôle',
                 width: '150px',
-                cell: (user) => ROLE_LABEL[user.role],
+                cell: (user) => <span className="text-text-muted">{ROLE_LABEL[user.role]}</span>,
             },
             {
                 id: 'site',
@@ -349,9 +347,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 width: '180px',
                 title: (user) => user.site || user.department || undefined,
                 /* Le lieu d'abord, le service à défaut — la même substitution que la
-                   carte, pour que les deux formes ne racontent pas deux choses. */
-                cell: (user) =>
-                    user.site || user.department || <span className="text-text-tertiary">—</span>,
+                   carte, pour que les deux formes ne racontent pas deux choses. En encre
+                   secondaire, comme le rôle et l'état : `td.dim` de 05.1, seul le nom est à
+                   l'encre pleine. */
+                cell: (user) => (
+                    <span className="text-text-muted">{user.site || user.department || '—'}</span>
+                ),
             },
             {
                 id: 'objets',
@@ -360,9 +361,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 numeric: true,
                 cell: (user) => {
                     const nombre = holdings(user);
-                    /* Un zéro en encre tertiaire : c'est un fait, pas une valeur qu'on
-                       vient lire. La colonne se balaie pour trouver qui porte beaucoup. */
-                    return nombre > 0 ? nombre : <span className="text-text-tertiary">0</span>;
+                    /* `td.num` de 05.1 — le compte en encre secondaire, et un tiret quand la
+                       personne ne porte rien : la colonne se balaie pour trouver qui porte
+                       beaucoup, et un zéro s'y lisait comme une valeur. */
+                    return <span className="text-text-muted">{nombre > 0 ? nombre : '—'}</span>;
                 },
             },
             {
@@ -374,7 +376,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                        change pas d'état parce qu'on l'a mis dans une colonne. Sans
                        marque, le compte est simplement actif, et la planche l'écrit. */
                     const marque = accountMark(user);
-                    if (!marque) return <span className="text-text-tertiary">Actif</span>;
+                    if (!marque) return <span className="text-text-muted">Actif</span>;
                     return (
                         <span className="flex min-w-0 items-center gap-1.5">
                             <Icon
@@ -547,19 +549,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                    accompagne, et le filet en trop faisait deux formes là où il n'y a
                    qu'une bande. Sa pastille de compte est carrée (rayon 2). */
                 filter={
-                    <button
-                        type="button"
+                    <FilterButton
+                        label="Filtrer"
+                        count={activeSheetFiltersCount}
                         onClick={() => setIsFilterSheetOpen(true)}
-                        aria-label="Filtrer"
-                        className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
-                    >
-                        <Icon glyph={Funnel} size={20} />
-                        {activeSheetFiltersCount > 0 && (
-                            <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-sm px-1 text-[11px] leading-[18px] font-medium tabular-nums">
-                                {activeSheetFiltersCount}
-                            </span>
-                        )}
-                    </button>
+                    />
                 }
                 count={{ total: users.length, shown: filteredUsers.length, noun: 'personnes' }}
                 /* « Nom » suffit : la planche n'écrit pas le sens du tri sur la ligne du
@@ -636,27 +630,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 }
                 /* Pas de pied de liste : R15 interdit la note dans l'écran, et le
                    décompte des porteurs se lit déjà rangée par rangée. */
-                fab={
-                    /* 17.6 — **le bouton du geste d'ajout est un composant, pas une
-                       copie.** Il était réécrit à la main ici et sur l'autre liste, à
-                       deux fichiers de distance, et les deux copies avaient déjà
-                       divergé : deux jetons de texte pour le même contraste, et un
-                       ancrage retapé par-dessus celui du conteneur. L'ancrage se
-                       calcule une fois — 64 de barre + 16 de gouttière, la règle du
-                       06/09 — et il vit dans `FabContainer`. La feuille, elle, reste à la page : ses
-                       rangées portent une explication que 17.6 ne dessine pas. */
-                    permissions.canManageUsers && !selection.isActive ? (
-                        <FabContainer description="Ajouter une personne">
-                            <FloatingActionButton
-                                icon="add"
-                                size="medium"
-                                variant="primary"
-                                className="bg-primary text-on-primary"
-                                aria-label="Ajouter une personne"
-                                onClick={() => setIsAddSheetOpen(true)}
-                            />
-                        </FabContainer>
-                    ) : undefined
+                /* Le geste d'ajout est **déclaré**, et le gabarit le place selon le
+                   régime : bouton rond au-dessus de la barre du bas (17.6), bouton jaune
+                   de l'en-tête au bureau (17.11). La feuille reste à la page. */
+                pageAction={
+                    permissions.canManageUsers && !selection.isActive
+                        ? {
+                              label: 'Ajouter',
+                              description: 'Ajouter une personne',
+                              onClick: () => setIsAddSheetOpen(true),
+                          }
+                        : undefined
                 }
             >
                 {/*
@@ -699,6 +683,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                     </span>
                                 }
                                 title={user.name}
+                                person
                                 /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
                                La charge disparaît quand elle est nulle — « aucun
                                équipement » sur six rangées sur onze était du bruit. */
@@ -729,7 +714,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                     {/* Rôle — descendu de la bande de tête : c'est la feuille qui porte
                         désormais les trois axes de restriction (05.1). */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
+                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
                             Rôle
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -750,7 +735,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         dit que le service « se filtre » depuis qu'il a quitté la rangée :
                         le retirer supprimerait l'axe que la rangée vient de céder. */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
+                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
                             Département
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -768,7 +753,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
 
                     {/* Site */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
+                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
                             Site
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -786,7 +771,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
 
                     {/* État du compte */}
                     <div>
-                        <p className="text-label-small text-text-muted mb-2.5 tracking-[0.06em] uppercase">
+                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">

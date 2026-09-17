@@ -65,13 +65,14 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
 
     return (
         <div className={className}>
-            <p className="mt-3 flex items-baseline gap-2.5">
+            <p className="mt-3.5 flex items-baseline gap-2.5">
                 {/* Le chiffre est au rang du sujet — 20 px. Il valait 24, qui n'est sur aucune
                     marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre). */}
                 <span className="font-brand text-on-surface text-[20px] leading-none font-semibold tabular-nums">
                     {value}
                 </span>
-                <span className="text-body-large text-text-secondary min-w-0 flex-1 leading-[19px]">
+                {/* `.wrow .n` — 16 sur 24 (passe sobre du 05/09) ; 15 n'est sur aucune marche. */}
+                <span className="text-on-surface-variant min-w-0 flex-1 text-[16px] leading-6">
                     {label}
                 </span>
             </p>
@@ -88,7 +89,7 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             </div>
 
             {note && (
-                <p className="text-body-medium text-text-secondary mt-2 leading-[18px]">{note}</p>
+                <p className="text-on-surface-variant mt-2 text-[16px] leading-6">{note}</p>
             )}
 
             {source && (

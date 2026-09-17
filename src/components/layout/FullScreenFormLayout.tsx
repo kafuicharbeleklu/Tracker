@@ -6,7 +6,6 @@
  * le champ de série. Les barres des planches 04.3 et 05.3 ne portent que leur titre.
  */
 import React, { useId } from 'react';
-import MaterialIcon from '../ui/MaterialIcon';
 import Button from '../ui/Button';
 import { FullScreenLayout } from './FullScreenLayout';
 
@@ -59,13 +58,9 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
             type="submit"
             form={formId}
             variant={variant}
-            icon={
-                submitButtonLocation === 'footer' ? (
-                    <MaterialIcon name="save" size={18} />
-                ) : (
-                    <MaterialIcon name="check" size={18} />
-                )
-            }
+            /* **Le verbe, sans pictogramme** : `.btn` ne porte pas d'icône dans les
+               planches, et la table des icônes refuse la disquette sur un bouton
+               d'enregistrement. Il en portait une en pied et une coche en barre. */
             disabled={isSaving}
             className={className}
         >

@@ -19,7 +19,17 @@ interface TopAppBarProps {
 }
 
 /**
- * Compact mobile app bar aligned with the SmartProcure shell.
+ * **La barre du haut — `.tbar` des planches**, et rien d'autre.
+ *
+ * Elle ne paraît que sur les vues qui ne portent pas leur propre en-tête : une page
+ * portée en pose un elle-même, et `adnMobileViews` l'écarte alors. Elle en a longtemps
+ * doublé une : la page d'ajout d'un équipement écrivait « Équipement » ici, en 18, puis
+ * « Nouvel équipement » douze pixels plus bas, en 17 — deux barres, deux mesures, un
+ * écran.
+ *
+ * Sa mesure est celle que toutes les planches déclarent pour une barre : **56 de haut**,
+ * titre **17 sur 24** en Archivo 600, chasse −.01em. Elle tenait 64 et `.section-title`,
+ * qui est le titre d'une *feuille* (22 sur 28) et non d'une barre.
  */
 const TopAppBar: React.FC<TopAppBarProps> = ({
     title,
@@ -32,7 +42,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
         <header
             role="banner"
             className={cn(
-                'bg-surface border-outline-variant h-16 border-b',
+                'bg-surface border-outline-variant min-h-14 border-b',
                 'flex items-center justify-between px-4',
                 className,
             )}
@@ -54,7 +64,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
                 )}
                 <div
                     className={cn(
-                        'section-title ml-1 flex-1 truncate text-[var(--tk-color-text-primary)]',
+                        'font-brand ml-1 flex-1 truncate text-[17px] leading-6 font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]',
                         titleClassName,
                     )}
                     role="heading"

@@ -23,6 +23,7 @@ import {
     AgentCheckInPayload,
     AgentCheckInResult,
     AssignmentStatus,
+    AttestationMethod,
     DetectedDevice,
     UserRole,
     EquipmentIncident,
@@ -191,7 +192,12 @@ interface DataContextType {
     /** Un lien périmé en redemande un — même réponse quel que soit le cas. */
     requestNewInvitation: (token: string) => void;
     /** Définir son code de remise (02.2 écran 3, 07.1), ou celui d'une personne qu'on gère. */
-    setUserPin: (userId: string, pin: string) => BusinessRuleDecision;
+    /**
+     * Pose un code de remise. **Pour remplacer le sien, `currentPin` est exigé** et doit
+     * être le code en place (07.1) ; poser un premier code, ou celui d'une personne qu'on
+     * gère (05.2), n'en demande pas.
+     */
+    setUserPin: (userId: string, pin: string, currentPin?: string) => BusinessRuleDecision;
     updateUser: (id: string, updates: Partial<User>) => BusinessRuleDecision;
     deleteUser: (id: string) => BusinessRuleDecision;
     addEquipment: (item: Equipment) => void;
@@ -203,11 +209,17 @@ interface DataContextType {
         logMetadata?: Record<string, unknown>,
     ) => BusinessRuleDecision;
     /** Le motif est celui de 04.3 colonne 4 : il part avec l'événement du journal. */
-    deleteEquipment: (id: string, reason?: RetirementReason) => boolean;
+    deleteEquipment: (id: string, reason?: RetirementReason, method?: AttestationMethod) => boolean;
     /** Déclarer un incident — 04.3 colonne 3. */
     declareIncident: (
         equipmentId: string,
-        payload: { outcome: IncidentOutcome; photos: string[]; comment?: string },
+        payload: {
+            outcome: IncidentOutcome;
+            photos: string[];
+            comment?: string;
+            /** Comment l'acte a été attesté (17.4, bloc 4) — il part au journal. */
+            method?: AttestationMethod;
+        },
     ) => BusinessRuleDecision;
     upsertEquipmentFromAuditScan: (
         payload: AuditScanPayload,
@@ -2534,16 +2546,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * il se consigne comme tel.
      */
     const setUserPin = useCallback(
-        (userId: string, pin: string): BusinessRuleDecision => {
+        (userId: string, pin: string, currentPin?: string): BusinessRuleDecision => {
             const isSelf = currentUser?.id === userId;
             if (!isSelf) {
                 const permissionDecision = canManageUsersByRole(currentUserAccessRef.current);
                 if (!permissionDecision.allowed) return permissionDecision;
             }
             if (!isValidPinFormat(pin))
-                return { allowed: false, reason: 'Ni une suite, ni un chiffre répété.' };
+                return { allowed: false, reason: 'Ni une suite, ni six fois le même chiffre.' };
             const target = users.find((u) => u.id === userId);
             if (!target) return { allowed: false, reason: 'Compte introuvable.' };
+            /*
+              **Remplacer son propre code exige l'actuel** — comme changer son mot de passe
+              exige l'ancien (`authService.changePassword`). La règle vit ici et non dans
+              la feuille : un écran qui l'oublierait ne la contournerait pas. Un code
+              oublié ne se remplace pas, il se **réinitialise** — par l'informatique,
+              depuis la fiche de la personne (05.2) ; il n'y a alors plus de code en place,
+              et le premier se pose sans ancien. Un gestionnaire qui pose le code d'autrui
+              ne passe pas par cette branche.
+            */
+            const remplacement = isSelf && Boolean(target.pin);
+            if (remplacement) {
+                if (currentPin !== target.pin)
+                    return { allowed: false, reason: 'Le code actuel ne correspond pas.' };
+                if (pin === target.pin)
+                    return { allowed: false, reason: "Le nouveau code est identique à l'actuel." };
+            }
             setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, pin } : u)));
             /* Poser son propre code doit valoir **tout de suite** : `Attestation` lit
                `signer.pin` depuis `currentUser`, une copie que la session ne relit
@@ -2558,7 +2586,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: userId,
                 targetName: target.name,
-                description: isSelf ? 'Code PIN défini' : `Code PIN défini pour ${target.name}`,
+                description: isSelf
+                    ? remplacement
+                        ? 'Code PIN remplacé'
+                        : 'Code PIN défini'
+                    : `Code PIN défini pour ${target.name}`,
                 isSystem: false,
                 isSensitive: true,
             });
@@ -2987,7 +3019,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     const deleteEquipment = useCallback(
-        (id: string, reason?: RetirementReason) => {
+        (id: string, reason?: RetirementReason, method?: AttestationMethod) => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) return false;
 
@@ -3014,7 +3046,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 description: reason
                     ? `Sortie du parc de ${itemToDelete.name} — ${RETIREMENT_REASON_LABELS[reason]}`
                     : `Suppression de l'équipement ${itemToDelete.name}`,
-                metadata: reason ? { retirementReason: reason } : undefined,
+                metadata:
+                    reason || method
+                        ? {
+                              ...(reason ? { retirementReason: reason } : {}),
+                              ...(method ? { method } : {}),
+                          }
+                        : undefined,
                 isSystem: false,
                 isSensitive: false,
             });
@@ -3045,7 +3083,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const declareIncident = useCallback(
         (
             equipmentId: string,
-            payload: { outcome: IncidentOutcome; photos: string[]; comment?: string },
+            payload: {
+                outcome: IncidentOutcome;
+                photos: string[];
+                comment?: string;
+                method?: AttestationMethod;
+            },
         ): BusinessRuleDecision => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
             if (!permissionDecision.allowed) return permissionDecision;
@@ -3088,6 +3131,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 source: 'incident',
                 outcome: payload.outcome,
                 photos: payload.photos.length,
+                /* « Qui, quand, **par quelle méthode** » : sans elle, la colonne
+                   « Attestation » du journal (18.1) reste vide sur un acte pourtant
+                   attesté. */
+                method: payload.method,
             });
             return { allowed: true };
         },

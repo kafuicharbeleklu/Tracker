@@ -5,6 +5,7 @@ import {
     CheckCircle,
     ClipboardText,
     ClockCounterClockwise,
+    Export,
     Funnel,
     Handshake,
     PaperPlaneTilt,
@@ -17,6 +18,9 @@ import {
 } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
+import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
+import FilterMenuChip from '../../../components/ui/FilterMenuChip';
+import { libelleAttestation } from '../../../components/ui/Attestation';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
 import FacetChip from '../../../components/ui/FacetChip';
@@ -24,6 +28,10 @@ import Icon from '../../../components/ui/Icon';
 import ScreenState from '../../../components/ui/ScreenState';
 import { useData } from '../../../context/DataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useToast } from '../../../context/ToastContext';
+import { buildCsvLine } from '../../../lib/csv';
 import { cn } from '../../../lib/utils';
 import type { EventType, HistoryEvent } from '../../../types';
 
@@ -41,6 +49,16 @@ import type { EventType, HistoryEvent } from '../../../types';
  *
  * Les partitions sont **des chips dans la feuille de filtre** (R11, comme 03.3 et 16.1),
  * jamais des onglets ; et le gabarit est celui des huit listes (17.8).
+ *
+ * ## Au bureau, le journal devient un tableau — 18.1, colonne « Vue — bureau à 1280 »
+ *
+ * *« Le patron de 04.1 pour le temps. »* La sous-ligne du téléphone — qui a fait le
+ * fait, par quelle méthode, où — **se déplie en trois colonnes** qu'on lit d'un coup, et
+ * ne garde que le complément (à qui, pourquoi). Les jours ne disparaissent pas pour
+ * autant : ils deviennent des **rangées de séparation de 36** avec leur compte.
+ *
+ * Rien de neuf n'apparaît : mêmes faits, mêmes marques de 32, mêmes jours, mêmes
+ * filtres. C'est la forme qui change, jamais ce qu'on regarde.
  */
 
 /** Les six natures de la planche, et ce que chacune ramasse dans `EventType`. */
@@ -144,14 +162,45 @@ const sousLigne = (evenement: HistoryEvent): string => {
         morceaux.push(evenement.targetName);
 
     const meta = evenement.metadata ?? {};
-    const methode = typeof meta.method === 'string' ? meta.method : undefined;
-    if (methode === 'pin') morceaux.push('code PIN');
-    else if (methode === 'signature') morceaux.push('signature apposée');
+    const methode = typeof meta.method === 'string' ? libelleAttestation(meta.method) : undefined;
+    if (methode) morceaux.push(methode);
 
     const raison = typeof meta.reason === 'string' ? meta.reason : undefined;
     if (raison) morceaux.push(raison);
 
     return morceaux.filter(Boolean).join(' · ');
+};
+
+/**
+ * La méthode d'attestation seule — colonne « Attestation » du bureau. Le téléphone la
+ * fond dans la sous-ligne ; le tableau lui donne sa colonne, parce que c'est par elle
+ * qu'un fait se prouve.
+ */
+const attestation = (evenement: HistoryEvent): string => {
+    const methode =
+        typeof evenement.metadata?.method === 'string'
+            ? libelleAttestation(evenement.metadata.method)
+            : undefined;
+    /* La colonne porte une majuscule, la sous-ligne non : c'est la même phrase à deux
+       places, et une seule des deux commence quelque chose. */
+    return methode ? methode[0].toUpperCase() + methode.slice(1) : '—';
+};
+
+/**
+ * Le complément du fait — « à Karim Diallo », « écran fendu ». Au bureau il reste seul
+ * en sous-ligne : l'auteur, la méthode et le lieu ont leur colonne.
+ */
+const complement = (evenement: HistoryEvent): string => {
+    const morceaux: string[] = [];
+    if (
+        evenement.targetName &&
+        evenement.targetName !== evenement.actorName &&
+        evenement.targetType !== 'USER'
+    )
+        morceaux.push(evenement.targetName);
+    const raison = evenement.metadata?.reason;
+    if (typeof raison === 'string' && raison) morceaux.push(raison);
+    return morceaux.join(' · ');
 };
 
 interface HistoryPageProps {
@@ -162,6 +211,7 @@ interface HistoryPageProps {
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
     const { events } = useData();
+    const { showToast } = useToast();
     const [recherche, setRecherche] = useState('');
     const [naturesActives, setNaturesActives] = useState<Nature[]>([]);
     const [periode, setPeriode] = useState<PeriodeId>('30');
@@ -169,6 +219,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
     const [ouvert, setOuvert] = useState<HistoryEvent | null>(null);
 
     const rechercheRetardee = useDebounce(recherche, 250);
+    /* 1280 — le seuil des neuf écrans de bureau (17.11), et celui où six colonnes
+       tiennent sans troncature. En dessous, le journal garde ses cartes par jour. */
+    const enTableau = useMediaQuery(MEDIA.twoColumn);
 
     const natureDe = useMemo(() => {
         const table = new Map<EventType, Nature>();
@@ -228,7 +281,143 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
         return compte;
     }, [dansLaPeriode, natureDe]);
 
+    /* Le compte d'un jour, pour la rangée de séparation du tableau. */
+    const comptesParJour = useMemo(
+        () => new Map(parJour.map(([cle, faits]) => [cle, faits.length])),
+        [parJour],
+    );
+
+    /**
+     * **Cinq colonnes, et la marque en tête** — 18.1 au bureau. L'ordre est celui de la
+     * planche : ce qui s'est passé, qui, par quelle preuve, où, quand. La marque de 32
+     * garde son icône et sa teinte : c'est le même vocabulaire qu'au téléphone.
+     */
+    const colonnes: DataColumn<HistoryEvent>[] = useMemo(
+        () => [
+            {
+                id: 'marque',
+                header: '',
+                width: '52px',
+                cell: (fait) => {
+                    const marque = MARQUE[fait.type];
+                    return (
+                        <span
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-full',
+                                fait.isSystem
+                                    ? 'border-outline-variant text-text-tertiary border'
+                                    : (marque?.teinte ??
+                                          'bg-surface-container text-on-surface-variant'),
+                            )}
+                        >
+                            <Icon glyph={marque?.glyph ?? Bell} size={18} />
+                        </span>
+                    );
+                },
+            },
+            {
+                id: 'fait',
+                header: 'Fait',
+                title: (fait) => fait.description || fait.targetName,
+                cell: (fait) => {
+                    const suite = complement(fait);
+                    return (
+                        <>
+                            <span className="block truncate">
+                                {fait.description || fait.targetName}
+                            </span>
+                            {suite && (
+                                <span className="text-on-surface-variant block truncate text-[12px] leading-4">
+                                    {suite}
+                                </span>
+                            )}
+                        </>
+                    );
+                },
+            },
+            {
+                id: 'par',
+                header: 'Par',
+                title: (fait) => (fait.isSystem ? 'Automatique' : fait.actorName),
+                cell: (fait) => (
+                    <span className="text-on-surface-variant">
+                        {fait.isSystem ? 'Automatique' : fait.actorName}
+                    </span>
+                ),
+            },
+            {
+                id: 'attestation',
+                header: 'Attestation',
+                title: attestation,
+                cell: (fait) => (
+                    <span className="text-on-surface-variant">{attestation(fait)}</span>
+                ),
+            },
+            {
+                id: 'lieu',
+                header: 'Lieu',
+                cell: (fait) => (
+                    <span className="text-on-surface-variant">
+                        {typeof fait.metadata?.location === 'string' ? fait.metadata.location : '—'}
+                    </span>
+                ),
+            },
+            {
+                id: 'heure',
+                header: 'Heure',
+                width: '80px',
+                cell: (fait) => (
+                    <span className="text-on-surface-variant tabular-nums">
+                        {heure(fait.timestamp)}
+                    </span>
+                ),
+            },
+        ],
+        [],
+    );
+
     const filtresPoses = naturesActives.length + (periode === 'tout' ? 0 : 1);
+
+    /**
+     * **L'export du journal** — 18.1 au bureau le pose en acte nommé dans l'en-tête. Il
+     * exporte **ce qui est affiché**, filtres compris : un journal exporté en entier ne
+     * répond à aucune question, et celui qu'on regarde en répond une.
+     */
+    const exporterLeJournal = () => {
+        const csv = [
+            buildCsvLine(['Date', 'Heure', 'Fait', 'Par', 'Attestation', 'Lieu'], ','),
+            ...affiches.map((fait) =>
+                buildCsvLine(
+                    [
+                        new Date(fait.timestamp).toLocaleDateString('fr-FR'),
+                        heure(fait.timestamp),
+                        [fait.description || fait.targetName, complement(fait)]
+                            .filter(Boolean)
+                            .join(' — '),
+                        fait.isSystem ? 'Automatique' : fait.actorName,
+                        attestation(fait),
+                        typeof fait.metadata?.location === 'string' ? fait.metadata.location : '',
+                    ],
+                    ',',
+                ),
+            ),
+        ].join('\n');
+
+        const nom = `historique_${new Date().toISOString().split('T')[0]}.csv`;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const lien = document.createElement('a');
+        lien.href = url;
+        lien.setAttribute('download', nom);
+        document.body.appendChild(lien);
+        lien.click();
+        document.body.removeChild(lien);
+        URL.revokeObjectURL(url);
+        showToast(
+            `${affiches.length} fait${affiches.length > 1 ? 's' : ''} exporté${affiches.length > 1 ? 's' : ''} — « ${nom} ».`,
+            'success',
+        );
+    };
 
     const ordre = [
         naturesActives.length === 0
@@ -247,6 +436,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
             <ListTemplate
                 /* 18.1 est une file d'événements — squelette de file (17.3, A2). */
                 skeleton="file"
+                /* Au bureau le corps est un tableau : il balaye, il ne se lit pas à
+                   960 (§2.43, exception déclarée). */
+                body={enTableau ? 'tableau' : 'cartes'}
                 title={scopeUserId ? 'Mon historique' : 'Historique'}
                 onBack={onBack}
                 search={
@@ -258,20 +450,83 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                               placeholder: 'Identifiant, personne, lieu',
                           }
                 }
+                /*
+                  **Au bureau, les deux axes montent en pastilles à menu** — 18.1 :
+                  *« la ligne d'outils porte la recherche, les filtres de la feuille en
+                  pastilles, et le sens du tri »*. L'entonnoir n'a alors plus rien à
+                  porter. Au téléphone il reste, avec sa feuille et ses puces.
+                */
+                actions={
+                    enTableau && affiches.length > 0 ? (
+                        <Button
+                            variant="outlined"
+                            onClick={exporterLeJournal}
+                            icon={<Icon glyph={Export} size={20} />}
+                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[14px] font-medium shadow-none"
+                        >
+                            Exporter
+                        </Button>
+                    ) : undefined
+                }
                 filter={
-                    <Button
-                        variant="text"
-                        aria-label="Filtrer le journal"
-                        onClick={() => setFiltreOuvert(true)}
-                        className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                    >
-                        <Icon glyph={Funnel} size={20} />
-                        {filtresPoses > 0 && (
-                            <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
-                                {filtresPoses}
-                            </span>
-                        )}
-                    </Button>
+                    enTableau ? (
+                        <>
+                            <FilterMenuChip
+                                axis="Nature"
+                                neutralId="toutes"
+                                value={naturesActives.length === 1 ? naturesActives[0] : 'toutes'}
+                                posed={naturesActives.length > 0}
+                                summary={
+                                    naturesActives.length > 1
+                                        ? `${naturesActives.length} natures`
+                                        : undefined
+                                }
+                                selectedIds={naturesActives}
+                                onChange={(id) =>
+                                    setNaturesActives((prev) =>
+                                        id === 'toutes'
+                                            ? []
+                                            : prev.includes(id as Nature)
+                                              ? prev.filter((x) => x !== id)
+                                              : [...prev, id as Nature],
+                                    )
+                                }
+                                options={[
+                                    {
+                                        id: 'toutes',
+                                        label: 'Toutes les natures',
+                                        count: dansLaPeriode.length,
+                                    },
+                                    ...NATURES.map((n) => ({
+                                        id: n.id,
+                                        label: n.label,
+                                        count: comptesParNature.get(n.id) ?? 0,
+                                    })),
+                                ]}
+                            />
+                            <FilterMenuChip
+                                axis="Période"
+                                neutralId="tout"
+                                value={periode}
+                                onChange={(id) => setPeriode(id as PeriodeId)}
+                                options={PERIODES.map((p) => ({ id: p.id, label: p.label }))}
+                            />
+                        </>
+                    ) : (
+                        <Button
+                            variant="text"
+                            aria-label="Filtrer le journal"
+                            onClick={() => setFiltreOuvert(true)}
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        >
+                            <Icon glyph={Funnel} size={20} />
+                            {filtresPoses > 0 && (
+                                <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
+                                    {filtresPoses}
+                                </span>
+                            )}
+                        </Button>
+                    )
                 }
                 count={{
                     total: affiches.length,
@@ -303,81 +558,107 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                     />
                 }
             >
-                {parJour.map(([cle, faits]) => (
-                    <section key={cle} className="border-outline-variant border-t first:border-t-0">
-                        {/* `.dh` — le jour et son compte, 17 sur 24 en graisse d'appui. */}
-                        <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium first-letter:uppercase">
-                                {titreDuJour(faits[0].timestamp)}
-                            </h3>
-                            <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
-                                {faits.length}
-                            </span>
-                        </div>
-                        {faits.map((fait, index) => {
-                            const marque = MARQUE[fait.type];
-                            const detail = sousLigne(fait);
-                            return (
-                                <div
-                                    key={fait.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => setOuvert(fait)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            setOuvert(fait);
-                                        }
-                                    }}
-                                    className={cn(
-                                        'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                        index > 0 && 'border-outline-variant border-t',
-                                    )}
-                                >
-                                    {/* `.mk` — 32 rond. Un fait **système** est cerclé, sans
-                                        fond : il n'a pas d'auteur à teinter. */}
-                                    <span
+                {enTableau ? (
+                    <DataTable<HistoryEvent>
+                        columns={colonnes}
+                        rows={affiches}
+                        rowId={(fait) => fait.id}
+                        onOpen={setOuvert}
+                        rowLabel={(fait) => fait.description || fait.targetName}
+                        /* Les jours restent, en rangées de séparation de 36. */
+                        groupOf={(fait) => {
+                            const cle = new Date(fait.timestamp).toDateString();
+                            return {
+                                id: cle,
+                                label: titreDuJour(fait.timestamp),
+                                count: comptesParJour.get(cle),
+                            };
+                        }}
+                    />
+                ) : (
+                    parJour.map(([cle, faits]) => (
+                        /* `.day` — **un jour, une carte** (18.1) : surface, rayon 8,
+                           intérieur 8 / 16, et 16 entre deux jours. Les jours étaient des
+                           sections à filet dans une carte unique : la date se lisait alors
+                           comme un titre de rangée, pas comme l'en-tête de sa journée. */
+                        <section key={cle} className="rounded-card bg-surface px-4 py-2">
+                            {/* `.dh` — le jour et son compte, 17 sur 24 en graisse d'appui. */}
+                            <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium first-letter:uppercase">
+                                    {titreDuJour(faits[0].timestamp)}
+                                </h3>
+                                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
+                                    {faits.length}
+                                </span>
+                            </div>
+                            {faits.map((fait, index) => {
+                                const marque = MARQUE[fait.type];
+                                const detail = sousLigne(fait);
+                                return (
+                                    <div
+                                        key={fait.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setOuvert(fait)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                setOuvert(fait);
+                                            }
+                                        }}
                                         className={cn(
-                                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                                            fait.isSystem
-                                                ? 'border-outline-variant text-text-tertiary border'
-                                                : (marque?.teinte ??
-                                                      'bg-surface-container text-on-surface-variant'),
+                                            'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                            index > 0 && 'border-outline-variant border-t',
                                         )}
                                     >
-                                        <Icon glyph={marque?.glyph ?? Bell} size={18} />
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        {/* `.ev .t` — **le fait**, pas son sujet : la
+                                        {/* `.mk` — 32 rond. Un fait **système** est cerclé, sans
+                                        fond : il n'a pas d'auteur à teinter. */}
+                                        <span
+                                            className={cn(
+                                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                                                fait.isSystem
+                                                    ? 'border-outline-variant text-text-tertiary border'
+                                                    : (marque?.teinte ??
+                                                          'bg-surface-container text-on-surface-variant'),
+                                            )}
+                                        >
+                                            <Icon glyph={marque?.glyph ?? Bell} size={18} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            {/* `.ev .t` — **le fait**, pas son sujet : la
                                             planche écrit « LFW-PF5XK2M remis », pas
                                             « LFW-PF5XK2M ». La cible et la méthode
                                             descendent en sous-ligne. */}
-                                        <span className="text-on-surface block truncate text-[16px] leading-6">
-                                            {fait.description || fait.targetName}
-                                        </span>
-                                        {detail && (
-                                            <span className="text-on-surface-variant line-clamp-2 block text-[14px] leading-5">
-                                                {detail}
+                                            <span className="text-on-surface block truncate text-[16px] leading-6">
+                                                {fait.description || fait.targetName}
                                             </span>
-                                        )}
-                                    </span>
-                                    <span className="text-text-tertiary shrink-0 text-[12px] leading-4 tabular-nums">
-                                        {heure(fait.timestamp)}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </section>
-                ))}
+                                            {detail && (
+                                                <span className="text-on-surface-variant line-clamp-2 block text-[14px] leading-5">
+                                                    {detail}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="text-text-tertiary shrink-0 text-[12px] leading-4 tabular-nums">
+                                            {heure(fait.timestamp)}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </section>
+                    ))
+                )}
             </ListTemplate>
 
             {/* La feuille de filtre — les partitions en chips, jamais en onglets (R11). */}
             <BottomSheet open={filtreOuvert} onClose={() => setFiltreOuvert(false)} title="Filtrer">
                 <div className="flex flex-col pb-0">
-                    <p className="text-on-surface-variant px-5 pt-3.5 pb-2 text-[12px] leading-4 font-medium">
+                    {/* `.sbody` et `.sfoot` — la feuille pose déjà 20 de chaque côté : libellés et
+                        chips n'en rajoutent pas (ils tombaient à 40), et le pied reprend toute
+                        la largeur pour que son filet coure d'un bord à l'autre. */}
+                    <p className="text-on-surface-variant pb-2 text-[12px] leading-4 font-medium">
                         Nature
                     </p>
-                    <div className="flex flex-wrap gap-2 px-5">
+                    <div className="flex flex-wrap gap-2">
                         <FacetChip
                             label="Tout"
                             count={dansLaPeriode.length}
@@ -401,10 +682,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant px-5 pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
                         Période
                     </p>
-                    <div className="flex flex-wrap gap-2 px-5">
+                    <div className="flex flex-wrap gap-2">
                         {PERIODES.map((p) => (
                             <FacetChip
                                 key={p.id}
@@ -415,7 +696,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                         ))}
                     </div>
 
-                    <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                         <Button
                             variant="tonal"
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"

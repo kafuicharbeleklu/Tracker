@@ -457,7 +457,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                               ),
                           }
                 }
-                signer={{ name: actor?.name ?? '', pin: actor?.pin }}
+                signer={{ name: actor?.name ?? '', pin: actor?.pin, id: actor?.id }}
                 consequence={
                     reception
                         ? CONSEQUENCE[cran]

@@ -59,6 +59,16 @@ interface DataTableProps<T> {
     selection?: DataTableSelection;
     /** Les actes secondaires d'une rangée, révélés au survol et au focus. */
     rowActions?: (row: T) => React.ReactNode;
+    /**
+     * **La rangée de séparation** — 18.1 au bureau : *« les jours restent des rangées
+     * de séparation (36) dans le tableau, avec leur compte »*. Le journal ne perd pas
+     * ses jours en devenant tableau ; ils cessent d'être des cartes et deviennent une
+     * rangée basse sur le canevas, qui ne se survole pas et ne s'ouvre pas.
+     *
+     * Rendue chaque fois que la clé change d'une rangée à la suivante — c'est donc à
+     * l'appelant de trier avant, comme pour n'importe quel groupement.
+     */
+    groupOf?: (row: T) => { id: string; label: string; count?: number };
     /** La hauteur maximale du cadre qui défile ; sans elle, c'est la page qui défile. */
     maxHeight?: string;
     className?: string;
@@ -87,10 +97,15 @@ function DataTable<T>({
     rowLabel,
     selection,
     rowActions,
+    groupOf,
     maxHeight,
     className,
 }: DataTableProps<T>) {
     const selectable = Boolean(selection);
+    /* Le `colspan` d'une rangée de séparation : tout le tableau, cases et actes
+       compris. */
+    const colonnes = columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0);
+    let groupePose: string | null = null;
 
     return (
         <div
@@ -112,14 +127,16 @@ function DataTable<T>({
                     {rowActions && <col style={{ width: '56px' }} />}
                 </colgroup>
 
+                {/* `.tbl` de 17.11 — **cellules `0 10`, en-tête en `--ink2`**. Elles tenaient
+                    12 et l'encre tertiaire (13/09, cinq tableaux du bureau). */}
                 <thead>
                     <tr className="bg-surface border-outline-variant border-b">
                         {selectable && (
                             <th
                                 scope="col"
                                 className={cn(
-                                    'bg-surface sticky top-0 left-0 z-20 h-10 px-3',
-                                    'text-text-tertiary text-[12px] leading-4 font-medium',
+                                    'bg-surface sticky top-0 left-0 z-20 h-10 px-2.5',
+                                    'text-text-muted text-[12px] leading-4 font-medium',
                                 )}
                             >
                                 <span className="sr-only">Sélection</span>
@@ -132,7 +149,7 @@ function DataTable<T>({
                                 /* L'en-tête ne se tronque jamais : `whitespace-nowrap`,
                                    et c'est la colonne qui s'élargit. */
                                 className={cn(
-                                    'bg-surface text-text-tertiary sticky top-0 h-10 px-3 text-[12px] leading-4 font-medium whitespace-nowrap',
+                                    'bg-surface text-text-muted sticky top-0 h-10 px-2.5 text-[12px] leading-4 font-medium whitespace-nowrap',
                                     column.numeric && 'text-right',
                                     index === 0
                                         ? cn('z-20', selectable ? TETE_GAUCHE : CASE_GAUCHE)
@@ -143,7 +160,7 @@ function DataTable<T>({
                             </th>
                         ))}
                         {rowActions && (
-                            <th scope="col" className="bg-surface sticky top-0 z-10 h-10 px-3">
+                            <th scope="col" className="bg-surface sticky top-0 z-10 h-10 px-2.5">
                                 <span className="sr-only">Actions</span>
                             </th>
                         )}
@@ -154,94 +171,123 @@ function DataTable<T>({
                     {rows.map((row) => {
                         const id = rowId(row);
                         const selected = selection?.isSelected(id) ?? false;
+                        const groupe = groupOf?.(row);
+                        const ouvreGroupe = groupe && groupe.id !== groupePose;
+                        if (groupe) groupePose = groupe.id;
 
                         return (
-                            <tr
-                                key={id}
-                                /* Le fond vit sur la rangée : les cellules figées en
+                            <React.Fragment key={id}>
+                                {ouvreGroupe && (
+                                    /* 36 de haut, sur le canevas, en 12 d'appui — elle
+                                       sépare, elle ne se lit pas comme une donnée. */
+                                    <tr className="bg-background">
+                                        <td
+                                            colSpan={colonnes}
+                                            className="text-on-surface-variant sticky left-0 h-9 px-2.5 text-[12px] leading-4 font-medium"
+                                        >
+                                            <span className="first-letter:uppercase">
+                                                {groupe.label}
+                                            </span>
+                                            {typeof groupe.count === 'number' && (
+                                                <span className="text-text-tertiary ml-2 font-normal tabular-nums">
+                                                    {groupe.count}
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )}
+                                <tr
+                                    /* Le fond vit sur la rangée : les cellules figées en
                                    héritent (`bg-[inherit]`), donc elles se repeignent
                                    au survol comme le reste. */
-                                className={cn(
-                                    'group border-outline-variant bg-surface h-12 border-b transition-colors last:border-b-0',
-                                    'hover:bg-surface-container focus-within:bg-surface-container',
-                                    selected && 'bg-surface-container',
-                                    onOpen && 'cursor-pointer',
-                                )}
-                                onClick={
-                                    onOpen
-                                        ? () => {
-                                              if (selection?.isActive) selection.toggle(id);
-                                              else onOpen(row);
-                                          }
-                                        : undefined
-                                }
-                            >
-                                {selectable && (
-                                    <td className={cn(FIGEE, CASE_GAUCHE, 'px-3 align-middle')}>
-                                        {/*
+                                    className={cn(
+                                        'group border-outline-variant bg-surface h-12 border-b transition-colors last:border-b-0',
+                                        'hover:bg-surface-container focus-within:bg-surface-container',
+                                        selected && 'bg-surface-container',
+                                        onOpen && 'cursor-pointer',
+                                    )}
+                                    onClick={
+                                        onOpen
+                                            ? () => {
+                                                  if (selection?.isActive) selection.toggle(id);
+                                                  else onOpen(row);
+                                              }
+                                            : undefined
+                                    }
+                                >
+                                    {selectable && (
+                                        <td
+                                            className={cn(
+                                                FIGEE,
+                                                CASE_GAUCHE,
+                                                'px-2.5 align-middle',
+                                            )}
+                                        >
+                                            {/*
                                           **La case se révèle au survol et au focus**, et
                                           reste en permanence dès qu'une sélection est
                                           ouverte. Sa cible garde ses 40 px même dans une
                                           rangée de 48 : c'est la cible qui ne rétrécit
                                           pas, pas la rangée qui grandit.
                                         */}
-                                        <button
-                                            type="button"
-                                            aria-label={
-                                                selected
-                                                    ? 'Retirer de la sélection'
-                                                    : 'Sélectionner'
-                                            }
-                                            aria-pressed={selected}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                selection?.toggle(id);
-                                            }}
-                                            className={cn(
-                                                'focus-visible:ring-focus-ring -ml-1 flex h-10 w-10 items-center justify-center rounded-md outline-none focus-visible:ring-2',
-                                                selection?.isActive || selected
-                                                    ? 'opacity-100'
-                                                    : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
-                                            )}
-                                        >
-                                            <SelectionBox selected={selected} />
-                                        </button>
-                                    </td>
-                                )}
-
-                                {columns.map((column, index) => {
-                                    const infobulle = column.title?.(row);
-                                    const premiere = index === 0;
-                                    return (
-                                        <td
-                                            key={column.id}
-                                            className={cn(
-                                                'text-on-surface max-w-0 truncate px-3 align-middle',
-                                                column.numeric && 'text-right tabular-nums',
-                                                premiere &&
-                                                    cn(
-                                                        FIGEE,
-                                                        selectable ? TETE_GAUCHE : CASE_GAUCHE,
-                                                    ),
-                                            )}
-                                            title={infobulle}
-                                        >
-                                            {index === 0 && rowLabel ? (
-                                                <span className="sr-only">{rowLabel(row)}</span>
-                                            ) : null}
-                                            {column.cell(row)}
+                                            <button
+                                                type="button"
+                                                aria-label={
+                                                    selected
+                                                        ? 'Retirer de la sélection'
+                                                        : 'Sélectionner'
+                                                }
+                                                aria-pressed={selected}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    selection?.toggle(id);
+                                                }}
+                                                className={cn(
+                                                    'focus-visible:ring-focus-ring -ml-1 flex h-10 w-10 items-center justify-center rounded-md outline-none focus-visible:ring-2',
+                                                    selection?.isActive || selected
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
+                                                )}
+                                            >
+                                                <SelectionBox selected={selected} />
+                                            </button>
                                         </td>
-                                    );
-                                })}
+                                    )}
 
-                                {rowActions && (
-                                    <td className="px-3 align-middle">
-                                        <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                                            {rowActions(row)}
-                                        </span>
-                                    </td>
-                                )}
-                            </tr>
+                                    {columns.map((column, index) => {
+                                        const infobulle = column.title?.(row);
+                                        const premiere = index === 0;
+                                        return (
+                                            <td
+                                                key={column.id}
+                                                className={cn(
+                                                    'text-on-surface max-w-0 truncate px-2.5 align-middle',
+                                                    column.numeric && 'text-right tabular-nums',
+                                                    premiere &&
+                                                        cn(
+                                                            FIGEE,
+                                                            selectable ? TETE_GAUCHE : CASE_GAUCHE,
+                                                        ),
+                                                )}
+                                                title={infobulle}
+                                            >
+                                                {index === 0 && rowLabel ? (
+                                                    <span className="sr-only">{rowLabel(row)}</span>
+                                                ) : null}
+                                                {column.cell(row)}
+                                            </td>
+                                        );
+                                    })}
+
+                                    {rowActions && (
+                                        <td className="px-2.5 align-middle">
+                                            <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                                                {rowActions(row)}
+                                            </span>
+                                        </td>
+                                    )}
+                                </tr>
+                            </React.Fragment>
                         );
                     })}
                 </tbody>

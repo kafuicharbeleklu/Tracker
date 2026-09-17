@@ -98,6 +98,10 @@ const twMerge = extendTailwindMerge({
                         'elevation-3',
                         'elevation-4',
                         'elevation-5',
+                        // Les trois ombres des planches — feuille, dialogue, geste d'ajout.
+                        'sheet',
+                        'dialog',
+                        'fab',
                     ],
                 },
             ],

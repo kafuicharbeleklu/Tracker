@@ -191,7 +191,9 @@ const STATUS_DISPLAY_LABELS: Record<string, { default: string; short?: string }>
     Attribué: { default: 'Attribué' },
     Assigné: { default: 'Assigné' },
     'En attente': { default: 'En attente' },
-    'En réparation': { default: 'En réparation', short: 'En Répar.' },
+    /* Pas d'abrégé : le badge du héro (04.2) écrit « En réparation » en entier, et
+       « En Répar. » n'existe sur aucune planche (10/09). */
+    'En réparation': { default: 'En réparation' },
     'En maintenance préventive': { default: 'Maintenance préventive' },
     Retiré: { default: 'Retiré' },
     Perdu: { default: 'Perdu' },

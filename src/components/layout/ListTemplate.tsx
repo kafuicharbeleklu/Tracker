@@ -4,6 +4,7 @@ import {
     ArrowLeft,
     Funnel,
     List,
+    Plus,
     Rows,
     SortAscending,
     Table,
@@ -15,6 +16,8 @@ import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import SearchField from '../ui/SearchField';
 import FacetChip from '../ui/FacetChip';
+import { FabContainer } from '../ui/FabContainer';
+import FloatingActionButton from '../ui/FloatingActionButton';
 import { SkeletonList, SkeletonQueue } from '../ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useData } from '../../context/DataContext';
@@ -25,6 +28,8 @@ import BulkActionBar from '../ui/BulkActionBar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { MEDIA } from '../../constants/breakpoints';
+import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
+import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
 import { cn } from '../../lib/utils';
 import type { FacetTone } from '../ui/FacetChip';
 
@@ -114,6 +119,15 @@ interface ListTemplateProps {
     /** Retrait direct de la facette active (arrivée pré-filtrée, par exemple). */
     onActiveFacetClear?: () => void;
     activeFacetClearLabel?: string;
+    /**
+     * **Les facettes sont-elles des parts d'un tout ?** Par défaut oui — la première est
+     * le tout, et le bandeau dit « 6 des 17 » dès qu'une autre est posée.
+     *
+     * Une file dont les partitions sont **disjointes** n'a pas de tout : « à faire », « à
+     * suivre » et « historique » (03.3) ne se recouvrent pas, et le bandeau y écrivait
+     * « 1 des 0 » — un rapport entre deux ensembles qui n'en ont aucun.
+     */
+    disjointFacets?: boolean;
 
     /**
      * Arrivée pré-filtrée depuis un autre écran. Le produit applique aujourd'hui le
@@ -143,7 +157,13 @@ interface ListTemplateProps {
         showClearAction?: boolean;
     };
 
-    count?: { total: number; shown?: number; noun: string };
+    /**
+     * Le décompte de la ligne `.ord`. Forme ordinaire : « **14** actifs · tous les
+     * états » — le nombre en tête. Forme de 03.3 (17.8, colonne « un filtre posé ») :
+     * `regard` nomme ce qu'on regarde à gauche (« **À faire** · les plus anciennes »),
+     * et le nombre passe **à droite**, relatif quand `de` est donné (« 6 des 17 »).
+     */
+    count?: { total: number; shown?: number; noun: string; regard?: React.ReactNode; de?: number };
     sort?: { label: string; onClick: () => void };
     /**
      * **Cartes ou tableau** — la coexistence arbitrée par la recherche bureau du 08/09,
@@ -151,6 +171,33 @@ interface ListTemplateProps {
      * la liste n'a qu'une forme, et il n'y a rien à choisir.
      */
     view?: { value: 'cartes' | 'tableau'; onChange: (value: 'cartes' | 'tableau') => void };
+    /**
+     * **La mesure du corps** — §2.43 borne la lecture à 960, et déclare l'exception du
+     * tableau qu'on vient comparer, qui prend toute la largeur.
+     *
+     * Une liste à deux formes la déduit de son sélecteur ; une liste qui n'en a qu'une
+     * et qui est déjà un tableau au bureau — le journal de 18.1 — la déclare ici.
+     *
+     * **`cartes` : le corps apporte ses propres surfaces.** Le gabarit pose d'ordinaire
+     * *une* carte de rangées autour des enfants (04.1, 05.1). Une page dont le corps est
+     * déjà fait de cartes — les groupes à filets de 11.1, les jours de 18.1 — s'y
+     * retrouvait **dans une carte dans une carte**, ses rangées rentrées de 16 de plus
+     * que celles des autres listes. Elle déclare `cartes` : la mesure de lecture reste,
+     * la carte du gabarit tombe, et les enfants s'espacent de 16 comme `.page` le fait.
+     */
+    body?: 'lecture' | 'tableau' | 'cartes';
+    /**
+     * **Le second niveau, à droite** — patron « deux niveaux » de 17.11 : *« le sujet ou
+     * la file à gauche (7 ou 8/12), ce que le téléphone ouvrait en second écran à droite
+     * (5 ou 4/12) »*. Le téléphone empile les niveaux, un par écran ; le bureau les pose
+     * côte à côte, et cliquer une rangée **sélectionne** au lieu de naviguer.
+     *
+     * Il n'apparaît qu'à partir de **1280**. En deçà, le second niveau reste ce qu'il est
+     * au téléphone. Absent : la page n'a qu'un niveau.
+     */
+    panel?: React.ReactNode;
+    /** La part du second niveau — 5 douzièmes par défaut, 4 quand la liste porte un tableau (16.1). */
+    panelRatio?: 4 | 5;
 
     /** Mode sélection (17.2). Absent : l'écran ne sélectionne pas. */
     selection?: {
@@ -195,7 +242,31 @@ interface ListTemplateProps {
     empty?: React.ReactNode;
     /** Le pied de liste : ce que la liste compte, ou ce qu'elle attend. */
     footer?: React.ReactNode;
-    /** Le bouton flottant — le seul jaune du contenu. */
+    /**
+     * **Le geste d'ajout de la page — une déclaration, deux placements.**
+     *
+     * 17.6 le fait flotter au téléphone, au-dessus de la barre du bas. 17.11 dit qu'au
+     * bureau **rien ne flotte** — « rien ne flotte sauf ce qui flotte » : un dialogue,
+     * un menu, une infobulle — et le range dans l'en-tête, à droite du compte, en
+     * bouton jaune de 40. Le geste est le même ; c'est sa place qui change avec le
+     * régime, et la page n'a donc pas à le déclarer deux fois.
+     */
+    pageAction?: {
+        /** Le mot du bouton au bureau — « Ajouter », que le titre complète déjà. */
+        label: string;
+        onClick: () => void;
+        /**
+         * Le nom du geste en entier — « Ajouter un équipement ». Il vocalise le bouton
+         * rond du téléphone, qui n'a que son glyphe à montrer.
+         */
+        description?: string;
+        /** Le glyphe du geste — le plus, sauf mention contraire. */
+        glyph?: PhosphorGlyph;
+    };
+    /**
+     * Le bouton flottant écrit à la main — la forme d'avant `pageAction`, gardée pour
+     * les écrans que le bureau n'a pas encore reçus (11.1, 09.1).
+     */
     fab?: React.ReactNode;
     /** Les rangées. */
     children?: React.ReactNode;
@@ -204,11 +275,17 @@ interface ListTemplateProps {
     className?: string;
 }
 
-/** La mesure de lecture du système : 960 px, une seule valeur (§2.43). */
+/**
+ * La mesure de lecture du système : 960 px, une seule valeur (§2.43).
+ *
+ * **Elle ne s'applique pas à une colonne** : en deux niveaux, la liste occupe déjà 7 ou
+ * 8 douzièmes du corps, et la borner une seconde fois laisserait un vide entre elle et le
+ * panneau dès que la fenêtre dépasse 1 700 px.
+ */
 const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
     children,
     className,
-}) => <div className={cn('w-full max-w-[960px]', className)}>{children}</div>;
+}) => <div className={cn('large:max-w-none w-full max-w-[960px]', className)}>{children}</div>;
 
 const ListTemplate: React.FC<ListTemplateProps> = ({
     title,
@@ -222,10 +299,14 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     onFacetSelect,
     onActiveFacetClear,
     activeFacetClearLabel,
+    disjointFacets = false,
     origin,
     count,
     sort,
     view,
+    body = 'lecture',
+    panel,
+    panelRatio = 5,
     selection,
     hero,
     note,
@@ -233,12 +314,16 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     skeleton = 'liste',
     empty,
     footer,
+    pageAction,
     fab,
     children,
     hasRows: hasRowsOverride,
     className,
 }) => {
     const isCompact = useMediaQuery(MEDIA.compact);
+    /* 1280 — le seuil des neuf écrans de bureau : 1280 moins les 240 de la barre
+       latérale laissent 1 016 px, dont 4 douzièmes font encore 330 px de panneau. */
+    const largeurDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
 
     /* La coque doit savoir qu'on est en sélection : c'est elle qui porte la barre du
        bas, à qui le pied d'actes prend la place (17.2). */
@@ -259,6 +344,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     /** Le bandeau ne s'affiche que si une facette autre que la partition est posée. */
     const activeFilterNotice = useMemo(() => {
+        if (disjointFacets) return null;
         if (!facets || facets.length < 2 || !activeFacetId || !onFacetSelect) return null;
         const whole = facets[0];
         const active = facets.find((facet) => facet.id === activeFacetId);
@@ -270,7 +356,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             total: whole.count,
             onClear: () => onFacetSelect(whole.id),
         };
-    }, [facets, activeFacetId, onFacetSelect]);
+    }, [disjointFacets, facets, activeFacetId, onFacetSelect]);
 
     /*
      * La bande de recherche : **dans l'en-tête au téléphone**, bande de page au rail.
@@ -289,17 +375,64 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
      * 12 sur 16 pour toute la ligne, le tri compris. C'est une ligne de service, pas un
      * geste de page.
      */
+    /**
+     * `.cnt2` — **le second fait de l'en-tête du bureau** (17.11) : « 11 personnes ·
+     * tous les rôles », en 13 sur 16, encre secondaire, à côté du titre.
+     *
+     * Au téléphone ce compte vit dans la ligne de service (`.ord`), sous la recherche,
+     * avec le tri à sa droite. Au bureau **cette ligne n'existe plus** : le tri et le
+     * sélecteur de forme montent dans la ligne d'outils, et ce qui restait — le compte —
+     * remonte à côté du titre, là où l'œil arrive.
+     */
+    const ligneDeCompte = useMemo(() => {
+        const morceaux: string[] = [];
+        if (count) {
+            morceaux.push(`${count.total} ${count.noun}`);
+            if (typeof count.shown === 'number' && count.shown !== count.total)
+                morceaux.push(`${count.shown} affichés`);
+        }
+        if (subtitle) morceaux.push(subtitle);
+        return morceaux.length > 0 ? morceaux.join(' · ') : undefined;
+    }, [count, subtitle]);
+
+    /* Au téléphone, `pageAction` reprend la forme de 17.6 : l'ancrage du conteneur, le
+       bouton rond, le seul jaune du contenu. */
+    const gesteFlottant =
+        pageAction && !selection?.active ? (
+            <FabContainer description={pageAction.description ?? pageAction.label}>
+                <FloatingActionButton
+                    icon="add"
+                    size="medium"
+                    variant="primary"
+                    className="bg-primary text-on-primary"
+                    aria-label={pageAction.description ?? pageAction.label}
+                    onClick={pageAction.onClick}
+                />
+            </FabContainer>
+        ) : null;
+
     const orderRow =
         count && !selection?.active ? (
             <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
-                <span className="min-w-0 truncate">
-                    <b className="text-on-surface font-medium tabular-nums">{count.total}</b>{' '}
-                    {count.noun}
-                    {typeof count.shown === 'number' && count.shown !== count.total && (
-                        <> · {count.shown} affichés</>
-                    )}
-                </span>
+                {count.regard ? (
+                    <span className="min-w-0 truncate">{count.regard}</span>
+                ) : (
+                    <span className="min-w-0 truncate">
+                        <b className="text-on-surface font-medium tabular-nums">{count.total}</b>{' '}
+                        {count.noun}
+                        {typeof count.shown === 'number' && count.shown !== count.total && (
+                            <> · {count.shown} affichés</>
+                        )}
+                    </span>
+                )}
                 <span className="flex shrink-0 items-center gap-3">
+                    {count.regard && (
+                        <span className="tabular-nums">
+                            {typeof count.de === 'number' && count.de !== count.total
+                                ? `${count.total} des ${count.de}`
+                                : count.total}
+                        </span>
+                    )}
                     {sort && (
                         <button
                             type="button"
@@ -348,6 +481,31 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     const hasSeekBand =
         Boolean(search || filter || (facets && facets.length > 0)) && !selection?.active;
+
+    /*
+      **Le tableau balaye, il ne se lit pas.** §2.43 borne le contenu à 960 — « une liste
+      étirée sur 1600 px n'est pas plus lisible » — et **déclare l'exception** : « un
+      tableau que l'on vient comparer prend toute la largeur ; ce n'est pas de la
+      lecture, c'est du balayage ». C'est exactement le tableau dense de 17.11, dont
+      l'en-tête et la première colonne sont figés pour qu'on puisse aller au bout d'une
+      rangée sans perdre son sujet.
+
+      Il ne prend pas non plus la carte de rangées : `DataTable` porte déjà son cadre —
+      fond, filet, rayon, défilement. Posé dedans, il faisait une carte dans une carte,
+      avec 16 px d'intérieur entre les deux.
+    */
+    const enTableauLarge = !isCompact && (view?.value === 'tableau' || body === 'tableau');
+
+    /* En sélection groupée, le panneau se retire : la page ne traite plus un sujet, elle
+       en désigne plusieurs (17.2). */
+    const deuxNiveaux = largeurDeuxNiveaux && Boolean(panel) && !selection?.active;
+
+    /* La ligne d'outils du bureau porte quatre sortes d'objets ; sans aucun, elle
+       n'existe pas — un écran sans recherche ni tri n'a pas de bande vide sous son
+       titre. */
+    const hasDeskTools =
+        Boolean(search || filter || (facets && facets.length > 0) || sort || view) &&
+        !selection?.active;
 
     const seekBand = (
         <div className={cn('flex flex-col gap-2.5', !isCompact && 'px-page pt-4')}>
@@ -436,7 +594,13 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         /* `.top` de 17.8 (passe du 06/09) : **8 en haut, 12 en bas**,
                            12 entre les trois lignes. Le pied valait 16, ce qui creusait
                            l'écart entre la ligne de tri et la première rangée. */
-                        hasSeekBand ? 'gap-3 pt-2 pb-3' : '',
+                        /* **La ligne de compte suffit à faire un `.top`.** La condition ne
+                           regardait que la bande de recherche : le second niveau de 16.1 —
+                           un site ouvert, qui ne se cherche pas — retombait sur la barre
+                           nue, et sa ligne de compte se collait au filet, sans les 12 que
+                           la planche déclare. La barre de 56 tout compris reste pour ce
+                           qu'elle vise : un titre, et rien dessous. */
+                        hasSeekBand || orderRow ? 'gap-3 pt-2 pb-3' : '',
                     )}
                 >
                     {/* `.tt` — la rangée du titre se règle sur son geste : **48**, la
@@ -449,7 +613,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 type="button"
                                 aria-label="Retour"
                                 onClick={onBack}
-                                className="text-on-surface hover:bg-surface-container -ml-2 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                                className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
                             >
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
@@ -463,163 +627,359 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     {orderRow}
                 </div>
             ) : (
-                /* Au rail, la barre ne redit pas la destination : le rail la porte
-                   déjà. Titre, compteur, gestes — sans filet (00.4). */
-                <div className="px-page flex items-center gap-3 pt-5">
-                    <h1 className="font-brand text-on-surface shrink-0 text-[20px] leading-7 font-semibold tracking-[-0.015em]">
-                        {title}
-                    </h1>
-                    {subtitle && (
-                        <span className="text-body-medium text-text-secondary tabular-nums">
-                            {subtitle}
-                        </span>
-                    )}
-                    <span className="flex-1" />
-                    {actions}
-                </div>
+                /*
+                  **L'en-tête « Liste » du bureau — `.dhead` puis `.tools` de 17.11.**
+                  Quatre écrans le partagent : 04.1, 05.1, 18.1 et 03.3.
+                  La barre ne redit pas la destination — le rail la porte déjà (00.4) —,
+                  et elle ne porte pas de filet : *« pas de filet au bord de la barre
+                  latérale »*, ni sous l'en-tête.
+
+                  Il tenait le titre à **20** et empilait dessous la bande de recherche
+                  du téléphone puis la ligne de service : trois bandes pour dire ce que
+                  la planche dit en deux. 17.11 les rassemble — le titre à **28 sur 32**
+                  avec son compte à côté, puis **une seule ligne d'outils** : la
+                  recherche à 320, les pastilles, le tri et le sélecteur de forme à
+                  droite.
+                */
+                /* Dans le chrome du bureau, un geste d'icône fait 40 (17.11). */
+                <IconGestureSizeContext.Provider value={40}>
+                    <div className="px-page flex flex-col gap-2 pt-5">
+                        <div className="flex min-h-[52px] items-center gap-4">
+                            <h1 className="font-brand text-on-surface shrink-0 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                                {title}
+                            </h1>
+                            {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
+                                son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
+                            <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[13px] leading-4 tabular-nums">
+                                {ligneDeCompte}
+                            </span>
+                            {actions}
+                            {/* Le geste d'ajout passé par `fab` monte ici au bureau : il n'y
+                                flotte pas (17.11). */}
+                            {!horsLigne && fab && (
+                                <AddGesturePlacementContext.Provider value="header">
+                                    {fab}
+                                </AddGesturePlacementContext.Provider>
+                            )}
+                            {/* `.hbtn` — 40 de haut, rayon 4, `0 12 0 10`, gouttière 8, 14
+                                en graisse d'appui. Sans ombre : au bureau, un bouton posé
+                                dans l'en-tête ne se détache pas du papier, il en fait
+                                partie. */}
+                            {pageAction && (
+                                <Button
+                                    variant="filled"
+                                    onClick={pageAction.onClick}
+                                    /* `min-h-10` et pas seulement `h-10` : la taille `md`
+                                       de `Button` pose `min-h-12`, et une hauteur fixe ne
+                                       bat pas un minimum — le bouton restait à 48. */
+                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium shadow-none"
+                                >
+                                    <Icon glyph={pageAction.glyph ?? Plus} size={20} />
+                                    {pageAction.label}
+                                </Button>
+                            )}
+                        </div>
+
+                        {hasDeskTools && (
+                            /* Elle se replie plutôt qu'elle ne déborde : au rail (600–839) il
+                               reste 680 px, et le champ, l'entonnoir, les pastilles, le tri
+                               et le sélecteur n'y tiennent pas d'une seule ligne. */
+                            <div className="flex flex-wrap items-center gap-3 pb-1">
+                                {search && (
+                                    <SearchField
+                                        dense
+                                        value={search.value}
+                                        onChange={search.onChange}
+                                        placeholder={search.placeholder}
+                                        className="w-[320px] max-w-full"
+                                    />
+                                )}
+                                {filter}
+                                {facets && facets.length > 0 && (
+                                    <div className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-2 overflow-x-auto">
+                                        {facets.map((facet) => (
+                                            <FacetChip
+                                                key={facet.id}
+                                                dense
+                                                label={facet.label}
+                                                count={facet.count}
+                                                icon={facet.icon}
+                                                tone={facet.tone}
+                                                selected={facet.id === activeFacetId}
+                                                onClick={() => onFacetSelect?.(facet.id)}
+                                                onClear={
+                                                    facet.id === activeFacetId
+                                                        ? onActiveFacetClear
+                                                        : undefined
+                                                }
+                                                clearLabel={activeFacetClearLabel}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                                {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
+                                    deux réglages de la vue, quand ce qui précède la filtre. */}
+                                {(sort || view) && (
+                                    <span className="ml-auto flex shrink-0 items-center gap-3">
+                                        {sort && (
+                                            <button
+                                                type="button"
+                                                onClick={sort.onClick}
+                                                className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[13px] leading-[18px] font-medium"
+                                            >
+                                                <Icon
+                                                    glyph={SortAscending}
+                                                    size={18}
+                                                    className="text-text-muted"
+                                                />
+                                                {sort.label}
+                                            </button>
+                                        )}
+                                        {view && (
+                                            /* `.seg` — deux crans de 40 sur 38 dans un cerné
+                                               de rayon 4, le cran retenu en `--inset-2`. Au
+                                               téléphone le même sélecteur vit dans la ligne
+                                               de service, en creux et sans filet : ici il
+                                               s'aligne sur les autres objets de la ligne. */
+                                            <span className="border-outline-variant bg-surface flex shrink-0 items-center overflow-hidden rounded-md border">
+                                                {[
+                                                    {
+                                                        id: 'cartes' as const,
+                                                        glyph: Rows,
+                                                        mot: 'Cartes',
+                                                    },
+                                                    {
+                                                        id: 'tableau' as const,
+                                                        glyph: Table,
+                                                        mot: 'Tableau',
+                                                    },
+                                                ].map((cran) => (
+                                                    <button
+                                                        key={cran.id}
+                                                        type="button"
+                                                        onClick={() => view.onChange(cran.id)}
+                                                        aria-pressed={view.value === cran.id}
+                                                        aria-label={cran.mot}
+                                                        className={cn(
+                                                            'flex h-[38px] w-10 cursor-pointer items-center justify-center border-0 bg-transparent',
+                                                            view.value === cran.id
+                                                                ? 'bg-surface-muted-strong text-on-surface'
+                                                                : 'text-text-muted hover:text-on-surface',
+                                                        )}
+                                                    >
+                                                        <Icon glyph={cran.glyph} size={20} />
+                                                    </button>
+                                                ))}
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </IconGestureSizeContext.Provider>
             )}
 
-            {!isCompact && hasSeekBand && seekBand}
-            {!isCompact && orderRow && <div className="px-page pt-3">{orderRow}</div>}
-
+            {/* **96 px de pied quand un bouton flottant est posé** (`.phone:has(.fab) .page`),
+                sans quoi le bouton recouvre la dernière rangée de la liste. */}
             {/* `.page` — cinq planches de la passe sobre l'écrivent à l'identique :
-                gouttière 16, intérieur `16 / 16 / 24`. Et **96 px de pied quand un
-                bouton flottant est posé** (`.phone:has(.fab) .page`), sans quoi le
-                bouton recouvre la dernière rangée de la liste. Le gabarit tenait
-                20 / 20 / 20, si bien que la carte était plus rentrée que l'en-tête
-                qui la surmonte, de 4 px. */}
+                gouttière 16, intérieur `16 / 16 / 24`. À deux niveaux, **la bande de tête
+                couvre les deux zones** : 16.1 la pose au-dessus de `.zones`, pas dans la
+                colonne de la liste, où ses cinq chiffres se partageaient 8/12 de la page et
+                où la légende passait à la ligne (relevé du 17/09). */}
             <div
                 className={cn(
                     'medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4',
-                    fab && !selection?.active ? 'pb-24' : 'pb-6',
+                    isCompact && (fab || gesteFlottant) && !selection?.active ? 'pb-24' : 'pb-6',
                 )}
             >
-                {hero && <Reading>{hero}</Reading>}
+                {deuxNiveaux && hero && <Reading>{hero}</Reading>}
 
-                {origin && origin.from && (
-                    <Reading>
-                        <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">
-                            {origin.displayToken !== false && (
-                                <span className="bg-surface-container text-on-surface flex min-h-8 items-center gap-2 rounded-md px-3">
-                                    {origin.token}
+                <div
+                    className={cn(
+                        'flex min-w-0 flex-1',
+                        deuxNiveaux ? 'items-start gap-4' : 'flex-col gap-4',
+                    )}
+                >
+                    <div
+                        className={cn(
+                            'flex min-w-0 flex-col gap-4',
+                            deuxNiveaux ? 'shrink grow-[8] basis-0' : 'flex-1',
+                            deuxNiveaux && panelRatio === 5 && 'grow-[7]',
+                        )}
+                    >
+                        {!deuxNiveaux && hero && <Reading>{hero}</Reading>}
+
+                        {origin && origin.from && (
+                            <Reading>
+                                <div className="text-body-small text-text-secondary flex flex-wrap items-center gap-2">
+                                    {origin.displayToken !== false && (
+                                        <span className="bg-surface-container text-on-surface flex min-h-8 items-center gap-2 rounded-md px-3">
+                                            {origin.token}
+                                            <Button
+                                                variant="text"
+                                                iconOnly
+                                                size="sm"
+                                                aria-label={`Retirer le filtre ${origin.token}`}
+                                                onClick={origin.onClear}
+                                                className="-mr-2 h-6 w-6 min-w-0"
+                                            >
+                                                <Icon glyph={X} size={18} />
+                                            </Button>
+                                        </span>
+                                    )}
+                                    {origin.displayToken === false && (
+                                        <Icon
+                                            glyph={ArrowBendDownLeft}
+                                            size={18}
+                                            className="text-text-secondary shrink-0"
+                                        />
+                                    )}
+                                    <span className="min-w-0">{origin.from}</span>
+                                    {origin.inlineClearLabel && (
+                                        <button
+                                            type="button"
+                                            onClick={origin.onClear}
+                                            className="text-on-surface hover:text-text-secondary shrink-0 cursor-pointer text-[12px] font-medium underline underline-offset-4"
+                                        >
+                                            {origin.inlineClearLabel}
+                                        </button>
+                                    )}
+                                </div>
+                            </Reading>
+                        )}
+
+                        {/*
+                      LE BANDEAU DE FILTRE ACTIF — `.filt` de la planche 03.3, rendu
+                      **obligatoire** par la section C du correctif du 18/08 : « le compteur
+                      de chip devient explicitement relatif ». « Validations 6 » sous l'onglet
+                      « À faire 17 » doit se lire « **6 des 17** » — sans quoi deux compteurs
+                      voisins semblent compter la même chose et ne le font pas.
+                      La première facette est la partition entière (« Tout ») : c'est elle qui
+                      donne le dénominateur, et c'est vers elle que « Tout voir » ramène.
+                    */}
+                        {activeFilterNotice && !selection?.active && (
+                            <Reading>
+                                <div className="bg-surface-muted-strong text-body-medium rounded-vignette text-on-surface-variant flex items-center gap-2.5 px-3.5 py-[11px] leading-[18px]">
+                                    <Icon
+                                        glyph={Funnel}
+                                        size={18}
+                                        className="text-on-surface-variant shrink-0"
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                        <b className="text-on-surface font-medium tabular-nums">
+                                            {activeFilterNotice.shown} des{' '}
+                                            {activeFilterNotice.total}
+                                        </b>{' '}
+                                        — {activeFilterNotice.label.toLowerCase()}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={activeFilterNotice.onClear}
+                                        className="text-on-surface text-body-small shrink-0 cursor-pointer font-medium underline underline-offset-[3px]"
+                                    >
+                                        Tout voir
+                                    </button>
+                                </div>
+                            </Reading>
+                        )}
+
+                        {showSkeleton ? (
+                            <Reading>
+                                <div className="bg-surface rounded-xl px-4">
+                                    {skeleton === 'file' ? (
+                                        <SkeletonQueue rows={5} />
+                                    ) : (
+                                        <SkeletonList />
+                                    )}
+                                </div>
+                            </Reading>
+                        ) : hasRows ? (
+                            enTableauLarge ? (
+                                <>
+                                    {children}
+                                    {footer && (
+                                        <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
+                                            {footer}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <div
+                                    className={cn(
+                                        'w-full',
+                                        !deuxNiveaux && 'large:max-w-none max-w-[960px]',
+                                    )}
+                                >
+                                    {body === 'cartes' ? (
+                                        <div className="flex flex-col gap-4">{children}</div>
+                                    ) : (
+                                        <section className="bg-surface rounded-xl px-4">
+                                            {children}
+                                        </section>
+                                    )}
+                                    {footer && (
+                                        <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
+                                            {footer}
+                                        </p>
+                                    )}
+                                </div>
+                            )
+                        ) : (
+                            !loading &&
+                            /* 17.1, règle 2 : hors ligne, l'état se dit **dans la forme de
+                           l'état vide** — et jamais en bandeau. Quand il n'y a rien à
+                           lire, c'est la coupure qu'il faut nommer, pas l'absence de
+                           donnée : « aucun équipement » serait faux. */
+                            (horsLigne ? (
+                                <OfflineState depuis={derniereLecture} />
+                            ) : (
+                                <>
+                                    {empty}
+                                    {children}
+                                </>
+                            ))
+                        )}
+
+                        {note && <Reading>{note}</Reading>}
+
+                        {origin && origin.showClearAction !== false && (
+                            <Reading>
+                                {origin.clearPresentation === 'more' ? (
                                     <Button
                                         variant="text"
-                                        iconOnly
-                                        size="sm"
-                                        aria-label={`Retirer le filtre ${origin.token}`}
+                                        icon={<Icon glyph={List} size={18} />}
                                         onClick={origin.onClear}
-                                        className="-mr-2 h-6 w-6 min-w-0"
+                                        className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
                                     >
-                                        <Icon glyph={X} size={18} />
+                                        {origin.clearLabel}
                                     </Button>
-                                </span>
-                            )}
-                            {origin.displayToken === false && (
-                                <Icon
-                                    glyph={ArrowBendDownLeft}
-                                    size={18}
-                                    className="text-text-secondary shrink-0"
-                                />
-                            )}
-                            <span className="min-w-0">{origin.from}</span>
-                            {origin.inlineClearLabel && (
-                                <button
-                                    type="button"
-                                    onClick={origin.onClear}
-                                    className="text-on-surface hover:text-text-secondary shrink-0 cursor-pointer text-[12px] font-medium underline underline-offset-4"
-                                >
-                                    {origin.inlineClearLabel}
-                                </button>
-                            )}
-                        </div>
-                    </Reading>
-                )}
-
-                {/*
-                  LE BANDEAU DE FILTRE ACTIF — `.filt` de la planche 03.3, rendu
-                  **obligatoire** par la section C du correctif du 18/08 : « le compteur
-                  de chip devient explicitement relatif ». « Validations 6 » sous l'onglet
-                  « À faire 17 » doit se lire « **6 des 17** » — sans quoi deux compteurs
-                  voisins semblent compter la même chose et ne le font pas.
-                  La première facette est la partition entière (« Tout ») : c'est elle qui
-                  donne le dénominateur, et c'est vers elle que « Tout voir » ramène.
-                */}
-                {activeFilterNotice && !selection?.active && (
-                    <Reading>
-                        <div className="bg-surface-muted-strong text-body-medium rounded-vignette text-on-surface-variant flex items-center gap-2.5 px-3.5 py-[11px] leading-[18px]">
-                            <Icon
-                                glyph={Funnel}
-                                size={18}
-                                className="text-on-surface-variant shrink-0"
-                            />
-                            <span className="min-w-0 flex-1">
-                                <b className="text-on-surface font-medium tabular-nums">
-                                    {activeFilterNotice.shown} des {activeFilterNotice.total}
-                                </b>{' '}
-                                — {activeFilterNotice.label.toLowerCase()}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={activeFilterNotice.onClear}
-                                className="text-on-surface text-body-small shrink-0 cursor-pointer font-medium underline underline-offset-[3px]"
-                            >
-                                Tout voir
-                            </button>
-                        </div>
-                    </Reading>
-                )}
-
-                {showSkeleton ? (
-                    <Reading>
-                        <div className="bg-surface rounded-xl px-4">
-                            {skeleton === 'file' ? <SkeletonQueue rows={5} /> : <SkeletonList />}
-                        </div>
-                    </Reading>
-                ) : hasRows ? (
-                    <Reading>
-                        <section className="bg-surface rounded-xl px-4">{children}</section>
-                        {footer && (
-                            <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
-                                {footer}
-                            </p>
+                                ) : (
+                                    <Button
+                                        variant="tonal"
+                                        onClick={origin.onClear}
+                                        className="w-full"
+                                    >
+                                        {origin.clearLabel}
+                                    </Button>
+                                )}
+                            </Reading>
                         )}
-                    </Reading>
-                ) : (
-                    !loading &&
-                    /* 17.1, règle 2 : hors ligne, l'état se dit **dans la forme de
-                       l'état vide** — et jamais en bandeau. Quand il n'y a rien à
-                       lire, c'est la coupure qu'il faut nommer, pas l'absence de
-                       donnée : « aucun équipement » serait faux. */
-                    (horsLigne ? (
-                        <OfflineState depuis={derniereLecture} />
-                    ) : (
-                        <>
-                            {empty}
-                            {children}
-                        </>
-                    ))
-                )}
+                    </div>
 
-                {note && <Reading>{note}</Reading>}
-
-                {origin && origin.showClearAction !== false && (
-                    <Reading>
-                        {origin.clearPresentation === 'more' ? (
-                            <Button
-                                variant="text"
-                                icon={<Icon glyph={List} size={18} />}
-                                onClick={origin.onClear}
-                                className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
-                            >
-                                {origin.clearLabel}
-                            </Button>
-                        ) : (
-                            <Button variant="tonal" onClick={origin.onClear} className="w-full">
-                                {origin.clearLabel}
-                            </Button>
-                        )}
-                    </Reading>
-                )}
+                    {/* Le second niveau — il ne défile pas avec la liste, c'est elle qui
+                        défile sous lui. */}
+                    {deuxNiveaux && (
+                        <aside
+                            className={cn(
+                                'sticky top-4 min-w-0 shrink basis-0',
+                                panelRatio === 4 ? 'grow-[4]' : 'grow-[5]',
+                            )}
+                        >
+                            {panel}
+                        </aside>
+                    )}
+                </div>
             </div>
 
             {selection?.active ? (
@@ -630,7 +990,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 /* *« Les gestes qui écrivent disparaissent — pas grisés, absents. »*
                    Un bouton barré demande de comprendre pourquoi ; l'absence ne
                    demande rien (17.1, règle 2 ; interdit n°8). */
-                !horsLigne && fab
+                !horsLigne && isCompact && (fab ?? gesteFlottant)
             )}
         </div>
     );

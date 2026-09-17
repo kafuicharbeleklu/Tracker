@@ -151,7 +151,7 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={fermer} title="Prendre en charge">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant -mt-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[14px] leading-5">
                     {item.repairStartDate
                         ? `Déclaré le ${enClair(item.repairStartDate)}.`
                         : 'Déclaré récemment.'}
@@ -240,7 +240,7 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
 
                 <Consequences label="Ce que cela déclenche" lines={consequences} />
 
-                <div className="border-outline-variant mt-1 grid grid-cols-2 gap-3 border-t pt-4">
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={fermer}>
                         Annuler
                     </Button>

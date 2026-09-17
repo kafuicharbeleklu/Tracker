@@ -6,9 +6,11 @@
  * Valide le code PIN administrateur.
  * En production, cette fonction appellerait une API pour vérifier le hash.
  */
-// PIN de step-up administrateur.
-// Configurable via VITE_ADMIN_PIN ; fallback dev uniquement.
-// Cible : vérification côté backend (hash) — cf. docs/AUDIT_MECANISMES_SIMULES.md (E-A1).
+// **Le code administrateur partagé n'existe plus** — lot 28, D4. Un `ADMIN_PIN` unique,
+// écrit en clair et connu de toute l'informatique, prouvait seulement que *quelqu'un* de
+// l'équipe avait tapé le secret d'équipe : il ne disait pas qui. Les neuf actes de 17.4
+// attestent maintenant avec le **code personnel** de celui qui agit (`User.pin`), par le
+// bloc 4 de la feuille d'acte — et `SecurityGate`, qui portait ce pavé, est supprimé.
 //
 // **Six chiffres.** Le registre a tranché deux fois. §2.1 disait « quatre, sans
 // exception », et le produit s'y était rangé ; son journal l'a **renégocié le 02/09** :
@@ -21,8 +23,6 @@
 // La valeur reste volontairement triviale — c'est un contrôle de démonstration, vérifié
 // côté client et écrit en clair dans la source livrée : la faire ressembler à un secret
 // ferait croire qu'elle en est un. Le risque est consigné, pas masqué.
-const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
-
 /**
  * **La longueur d'un code PIN, nommée une fois.** Le pavé, la remise à zéro, le
  * déclenchement de la vérification et la génération d'un code temporaire en dérivent —
@@ -30,6 +30,21 @@ const ADMIN_PIN = (import.meta.env.VITE_ADMIN_PIN ?? '123456').toString();
  * pu diverger sans que personne le voie.
  */
 export const PIN_LENGTH = 6;
+
+/**
+ * **Trois essais** pour prouver qu'on connaît un code — 06.2, colonne 2. La règle vaut
+ * pour l'attestation d'une remise et pour le remplacement de son propre code (07.1) :
+ * une seule borne, sinon l'une finirait par diverger de l'autre sans que personne le voie.
+ */
+export const PIN_MAX_ATTEMPTS = 3;
+
+/*
+  **La borne d'un fichier importé n'est pas ici** — lot 28, D6 demandait un
+  `MAX_FILE_BYTES` unique ; `lib/fileImport.ts` le porte déjà, et mieux : la valeur est
+  **réglable en 14.1** (`settings.maxImportFileMb`), `getImportLimitBytes()` la rend au
+  moment de s'en servir, et `formatFileSize` l'écrit comme un refus se lit. La signature
+  enregistrée s'y range comme les autres pièces : c'est un fichier, pas un cas.
+*/
 
 /**
  * Ce qu'un code PIN ne peut pas être — planche 02.2, écran 3 : *« ni une suite, ni six
@@ -46,10 +61,6 @@ export const isValidPinFormat = (pin: string): boolean => {
         return false;
     return true;
 };
-
-export function validateAdminPIN(pin: string): boolean {
-    return pin === ADMIN_PIN;
-}
 
 /** Issue du facteur d'authentification (le PIN lui-même). */
 export type SecurityFactorOutcome = 'SUCCESS' | 'FAILED' | 'BLOCKED';

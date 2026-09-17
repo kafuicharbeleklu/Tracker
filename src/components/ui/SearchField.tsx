@@ -21,6 +21,15 @@ import { cn } from '../../lib/utils';
  *
  * Au téléphone, il n'est pas permanent : c'est une loupe dans la barre du haut. Il
  * se déplie en champ **dès `medium`**, où la place existe (00.4).
+ *
+ * ## Le bureau le reprend cerné, et plus court — `dense`
+ *
+ * 17.11 dessine la ligne d'outils du bureau : `.tools .field` fait **40 de haut, sur
+ * `--surface`, avec un filet**, en 14, la loupe en 18. Au téléphone le champ est un
+ * creux sans filet parce qu'il occupe la largeur entière d'une bande calme ; au
+ * bureau il partage sa ligne avec des pastilles, un tri et un sélecteur, tous cernés
+ * de la même façon — le creux y serait le seul objet sans bord, et la ligne perdrait
+ * son alignement.
  */
 
 interface SearchFieldProps {
@@ -29,6 +38,8 @@ interface SearchFieldProps {
     placeholder: string;
     /** Nom accessible quand aucun libellé n'est visible. */
     label?: string;
+    /** Le régime du bureau (17.11) : 40 de haut, cerné sur `--surface`, texte 14. */
+    dense?: boolean;
     className?: string;
 }
 
@@ -37,6 +48,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
     onChange,
     placeholder,
     label = 'Rechercher',
+    dense = false,
     className,
 }) => {
     const id = useId();
@@ -50,12 +62,19 @@ const SearchField: React.FC<SearchFieldProps> = ({
                    tertiaire. Le filet doublait la lecture : le champ se voit déjà
                    à son fond, et deux signaux pour une même chose alourdissent la
                    bande du haut, que la passe sobre veut calme. */
-                'bg-surface-container flex h-12 min-w-0 items-center gap-2.5 rounded-[4px] px-3.5',
+                'flex min-w-0 items-center gap-2.5 rounded-[4px] px-3.5',
+                dense
+                    ? 'bg-surface border-outline-variant h-10 border'
+                    : 'bg-surface-container h-12',
                 'focus-within:ring-focus-ring focus-within:ring-2',
                 className,
             )}
         >
-            <Icon glyph={MagnifyingGlass} size={20} className="text-on-surface-variant" />
+            <Icon
+                glyph={MagnifyingGlass}
+                size={dense ? 18 : 20}
+                className="text-on-surface-variant"
+            />
             <label htmlFor={id} className="sr-only">
                 {label}
             </label>
@@ -65,7 +84,10 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
-                className="text-on-surface placeholder:text-[var(--tk-color-text-tertiary)] min-w-0 flex-1 bg-transparent text-[16px] leading-6 outline-none"
+                className={cn(
+                    'text-on-surface min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tk-color-text-tertiary)]',
+                    dense ? 'text-[14px] leading-5' : 'text-[16px] leading-6',
+                )}
             />
         </div>
     );

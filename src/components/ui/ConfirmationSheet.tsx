@@ -229,8 +229,8 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 className={cn(
                     'bg-surface relative flex max-h-[97%] flex-col pb-3.5',
                     asDialog
-                        ? 'rounded-card shadow-elevation-4 w-[440px]'
-                        : 'rounded-t-card shadow-elevation-3 w-full',
+                        ? 'rounded-card shadow-dialog w-[440px]'
+                        : 'rounded-t-card shadow-sheet w-full',
                     'animate-in fade-in duration-200',
                     !asDialog && 'slide-in-from-bottom-4 duration-300',
                 )}

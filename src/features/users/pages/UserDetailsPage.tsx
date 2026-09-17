@@ -10,16 +10,19 @@ import {
     DotsThreeVertical,
     HardDrives,
     Laptop,
+    ListChecks,
     LockSimple,
     Mouse,
     Package,
     PaperPlaneTilt,
     Plus,
     Prohibit,
+    ShieldCheck,
     SignOut,
     User,
     UserMinus,
     UserPlus,
+    UsersThree,
     Warning,
 } from '@phosphor-icons/react';
 
@@ -1102,22 +1105,27 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             </RuleGroup>
 
             {/* « Ses accès » — le rôle, les groupes, et ce que ça donne résolu. La
-                planche renvoie chaque rangée vers 11.1, qui détient le détail. */}
+                planche renvoie chaque rangée vers 11.1, qui détient le détail. Chaque
+                rangée ouvre sur sa vignette, comme dans 05.2 : sans elle, le titre
+                tombait à 32 au lieu de 88 (relevé du 13/09). */}
             {access && (
                 <RuleGroup header="Ses accès">
                     <RuleGroup.Row
+                        glyph={ShieldCheck}
                         title={access.roleLabel}
                         subtitle={`rôle · ${access.granted} permission${access.granted > 1 ? 's' : ''}, ${access.scope}`}
                         onOpen={() => onViewChange?.('rbac')}
                         external
                     />
                     <RuleGroup.Row
+                        glyph={UsersThree}
                         title={access.groups.length ? access.groups.join(' · ') : 'Aucun groupe'}
                         subtitle="un groupe borne un rôle à un pays ou un service"
                         onOpen={() => onViewChange?.('rbac')}
                         external
                     />
                     <RuleGroup.Row
+                        glyph={ListChecks}
                         title="Accès effectifs"
                         subtitle={`${access.resources} ressource${access.resources > 1 ? 's' : ''} · ${access.reach}`}
                         onOpen={() => onViewChange?.('rbac')}
@@ -1265,57 +1273,89 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 onClose={() => setSheet(null)}
                 title="Suspendre le compte"
             >
-                <div className="space-y-3 px-1 pb-4">
-                    <p className="text-body-medium text-text-secondary">{user.name}</p>
-                    <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
-                        <Icon glyph={ArrowCounterClockwise} size={18} />
-                        Réversible — « Réactiver le compte » redevient le geste primaire de la
-                        fiche.
+                <div className="flex flex-col gap-4">
+                    {/* `.slead` de 05.2 — la phrase qui dit que l'acte se défait, en 14 sur 20.
+                        Elle tenait dans une pilule ambre : la planche n'en met pas, et une
+                        alerte teintée pour un acte réversible dit le contraire du texte. */}
+                    <p className="text-on-surface-variant text-[14px] leading-5">
+                        Réversible : « Réactiver le compte » redevient le geste de la fiche.
                     </p>
-                    <ul className="bg-surface-container text-body-medium text-text-secondary space-y-2 rounded-md px-3.5 py-3">
-                        <li>
-                            L'accès est coupé{' '}
-                            <strong className="text-on-surface font-medium">immédiatement</strong>.
-                        </li>
-                        <li>
-                            Le nom{' '}
-                            <strong className="text-on-surface font-medium">
-                                disparaît des sélecteurs d'attribution
-                            </strong>
-                            .
-                        </li>
+
+                    {/* `.fixed` — sur qui porte l'acte : sa vignette, son nom, ce qu'il détient. */}
+                    <div className="flex items-center gap-3 py-2">
+                        <span className="bg-tint-bleu text-on-tint-bleu rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold">
+                            {initials}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface block truncate text-[16px] leading-6">
+                                {user.name}
+                            </span>
+                            <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                {held > 0 ? `${heldLabel} à son nom` : 'aucun objet à son nom'}
+                            </span>
+                        </span>
+                    </div>
+
+                    {/* `.conseq` — **une conséquence par ligne**, chacune avec sa pastille de 28,
+                        le tout dans le creux. C'était une liste à puces en 13, où les trois
+                        effets se lisaient comme une phrase. */}
+                    <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
+                        <span className="text-text-muted text-[12px] leading-4 font-medium">
+                            Ce que cela change
+                        </span>
+                        <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                            <span className="bg-tint-orange text-on-tint-orange flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={LockSimple} size={18} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                L'accès est coupé{' '}
+                                <b className="text-on-surface font-medium">immédiatement</b>.
+                            </span>
+                        </span>
+                        <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                            <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={UserMinus} size={18} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                Le nom sort des{' '}
+                                <b className="text-on-surface font-medium">sélecteurs</b> de remise.
+                            </span>
+                        </span>
                         {held > 0 && (
-                            <li>
-                                {heldLabel}{' '}
-                                <strong className="text-on-surface font-medium">
-                                    reste{held > 1 ? 'nt' : ''} à son nom et{' '}
-                                    {held > 1 ? 'sont' : 'est'} signalé{held > 1 ? 's' : ''} « à
-                                    récupérer »
-                                </strong>
-                                , ici et sur {held > 1 ? 'leur' : 'sa'} fiche.
-                            </li>
+                            <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                                <span className="bg-tint-ambre text-on-tint-ambre flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
+                                    <Icon glyph={Laptop} size={18} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    Ses <b className="text-on-surface font-medium">{heldLabel}</b>{' '}
+                                    {held > 1 ? 'sont signalés' : 'est signalé'} à récupérer.
+                                </span>
+                            </span>
                         )}
-                    </ul>
+                    </div>
+
                     <label className="block">
-                        <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                        <span className="text-text-muted mb-1.5 block text-[12px] leading-4 font-medium">
                             Motif{' '}
-                            <span className="text-text-secondary font-normal tracking-normal normal-case">
-                                — optionnel, écrit au journal
+                            <span className="text-text-tertiary font-normal">
+                                facultatif, écrit au journal
                             </span>
                         </span>
                         <input
                             value={reasonDraft}
                             onChange={(e) => setReasonDraft(e.target.value)}
                             placeholder="Congé sabbatique, départ en cours…"
-                            className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border px-3 py-2.5 focus:outline-hidden"
+                            className="border-outline bg-surface text-label-large text-on-surface focus:border-primary w-full rounded-md border px-3 py-2 outline-none"
                         />
                     </label>
-                    <div className="flex justify-end gap-2 pt-1">
-                        <Button variant="text" onClick={() => setSheet(null)}>
+
+                    {/* `.sfoot` — deux colonnes égales, d'un bord à l'autre de la feuille. */}
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={() => setSheet(null)}>
                             Annuler
                         </Button>
                         <Button variant="filled" onClick={confirmSuspend}>
-                            Suspendre le compte
+                            Suspendre
                         </Button>
                     </div>
                 </div>
@@ -1334,7 +1374,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         Rien n'est coupé — son accès reste ouvert jusqu'au dernier jour.
                     </p>
                     <label className="block">
-                        <span className="text-text-muted mb-1 block text-[11px] font-medium tracking-[0.06em] uppercase">
+                        <span className="text-text-muted mb-1.5 block text-[12px] leading-4 font-medium">
                             Dernier jour
                         </span>
                         <input
@@ -1404,7 +1444,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             return (
                                 <div
                                     key={item.id}
-                                    className={`flex min-h-[60px] items-center gap-3 py-2 ${i > 0 ? 'border-outline-variant border-t' : ''}`}
+                                    className={`flex min-h-[60px] items-center gap-4 py-2 ${i > 0 ? 'border-outline-variant border-t' : ''}`}
                                 >
                                     <span className="rounded-vignette bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center">
                                         <Icon glyph={EqIcon} size={20} />

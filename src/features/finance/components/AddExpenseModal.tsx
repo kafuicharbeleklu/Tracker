@@ -536,9 +536,9 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         empilait trois lignes de métadonnées que la planche ne porte pas —
                         la confiance ne se dit pas, elle décide (voir `keepIfRead`). */}
                     {scannedFile && (
-                        <div className="border-outline-variant bg-surface shadow-elevation-1 rounded-lg border p-4">
+                        <div className="border-outline-variant bg-surface rounded-lg border p-4">
                             <div className="flex min-h-[56px] items-center gap-3">
-                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px]">
+                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
                                     <Icon glyph={FileText} size={20} />
                                 </span>
                                 <span className="min-w-0 flex-1">
@@ -576,7 +576,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                         coup d'œil ; ce qui ne l'a pas été porte « non lu · à saisir », et
                         c'est le seul endroit où l'œil doit se poser. */}
                     {scannedFile && extractionMeta && (
-                        <div className="border-outline-variant bg-surface shadow-elevation-1 rounded-lg border p-4">
+                        <div className="border-outline-variant bg-surface rounded-lg border p-4">
                             <div className="mb-2 flex items-baseline justify-between gap-3">
                                 <h3 className="text-on-surface text-[13px] font-medium">
                                     Ce que la machine a lu

@@ -156,8 +156,6 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                                 setFormData({ ...formData, description: e.target.value })
                             }
                             placeholder="Détails sur l'utilisation de cette catégorie..."
-                            variant="outlined"
-                            className="min-h-[100px] resize-none"
                             rows={4}
                         />
                     </div>

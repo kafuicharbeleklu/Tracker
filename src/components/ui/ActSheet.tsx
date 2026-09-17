@@ -6,7 +6,10 @@ import Icon from './Icon';
 import Button from './Button';
 import InlineError from './InlineError';
 import Attestation, { type AttestationMethod } from './Attestation';
+import { signatureService } from '../../services/signatureService';
 import { cn } from '../../lib/utils';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
 
 /**
  * **La feuille d'acte** — composant partagé **17.4**, neuf actes.
@@ -111,7 +114,11 @@ interface ActSheetProps {
     /** 3 · la seule question propre à l'acte. */
     question?: { label: string; children: React.ReactNode };
     /** Qui atteste, et le code de son compte s'il en a défini un. */
-    signer: { name: string; pin?: string };
+    /**
+     * Qui atteste. L'`id` sert à relire sa **signature enregistrée** (07.1, lot 28) :
+     * quand elle existe et que le code vaut, elle s'appose d'elle-même.
+     */
+    signer: { name: string; pin?: string; id?: string };
     /** Le libellé du bloc 4 — « Signature de Karim Diallo » quand l'autre partie signe. */
     attestationLabel?: string;
     /** 5 · ce que l'acte déclenche. Une ligne, calculée. */
@@ -155,11 +162,36 @@ const ActSheet: React.FC<ActSheetProps> = ({
     error = null,
 }) => {
     const titleId = useId();
+    /** Au-delà de 600 px il n'y a plus de pouce : la feuille d'acte se centre à la
+        mesure de 560, sans poignée, avec l'ombre du dialogue (00.5). Elle s'étirait
+        sur les 1 280 px du bureau (13/09). */
+    const compact = useMediaQuery(MEDIA.compact);
     const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
         method: signer.pin ? 'pin' : 'signature',
         done: false,
     });
     const [recherche, setRecherche] = useState('');
+
+    /**
+     * **La signature enregistrée du signataire** — lue seulement s'il a un code : elle ne
+     * s'appose que pour *« celui qui saisit son propre code sur son propre appareil »*
+     * (lot 28, D5). En présence (17.4, colonne 3), le second signataire n'a ni code ni
+     * image : il trace, et c'est ce qui fait la valeur de sa preuve.
+     */
+    const [signature, setSignature] = useState<Blob | null>(null);
+    useEffect(() => {
+        let vivant = true;
+        if (!open || !signer.pin || !signer.id) {
+            setSignature(null);
+            return;
+        }
+        void signatureService.get(signer.id).then((image) => {
+            if (vivant) setSignature(image);
+        });
+        return () => {
+            vivant = false;
+        };
+    }, [open, signer.id, signer.pin]);
 
     /* Le bloc qui reste à désigner tient la feuille : tant qu'il n'est pas rempli, il
        n'y a rien à attester, donc ni bloc 4 ni pied. */
@@ -241,7 +273,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+        <div
+            className={cn(
+                'fixed inset-0 z-[100] flex justify-center',
+                compact ? 'items-end' : 'items-center p-4',
+            )}
+        >
             <div
                 className="bg-scrim/[0.42] absolute inset-0"
                 onClick={onClose}
@@ -252,15 +289,22 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                className="bg-surface rounded-t-card shadow-elevation-3 animate-in slide-in-from-bottom-4 relative flex max-h-[97%] w-full flex-col pb-3 duration-300"
+                className={cn(
+                    'bg-surface animate-in relative flex max-h-[97%] w-full flex-col pb-3 duration-300',
+                    compact
+                        ? 'rounded-t-card shadow-sheet slide-in-from-bottom-4'
+                        : 'rounded-card shadow-dialog fade-in max-w-[560px]',
+                )}
             >
-                <span
-                    aria-hidden="true"
-                    className="bg-outline-variant mx-auto mt-2 mb-0.5 h-1 w-9 rounded-xs"
-                />
+                {compact && (
+                    <span
+                        aria-hidden="true"
+                        className="bg-outline-variant mx-auto mt-2 mb-0.5 h-1 w-9 rounded-xs"
+                    />
+                )}
 
                 {/* `.sttl` — le verbe en titre, et ce qu'on atteste en sous-titre. */}
-                <div className="flex items-start gap-2 py-1 pr-3 pl-5">
+                <div className={cn('flex items-start gap-2 py-1 pr-3 pl-5', !compact && 'pt-4')}>
                     <div className="min-w-0 flex-1">
                         <h2
                             id={titleId}
@@ -394,6 +438,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                 key={signer.name}
                                 signerName={signer.name}
                                 signerPin={signer.pin}
+                                signature={signature}
                                 label={attestationLabel}
                                 onChange={setAttestation}
                             />

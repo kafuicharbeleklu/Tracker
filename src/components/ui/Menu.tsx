@@ -6,6 +6,12 @@ import Divider from './Divider';
 export interface MenuItem {
     id: string;
     label: string;
+    /**
+     * **Une entrée tient sur une ligne** (`menus.css`, 05.2 — arbitré le 13/09) : la
+     * conséquence d'un acte se lit dans la feuille qu'il ouvre. La description n'est
+     * visible que sur un acte impossible — elle dit pourquoi, en bout de ligne (17.6) ;
+     * sur un acte possible, seul le lecteur d'écran la lit.
+     */
     description?: string;
     onSelect: () => void;
     icon?: string;
@@ -304,7 +310,7 @@ const Menu: React.FC<MenuProps> = ({
                                        déclare, dans le seul endroit du produit où l'on
                                        choisit un acte à l'aveugle du bout du pouce. */
                                     'group duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-4 py-2 text-left text-[16px] leading-6 transition-[color,background-color,opacity] outline-none',
-                                    item.description ? 'min-h-[56px]' : 'min-h-12',
+                                    'min-h-12',
                                     item.selected &&
                                         'bg-surface-container font-medium text-[var(--tk-color-nav-active)]',
                                     'focus-visible:ring-focus-ring focus-visible:ring-2 focus-visible:ring-inset',
@@ -337,13 +343,16 @@ const Menu: React.FC<MenuProps> = ({
                                         )}
                                     />
                                 )}
-                                <div className="min-w-0 flex-1">
-                                    <span className="block truncate">{item.label}</span>
-                                    {item.description && (
-                                        <span className="text-text-muted mt-0.5 block truncate text-[12px] leading-4 font-normal">
-                                            {item.description}
-                                        </span>
-                                    )}
+                                <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                                    <span className="truncate">{item.label}</span>
+                                    {item.description &&
+                                        (item.disabled ? (
+                                            <span className="text-text-tertiary ml-auto min-w-0 truncate text-right text-[12px] leading-4">
+                                                {item.description}
+                                            </span>
+                                        ) : (
+                                            <span className="sr-only">{item.description}</span>
+                                        ))}
                                 </div>
                                 {item.trailingText && (
                                     <span
