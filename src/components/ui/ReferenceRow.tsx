@@ -66,7 +66,7 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
     return (
         <div
             className={cn(
-                'border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6 first:border-t-0',
+                'border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6 first:border-t-0',
                 className,
             )}
         >
@@ -76,10 +76,12 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                 <button
                     type="button"
                     onClick={copy}
-                    /* `.cp` — 44 de haut, 8 d'intérieur, en 16 tabulaire et sans graisse. */
-                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 text-[16px] leading-6 font-normal outline-none focus-visible:ring-2"
+                    /* `.cp` — 44 de haut, 8 d'intérieur, en 16 tabulaire, sans graisse **et
+                       sans interlettrage** : le numéro portait 0,4 px d'espacement, que la
+                       planche ne donne à aucune valeur de référence. */
+                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 text-[1rem] leading-6 font-normal outline-none focus-visible:ring-2"
                 >
-                    <span className="tracking-wide tabular-nums">{value}</span>
+                    <span className="tabular-nums">{value}</span>
                     <Icon glyph={Copy} size={18} className="text-on-surface-variant" />
                     <span className="sr-only">{copied ? 'Copié' : 'Copier'}</span>
                 </button>
@@ -95,7 +97,7 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                         `text-label-small` en porte `.075em`, fait pour les capitales — sur
                         une phrase en minuscules, il l'étire lettre à lettre. */}
                     {detail && (
-                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4 font-normal">
+                        <span className="text-on-surface-variant mt-0.5 block text-[0.75rem] leading-4 font-normal">
                             {detail}
                         </span>
                     )}

@@ -150,7 +150,7 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={fermer} title="Réceptionner">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[0.875rem] leading-5">
                     {item.repairTicket
                         ? `Dossier ${item.repairTicket}.`
                         : parti

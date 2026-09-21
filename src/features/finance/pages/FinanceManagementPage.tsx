@@ -87,6 +87,22 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const { currentBudget, budgetStats } = useBudgetExercise(selectedYear);
     const spentPercent = Math.min(Math.max(budgetStats.percent, 0), 100);
 
+    /** Une enveloppe épuisée est une enveloppe dont le consommé a rejoint l'affecté. */
+    const enveloppesEpuisees = currentBudget.items.filter(
+        (item) => item.allocated > 0 && item.spent >= item.allocated,
+    ).length;
+
+    /** La dernière écriture du journal — « dernière le 2 sept. » dans la bande de 15.1. */
+    const derniereDepense = useMemo(() => {
+        const dates = financeExpenses
+            .map((expense) => new Date(expense.date).getTime())
+            .filter((time) => !Number.isNaN(time));
+        if (dates.length === 0) return null;
+        return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(
+            new Date(Math.max(...dates)),
+        );
+    }, [financeExpenses]);
+
     const currentFrenchDate = useMemo(
         () =>
             new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date()),
@@ -177,7 +193,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </Button>
                             )}
-                            <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                                 Finances
                             </h1>
                             <Menu
@@ -238,48 +254,131 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                           **aucune jauge** — le seul dessin qui dise d'un coup où en est
                           l'exercice.
                         */}
-                        <section className="bg-inverse-surface text-inverse-on-surface rounded-card px-5 pt-[22px] pb-5">
-                            <span className="block text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
-                                Exercice {selectedYear} · {currentBudget.status.toLowerCase()}
-                            </span>
-                            {/* `.big` — **le nombre, puis l'unité à côté** : Archivo 44
-                                sur 48 pour l'un, 14 sur 20 en encre estompée pour
-                                l'autre, comme le héro de 16.1. La devise passait dans le
-                                `<b>` avec le chiffre : « XOF » s'écrivait alors en 44, et
-                                une seconde fois sous la jauge. */}
-                            <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
-                                <b className="font-brand text-[44px] leading-[48px] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
-                                    {formatNumber(budgetStats.remaining, settings.compactNotation)}
-                                </b>
-                                <span className="text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
-                                    {settings.currency}
+                        {isCompact ? (
+                            <section className="bg-inverse-surface text-inverse-on-surface rounded-card px-5 pt-[22px] pb-5">
+                                <span className="block text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
+                                    Exercice {selectedYear} · {currentBudget.status.toLowerCase()}
                                 </span>
-                            </div>
-                            <span className="mt-1 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
-                                restants sur{' '}
-                                {formatNumber(budgetStats.totalAllocated, settings.compactNotation)}
-                            </span>
-                            {budgetStats.totalAllocated > 0 && (
-                                <>
-                                    {/* `.prog` — 6 px, rayon 2, sur le voile à 12 %. */}
-                                    <div className="mt-5 h-1.5 overflow-hidden rounded-xs bg-white/[0.12]">
-                                        <i
-                                            className="block h-full bg-[var(--tk-color-live-vert)]"
-                                            style={{ width: `${Math.min(spentPercent, 100)}%` }}
-                                        />
-                                    </div>
-                                    <div className="mt-2 flex justify-between gap-3 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
-                                        <span>
-                                            <b className="text-inverse-on-surface font-medium">
-                                                {spentPercent.toFixed(0)} %
-                                            </b>{' '}
-                                            consommés
+                                {/* `.big` — **le nombre, puis l'unité à côté** : Archivo 44
+                                    sur 48 pour l'un, 14 sur 20 en encre estompée pour
+                                    l'autre, comme le héro de 16.1. La devise passait dans le
+                                    `<b>` avec le chiffre : « XOF » s'écrivait alors en 44, et
+                                    une seconde fois sous la jauge. */}
+                                <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
+                                    <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
+                                        {formatNumber(
+                                            budgetStats.remaining,
+                                            settings.compactNotation,
+                                        )}
+                                    </b>
+                                    <span className="text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                        {settings.currency}
+                                    </span>
+                                </div>
+                                <span className="mt-1 block text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                    restants sur{' '}
+                                    {formatNumber(
+                                        budgetStats.totalAllocated,
+                                        settings.compactNotation,
+                                    )}
+                                </span>
+                                {budgetStats.totalAllocated > 0 && (
+                                    <>
+                                        {/* `.prog` — 6 px, rayon 2, sur le voile à 12 %. */}
+                                        <div className="mt-5 h-1.5 overflow-hidden rounded-xs bg-white/[0.12]">
+                                            <i
+                                                className="block h-full bg-[var(--tk-color-live-vert)]"
+                                                style={{ width: `${Math.min(spentPercent, 100)}%` }}
+                                            />
+                                        </div>
+                                        <div className="mt-2 flex justify-between gap-3 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                            <span>
+                                                <b className="text-inverse-on-surface font-medium">
+                                                    {spentPercent.toFixed(0)} %
+                                                </b>{' '}
+                                                consommés
+                                            </span>
+                                            <span>au {currentFrenchDate}</span>
+                                        </div>
+                                    </>
+                                )}
+                            </section>
+                        ) : (
+                            /*
+                              **Au bureau, `.bande` remplace le héro** (15.1 à 1280) : le grand
+                              restant en 44 est un dessin de téléphone. Quatre repères en 28 sur
+                              le sombre — ce qui reste et sa jauge, ce qui est consommé, les
+                              postes, les dépenses —, chacun sous sa légende en 12.
+                            */
+                            <section className="bg-inverse-surface text-inverse-on-surface rounded-card flex px-5 py-[18px]">
+                                {[
+                                    {
+                                        cle: 'restant',
+                                        valeur: formatNumber(
+                                            budgetStats.remaining,
+                                            settings.compactNotation,
+                                        ),
+                                        unite: settings.currency,
+                                        legende: `restants sur ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)}`,
+                                        jauge: budgetStats.totalAllocated > 0 ? spentPercent : null,
+                                    },
+                                    {
+                                        cle: 'consomme',
+                                        valeur: `${spentPercent.toFixed(0)} %`,
+                                        legende: `consommés · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
+                                        jauge: null,
+                                    },
+                                    {
+                                        cle: 'postes',
+                                        valeur: `${currentBudget.items.length}`,
+                                        legende:
+                                            enveloppesEpuisees > 0
+                                                ? `postes · ${enveloppesEpuisees} enveloppe${enveloppesEpuisees > 1 ? 's' : ''} épuisée${enveloppesEpuisees > 1 ? 's' : ''}`
+                                                : 'postes · aucune enveloppe épuisée',
+                                        jauge: null,
+                                    },
+                                    {
+                                        cle: 'depenses',
+                                        valeur: `${financeExpenses.length}`,
+                                        legende: derniereDepense
+                                            ? `dépenses · dernière le ${derniereDepense}`
+                                            : 'dépenses · aucune écriture',
+                                        jauge: null,
+                                    },
+                                ].map((repere, index) => (
+                                    <div
+                                        key={repere.cle}
+                                        className={cn(
+                                            'min-w-0 flex-1 py-0.5 pr-4',
+                                            index > 0 && 'pl-4',
+                                        )}
+                                    >
+                                        <span className="font-brand flex items-baseline gap-2 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] tabular-nums">
+                                            {repere.valeur}
+                                            {repere.unite && (
+                                                <small className="text-[0.8125rem] leading-4 font-normal tracking-normal text-[var(--tk-color-on-dark-2)]">
+                                                    {repere.unite}
+                                                </small>
+                                            )}
                                         </span>
-                                        <span>au {currentFrenchDate}</span>
+                                        <span className="mt-1 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
+                                            {repere.legende}
+                                        </span>
+                                        {repere.jauge !== null && (
+                                            /* `.bp` — 6 px, rayon 2, sur le voile à 12 %, bornée à 220. */
+                                            <div className="mt-2.5 h-1.5 max-w-[220px] overflow-hidden rounded-xs bg-white/[0.12]">
+                                                <i
+                                                    className="block h-full bg-[var(--tk-color-live-vert)]"
+                                                    style={{
+                                                        width: `${Math.min(repere.jauge, 100)}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                </>
-                            )}
-                        </section>
+                                ))}
+                            </section>
+                        )}
 
                         {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
                         {/* `.card` — **fond de surface, rayon 8, intérieur 8 / 16**, et rien
@@ -290,10 +389,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
                                 le compte en 14 sur 20. Il tenait 13 px des deux côtés. */}
                             <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
-                                <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                                <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                                     Les postes
                                 </h3>
-                                <span className="text-on-surface-variant text-[14px] leading-5 tabular-nums">
+                                <span className="text-on-surface-variant text-[0.875rem] leading-5 tabular-nums">
                                     {currentBudget.items.length}
                                 </span>
                             </div>
@@ -316,7 +415,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                     « annulé » d'un montant qui ne l'est
                                                     pas. */}
                                                 <div className="flex items-baseline justify-between gap-3">
-                                                    <span className="text-on-surface text-[16px] leading-6">
+                                                    <span className="text-on-surface text-[1rem] leading-6">
                                                         {item.category}
                                                     </span>
                                                     {/* **Des nombres nus.** `.bv` de 15.1
@@ -327,8 +426,8 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         « XOF » par rangée, trente-trois sur
                                                         l'écran, et une ligne qui touchait
                                                         son libellé. */}
-                                                    <span className="text-on-surface-variant text-[14px] leading-5 whitespace-nowrap tabular-nums">
-                                                        <b className="text-on-surface text-[16px] font-medium">
+                                                    <span className="text-on-surface-variant text-[0.875rem] leading-5 whitespace-nowrap tabular-nums">
+                                                        <b className="text-on-surface text-[1rem] font-medium">
                                                             {formatNumber(
                                                                 item.spent,
                                                                 settings.compactNotation,
@@ -357,7 +456,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         }}
                                                     />
                                                 </div>
-                                                <div className="text-on-surface-variant flex items-center gap-2 text-[12px] leading-4">
+                                                <div className="text-on-surface-variant flex items-center gap-2 text-[0.75rem] leading-4">
                                                     {/* Une ligne qui ne porte pas son classement **n'affiche rien** : un
                                                         blanc se remarque et se corrige, une supposition se recopie
                                                         dans le rapport de clôture (15.1). */}
@@ -396,7 +495,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                         */}
                         <section className="rounded-card bg-surface px-4 py-2">
                             <div className="flex min-h-12 items-center pt-2 pb-1">
-                                <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                                <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                                     Aller à
                                 </h3>
                             </div>
@@ -439,10 +538,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         <Icon glyph={rangee.glyph} size={20} />
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface block truncate text-[16px] leading-6">
+                                        <span className="text-on-surface block truncate text-[1rem] leading-6">
                                             {rangee.titre}
                                         </span>
-                                        <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                        <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                                             {rangee.detail}
                                         </span>
                                     </span>

@@ -151,7 +151,7 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={fermer} title="Prendre en charge">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[0.875rem] leading-5">
                     {item.repairStartDate
                         ? `Déclaré le ${enClair(item.repairStartDate)}.`
                         : 'Déclaré récemment.'}
@@ -190,10 +190,10 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
                             <Icon glyph={Buildings} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[16px] leading-6 font-medium">
+                            <span className="block truncate text-[1rem] leading-6 font-medium">
                                 {reparateur}
                             </span>
-                            <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                                 {sousGarantie ? 'enlèvement sur site' : 'interne'}
                             </span>
                         </span>
@@ -213,7 +213,7 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
                     <div className="min-w-0 flex-1">
                         <FieldLabel>{sousGarantie ? 'Coût' : 'Montant estimé'}</FieldLabel>
                         {sousGarantie ? (
-                            <p className="bg-surface-container text-text-tertiary flex min-h-12 items-center rounded-[4px] px-3.5 text-[16px] leading-6">
+                            <p className="bg-surface-container text-text-tertiary flex min-h-12 items-center rounded-[4px] px-3.5 text-[1rem] leading-6">
                                 pris en charge
                             </p>
                         ) : (

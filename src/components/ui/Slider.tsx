@@ -55,8 +55,7 @@ const Slider: React.FC<SliderProps> = ({
 }) => {
     const id = useId();
     const cran = stepperStep ?? step * 2;
-    const borne = (valeur: number) =>
-        Math.min(max, Math.max(min, Number(valeur.toFixed(4))));
+    const borne = (valeur: number) => Math.min(max, Math.max(min, Number(valeur.toFixed(4))));
 
     const bouton =
         'text-on-surface-variant hover:text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none focus-visible:ring-2 disabled:opacity-40';
@@ -113,7 +112,7 @@ const Slider: React.FC<SliderProps> = ({
             )}
             {/* `.zoom .v` — 40 de large, 14 sur 20 : 13 n'est sur aucune marche. */}
             {valueText && (
-                <span className="text-on-surface-variant w-10 shrink-0 text-right text-[14px] leading-5 tabular-nums">
+                <span className="text-on-surface-variant w-10 shrink-0 text-right text-[0.875rem] leading-5 tabular-nums">
                     {valueText}
                 </span>
             )}

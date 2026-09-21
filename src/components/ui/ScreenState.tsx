@@ -82,11 +82,11 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         </span>
 
         <div>
-            <p className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+            <p className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                 {title}
             </p>
             {description && (
-                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[16px] leading-6 text-pretty">
+                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[1rem] leading-6 text-pretty">
                     {description}
                 </p>
             )}
@@ -99,7 +99,7 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         {/* `.lfoot` — le fait de pied : une heure de dernière lecture, un compte.
             12 sur 16, encre tertiaire, chiffres tabulaires. */}
         {footnote && (
-            <p className="text-text-tertiary mx-auto max-w-[280px] text-[12px] leading-4 tabular-nums">
+            <p className="text-text-tertiary mx-auto max-w-[280px] text-[0.75rem] leading-4 tabular-nums">
                 {footnote}
             </p>
         )}

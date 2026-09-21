@@ -104,11 +104,11 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
                 className="text-on-surface absolute inset-0 h-full w-full cursor-crosshair touch-none"
             />
             {!hasInk && (
-                <span className="text-text-tertiary pointer-events-none absolute top-3 right-3 text-[12px] leading-4">
+                <span className="text-text-tertiary pointer-events-none absolute top-3 right-3 text-[0.75rem] leading-4">
                     signez ici
                 </span>
             )}
-            <span className="pointer-events-none absolute inset-x-0 bottom-2.5 text-center text-[14px] leading-5">
+            <span className="pointer-events-none absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
                 {signerName}
             </span>
             {hasInk && (
@@ -116,7 +116,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
                     variant="ghost"
                     size="sm"
                     onClick={clear}
-                    className="absolute top-2 right-2 h-8 px-2.5 text-[13px]"
+                    className="absolute top-2 right-2 h-8 px-2.5 text-[0.8125rem]"
                 >
                     Effacer
                 </Button>

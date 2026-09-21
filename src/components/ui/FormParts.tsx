@@ -41,7 +41,7 @@ export const ShotBox: React.FC<{
         title={title}
         aria-label={rest['aria-label']}
         className={cn(
-            'flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-center text-[12px] leading-[14px]',
+            'flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md text-center text-[0.75rem] leading-[0.875rem]',
             filled
                 ? TINT_CLASS[tint]
                 : 'border-outline text-on-surface-variant hover:bg-surface-container border-[1.5px] border-dashed',
@@ -92,11 +92,11 @@ export const FormSection: React.FC<{
 }> = ({ title, caption, children }) => (
     <section className="rounded-card bg-surface flex flex-col gap-4 p-4">
         <div className="flex min-h-6 items-center justify-between gap-3">
-            <p className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+            <p className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                 {title}
             </p>
             {caption && (
-                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5">
+                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5">
                     {caption}
                 </span>
             )}
@@ -107,7 +107,7 @@ export const FormSection: React.FC<{
 
 /** `.fnote` — ce que l'écran déduit, dit une fois, jamais redemandé. 12 sur 16. */
 export const FormNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="text-text-tertiary text-[12px] leading-4">{children}</p>
+    <p className="text-text-tertiary text-[0.75rem] leading-4">{children}</p>
 );
 
 /** `.warn` — le rappel encadré : 14 sur 20, rayon 4, sur le creux ou sur une teinte. */
@@ -118,7 +118,7 @@ export const FormWarn: React.FC<{
 }> = ({ children, glyph, tint }) => (
     <p
         className={cn(
-            'flex gap-3 rounded-md px-4 py-3 text-[14px] leading-5',
+            'flex gap-3 rounded-md px-4 py-3 text-[0.875rem] leading-5',
             tint ? TINT_CLASS[tint] : 'bg-surface-container text-on-surface-variant',
         )}
     >
@@ -136,7 +136,7 @@ export const FieldLabel: React.FC<{ children: React.ReactNode; note?: string }> 
     children,
     note,
 }) => (
-    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+    <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
         {children}
         {note && <span className="text-text-tertiary font-normal"> {note}</span>}
     </p>
@@ -171,10 +171,10 @@ export const OptionRow: React.FC<{
         )}
     >
         <span className="min-w-0 flex-1">
-            <span className="block text-[16px] leading-6">{title}</span>
+            <span className="block text-[1rem] leading-6">{title}</span>
             <span
                 className={cn(
-                    'block text-[14px] leading-5',
+                    'block text-[0.875rem] leading-5',
                     selected ? 'opacity-80' : 'text-on-surface-variant',
                 )}
             >
@@ -208,10 +208,10 @@ export const SubjectRow: React.FC<{
             <Icon glyph={glyph} size={20} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block truncate text-[16px] leading-6 tabular-nums">
+            <span className="text-on-surface block truncate text-[1rem] leading-6 tabular-nums">
                 {title}
             </span>
-            <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                 {detail}
             </span>
         </span>
@@ -228,11 +228,11 @@ export const Consequences: React.FC<{
     lines: Array<{ glyph: PhosphorGlyph; tint: Tint; content: React.ReactNode }>;
 }> = ({ label, lines }) => (
     <div className="bg-surface-container flex flex-col gap-2.5 rounded-md px-4 py-3">
-        <p className="text-on-surface-variant text-[12px] leading-4 font-medium">{label}</p>
+        <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">{label}</p>
         {lines.map((line, index) => (
             <span
                 key={index}
-                className="text-on-surface flex items-center gap-3 text-[14px] leading-5"
+                className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5"
             >
                 <span
                     className={cn(
@@ -273,7 +273,7 @@ export const PickRow: React.FC<{
     >
         <span
             className={cn(
-                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold',
+                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold',
                 tint ? TINT_CLASS[tint] : 'bg-surface text-text-tertiary',
             )}
         >
@@ -282,19 +282,19 @@ export const PickRow: React.FC<{
         <span className="min-w-0 flex-1">
             <span
                 className={cn(
-                    'block truncate text-[16px] leading-6',
+                    'block truncate text-[1rem] leading-6',
                     empty ? 'text-text-tertiary' : 'font-medium',
                 )}
             >
                 {title}
             </span>
             {subtitle && (
-                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                     {subtitle}
                 </span>
             )}
         </span>
-        <span className="shrink-0 text-[15px] font-medium">{actionLabel}</span>
+        <span className="shrink-0 text-[0.9375rem] font-medium">{actionLabel}</span>
     </button>
 );
 
@@ -327,7 +327,7 @@ export const Segmented = <T extends string>({
                 onClick={() => onChange(option.value)}
                 aria-pressed={value === option.value}
                 className={cn(
-                    'flex min-h-9 flex-1 items-center justify-center rounded-[2px] text-[14px] leading-5',
+                    'flex min-h-9 flex-1 items-center justify-center rounded-[2px] text-[0.875rem] leading-5',
                     value === option.value
                         ? 'bg-surface text-on-surface font-medium shadow-[0_1px_2px_rgba(10,25,29,0.08)]'
                         : 'text-on-surface-variant',
@@ -337,6 +337,38 @@ export const Segmented = <T extends string>({
             </button>
         ))}
     </div>
+);
+
+/**
+ * **Une case de pictogramme** — le jeu figé des glyphes de type, choisi d'un coup
+ * d'œil. Carrée, sur le creux, rayon 4 ; le cran pris passe en encre inversée comme la
+ * tuile de 06.4. Les cases portaient un anneau jaune, une ombre, et grossissaient au
+ * survol : les planches ne posent le jaune que sur un acte, et rien n'y change de
+ * taille sous le doigt.
+ */
+export const GlyphTile: React.FC<{
+    glyph: PhosphorGlyph;
+    /** Ce que la case désigne, pour qui ne voit pas le dessin. */
+    label: string;
+    selected: boolean;
+    onClick: () => void;
+}> = ({ glyph, label, selected, onClick }) => (
+    <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        aria-label={label}
+        tabIndex={selected ? 0 : -1}
+        onClick={onClick}
+        className={cn(
+            'flex aspect-square items-center justify-center rounded-[4px]',
+            selected
+                ? 'bg-inverse-surface text-inverse-on-surface'
+                : 'bg-surface-container text-on-surface-variant',
+        )}
+    >
+        <Icon glyph={glyph} size={20} />
+    </button>
 );
 
 /**
@@ -366,6 +398,6 @@ export const ChoiceTile: React.FC<{
             size={24}
             className={selected ? undefined : 'text-on-surface-variant'}
         />
-        <span className="text-[16px] leading-6">{label}</span>
+        <span className="text-[1rem] leading-6">{label}</span>
     </button>
 );

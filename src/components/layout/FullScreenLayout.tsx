@@ -1,5 +1,5 @@
 import { MEDIA } from '../../constants/breakpoints';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
@@ -35,12 +35,33 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
     className,
 }) => {
     const isCompactLandscape = useMediaQuery(MEDIA.belowExpandedLandscape);
+
+    /*
+     * **Échap referme, comme sur une feuille ou un dialogue.** La surface couvre tout
+     * l'écran : au doigt, la flèche de retour est la sortie, mais au clavier il n'y en
+     * avait aucune — une saisie ouverte par-dessus une page restait ouverte tant qu'on
+     * ne visait pas la flèche. `Modal` fermait déjà sur Échap ; la coque qui le remplace
+     * ne peut pas en savoir moins.
+     */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [onClose]);
     const useSymmetricHeader = Boolean(headerContent) && !headerActions;
 
     return (
         <div
             className={cn(
-                'bg-surface animate-in fade-in slide-in-from-bottom-4 duration-medium2 fixed inset-0 z-50 flex h-full flex-col',
+                /* **Un écran plein couvre le chrome, sinon il n'est pas plein.** Il
+                   tenait `z-50`, la mesure de la barre du bas : montée au-dessus d'une
+                   page à onglets — la saisie d'une dépense sur 15.3 —, la barre et le
+                   geste d'ajout traversaient la surface. `z-[100]` est l'étage des
+                   surfaces qui couvrent, celui des feuilles et des dialogues ; le
+                   retour transitoire reste au-dessus, à 110. */
+                'bg-surface animate-in fade-in slide-in-from-bottom-4 duration-medium2 fixed inset-0 z-[100] flex h-full flex-col',
                 className,
             )}
         >
@@ -84,8 +105,8 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <h1
                                     className={cn(
                                         /* 17 sur 24 en Archivo 600 — `.tbar h2`. */
-                                        'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[17px] leading-6 font-semibold tracking-[-0.01em]',
-                                        isCompactLandscape && 'text-[15px] leading-5',
+                                        'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]',
+                                        isCompactLandscape && 'text-[0.9375rem] leading-5',
                                     )}
                                 >
                                     {title}
@@ -117,8 +138,8 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <div className="min-w-0 px-1">
                                     <h1
                                         className={cn(
-                                            'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[17px] leading-6 font-semibold tracking-[-0.01em]',
-                                            isCompactLandscape && 'text-[15px] leading-5',
+                                            'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]',
+                                            isCompactLandscape && 'text-[0.9375rem] leading-5',
                                         )}
                                     >
                                         {title}

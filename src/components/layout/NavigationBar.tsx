@@ -163,11 +163,11 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
             <Icon glyph={row.glyph} size={20} emphasis={here ? 'fill' : 'regular'} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] leading-6">{row.label}</span>
+            <span className="block truncate text-[1rem] leading-6">{row.label}</span>
             {row.fact && (
                 <span
                     className={cn(
-                        'block truncate text-[14px] leading-5',
+                        'block truncate text-[0.875rem] leading-5',
                         row.fact.warn
                             ? 'text-[var(--tk-color-on-tint-ambre)]'
                             : 'text-on-surface-variant',
@@ -457,7 +457,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
                     {/* `.sttl` — le titre des feuilles : 22 sur 28, Archivo 600. */}
                     <div className="px-5 pt-1 pb-1">
-                        <h2 className="font-brand text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+                        <h2 className="font-brand text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                             Plus
                         </h2>
                     </div>
@@ -467,7 +467,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             <div key={group.label ?? 'sans-groupe'} className="flex flex-col">
                                 {/* `.lab` — le nom du groupe, 12 sur 16 en 500. */}
                                 {group.label && moreGroups.length > 1 && (
-                                    <p className="text-on-surface-variant mb-1 text-[12px] leading-4 font-medium">
+                                    <p className="text-on-surface-variant mb-1 text-[0.75rem] leading-4 font-medium">
                                         {group.label}
                                     </p>
                                 )}
@@ -523,7 +523,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             }
                             title={item.label}
                             className={cn(
-                                'relative flex h-full min-h-16 flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[12px] leading-4 transition-colors',
+                                'relative flex h-full min-h-16 flex-1 cursor-pointer flex-col items-center justify-center gap-1 text-[0.75rem] leading-4 transition-colors',
                                 // `.nav>a.on` ne change que la couleur : la case active portait
                                 // une graisse de 500 que la planche ne lui donne pas (13/09).
                                 item.active
@@ -548,7 +548,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             {item.badge !== undefined && (
                                 <span
                                     aria-hidden="true"
-                                    className="absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[11px] leading-4 font-medium text-white tabular-nums"
+                                    className="absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[0.6875rem] leading-4 font-medium text-white tabular-nums"
                                 >
                                     {item.badge > 99 ? '99+' : item.badge}
                                 </span>

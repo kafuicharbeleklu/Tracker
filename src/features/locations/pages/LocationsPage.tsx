@@ -17,7 +17,6 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import ListRow from '../../../components/ui/ListRow';
-import Modal from '../../../components/ui/Modal';
 import ScreenState from '../../../components/ui/ScreenState';
 import SearchField from '../../../components/ui/SearchField';
 import SelectField from '../../../components/ui/SelectField';
@@ -269,7 +268,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
      * contenu.
      */
     const ordLine = (
-        <Reading className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
+        <Reading className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
             <span className="truncate tabular-nums">
                 {sites.length} site{sites.length > 1 ? 's' : ''} · {locationData.countries.length}{' '}
                 pays
@@ -348,10 +347,10 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={option.glyph} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block truncate text-[16px] leading-6">
+                                <span className="text-on-surface block truncate text-[1rem] leading-6">
                                     {option.title}
                                 </span>
-                                <span className="text-text-secondary block truncate text-[14px] leading-5">
+                                <span className="text-text-secondary block truncate text-[0.875rem] leading-5">
                                     {option.sub}
                                 </span>
                             </span>
@@ -364,22 +363,17 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     ))}
                 </div>
             </BottomSheet>
-            <Modal
-                isOpen={Boolean(newKind)}
+            {/* **Le chemin choisi ouvre une feuille, pas une fenêtre.** 16.1 pose les
+                quatre chemins dans une feuille ; celui qu'on prend n'a qu'un ou deux
+                champs, et la même surface le porte — montante au téléphone, centrée à
+                560 au-delà de 600 (00.5). Il ouvrait un `Modal` : au téléphone, une
+                boîte qui prenait tout l'écran pour un seul champ. */}
+            <BottomSheet
+                open={Boolean(newKind)}
                 onClose={closeCreate}
                 title={`Ajouter un ${kindLabel}`}
-                footer={
-                    <>
-                        <Button variant="outlined" onClick={closeCreate}>
-                            Annuler
-                        </Button>
-                        <Button variant="filled" onClick={submitCreate}>
-                            Ajouter
-                        </Button>
-                    </>
-                }
             >
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                     <InputField
                         label={`Nom du ${kindLabel}`}
                         name="location-name"
@@ -397,8 +391,18 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             required
                         />
                     )}
+
+                    {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={closeCreate}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={submitCreate}>
+                            Ajouter
+                        </Button>
+                    </div>
                 </div>
-            </Modal>
+            </BottomSheet>
             {/* `.top` — **un seul bloc** : le titre à 28 px et la recherche sous lui,
                 sur le même fond de surface, séparés de 12. La planche ne met plus de
                 bande de filtres entre les deux. */}
@@ -416,7 +420,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={ArrowLeft} size={24} />
                             </Button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
                     </div>
@@ -426,14 +430,14 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             ) : (
                 <div className="px-page flex flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
                         <Button
                             variant="outlined"
                             icon={<Icon glyph={UploadSimple} size={20} />}
                             onClick={() => onViewChange?.('import_locations')}
-                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium"
+                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
                         >
                             Importer
                         </Button>
@@ -441,7 +445,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             variant="filled"
                             icon={<Icon glyph={Plus} size={20} />}
                             onClick={() => setIsAddSheetOpen(true)}
-                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium"
+                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
                         >
                             Ajouter un emplacement
                         </Button>
@@ -493,17 +497,17 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                             )}
                                         >
                                             {code ? (
-                                                <span className="font-brand text-[13px] font-semibold tracking-[0.02em]">
+                                                <span className="font-brand text-[0.8125rem] font-semibold tracking-[0.02em]">
                                                     {code}
                                                 </span>
                                             ) : (
                                                 <Icon glyph={GlobeHemisphereWest} size={18} />
                                             )}
                                         </span>
-                                        <span className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                        <span className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                                             {country}
                                         </span>
-                                        <span className="text-text-secondary shrink-0 text-[14px] leading-5 tabular-nums">
+                                        <span className="text-text-secondary shrink-0 text-[0.875rem] leading-5 tabular-nums">
                                             {items.length} site{items.length > 1 ? 's' : ''}
                                         </span>
                                     </div>

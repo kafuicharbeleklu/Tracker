@@ -78,7 +78,7 @@ const SUBMIT_CLASSES = 'w-full !rounded-[4px] !shadow-none';
    de texte, pas à celle d'un bouton : `min-h-0` défait le gabarit de geste, la cible
    tactile reste à 48 par la couronne `touch-target` de la primitive. */
 const LINK_CLASSES =
-    'h-auto !min-h-0 min-w-0 p-0 text-[14px] leading-5 font-medium text-[var(--tk-color-text-primary)] underline underline-offset-[3px] hover:bg-transparent hover:text-[var(--tk-color-text-muted)]';
+    'h-auto !min-h-0 min-w-0 p-0 text-[0.875rem] leading-5 font-medium text-[var(--tk-color-text-primary)] underline underline-offset-[3px] hover:bg-transparent hover:text-[var(--tk-color-text-muted)]';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
@@ -294,9 +294,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
        passe en sombre. */
     const demoAccounts = DEMO_LOGIN_ENABLED && demoShortcuts.length > 0 && (
         <div className="mt-auto pt-5">
-            <div className="text-on-surface-variant mb-3 flex items-center justify-between border-t border-[var(--tk-color-border-default)] pt-4 text-[12px] leading-4">
+            <div className="text-on-surface-variant mb-3 flex items-center justify-between border-t border-[var(--tk-color-border-default)] pt-4 text-[0.75rem] leading-4">
                 <span>Comptes de démonstration</span>
-                <span className="bg-surface-container rounded-[2px] px-1.5 py-0.5 text-[10px] font-medium tracking-[0.04em] uppercase">
+                <span className="bg-surface-container rounded-[2px] px-1.5 py-0.5 text-[0.6875rem] font-medium tracking-[0.04em] uppercase">
                     dev
                 </span>
             </div>
@@ -325,7 +325,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 contre le 4 des pages : le jeton de vignette ne bouge pas). */}
                             <span
                                 className={cn(
-                                    'font-brand rounded-vignette flex h-10 w-10 items-center justify-center text-[15px] font-semibold transition-colors',
+                                    'font-brand rounded-vignette flex h-10 w-10 items-center justify-center text-[0.9375rem] leading-normal font-semibold transition-colors',
                                     isOn
                                         ? 'bg-inverse-surface text-inverse-on-surface'
                                         : 'bg-surface-container text-on-surface-variant group-hover:bg-surface-container-high',
@@ -335,7 +335,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             </span>
                             <span
                                 className={cn(
-                                    'block w-full text-[12px] leading-4 transition-colors',
+                                    'block w-full text-[0.75rem] leading-4 transition-colors',
                                     isOn
                                         ? 'text-on-surface font-medium'
                                         : 'text-on-surface-variant group-hover:text-on-surface font-normal',
@@ -484,16 +484,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             onClick={backToLogin}
                             disabled={isSubmittingForgotPassword}
                             icon={<Icon glyph={ArrowLeft} size={18} />}
-                            className="text-on-surface-variant hover:text-on-surface mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 text-[14px] leading-5 font-medium hover:bg-transparent"
+                            className="text-on-surface-variant hover:text-on-surface mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 text-[0.875rem] leading-5 font-medium hover:bg-transparent"
                         >
                             Retour à la connexion
                         </Button>
                         {/* `.pt` / `.ps` — titre de carte 17 sur 24 en Archivo 600, puis la
                                 phrase de soutien 14 sur 20, 20 px avant le champ. */}
-                        <h2 className="font-brand mb-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                        <h2 className="font-brand mb-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
                             Mot de passe oublié
                         </h2>
-                        <p className="text-on-surface-variant mb-5 text-[14px] leading-5">
+                        <p className="text-on-surface-variant mb-5 text-[0.875rem] leading-5">
                             Un lien par courriel, valable 30 minutes. La phrase de retour est la
                             même que l'adresse ait un compte ou non.
                         </p>

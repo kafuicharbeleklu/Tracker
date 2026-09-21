@@ -22,6 +22,7 @@ import Icon from '../../../components/ui/Icon';
 import Button from '../../../components/ui/Button';
 import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
+import { FormWarn } from '../../../components/ui/FormParts';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import ScreenState from '../../../components/ui/ScreenState';
 import ListTemplate from '../../../components/layout/ListTemplate';
@@ -416,7 +417,11 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         return (
             <div className="flex min-h-0 w-full flex-1 flex-col">
                 {isCompact ? (
-                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
+                    /* `.tbar` de 11.1 — `0 8 0 4`, le retour, **le nom du rôle sur une ligne**
+                       en 17 sur 24, puis ⋮. La barre portait le nom en 16 sur 20 resserré et,
+                       dessous, la clé technique (`role.system.superadmin`) : R16 ne veut pas
+                       de sous-titre dans une barre, et la clé nomme le code, pas le rôle. */
+                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                         <Button
                             variant="text"
                             iconOnly
@@ -427,11 +432,8 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             <Icon glyph={ArrowLeft} />
                         </Button>
                         <div className="min-w-0 flex-1 px-1">
-                            <p className="font-brand text-on-surface truncate text-base leading-5 font-semibold tracking-tight">
+                            <p className="font-brand text-on-surface truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
                                 {openRole.name}
-                            </p>
-                            <p className="text-label-small text-text-secondary truncate tracking-wide tabular-nums">
-                                {openRole.id}
                             </p>
                         </div>
                     </div>
@@ -450,10 +452,10 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 <Icon glyph={ArrowLeft} size={20} />
                             </Button>
                             <div className="min-w-0 flex-1">
-                                <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                                <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                                     {openRole.name}
                                 </h1>
-                                <span className="text-text-muted block truncate text-[13px] leading-4 tabular-nums">
+                                <span className="text-text-muted block truncate text-[0.8125rem] leading-4 tabular-nums">
                                     {openRole.id}
                                 </span>
                             </div>
@@ -461,7 +463,10 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     </IconGestureSizeContext.Provider>
                 )}
 
-                <div className="medium:px-page flex-1 overflow-y-auto px-5 py-4">
+                {/* `.page` de 11.1 — **16 de gouttière**, pas 20 : la carte de cette page en porte 20
+                    (`.card{padding:8px 20px}`), et les deux ensemble posaient le titre d'une
+                    permission à 40 au lieu de 36. */}
+                <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
                     <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
                         <DetailHero
                             label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
@@ -498,7 +503,10 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             }
                         />
 
+                        {/* `.card` de 11.1 — **8 sur 20** : la gouttière de cette page, quand le gabarit
+                            en pose 16 pour 04.1 et 05.2. */}
                         <RuleGroup
+                            className="px-5"
                             header={
                                 <span className="flex items-center gap-2">
                                     <Icon glyph={Eye} size={20} />
@@ -537,6 +545,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         </RuleGroup>
 
                         <RuleGroup
+                            className="px-5"
                             header={
                                 <span className="flex items-center gap-2">
                                     <Icon glyph={Lightning} size={20} />
@@ -577,6 +586,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
                         {denied.length > 0 && (
                             <RuleGroup
+                                className="px-5"
                                 header={
                                     <span className="flex items-center gap-2">
                                         <Icon glyph={Prohibit} size={20} />
@@ -600,6 +610,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
                         {inheritance && (
                             <RuleGroup
+                                className="px-5"
                                 header={
                                     <span className="flex items-center gap-2">
                                         <Icon glyph={ArrowElbowDownRight} size={20} />
@@ -622,6 +633,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         )}
 
                         <RuleGroup
+                            className="px-5"
                             header={
                                 <span className="flex items-center gap-2">
                                     <Icon glyph={Crosshair} size={20} />
@@ -640,6 +652,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         </RuleGroup>
 
                         <RuleGroup
+                            className="px-5"
                             header={
                                 <span className="flex items-center gap-2">
                                     <Icon glyph={LockSimpleOpen} size={20} />
@@ -662,15 +675,18 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             />
                         </RuleGroup>
 
-                        <Notice glyph={Warning}>
-                            <strong className="text-on-surface font-medium">
+                        {/* `.warn` de 11.1 — **l'ambre, en 14 sur 20**, et le fait en 500. Il tenait
+                            le rappel neutre de 02.2 (12 sur 17, sur le creux), qui dit une
+                            précision ; ici la planche dit une conséquence. */}
+                        <FormWarn glyph={Warning} tint="ambre">
+                            <strong className="font-medium">
                                 Valider une demande n'est pas dans cette matrice.
                             </strong>{' '}
                             Cette autorité est{' '}
-                            <strong className="text-on-surface font-medium">relationnelle</strong> —
-                            être le manager de, être le bénéficiaire de — et vit dans les gardes
-                            métier. La case est nommée ici parce que c'est là qu'on la chercherait.
-                        </Notice>
+                            <strong className="font-medium">relationnelle</strong> — être le manager
+                            de, être le bénéficiaire de — et vit dans les gardes métier. La case est
+                            nommée ici parce que c'est là qu'on la chercherait.
+                        </FormWarn>
 
                         <div className="flex flex-col gap-3">
                             {editing ? (
@@ -813,6 +829,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                          * c'est qui est concerné.
                          */}
                         <RuleGroup
+                            className="px-5"
                             header="Les rôles"
                             headerTrailing="porteurs"
                             note={
@@ -823,8 +840,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                     </strong>{' '}
                                     : le filtrage teste en dur les{' '}
                                     {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} valeurs de{' '}
-                                    <code>UserRole</code>, et les {customRoles.length} rôles sur
-                                    mesure n'ont aucune branche.
+                                    <code className="font-mono tracking-[0.02em]">UserRole</code>,
+                                    et les {customRoles.length} rôles sur mesure n'ont aucune
+                                    branche.
                                 </>
                             }
                         >
@@ -856,7 +874,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
                         {/* 11.1 : la seconde carte ne liste pas les groupes, elle y mène.
                             « 5 groupes · ce qui s'ajoute aux rôles ». */}
-                        <RuleGroup header="Les groupes">
+                        <RuleGroup className="px-5" header="Les groupes">
                             <RuleGroup.Row
                                 title={`${rbacGroups.length} groupe${rbacGroups.length > 1 ? 's' : ''}`}
                                 subtitle="Ce qui s'ajoute aux rôles, à plusieurs personnes d'un coup"
@@ -866,6 +884,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     </>
                 ) : (
                     <RuleGroup
+                        className="px-5"
                         header="Ce qu'ils ajoutent"
                         headerTrailing="membres"
                         note="Un groupe ajoute une ligne ou un périmètre, jamais la hiérarchie. Le droit ajouté s'applique ; la portée écrite sous le nom est déclarée puis ignorée."
@@ -893,7 +912,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
             >
                 {openGroup && (
                     <div className="flex flex-col gap-3">
-                        <RuleGroup>
+                        <RuleGroup className="px-5">
                             <RuleGroup.Row
                                 title="Rôle porté"
                                 value={
@@ -927,14 +946,12 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             ))}
                         </RuleGroup>
 
-                        <Notice glyph={Warning}>
+                        <FormWarn glyph={Warning} tint="ambre">
                             La portée d'un groupe est{' '}
-                            <strong className="text-on-surface font-medium">
-                                déclarée puis ignorée
-                            </strong>{' '}
-                            : un membre d'un groupe borné à un pays voit tout de même le parc
-                            entier. Le droit ajouté par le groupe, lui, s'applique.
-                        </Notice>
+                            <strong className="font-medium">déclarée puis ignorée</strong> : un
+                            membre d'un groupe borné à un pays voit tout de même le parc entier. Le
+                            droit ajouté par le groupe, lui, s'applique.
+                        </FormWarn>
 
                         <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
                             <Button variant="text" onClick={() => setOpenGroupId(null)}>

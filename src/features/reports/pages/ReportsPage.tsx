@@ -368,7 +368,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                                 <Icon glyph={ArrowLeft} size={24} />
                             </Button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.REPORTS}
                         </h1>
                     </div>
@@ -389,10 +389,10 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
             <Reading>
                 <section className="bg-surface rounded-lg px-5 py-2">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                             Les rapports
                         </h3>
-                        <span className="text-text-muted text-[14px] leading-5 tabular-nums">
+                        <span className="text-text-muted text-[0.875rem] leading-5 tabular-nums">
                             {rapports.length}
                         </span>
                     </div>
@@ -420,13 +420,13 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                                 <span className="min-w-0 flex-1">
                                     <span
                                         className={cn(
-                                            'block truncate text-[16px] leading-6',
+                                            'block truncate text-[1rem] leading-6',
                                             rapport.vide ? 'text-text-muted' : 'text-on-surface',
                                         )}
                                     >
                                         {rapport.titre}
                                     </span>
-                                    <span className="text-text-muted block truncate text-[14px] leading-5">
+                                    <span className="text-text-muted block truncate text-[0.875rem] leading-5">
                                         {rapport.sousLigne}
                                     </span>
                                 </span>
@@ -447,7 +447,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                     ))}
 
                     {/* `.emp` — le pied dit le format, et où trouver le reste. */}
-                    <p className="border-outline-variant text-text-muted border-t pt-1 pb-3 text-[14px] leading-5">
+                    <p className="border-outline-variant text-text-muted border-t pt-1 pb-3 text-[0.875rem] leading-5">
                         Chaque export part en CSV ; le PDF et le choix de la personne s'ouvrent
                         depuis la rangée.
                     </p>

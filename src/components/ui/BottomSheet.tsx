@@ -260,7 +260,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                         <h2
                             id={titleId}
                             className={cn(
-                                'font-brand text-on-surface min-w-0 flex-1 text-[22px] leading-7 font-semibold tracking-[-0.015em]',
+                                'font-brand text-on-surface min-w-0 flex-1 text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]',
                                 titleClassName,
                             )}
                         >

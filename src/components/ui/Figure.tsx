@@ -46,17 +46,17 @@ const Figure: React.FC<FigureProps> = ({
     ...rest
 }) => {
     const number = (
-        <span className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+        <span className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
             {value}
         </span>
     );
     const caption =
         layout === 'inline' ? (
-            <span className="text-on-surface-variant ml-1 text-[14px] leading-5 font-normal">
+            <span className="text-on-surface-variant ml-1 text-[0.875rem] leading-5 font-normal">
                 {label}
             </span>
         ) : (
-            <span className="text-on-surface-variant flex items-center gap-1.5 text-[14px] leading-5 whitespace-nowrap">
+            <span className="text-on-surface-variant flex items-center gap-1.5 text-[0.875rem] leading-5 whitespace-nowrap">
                 {tone && (
                     <span
                         className={cn('h-2 w-2 shrink-0 rounded-xs', DOT[tone])}

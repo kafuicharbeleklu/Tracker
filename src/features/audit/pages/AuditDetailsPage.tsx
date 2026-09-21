@@ -165,7 +165,7 @@ const ExceptionMark: React.FC<{
     label: string;
     tone: ListRowStatus['tone'];
 }> = ({ icon, label, tone }) => (
-    <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap">
+    <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[0.75rem] whitespace-nowrap">
         <Icon glyph={icon} size={18} className={EXCEPTION_TONE[tone]} />
         {label}
     </span>
@@ -1099,14 +1099,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <Icon glyph={closureBlocked ? ArrowsLeftRight : CheckCircle} size={20} />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[16px] leading-6">
+                    <span className="block truncate text-[1rem] leading-6">
                         {closureBlocked
                             ? `${pendingExceptions.length} objet${pendingExceptions.length > 1 ? 's' : ''} non attendu${pendingExceptions.length > 1 ? 's' : ''} ici`
                             : `${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
                     </span>
                     <span
                         className={cn(
-                            'block truncate text-[14px] leading-5',
+                            'block truncate text-[0.875rem] leading-5',
                             closureBlocked ? 'opacity-80' : 'text-on-surface-variant',
                         )}
                     >
@@ -1116,7 +1116,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 {closureBlocked ? (
                     /* `.go` — le geste de la carte est **sombre**, pas jaune : le jaune de
                        l'écran est pris par le scan, et ceci mène à une décision. */
-                    <span className="bg-inverse-surface text-inverse-on-surface flex h-10 shrink-0 items-center rounded-sm px-3.5 text-[15px] font-medium">
+                    <span className="bg-inverse-surface text-inverse-on-surface flex h-10 shrink-0 items-center rounded-sm px-3.5 text-[0.9375rem] font-medium">
                         Trancher
                     </span>
                 ) : (
@@ -1268,7 +1268,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 et de 15.1. Elle prenait le corps de la page, 14 sur 21 : une mesure qui
                 n'est sur aucune marche, et deux points de plus que la clé des tuiles
                 juste au-dessus. */}
-            <span className="mt-2 block text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+            <span className="mt-2 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
                 {sessionFound} sur {sessionTotal} · {progressPercentage} %
                 {auditFinalized &&
                     sessionExceptions > 0 &&
@@ -1442,10 +1442,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <Icon glyph={ArrowLeft} size={20} />
                     </Button>
                     <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {selectedPlace || 'Campagne'}
                         </h1>
-                        <span className="text-on-surface-variant block truncate text-[13px] leading-4">
+                        <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-4">
                             Inventaire physique › {heroStatus.label}
                         </span>
                     </div>
@@ -1456,7 +1456,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             variant="outlined"
                             onClick={exportRelevé}
                             icon={<Icon glyph={Export} size={20} />}
-                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[14px] font-medium shadow-none"
+                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
                         >
                             Exporter
                         </Button>
@@ -1488,7 +1488,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             icon={<Icon glyph={ArrowLeft} size={24} />}
                             aria-label="Retour"
                         />
-                        <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                        <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
                             {vueEcarts ? 'Écarts' : 'Campagne'}
                         </span>
                         {/* Après la clôture il n'y a plus rien à décider : le débordement se
@@ -1667,10 +1667,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                            pas un écran : elle porte son nom et son reste à
                                            faire, comme une file. */
                                         <div className="flex min-h-10 items-center gap-3 px-1">
-                                            <h2 className="font-brand text-on-surface min-w-0 flex-1 text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+                                            <h2 className="font-brand text-on-surface min-w-0 flex-1 text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                                                 Écarts
                                             </h2>
-                                            <span className="text-on-surface-variant shrink-0 text-[13px] leading-4 tabular-nums">
+                                            <span className="text-on-surface-variant shrink-0 text-[0.8125rem] leading-4 tabular-nums">
                                                 {pendingExceptions.length > 0
                                                     ? `${pendingExceptions.length} à trancher`
                                                     : 'aucun à trancher'}
@@ -1750,7 +1750,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                               />
                                                           </span>
                                                           <div className="min-w-0 flex-1">
-                                                              <p className="font-brand text-on-surface truncate text-[16px] font-semibold tracking-[-0.01em]">
+                                                              <p className="font-brand text-on-surface truncate text-[1rem] font-semibold tracking-[-0.01em]">
                                                                   {code}
                                                               </p>
                                                               <p className="text-body-small text-text-secondary truncate">
@@ -1974,7 +1974,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     {enDeuxNiveaux &&
                                         !auditFinalized &&
                                         pendingExceptions.length > 0 && (
-                                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-md px-4 py-3 text-[14px] leading-5">
+                                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-md px-4 py-3 text-[0.875rem] leading-5">
                                                 <Icon
                                                     glyph={LockSimple}
                                                     size={18}

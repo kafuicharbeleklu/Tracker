@@ -175,7 +175,7 @@ const ListRow: React.FC<ListRowProps> = ({
                     /* `.vig` — 40 de côté, et **les initiales en Archivo 600 sur 15**
                        quand la vignette n'a pas d'image : c'est ce que 05.1 déclare,
                        et elles sortaient en Inter 400 sur 14. */
-                    <span className="font-brand rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-[15px] font-semibold">
+                    <span className="font-brand rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-[0.9375rem] font-semibold">
                         {vignette}
                     </span>
                 )
@@ -203,8 +203,8 @@ const ListRow: React.FC<ListRowProps> = ({
                                `leading-*` posé *avant* une taille, puisque la taille en
                                porte un. */
                             person
-                                ? 'text-[17px] leading-6 tracking-[-0.01em]'
-                                : 'text-[16px] leading-6',
+                                ? 'text-[1.0625rem] leading-6 tracking-[-0.01em]'
+                                : 'text-[1rem] leading-6',
                         )}
                     >
                         {title}
@@ -214,7 +214,7 @@ const ListRow: React.FC<ListRowProps> = ({
                             il prend le reste de la ligne, se cale à droite et s'y coupe.
                             Il était `shrink-0` avec `ml-auto` : à deux libellés longs, le
                             **code** se tronquait pour lui laisser sa place entière. */
-                        <span className="text-text-tertiary ml-auto max-w-[45%] min-w-0 shrink-0 truncate text-right text-[12px] leading-4 whitespace-nowrap">
+                        <span className="text-text-tertiary ml-auto max-w-[45%] min-w-0 shrink-0 truncate text-right text-[0.75rem] leading-4 whitespace-nowrap">
                             {type}
                         </span>
                     )}
@@ -225,7 +225,7 @@ const ListRow: React.FC<ListRowProps> = ({
                     une rangée de 68 (04.1) ; gouttière 6. Les 2 px d'écart poussaient la
                     rangée à 70 et 71 (13/09). La rangée d'une personne suit la même mesure :
                     05.1 dessinait `.tt` à 46, arbitré le 13/09 pour 68 partout. */}
-                <span className="text-text-muted flex min-w-0 items-center gap-1.5 text-[14px] leading-5">
+                <span className="text-text-muted flex min-w-0 items-center gap-1.5 text-[0.875rem] leading-5">
                     {status && (
                         <Icon
                             glyph={status.icon}
@@ -237,7 +237,14 @@ const ListRow: React.FC<ListRowProps> = ({
                     {reference && (
                         <span
                             className={cn(
-                                'ml-auto shrink-0 text-[12px] tracking-[0.02em] whitespace-nowrap tabular-nums',
+                                /* 12 sur **16**, l'encre tertiaire — la petite écriture de droite de
+                                   04.1 (`.l1 .ty`). La clé tenait la ligne de 20 du texte qui la
+                                   précède. **L'espacement de 0,02em n'est pas d'ici** : il appartient
+                                   à `.key` de 09.1, une clé en chasse fixe, et c'est l'appelant du
+                                   catalogue qui le pose avec la chasse. Posé ici, il espaçait aussi
+                                   le numéro de série des rangées d'inventaire, en Inter — un style
+                                   qu'aucune planche ne dessine. */
+                                'ml-auto shrink-0 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums',
                                 referenceClassName || 'text-text-tertiary',
                             )}
                         >
@@ -256,7 +263,7 @@ const ListRow: React.FC<ListRowProps> = ({
             {/* La marque, à toutes les largeurs : c'est l'axe de lecture de la campagne,
                 pas un quatrième fait qu'on peut se permettre de cacher en compact. */}
             {mark && (
-                <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[12px] whitespace-nowrap">
+                <span className="text-text-secondary flex shrink-0 items-center gap-[5px] text-[0.75rem] whitespace-nowrap">
                     <Icon
                         glyph={mark.icon}
                         size={18}

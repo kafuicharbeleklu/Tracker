@@ -158,7 +158,7 @@ const FilterChip: React.FC<{
         type="button"
         onClick={onClick}
         className={cn(
-            'inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 text-[15px] leading-5 transition-colors',
+            'inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 text-[0.9375rem] leading-5 transition-colors',
             selected
                 ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
@@ -332,6 +332,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 id: 'nom',
                 header: 'Nom',
                 width: '240px',
+                /* La liste est rangée par nom, et la flèche dit dans quel sens. */
+                sorted: ascending ? 'asc' : 'desc',
                 title: (user) => user.name,
                 cell: (user) => <span className="text-on-surface font-medium">{user.name}</span>,
             },
@@ -390,7 +392,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 },
             },
         ],
-        [holdings],
+        [holdings, ascending],
     );
 
     const selectedUsers = useMemo(
@@ -675,7 +677,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                 vignette={
                                     <span
                                         className={cn(
-                                            'font-brand flex h-full w-full items-center justify-center text-[15px] font-semibold',
+                                            'font-brand flex h-full w-full items-center justify-center text-[0.9375rem] font-semibold',
                                             VIGNETTE_TONE[user.role],
                                         )}
                                     >
@@ -714,7 +716,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                     {/* Rôle — descendu de la bande de tête : c'est la feuille qui porte
                         désormais les trois axes de restriction (05.1). */}
                     <div>
-                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
+                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
                             Rôle
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -735,7 +737,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         dit que le service « se filtre » depuis qu'il a quitté la rangée :
                         le retirer supprimerait l'axe que la rangée vient de céder. */}
                     <div>
-                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
+                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
                             Département
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -753,7 +755,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
 
                     {/* Site */}
                     <div>
-                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
+                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
                             Site
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -771,7 +773,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
 
                     {/* État du compte */}
                     <div>
-                        <p className="text-text-muted mb-2 text-[12px] leading-4 font-medium">
+                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
                             État du compte
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -799,14 +801,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                 setSiteFilter('Tous');
                                 setStatusFilter('Tous');
                             }}
-                            className="bg-surface-container text-on-surface hover:bg-surface-container-high flex h-12 cursor-pointer items-center justify-center rounded-md text-[16px] font-medium transition-colors"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high flex h-12 cursor-pointer items-center justify-center rounded-md text-[1rem] font-medium transition-colors"
                         >
                             Tout effacer
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex h-12 cursor-pointer items-center justify-center rounded-md text-[16px] font-medium transition-colors"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex h-12 cursor-pointer items-center justify-center rounded-md text-[1rem] font-medium transition-colors"
                         >
                             Voir {filteredUsers.length} personnes
                         </button>
@@ -840,10 +842,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[16px] leading-6">
+                            <p className="text-on-surface text-[1rem] leading-6">
                                 Inviter une personne
                             </p>
-                            <p className="text-on-surface-variant text-[14px] leading-5">
+                            <p className="text-on-surface-variant text-[0.875rem] leading-5">
                                 Une adresse, un rôle, un site.
                             </p>
                         </div>
@@ -862,10 +864,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             <Icon glyph={FileCsv} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[16px] leading-6">
+                            <p className="text-on-surface text-[1rem] leading-6">
                                 Importer une équipe
                             </p>
-                            <p className="text-on-surface-variant text-[14px] leading-5">
+                            <p className="text-on-surface-variant text-[0.875rem] leading-5">
                                 Un fichier, une ligne par personne.
                             </p>
                         </div>

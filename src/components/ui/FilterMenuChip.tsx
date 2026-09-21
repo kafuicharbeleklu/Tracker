@@ -91,7 +91,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                     type="button"
                     aria-label={`${axis} : ${summary ?? retenue?.label ?? ''}`}
                     className={cn(
-                        'flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[13px] leading-[18px] font-medium whitespace-nowrap',
+                        'flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
                         'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                         pose
                             ? 'bg-inverse-surface border-inverse-surface text-inverse-on-surface'

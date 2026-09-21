@@ -120,7 +120,9 @@ const FacetChip: React.FC<FacetChipProps> = ({
             <span
                 className={cn(
                     'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md whitespace-nowrap',
-                    dense ? 'text-[13px] leading-[18px] font-medium' : 'text-[15px] leading-5',
+                    dense
+                        ? 'text-[0.8125rem] leading-[1.125rem] font-medium'
+                        : 'text-[0.9375rem] leading-5',
                     className,
                 )}
             >
@@ -130,7 +132,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
                     aria-pressed="true"
                     className={cn(
                         'flex min-h-10 items-center rounded-l-md',
-                        dense ? 'gap-1.5 pl-3' : 'gap-[7px] pl-3.5',
+                        dense ? 'gap-1.5 pl-3' : 'gap-1.5 pl-3.5',
                         focusRing,
                     )}
                 >
@@ -160,10 +162,12 @@ const FacetChip: React.FC<FacetChipProps> = ({
                 'flex shrink-0 items-center rounded-md whitespace-nowrap',
                 compact ? 'min-h-9' : 'min-h-10',
                 dense
-                    ? 'gap-1.5 border px-3 text-[13px] leading-[18px] font-medium'
+                    ? 'gap-1.5 border px-3 text-[0.8125rem] leading-[1.125rem] font-medium'
                     : compact
-                      ? 'gap-1.5 px-3 text-[14px] leading-5'
-                      : 'gap-[7px] px-3.5 text-[15px] leading-5',
+                      ? 'gap-1.5 px-3 text-[0.875rem] leading-5'
+                      : /* `.chip` de 18.1 — 40, `0 14`, 15 sur 20, **6 entre le glyphe et le
+                           mot** ; le 7 venait de la pastille de 00.4, en 13. */
+                        'gap-1.5 px-3.5 text-[0.9375rem] leading-5',
                 focusRing,
                 selected
                     ? cn(

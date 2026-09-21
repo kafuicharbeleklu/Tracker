@@ -67,12 +67,14 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
         <div className={className}>
             <p className="mt-3.5 flex items-baseline gap-2.5">
                 {/* Le chiffre est au rang du sujet — 20 px. Il valait 24, qui n'est sur aucune
-                    marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre). */}
-                <span className="font-brand text-on-surface text-[20px] leading-none font-semibold tabular-nums">
+                    marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre).
+                    `.wrow .v` de 04.2 : interligne 1,05 et resserré de 0,015em, comme tout
+                    chiffre en Archivo ; il tenait un interligne plein et aucun resserrement. */}
+                <span className="font-brand text-on-surface text-[1.25rem] leading-[1.05] font-semibold tracking-[-0.015em] tabular-nums">
                     {value}
                 </span>
                 {/* `.wrow .n` — 16 sur 24 (passe sobre du 05/09) ; 15 n'est sur aucune marche. */}
-                <span className="text-on-surface-variant min-w-0 flex-1 text-[16px] leading-6">
+                <span className="text-on-surface-variant min-w-0 flex-1 text-[1rem] leading-6">
                     {label}
                 </span>
             </p>
@@ -88,16 +90,14 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
                 />
             </div>
 
-            {note && (
-                <p className="text-on-surface-variant mt-2 text-[16px] leading-6">{note}</p>
-            )}
+            {note && <p className="text-on-surface-variant mt-2 text-[1rem] leading-6">{note}</p>}
 
             {source && (
                 /* **12 sur 16, sans interlettrage.** Cette ligne portait
                    `text-label-small`, dont l'interlettrage de `.075em` est fait pour une
                    micro-étiquette en capitales ; appliqué à une phrase française en
                    minuscules, il l'étire lettre à lettre et la rend illisible. */
-                <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">{source}</p>
+                <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">{source}</p>
             )}
         </div>
     );

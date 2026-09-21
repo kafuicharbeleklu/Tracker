@@ -960,10 +960,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                                 occupait une colonne pour un fait qui
                                                 se dit dans la phrase. */}
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface truncate text-[16px] leading-6 tabular-nums">
+                                                <p className="text-on-surface truncate text-[1rem] leading-6 tabular-nums">
                                                     {item.name || item.assetId}
                                                 </p>
-                                                <p className="text-on-surface-variant truncate text-[14px] leading-5">
+                                                <p className="text-on-surface-variant truncate text-[0.875rem] leading-5">
                                                     {[
                                                         item.model || getCategoryLabel(item.type),
                                                         since ? `depuis le ${since}` : undefined,
@@ -976,7 +976,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                                 pastille teintée à droite de la rangée
                                                 et non en troisième ligne. */}
                                             {alert && (
-                                                <span className="shrink-0 rounded-sm bg-[var(--tk-color-tint-ambre)] px-2 py-1 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                <span className="shrink-0 rounded-sm bg-[var(--tk-color-tint-ambre)] px-2 py-1 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
                                                     {alert}
                                                 </span>
                                             )}
@@ -992,7 +992,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         ) : (
                             /* `.emp` — 14 sur 20 sur l'encre secondaire, et il nomme
                                la personne : « Aucun mouvement au nom de Marc ». */
-                            <p className="border-outline-variant text-on-surface-variant border-t pt-1 pb-3 text-[14px] leading-5">
+                            <p className="border-outline-variant text-on-surface-variant border-t pt-1 pb-3 text-[0.875rem] leading-5">
                                 Aucun équipement au nom de {firstName}.
                             </p>
                         )}
@@ -1070,7 +1070,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleCopyInvitation}
-                                className="h-10 shrink-0 px-3.5 text-[15px] font-medium"
+                                className="h-10 shrink-0 px-3.5 text-[0.9375rem] font-medium"
                             >
                                 Copier
                             </Button>
@@ -1277,20 +1277,20 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     {/* `.slead` de 05.2 — la phrase qui dit que l'acte se défait, en 14 sur 20.
                         Elle tenait dans une pilule ambre : la planche n'en met pas, et une
                         alerte teintée pour un acte réversible dit le contraire du texte. */}
-                    <p className="text-on-surface-variant text-[14px] leading-5">
+                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
                         Réversible : « Réactiver le compte » redevient le geste de la fiche.
                     </p>
 
                     {/* `.fixed` — sur qui porte l'acte : sa vignette, son nom, ce qu'il détient. */}
                     <div className="flex items-center gap-3 py-2">
-                        <span className="bg-tint-bleu text-on-tint-bleu rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold">
+                        <span className="bg-tint-bleu text-on-tint-bleu rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold">
                             {initials}
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block truncate text-[16px] leading-6">
+                            <span className="text-on-surface block truncate text-[1rem] leading-6">
                                 {user.name}
                             </span>
-                            <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                                 {held > 0 ? `${heldLabel} à son nom` : 'aucun objet à son nom'}
                             </span>
                         </span>
@@ -1300,10 +1300,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         le tout dans le creux. C'était une liste à puces en 13, où les trois
                         effets se lisaient comme une phrase. */}
                     <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
-                        <span className="text-text-muted text-[12px] leading-4 font-medium">
+                        <span className="text-text-muted text-[0.75rem] leading-4 font-medium">
                             Ce que cela change
                         </span>
-                        <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                        <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                             <span className="bg-tint-orange text-on-tint-orange flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={LockSimple} size={18} />
                             </span>
@@ -1312,7 +1312,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 <b className="text-on-surface font-medium">immédiatement</b>.
                             </span>
                         </span>
-                        <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                        <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={UserMinus} size={18} />
                             </span>
@@ -1322,7 +1322,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             </span>
                         </span>
                         {held > 0 && (
-                            <span className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                            <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                                 <span className="bg-tint-ambre text-on-tint-ambre flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                     <Icon glyph={Laptop} size={18} />
                                 </span>
@@ -1335,7 +1335,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     </div>
 
                     <label className="block">
-                        <span className="text-text-muted mb-1.5 block text-[12px] leading-4 font-medium">
+                        <span className="text-text-muted mb-1.5 block text-[0.75rem] leading-4 font-medium">
                             Motif{' '}
                             <span className="text-text-tertiary font-normal">
                                 facultatif, écrit au journal
@@ -1369,12 +1369,12 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             >
                 <div className="space-y-3 px-1 pb-4">
                     <p className="text-body-medium text-text-secondary">{user.name}</p>
-                    <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-bleu)] px-3 py-2.5 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-bleu)]">
+                    <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-bleu)] px-3 py-2.5 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-bleu)]">
                         <Icon glyph={SignOut} size={18} />
                         Rien n'est coupé — son accès reste ouvert jusqu'au dernier jour.
                     </p>
                     <label className="block">
-                        <span className="text-text-muted mb-1.5 block text-[12px] leading-4 font-medium">
+                        <span className="text-text-muted mb-1.5 block text-[0.75rem] leading-4 font-medium">
                             Dernier jour
                         </span>
                         <input

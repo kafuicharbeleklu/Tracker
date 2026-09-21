@@ -230,6 +230,8 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                     : `Importer ${stats.valid} personne${stats.valid > 1 ? 's' : ''}`
             }
             isSaving={!previewMode || stats.valid === 0}
+            /* `.pfoot` de 05.3 — « Importer 3 personnes », seul et pleine largeur. */
+            submitButtonLocation="footer-full"
         >
             {!previewMode ? (
                 <div className="bg-surface rounded-card p-page border-outline-variant animate-in fade-in zoom-in-95 border duration-300">

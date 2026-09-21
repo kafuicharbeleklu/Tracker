@@ -332,10 +332,10 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                 <Icon glyph={getCategoryGlyph(item.type)} size={20} />
             </span>
             <span className="min-w-0 flex-1">
-                <span className="text-on-surface block truncate text-[16px] leading-6">
+                <span className="text-on-surface block truncate text-[1rem] leading-6">
                     {item.name}
                 </span>
-                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                     {[item.model || item.type, note].filter(Boolean).join(' · ')}
                 </span>
             </span>
@@ -375,10 +375,10 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                 {/* Ce qu'il demande — le motif, tel qu'il l'a écrit. */}
                 {demande.reason && !close && (
                     <Card className="flex flex-col gap-3 p-4">
-                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                             {estLeBeneficiaire ? 'Ce que vous demandez' : 'Ce qu’il demande'}
                         </h3>
-                        <p className="text-on-surface text-[17px] leading-6 text-pretty">
+                        <p className="text-on-surface text-[1.0625rem] leading-6 text-pretty">
                             «&nbsp;{demande.reason}&nbsp;»
                         </p>
                         {detenus.length > 0 && (
@@ -392,14 +392,14 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                 {/* La décision — son motif, son auteur, sa méthode. */}
                 {close && demande.decisionNote && (
                     <Card className="flex flex-col gap-3 p-4">
-                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                             La décision
                         </h3>
                         <div className="bg-surface-container flex flex-col gap-1.5 rounded-[4px] px-4 py-3">
-                            <p className="text-on-surface text-[16px] leading-6 text-pretty">
+                            <p className="text-on-surface text-[1rem] leading-6 text-pretty">
                                 «&nbsp;{demande.decisionNote.reason}&nbsp;»
                             </p>
-                            <p className="text-on-surface-variant text-[14px] leading-5">
+                            <p className="text-on-surface-variant text-[0.875rem] leading-5">
                                 {[
                                     demande.decisionNote.actorName,
                                     formatDate(demande.decisionNote.at),
@@ -420,12 +420,12 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                         <>
                             <Card className="flex flex-col gap-3 p-4">
                                 <div className="flex items-center justify-between gap-3">
-                                    <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                                    <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                                         {beneficiaire?.site
                                             ? `Disponibles à ${beneficiaire.site}`
                                             : 'Disponibles'}
                                     </h3>
-                                    <span className="text-on-surface-variant text-[14px] leading-5 tabular-nums">
+                                    <span className="text-on-surface-variant text-[0.875rem] leading-5 tabular-nums">
                                         {disponibles.length}
                                     </span>
                                 </div>
@@ -434,7 +434,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                                         {disponibles.slice(0, 3).map((item) => rangee(item))}
                                     </div>
                                 ) : (
-                                    <p className="text-on-surface-variant text-[14px] leading-5">
+                                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
                                         Rien de ce type n’est disponible ici. Refuser dit pourquoi ;
                                         le demandeur pourra redéposer.
                                     </p>
@@ -443,7 +443,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
 
                             {detenus.length > 0 && (
                                 <Card className="flex flex-col gap-3 p-4">
-                                    <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                                    <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                                         {estLeBeneficiaire
                                             ? 'Vous détenez déjà'
                                             : 'Il détient déjà'}
@@ -466,10 +466,10 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                 {/* Le parcours — trois étapes, et où il s'arrête. */}
                 <Card className="flex flex-col gap-3 p-4">
                     <div className="flex items-center justify-between gap-3">
-                        <h3 className="text-on-surface text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                             Le parcours
                         </h3>
-                        <span className="text-on-surface-variant text-[14px] leading-5">
+                        <span className="text-on-surface-variant text-[0.875rem] leading-5">
                             {close
                                 ? demande.status === 'Completed'
                                     ? 'terminé'

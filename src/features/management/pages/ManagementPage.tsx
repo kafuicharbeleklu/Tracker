@@ -190,9 +190,13 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const categoryImportInputRef = useRef<HTMLInputElement | null>(null);
     const debouncedSearch = useDebounce(searchQuery, 300);
 
+    /* **Une route d'ajout en ferme une autre.** L'effet n'ouvrait que la sienne : en
+       passant de `#/management/categories/add` à `#/management/models/add`, les deux
+       saisies restaient montées l'une sur l'autre — invisible tant que c'étaient des
+       fenêtres de 560, franc depuis qu'elles occupent l'écran. */
     useEffect(() => {
-        if (initialAddModal === 'category') setIsCategoryModalOpen(true);
-        else if (initialAddModal === 'model') setIsModelModalOpen(true);
+        setIsCategoryModalOpen(initialAddModal === 'category');
+        setIsModelModalOpen(initialAddModal === 'model');
     }, [initialAddModal]);
 
     /** Le décompte de modèles d'un type — c'est lui qui décide de ce qu'on peut créer. */
@@ -510,7 +514,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         la ligne de tri la nomme »*. Elle occupait une bande sous la
                         recherche — une quatrième ligne de commandes avant la première
                         rangée du catalogue. */}
-                    <p className="text-on-surface-variant pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
                         Famille
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -526,7 +530,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
                         État du type
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -541,7 +545,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
                         Amortissement
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -598,10 +602,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={Tag} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[16px] leading-6">
+                            <span className="text-on-surface block text-[1rem] leading-6">
                                 Un type
                             </span>
-                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                 Une famille, un nom, attribuable ou non
                             </span>
                         </span>
@@ -617,10 +621,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={Laptop} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[16px] leading-6">
+                            <span className="text-on-surface block text-[1rem] leading-6">
                                 Un modèle
                             </span>
-                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                 Un nom et son type ; le reste plus tard
                             </span>
                         </span>
@@ -645,10 +649,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={FileCsv} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[16px] leading-6">
+                            <span className="text-on-surface block text-[1rem] leading-6">
                                 Importer des modèles
                             </span>
-                            <span className="text-on-surface-variant block text-[14px] leading-5">
+                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                 Un fichier, une ligne par modèle
                             </span>
                         </span>
@@ -712,7 +716,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             Catalogue
                         </h1>
                     </div>
@@ -755,7 +759,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             */}
                             <Reading
                                 className={cn(
-                                    'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[12px] leading-4',
+                                    'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4',
                                     selection.isActive && 'hidden',
                                 )}
                             >
@@ -772,7 +776,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                     onClick={() =>
                                         setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
                                     }
-                                    className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[12px] leading-4 font-medium hover:bg-transparent"
+                                    className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[0.75rem] leading-4 font-medium hover:bg-transparent"
                                     icon={
                                         <Icon
                                             glyph={SortAscending}
@@ -855,10 +859,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                         size={18}
                                                     />
                                                 </span>
-                                                <span className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                                                <span className="min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                                                     {family}
                                                 </span>
-                                                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
+                                                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
                                                     {items.length} type{items.length > 1 ? 's' : ''}
                                                 </span>
                                             </div>
@@ -903,17 +907,17 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                 )
                                                             }
                                                             type={
-                                                                /* `.l1 .ty` — le décompte de modèles est le
-                                                                   porte-voix de la rangée : 13 px, encre
+                                                                /* `.s` de 09.1 — le décompte de modèles vit
+                                                                   dans la sous-ligne : **14 sur 20**, encre
                                                                    pleine, chiffres tabulaires. Sans modèle,
                                                                    il retombe en `.ty.q` — 400, encre pâle :
                                                                    ce n'est plus un nombre, c'est un manque. */
                                                                 unusable ? (
-                                                                    <span className="text-text-muted text-[13px] font-normal">
+                                                                    <span className="text-text-muted text-[0.875rem] leading-5 font-normal">
                                                                         aucun modèle
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-on-surface text-[13px] font-medium tabular-nums">
+                                                                    <span className="text-on-surface text-[0.875rem] leading-5 font-medium tabular-nums">
                                                                         {modelCount} modèle
                                                                         {modelCount > 1 ? 's' : ''}
                                                                     </span>
@@ -945,7 +949,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                en pointillé. */
                                                             reference={dataKey ?? 'clé ?'}
                                                             referenceClassName={cn(
-                                                                'font-mono text-text-tertiary',
+                                                                'text-text-tertiary font-mono tracking-[0.02em]',
                                                                 !dataKey &&
                                                                     'underline decoration-dotted underline-offset-2',
                                                             )}
@@ -971,7 +975,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 {/* `.note` — le signal « catalogue à nettoyer » vit ici, pas
                                     sur le tableau de bord, parce que c'est ici qu'il se répare. */}
                                 {unfiledTypes.length > 0 && (
-                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[12px] leading-[17px]">
+                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[0.75rem] leading-[1.0625rem]">
                                         <b className="text-on-surface font-medium">
                                             {unfiledTypes.length > 1
                                                 ? `${unfiledTypes.length} types n'ont pas de famille`
@@ -984,7 +988,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 )}
 
                                 {unusableTypes.length > 0 && (
-                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[12px] leading-[17px]">
+                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[0.75rem] leading-[1.0625rem]">
                                         <b className="text-on-surface font-medium">
                                             {unusableTypes.length > 1
                                                 ? `${unusableTypes.length} types n'ont aucun modèle`

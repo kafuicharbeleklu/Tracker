@@ -126,7 +126,7 @@ const ScanHitRow: React.FC<{ hit: ScanHit; dense?: boolean }> = ({ hit, dense = 
                 <span
                     className={cn(
                         'font-brand text-on-surface block truncate leading-5 font-semibold tracking-tight',
-                        dense ? 'text-[15px]' : 'text-base',
+                        dense ? 'text-[0.9375rem]' : 'text-base',
                     )}
                 >
                     {hit.code}
@@ -281,7 +281,7 @@ const ScanView: React.FC<ScanViewProps> = ({
                     <>
                         {/* N4 — le compte porte son dénominateur, et l'écart se dit à part. */}
                         <p className="mb-2.5 flex items-baseline gap-2">
-                            <span className="font-brand text-on-surface text-[30px] font-semibold tracking-tight tabular-nums">
+                            <span className="font-brand text-on-surface text-[1.875rem] font-semibold tracking-tight tabular-nums">
                                 {hits.length}
                             </span>
                             <span className="text-body-medium text-text-secondary">

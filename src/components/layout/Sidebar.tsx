@@ -105,11 +105,11 @@ const SideRow: React.FC<{
                     ? /* `.side.fold>a` — 72 × 64, le glyphe puis le mot en 11. Le padding
                          horizontal du bouton est neutralisé : à 16 px de chaque côté il
                          ne restait que 40 px de texte. */
-                      'relative mx-auto flex min-h-16 w-[72px] flex-col items-center justify-center gap-1 !px-1 text-center text-[11px] leading-4'
+                      'relative mx-auto flex min-h-16 w-[72px] flex-col items-center justify-center gap-1 !px-1 text-center text-[0.6875rem] leading-4'
                     : /* `.side>a` — **40 de haut, 13 sur 18, gouttière 10, rayon 4.**
                          J'avais posé 48 / 14 / 12 / rayon 8 en lisant 00.3 ; 17.11
                          consolide le chrome des neuf écrans et c'est elle qui fait foi. */
-                      'flex min-h-10 w-full items-center gap-2.5 px-2.5 text-left text-[13px] leading-[18px]',
+                      'flex min-h-10 w-full items-center gap-2.5 px-2.5 text-left text-[0.8125rem] leading-[1.125rem]',
                 /* La courante prend `--inset-2`, la survolée `--inset` : deux creux, pas un. */
                 /* `Button` pose `font-medium` pour tout le monde : la rangée au repos
                    la reprend à 400, comme `.side>a`. Seule la courante appuie. */
@@ -149,7 +149,7 @@ const SideRow: React.FC<{
             {count !== undefined && count > 0 && (
                 <span
                     className={cn(
-                        'text-on-surface shrink-0 rounded-xs px-[5px] text-[11px] leading-4 tabular-nums',
+                        'text-on-surface shrink-0 rounded-xs px-[5px] text-[0.6875rem] leading-4 tabular-nums',
                         active ? 'bg-surface' : 'bg-surface-muted-strong',
                         collapsed ? 'absolute top-1.5 right-2' : 'ml-auto',
                     )}
@@ -235,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             >
                 {!isCollapsed && (
-                    <span className="font-brand text-on-surface min-w-0 flex-1 truncate text-[16px] font-semibold tracking-[-0.01em]">
+                    <span className="font-brand text-on-surface min-w-0 flex-1 truncate text-[1rem] font-semibold tracking-[-0.01em]">
                         {APP_CONFIG.appName}
                     </span>
                 )}
@@ -254,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                     /* Le rail garde la marque du produit, sans geste : deux lettres
                        valent mieux qu'un espace vide au-dessus des destinations. */
-                    <span className="font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center text-[16px] font-semibold tracking-[-0.01em]">
+                    <span className="font-brand text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center text-[1rem] font-semibold tracking-[-0.01em]">
                         {APP_CONFIG.appName.slice(0, 2).toUpperCase()}
                     </span>
                 )}
@@ -276,7 +276,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                rail, sans les noms, ne peut plus nommer. */
                             <React.Fragment />
                         ) : (
-                            <p className="text-text-tertiary px-2.5 pt-3 pb-1 text-[11px] leading-4 font-normal tracking-[0.06em] uppercase">
+                            <p className="text-text-tertiary px-2.5 pt-3 pb-1 text-[0.6875rem] leading-4 font-normal tracking-[0.06em] uppercase">
                                 {groupe.label}
                             </p>
                         )}
@@ -311,7 +311,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 variant="text"
                                 iconOnly
                                 aria-label={`Compte — ${compte.nom}`}
-                                className="h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[12px] font-medium text-white shadow-none hover:opacity-90"
+                                className="h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white shadow-none hover:opacity-90"
                             >
                                 {compte.initiales}
                             </Button>
@@ -320,14 +320,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                     <>
                         {/* `.av` — Inter 12 en 500 : l'Archivo est la voix du produit, pas celle des initiales (17.11). */}
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[12px] font-medium text-white">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white">
                             {compte.initiales}
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block truncate text-[13px] leading-4">
+                            <span className="text-on-surface block truncate text-[0.8125rem] leading-4">
                                 {compte.nom}
                             </span>
-                            <span className="text-on-surface-variant block truncate text-[12px] leading-4">
+                            <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
                                 {compte.role}
                             </span>
                         </span>

@@ -3659,3 +3659,194 @@ qui a changé, c'est la donnée qui n'était pas là. La garde des états l'a vu
 83) ; la passe a été refaite seule, puis fusionnée avec le bureau du même relevé. **Un relevé
 dont le nombre d'états baisse ne se lit pas : il se refait.**
 
+### Les tableaux disent leur tri, et Finances prend sa bande de bureau (18/09)
+
+**`th.sorted` de 17.11** : la colonne qui ordonne la liste passe à l'encre pleine et porte sa
+flèche ; les autres restent en encre secondaire. Elle suit le tri **réel** de l'écran, et non
+l'exemple de la planche : le nom et son sens pour Équipe, l'heure décroissante pour Historique,
+l'option choisie pour Actifs — qui range par ajout récent au repos, donc marque « Dernier
+mouvement » là où la planche montre « Code ». L'en-tête porte aussi `aria-sort` : l'ordre se dit,
+il ne se dessine pas seulement. **Un écart assumé** : tant que les deux tris diffèrent, la mesure
+comptera une couleur d'écart sur Actifs.
+
+**Au bureau, Finances prend `.bande`** (15.1 à 1280) : quatre repères en 28 sur le sombre — ce
+qui reste avec sa jauge et sa devise en 13, la part consommée, les postes et leurs enveloppes
+épuisées, les dépenses et la dernière date. Le héro de 44 est un dessin de téléphone, et il y
+reste.
+
+**Deux pièges de mesure, notés pour la suite :**
+- **Envelopper un libellé change ce qu'on mesure.** La flèche de tri avait d'abord été posée
+  dans un `span` autour du libellé : rendu identique, mais l'en-tête n'avait plus de texte
+  propre et son retrait se lisait contre la cellule (10) au lieu du tableau. Le relevé est
+  passé de 314 à 330 écarts avant que la cause soit comprise. La planche garde le libellé en
+  texte direct ; le code aussi, désormais.
+- **Le seuil du moteur de règles.** Un style n'entre dans l'échelle admise que s'il paraît dans
+  **deux planches** ou **trois fois**. La devise en Archivo 13 de la bande de 15.1 n'existe
+  qu'une fois, dans une seule planche : l'écran qui la copie exactement est donc signalé. C'est
+  le seuil qui parle, pas un écart — ne pas « corriger » ce style.
+
+**Relevé v19** : 316 écarts visibles élément par élément ; par famille, 54 écarts (2 de
+structure, 45 visibles, 7 mineurs), 62 familles conformes sur 75. Le moteur lit désormais les
+planches **mesurées polices chargées** : sans elles, une famille de caractères relevée en
+recours faussait l'échelle admise.
+
+### La typographie en rem, et le plancher à 11 (18/09)
+
+**La demande** : *« aligne la taille de police de tout le projet avec les standards
+internationaux »*, puis *« fais des recherches sur les applications mobiles »*.
+
+**Ce que disent les standards, vérifié.** Aucune norme internationale ne fixe de taille en
+pixels. WCAG 2.2 — la référence normative, reprise par EN 301 549 — n'impose **aucune taille
+minimale** ; elle impose que le texte puisse doubler (1.4.4), que la page se recompose à 320
+(1.4.10) et que les réglages d'espacement de l'utilisateur s'appliquent (1.4.12). Material 3
+pose corps 16, corps moyen 14, plus petite étiquette 11, **en `sp`** — donc suivant le réglage
+de l'utilisateur ; Apple pose le corps à 17 pt, un plancher à 11 pt, et le Dynamic Type à douze
+crans. Facebook et Instagram n'inventent pas de tailles : ils suivent le réglage du système.
+
+**L'échelle des planches n'était donc pas en cause** : 11 · 12 · 14 · 16 · 17 est exactement la
+plage de Material et tient dans celle d'Apple. **C'était l'unité.** Tout était en pixels figés,
+et surtout `html{font-size:16px}` **écrasait le réglage du navigateur** : un lecteur qui
+grossit le texte n'obtenait rien. La racine passe à `100%`, et 664 tailles et interlignes, plus
+36 jetons, passent en rem — 14px devient 0,875rem, c'est-à-dire 14px. **Le relevé le prouve :
+sur les 58 paires, rien n'a bougé d'un pixel.** L'application suit désormais le lecteur, comme
+`sp` sur Android et Dynamic Type sur iOS.
+
+**Plancher à 11.** Le produit descendait à 10 (les initiales d'un avatar, cinq emplois). Sur les
+39 textes sous 11 px relevés dans les planches, **36 sont des annotations de planche** et les
+trois autres vivent dans une étude de densité, dont deux exposants. Aucune planche de produit ne
+descend donc sous 11 : le plancher d'Apple et de Material s'applique sans contredire personne.
+
+**Accès prend la gouttière de 11.1** — `.card{padding:8px 20px}` — au lieu des 16 du gabarit,
+qui restent vrais pour 04.1 et 05.2. **Et deux erreurs s'annulaient** : la page de cette fiche
+posait 20 de gouttière au lieu des 16 de `.page`, ce qui compensait les 16 de la carte. Les deux
+corrigées, le titre d'une permission tombe à 36 comme la planche l'écrit. Accès : 14 → 8 écarts,
+le rôle ouvert 22 → 18.
+
+**Deux choix laissés au produit, assumés** : la feuille d'incident garde « Immobilisé, à
+réviser » présélectionné, comme 04.3 le dessine et comme 04.4 le confirme (*« aucun statut
+nouveau : En réparation suffit »*) ; et la rangée « Mon compte » garde sa valeur — l'état du
+code PIN — là où 14.1 met une sous-ligne sans valeur.
+
+**Relevé v24** : 298 écarts visibles élément par élément (511 au premier appariement) ; par
+famille, 54 écarts (2 de structure, 45 visibles, 7 mineurs), 62 familles conformes sur 75.
+
+### Le héro, la rangée de liste, et une règle qui visait mal (19/09)
+
+**L'initiale d'un héro ne se resserre pas.** `DetailHero` portait un interlettrage négatif sur
+la vignette ; les planches y dessinent de l'Archivo 20 sur 30, en 600, sans resserrement. Vingt-
+huit écrans le portaient. La page Paramètres, elle, redéclarait par-dessus sa propre vignette
+(famille, corps, graisse) alors que le composant les donne déjà : la déclaration locale est
+tombée, l'avatar n'est plus qu'une initiale passée au composant.
+
+**La référence d'une rangée de liste est du chiffre à chasse fixe.** `ListRow` affichait sa
+référence dans la police de texte en 13 ; les planches la posent en 12 sur 16, chasse fixe,
+interlettrage 0,02em, chiffres tabulaires — c'est une clé qu'on lit en colonne, pas une phrase.
+Treize écrans.
+
+**Une règle qui visait mal vaut un faux écart.** `D-HERO-TILE` attendait 22 et lisait 20 sur
+dix-huit écrans : elle appariait l'initiale ronde du héro avec les tuiles de mesures. Elle
+exclut désormais les surfaces rondes. Ce genre d'écart ne se corrige pas dans le produit — il se
+corrige dans la mesure, sinon on déforme l'écran pour satisfaire l'appareil.
+
+**Ce que la mesure écarte, ajouté à la liste** : au tableau de bord, les rangées d'événements du
+produit font 91 contre 56 sur la planche — non pas une gouttière, mais la longueur du libellé :
+« Vous avez ouvert une session Kafui Charbel EKLU. » fait 48 signes là où la planche en dessine
+18 (« Dell Latitude 7420 »). Ces événements de session sont écrits par les passes de mesure
+elles-mêmes, qui se connectent à chaque tour.
+
+**Relevé v26** : 303 écarts visibles élément par élément ; par famille, 48 écarts (2 de
+structure, 42 visibles, 4 mineurs), 63 familles conformes sur 75, sur 165 états mesurés.
+
+### Les trois saisies d'ajout quittent la fenêtre (19/09, second lot)
+
+**Une saisie est un écran, pas une fenêtre.** 09.2 dessine « créer un modèle » avec la coque
+de 04.3 — barre de 56, flèche de retour, le verbe seul à droite — et 15.4 fait de même pour une
+dépense. Les trois saisies tenaient dans un `Modal` : au téléphone, une boîte qui remplissait
+l'écran **sans en avoir la barre** ; au-delà de 600, un cadre de 560 avec un pied à deux
+boutons que la planche ne porte pas. Le type, le modèle et la dépense prennent la coque de
+plein écran ; c'était le dernier écart de **structure** du relevé du 13/09.
+
+**Le type y gagne sa mise au net.** L'écran empruntait la palette MD3 : cartes cernées à
+l'ombre, titres en capitales espacées (« CE QUE LE TYPE AUTORISE »), deux cartes à cocher de
+120 de haut pour un choix binaire, une grille de pictogrammes à anneau jaune qui grossissait au
+survol. La méthode d'amortissement passe à l'échelle courte `.seg` (deux crans, le pris en
+surface), et le pictogramme à une case carrée sur le creux — `GlyphTile`, posée dans les
+primitives, l'encre inversée pour le cran pris.
+
+**Un acte court reste une feuille.** Renommer un site, ajouter un local, ajouter un
+emplacement : un champ, parfois deux. Ils ouvraient un `Modal` — au téléphone, un écran entier
+pour une ligne de texte. Ils prennent la feuille de 17.x, qui monte du bas au téléphone et se
+centre à 560 au-delà de 600, avec son pied à deux colonnes égales.
+
+**Trois défauts que le portage a mis au jour, et qui n'étaient pas de mise en page :**
+- **Une route d'ajout n'en fermait pas une autre.** De `#/management/categories/add` à
+  `#/management/models/add`, les deux saisies restaient montées l'une sur l'autre : invisible
+  tant que c'étaient des fenêtres de 560, franc dès qu'elles occupent l'écran.
+- **Un écran plein ne couvrait pas le chrome.** `FullScreenLayout` tenait `z-50`, la mesure de
+  la barre du bas : ouvert par-dessus une page à onglets, la barre et le geste d'ajout le
+  traversaient. Il passe à `z-[100]`, l'étage des surfaces qui couvrent ; le retour transitoire
+  reste au-dessus, à 110.
+- **Échap ne refermait rien.** `Modal` fermait sur Échap ; la coque qui le remplace ne le
+  faisait pas — au clavier, une saisie ouverte par-dessus une page n'avait aucune sortie.
+
+**Quatrième artefact de mesure, à ne pas « corriger »** : sur 09.2 et 15.4, le titre d'une
+section part à 80 parce que la planche y dessine une pastille de 32 (`.si`) ; sur 04.3 et 05.3
+la même pastille est **dans le balisage mais éteinte** (`display:none`, 7 occurrences chacune).
+Une pastille qu'on laisse en place et qu'on éteint est une décision, pas un oubli : les
+sections restent sans pictogramme, et les cinq écarts de position qui en découlent sont un
+désaccord entre planches.
+
+**Relevé v27** : 38 écarts (**1 de structure**, 33 visibles, 4 mineurs), 63 familles conformes
+sur 73, 301 écarts visibles élément par élément sur 699 éléments appariés — neuf de plus qu'en
+v26, les trois saisies étant enfin comparables à leur planche.
+
+### L'échelle de type recalée, et les dernières familles (21/09)
+
+**L'échelle de rôles venait d'avant les planches.** Les utilitaires `text-body-*`,
+`text-label-*`, `text-title-*` — 290 emplois environ — lisaient un registre antérieur (34 · 28 ·
+20 · 15 · 13 · 11) : une sous-ligne en 13 sur 19 là où les planches écrivent 14 sur 20, une
+donnée en 15 sur 21 là où elles écrivent 16 sur 24, un petit libellé en 11 espacé de 0,075em
+là où l'arbitrage du 13/09 fixe `.lab` en 12 sur 16, et trois titres en **700**, une graisse
+qu'aucune planche ne dessine. Les jetons sont recalés sur l'échelle des planches — 28/32 ·
+22/28 · 17/24 · 16/24 · 14/20 · 12/16, graisses 400 / 500 / 600 — et **le corps du document
+prend `--t3`, 16 sur 1,5**, au lieu d'emprunter le cran « mention » : tout texte qui ne
+déclarait pas sa taille sortait en 13. Relevé élément par élément inchangé à un écart près :
+la bascule n'a rien fait déborder.
+
+**Les pieds d'import n'ont qu'un bouton.** 04.3, 09.2 (deux fois) et 05.3 dessinent le même
+`.pfoot` : « Importer 10 fiches », pleine largeur, et rien d'autre. Le produit posait aussi
+« Annuler », grisé tant qu'aucun fichier n'était lu — on ne pouvait pas renoncer à l'import
+avant de l'avoir commencé. La coque de formulaire gagne ce second gabarit (`footer-full`),
+que son propre commentaire décrivait déjà.
+
+**La fiche d'équipement** : la vignette du porteur, dans le héro, prend le bleu vif de la
+marque à 24 % (elle tenait le bleu d'information de l'interface, absent de toute planche) ;
+le chiffre de garantie prend l'interligne 1,05 et le resserrement de `.wrow .v` ; le numéro de
+série perd l'espacement de 0,4 px que `.cp` ne donne à aucune valeur.
+
+**Des copies locales remplacées par le composant partagé** : les boutons de filtre de Tâches
+et d'Historique (écrits à la main, ils restaient à 48 dans le chrome de 768 où `FilterButton`
+prend 40) ; les puces de la feuille de Tâches (une copie de `FacetChip` sur `Button`, lue
+comme un bouton en 400) ; l'avertissement des accès (le rappel neutre de 02.2 en 12 sur 17,
+là où 11.1 met l'ambre en 14 sur 20).
+
+**Les barres** : l'écran introuvable reçoit sa flèche de retour et le nom court de la planche
+(« Introuvable »), sa barre `0 8 0 4` et son titre à 60 ; la barre d'un rôle ouvert perd la
+clé technique en sous-titre (R16) et prend 17 sur 24.
+
+**Quatre règles de l'audit visaient mal, corrigées dans l'appareil** : `H-TOP-BLOCK` exemptait
+le tableau de bord par composant propriétaire, qui avait changé le 17/09 (01.1 pose son
+salut sur la toile, sans bloc blanc) ; `C-CARD` lisait `.bande` (14 20, dessinée ainsi en
+01.1 et 16.1) comme une carte ; `L-VIG` lisait la garniture d'initiales, sans fond ou rognée
+par son parent arrondi ; `M-ITEM` lisait le déclencheur d'un menu comme l'un de ses articles.
+
+**Ce qui reste — huit écarts, tous expliqués et laissés** : l'anneau de focus que la passe
+laisse sur un bouton de filtre et sur un champ après Échap (4 + 4 : le produit fait juste) ;
+la pastille « dev » des comptes de démonstration en 11, que 02.1 dessine en 10 (le plancher
+de 11 arbitré le 18/09) ; l'exposant de « 1er », en em ; la devise de 15.1 en Archivo 13,
+propre à cette planche ; le point plein de `.opt.on .rd`, peint de l'encre du cran comme la
+planche le fait ; et la note du héro d'un rôle, que 11.1 ne dessine pas — une question de
+contenu, pas de style.
+
+**Relevé v31** : **8 écarts** (0 de structure, 8 visibles), **73 familles conformes sur 73**,
+296 écarts visibles élément par élément sur 696 appariés.

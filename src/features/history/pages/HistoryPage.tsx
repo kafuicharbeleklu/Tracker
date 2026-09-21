@@ -6,7 +6,6 @@ import {
     ClipboardText,
     ClockCounterClockwise,
     Export,
-    Funnel,
     Handshake,
     PaperPlaneTilt,
     ShieldCheck,
@@ -23,6 +22,7 @@ import FilterMenuChip from '../../../components/ui/FilterMenuChip';
 import { libelleAttestation } from '../../../components/ui/Attestation';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
+import FilterButton from '../../../components/ui/FilterButton';
 import FacetChip from '../../../components/ui/FacetChip';
 import Icon from '../../../components/ui/Icon';
 import ScreenState from '../../../components/ui/ScreenState';
@@ -327,7 +327,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                                 {fait.description || fait.targetName}
                             </span>
                             {suite && (
-                                <span className="text-on-surface-variant block truncate text-[12px] leading-4">
+                                <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
                                     {suite}
                                 </span>
                             )}
@@ -366,6 +366,8 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                 id: 'heure',
                 header: 'Heure',
                 width: '80px',
+                /* Le journal se lit du plus récent au plus ancien : c'est l'heure qui l'ordonne. */
+                sorted: 'desc',
                 cell: (fait) => (
                     <span className="text-on-surface-variant tabular-nums">
                         {heure(fait.timestamp)}
@@ -462,7 +464,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                             variant="outlined"
                             onClick={exporterLeJournal}
                             icon={<Icon glyph={Export} size={20} />}
-                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[14px] font-medium shadow-none"
+                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
                         >
                             Exporter
                         </Button>
@@ -513,19 +515,14 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                             />
                         </>
                     ) : (
-                        <Button
-                            variant="text"
-                            aria-label="Filtrer le journal"
+                        /* **Le bouton de filtre partagé**, et non une copie : écrit à la main, il
+                           restait à 48 dans le chrome de 768 et du bureau, où `FilterButton` lit
+                           la mesure du gabarit (40, 17.11 — arbitré le 13/09). */
+                        <FilterButton
+                            label="Filtrer le journal"
+                            count={filtresPoses}
                             onClick={() => setFiltreOuvert(true)}
-                            className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >
-                            <Icon glyph={Funnel} size={20} />
-                            {filtresPoses > 0 && (
-                                <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
-                                    {filtresPoses}
-                                </span>
-                            )}
-                        </Button>
+                        />
                     )
                 }
                 count={{
@@ -584,10 +581,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                         <section key={cle} className="rounded-card bg-surface px-4 py-2">
                             {/* `.dh` — le jour et son compte, 17 sur 24 en graisse d'appui. */}
                             <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium first-letter:uppercase">
+                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium first-letter:uppercase">
                                     {titreDuJour(faits[0].timestamp)}
                                 </h3>
-                                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
+                                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
                                     {faits.length}
                                 </span>
                             </div>
@@ -629,16 +626,16 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                                             planche écrit « LFW-PF5XK2M remis », pas
                                             « LFW-PF5XK2M ». La cible et la méthode
                                             descendent en sous-ligne. */}
-                                            <span className="text-on-surface block truncate text-[16px] leading-6">
+                                            <span className="text-on-surface block truncate text-[1rem] leading-6">
                                                 {fait.description || fait.targetName}
                                             </span>
                                             {detail && (
-                                                <span className="text-on-surface-variant line-clamp-2 block text-[14px] leading-5">
+                                                <span className="text-on-surface-variant line-clamp-2 block text-[0.875rem] leading-5">
                                                     {detail}
                                                 </span>
                                             )}
                                         </span>
-                                        <span className="text-text-tertiary shrink-0 text-[12px] leading-4 tabular-nums">
+                                        <span className="text-text-tertiary shrink-0 text-[0.75rem] leading-4 tabular-nums">
                                             {heure(fait.timestamp)}
                                         </span>
                                     </div>
@@ -655,7 +652,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                     {/* `.sbody` et `.sfoot` — la feuille pose déjà 20 de chaque côté : libellés et
                         chips n'en rajoutent pas (ils tombaient à 40), et le pied reprend toute
                         la largeur pour que son filet coure d'un bord à l'autre. */}
-                    <p className="text-on-surface-variant pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
                         Nature
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -682,7 +679,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                         ))}
                     </div>
 
-                    <p className="text-on-surface-variant pt-4 pb-2 text-[12px] leading-4 font-medium">
+                    <p className="text-on-surface-variant pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
                         Période
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -726,17 +723,17 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
             >
                 {ouvert && (
                     <div className="flex flex-col gap-4 px-5 pt-3 pb-1">
-                        <p className="text-on-surface-variant text-[14px] leading-5">
+                        <p className="text-on-surface-variant text-[0.875rem] leading-5">
                             {titreDuJour(ouvert.timestamp)} à {heure(ouvert.timestamp)}
                         </p>
-                        <p className="text-on-surface text-[17px] leading-6">
+                        <p className="text-on-surface text-[1.0625rem] leading-6">
                             {ouvert.description}
                         </p>
                         <div className="bg-surface-container flex flex-col gap-2 rounded-sm px-4 py-3">
-                            <span className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                            <span className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                                 Qui l'a fait
                             </span>
-                            <span className="text-on-surface text-[16px] leading-6">
+                            <span className="text-on-surface text-[1rem] leading-6">
                                 {ouvert.isSystem
                                     ? 'Le système, sans intervention'
                                     : `${ouvert.actorName} · ${ouvert.actorRole}`}

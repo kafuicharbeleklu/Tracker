@@ -70,7 +70,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
                         /* `.lab` — 12 sur 16 en 500, sans interlettrage : la même étiquette
                            que celle d'un champ d'une ligne (04.3, 05.3). Elle tenait 11 et
                            un interlettrage que la planche ne déclare pas (13/09). */
-                        'duration-short4 mb-1.5 block text-[12px] leading-4 font-medium transition-colors',
+                        'duration-short4 mb-1.5 block text-[0.75rem] leading-4 font-medium transition-colors',
                         error ? 'text-error' : 'text-on-surface-variant',
                         isDisabled && 'text-on-surface/[0.38]',
                     )}
@@ -97,7 +97,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
                     'min-h-24 w-full px-3.5 py-3',
                     'focus:outline-none',
                     'duration-short4 ease-emphasized resize-none transition-[color,background-color,border-color,box-shadow]',
-                    'text-on-surface text-[16px] leading-6',
+                    'text-on-surface text-[1rem] leading-6',
                     'placeholder:text-text-tertiary',
                     'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
                     variant === 'filled'

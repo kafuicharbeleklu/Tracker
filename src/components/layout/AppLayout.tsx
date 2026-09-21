@@ -439,7 +439,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'settings':
                 return DESTINATIONS.settings.label;
             case 'not_found':
-                return 'Page introuvable';
+                /* `.tid .code` de l'état « page introuvable » : le nom commun, court. */
+                return 'Introuvable';
             default:
                 return APP_CONFIG.appName;
         }
@@ -779,7 +780,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                   barre latérale, qui n'est plus monté : au téléphone, le débordement
                   est la feuille « Plus » (17.7).
                 */}
-                {showTopAppBar && <TopAppBar title={getTopAppBarTitle(currentView)} />}
+                {showTopAppBar && (
+                    <TopAppBar
+                        title={getTopAppBarTitle(currentView)}
+                        /* La planche dessine l'écran introuvable en second niveau : une
+                           flèche de retour, puis le nom. Sans elle, la barre n'offrait
+                           aucune sortie, et le titre partait à 20 au lieu de 56. */
+                        leadingAction={
+                            currentView === 'not_found'
+                                ? {
+                                      icon: 'arrow_back',
+                                      label: 'Retour',
+                                      onClick: () => handleViewChange('dashboard'),
+                                  }
+                                : undefined
+                        }
+                    />
+                )}
 
                 <div className="relative flex min-h-0 flex-1">
                     {/*

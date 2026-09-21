@@ -86,7 +86,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 placeholder={placeholder}
                 className={cn(
                     'text-on-surface min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tk-color-text-tertiary)]',
-                    dense ? 'text-[14px] leading-5' : 'text-[16px] leading-6',
+                    dense ? 'text-[0.875rem] leading-5' : 'text-[1rem] leading-6',
                 )}
             />
         </div>

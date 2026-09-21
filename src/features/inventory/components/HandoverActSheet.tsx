@@ -354,10 +354,10 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                                 <Icon glyph={Check} size={18} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="block text-[16px] leading-6">
+                                <span className="block text-[1rem] leading-6">
                                     {adminUser?.name || 'Vous'} atteste avoir remis
                                 </span>
-                                <span className="text-on-surface-variant block text-[14px] leading-5">
+                                <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                     à l’instant · {objet.handoverProof || 'attestation'}
                                 </span>
                             </span>
@@ -367,10 +367,10 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                                 <Icon glyph={UserIcon} size={18} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="block text-[16px] leading-6">
+                                <span className="block text-[1rem] leading-6">
                                     {destinataire.name} atteste avoir reçu
                                 </span>
-                                <span className="text-on-surface-variant block text-[14px] leading-5">
+                                <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                     par signature, sur cet appareil
                                 </span>
                             </span>
@@ -466,7 +466,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 question={{
                     label: 'À partir du',
                     children: (
-                        <div className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-[4px] px-3.5 text-[16px] leading-6">
+                        <div className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-[4px] px-3.5 text-[1rem] leading-6">
                             <Icon
                                 glyph={CalendarBlank}
                                 size={18}

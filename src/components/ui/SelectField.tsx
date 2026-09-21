@@ -205,7 +205,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                     id={labelId}
                     className={cn(
                         /* `.lab` — même mesure que sur `InputField` : 12 sur 16 en 500. */
-                        'duration-short4 mb-2 block text-[12px] leading-4 font-medium transition-colors',
+                        'duration-short4 mb-2 block text-[0.75rem] leading-4 font-medium transition-colors',
                         error
                             ? 'text-error'
                             : isFocused
@@ -240,7 +240,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 className={cn(
                     /* `.val` de la passe sobre — le même creux que `.field`, et la
                        même marche : 16 sur 24, hauteur 48, intérieur 14, rayon 4. */
-                    'relative min-h-12 w-full py-3 pr-12 pl-3.5 text-left text-[16px] leading-6',
+                    'relative min-h-12 w-full py-3 pr-12 pl-3.5 text-left text-[1rem] leading-6',
                     'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow] outline-none',
                     'disabled:text-on-surface/[0.38] disabled:cursor-not-allowed',
                     variant === 'outlined'

@@ -65,7 +65,7 @@ const SelectionTopBar: React.FC<SelectionTopBarProps> = ({
             {/* `.cnt` — le compte devient le porte-voix de l'écran : le sujet n'est plus
                 la liste, c'est ce qui est coché. */}
             <span
-                className="font-brand min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em] tabular-nums"
+                className="font-brand min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] tabular-nums"
                 aria-live="polite"
             >
                 {count} sur {total}
@@ -75,7 +75,7 @@ const SelectionTopBar: React.FC<SelectionTopBarProps> = ({
                 <button
                     type="button"
                     onClick={bascule}
-                    className="focus-visible:ring-primary flex min-h-12 shrink-0 items-center rounded-[4px] px-3 text-[14px] leading-5 font-medium outline-none hover:bg-white/10 focus-visible:ring-2"
+                    className="focus-visible:ring-primary flex min-h-12 shrink-0 items-center rounded-[4px] px-3 text-[0.875rem] leading-5 font-medium outline-none hover:bg-white/10 focus-visible:ring-2"
                 >
                     {toutPris ? 'Aucun' : 'Tout'}
                 </button>

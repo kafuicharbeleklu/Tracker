@@ -707,7 +707,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                       ? `porteur depuis le ${formatDate(item.confirmedAt)} · réception confirmée`
                                                       : 'réception non confirmée'}
                                                   {item.holderAlert && (
-                                                      <span className="mt-0.5 flex items-center gap-1.5 text-[12px] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
+                                                      <span className="mt-0.5 flex items-center gap-1.5 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
                                                           <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
                                                           {item.holderAlert.kind === 'suspended'
                                                               ? `À récupérer — porteur suspendu le ${formatDate(item.holderAlert.since)}`
@@ -744,6 +744,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 : undefined
                         }
                         metricsStyle="qual"
+                        /* 04.2 au bureau : trois tuiles de front, la large redevient ordinaire. */
+                        metricsDeskColumns={3}
                         actions={primaryAction}
                     />
                 }
@@ -753,7 +755,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         icône** (R15, comme 03.1 : une icône devant chaque titre était du
                         bruit répété). Les rangées suivent à 8. */}
                     <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                             Référence technique
                         </h3>
                     </header>
@@ -794,7 +796,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     (financialStats && permissions.canManageInventory)) && (
                     <section className="rounded-card bg-surface p-4">
                         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                                 {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
                             </h3>
                         </header>
@@ -877,14 +879,14 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <button
                                     type="button"
                                     onClick={() => navigate('/finance')}
-                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[16px] leading-6"
+                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[1rem] leading-6"
                                 >
                                     {/* `.more` de la planche écrit **« Amortissement »**,
                                         pas « Prix d'achat et amortissement » : la phrase
                                         longue ne laissait plus la place à sa destination,
                                         qui passait à la ligne sous le chevron. */}
                                     <span>Amortissement</span>
-                                    <span className="text-text-secondary flex-1 text-right text-[12px] leading-4 whitespace-nowrap">
+                                    <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
                                         dans Finances
                                     </span>
                                     <Icon
@@ -916,7 +918,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 {permissions.canManageInventory && (
                     <section className="rounded-card bg-surface p-4">
                         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                                 Historique
                             </h3>
                         </header>
@@ -937,10 +939,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                 <Icon glyph={ClockCounterClockwise} size={18} />
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                                <span className="text-on-surface block text-[16px] leading-6">
+                                                <span className="text-on-surface block text-[1rem] leading-6">
                                                     {event.title}
                                                 </span>
-                                                <span className="text-on-surface-variant mt-0.5 block text-[14px] leading-5 tabular-nums">
+                                                <span className="text-on-surface-variant mt-0.5 block text-[0.875rem] leading-5 tabular-nums">
                                                     {event.date}
                                                 </span>
                                             </span>
@@ -953,14 +955,14 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <button
                                     type="button"
                                     onClick={() => navigate('/history')}
-                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[16px] leading-6"
+                                    className="border-outline-variant text-on-surface mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left text-[1rem] leading-6"
                                 >
                                     <span>
                                         {history.length > 1
                                             ? `Les ${history.length} événements`
                                             : 'L’événement'}
                                     </span>
-                                    <span className="text-text-secondary flex-1 text-right text-[12px] leading-4 whitespace-nowrap">
+                                    <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
                                         dans l’Historique
                                     </span>
                                     <Icon
@@ -971,7 +973,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 </button>
                             </>
                         ) : (
-                            <p className="text-on-surface-variant mt-2 text-[16px] leading-6">
+                            <p className="text-on-surface-variant mt-2 text-[1rem] leading-6">
                                 Aucun mouvement enregistré pour cet équipement.
                             </p>
                         )}
@@ -981,7 +983,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 {item.documents && item.documents.length > 0 && (
                     <section className="rounded-card bg-surface p-4">
                         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                                 Documents
                             </h3>
                             <DemoBadge />
@@ -998,10 +1000,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         <Icon glyph={FileText} size={18} />
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface block truncate text-[16px] leading-6">
+                                        <span className="text-on-surface block truncate text-[1rem] leading-6">
                                             {document.name}
                                         </span>
-                                        <span className="text-on-surface-variant mt-0.5 block text-[12px] leading-4 tabular-nums">
+                                        <span className="text-on-surface-variant mt-0.5 block text-[0.75rem] leading-4 tabular-nums">
                                             {document.type}
                                             {document.size ? ` · ${document.size}` : ''}
                                         </span>

@@ -59,7 +59,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({
             {count > 0 && (
                 <span
                     aria-hidden="true"
-                    className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-sm px-[5px] text-[11px] leading-[18px] font-medium tabular-nums"
+                    className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-sm px-[5px] text-[0.6875rem] leading-[1.125rem] font-medium tabular-nums"
                 >
                     {count}
                 </span>

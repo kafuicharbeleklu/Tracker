@@ -870,7 +870,7 @@ const FlowCanvas: React.FC<{
                                     [type]: !current[type],
                                 }))
                             }
-                            className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] ${activeFilters[type] ? 'border-white/35 bg-white/10 text-white' : 'border-white/10 text-white/40'}`}
+                            className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[0.6875rem] ${activeFilters[type] ? 'border-white/35 bg-white/10 text-white' : 'border-white/10 text-white/40'}`}
                         >
                             <span
                                 className="h-2 w-2 rounded-full"
@@ -1002,7 +1002,7 @@ const FlowCanvas: React.FC<{
                                 return (
                                     <div
                                         key={`label-${edge.label}`}
-                                        className="pointer-events-none absolute z-20 max-w-36 truncate rounded-md bg-[#f7c948] px-2 py-0.5 text-[11px] font-medium text-[#15211f] shadow-sm"
+                                        className="pointer-events-none absolute z-20 max-w-36 truncate rounded-md bg-[#f7c948] px-2 py-0.5 text-[0.6875rem] font-medium text-[#15211f] shadow-sm"
                                         style={{
                                             left: Math.max(8, (from.x + to.x) / 2),
                                             top: Math.max(8, (from.y + to.y) / 2),
@@ -1058,13 +1058,13 @@ const FlowCanvas: React.FC<{
                                             title={`${action.label} → ${action.to ?? 'surface locale'}`}
                                         />
                                     ))}
-                                    <span className="block text-[10px] font-medium tracking-wide uppercase opacity-70">
+                                    <span className="block text-[0.6875rem] font-medium tracking-wide uppercase opacity-70">
                                         {kindLabel[screen.kind]}
                                     </span>
                                     <span className="mt-1 block text-sm leading-5 font-semibold">
                                         {screen.name}
                                     </span>
-                                    <span className="mt-1 flex items-center justify-between text-[11px] opacity-65">
+                                    <span className="mt-1 flex items-center justify-between text-[0.6875rem] opacity-65">
                                         <span>
                                             {incomingEdges.length} entrée
                                             {incomingEdges.length !== 1 ? 's' : ''}
@@ -1082,7 +1082,7 @@ const FlowCanvas: React.FC<{
             </div>
             {miniMapOpen ? (
                 <div className="absolute right-5 bottom-5 z-30 w-48 rounded-lg border border-white/20 bg-[#111b19]/95 p-3 shadow-xl">
-                    <div className="mb-2 flex items-center justify-between text-[10px] font-semibold tracking-wide text-white/65 uppercase">
+                    <div className="mb-2 flex items-center justify-between text-[0.6875rem] font-semibold tracking-wide text-white/65 uppercase">
                         <span>Mini-carte</span>
                         <button
                             type="button"
@@ -1117,7 +1117,7 @@ const FlowCanvas: React.FC<{
                     <div className="flex items-start justify-between gap-5">
                         <div>
                             <p
-                                className="text-[10px] font-semibold tracking-wide uppercase"
+                                className="text-[0.6875rem] font-semibold tracking-wide uppercase"
                                 style={{ color: edgeColor[selectedEdge.type] }}
                             >
                                 {edgeLabel[selectedEdge.type]}
@@ -1137,7 +1137,7 @@ const FlowCanvas: React.FC<{
                         {screens.find((screen) => screen.id === selectedEdge.from)?.name} vers{' '}
                         {screens.find((screen) => screen.id === selectedEdge.to)?.name}
                     </p>
-                    <p className="mt-2 text-[11px] text-white/45">
+                    <p className="mt-2 text-[0.6875rem] text-white/45">
                         Cliquez une autre ligne pour examiner une action distincte.
                     </p>
                 </div>

@@ -219,7 +219,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             bien 16, mais c'est la seule des quatre planches à barre —
                             05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
                             les huit écrans**. */}
-                        <p className="font-brand text-on-surface truncate text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                        <p className="font-brand text-on-surface truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
                             {code}
                         </p>
                     </div>
@@ -245,11 +245,11 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                         </Button>
                     )}
                     <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {code}
                         </h1>
                         {crumb && (
-                            <span className="text-text-muted block truncate text-[13px] leading-4">
+                            <span className="text-text-muted block truncate text-[0.8125rem] leading-4">
                                 {crumb}
                             </span>
                         )}

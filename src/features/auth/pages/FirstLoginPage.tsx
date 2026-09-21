@@ -48,19 +48,25 @@ type Issue = 'expired' | 'used' | 'unavailable' | 'unknown';
 
 const FIELD_CLASSES = '!rounded-[4px] !pl-10 !shadow-none';
 const ACTION_CLASSES = 'w-full !rounded-[4px] !shadow-none';
-const TITLE_CLASSES = 'font-brand mb-2 text-[22px] leading-7 font-semibold tracking-[-0.01em]';
+const TITLE_CLASSES = 'font-brand mb-2 text-[1.375rem] leading-7 font-semibold tracking-[-0.01em]';
 
 /** `.tbar` de 02.2 : 56 tout compris, retour de 48, « Étape n sur 2 » en 17 sur 24. */
 const StepBar: React.FC<{ title: string; onBack?: () => void }> = ({ title, onBack }) => (
     <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b px-2 py-1">
         {onBack ? (
-            <Button variant="text" iconOnly aria-label="Retour" onClick={onBack} className="shrink-0">
+            <Button
+                variant="text"
+                iconOnly
+                aria-label="Retour"
+                onClick={onBack}
+                className="shrink-0"
+            >
                 <Icon glyph={ArrowLeft} />
             </Button>
         ) : (
             <span className="h-12 w-12 shrink-0" aria-hidden="true" />
         )}
-        <p className="font-brand min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+        <p className="font-brand min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
             {title}
         </p>
     </div>
@@ -72,12 +78,12 @@ const FactRow: React.FC<{ label: string; value: string; detail?: string }> = ({
     value,
     detail,
 }) => (
-    <div className="border-outline-variant flex gap-4 border-b py-3 text-[14px] leading-5">
+    <div className="border-outline-variant flex gap-4 border-b py-3 text-[0.875rem] leading-5">
         <span className="text-text-tertiary w-16 shrink-0">{label}</span>
         <span className="min-w-0 flex-1">
             {value}
             {detail && (
-                <span className="text-text-tertiary block text-[12px] leading-4">{detail}</span>
+                <span className="text-text-tertiary block text-[0.75rem] leading-4">{detail}</span>
             )}
         </span>
     </div>
@@ -266,8 +272,9 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                             title="Ce lien a expiré"
                             message={
                                 <>
-                                    Les invitations sont valables <b>{INVITATION_VALIDITY_DAYS} jours</b>.
-                                    Demandez-en une nouvelle : elle partira à la même adresse.
+                                    Les invitations sont valables{' '}
+                                    <b>{INVITATION_VALIDITY_DAYS} jours</b>. Demandez-en une
+                                    nouvelle : elle partira à la même adresse.
                                 </>
                             }
                             detail="Votre informatique en sera informée."
@@ -301,7 +308,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                 <BrandBanner />
                 <main className={cn(AUTH_MEASURE, 'flex flex-1 flex-col px-5 pt-7 pb-5')}>
                     <p className={TITLE_CLASSES}>Bonjour {firstName}</p>
-                    <p className="text-on-surface-variant mb-6 text-[14px] leading-5 text-pretty">
+                    <p className="text-on-surface-variant mb-6 text-[0.875rem] leading-5 text-pretty">
                         <b className="text-on-surface font-medium">{inviterName}</b>, de
                         l'informatique de {APP_CONFIG.companyName}, vous a ouvert un compte.
                     </p>
@@ -309,14 +316,14 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     {/* `.me` — l'identité à l'arrivée : une carte, deux faits à gauche. */}
                     <section className="mb-7">
                         <div className="bg-surface flex items-center gap-3.5 rounded-[4px] p-4">
-                            <span className="font-brand bg-inverse-surface text-inverse-on-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] text-[17px] font-semibold">
+                            <span className="font-brand bg-inverse-surface text-inverse-on-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px] text-[1.0625rem] font-semibold">
                                 {initialsOf(person.name)}
                             </span>
                             <span className="min-w-0">
-                                <span className="block truncate text-[17px] leading-6 font-medium">
+                                <span className="block truncate text-[1.0625rem] leading-6 font-medium">
                                     {person.name}
                                 </span>
-                                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                                     {person.email}
                                 </span>
                             </span>
@@ -340,12 +347,12 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                                     <Icon glyph={Package} size={20} />
                                 </span>
                                 <span className="min-w-0">
-                                    <span className="block text-[16px] leading-6 font-medium">
+                                    <span className="block text-[1rem] leading-6 font-medium">
                                         {pending.length === 1
                                             ? '1 équipement vous attend'
                                             : `${pending.length} équipements vous attendent`}
                                     </span>
-                                    <span className="text-on-surface-variant block text-[14px] leading-5">
+                                    <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                                         à confirmer à la réception, pas avant
                                     </span>
                                 </span>
@@ -380,20 +387,23 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     open={notMeOpen}
                     onClose={() => setNotMeOpen(false)}
                     title={`Prévenez ${inviterName}`}
-                    titleClassName="font-brand text-[22px] leading-7 font-semibold tracking-[-0.01em]"
+                    titleClassName="font-brand text-[1.375rem] leading-7 font-semibold tracking-[-0.01em]"
                 >
-                    <p className="text-on-surface-variant mb-4 text-[14px] leading-5">
+                    <p className="text-on-surface-variant mb-4 text-[0.875rem] leading-5">
                         Ce lien vous a été transmis par erreur. Rien ne s'enregistre ici.
                     </p>
                     <div className="flex items-center gap-3 py-2">
-                        <span className="font-brand bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold">
+                        <span className="font-brand bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold">
                             {initialsOf(inviterName)}
                         </span>
                         <span className="min-w-0">
-                            <span className="block truncate text-[16px] leading-6">{inviterName}</span>
-                            <span className="text-on-surface-variant block truncate text-[14px] leading-5">
-                                {[inviter?.department, inviter?.email].filter(Boolean).join(' · ') ||
-                                    'Informatique'}
+                            <span className="block truncate text-[1rem] leading-6">
+                                {inviterName}
+                            </span>
+                            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                {[inviter?.department, inviter?.email]
+                                    .filter(Boolean)
+                                    .join(' · ') || 'Informatique'}
                             </span>
                         </span>
                     </div>
@@ -417,7 +427,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     className={cn(AUTH_MEASURE, 'flex flex-1 flex-col px-5 pt-7 pb-5')}
                 >
                     <p className={TITLE_CLASSES}>Choisissez un mot de passe</p>
-                    <p className="text-on-surface-variant mb-6 text-[14px] leading-5 text-pretty">
+                    <p className="text-on-surface-variant mb-6 text-[0.875rem] leading-5 text-pretty">
                         {inheritedMode && "Votre compte a été créé par l'informatique. "}
                         {PASSWORD_MIN_LENGTH} caractères minimum. Une phrase vaut mieux qu'un mot
                         compliqué.
@@ -471,17 +481,21 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
 
                     {/* « Deux secrets, deux usages » — la seule confusion qui compte ici. */}
                     <section className="mb-7">
-                        <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                        <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
                             Deux secrets, deux usages
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-surface flex flex-col gap-2.5 rounded-[4px] p-3.5">
-                                <Icon glyph={LockSimple} size={20} className="text-on-surface-variant" />
+                                <Icon
+                                    glyph={LockSimple}
+                                    size={20}
+                                    className="text-on-surface-variant"
+                                />
                                 <span>
-                                    <span className="block text-[14px] leading-5 font-medium">
+                                    <span className="block text-[0.875rem] leading-5 font-medium">
                                         Mot de passe
                                     </span>
-                                    <span className="text-on-surface-variant block text-[12px] leading-4">
+                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
                                         ouvre l'application, depuis tout appareil
                                     </span>
                                 </span>
@@ -489,10 +503,10 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                             <div className="bg-surface flex flex-col gap-2.5 rounded-[4px] p-3.5">
                                 <Icon glyph={Key} size={20} className="text-on-surface-variant" />
                                 <span>
-                                    <span className="block text-[14px] leading-5 font-medium">
+                                    <span className="block text-[0.875rem] leading-5 font-medium">
                                         Code PIN
                                     </span>
-                                    <span className="text-on-surface-variant block text-[12px] leading-4">
+                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
                                         prouve une remise, sur place ; il vaut signature
                                     </span>
                                 </span>
@@ -515,13 +529,18 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
     return (
         <AuthShell>
             <StepBar title="Étape 2 sur 2" onBack={() => setScreen('password')} />
-            <main className={cn(AUTH_MEASURE, 'flex flex-1 flex-col items-center px-5 pt-7 pb-5 text-center')}>
+            <main
+                className={cn(
+                    AUTH_MEASURE,
+                    'flex flex-1 flex-col items-center px-5 pt-7 pb-5 text-center',
+                )}
+            >
                 <div className="flex flex-col items-center pt-2 pb-7">
                     <span className="bg-tint-bleu text-on-tint-bleu mb-5 flex h-14 w-14 items-center justify-center rounded-full">
                         <Icon glyph={Key} size={24} />
                     </span>
                     <p className={TITLE_CLASSES}>Votre code de remise</p>
-                    <p className="text-on-surface-variant max-w-[300px] text-[14px] leading-5 text-pretty">
+                    <p className="text-on-surface-variant max-w-[300px] text-[0.875rem] leading-5 text-pretty">
                         {pending.length > 0
                             ? "Six chiffres, tapés devant la personne qui vous tend l'objet. Il vaut signature."
                             : 'Vous en aurez besoin le jour où on vous remettra un équipement. Il vaut signature.'}
@@ -534,7 +553,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     labels={{ entry: 'Code de remise', confirm: 'Confirmer le code de remise' }}
                 />
 
-                <p className="text-text-tertiary mt-auto max-w-[300px] pt-6 text-[14px] leading-5 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-muted)]">
+                <p className="text-text-tertiary mt-auto max-w-[300px] pt-6 text-[0.875rem] leading-5 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-muted)]">
                     Ni <b>123456</b>, ni <b>000000</b>, ni une suite, ni votre année de naissance.{' '}
                     <b>Personne ne peut le lire</b>, pas même l'informatique.
                 </p>

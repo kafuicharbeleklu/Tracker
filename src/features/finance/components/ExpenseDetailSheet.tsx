@@ -272,11 +272,11 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                     <Icon glyph={Receipt} size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <b className="text-on-surface block truncate text-[14px] font-medium">
+                                    <b className="text-on-surface block truncate text-[0.875rem] font-medium">
                                         {expense.sourceFileName ||
                                             `facture-${expense.supplier.toLowerCase().replace(/\s+/g, '-')}.pdf`}
                                     </b>
-                                    <span className="text-on-surface-variant block text-[12px]">
+                                    <span className="text-on-surface-variant block text-[0.75rem]">
                                         lue le {formatExpenseDate(expense.date)}
                                     </span>
                                 </div>
@@ -290,7 +290,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                             onClick={() => {
                                                 void previewSourceFile(expense);
                                             }}
-                                            className="h-8 px-2 text-[13px]"
+                                            className="h-8 px-2 text-[0.8125rem]"
                                         >
                                             Voir
                                         </Button>
@@ -300,7 +300,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                             onClick={() => {
                                                 void downloadSourceFile(expense);
                                             }}
-                                            className="h-8 px-2 text-[13px]"
+                                            className="h-8 px-2 text-[0.8125rem]"
                                         >
                                             Télécharger
                                         </Button>
@@ -312,11 +312,11 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                         {/* CARTE 2 : CE QUE LA MACHINE A LU (PLANCHE 15.1 .xrow) */}
                         <div className="bg-surface border-outline-variant rounded-lg border p-4">
                             <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[13px] font-medium">
+                                <h3 className="text-on-surface text-[0.8125rem] font-medium">
                                     Ce que la machine a lu
                                 </h3>
                                 {expense.extractionConfidence && (
-                                    <span className="text-on-surface-variant text-[11px] font-medium tracking-wide">
+                                    <span className="text-on-surface-variant text-[0.6875rem] font-medium tracking-wide">
                                         Confiance{' '}
                                         {expense.extractionConfidence === 'high'
                                             ? 'élevée'
@@ -327,7 +327,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                 )}
                             </div>
                             <div className="divide-outline-variant divide-y">
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         Fournisseur
                                     </span>
@@ -335,7 +335,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                         {expense.supplier}
                                     </span>
                                 </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         Montant
                                     </span>
@@ -346,7 +346,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                         )}
                                     </span>
                                 </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         Date
                                     </span>
@@ -354,7 +354,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                         {formatExpenseDate(expense.date)}
                                     </span>
                                 </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         N° de facture
                                     </span>
@@ -367,7 +367,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                         {expense.invoiceNumber || 'non renseigné'}
                                     </span>
                                 </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         Type
                                     </span>
@@ -375,7 +375,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                         {EXPENSE_TYPE_LABELS[expense.type]}
                                     </span>
                                 </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                     <span className="text-on-surface-variant w-[106px] shrink-0">
                                         Statut
                                     </span>
@@ -386,7 +386,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                     </div>
                                 </div>
                                 {expense.description && (
-                                    <div className="flex items-baseline gap-2.5 py-[9px] text-[13px]">
+                                    <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
                                         <span className="text-on-surface-variant w-[106px] shrink-0">
                                             Description
                                         </span>
@@ -411,7 +411,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                     matchingBudgetItem.allocated - matchingBudgetItem.spent;
 
                                 return (
-                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[12px] leading-[17px]">
+                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[0.75rem] leading-[1.0625rem]">
                                         <Icon
                                             glyph={Warning}
                                             size={18}

@@ -174,7 +174,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                                (DESIGN_SYSTEM.md §états). Teindre le **nom** du champ fait
                                porter la faute à la question posée, alors qu'elle est dans
                                la réponse : c'est le cadre et le message qui la disent. */
-                            'duration-short4 mb-2 block text-[12px] leading-4 font-medium transition-colors',
+                            'duration-short4 mb-2 block text-[0.75rem] leading-4 font-medium transition-colors',
                             'text-on-surface-variant',
                             isDisabled && 'text-on-surface/[0.38]',
                             labelClassName,
@@ -238,7 +238,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                              * posé sur `surface-container`, où le creux ne se verrait
                              * pas.
                              */
-                            'text-on-surface min-h-12 w-full py-3 text-[16px] leading-6',
+                            'text-on-surface min-h-12 w-full py-3 text-[1rem] leading-6',
                             'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow]',
                             'focus:outline-none',
                             /*
@@ -345,7 +345,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {error && (
                                 <p
                                     id={errorId}
-                                    className="text-error flex items-start gap-1.5 text-[14px] leading-5"
+                                    className="text-error flex items-start gap-1.5 text-[0.875rem] leading-5"
                                     role="alert"
                                 >
                                     <Icon glyph={XCircle} size={18} className="mt-px" />
@@ -356,7 +356,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {!error && supportingText && (
                                 <p
                                     id={supportingId}
-                                    className="text-on-surface-variant text-[14px] leading-5"
+                                    className="text-on-surface-variant text-[0.875rem] leading-5"
                                 >
                                     {supportingText}
                                 </p>

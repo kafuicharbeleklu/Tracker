@@ -206,7 +206,7 @@ const Attestation: React.FC<AttestationProps> = ({
                             setMethod('signature');
                             settle('signature', false);
                         }}
-                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[14px] font-medium underline underline-offset-2"
+                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[0.875rem] font-medium underline underline-offset-2"
                     >
                         Signer à la place
                     </Button>
@@ -219,7 +219,7 @@ const Attestation: React.FC<AttestationProps> = ({
                             setPin('');
                             settle('pin', false);
                         }}
-                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[14px] font-medium underline underline-offset-2"
+                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[0.875rem] font-medium underline underline-offset-2"
                     >
                         Code PIN
                     </Button>
@@ -238,10 +238,10 @@ const Attestation: React.FC<AttestationProps> = ({
                         alt={`Signature de ${signerName}`}
                         className="absolute inset-x-0 top-3 mx-auto h-[64px] w-auto max-w-[70%] object-contain"
                     />
-                    <span className="absolute top-3 right-3 text-[12px] leading-4">
+                    <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
                         apposée · code PIN
                     </span>
-                    <span className="absolute inset-x-0 bottom-2.5 text-center text-[14px] leading-5">
+                    <span className="absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
                         {signerName}
                     </span>
                 </div>
@@ -267,8 +267,8 @@ const Attestation: React.FC<AttestationProps> = ({
             <p
                 className={
                     failed && method === 'pin'
-                        ? 'text-error mt-2 text-center text-[14px] leading-5'
-                        : 'text-on-surface-variant mt-2 text-center text-[14px] leading-5'
+                        ? 'text-error mt-2 text-center text-[0.875rem] leading-5'
+                        : 'text-on-surface-variant mt-2 text-center text-[0.875rem] leading-5'
                 }
             >
                 {hint}

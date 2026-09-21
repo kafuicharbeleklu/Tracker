@@ -106,13 +106,13 @@ const HeroTile: React.FC<{ value: React.ReactNode; label: string; tone?: 'ecart'
     <div className="min-w-0 flex-1 rounded-[4px] bg-white/[0.08] px-2.5 py-3">
         <span
             className={cn(
-                'font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums',
+                'font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums',
                 tone === 'ecart' && 'text-[var(--tk-color-live-ambre)]',
             )}
         >
             {value}
         </span>
-        <span className="mt-0.5 block truncate text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
+        <span className="mt-0.5 block truncate text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
             {label}
         </span>
     </div>
@@ -125,7 +125,7 @@ const HeroTile: React.FC<{ value: React.ReactNode; label: string; tone?: 'ecart'
  * de gestes primaires qu'il y a de lieux à compter.
  */
 const ROW_ACTION_CLASS =
-    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 shrink-0 rounded-sm px-3.5 text-[15px] font-medium';
+    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 shrink-0 rounded-sm px-3.5 text-[0.9375rem] font-medium';
 
 export const AuditOverview: React.FC<AuditOverviewProps> = ({
     rows,
@@ -218,21 +218,21 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
 
     const hero = (
         <section className="bg-inverse-surface text-inverse-on-surface rounded-lg px-5 pt-[22px] pb-5">
-            <span className="block text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
+            <span className="block text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                 {heroKicker}
             </span>
 
             {/* `.big` — **un seul nombre**, et c'est l'écart dès qu'il en existe un.
                 Avant le premier scan, il n'y a rien à comparer : ce sont les attendus. */}
             <div className="mt-2 flex items-baseline gap-2.5">
-                <b className="font-brand text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
+                <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
                     {hasPendingDecisions
                         ? totals.missing
                         : isCampaignClean
                           ? totals.found
                           : totals.expected}
                 </b>
-                <span className="text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
+                <span className="text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
                     {hasPendingDecisions
                         ? `manquant${totals.missing > 1 ? 's' : ''}`
                         : isCampaignClean
@@ -277,7 +277,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                             style={{ width: `${totals.coverage}%` }}
                         />
                     </div>
-                    <div className="mt-2 flex justify-between gap-3 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                    <div className="mt-2 flex justify-between gap-3 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
                         {isCampaignClean ? (
                             <span className="text-[var(--tk-color-live-vert)]">
                                 <b className="font-medium">Aucun écart</b>
@@ -307,7 +307,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * explique le geste, et elle change avec le niveau où l'on se trouve.
      */
     const note = (
-        <div className="text-on-surface-variant flex items-start gap-2 px-1 text-[14px] leading-5">
+        <div className="text-on-surface-variant flex items-start gap-2 px-1 text-[0.875rem] leading-5">
             <Icon glyph={Info} size={18} className="text-text-muted mt-px shrink-0" />
             <span>
                 {openedSite ? (
@@ -397,13 +397,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <div className="min-w-0">
                     <span
                         className={cn(
-                            'block truncate text-[16px] leading-6',
+                            'block truncate text-[1rem] leading-6',
                             muet ? 'text-on-surface-variant' : 'text-on-surface',
                         )}
                     >
                         {row.site}
                     </span>
-                    <span className="text-on-surface-variant block truncate text-[13px] leading-5">
+                    <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-5">
                         {row.country}
                         {(row.localCount ?? 0) > 0
                             ? ` · ${row.localCount} ${row.localCount === 1 ? 'local' : 'locaux'}`
@@ -415,13 +415,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     colonnes d'un coup d'œil (17.11, tableau). */}
                 <span
                     className={cn(
-                        'text-right text-[14px] leading-5 tabular-nums',
+                        'text-right text-[0.875rem] leading-5 tabular-nums',
                         muet ? 'text-on-surface-variant' : 'text-on-surface',
                     )}
                 >
                     {row.expected}
                     {commence && (
-                        <small className="text-on-surface-variant block text-[12px] leading-4">
+                        <small className="text-on-surface-variant block text-[0.75rem] leading-4">
                             {row.found} trouvé{row.found > 1 ? 's' : ''}
                         </small>
                     )}
@@ -429,7 +429,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
 
                 <span
                     className={cn(
-                        'inline-flex items-center gap-1.5 text-[14px] leading-5 whitespace-nowrap',
+                        'inline-flex items-center gap-1.5 text-[0.875rem] leading-5 whitespace-nowrap',
                         muet ? 'text-text-tertiary' : 'text-on-surface-variant',
                     )}
                 >
@@ -454,7 +454,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                                 event.stopPropagation();
                                 onStartPlace(row);
                             }}
-                            className={cn(ROW_ACTION_CLASS, 'h-9 min-h-9 px-3 text-[14px]')}
+                            className={cn(ROW_ACTION_CLASS, 'h-9 min-h-9 px-3 text-[0.875rem]')}
                         >
                             Lancer
                         </Button>
@@ -518,13 +518,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <div className="min-w-0 flex-1">
                     <span
                         className={cn(
-                            'block truncate text-[16px] leading-6',
+                            'block truncate text-[1rem] leading-6',
                             muet ? 'text-on-surface-variant' : 'text-on-surface',
                         )}
                     >
                         {row.local ?? row.site}
                     </span>
-                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                         <RowSubline row={row} level={niveau} />
                     </span>
                     {/* `.mini` — l'avancement du lieu, dans la rangée : il
@@ -608,7 +608,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     key={chiffre.cle}
                     className="border-outline-variant min-w-0 flex-1 py-0.5 pr-4 not-first:pl-4"
                 >
-                    <span className="font-brand text-on-surface flex items-center gap-2 text-[22px] leading-[26px] font-semibold tabular-nums">
+                    <span className="font-brand text-on-surface flex items-center gap-2 text-[1.375rem] leading-[1.625rem] font-semibold tabular-nums">
                         {chiffre.teinte && (
                             <i
                                 aria-hidden="true"
@@ -622,7 +622,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         1280. Une ellipse y mangerait le périmètre, qui est le sujet. Sa boîte
                         tient 24 — 16 de ligne, 4 de part et d'autre —, sans marge : dans
                         16.1 elle est un `span` en ligne. */}
-                    <span className="text-on-surface-variant block py-1 text-[12px] leading-4">
+                    <span className="text-on-surface-variant block py-1 text-[0.75rem] leading-4">
                         {chiffre.legende}
                     </span>
                 </div>
@@ -641,10 +641,10 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     const panneau = openedSite ? (
         <div className="flex flex-col gap-4">
             <div className="px-1">
-                <h2 className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+                <h2 className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                     {openedSite.site}
                 </h2>
-                <p className="text-on-surface-variant mt-0.5 text-[14px] leading-5">
+                <p className="text-on-surface-variant mt-0.5 text-[0.875rem] leading-5">
                     {openedSite.country} · site · {scopedLocalCount}{' '}
                     {scopedLocalCount > 1 ? 'locaux' : 'local'}
                 </p>
@@ -660,7 +660,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     ) : (
         <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
             <Icon glyph={MapPin} size={24} className="text-text-tertiary" />
-            <p className="text-[14px] leading-5">
+            <p className="text-[0.875rem] leading-5">
                 Choisissez un site pour voir ses locaux et son avancement.
             </p>
         </div>
@@ -673,10 +673,10 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <Icon glyph={MagnifyingGlassMinus} size={32} />
             </span>
             <div>
-                <p className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em]">
+                <p className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                     Aucun lieu ne correspond
                 </p>
-                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[16px] leading-6">
+                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[1rem] leading-6">
                     {emptyCause}
                 </p>
             </div>
@@ -761,7 +761,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                                 /* `.dlist .lh` de 16.1 — ce ne sont pas les en-têtes d'un
                                    tableau (17.11) : la liste des sites porte les siens en 11,
                                    capitales espacées, encre tertiaire. */
-                                'text-text-tertiary pt-2.5 pb-1.5 text-[11px] leading-4 tracking-[0.06em] uppercase',
+                                'text-text-tertiary pt-2.5 pb-1.5 text-[0.6875rem] leading-4 tracking-[0.06em] uppercase',
                             )}
                         >
                             <span />
@@ -792,7 +792,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         <React.Fragment key={key}>
                             <p
                                 className={cn(
-                                    'text-on-surface-variant pb-2 text-[12px] leading-4 font-medium',
+                                    'text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium',
                                     index > 0 && 'pt-4',
                                 )}
                             >

@@ -413,7 +413,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     const orderRow =
         count && !selection?.active ? (
-            <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[12px] leading-4">
+            <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
                 {count.regard ? (
                     <span className="min-w-0 truncate">{count.regard}</span>
                 ) : (
@@ -437,7 +437,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <button
                             type="button"
                             onClick={sort.onClick}
-                            className="text-on-surface flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent text-[12px] leading-4 font-medium"
+                            className="text-on-surface flex shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent text-[0.75rem] leading-4 font-medium"
                         >
                             <Icon glyph={SortAscending} size={18} className="text-text-muted" />
                             {sort.label}
@@ -618,7 +618,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                             {title}
                         </h1>
                         {actions}
@@ -645,12 +645,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 <IconGestureSizeContext.Provider value={40}>
                     <div className="px-page flex flex-col gap-2 pt-5">
                         <div className="flex min-h-[52px] items-center gap-4">
-                            <h1 className="font-brand text-on-surface shrink-0 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface shrink-0 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                                 {title}
                             </h1>
                             {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
                                 son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
-                            <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[13px] leading-4 tabular-nums">
+                            <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
                                 {ligneDeCompte}
                             </span>
                             {actions}
@@ -672,7 +672,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     /* `min-h-10` et pas seulement `h-10` : la taille `md`
                                        de `Button` pose `min-h-12`, et une hauteur fixe ne
                                        bat pas un minimum — le bouton restait à 48. */
-                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[14px] font-medium shadow-none"
+                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
                                 >
                                     <Icon glyph={pageAction.glyph ?? Plus} size={20} />
                                     {pageAction.label}
@@ -725,7 +725,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={sort.onClick}
-                                                className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[13px] leading-[18px] font-medium"
+                                                className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[0.8125rem] leading-[1.125rem] font-medium"
                                             >
                                                 <Icon
                                                     glyph={SortAscending}
@@ -840,7 +840,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         <button
                                             type="button"
                                             onClick={origin.onClear}
-                                            className="text-on-surface hover:text-text-secondary shrink-0 cursor-pointer text-[12px] font-medium underline underline-offset-4"
+                                            className="text-on-surface hover:text-text-secondary shrink-0 cursor-pointer text-[0.75rem] font-medium underline underline-offset-4"
                                         >
                                             {origin.inlineClearLabel}
                                         </button>
@@ -860,7 +860,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     */}
                         {activeFilterNotice && !selection?.active && (
                             <Reading>
-                                <div className="bg-surface-muted-strong text-body-medium rounded-vignette text-on-surface-variant flex items-center gap-2.5 px-3.5 py-[11px] leading-[18px]">
+                                <div className="bg-surface-muted-strong text-body-medium rounded-vignette text-on-surface-variant flex items-center gap-2.5 px-3.5 py-[11px] leading-[1.125rem]">
                                     <Icon
                                         glyph={Funnel}
                                         size={18}
@@ -899,7 +899,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 <>
                                     {children}
                                     {footer && (
-                                        <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
+                                        <p className="text-text-muted mt-1.5 text-center text-[0.75rem] tabular-nums">
                                             {footer}
                                         </p>
                                     )}
@@ -914,12 +914,16 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     {body === 'cartes' ? (
                                         <div className="flex flex-col gap-4">{children}</div>
                                     ) : (
-                                        <section className="bg-surface rounded-xl px-4">
+                                        /* `.card` des listes — **`2 16`** (04.1, 05.1, 03.3) : deux
+                                           pixels au-dessus de la première rangée et sous la
+                                           dernière, pour que leur filet ne touche pas l'arrondi.
+                                           Elle tenait `0 16`. */
+                                        <section className="bg-surface rounded-xl px-4 py-0.5">
                                             {children}
                                         </section>
                                     )}
                                     {footer && (
-                                        <p className="text-text-muted mt-1.5 text-center text-[12px] tabular-nums">
+                                        <p className="text-text-muted mt-1.5 text-center text-[0.75rem] tabular-nums">
                                             {footer}
                                         </p>
                                     )}

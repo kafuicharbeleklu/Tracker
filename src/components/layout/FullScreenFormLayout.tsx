@@ -18,7 +18,13 @@ interface FullScreenFormLayoutProps {
     actions?: React.ReactNode;
     saveLabel?: string;
     isSaving?: boolean;
-    submitButtonLocation?: 'header' | 'footer';
+    /**
+     * Où se pose le verbe. `header` : la saisie d'une fiche (04.3, 09.2) — le mot seul
+     * dans la barre. `footer` : un pied à deux boutons, pour un écran qui pose une
+     * alternative. `footer-full` : **le `.pfoot` des imports** (04.3, 09.2 ×2) — un seul
+     * bouton, pleine largeur, et pas d'« Annuler » : la flèche de retour le fait déjà.
+     */
+    submitButtonLocation?: 'header' | 'footer' | 'footer-full';
     /**
      * Passe à la coque. Un écran dont le contenu est fait de **cartes** doit poser sa
      * toile — `bg-background` : sur la surface blanche du plein écran, une carte
@@ -83,6 +89,8 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
                 </Button>
                 <SaveButton />
             </>
+        ) : submitButtonLocation === 'footer-full' ? (
+            <SaveButton className="w-full" />
         ) : null;
 
     /*
@@ -98,7 +106,7 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
                 form={formId}
                 variant="text"
                 disabled={isSaving}
-                className="text-on-surface h-12 px-3 text-[16px] font-medium"
+                className="text-on-surface h-12 px-3 text-[1rem] font-medium"
             >
                 {saveLabel}
             </Button>

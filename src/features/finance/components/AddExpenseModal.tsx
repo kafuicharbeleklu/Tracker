@@ -1,23 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import Icon from '../../../components/ui/Icon';
-import {
-    ArrowsClockwise,
-    FileText,
-    MagnifyingGlass,
-    Check,
-    SpinnerGap,
-    Warning,
-    WarningCircle,
-    Sliders,
-} from '@phosphor-icons/react';
+import { FileText, Keyboard, Warning } from '@phosphor-icons/react';
 import { formatCurrency } from '../../../lib/financial';
-import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
 import { TextArea } from '../../../components/ui/TextArea';
-import SegmentedButton from '../../../components/ui/SegmentedButton';
 import IconButton from '../../../components/ui/IconButton';
+import { FullScreenLayout } from '../../../components/layout/FullScreenLayout';
+import {
+    FieldLabel,
+    FormNote,
+    FormSection,
+    FormWarn,
+    Segmented,
+} from '../../../components/ui/FormParts';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
@@ -45,9 +42,9 @@ const EXPENSE_TYPE_OPTIONS = [
     { value: 'Cloud', label: 'Cloud' },
 ];
 
-const MODE_OPTIONS = [
-    { value: 'scan', label: 'Scan automatique' },
-    { value: 'manual', label: 'Saisie manuelle' },
+const MODE_OPTIONS: ReadonlyArray<{ value: AddExpenseMode; label: string }> = [
+    { value: 'scan', label: 'Lire une facture' },
+    { value: 'manual', label: 'Saisir à la main' },
 ];
 
 /** « 6 août 2026 » — la date d'une lecture se lit, elle ne se décode pas. */
@@ -271,12 +268,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         onClose();
     };
 
-    const handleModeChange = (value: string | string[]) => {
-        if (typeof value === 'string') {
-            setMode(value as AddExpenseMode);
-        }
-    };
-
     const startScan = async (file: File) => {
         setScannedFile(file);
         setIsScanning(true);
@@ -428,358 +419,382 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         handleClose();
     };
 
-    const footer = (
-        <>
-            <Button variant="outlined" onClick={handleClose}>
-                Annuler
-            </Button>
+    if (!isOpen) return null;
+
+    /* `.tbar .save` de 15.4 — **le verbe seul, et seulement quand il y a de quoi
+       enregistrer.** Les colonnes « lecture en cours » et « lecture échouée » portent
+       une barre nue : il n'y a rien à valider tant que rien n'est lu ni saisi. */
+    const headerActions =
+        mode === 'manual' ? (
             <Button
-                variant="filled"
+                variant="text"
                 onClick={() => {
                     void handleSubmit();
                 }}
-                disabled={requiresLowConfidenceReview && !isLowConfidenceReviewed}
+                className="text-on-surface h-12 px-3 text-[1rem] font-medium"
             >
-                Enregistrer la dépense
+                Enregistrer
             </Button>
-        </>
-    );
+        ) : undefined;
 
     return (
-        <Modal
-            isOpen={isOpen}
+        <FullScreenLayout
+            title="Nouvelle dépense"
+            onBack={handleClose}
             onClose={handleClose}
-            title="Enregistrer une dépense"
-            footer={mode === 'manual' ? footer : undefined}
-            maxWidth="max-w-5xl"
+            headerActions={headerActions}
+            className="bg-background"
         >
-            <div className="border-outline-variant from-surface-container-low to-surface-container mb-6 rounded-md border bg-gradient-to-r p-3">
-                <div className="text-label-small text-on-surface-variant mb-2 flex items-center gap-2 tracking-widest uppercase">
-                    <Icon glyph={ArrowsClockwise} size={18} />
-                    Mode de saisie
-                </div>
-                <SegmentedButton
-                    options={MODE_OPTIONS}
-                    value={mode}
-                    onChange={handleModeChange}
-                    className="w-full"
-                />
-            </div>
+            <div className="flex flex-col gap-4">
+                {/* **Deux chemins, pas un réglage.** 15.3 pose les trois chemins dans le menu
+                du geste d'ajout — photographier, importer, saisir ; le produit n'a qu'un
+                geste, l'échelle courte de 17.4 les tient donc ici, sans bandeau en
+                dégradé ni capitales. */}
+                <FormSection title="Comment saisir">
+                    <Segmented
+                        label="Mode de saisie"
+                        value={mode}
+                        onChange={(value) => setMode(value)}
+                        options={MODE_OPTIONS}
+                    />
+                </FormSection>
 
-            {mode === 'scan' && (
-                <div className="animate-in fade-in zoom-in-95 flex min-h-[300px] flex-col items-center justify-center space-y-6 text-center duration-300">
-                    {!isScanning ? (
-                        <FileDropzone
-                            onFileSelect={startScan}
-                            onFilesSelect={startBatchScan}
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
-                            label="Déposez vos factures ici"
-                            subLabel="Import unitaire ou en lot: extraction automatique des informations clés"
-                            className="border-outline-variant hover:border-primary h-64 w-full"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center">
-                            <div className="relative">
-                                <div className="border-outline-variant relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4">
-                                    <Icon
-                                        glyph={FileText}
-                                        size={32}
-                                        className="text-on-surface-variant"
-                                    />
-                                    <div
-                                        className="bg-primary/20 absolute inset-0 animate-[spin_3s_linear_infinite]"
-                                        style={{
-                                            clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)',
-                                        }}
-                                    />
-                                </div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Icon
-                                        glyph={MagnifyingGlass}
-                                        size={32}
-                                        className="text-primary animate-pulse"
-                                    />
-                                </div>
-                            </div>
-                            <h3 className="text-title-medium text-on-surface mt-6 font-bold">
-                                Analyse en cours...
-                            </h3>
-                            <div className="text-body-medium text-on-surface-variant mt-2 flex flex-col gap-1">
-                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-100">
-                                    <Icon glyph={Check} size={18} className="text-tertiary" />
-                                    Détection du fournisseur
-                                </span>
-                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-500">
-                                    <Icon glyph={Check} size={18} className="text-tertiary" />
-                                    Lecture des montants HT/TTC
-                                </span>
-                                <span className="animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 delay-1000">
-                                    <Icon
-                                        glyph={SpinnerGap}
-                                        size={18}
-                                        className="text-primary animate-spin"
-                                    />
-                                    Catégorisation...
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
+                {mode === 'scan' && (
+                    <>
+                        {!isScanning ? (
+                            <FormSection title="La facture">
+                                <FileDropzone
+                                    onFileSelect={startScan}
+                                    onFilesSelect={startBatchScan}
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
+                                    label="Déposez vos factures ici"
+                                    subLabel="Une seule ou tout un lot : ce qui est lu franchement arrive rempli."
+                                />
+                            </FormSection>
+                        ) : (
+                            /* **Le transitoire de 15.4** : le fichier est déjà là, les champs
+                           attendent leur valeur, et la sortie est offerte tout de suite —
+                           on peut saisir à la main sans attendre la fin de la lecture.
+                           L'écran tournait un disque de 96 et trois lignes de commentaire
+                           sur ce que la machine faisait ; la planche montre ce qui va être
+                           rempli, pas la machine au travail. */
+                            <FormSection title="Lecture en cours">
+                                {scannedFile && (
+                                    <div className="flex min-h-14 items-center gap-3">
+                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                            <Icon glyph={FileText} size={20} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="text-on-surface block truncate text-[1rem] leading-6 font-medium">
+                                                {scannedFile.name}
+                                            </span>
+                                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                                {Math.max(1, Math.round(scannedFile.size / 1024))}{' '}
+                                                Ko
+                                            </span>
+                                        </span>
+                                    </div>
+                                )}
 
-            {mode === 'manual' && (
-                <div className="animate-in slide-in-from-right-8 space-y-4 duration-300">
-                    {/* Le fichier lu — `.fread` de 15.1. Une surface neutre : icône, nom,
+                                {/* `.pbar` — une piste de 4 sur le creux, et le trait qui la
+                                parcourt : la lecture dure deux à cinq secondes. */}
+                                <div
+                                    className="bg-surface-container h-1 overflow-hidden rounded-full"
+                                    role="progressbar"
+                                    aria-label="Lecture de la facture"
+                                >
+                                    <div className="bg-on-surface h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full" />
+                                </div>
+
+                                {/* `.skrow` — la clé est déjà lisible, la valeur est une barre
+                                en attente : on sait ce qui va arriver, et où. */}
+                                <div className="flex flex-col gap-3">
+                                    {['Fournisseur', 'Montant', 'Date', 'N° de facture'].map(
+                                        (label) => (
+                                            <div key={label} className="flex items-center gap-3">
+                                                <span className="text-on-surface-variant w-[110px] shrink-0 text-[0.875rem] leading-5">
+                                                    {label}
+                                                </span>
+                                                <span className="bg-surface-container h-4 min-w-0 flex-1 rounded-[2px]" />
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+
+                                <Button
+                                    variant="outlined"
+                                    icon={<Icon glyph={Keyboard} size={20} />}
+                                    onClick={() => setMode('manual')}
+                                    className="w-full"
+                                >
+                                    Saisir à la main
+                                </Button>
+                            </FormSection>
+                        )}
+
+                        {isScanning && (
+                            <FormWarn glyph={FileText}>
+                                Le fichier est déjà gardé comme justificatif.
+                            </FormWarn>
+                        )}
+                    </>
+                )}
+
+                {mode === 'manual' && (
+                    <div className="animate-in slide-in-from-right-8 flex flex-col gap-4 duration-300">
+                        {/* Le fichier lu — `.fread` de 15.1. Une surface neutre : icône, nom,
                         date de lecture, et de quoi le retirer. Le bandeau teinté « Données
                         extraites par IA » disait la machine plutôt que le document, et
                         empilait trois lignes de métadonnées que la planche ne porte pas —
                         la confiance ne se dit pas, elle décide (voir `keepIfRead`). */}
-                    {scannedFile && (
-                        <div className="border-outline-variant bg-surface rounded-lg border p-4">
-                            <div className="flex min-h-[56px] items-center gap-3">
-                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                    <Icon glyph={FileText} size={20} />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <b className="text-on-surface block truncate text-[14px] font-medium">
-                                        {scannedFile.name}
-                                    </b>
-                                    <span className="text-on-surface-variant block text-[12px]">
-                                        lue le {formatReadDate(new Date())}
+                        {scannedFile && (
+                            <FormSection title="La facture">
+                                {/* `.doc` de 15.4 — la vignette, le nom, le poids, et de quoi
+                                le retirer. La carte était cernée et posait le nom en 14 ;
+                                une planche ne cerne pas une section. */}
+                                <div className="flex min-h-14 items-center gap-3">
+                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                        <Icon glyph={FileText} size={20} />
                                     </span>
-                                </span>
-                                <IconButton
-                                    icon="close"
-                                    variant="standard"
-                                    aria-label="Retirer le fichier scanné"
-                                    onClick={() => {
-                                        setScannedFile(null);
-                                        setExtractionMeta(null);
-                                        setIsLowConfidenceReviewed(false);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
+                                    <span className="min-w-0 flex-1">
+                                        <span className="text-on-surface block truncate text-[1rem] leading-6 font-medium">
+                                            {scannedFile.name}
+                                        </span>
+                                        <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                            lue le {formatReadDate(new Date())}
+                                        </span>
+                                    </span>
+                                    <IconButton
+                                        icon="close"
+                                        variant="standard"
+                                        aria-label="Retirer le fichier scanné"
+                                        onClick={() => {
+                                            setScannedFile(null);
+                                            setExtractionMeta(null);
+                                            setIsLowConfidenceReviewed(false);
+                                        }}
+                                    />
+                                </div>
 
-                    {extractionMeta?.warnings?.length ? (
-                        <div className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant rounded-xl border px-3 py-2">
-                            {extractionMeta.warnings[0]}
-                        </div>
-                    ) : null}
+                                {extractionMeta?.warnings?.length ? (
+                                    <FormNote>{extractionMeta.warnings[0]}</FormNote>
+                                ) : null}
+                            </FormSection>
+                        )}
 
-                    {/* ── Ce que la machine a lu — `.xrow` de 15.1 ─────────────────────
+                        {/* ── Ce que la machine a lu — `.xrow` de 15.1 ─────────────────────
                         Le second bloc de la colonne 2, qui n'existait qu'en **lecture**,
                         dans la feuille de détail — donc à l'endroit où il ne sert plus à
                         décider. Ce qui a été lu franchement est **acquis** et se relit d'un
                         coup d'œil ; ce qui ne l'a pas été porte « non lu · à saisir », et
                         c'est le seul endroit où l'œil doit se poser. */}
-                    {scannedFile && extractionMeta && (
-                        <div className="border-outline-variant bg-surface rounded-lg border p-4">
-                            <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[13px] font-medium">
-                                    Ce que la machine a lu
-                                </h3>
-                            </div>
-                            <div className="divide-outline-variant divide-y">
-                                {[
-                                    {
-                                        label: 'Fournisseur',
-                                        value: formData.supplier,
-                                        confidence: extractionMeta.fieldConfidence?.supplier,
-                                    },
-                                    {
-                                        label: 'Montant',
-                                        value: formData.amount
-                                            ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}`
-                                            : '',
-                                        confidence: extractionMeta.fieldConfidence?.amount,
-                                    },
-                                    {
-                                        label: 'Date',
-                                        value: formData.date
-                                            ? formatReadDate(new Date(formData.date))
-                                            : '',
-                                        confidence: extractionMeta.fieldConfidence?.date,
-                                    },
-                                    {
-                                        label: 'N° de facture',
-                                        value: formData.invoiceNumber,
-                                        confidence: extractionMeta.fieldConfidence?.invoiceNumber,
-                                    },
-                                ].map((row) => {
-                                    const unread = !row.value || row.confidence === 'low';
-                                    return (
-                                        <div
-                                            key={row.label}
-                                            className="flex items-baseline gap-2.5 py-[9px] text-[13px]"
-                                        >
-                                            <span className="text-on-surface-variant w-[106px] shrink-0">
-                                                {row.label}
-                                            </span>
-                                            <span
-                                                className={
-                                                    unread
-                                                        ? 'text-text-muted min-w-0 flex-1 font-normal'
-                                                        : 'text-on-surface min-w-0 flex-1 truncate font-medium tabular-nums'
-                                                }
+                        {scannedFile && extractionMeta && (
+                            <FormSection title="Ce que la machine a lu">
+                                <div className="divide-outline-variant divide-y">
+                                    {[
+                                        {
+                                            label: 'Fournisseur',
+                                            value: formData.supplier,
+                                            confidence: extractionMeta.fieldConfidence?.supplier,
+                                        },
+                                        {
+                                            label: 'Montant',
+                                            value: formData.amount
+                                                ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}`
+                                                : '',
+                                            confidence: extractionMeta.fieldConfidence?.amount,
+                                        },
+                                        {
+                                            label: 'Date',
+                                            value: formData.date
+                                                ? formatReadDate(new Date(formData.date))
+                                                : '',
+                                            confidence: extractionMeta.fieldConfidence?.date,
+                                        },
+                                        {
+                                            label: 'N° de facture',
+                                            value: formData.invoiceNumber,
+                                            confidence:
+                                                extractionMeta.fieldConfidence?.invoiceNumber,
+                                        },
+                                    ].map((row) => {
+                                        const unread = !row.value || row.confidence === 'low';
+                                        return (
+                                            <div
+                                                key={row.label}
+                                                /* `.xrow` — 44 de haut, la clé à gauche en
+                                               encre secondaire, la valeur à droite. */
+                                                className="flex min-h-11 items-center gap-2.5 text-[0.875rem] leading-5"
                                             >
-                                                {unread ? 'non lu' : row.value}
-                                            </span>
-                                            {unread && (
-                                                <span className="text-text-muted shrink-0 text-[11px]">
-                                                    à saisir
+                                                <span className="text-on-surface-variant w-[110px] shrink-0">
+                                                    {row.label}
                                                 </span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <p className="text-on-surface-variant mt-1.5 px-0.5 text-[12px] leading-[17px]">
-                                {unreadFields.length === 0 ? (
-                                    <>Les quatre champs sont acquis. Rien à relire.</>
-                                ) : (
-                                    <>
-                                        {4 - unreadFields.length} champ
-                                        {4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
-                                        {4 - unreadFields.length > 1 ? 'sont acquis' : 'est acquis'}
-                                        . Le
-                                        {unreadFields.length > 1
-                                            ? 's autres arrivent vides'
-                                            : ' quatrième arrive vide'}{' '}
-                                        : c'est le seul endroit où l'œil doit se poser.
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    )}
+                                                <span
+                                                    className={
+                                                        unread
+                                                            ? 'text-text-muted min-w-0 flex-1 font-normal'
+                                                            : 'text-on-surface min-w-0 flex-1 truncate font-medium tabular-nums'
+                                                    }
+                                                >
+                                                    {unread ? 'non lu' : row.value}
+                                                </span>
+                                                {unread && (
+                                                    <span className="text-text-muted shrink-0 text-[0.75rem] leading-4">
+                                                        à saisir
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <FormNote>
+                                    {unreadFields.length === 0 ? (
+                                        <>Les quatre champs sont acquis. Rien à relire.</>
+                                    ) : (
+                                        <>
+                                            {4 - unreadFields.length} champ
+                                            {4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
+                                            {4 - unreadFields.length > 1
+                                                ? 'sont acquis'
+                                                : 'est acquis'}
+                                            . Le
+                                            {unreadFields.length > 1
+                                                ? 's autres arrivent vides'
+                                                : ' quatrième arrive vide'}{' '}
+                                            : c'est le seul endroit où l'œil doit se poser.
+                                        </>
+                                    )}
+                                </FormNote>
 
-                    {requiresLowConfidenceReview ? (
-                        <label className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant flex items-start gap-2 rounded-xl border px-3 py-2">
-                            <input
-                                type="checkbox"
-                                className="mt-0.5 h-4 w-4"
-                                checked={isLowConfidenceReviewed}
-                                onChange={(e) => setIsLowConfidenceReviewed(e.target.checked)}
-                            />
-                            <span>
-                                Je confirme avoir verifie manuellement le fournisseur, le montant,
-                                la date et la reference.
-                            </span>
-                        </label>
-                    ) : null}
+                                {requiresLowConfidenceReview ? (
+                                    <label className="bg-surface-container text-on-surface-variant flex items-start gap-3 rounded-[4px] px-4 py-3 text-[0.875rem] leading-5">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-0.5 h-4 w-4"
+                                            checked={isLowConfidenceReviewed}
+                                            onChange={(e) =>
+                                                setIsLowConfidenceReviewed(e.target.checked)
+                                            }
+                                        />
+                                        <span>
+                                            Je confirme avoir relu le fournisseur, le montant, la
+                                            date et le numéro de facture.
+                                        </span>
+                                    </label>
+                                ) : null}
+                            </FormSection>
+                        )}
 
-                    <div className="border-primary/25 bg-primary-container/10 border p-4">
-                        <div className="mb-3 flex items-center gap-2">
-                            <Icon glyph={WarningCircle} size={18} className="text-primary" />
-                            <p className="text-label-medium text-on-surface tracking-widest uppercase">
-                                Champs critiques
-                            </p>
-                        </div>
-                        <div className="expanded:grid-cols-3 grid grid-cols-1 gap-4">
+                        {/* `.fsec` « La dépense » de 15.4 — **ce qui décide, dans l'ordre de
+                        la facture**. Le bloc portait un cadre jaune pâle et « CHAMPS
+                        CRITIQUES » en capitales espacées : les planches n'écrivent pas de
+                        capitales, ne cernent pas une section, et ne posent le jaune que
+                        sur un acte. L'astérisque tombe : `.rq` dit « obligatoire » quand
+                        il le faut, le champ le signale à la validation. */}
+                        <FormSection title="La dépense">
                             <InputField
-                                label={`Montant (${currencySymbol}) *`}
+                                label="Montant"
+                                name="amount"
                                 type="number"
                                 value={formData.amount}
                                 onChange={(e) =>
                                     setFormData({ ...formData, amount: e.target.value })
                                 }
-                                placeholder="0.00"
+                                placeholder="0"
+                                supportingText={`en ${currencySymbol}`}
                                 required
                             />
                             <InputField
-                                label="Fournisseur *"
+                                label="Fournisseur"
+                                name="supplier"
                                 value={formData.supplier}
                                 onChange={(e) =>
                                     setFormData({ ...formData, supplier: e.target.value })
                                 }
-                                placeholder="Ex: Dell Technologies"
+                                placeholder="Dell Technologies"
                                 required
                             />
                             <InputField
-                                label="Date *"
+                                label="Date"
+                                name="date"
                                 type="date"
                                 value={formData.date}
                                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                                 required
                             />
-                        </div>
-                    </div>
+                        </FormSection>
 
-                    <div className="expanded:grid-cols-2 border-outline-variant bg-surface-container-low grid grid-cols-1 gap-4 border p-4">
-                        <div className="expanded:col-span-2 mb-1 flex items-center gap-2">
-                            <Icon glyph={Sliders} size={18} className="text-on-surface-variant" />
-                            <p className="text-label-medium text-on-surface-variant tracking-widest uppercase">
-                                Détails complémentaires
-                            </p>
-                        </div>
-                        <InputField
-                            label="N° Facture (optionnel)"
-                            value={formData.invoiceNumber}
-                            onChange={(e) =>
-                                setFormData({ ...formData, invoiceNumber: e.target.value })
-                            }
-                            placeholder="INV-2024-001"
-                        />
-                        <SelectField
-                            label="Type de dépense *"
-                            name="expense-type"
-                            options={EXPENSE_TYPE_OPTIONS}
-                            value={formData.type}
-                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                            placeholder="Sélectionner un type"
-                            required
-                        />
-                        <div className="expanded:col-span-2">
-                            <TextArea
-                                label="Description (optionnelle)"
-                                value={formData.description}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, description: e.target.value })
-                                }
-                                rows={3}
-                                placeholder="Détails de la dépense..."
+                        {/* `.fsec` « La nature » — le poste sur lequel la dépense s'impute,
+                        le numéro qui l'identifie, et ce qu'elle couvre. */}
+                        <FormSection title="La nature">
+                            <SelectField
+                                label="Poste"
+                                name="expense-type"
+                                options={EXPENSE_TYPE_OPTIONS}
+                                value={formData.type}
+                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                placeholder="Sélectionner un poste"
+                                required
                             />
-                        </div>
-                    </div>
+                            <InputField
+                                label="N° de facture"
+                                name="invoiceNumber"
+                                value={formData.invoiceNumber}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, invoiceNumber: e.target.value })
+                                }
+                                placeholder="INV-0412"
+                                supportingText="facultatif"
+                            />
+                            <div>
+                                <FieldLabel>Description</FieldLabel>
+                                <TextArea
+                                    aria-label="Description"
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, description: e.target.value })
+                                    }
+                                    rows={3}
+                                    placeholder="Deux postes de travail pour l'atelier de Lomé."
+                                />
+                            </div>
+                        </FormSection>
 
-                    {/* L'imputation budgétaire — `.warn` de 15.1. **Ce que l'acte laisse
+                        {/* L'imputation budgétaire — `.warn` de 15.1. **Ce que l'acte laisse
                         derrière lui**, pas l'état d'avant : le poste, ce qu'il a déjà
                         consommé, et ce qu'il en restera une fois cette dépense enregistrée.
                         Un solde qui passe sous zéro se voit ici, pas à la clôture. */}
-                    {budgetImpact && (
-                        <div className="border-outline-variant bg-surface-container text-on-surface-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[12px] leading-[17px]">
-                            <Icon
-                                glyph={Warning}
-                                size={18}
-                                className="text-on-surface-variant mt-px shrink-0"
-                            />
-                            <span>
-                                <b className="text-on-surface font-medium">
-                                    Cette dépense s'impute sur «&nbsp;{budgetImpact.category}&nbsp;»
-                                </b>
-                                , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après
-                                enregistrement, il restera{' '}
-                                <b
-                                    className={
-                                        budgetImpact.after < 0
-                                            ? 'text-error font-medium'
-                                            : 'text-on-surface font-medium'
-                                    }
-                                >
-                                    {formatCurrency(
-                                        budgetImpact.after,
-                                        settings.currency,
-                                        settings.compactNotation,
-                                    )}
-                                </b>{' '}
-                                sur le poste.
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
-        </Modal>
+                        {budgetImpact && (
+                            <FormWarn glyph={Warning}>
+                                <span>
+                                    <b className="text-on-surface font-medium">
+                                        Cette dépense s'impute sur «&nbsp;{budgetImpact.category}
+                                        &nbsp;»
+                                    </b>
+                                    , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après
+                                    enregistrement, il restera{' '}
+                                    <b
+                                        className={
+                                            budgetImpact.after < 0
+                                                ? 'text-error font-medium'
+                                                : 'text-on-surface font-medium'
+                                        }
+                                    >
+                                        {formatCurrency(
+                                            budgetImpact.after,
+                                            settings.currency,
+                                            settings.compactNotation,
+                                        )}
+                                    </b>{' '}
+                                    sur le poste.
+                                </span>
+                            </FormWarn>
+                        )}
+                    </div>
+                )}
+            </div>
+        </FullScreenLayout>
     );
 };

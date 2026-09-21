@@ -1,6 +1,8 @@
 import React from 'react';
+import { ArrowDown, ArrowUp } from '@phosphor-icons/react';
 
 import { cn } from '../../lib/utils';
+import Icon from './Icon';
 import { SelectionBox } from './SelectableRow';
 
 /**
@@ -39,6 +41,12 @@ export interface DataColumn<T> {
     title?: (row: T) => string | undefined;
     /** Un nombre s'aligne à droite. */
     numeric?: boolean;
+    /**
+     * La colonne qui **ordonne** la liste — `th.sorted` de 17.11 : encre pleine et flèche,
+     * quand les autres en-têtes restent en encre secondaire. Elle suit le tri réel de
+     * l'écran ; sans elle, rien ne dit par quoi le tableau est rangé.
+     */
+    sorted?: 'asc' | 'desc';
     /** La largeur de la colonne — `minmax` interdit, c'est un `<col>`. */
     width?: string;
 }
@@ -115,7 +123,7 @@ function DataTable<T>({
             )}
             style={maxHeight ? { maxHeight } : undefined}
         >
-            <table className="w-full border-collapse text-left text-[14px] leading-5">
+            <table className="w-full border-collapse text-left text-[0.875rem] leading-5">
                 <colgroup>
                     {selectable && <col style={{ width: '48px' }} />}
                     {columns.map((column) => (
@@ -136,7 +144,7 @@ function DataTable<T>({
                                 scope="col"
                                 className={cn(
                                     'bg-surface sticky top-0 left-0 z-20 h-10 px-2.5',
-                                    'text-text-muted text-[12px] leading-4 font-medium',
+                                    'text-text-muted text-[0.75rem] leading-4 font-medium',
                                 )}
                             >
                                 <span className="sr-only">Sélection</span>
@@ -148,8 +156,16 @@ function DataTable<T>({
                                 scope="col"
                                 /* L'en-tête ne se tronque jamais : `whitespace-nowrap`,
                                    et c'est la colonne qui s'élargit. */
+                                aria-sort={
+                                    column.sorted
+                                        ? column.sorted === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : undefined
+                                }
                                 className={cn(
-                                    'bg-surface text-text-muted sticky top-0 h-10 px-2.5 text-[12px] leading-4 font-medium whitespace-nowrap',
+                                    'bg-surface sticky top-0 h-10 px-2.5 text-[0.75rem] leading-4 font-medium whitespace-nowrap',
+                                    column.sorted ? 'text-on-surface' : 'text-text-muted',
                                     column.numeric && 'text-right',
                                     index === 0
                                         ? cn('z-20', selectable ? TETE_GAUCHE : CASE_GAUCHE)
@@ -157,6 +173,13 @@ function DataTable<T>({
                                 )}
                             >
                                 {column.header}
+                                {column.sorted && (
+                                    <Icon
+                                        glyph={column.sorted === 'asc' ? ArrowUp : ArrowDown}
+                                        size={18}
+                                        className="ml-1 inline-block align-text-bottom"
+                                    />
+                                )}
                             </th>
                         ))}
                         {rowActions && (
@@ -183,7 +206,7 @@ function DataTable<T>({
                                     <tr className="bg-background">
                                         <td
                                             colSpan={colonnes}
-                                            className="text-on-surface-variant sticky left-0 h-9 px-2.5 text-[12px] leading-4 font-medium"
+                                            className="text-on-surface-variant sticky left-0 h-9 px-2.5 text-[0.75rem] leading-4 font-medium"
                                         >
                                             <span className="first-letter:uppercase">
                                                 {groupe.label}

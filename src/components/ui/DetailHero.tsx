@@ -126,6 +126,11 @@ interface DetailHeroProps {
      */
     metricsStyle?: 'inline' | 'boxes' | 'qual';
     /**
+     * Le nombre de colonnes des tuiles `qual` **au bureau**. 04.2 y passe à trois et rend sa
+     * tuile large ordinaire ; 05.2 garde deux colonnes. C'est donc l'écran qui le demande.
+     */
+    metricsDeskColumns?: 2 | 3;
+    /**
      * **La barre qui répartit ce que les mesures comptent** — `.split` de 09.2 : trois
      * segments de 8, collés au-dessus des cases. Elle se lit avant les chiffres parce
      * qu'elle donne la proportion d'un coup ; les chiffres donnent ensuite l'exactitude.
@@ -180,6 +185,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     subtitle,
     metrics,
     metricsStyle = 'inline',
+    metricsDeskColumns = 2,
     meter,
     gauge,
     facts,
@@ -224,15 +230,15 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                du 03/09 rend la ligne du nom pleine largeur (planche 05.2, `.idh`
                suivi de `.ty` puis `.nm`). À côté, un nom long se coupait en deux. */
             <div className="min-w-0">
-                <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[20px] font-semibold tracking-tight text-[var(--tk-color-avatar-text)]">
+                <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[1.25rem] font-semibold tracking-normal text-[var(--tk-color-avatar-text)]">
                     {avatar}
                 </span>
                 {label && (
-                    <p className="text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
+                    <p className="text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                         {label}
                     </p>
                 )}
-                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+                <p className="font-brand text-inverse-on-surface mt-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
                 {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
@@ -241,7 +247,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     pas d'autre endroit où écrire l'adresse. Les deux variantes la
                     posent désormais à la même mesure. */}
                 {subtitle && (
-                    <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
+                    <p className="text-on-nav-surface-variant mt-0.5 text-[0.875rem] leading-5">
                         {subtitle}
                     </p>
                 )}
@@ -250,7 +256,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             <>
                 {status && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[12px] leading-4 font-medium">
+                        <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
                             <Icon
                                 glyph={status.icon}
                                 size={18}
@@ -259,7 +265,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                             {status.label}
                         </span>
                         {statusDetail && (
-                            <span className="text-on-nav-surface-variant text-[12px]">
+                            <span className="text-on-nav-surface-variant text-[0.75rem]">
                                 {statusDetail}
                             </span>
                         )}
@@ -279,14 +285,14 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     <p
                         className={cn(
                             status && 'mt-4',
-                            'text-[12px] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase',
+                            'text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase',
                         )}
                     >
                         {label}
                     </p>
                 )}
 
-                <p className="font-brand text-inverse-on-surface mt-1 text-[28px] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+                <p className="font-brand text-inverse-on-surface mt-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
 
@@ -295,7 +301,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                        c'est-à-dire l'ancien `body-medium` : une marche que R15 ne déclare
                        pas — l'échelle est 28 · 22 · 17 · 16 · 14 · 12 — et le seul endroit
                        du héro où un 13 subsistait. */
-                    <p className="text-on-nav-surface-variant mt-0.5 text-[14px] leading-5">
+                    <p className="text-on-nav-surface-variant mt-0.5 text-[0.875rem] leading-5">
                         {subtitle}
                     </p>
                 )}
@@ -307,7 +313,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                sur une fiche de personne (05.2) c'est la ligne « Départ le … », et un héro
                à avatar l'avalait en silence. Lot 2. */
             <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-inverse-on-surface inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[12px] leading-4 font-medium">
+                <span className="text-inverse-on-surface inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
                     <Icon
                         glyph={status.icon}
                         size={18}
@@ -316,7 +322,9 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     {status.label}
                 </span>
                 {statusDetail && (
-                    <span className="text-on-nav-surface-variant text-[12px]">{statusDetail}</span>
+                    <span className="text-on-nav-surface-variant text-[0.75rem]">
+                        {statusDetail}
+                    </span>
                 )}
             </div>
         )}
@@ -339,10 +347,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                             metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
                         )}
                     >
-                        <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                        <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
                             {metric.value}
                         </span>
-                        <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
+                        <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
                             {metric.label}
                         </span>
                     </div>
@@ -355,10 +363,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
                         {/* `.hk .v` — 22 sur 28, comme les tuiles ; `.hk .k` en 12 sur 16 (11.1). */}
-                        <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                        <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                             {metric.value}
                         </span>
-                        <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
+                        <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
                             {metric.label}
                         </span>
                     </div>
@@ -388,17 +396,24 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             /* `.qual` — grille `1fr 1fr`, gouttière 12, 20 au-dessus. Les tuiles sont
                posées sur le voile blanc à 8 % : **pas de teinte**, le chiffre et son
                libellé suffisent (04.2, passe du 05/09). */
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div
+                className={cn(
+                    'mt-5 grid grid-cols-2 gap-3',
+                    metricsDeskColumns === 3 && 'large:grid-cols-3',
+                )}
+            >
                 {metrics.map((metric, index) => {
                     const contenu = (
                         <>
-                            <span className="font-brand block text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                            <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                                 {metric.value}
                             </span>
                             <span
                                 className={cn(
-                                    'text-on-nav-surface-variant block truncate text-[12px] leading-4',
-                                    metric.wide ? undefined : 'mt-0.5',
+                                    'text-on-nav-surface-variant block truncate text-[0.75rem] leading-4',
+                                    metric.wide
+                                        ? metricsDeskColumns === 3 && 'large:mt-0.5'
+                                        : 'mt-0.5',
                                 )}
                             >
                                 {metric.label}
@@ -408,7 +423,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     const forme = cn(
                         'flex min-w-0 rounded-[4px] bg-white/[0.08] text-left',
                         metric.wide
-                            ? 'col-span-2 items-baseline justify-between gap-3 px-3.5 py-3'
+                            ? cn(
+                                  'col-span-2 items-baseline justify-between gap-3 px-3.5 py-3',
+                                  metricsDeskColumns === 3 &&
+                                      'large:col-span-1 large:flex-col large:items-stretch large:gap-0 large:px-2.5',
+                              )
                             : 'flex-col px-2.5 py-3',
                     );
                     return metric.onClick ? (
@@ -446,7 +465,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {note && (
-            <div className="text-on-nav-surface-variant mt-2.5 border-t border-white/[0.14] pt-2.5 text-[12px] leading-[17px]">
+            <div className="text-on-nav-surface-variant mt-2.5 border-t border-white/[0.14] pt-2.5 text-[0.75rem] leading-[1.0625rem]">
                 {note}
             </div>
         )}
@@ -461,16 +480,20 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
 }) => {
     const content = (
         <>
-            <span className="rounded-vignette bg-info/25 text-inverse-on-surface flex h-10 w-10 shrink-0 items-center justify-center">
+            {/* `.hero .vig` de 04.2 — le **bleu vif de la marque à 24 %**, l'encre en bleu
+                pâle, comme la pastille d'initiales au-dessus. Elle tenait `bg-info` : le
+                bleu d'information de l'interface, plus sombre et absent de toute planche, et
+                une encre blanche. */}
+            <span className="rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center bg-[var(--tk-color-live-bleu)]/[0.24] text-[var(--tk-color-avatar-text)]">
                 {vignette}
             </span>
             <span className="min-w-0 flex-1">
                 {/* `.hrow .t` — **17 sur 24**, la deuxième marche de R15, et sans graisse
                     d'appui : c'est un nom, pas un fait mis en avant. Il tenait
                     `text-body-large` (15/21) en 500. */}
-                <span className="block truncate text-[17px] leading-6">{title}</span>
+                <span className="block truncate text-[1.0625rem] leading-6">{title}</span>
                 {detail && (
-                    <span className="text-on-nav-surface-variant mt-0.5 block text-[12px] leading-4">
+                    <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
                         {detail}
                     </span>
                 )}

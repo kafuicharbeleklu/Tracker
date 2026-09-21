@@ -138,7 +138,7 @@ const PinField: React.FC<PinFieldProps> = ({
                         onFocus={(event) => event.currentTarget.select()}
                         aria-label={`Chiffre ${index + 1} sur ${PIN_LENGTH}`}
                         className={cn(
-                            'font-brand h-14 w-11 rounded-md text-center text-[24px] font-semibold caret-transparent outline-none',
+                            'font-brand h-14 w-11 rounded-md text-center text-[1.5rem] font-semibold caret-transparent outline-none',
                             'duration-short4 transition-[box-shadow,background-color]',
                             filled
                                 ? 'text-on-surface bg-surface-container'

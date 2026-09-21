@@ -405,7 +405,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                                           choisie, et nomme le fichier et sa taille. */}
                                           {refusPhoto && (
                                               <p
-                                                  className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5"
+                                                  className="text-error mt-2 flex items-start gap-1.5 text-[0.875rem] leading-5"
                                                   role="alert"
                                               >
                                                   <Icon

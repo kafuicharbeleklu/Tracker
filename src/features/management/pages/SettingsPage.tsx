@@ -323,7 +323,7 @@ const SettingsBar: React.FC<{
                             <Icon glyph={ArrowLeft} size={20} />
                         </Button>
                     )}
-                    <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                    <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                         {title}
                     </h1>
                 </div>
@@ -336,7 +336,7 @@ const SettingsBar: React.FC<{
         return (
             <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                 {retour}
-                <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[17px] leading-6 font-semibold tracking-[-0.01em]">
+                <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
                     {title}
                 </h1>
             </div>
@@ -351,7 +351,7 @@ const SettingsBar: React.FC<{
         <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
             <div className="flex min-h-12 items-center gap-1">
                 {retour && <span className="-ml-3 flex shrink-0">{retour}</span>}
-                <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                     {title}
                 </h1>
             </div>
@@ -874,11 +874,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 *« Un acte n'a qu'une entrée, dans sa carte »* : pas de
                                 geste ici, pas de qualifiant chiffré. */}
                             <DetailHero
-                                avatar={
-                                    <span className="font-brand text-[20px] font-semibold">
-                                        {initiales(currentUser?.name)}
-                                    </span>
-                                }
+                                /* Les initiales nues : `DetailHero` pose déjà la fonte de marque,
+                                   20 sur 30 et la graisse d'appui, comme 07.1 les dessine. Les
+                                   redéclarer ici ajoutait un second style au même texte. */
+                                avatar={initiales(currentUser?.name)}
                                 label={identiteLabel}
                                 subject={currentUser?.name ?? 'Mon compte'}
                                 subtitle={currentUser?.email}
@@ -1030,7 +1029,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[12px] leading-[17px]">
+                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1173,7 +1172,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 Elles ne changent pas un calcul mais une lecture.
                             </Notice>
 
-                            <p className="text-text-muted text-[12px] leading-[17px]">
+                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1234,7 +1233,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[12px] leading-[17px]">
+                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1270,7 +1269,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[12px] leading-[17px]">
+                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1359,7 +1358,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             >
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
-                        <span className="text-on-surface text-[14px] font-medium">
+                        <span className="text-on-surface text-[0.875rem] font-medium">
                             Source active
                         </span>
                         <Toggle
@@ -1403,7 +1402,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     }))
                                 }
                             />
-                            <p className="text-text-secondary text-[12px] leading-[17px]">
+                            <p className="text-text-secondary text-[0.75rem] leading-[1.0625rem]">
                                 En dessous de 15 minutes, l'agent parle plus qu'il n'observe.
                             </p>
                             <InputField
@@ -1418,7 +1417,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 placeholder="http://localhost:8787"
                             />
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-on-surface text-[14px]">
+                                <span className="text-on-surface text-[0.875rem]">
                                     Renvoyer les remontées à l'API
                                 </span>
                                 <Toggle
@@ -1503,7 +1502,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     </Notice>
 
                     {sourceError && (
-                        <p className="text-error flex gap-2 text-[12px] leading-[17px]">
+                        <p className="text-error flex gap-2 text-[0.75rem] leading-[1.0625rem]">
                             <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                             <span>{sourceError}</span>
                         </p>
@@ -1551,7 +1550,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     {/* `.slead` — **la raison avant les chemins.** Sans elle, la feuille
                         demande un fichier sans dire ce qu'il deviendra ; c'est pourtant là
                         que se gagne l'envie d'en déposer un. */}
-                    <p className="text-on-surface-variant mb-2 text-[14px] leading-5">
+                    <p className="text-on-surface-variant mb-2 text-[0.875rem] leading-5">
                         Une image de votre signature. Avec votre code PIN, elle s'apposera
                         d'elle-même.
                     </p>
@@ -1602,7 +1601,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 title="Ma signature"
             >
                 <div className="flex flex-col gap-4 pb-1">
-                    <p className="text-on-surface-variant text-[14px] leading-5">
+                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
                         Avec votre code PIN, elle s'appose d'elle-même à chaque remise.
                     </p>
 
@@ -1620,10 +1619,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         L'image existe déjà ; c'est la suppression qui change quelque
                         chose, et 07.1 l'écrit — « Si vous la supprimez ». */}
                     <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
-                        <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                        <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                             Si vous la supprimez
                         </p>
-                        <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                        <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={Key} size={18} />
                             </span>
@@ -1631,7 +1630,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 Le code PIN <b className="font-medium">suffit</b> à attester.
                             </span>
                         </p>
-                        <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                        <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                             <span className="bg-tint-vert text-on-tint-vert flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={Signature} size={18} />
                             </span>
@@ -1714,7 +1713,7 @@ const SignatureApercu: React.FC<{ image: Blob; nom: string; depuis?: string | nu
                 que l'image ne porte pas d'elle-même, et celui qui dit si elle est encore
                 la bonne. */}
             {depuis && (
-                <span className="text-text-tertiary absolute top-3 right-3 text-[12px] leading-4">
+                <span className="text-text-tertiary absolute top-3 right-3 text-[0.75rem] leading-4">
                     importée le{' '}
                     {new Date(depuis).toLocaleDateString('fr-FR', {
                         day: 'numeric',
@@ -1727,7 +1726,7 @@ const SignatureApercu: React.FC<{ image: Blob; nom: string; depuis?: string | nu
                 alt={`Signature de ${nom}`}
                 className="absolute inset-x-0 top-9 mx-auto h-[70px] w-auto max-w-[70%] object-contain"
             />
-            <span className="text-on-surface-variant absolute inset-x-0 bottom-2.5 text-center text-[14px] leading-5">
+            <span className="text-on-surface-variant absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
                 {nom}
             </span>
         </div>
@@ -1879,7 +1878,7 @@ const SignatureCrop: React.FC<{
             {/* `.alt` — **sous le réglage, pas avant le cadre.** Elle ne dit plus quoi
                 faire (le cadre le montre) mais ce que le geste garantit : ce qu'on voit
                 est ce qui sera enregistré. C'est la phrase qui dispense de vérifier. */}
-            <p className="text-on-surface-variant flex items-start gap-2 text-[14px] leading-5">
+            <p className="text-on-surface-variant flex items-start gap-2 text-[0.875rem] leading-5">
                 <Icon
                     glyph={HandPointing}
                     size={18}
@@ -2052,12 +2051,12 @@ const PinSheet: React.FC<{
               Le titre de la feuille reste à gauche, comme dans toutes les feuilles.
             */}
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant mx-auto max-w-[300px] text-center text-[14px] leading-5 text-balance">
+                <p className="text-on-surface-variant mx-auto max-w-[300px] text-center text-[0.875rem] leading-5 text-balance">
                     {phrase}
                 </p>
 
                 {bloque ? (
-                    <p className="text-on-surface mx-auto max-w-[300px] text-center text-[14px] leading-5 text-balance">
+                    <p className="text-on-surface mx-auto max-w-[300px] text-center text-[0.875rem] leading-5 text-balance">
                         Votre informatique peut réinitialiser votre code depuis votre fiche.
                         Vous en poserez alors un nouveau.
                     </p>
@@ -2080,7 +2079,7 @@ const PinSheet: React.FC<{
                         <PinSteps className="mt-4" total={3} current={0} />
                         <p
                             className={cn(
-                                'mt-2 max-w-[300px] text-center text-[14px] leading-5',
+                                'mt-2 max-w-[300px] text-center text-[0.875rem] leading-5',
                                 refusActuel ? 'text-error' : 'text-on-surface-variant',
                             )}
                             role={refusActuel ? 'alert' : undefined}
@@ -2200,7 +2199,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
            éviter se rejouerait ici sans elle. */
         <BottomSheet open={open} onClose={onClose} title="Changer mon mot de passe">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[14px] leading-5">
+                <p className="text-on-surface-variant text-[0.875rem] leading-5">
                     Vous resterez connecté sur cet appareil.
                 </p>
 
@@ -2221,7 +2220,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                     <PasswordMeter filled={forceNouveau.score} />
                     {/* `.hint` — la règle se lit **avant** la faute, pas après : c'est la
                         seule ligne de l'écran qui évite un aller-retour. */}
-                    <p className="text-on-surface-variant mt-2 text-[14px] leading-5">
+                    <p className="text-on-surface-variant mt-2 text-[0.875rem] leading-5">
                         {PASSWORD_MIN_LENGTH} caractères minimum ; une phrase vaut mieux qu'un
                         mot compliqué.
                     </p>
@@ -2238,7 +2237,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                 </div>
 
                 {error && (
-                    <p className="text-error flex gap-2 text-[14px] leading-5">
+                    <p className="text-error flex gap-2 text-[0.875rem] leading-5">
                         <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                         <span>{error}</span>
                     </p>
@@ -2246,7 +2245,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
 
                 {/* `.alt` — **les deux secrets ne se confondent pas.** Une personne qui
                     vient de changer « son code » doit repartir en sachant lequel. */}
-                <p className="text-on-surface-variant flex items-start gap-2 text-[14px] leading-5">
+                <p className="text-on-surface-variant flex items-start gap-2 text-[0.875rem] leading-5">
                     <Icon glyph={Key} size={18} className="text-text-tertiary mt-px shrink-0" />
                     <span>
                         Votre <b className="text-on-surface font-medium">code PIN</b> ne change

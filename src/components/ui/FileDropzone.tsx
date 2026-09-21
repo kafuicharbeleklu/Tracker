@@ -65,8 +65,10 @@ const SourceRow: React.FC<{
             <Icon glyph={glyph} size={20} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block text-[16px] leading-6">{title}</span>
-            <span className="text-on-surface-variant block text-[14px] leading-5">{detail}</span>
+            <span className="text-on-surface block text-[1rem] leading-6">{title}</span>
+            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                {detail}
+            </span>
         </span>
     </button>
 );
@@ -244,7 +246,10 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
     /* Le refus, sous la source : 14 sur 20, glyphe de 18, encre danger — la forme du
        message au champ de 17.5. Il nomme le fichier et sa taille. */
     const refusMessage = refus && (
-        <p className="text-error mt-2 flex items-start gap-1.5 text-[14px] leading-5" role="alert">
+        <p
+            className="text-error mt-2 flex items-start gap-1.5 text-[0.875rem] leading-5"
+            role="alert"
+        >
             <Icon glyph={XCircle} size={18} className="mt-px" />
             <span>{refus}</span>
         </p>
@@ -267,10 +272,10 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                         <Icon glyph={UploadSimple} size={20} />
                     </span>
                     <span className="min-w-0 flex-1">
-                        <span className="text-on-surface block text-[16px] leading-6">
+                        <span className="text-on-surface block text-[1rem] leading-6">
                             {isProcessing ? 'Lecture en cours' : verbe}
                         </span>
-                        <span className="text-on-surface-variant block text-[14px] leading-5">
+                        <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                             {contrainte}
                         </span>
                     </span>
@@ -285,7 +290,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                         title={verbe}
                     >
                         {/* La contrainte se lit en sous-ligne du titre (`.sttl .sub`). */}
-                        <p className="text-on-surface-variant -mt-3 mb-2 text-[14px] leading-5">
+                        <p className="text-on-surface-variant -mt-3 mb-2 text-[0.875rem] leading-5">
                             {contrainte}
                         </p>
                         <SourceRow
@@ -367,7 +372,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
                         </div>
                         <p className="text-title-small text-on-surface mb-1">{label}</p>
                         <p className="text-body-small text-on-surface-variant">{subLabel}</p>
-                        <p className="text-on-surface-variant mt-2 text-[12px] leading-4">
+                        <p className="text-on-surface-variant mt-2 text-[0.75rem] leading-4">
                             {formatFileSize(maxSize)} par fichier au plus
                         </p>
                     </>

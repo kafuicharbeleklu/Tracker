@@ -173,7 +173,7 @@ const SheetGroup: React.FC<{ label: string; children: React.ReactNode }> = ({
     children,
 }) => (
     <div>
-        <p className="text-text-muted text-[12px] leading-4 font-medium">{label}</p>
+        <p className="text-text-muted text-[0.75rem] leading-4 font-medium">{label}</p>
         <div className="mt-2 flex flex-wrap gap-2">{children}</div>
     </div>
 );
@@ -198,8 +198,8 @@ const AddRoute: React.FC<{
             <Icon glyph={glyph} size={20} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block text-[16px] leading-6">{title}</span>
-            <span className="text-text-muted block text-[14px] leading-5">{detail}</span>
+            <span className="text-on-surface block text-[1rem] leading-6">{title}</span>
+            <span className="text-text-muted block text-[0.875rem] leading-5">{detail}</span>
         </span>
         <Icon glyph={CaretDown} size={18} className="text-text-tertiary shrink-0 -rotate-90" />
     </button>
@@ -462,11 +462,27 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
      * Le code est **figé** au défilement horizontal : c'est la seule colonne dont on ne
      * peut pas perdre la trace sans perdre la rangée.
      */
+    /**
+     * Quelle colonne porte la marque de tri — l'écran range par ajout récent, ancienneté, code,
+     * type ou statut, et `th.sorted` doit nommer **celle-là**.
+     */
+    const triActif = SORT_OPTIONS[sortIndex]?.id;
+    const colonneTriee =
+        triActif === 'name'
+            ? 'code'
+            : triActif === 'status'
+              ? 'statut'
+              : triActif === 'type'
+                ? 'modele'
+                : 'mouvement';
+    const sensTri: 'asc' | 'desc' = triActif === 'recent' ? 'desc' : 'asc';
+
     const colonnes = useMemo<DataColumn<Equipment>[]>(
         () => [
             {
                 id: 'code',
                 header: 'Code',
+                sorted: colonneTriee === 'code' ? sensTri : undefined,
                 width: '260px',
                 title: (item) => item.name,
                 cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
@@ -474,6 +490,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'modele',
                 header: 'Modèle',
+                sorted: colonneTriee === 'modele' ? sensTri : undefined,
                 width: '160px',
                 title: (item) => item.model || undefined,
                 cell: (item) => item.model || '—',
@@ -496,6 +513,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'statut',
                 header: 'Statut',
+                sorted: colonneTriee === 'statut' ? sensTri : undefined,
                 width: '150px',
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
@@ -521,6 +539,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'mouvement',
                 header: 'Dernier mouvement',
+                sorted: colonneTriee === 'mouvement' ? sensTri : undefined,
                 width: '160px',
                 cell: (item) => {
                     const quand = dernierMouvement(item);
@@ -532,7 +551,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 },
             },
         ],
-        [],
+        [colonneTriee, sensTri],
     );
 
     const selectedEquipment = useMemo(
@@ -997,7 +1016,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     <button
                         type="button"
                         onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[15px] font-medium transition-colors"
+                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[0.9375rem] font-medium transition-colors"
                     >
                         <Icon glyph={CaretDown} size={18} className="text-text-muted" />
                         Charger la suite

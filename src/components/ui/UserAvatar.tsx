@@ -19,7 +19,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     className,
 }) => {
     const sizeClasses = {
-        xs: 'w-5 h-5 text-[10px]',
+        xs: 'w-5 h-5 text-[0.6875rem]',
         sm: 'w-8 h-8 text-label-small',
         md: 'w-10 h-10 text-label-medium',
         lg: 'w-14 h-14 text-body-large',

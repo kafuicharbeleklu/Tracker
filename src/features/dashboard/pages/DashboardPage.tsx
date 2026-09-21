@@ -344,11 +344,11 @@ const Card: React.FC<{
             rangée n'était jamais la première de son type, et la planche (`.ev+.ev`,
             `.brow:first-of-type{border-top:0}`) n'a pas de filet sous le titre. */}
         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                 {title}
             </h3>
             {meta && (
-                <span className="text-on-surface-variant shrink-0 text-[14px] leading-5">
+                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5">
                     {meta}
                 </span>
             )}
@@ -376,7 +376,11 @@ const DashboardMoreAction: React.FC<{
             variant="text"
             onClick={onClick}
             className={cn(
-                'min-h-12 w-full justify-start gap-2.5 border-t px-0 text-[16px] font-normal hover:bg-transparent',
+                /* `.more` mesure **48**, sauf dans les cartes de la mosaïque au bureau, où
+                   03.1 la resserre à 40 : le geste y est au curseur. Dans le héro sombre, au
+                   téléphone comme au bureau, elle garde ses 48. */
+                'min-h-12 w-full justify-start gap-2.5 border-t px-0 text-[1rem] font-normal hover:bg-transparent',
+                !isInverse && 'large:min-h-10',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
                     : 'border-outline-variant text-on-surface hover:text-on-surface mt-1',
@@ -385,7 +389,7 @@ const DashboardMoreAction: React.FC<{
             <span className="shrink-0">{label}</span>
             <span
                 className={cn(
-                    'ml-auto min-w-0 flex-1 truncate text-right text-[12px] leading-4 font-normal',
+                    'ml-auto min-w-0 flex-1 truncate text-right text-[0.75rem] leading-[1.125rem] font-normal',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant',
                 )}
             >
@@ -430,10 +434,10 @@ const Gauge: React.FC<{
     return (
         <div>
             <p className="mt-2.5 flex items-baseline gap-2.5">
-                <span className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                <span className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
                     {value}
                 </span>
-                <span className="text-on-surface-variant min-w-0 flex-1 text-[16px] leading-6">
+                <span className="text-on-surface-variant min-w-0 flex-1 text-[1rem] leading-6">
                     {label}
                 </span>
             </p>
@@ -456,7 +460,7 @@ const Gauge: React.FC<{
                 )}
             </div>
 
-            {note && <p className="text-on-surface-variant mt-2 text-[16px] leading-6">{note}</p>}
+            {note && <p className="text-on-surface-variant mt-2 text-[1rem] leading-6">{note}</p>}
         </div>
     );
 };
@@ -773,10 +777,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {/* `.topbar` — prénom en Archivo 600 / 28 / 32, sous-ligne 16 / 24. */}
             <header className="flex items-start justify-between gap-3 pt-2">
                 <div className="min-w-0">
-                    <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                    <h1 className="font-brand text-on-surface text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                         Bonjour {firstName}
                     </h1>
-                    <p className="text-on-surface-variant mt-0.5 text-[16px] leading-6">
+                    <p className="text-on-surface-variant mt-0.5 text-[1rem] leading-6">
                         {subtitle}
                     </p>
                 </div>
@@ -796,8 +800,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 size="md"
                                 iconOnly
                                 /* `.avat` — 44, rond. `iconOnly` pose `min-h-12 min-w-12` que `h-11`
-                                   ne bat pas : les deux minima sont abaissés avec (10/09). */
-                                className="font-brand focus-visible:ring-primary flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[15px] font-semibold tracking-wide text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
+                                   ne bat pas : les deux minima sont abaissés avec (10/09). Les
+                                   initiales en Archivo 600 de 15, **sans espacement** : elles en
+                                   portaient 0,025em, que `.avat` ne déclare pas. */
+                                className="font-brand focus-visible:ring-primary flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.9375rem] font-semibold text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
                                 aria-label={`Compte — ${compte.nom}`}
                             >
                                 {compte.initiales}
@@ -815,7 +821,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 <div className="grid grid-cols-2 gap-2.5">
                     <Button
                         variant="text"
-                        className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium !shadow-none"
+                        className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[1rem] font-medium !shadow-none"
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
@@ -823,7 +829,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </Button>
                     <Button
                         variant="filled"
-                        className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[1rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                         icon={<Icon glyph={ArrowCircleRight} size={20} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
@@ -833,7 +839,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             ) : (
                 <Button
                     variant="filled"
-                    className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[16px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[1rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                     icon={<Icon glyph={Plus} size={20} />}
                     onClick={() => onViewChange('new_request')}
                 >
@@ -858,13 +864,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
                         elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
                         quelque chose à traiter. */}
-                    <h3 className="min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                    <h3 className="min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                         À traiter
                     </h3>
                     {/* La colonne du porteur n'en porte aucun : sa zone ne
                         compte pas, elle montre ce qui l'attend. */}
                     {isManager && todo.length > 0 && (
-                        <span className="shrink-0 text-[14px] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                        <span className="shrink-0 text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
                             {todo.length}
                         </span>
                     )}
@@ -881,8 +887,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <Icon glyph={Check} size={20} />
                         </span>
                         <div className="min-w-0">
-                            <p className="text-[17px] leading-6">Vous êtes à jour</p>
-                            <p className="mt-0.5 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
+                            <p className="text-[1.0625rem] leading-6">Vous êtes à jour</p>
+                            <p className="mt-0.5 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                                 Rien n’attend votre geste.
                             </p>
                         </div>
@@ -891,10 +897,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     /* Régime `saturee` — `.bigc` 44 / 48 / -.03em, puis `.tri` : les
                        natures d'action, chacune un renvoi vers la file. */
                     <>
-                        <div className="font-brand mt-2 text-[44px] leading-[48px] font-semibold tracking-[-0.03em] tabular-nums">
+                        <div className="font-brand mt-2 text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
                             {todo.length}
                         </div>
-                        <div className="mt-1 text-[12px] leading-4 text-[var(--tk-color-on-dark-2)]">
+                        <div className="mt-1 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                             demandes en attente
                             {oldestWait !== null &&
                                 ` · la plus ancienne depuis ${oldestWait} jour${oldestWait > 1 ? 's' : ''}`}
@@ -907,10 +913,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     onClick={openTasks}
                                     className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-12 w-full justify-start gap-3 border-b border-white/[0.14] px-0 font-normal hover:bg-transparent"
                                 >
-                                    <span className="font-brand w-12 shrink-0 text-left text-[17px] font-semibold tabular-nums">
+                                    <span className="font-brand w-12 shrink-0 text-left text-[1.0625rem] font-semibold tabular-nums">
                                         {item.count}
                                     </span>
-                                    <span className="flex-1 text-left text-[16px]">
+                                    <span className="flex-1 text-left text-[1rem]">
                                         {item.label}
                                     </span>
                                     <Icon
@@ -976,23 +982,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         nommée, le glyphe de l'objet sinon ; la teinte
                                         dit la nature. */}
                                     <span
-                                        className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold"
+                                        className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold"
                                         style={TASK_VIGNETTE[entry.kind]}
                                     >
                                         {initials ? initials : <Icon glyph={Package} size={20} />}
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[17px] leading-6 tracking-[-0.01em]">
+                                        <span className="block truncate text-[1.0625rem] leading-6 tracking-[-0.01em]">
                                             {entry.what}
                                         </span>
-                                        <span className="mt-0.5 block text-[14px] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                        <span className="mt-0.5 block text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
                                             {[pourMoi ? '' : entry.who, nature]
                                                 .filter(Boolean)
                                                 .join(' · ')}
                                         </span>
                                     </span>
                                     {age && (
-                                        <span className="mt-1 shrink-0 self-start text-[12px] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                        <span className="mt-1 shrink-0 self-start text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
                                             {age}
                                         </span>
                                     )}
@@ -1019,7 +1025,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {isManager ? (
                 <section className="rounded-card bg-surface p-4">
                     <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[17px] leading-6 font-medium">
+                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
                             Le parc
                         </h3>
                         <Figure
@@ -1078,7 +1084,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         <Button
                             variant="text"
                             onClick={() => openFleet('')}
-                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[12px] leading-4 font-normal hover:bg-transparent"
+                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[0.75rem] leading-4 font-normal hover:bg-transparent"
                         >
                             <span>
                                 Hors service :{' '}
@@ -1155,16 +1161,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                             >
                                 <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
-                                <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
+                                <span className="text-on-surface min-w-0 flex-1 truncate text-[1rem]">
                                     {entry.label}
                                 </span>
-                                <span className="text-on-surface-variant shrink-0 text-[12px] leading-4 tabular-nums">
+                                <span className="text-on-surface-variant shrink-0 text-[0.75rem] leading-4 tabular-nums">
                                     0 sur {entry.total}
                                 </span>
                             </div>
                         ))}
                         {tension.calm > 0 && (
-                            <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                            <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                                 {tension.calm === 1
                                     ? 'L’autre type a au moins une unité.'
                                     : `Les ${tension.calm} autres types ont au moins une unité.`}
@@ -1172,7 +1178,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         )}
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                         Chaque type a au moins une unité.
                     </p>
                 )}
@@ -1266,7 +1272,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         />
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                         Aucun budget configuré pour cet exercice.
                     </p>
                 )}
@@ -1283,7 +1289,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             key={item.type}
                             className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                         >
-                            <span className="text-on-surface min-w-0 flex-1 truncate text-[16px]">
+                            <span className="text-on-surface min-w-0 flex-1 truncate text-[1rem]">
                                 {item.type}
                             </span>
                             <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
@@ -1292,13 +1298,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     style={{ width: `${item.percent}%` }}
                                 />
                             </span>
-                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[16px] tabular-nums">
+                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[1rem] tabular-nums">
                                 {item.count}
                             </span>
                         </div>
                     ))
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                         Aucun équipement ne vous est actuellement attribué.
                     </p>
                 )}
@@ -1363,17 +1369,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     key={event.id}
                                     className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
                                 >
-                                    <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
+                                    <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-semibold">
                                         {initials || <Icon glyph={glyph} size={18} />}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-on-surface text-[16px] leading-6">
+                                        <p className="text-on-surface text-[1rem] leading-6">
                                             {getHistoryEventSentence({
                                                 event,
                                                 perspectiveActorId: currentUser?.id,
                                             })}
                                         </p>
-                                        <p className="text-on-surface-variant mt-0.5 text-[12px] leading-4 tabular-nums">
+                                        <p className="text-on-surface-variant mt-0.5 text-[0.75rem] leading-4 tabular-nums">
                                             {formatMoment(event.timestamp)}
                                         </p>
                                     </div>
@@ -1405,7 +1411,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                               )}
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[12px] leading-4">
+                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                         Aucun événement enregistré pour l’instant.
                     </p>
                 )}
@@ -1451,7 +1457,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             ].map((entree, index) => {
                 const chiffre = (
                     <>
-                        <span className="font-brand text-on-surface flex items-center gap-2 text-[22px] leading-[26px] font-semibold tabular-nums">
+                        <span className="font-brand text-on-surface flex items-center gap-2 text-[1.375rem] leading-[1.625rem] font-semibold tabular-nums">
                             {entree.pastille && (
                                 <span
                                     aria-hidden="true"
@@ -1467,7 +1473,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             légende est un `span` en ligne, qui prend la ligne de son lien
                             et perd sa marge ; la bande y mesure 82, pas 76 (relevé du
                             13/09). */}
-                        <span className="text-on-surface-variant block py-1 text-[12px] leading-4 font-normal">
+                        <span className="text-on-surface-variant block py-1 text-[0.75rem] leading-4 font-normal">
                             {entree.mot}
                         </span>
                     </>
@@ -1510,16 +1516,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 {/* **Le titre de la page, et le seul** : l'écran n'avait aucun `h1` —
                     le plan du document commençait donc à `h2`, et une lecture au clavier
                     ou à la voix n'y trouvait pas d'entrée. */}
-                <h1 className="font-brand text-on-surface text-[28px] leading-8 font-semibold tracking-[-0.02em]">
+                <h1 className="font-brand text-on-surface text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
                     Bonjour {firstName}
                 </h1>
-                <p className="text-on-surface-variant mt-0.5 text-[14px] leading-5">{subtitle}</p>
+                <p className="text-on-surface-variant mt-0.5 text-[0.875rem] leading-5">
+                    {subtitle}
+                </p>
             </div>
             {isManager && (
                 <>
                     <Button
                         variant="text"
-                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[14px] font-medium !shadow-none"
+                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[0.875rem] font-medium !shadow-none"
                         icon={<Icon glyph={ArrowUUpLeft} size={18} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
@@ -1527,7 +1535,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </Button>
                     <Button
                         variant="filled"
-                        className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                         icon={<Icon glyph={ArrowCircleRight} size={18} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
@@ -1538,7 +1546,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {!isManager && (
                 <Button
                     variant="filled"
-                    className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[14px] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                     icon={<Icon glyph={Plus} size={18} />}
                     onClick={() => onViewChange('new_request')}
                 >

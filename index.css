@@ -57,41 +57,41 @@
     --tk-color-scrim: var(--tk-color-dark);
 
     /* ---- TYPOGRAPHIE (compléments — le bloc sémantique de fin définit le reste) ---- */
-    --tk-type-display-large-size: 57px;
-    --tk-type-display-large-line-height: 64px;
+    --tk-type-display-large-size: 3.5625rem;
+    --tk-type-display-large-line-height: 4rem;
     --tk-type-display-large-weight: 400;
     --tk-type-display-large-tracking: -0.25px;
-    --tk-type-display-medium-size: 45px;
-    --tk-type-display-medium-line-height: 52px;
+    --tk-type-display-medium-size: 2.8125rem;
+    --tk-type-display-medium-line-height: 3.25rem;
     --tk-type-display-medium-weight: 400;
     --tk-type-display-medium-tracking: 0px;
-    --tk-type-headline-large-size: 32px;
-    --tk-type-headline-large-line-height: 40px;
-    --tk-type-headline-large-weight: 400;
-    --tk-type-headline-large-tracking: 0px;
-    --tk-type-title-small-size: 14px;
-    --tk-type-title-small-line-height: 20px;
+    --tk-type-headline-large-size: 1.75rem;
+    --tk-type-headline-large-line-height: 2rem;
+    --tk-type-headline-large-weight: 600;
+    --tk-type-headline-large-tracking: -0.02em;
+    --tk-type-title-small-size: 0.875rem;
+    --tk-type-title-small-line-height: 1.25rem;
     --tk-type-title-small-weight: 500;
     --tk-type-body-large-weight: 400;
     --tk-type-body-medium-weight: 400;
-    --tk-type-body-small-size: 12px;
-    --tk-type-body-small-line-height: 16px;
+    --tk-type-body-small-size: 0.75rem;
+    --tk-type-body-small-line-height: 1rem;
     --tk-type-body-small-weight: 400;
-    --tk-type-label-medium-size: 12px;
-    --tk-type-label-medium-line-height: 16px;
+    --tk-type-label-medium-size: 0.75rem;
+    --tk-type-label-medium-line-height: 1rem;
     --tk-type-label-medium-weight: 500;
-    --tk-type-label-small-size: 11px;
-    --tk-type-label-small-line-height: 16px;
+    --tk-type-label-small-size: 0.75rem;
+    --tk-type-label-small-line-height: 1rem;
     --tk-type-label-small-weight: 500;
     /* Cran hors-MD3 « valeur de stat » (audit UX §9.1) : un seul rôle typographique pour
        toutes les valeurs de KPI/stats — 30px, ramené à 24px en compact via la section
        Responsive Typography. Déclaré dans cn() (src/lib/utils.ts) comme taille de texte. */
-    --tk-type-stat-value-size: 30px;
-    --tk-type-stat-value-line-height: 36px;
+    --tk-type-stat-value-size: 1.875rem;
+    --tk-type-stat-value-line-height: 2.25rem;
     --tk-type-stat-value-weight: 700;
     --tk-type-stat-value-tracking: 0;
-    --tk-type-stat-value-compact-size: 24px;
-    --tk-type-stat-value-compact-line-height: 28px;
+    --tk-type-stat-value-compact-size: 1.5rem;
+    --tk-type-stat-value-compact-line-height: 1.75rem;
 }
 
 /* ---- MD3 DEFAULT EASING ---- */
@@ -303,7 +303,12 @@
 /* ---- GLOBAL STYLES ---- */
 
 html {
-    font-size: 16px;
+    /* **100 %, pas 16px** : une racine en pixels écrase la taille de texte choisie par
+       l'utilisateur dans son navigateur, et tout le rem du produit avec elle. Les valeurs
+       rendues ne bougent pas au réglage par défaut — elles suivent enfin celui de l'utilisateur
+       (WCAG 1.4.4 « Redimensionnement du texte », la règle que Material rend par `sp` et Apple
+       par Dynamic Type). */
+    font-size: 100%;
     max-width: 100%;
     overflow-x: clip;
     -webkit-font-smoothing: antialiased;
@@ -321,9 +326,13 @@ body {
     max-width: 100%;
     overflow-x: hidden;
     font-family: var(--tk-type-font-plain);
-    font-size: var(--tk-type-body-medium-size);
-    line-height: var(--tk-type-body-medium-line-height);
-    letter-spacing: var(--tk-type-body-medium-tracking);
+    /* **Le corps des planches : `--t3`, 16 sur 1,5.** Le corps du produit empruntait le
+       cran « mention » (13 sur 19) : tout texte qui ne déclarait pas sa taille sortait
+       en 13, une marche qu'aucune planche ne dessine — et 16 est aussi le corps de
+       Material (body-large) et le plancher de lecture d'Apple à 17 pt près. */
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0;
     color: var(--tk-color-on-surface);
     background-color: var(--tk-color-background);
     transition:
@@ -939,46 +948,53 @@ body {
     --tk-type-section-title-size: 1.375rem;
     --tk-type-base-size: 0.875rem;
 
-    /* ---- Typographie — échelle de rôles ---- */
-    --tk-type-display-small-size: 30px;
-    --tk-type-display-small-line-height: 36px;
+    /* ---- Typographie — échelle de rôles ----
+       **Recalée sur l'échelle des planches le 19/09** : 28/32 · 22/28 · 17/24 · 16/24 ·
+       14/20 · 12/16, graisses 400 / 500 / 600 et jamais 700. Ces crans venaient d'un
+       registre antérieur (34 · 28 · 20 · 15 · 13 · 11) : 290 emplois environ tiraient
+       le produit vers des tailles qu'aucune planche ne dessine — 13 sur 19 pour une
+       sous-ligne que les planches écrivent en 14 sur 20, 15 sur 21 pour une donnée
+       qu'elles écrivent en 16 sur 24, 11 espacé de 0,075em pour un petit libellé que
+       l'arbitrage du 13/09 fixe en `.lab`, 12 sur 16 sans capitales ni espacement. */
+    --tk-type-display-small-size: 1.75rem;
+    --tk-type-display-small-line-height: 2rem;
     --tk-type-display-small-weight: 600;
-    --tk-type-display-small-tracking: 0;
-    --tk-type-headline-medium-size: 22px;
-    --tk-type-headline-medium-line-height: 30px;
+    --tk-type-display-small-tracking: -0.02em;
+    --tk-type-headline-medium-size: 1.375rem;
+    --tk-type-headline-medium-line-height: 1.75rem;
     --tk-type-headline-medium-weight: 600;
-    --tk-type-headline-medium-tracking: 0;
-    --tk-type-headline-small-size: 18px;
-    --tk-type-headline-small-line-height: 24px;
-    --tk-type-headline-small-weight: 700;
+    --tk-type-headline-medium-tracking: -0.015em;
+    --tk-type-headline-small-size: 1.0625rem;
+    --tk-type-headline-small-line-height: 1.5rem;
+    --tk-type-headline-small-weight: 500;
     --tk-type-headline-small-tracking: 0;
-    --tk-type-title-large-size: 18px;
-    --tk-type-title-large-line-height: 24px;
-    --tk-type-title-large-weight: 700;
+    --tk-type-title-large-size: 1.0625rem;
+    --tk-type-title-large-line-height: 1.5rem;
+    --tk-type-title-large-weight: 500;
     --tk-type-title-large-tracking: 0;
-    --tk-type-title-medium-size: 16px;
-    --tk-type-title-medium-line-height: 22px;
-    --tk-type-title-medium-weight: 700;
+    --tk-type-title-medium-size: 1rem;
+    --tk-type-title-medium-line-height: 1.5rem;
+    --tk-type-title-medium-weight: 500;
     --tk-type-title-medium-tracking: 0;
     --tk-type-title-small-tracking: 0;
-    /* Rang 2 du registre §2.6 — « la donnée qu'on est venu lire ». */
-    --tk-type-body-large-size: 15px;
-    --tk-type-body-large-line-height: 21px;
+    /* « La donnée qu'on est venu lire » — `--t3`, 16 sur 24. */
+    --tk-type-body-large-size: 1rem;
+    --tk-type-body-large-line-height: 1.5rem;
     --tk-type-body-large-tracking: 0;
-    /* Rang 5 — mention, date, provenance. */
-    --tk-type-body-medium-size: 13px;
-    --tk-type-body-medium-line-height: 19px;
+    /* Mention, date, provenance — la sous-ligne `.s`, `--t35`, 14 sur 20. */
+    --tk-type-body-medium-size: 0.875rem;
+    --tk-type-body-medium-line-height: 1.25rem;
     --tk-type-body-medium-tracking: 0;
     --tk-type-body-small-tracking: 0;
-    --tk-type-label-large-size: 14px;
-    --tk-type-label-large-line-height: 20px;
+    --tk-type-label-large-size: 0.875rem;
+    --tk-type-label-large-line-height: 1.25rem;
     /* 500, et non 600 : le registre fixe le geste à 14 px / 500 (§2.14, §2.6 rang contrôle).
        Relevé le 08/08 en portant la connexion — la primitive rendait tous les boutons du
        produit plus lourds que le dessin. */
     --tk-type-label-large-weight: 500;
     --tk-type-label-large-tracking: 0;
     --tk-type-label-medium-tracking: 0;
-    --tk-type-label-small-tracking: 0.075em;
+    --tk-type-label-small-tracking: 0;
 
     /* ============================================================
        ADN MOBILE v1 — VALEURS CIBLES (voir DESIGN_BRIEF.md)
@@ -1091,8 +1107,8 @@ body {
     --tk-type-title-medium-weight-next: 600; /* canonique : 700 */
     --tk-type-label-small-tracking-next: 0; /* canonique : 0.075em */
     --tk-type-label-small-weight-next: 400; /* bas de casse : graisse de corps (canonique : 500) */
-    --tk-type-stat-value-mobile-size: 20px; /* canonique : 30px, compact 24px */
-    --tk-type-stat-value-mobile-line-height: 28px;
+    --tk-type-stat-value-mobile-size: 1.25rem; /* canonique : 30px, compact 24px */
+    --tk-type-stat-value-mobile-line-height: 1.75rem;
     /* Graisse « forte » UNIQUE des écrans ADN — titres, valeurs, actions.
        500 : spec d'écran Audit du 2026-07-25. Le brief §2 retenait 600 au niveau
        système (« choisir une seule graisse forte et s'y tenir ») : divergence

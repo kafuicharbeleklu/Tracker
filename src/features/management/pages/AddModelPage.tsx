@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
+import { Info, LockSimple } from '@phosphor-icons/react';
+import Icon from '../../../components/ui/Icon';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import SelectField from '../../../components/ui/SelectField';
-import Modal from '../../../components/ui/Modal';
-import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
 import { TextArea } from '../../../components/ui/TextArea';
+import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
+import { FieldLabel, FormNote, FormSection, FormWarn } from '../../../components/ui/FormParts';
+import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { Model } from '../../../types';
 
@@ -22,6 +24,14 @@ interface AddModelPageProps {
     initialType?: string;
 }
 
+/**
+ * **09.2, « État — créer un modèle » : un écran plein, pas une fenêtre.** La planche
+ * dessine la coque de 04.3 — barre de 56 avec la flèche de retour, le titre, et le
+ * verbe seul à droite — puis trois sections : l'identité, les spécifications dites
+ * facultatives, l'image. La saisie tenait dans un `Modal` : un cadre de 560 posé sur
+ * la page, un pied à deux boutons, et au téléphone une boîte qui remplissait l'écran
+ * sans en avoir la barre. Relevé de structure du 13/09, seul restant au 19/09.
+ */
 const AddModelPage: React.FC<AddModelPageProps> = ({
     isOpen,
     onClose,
@@ -104,89 +114,125 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
         onClose();
     };
 
-    const footer = (
-        <>
-            <Button variant="outlined" onClick={onClose}>
-                Annuler
-            </Button>
-            <Button
-                variant="filled"
-                icon={<MaterialIcon name="save" size={18} />}
-                onClick={handleSave}
-            >
-                {modelToEdit ? 'Enregistrer les modifications' : 'Créer le modèle'}
-            </Button>
-        </>
-    );
+    if (!isOpen) return null;
+
+    /* **Le type est verrouillé quand on vient d'une fiche de type** (09.2) : la rangée
+       le montre — vignette, libellé, famille — et porte le cadenas au lieu d'un verbe.
+       Un sélecteur qui n'a qu'une réponse possible n'est pas un choix. */
+    const lockedCategory = !modelToEdit && initialType ? initialType : null;
+    const lockedInfo = lockedCategory
+        ? categories.find((category) => category.name === lockedCategory)
+        : undefined;
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
+        <FullScreenFormLayout
             title={modelToEdit ? 'Modifier le modèle' : 'Nouveau modèle'}
-            footer={footer}
+            onCancel={onClose}
+            onSave={handleSave}
+            saveLabel={modelToEdit ? 'Enregistrer' : 'Créer'}
+            submitButtonLocation="header"
+            className="bg-background"
         >
-            <div className="space-y-5">
-                <InputField
-                    label="Nom du modèle"
-                    name="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Latitude 7420"
-                    required
-                />
+            <div className="flex flex-col gap-4">
+                <FormSection title="Identité">
+                    <InputField
+                        label="Nom du modèle"
+                        name="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Latitude 7420"
+                        required
+                    />
 
-                <div className="expanded:grid-cols-2 grid grid-cols-1 gap-5">
+                    {lockedCategory ? (
+                        <div>
+                            <FieldLabel>Type</FieldLabel>
+                            {/* `.pick` de 09.2 — 56 de haut, sur le creux, rayon 4. */}
+                            <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
+                                <span className="bg-surface text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                    <Icon glyph={getCategoryGlyph(lockedCategory)} size={20} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-[1rem] leading-6 font-medium">
+                                        {getCategoryLabel(lockedCategory)}
+                                    </span>
+                                    {lockedInfo && (
+                                        <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                            {lockedInfo.assignable
+                                                ? 'attribuable'
+                                                : 'non attribuable'}
+                                        </span>
+                                    )}
+                                </span>
+                                <Icon
+                                    glyph={LockSimple}
+                                    size={20}
+                                    className="text-text-tertiary shrink-0"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        /* B1 — *« La donnée garde sa clé anglaise, le français est un libellé.
+                           Aucun écran ne traduit ; celui-ci montre la clé […] c'est le seul
+                           écran qui en a besoin »* : le seul, c'est le référentiel. Ce
+                           sélecteur proposait « Laptop », « Furniture », « Server » — la clé
+                           technique en guise de choix. La valeur reste la clé, l'étiquette
+                           passe au libellé. */
+                        <SelectField
+                            label="Type"
+                            name="category"
+                            options={typeOptions}
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            required
+                        />
+                    )}
+
                     <InputField
                         label="Marque"
                         name="brand"
                         value={formData.brand}
                         onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                        placeholder="Ex: Dell"
+                        placeholder="Dell"
                     />
-                    {/* B1 — *« La donnée garde sa clé anglaise, le français est un libellé.
-                        Aucun écran ne traduit ; celui-ci montre la clé […] c'est le seul
-                        écran qui en a besoin »* : le seul, c'est le référentiel. Ce
-                        sélecteur proposait « Laptop », « Furniture », « Server » — la clé
-                        technique en guise de choix. La valeur reste la clé, l'étiquette
-                        passe au libellé. */}
-                    <SelectField
-                        label="Catégorie"
-                        name="category"
-                        options={typeOptions}
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        required
+                </FormSection>
+
+                <FormSection title="Spécifications" caption="facultatif">
+                    <TextArea
+                        aria-label="Spécifications"
+                        name="specs"
+                        value={formData.specs}
+                        onChange={(e) => setFormData({ ...formData, specs: e.target.value })}
+                        placeholder="Ce que le support demandera en premier : processeur, mémoire, stockage."
+                        rows={3}
                     />
-                </div>
+                </FormSection>
 
-                <TextArea
-                    label="Spécifications"
-                    name="specs"
-                    value={formData.specs}
-                    onChange={(e) => setFormData({ ...formData, specs: e.target.value })}
-                    placeholder="Détails techniques (CPU, RAM, etc.)"
-                    rows={3}
-                />
+                <FormSection title="Image">
+                    {/* La zone « Télécharger l'image » n'avait ni `input`, ni `onClick`, ni
+                        gestionnaire : elle prenait le curseur en main, l'état de survol, et ne
+                        faisait rien — d'où la photo posée d'office à l'enregistrement. Le
+                        modèle porte une **adresse** d'image dans la donnée : le champ la
+                        demande, ce qui marche aujourd'hui sans réserve de fichiers. Un vrai
+                        dépôt suppose un magasin comme celui des factures de dépense
+                        (`financeFileStorage`) ; il n'est pas simulé en attendant. */}
+                    <InputField
+                        label="Adresse de l'image"
+                        name="image"
+                        type="url"
+                        value={formData.image}
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                        placeholder="https://…"
+                    />
+                    <FormNote>Sans image, la rangée porte l&apos;initiale de la marque.</FormNote>
+                </FormSection>
 
-                {/* La zone « Télécharger l'image » n'avait ni `input`, ni `onClick`, ni
-                    gestionnaire : elle prenait le curseur en main, l'état de survol, et ne
-                    faisait rien — d'où la photo posée d'office à l'enregistrement. Le
-                    modèle porte une **adresse** d'image dans la donnée : le champ la
-                    demande, ce qui marche aujourd'hui sans réserve de fichiers. Un vrai
-                    dépôt suppose un magasin comme celui des factures de dépense
-                    (`financeFileStorage`) ; il n'est pas simulé en attendant. */}
-                <InputField
-                    label="Image du modèle"
-                    name="image"
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://…"
-                    supportingText="Facultatif. Sans image, la rangée porte l'initiale de la marque — jamais un cadre vide."
-                />
+                <FormWarn glyph={Info}>
+                    Un modèle ne compte pas, il décrit : aucun objet n&apos;entre au parc en le
+                    créant.
+                </FormWarn>
             </div>
-        </Modal>
+        </FullScreenFormLayout>
     );
 };
 

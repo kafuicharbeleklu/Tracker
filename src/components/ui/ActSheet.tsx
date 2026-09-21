@@ -239,7 +239,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
     const vignetteBox = (party: { vignette?: React.ReactNode; vignetteTone?: ConsequenceTone }) => (
         <span
             className={cn(
-                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[15px] font-semibold',
+                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold',
                 party.vignetteTone
                     ? TEINTE[party.vignetteTone]
                     : 'bg-surface-container text-on-surface-variant',
@@ -259,12 +259,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
             {party.vignette && vignetteBox(party)}
             <span className="min-w-0 flex-1">
                 <span
-                    className={cn('block truncate text-[16px] leading-6', filled && 'font-medium')}
+                    className={cn('block truncate text-[1rem] leading-6', filled && 'font-medium')}
                 >
                     {party.title}
                 </span>
                 {party.subtitle && (
-                    <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                         {party.subtitle}
                     </span>
                 )}
@@ -308,12 +308,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     <div className="min-w-0 flex-1">
                         <h2
                             id={titleId}
-                            className="font-brand text-on-surface text-[22px] leading-7 font-semibold tracking-[-0.015em] text-pretty"
+                            className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] text-pretty"
                         >
                             {picker ? picker.title : title}
                         </h2>
                         {(picker ? picker.prompt : subtitle) && (
-                            <p className="text-on-surface-variant mt-1 text-[14px] leading-5">
+                            <p className="text-on-surface-variant mt-1 text-[0.875rem] leading-5">
                                 {picker ? picker.prompt : subtitle}
                             </p>
                         )}
@@ -340,7 +340,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                     placeholder={picker.searchPlaceholder}
                                     aria-label={picker.searchPlaceholder}
                                     autoComplete="off"
-                                    className="text-on-surface placeholder:text-text-tertiary min-w-0 flex-1 bg-transparent text-[16px] leading-6 outline-none"
+                                    className="text-on-surface placeholder:text-text-tertiary min-w-0 flex-1 bg-transparent text-[1rem] leading-6 outline-none"
                                 />
                             </label>
                             {picker.onScan && (
@@ -356,7 +356,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                         </div>
 
                         <div>
-                            <p className="text-on-surface-variant mb-2 flex items-baseline justify-between gap-3 text-[12px] leading-4 font-medium">
+                            <p className="text-on-surface-variant mb-2 flex items-baseline justify-between gap-3 text-[0.75rem] leading-4 font-medium">
                                 <span>{picker.groupLabel}</span>
                                 <span className="text-text-tertiary font-normal tabular-nums">
                                     {resultats.length}
@@ -364,7 +364,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             </p>
 
                             {resultats.length === 0 ? (
-                                <p className="text-on-surface-variant py-2 text-[14px] leading-5">
+                                <p className="text-on-surface-variant py-2 text-[0.875rem] leading-5">
                                     {picker.emptyLabel}
                                 </p>
                             ) : (
@@ -384,11 +384,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                                 vignetteTone: item.highlighted ? 'bleu' : undefined,
                                             })}
                                         <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-[16px] leading-6">
+                                            <span className="block truncate text-[1rem] leading-6">
                                                 {item.title}
                                             </span>
                                             {item.subtitle && (
-                                                <span className="text-on-surface-variant block truncate text-[14px] leading-5">
+                                                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
                                                     {item.subtitle}
                                                 </span>
                                             )}
@@ -414,7 +414,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             {/* 2 · l'autre partie */}
                             {counterparty && (
                                 <div>
-                                    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                                    <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
                                         {counterparty.label}
                                     </p>
                                     {partyRow(counterparty, true)}
@@ -424,7 +424,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             {/* 3 · la question */}
                             {question && (
                                 <div>
-                                    <p className="text-on-surface-variant mb-2 text-[12px] leading-4 font-medium">
+                                    <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
                                         {question.label}
                                     </p>
                                     {question.children}
@@ -446,10 +446,10 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             {/* 5 · ce que cela déclenche */}
                             {consequence && (
                                 <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
-                                    <p className="text-on-surface-variant text-[12px] leading-4 font-medium">
+                                    <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                                         Ce que cela déclenche
                                     </p>
-                                    <p className="text-on-surface flex items-center gap-3 text-[14px] leading-5">
+                                    <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
                                         <span
                                             className={cn(
                                                 'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',

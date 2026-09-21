@@ -274,7 +274,7 @@ const Menu: React.FC<MenuProps> = ({
                             {/* `.menu .cap` — 12 sur 16, encre tertiaire, intérieur
                                 `6 16 8`. Ni capitales ni interlettrage : c'est une
                                 légende, pas une étiquette de section. */}
-                            <p className="text-text-muted px-4 pt-1.5 pb-2 text-[12px] leading-4">
+                            <p className="text-text-muted px-4 pt-1.5 pb-2 text-[0.75rem] leading-4">
                                 {title}
                             </p>
                         </>
@@ -309,7 +309,7 @@ const Menu: React.FC<MenuProps> = ({
                                        trois marches sous ce que la feuille partagée
                                        déclare, dans le seul endroit du produit où l'on
                                        choisit un acte à l'aveugle du bout du pouce. */
-                                    'group duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-4 py-2 text-left text-[16px] leading-6 transition-[color,background-color,opacity] outline-none',
+                                    'group duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-4 py-2 text-left text-[1rem] leading-6 transition-[color,background-color,opacity] outline-none',
                                     'min-h-12',
                                     item.selected &&
                                         'bg-surface-container font-medium text-[var(--tk-color-nav-active)]',
@@ -347,7 +347,7 @@ const Menu: React.FC<MenuProps> = ({
                                     <span className="truncate">{item.label}</span>
                                     {item.description &&
                                         (item.disabled ? (
-                                            <span className="text-text-tertiary ml-auto min-w-0 truncate text-right text-[12px] leading-4">
+                                            <span className="text-text-tertiary ml-auto min-w-0 truncate text-right text-[0.75rem] leading-4">
                                                 {item.description}
                                             </span>
                                         ) : (

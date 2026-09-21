@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import MaterialIcon from '../../../components/ui/MaterialIcon';
 import { useToast } from '../../../context/ToastContext';
-import { cn } from '../../../lib/utils';
 import InputField from '../../../components/ui/InputField';
 import { TextArea } from '../../../components/ui/TextArea';
 import Toggle from '../../../components/ui/Toggle';
-import Modal from '../../../components/ui/Modal';
-import Button from '../../../components/ui/Button';
 import { useData } from '../../../context/DataContext';
 import SelectField from '../../../components/ui/SelectField';
+import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
+import {
+    FieldLabel,
+    FormNote,
+    FormSection,
+    GlyphTile,
+    Segmented,
+} from '../../../components/ui/FormParts';
 import { CATEGORY_FAMILIES, Category, CategoryFamily } from '../../../types';
-import { CATEGORY_ICONS } from '../../../constants/categoryIcons';
+import { CATEGORY_GLYPHS, CATEGORY_ICONS } from '../../../constants/categoryIcons';
+import { getCategoryLabel } from '../../../constants/glossary';
 
 interface AddCategoryPageProps {
     isOpen: boolean;
@@ -18,6 +23,18 @@ interface AddCategoryPageProps {
     categoryToEdit?: Category | null;
 }
 
+/**
+ * **La fiche d'un type prend la coque de 09.2**, comme le modèle : barre de 56, le
+ * verbe seul à droite, des sections sur la toile. 09.1 ne dessine pas la saisie d'un
+ * type — elle dessine ce qu'il porte, et c'est de là que viennent les quatre sections :
+ * l'identité (nom, famille), le pictogramme, ce que le type autorise, l'amortissement
+ * par défaut — les trois lignes de sa carte « Référence ».
+ *
+ * L'écran tenait dans un `Modal` et empruntait la palette MD3 : cartes cernées à
+ * l'ombre, titres capitales en 700, pastilles jaunes, tuiles à anneau qui grossissent
+ * au survol. Les planches ne cernent pas une carte, n'écrivent pas de capitales et ne
+ * posent le jaune que sur un acte.
+ */
 const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, categoryToEdit }) => {
     const { showToast } = useToast();
     const { addCategory, updateCategory } = useData();
@@ -59,16 +76,6 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
         }
     }, [categoryToEdit, isOpen]);
 
-    // X4 : navigation aux flèches du radiogroup « méthode d'amortissement »
-    const handleMethodKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
-        e.preventDefault();
-        const next = formData.method === 'linear' ? 'degressive' : 'linear';
-        setFormData({ ...formData, method: next });
-        const radios = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
-        radios[next === 'linear' ? 0 : 1]?.focus();
-    };
-
     const handleSave = () => {
         if (!formData.name.trim()) {
             showToast('Veuillez entrer un nom de catégorie', 'error');
@@ -99,37 +106,25 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
         onClose();
     };
 
-    const footer = (
-        <>
-            <Button variant="outlined" onClick={onClose}>
-                Annuler
-            </Button>
-            <Button
-                variant="filled"
-                icon={<MaterialIcon name="save" size={18} />}
-                onClick={handleSave}
-            >
-                {categoryToEdit ? 'Enregistrer les modifications' : 'Créer la catégorie'}
-            </Button>
-        </>
-    );
+    if (!isOpen) return null;
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={categoryToEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
-            footer={footer}
+        <FullScreenFormLayout
+            title={categoryToEdit ? 'Modifier le type' : 'Nouveau type'}
+            onCancel={onClose}
+            onSave={handleSave}
+            saveLabel={categoryToEdit ? 'Enregistrer' : 'Créer'}
+            submitButtonLocation="header"
+            className="bg-background"
         >
-            <div className="space-y-8">
-                {/* Section Informations Générales */}
-                <div className="space-y-6">
+            <div className="flex flex-col gap-4">
+                <FormSection title="Identité">
                     <InputField
-                        label="Nom de la catégorie"
+                        label="Nom du type"
+                        name="name"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Ex: Écrans incurvés"
-                        variant="outlined"
+                        placeholder="Écran incurvé"
                         required
                     />
 
@@ -148,153 +143,89 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                         }))}
                     />
 
-                    <div>
-                        <TextArea
-                            label="Description (Optionnel)"
-                            value={formData.description}
-                            onChange={(e) =>
-                                setFormData({ ...formData, description: e.target.value })
-                            }
-                            placeholder="Détails sur l'utilisation de cette catégorie..."
-                            rows={4}
-                        />
+                    <TextArea
+                        label="Description"
+                        name="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Ce que ce type couvre, si son nom ne suffit pas."
+                        rows={3}
+                    />
+                </FormSection>
+
+                {/* Le pictogramme — le jeu figé de `categoryIcons`, pas un dessin libre.
+                    Le cran pris passe en encre inversée, comme la tuile `.tile` de 06.4 ;
+                    il portait un anneau jaune et grossissait au survol. */}
+                <FormSection title="Pictogramme">
+                    <div
+                        role="radiogroup"
+                        aria-label="Pictogramme du type"
+                        className="medium:grid-cols-8 grid grid-cols-6 gap-2"
+                    >
+                        {Object.entries(CATEGORY_GLYPHS).map(([name, glyph]) => (
+                            <GlyphTile
+                                key={name}
+                                glyph={glyph}
+                                label={getCategoryLabel(name)}
+                                selected={formData.iconName === name}
+                                onClick={() => setFormData({ ...formData, iconName: name })}
+                            />
+                        ))}
                     </div>
-                </div>
+                </FormSection>
 
                 {/* Ce que le type autorise — arbitrage du 2026-08-05, REGLES-TRANSVERSES.md §5.7 */}
-                <div className="bg-surface-container border-outline-variant space-y-4 rounded-xl border p-6">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-surface border-outline-variant shadow-elevation-1 text-primary rounded-md border p-1.5">
-                            <MaterialIcon name="assignment_ind" size={16} />
-                        </div>
-                        <h3 className="text-body-medium text-on-surface font-black tracking-wide uppercase">
-                            Ce que le type autorise
-                        </h3>
-                    </div>
+                <FormSection title="Ce que le type autorise">
                     <Toggle
                         checked={formData.assignable}
                         onChange={(assignable) => setFormData({ ...formData, assignable })}
                         label="Attribuable à une personne"
                     />
-                    <p className="text-body-small text-on-surface-variant">
+                    <FormNote>
                         {formData.assignable
                             ? "Les objets de ce type apparaissent dans le sélecteur d'attribution."
                             : 'Les objets de ce type en sont retirés — un serveur, une imprimante ou du mobilier sert un lieu, pas une personne. Les attributions déjà faites ne sont pas défaites.'}
-                    </p>
-                </div>
+                    </FormNote>
+                </FormSection>
 
-                {/* Section Configuration Financière Améliorée */}
-                <div className="bg-surface-container border-outline-variant space-y-6 rounded-xl border p-6">
-                    <div className="mb-2 flex items-center gap-2">
-                        <div className="bg-surface border-outline-variant shadow-elevation-1 text-primary rounded-md border p-1.5">
-                            <MaterialIcon name="calendar_today" size={16} />
-                        </div>
-                        <h3 className="text-body-medium text-on-surface font-black tracking-wide uppercase">
-                            Amortissement par défaut
-                        </h3>
+                <FormSection title="Amortissement" caption="par défaut">
+                    <div>
+                        <FieldLabel>Méthode</FieldLabel>
+                        {/* `.seg` — deux crans, le pris en surface : la méthode n'en a que
+                            deux, et deux cartes à cocher de 120 de haut pour un choix
+                            binaire tiennent la place d'une section entière. */}
+                        <Segmented
+                            label="Méthode d'amortissement"
+                            value={formData.method}
+                            onChange={(method) => setFormData({ ...formData, method })}
+                            options={[
+                                { value: 'linear' as const, label: 'Linéaire' },
+                                { value: 'degressive' as const, label: 'Dégressif' },
+                            ]}
+                        />
+                        <FormNote>
+                            {formData.method === 'linear'
+                                ? 'Une charge constante sur toute la durée.'
+                                : 'Une charge plus forte au début, qui décroît ensuite.'}
+                        </FormNote>
                     </div>
 
-                    {/* Sélecteur de méthode visuel — X4 : sémantique radiogroup */}
-                    <div
-                        role="radiogroup"
-                        aria-label="Méthode d'amortissement"
-                        onKeyDown={handleMethodKeyDown}
-                        className="expanded:grid-cols-2 grid grid-cols-1 gap-4"
-                    >
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            layout="card"
-                            role="radio"
-                            aria-checked={formData.method === 'linear'}
-                            tabIndex={formData.method === 'linear' ? 0 : -1}
-                            onClick={() => setFormData({ ...formData, method: 'linear' })}
-                            className={cn(
-                                'group hover:shadow-elevation-2 items-start overflow-hidden rounded-xl border-2 p-4 transition-all',
-                                formData.method === 'linear'
-                                    ? 'border-primary bg-surface ring-primary/20 ring-1'
-                                    : 'border-outline-variant bg-surface hover:border-outline',
-                            )}
-                        >
-                            <div className="mb-2 flex items-start justify-between">
-                                <div
-                                    className={cn(
-                                        'rounded-lg p-2 transition-colors',
-                                        // Règle X12 : glyphe sombre sur primary-container (jaune/jaune-pâle ≈1,4:1)
-                                        formData.method === 'linear'
-                                            ? 'bg-primary-container text-on-primary-container'
-                                            : 'bg-surface-container text-on-surface-variant',
-                                    )}
-                                >
-                                    <MaterialIcon name="trending_down" size={18} />
-                                </div>
-                                {formData.method === 'linear' && (
-                                    <div className="bg-primary shadow-elevation-1 h-2.5 w-2.5 rounded-full" />
-                                )}
-                            </div>
-                            <span className="text-body-medium text-on-surface mb-0.5 block font-semibold">
-                                Linéaire
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Amortissement constant
-                            </span>
-                        </Button>
-
-                        <Button
-                            type="button"
-                            variant="outlined"
-                            layout="card"
-                            role="radio"
-                            aria-checked={formData.method === 'degressive'}
-                            tabIndex={formData.method === 'degressive' ? 0 : -1}
-                            onClick={() => setFormData({ ...formData, method: 'degressive' })}
-                            className={cn(
-                                'group hover:shadow-elevation-2 items-start overflow-hidden rounded-xl border-2 p-4 transition-all',
-                                formData.method === 'degressive'
-                                    ? 'border-primary bg-surface ring-primary/20 ring-1'
-                                    : 'border-outline-variant bg-surface hover:border-outline',
-                            )}
-                        >
-                            <div className="mb-2 flex items-start justify-between">
-                                <div
-                                    className={cn(
-                                        'rounded-lg p-2 transition-colors',
-                                        formData.method === 'degressive'
-                                            ? 'bg-primary-container text-on-primary-container'
-                                            : 'bg-surface-container text-on-surface-variant',
-                                    )}
-                                >
-                                    <MaterialIcon name="show_chart" size={18} />
-                                </div>
-                                {formData.method === 'degressive' && (
-                                    <div className="bg-primary shadow-elevation-1 h-2.5 w-2.5 rounded-full" />
-                                )}
-                            </div>
-                            <span className="text-body-medium text-on-surface mb-0.5 block font-semibold">
-                                Dégressif
-                            </span>
-                            <span className="text-body-small text-on-surface-variant">
-                                Charge plus forte au début
-                            </span>
-                        </Button>
-                    </div>
-
-                    {/* Inputs Numériques */}
-                    <div className="expanded:grid-cols-2 grid grid-cols-1 gap-6">
+                    <div className="expanded:grid-cols-2 grid grid-cols-1 gap-4">
                         <InputField
                             mesure="courte"
-                            label="Durée d'usage (Années)"
+                            label="Durée d'usage"
+                            name="years"
                             type="number"
                             value={formData.years.toString()}
                             onChange={(e) =>
                                 setFormData({ ...formData, years: parseInt(e.target.value) || 0 })
                             }
-                            variant="outlined"
-                            icon={<MaterialIcon name="calendar_today" size={16} />}
+                            supportingText="en années"
                         />
                         <InputField
                             mesure="courte"
-                            label="Valeur Résiduelle (%)"
+                            label="Valeur résiduelle"
+                            name="salvage"
                             type="number"
                             value={formData.salvageValuePercent.toString()}
                             onChange={(e) =>
@@ -303,54 +234,17 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
                                     salvageValuePercent: parseInt(e.target.value) || 0,
                                 })
                             }
-                            variant="outlined"
-                            icon={<MaterialIcon name="percent" size={16} />}
+                            supportingText="en pour-cent"
                         />
                     </div>
 
-                    <div className="text-label-small text-on-surface-variant bg-surface border-outline-variant flex items-start gap-2 rounded-lg border p-3">
-                        <MaterialIcon
-                            name="info"
-                            size={14}
-                            className="text-primary mt-0.5 shrink-0"
-                        />
-                        <p>
-                            Ces paramètres seront pré-remplis lors de l'ajout d'un nouvel actif de
-                            ce type, mais resteront modifiables au cas par cas.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Section Icône */}
-                <div>
-                    <label className="text-label-large text-on-surface mb-3 ml-1 block font-bold">
-                        Sélectionner une icône
-                    </label>
-                    <div className="medium:grid-cols-8 grid grid-cols-5 gap-3">
-                        {Object.entries(CATEGORY_ICONS).map(([name, component]) => (
-                            <Button
-                                key={name}
-                                type="button"
-                                variant="text"
-                                onClick={() => setFormData({ ...formData, iconName: name })}
-                                className={cn(
-                                    'aspect-square h-auto min-h-0 w-auto min-w-0 items-center justify-center rounded-xl border-2 p-0 transition-all hover:scale-105 active:scale-95',
-                                    // Règle X12 : icône sombre, l'accent jaune reste sur la bordure/ring (non textuel)
-                                    formData.iconName === name
-                                        ? 'bg-primary-container/45 border-primary text-on-primary-container shadow-elevation-1 ring-primary/20 ring-1'
-                                        : 'bg-surface-container-low text-on-surface-variant hover:bg-surface hover:border-outline-variant hover:text-on-surface border-transparent',
-                                )}
-                                title={name}
-                            >
-                                {React.isValidElement<{ size?: number }>(component)
-                                    ? React.cloneElement(component, { size: 20 })
-                                    : component}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
+                    <FormNote>
+                        Ces valeurs pré-remplissent la fiche d&apos;un actif de ce type ; elles y
+                        restent modifiables au cas par cas.
+                    </FormNote>
+                </FormSection>
             </div>
-        </Modal>
+        </FullScreenFormLayout>
     );
 };
 

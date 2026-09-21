@@ -330,7 +330,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                         et rien ne relierait plus l'ancienne connexion à la fiche. */}
                     <div>
                         <FieldLabel note="identifiant de connexion">Adresse</FieldLabel>
-                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
+                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[1rem] leading-6">
                             <Icon glyph={LockSimple} size={18} />
                             {formData.email}
                         </p>
@@ -439,7 +439,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                         état, comme la planche. */}
                     <div>
                         <FieldLabel>Code PIN</FieldLabel>
-                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[16px] leading-6">
+                        <p className="bg-surface-container text-on-surface-variant flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[1rem] leading-6">
                             <Icon glyph={LockSimple} size={18} />
                             {editedUser?.pin ? 'Défini' : 'Non défini'}
                         </p>
@@ -466,13 +466,13 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                 {/* ── Observé ──────────────────────────────────────────────────── */}
                 <FormSection title="Observé" caption="jamais saisi">
                     <div className="flex flex-col">
-                        <div className="flex min-h-12 items-center justify-between gap-4 py-3 text-[16px] leading-6">
+                        <div className="flex min-h-12 items-center justify-between gap-4 py-3 text-[1rem] leading-6">
                             <span className="text-on-surface-variant">Créé le</span>
                             <span className="text-on-surface font-medium tabular-nums">
                                 {createdOn}
                             </span>
                         </div>
-                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[16px] leading-6">
+                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
                             <span className="text-on-surface-variant">Dernier accès</span>
                             <span
                                 className={

@@ -119,14 +119,14 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
                         className={cn(
                             'min-w-0',
                             form === 'grp'
-                                ? 'text-on-surface-variant text-[12px] leading-4 font-medium'
-                                : 'text-on-surface text-[17px] leading-6 font-medium',
+                                ? 'text-on-surface-variant text-[0.75rem] leading-4 font-medium'
+                                : 'text-on-surface text-[1.0625rem] leading-6 font-medium',
                         )}
                     >
                         {header}
                     </span>
                     {headerTrailing && (
-                        <span className="text-on-surface-variant shrink-0 text-[14px] leading-5 tabular-nums">
+                        <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
                             {headerTrailing}
                         </span>
                     )}
@@ -138,7 +138,7 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
             {note && (
                 <p
                     className={cn(
-                        'border-outline-variant text-on-surface-variant border-t px-4 text-[12px] leading-4',
+                        'border-outline-variant text-on-surface-variant border-t px-4 text-[0.75rem] leading-4',
                         /* `.gnote` de 14.1 — sur le creux, `10 16 14`. */
                         form === 'grp' ? 'bg-surface-container pt-2.5 pb-3.5' : '-mx-4 py-2.5',
                     )}
@@ -239,7 +239,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                     qu'on ne peut pas nommer ne se règle pas : on préfère deux lignes. */}
                 <span
                     className={cn(
-                        'text-on-surface block text-[16px] leading-6',
+                        'text-on-surface block text-[1rem] leading-6',
                         glyph ? 'break-words' : 'truncate',
                     )}
                 >
@@ -254,8 +254,8 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                         className={cn(
                             'text-on-surface-variant block',
                             form === 'grp'
-                                ? 'mt-0.5 text-[12px] leading-4'
-                                : 'text-[14px] leading-5',
+                                ? 'mt-0.5 text-[0.75rem] leading-4'
+                                : 'text-[0.875rem] leading-5',
                         )}
                     >
                         {subtitle}
@@ -274,7 +274,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             {value !== undefined && value !== null && (
                 <span
                     className={cn(
-                        'shrink-0 text-right text-[16px] leading-6 whitespace-nowrap',
+                        'shrink-0 text-right text-[1rem] leading-6 whitespace-nowrap',
                         quiet ? 'text-text-muted font-normal' : 'font-medium',
                         valueTone ? TONE_CLASS[valueTone] : !quiet && 'text-on-surface',
                     )}

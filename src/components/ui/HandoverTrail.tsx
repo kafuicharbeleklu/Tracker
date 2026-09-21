@@ -77,14 +77,14 @@ const HandoverTrail: React.FC<{ steps: TrailStep[]; className?: string }> = ({
                 <span className="min-w-0 flex-1">
                     <span
                         className={cn(
-                            'block text-[16px] leading-6',
+                            'block text-[1rem] leading-6',
                             step.state === 'wait' ? 'text-on-surface-variant' : 'text-on-surface',
                         )}
                     >
                         {step.title}
                     </span>
                     {step.detail && (
-                        <span className="text-on-surface-variant block text-[14px] leading-5">
+                        <span className="text-on-surface-variant block text-[0.875rem] leading-5">
                             {step.detail}
                         </span>
                     )}

@@ -36,24 +36,28 @@ const OutcomePanel: React.FC<OutcomePanelProps> = ({
             <span
                 className={cn(
                     'mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full',
-                    tone === 'bleu' ? 'bg-tint-bleu text-on-tint-bleu' : 'bg-tint-ambre text-on-tint-ambre',
+                    tone === 'bleu'
+                        ? 'bg-tint-bleu text-on-tint-bleu'
+                        : 'bg-tint-ambre text-on-tint-ambre',
                 )}
             >
                 <Icon glyph={icon} size={32} />
             </span>
-            <p className="font-brand mb-2 text-[22px] leading-7 font-semibold tracking-[-0.01em]">
+            <p className="font-brand mb-2 text-[1.375rem] leading-7 font-semibold tracking-[-0.01em]">
                 {title}
             </p>
-            <p className="text-on-surface-variant max-w-[300px] text-[16px] leading-6 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-primary)]">
+            <p className="text-on-surface-variant max-w-[300px] text-[1rem] leading-6 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-primary)]">
                 {message}
             </p>
             {detail && (
-                <p className="text-on-surface-variant mt-2 max-w-[300px] text-[14px] leading-5 text-pretty">
+                <p className="text-on-surface-variant mt-2 max-w-[300px] text-[0.875rem] leading-5 text-pretty">
                     {detail}
                 </p>
             )}
         </div>
-        {actions && <div className="flex flex-col gap-3 [&>button:not(.self-center)]:w-full">{actions}</div>}
+        {actions && (
+            <div className="flex flex-col gap-3 [&>button:not(.self-center)]:w-full">{actions}</div>
+        )}
     </>
 );
 

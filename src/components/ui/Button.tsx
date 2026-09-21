@@ -77,7 +77,7 @@ const SIZE_STYLES: Record<NonNullable<ButtonProps['size']>, string> = {
        marche de R15. Trois planches (03.3, 05.1, 10.1) la déclarent par `--t3` ; la
        taille valait 14, une valeur que l'échelle des quatre marches ne contient pas.
        `sm` et `lg` ne bougent pas : ce sont d'autres boutons que `.btn`. */
-    md: 'min-h-12 px-4 py-2 text-[16px] leading-6 font-medium gap-2',
+    md: 'min-h-12 px-4 py-2 text-[1rem] leading-6 font-medium gap-2',
     lg: 'min-h-11 px-5 py-2.5 text-label-large gap-2',
 };
 

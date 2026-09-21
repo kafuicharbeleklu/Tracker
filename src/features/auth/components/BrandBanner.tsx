@@ -68,11 +68,7 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
                 short ? '-top-4' : 'top-0',
             )}
         >
-            <g
-                fill="none"
-                strokeWidth="1.2"
-                className="stroke-[var(--color-login-live-vert)]"
-            >
+            <g fill="none" strokeWidth="1.2" className="stroke-[var(--color-login-live-vert)]">
                 <path d="M-30 8H150V52" />
                 <path d="M-30 24H122V52" />
                 <path d="M-30 40H94V52" />
@@ -111,11 +107,7 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
                     d="M393 78L349 122L393 166Z"
                 />
             </g>
-            <g
-                fill="none"
-                strokeWidth="6"
-                className="stroke-[var(--color-login-live-accent)]"
-            >
+            <g fill="none" strokeWidth="6" className="stroke-[var(--color-login-live-accent)]">
                 {/* Le centre est *dans* le cadre, à 5 et 7 du coin : il faut qu'un demi-anneau
                     se voie, pas une écharde — relevé du commanditaire sur sa capture. */}
                 <circle cx="398" cy="206" r="16" />
@@ -128,10 +120,10 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
                 aria-hidden="true"
                 className={cn('bg-primary block h-[3px] w-10', short ? 'mb-4' : 'mb-6')}
             />
-            <h1 className="font-brand mb-2 text-[28px] leading-8 font-medium tracking-[-0.02em]">
+            <h1 className="font-brand mb-2 text-[1.75rem] leading-8 font-medium tracking-[-0.02em]">
                 {APP_CONFIG.appName}
             </h1>
-            <p className="max-w-[290px] text-[15px] leading-5 text-[var(--tk-color-text-on-inverse-muted)]">
+            <p className="max-w-[290px] text-[0.9375rem] leading-5 text-[var(--tk-color-text-on-inverse-muted)]">
                 Pilotez vos actifs avec une expérience unifiée.
             </p>
         </div>

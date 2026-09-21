@@ -6,7 +6,6 @@ import {
     BellRinging,
     Check,
     ClipboardText,
-    Funnel,
     Laptop,
     Package,
     Prohibit,
@@ -18,6 +17,8 @@ import ListTemplate from '../../../components/layout/ListTemplate';
 import FilterMenuChip from '../../../components/ui/FilterMenuChip';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
+import FilterButton from '../../../components/ui/FilterButton';
+import FacetChip from '../../../components/ui/FacetChip';
 import SelectableRow, { SelectionBox } from '../../../components/ui/SelectableRow';
 import { useSelection } from '../../../hooks/useSelection';
 import { buildCsvLine } from '../../../lib/csv';
@@ -193,24 +194,11 @@ const VIG_TINT: Record<TaskTone, string> = {
  * L'intitulé d'un groupe de la feuille de filtre prend **`.lab`** — 12 sur 16 en 500,
  * encre secondaire, sans capitales (arbitré le 13/09 contre `.fh`).
  */
-const FILTER_HEADING = 'text-text-muted text-[12px] leading-4 font-medium';
+const FILTER_HEADING = 'text-text-muted text-[0.75rem] leading-4 font-medium';
 
-/**
- * `.chip` de la feuille — **40 px** de haut, 14 de remplissage latéral, rayon 4,
- * **15 px**. Elle descend de 44 à 40 : la feuille en aligne désormais trois groupes,
- * et la planche du 02/09 les mesure à 40.
- */
-const sheetChip = (on: boolean) =>
-    cn(
-        'min-h-10 gap-1.5 rounded-md px-3.5 text-[15px] leading-5 font-normal',
-        on
-            ? 'bg-inverse-surface text-inverse-on-surface'
-            : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-    );
-
-/** Le décompte d'une puce : 500, sur l'encre secondaire de sa surface. */
-const chipCount = (on: boolean) =>
-    cn('font-medium tabular-nums', on ? 'text-inverse-on-surface/75' : 'text-on-surface-variant');
+/* Les puces de la feuille sont `FacetChip` — `.chip` de 18.1, 40, `0 14`, 15 sur 20. Elles
+   en étaient une copie locale, écrite sur `Button` : même mesure, mais lue par tout le
+   produit comme un bouton (15 en 400, quand un bouton porte 500). */
 
 const SCOPE_LABEL: Record<TaskScope, string> = {
     todo: 'À faire',
@@ -905,17 +893,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             <div className="flex items-start gap-3 pb-3">
                 <span
                     className={cn(
-                        'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center text-[15px] font-semibold',
+                        'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold',
                         VIG_TINT[tache.nature],
                     )}
                 >
                     {tache.initials ?? <Icon glyph={tache.icon ?? ClipboardText} size={20} />}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="text-on-surface text-[17px] leading-6 font-medium">
+                    <p className="text-on-surface text-[1.0625rem] leading-6 font-medium">
                         {tache.title}
                     </p>
-                    <p className="text-text-secondary mt-0.5 text-[14px] leading-5">
+                    <p className="text-text-secondary mt-0.5 text-[0.875rem] leading-5">
                         {tache.askedBy ?? tache.context}
                         {/* Une décision se date, elle ne se compte pas en jours :
                                         « le 14 août », pas « il y a 21 j » (planche 03.3). */}
@@ -935,12 +923,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             {(tache.reason || tache.detail) && (
                 <div className="bg-surface-container flex flex-col gap-2 rounded-md p-4">
                     {tache.reason && (
-                        <p className="text-on-surface text-[16px] leading-6 italic">
+                        <p className="text-on-surface text-[1rem] leading-6 italic">
                             «&nbsp;{tache.reason}&nbsp;»
                         </p>
                     )}
                     {tache.detail && (
-                        <p className="text-text-secondary text-[14px] leading-5">
+                        <p className="text-text-secondary text-[0.875rem] leading-5">
                             {tache.who ? `${tache.who} ` : ''}
                             {tache.detail}
                         </p>
@@ -1014,7 +1002,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             {/* `.pinl` — le oui ne signe pas ici : il ouvre l'attestation. */}
             {(tache.transition || tache.reception) && (
-                <p className="text-text-secondary mt-3 text-center text-[14px] leading-5">
+                <p className="text-text-secondary mt-3 text-center text-[0.875rem] leading-5">
                     {tache.action} ouvre l'attestation — signature ou code personnel, au choix.
                 </p>
             )}
@@ -1187,7 +1175,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     ) : (
                         <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
                             <Icon glyph={ClipboardText} size={24} className="text-text-tertiary" />
-                            <p className="text-[14px] leading-5">
+                            <p className="text-[0.875rem] leading-5">
                                 Choisissez une tâche pour la traiter sans quitter la file.
                             </p>
                         </div>
@@ -1224,22 +1212,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ]}
                     />
                 ) : (
-                    /* `.fbtn` — 48 carré, rayon 4, en creux : un remplissage, pas un filet.
-                   Son compteur est un carré sombre de 18 (rayon 2), pas une pastille
-                   ronde : il compte des filtres, il ne signale pas une alerte. */
-                    <Button
-                        variant="text"
-                        aria-label="Filtrer les tâches"
+                    /* **Le bouton de filtre partagé**, et non une copie : écrit à la main, il
+                       restait à 48 dans le chrome de 768 et du bureau, où `FilterButton` lit
+                       la mesure du gabarit (40, 17.11 — arbitré le 13/09). */
+                    <FilterButton
+                        label="Filtrer les tâches"
+                        count={activeFilterCount}
                         onClick={() => setIsFilterSheetOpen(true)}
-                        className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-focus-ring relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                    >
-                        <Icon glyph={Funnel} size={20} />
-                        {activeFilterCount > 0 && (
-                            <span className="bg-inverse-surface text-inverse-on-surface absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] px-[5px] text-[11px] leading-[18px] font-medium tabular-nums">
-                                {activeFilterCount}
-                            </span>
-                        )}
-                    </Button>
+                    />
                 )
             }
             /* L'ordre d'une file se bascule, il ne se choisit pas dans une liste : il n'a
@@ -1318,7 +1298,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
                     }
                     description={
-                        <span className="text-[16px] leading-6">
+                        <span className="text-[1rem] leading-6">
                             {scope === 'todo'
                                 ? 'Rien n’attend votre geste. La file se remplira d’elle-même.'
                                 : 'Changez de vue ou de nature.'}
@@ -1374,7 +1354,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ) : (
                             <div
                                 className={cn(
-                                    'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[15px] leading-5 font-semibold',
+                                    'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[0.9375rem] leading-5 font-semibold',
                                     VIG_TINT[tone],
                                     task.quote && 'mt-0.5',
                                 )}
@@ -1388,12 +1368,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         )}
 
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface truncate text-[17px] leading-6 tracking-[-0.01em]">
+                            <p className="text-on-surface truncate text-[1.0625rem] leading-6 tracking-[-0.01em]">
                                 {task.title}
                             </p>
                             {/* La sous-ligne : qui, puis l'état en un mot. Deux lignes au
                                 plus — au-delà, une rangée n'est plus une rangée. */}
-                            <p className="text-on-surface-variant mt-0.5 line-clamp-2 text-[14px] leading-5">
+                            <p className="text-on-surface-variant mt-0.5 line-clamp-2 text-[0.875rem] leading-5">
                                 {task.who ? (
                                     <>
                                         <b className="text-on-surface font-medium">{task.who}</b> ·{' '}
@@ -1407,7 +1387,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 seul texte que le demandeur a reçu, l'historique ne le
                                 reformule pas (`.tt .q`). */}
                             {task.quote && (
-                                <p className="text-on-surface mt-1.5 text-[14px] leading-5 italic">
+                                <p className="text-on-surface mt-1.5 text-[0.875rem] leading-5 italic">
                                     «&nbsp;{task.quote}&nbsp;»
                                 </p>
                             )}
@@ -1423,11 +1403,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         */}
                         {task.scope === 'history' ? (
                             <span className="flex shrink-0 flex-col items-end gap-0.5 self-start">
-                                <span className="text-on-surface-variant mt-1 text-[12px] leading-4 whitespace-nowrap tabular-nums">
+                                <span className="text-on-surface-variant mt-1 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums">
                                     {dateLabel(task.since)}
                                 </span>
                                 {task.decidedBy && (
-                                    <span className="text-text-secondary text-[12px] leading-4 whitespace-nowrap">
+                                    <span className="text-text-secondary text-[0.75rem] leading-4 whitespace-nowrap">
                                         {task.decidedBy}
                                     </span>
                                 )}
@@ -1440,7 +1420,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 className="flex shrink-0 items-center gap-1 self-center"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <span className="text-on-surface-variant text-right text-[12px] leading-4 tabular-nums">
+                                <span className="text-on-surface-variant text-right text-[0.75rem] leading-4 tabular-nums">
                                     {ageLabel(task.since)}
                                 </span>
                                 <Button
@@ -1454,7 +1434,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 </Button>
                             </span>
                         ) : (
-                            <span className="text-on-surface-variant mt-1 min-w-8 shrink-0 self-start text-right text-[12px] leading-4 tabular-nums">
+                            <span className="text-on-surface-variant mt-1 min-w-8 shrink-0 self-start text-right text-[0.75rem] leading-4 tabular-nums">
                                 {ageLabel(task.since)}
                             </span>
                         )}
@@ -1471,7 +1451,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 <Button
                     variant="text"
                     onClick={() => setVisibleCount((count) => count + TASKS_PAGE_SIZE)}
-                    className="border-outline-variant text-on-surface min-h-12 w-full justify-between rounded-none border-t px-0 text-[15px] leading-5 font-medium"
+                    className="border-outline-variant text-on-surface min-h-12 w-full justify-between rounded-none border-t px-0 text-[0.9375rem] leading-5 font-medium"
                 >
                     {/*
                       `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3).
@@ -1484,7 +1464,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         {Math.min(TASKS_PAGE_SIZE, filteredTasks.length - visibleTasks.length)}{' '}
                         suivantes
                     </span>
-                    <span className="text-on-surface-variant text-[12px] leading-4 font-normal tabular-nums">
+                    <span className="text-on-surface-variant text-[0.75rem] leading-4 font-normal tabular-nums">
                         {visibleTasks.length} sur {filteredTasks.length}
                     </span>
                 </Button>
@@ -1517,7 +1497,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 .map(([label, value]) => (
                                     <div
                                         key={String(label)}
-                                        className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-2 text-[16px] leading-6 first:border-t-0"
+                                        className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-2 text-[1rem] leading-6 first:border-t-0"
                                     >
                                         <dt className="text-text-secondary shrink-0">{label}</dt>
                                         <dd className="text-on-surface min-w-0 text-right font-medium break-words">
@@ -1528,7 +1508,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </dl>
 
                         {reviewDevice.status === 'ambiguous_match' && (
-                            <p className="bg-surface-container text-text-secondary rounded-md px-4 py-2 text-[12px] leading-4">
+                            <p className="bg-surface-container text-text-secondary rounded-md px-4 py-2 text-[0.75rem] leading-4">
                                 Plusieurs actifs du parc lui ressemblent. L'importer en créerait un
                                 de plus — vérifiez d'abord lequel elle est.
                             </p>
@@ -1587,20 +1567,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         <p className={FILTER_HEADING}>Où</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => (
-                                <Button
+                                <FacetChip
                                     key={taskScope}
-                                    variant={scope === taskScope ? 'tonal' : 'text'}
-                                    size="sm"
+                                    label={SCOPE_LABEL[taskScope]}
+                                    count={
+                                        taskScope !== 'history' ? scopeCounts[taskScope] : undefined
+                                    }
+                                    selected={scope === taskScope}
                                     onClick={() => setScope(taskScope)}
-                                    className={sheetChip(scope === taskScope)}
-                                >
-                                    {SCOPE_LABEL[taskScope]}
-                                    {taskScope !== 'history' && (
-                                        <b className={chipCount(scope === taskScope)}>
-                                            {scopeCounts[taskScope]}
-                                        </b>
-                                    )}
-                                </Button>
+                                />
                             ))}
                         </div>
                     </div>
@@ -1608,30 +1583,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     <div>
                         <p className={FILTER_HEADING}>Nature</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            <Button
-                                variant={nature === 'toutes' ? 'tonal' : 'text'}
-                                size="sm"
+                            <FacetChip
+                                label="Tout"
+                                count={scopeTasks.length}
+                                selected={nature === 'toutes'}
                                 onClick={() => setNature('toutes')}
-                                className={sheetChip(nature === 'toutes')}
-                            >
-                                Tout
-                                <b className={chipCount(nature === 'toutes')}>
-                                    {scopeTasks.length}
-                                </b>
-                            </Button>
+                            />
                             {(Object.keys(NATURE_LABEL) as TaskNature[]).map((taskNature) => (
-                                <Button
+                                <FacetChip
                                     key={taskNature}
-                                    variant={nature === taskNature ? 'tonal' : 'text'}
-                                    size="sm"
+                                    label={NATURE_LABEL[taskNature]}
+                                    count={counts[taskNature]}
+                                    selected={nature === taskNature}
                                     onClick={() => setNature(taskNature)}
-                                    className={sheetChip(nature === taskNature)}
-                                >
-                                    {NATURE_LABEL[taskNature]}
-                                    <b className={chipCount(nature === taskNature)}>
-                                        {counts[taskNature]}
-                                    </b>
-                                </Button>
+                                />
                             ))}
                         </div>
                     </div>
@@ -1645,15 +1610,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     ['newest', 'Les plus récentes'],
                                 ] as const
                             ).map(([value, label]) => (
-                                <Button
+                                <FacetChip
                                     key={value}
-                                    variant={order === value ? 'tonal' : 'text'}
-                                    size="sm"
+                                    label={label}
+                                    selected={order === value}
                                     onClick={() => setOrder(value)}
-                                    className={sheetChip(order === value)}
-                                >
-                                    {label}
-                                </Button>
+                                />
                             ))}
                         </div>
                     </div>
@@ -1721,7 +1683,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={3}
                                 placeholder="Budget gelé jusqu’au prochain exercice…"
-                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[16px] leading-6 outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[1rem] leading-6 outline-none focus-visible:ring-2"
                             />
                         ),
                     }}
@@ -1756,16 +1718,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             >
                 {cancelling?.cancel && (
                     <div className="space-y-4">
-                        <p className="text-text-secondary text-[16px] leading-6">
+                        <p className="text-text-secondary text-[1rem] leading-6">
                             {cancelling.title}
                         </p>
-                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-2 text-[12px] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                        <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-2 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
                             <Icon glyph={ArrowCounterClockwise} size={18} />
                             Rien n'est perdu — vous pourrez redemander. La personne qui l'examinait
                             ne la verra plus.
                         </p>
                         <label className="block">
-                            <span className="text-text-muted mb-2 block text-[12px] leading-4 font-medium">
+                            <span className="text-text-muted mb-2 block text-[0.75rem] leading-4 font-medium">
                                 Motif{' '}
                                 <span className="text-text-secondary font-normal">
                                     — facultatif
@@ -1776,7 +1738,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={2}
                                 placeholder="Plus besoin, j'ai trouvé un poste libre…"
-                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[16px] leading-6 focus:outline-hidden"
+                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[1rem] leading-6 focus:outline-hidden"
                             />
                         </label>
                         <div className="flex justify-end gap-2">

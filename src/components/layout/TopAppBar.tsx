@@ -43,7 +43,11 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
             role="banner"
             className={cn(
                 'bg-surface border-outline-variant min-h-14 border-b',
-                'flex items-center justify-between px-4',
+                /* `.tbar` — `0 8 0 4` quand la barre porte son retour de 48 : le geste
+                   porte déjà son air, et le titre part à 56 comme sur toutes les
+                   planches. Elle tenait 16 de chaque côté, retour compris. */
+                'flex items-center justify-between',
+                leadingAction ? 'pr-2 pl-1' : 'px-4',
                 className,
             )}
         >
@@ -58,13 +62,20 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
                             onClick={leadingAction.onClick}
                             aria-label={leadingAction.label}
                             iconOnly
-                            icon={<MaterialIcon name={leadingAction.icon} size={24} />}
+                            /* `.tb` — **48**, rayon 4, glyphe de 20 : la barre n'est montée
+                               qu'au téléphone, où le geste d'une barre fait 48. `size="sm"`
+                               le posait à 40, la mesure du chrome de bureau. */
+                            className="h-12 min-h-12 w-12 min-w-12 rounded-md"
+                            icon={<MaterialIcon name={leadingAction.icon} size={20} />}
                         />
                     </Tooltip>
                 )}
                 <div
                     className={cn(
-                        'font-brand ml-1 flex-1 truncate text-[17px] leading-6 font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]',
+                        /* Derrière le retour, `gap 4` puis l'intérieur de `.tid`, 4 : le titre
+                           part à 60, comme sur toutes les barres de second niveau. */
+                        'font-brand flex-1 truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]',
+                        leadingAction ? 'ml-2' : 'ml-1',
                         titleClassName,
                     )}
                     role="heading"
@@ -90,7 +101,8 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
                                 onClick={action.onClick}
                                 aria-label={action.label}
                                 iconOnly
-                                icon={<MaterialIcon name={action.icon} size={24} />}
+                                className="h-12 min-h-12 w-12 min-w-12 rounded-md"
+                                icon={<MaterialIcon name={action.icon} size={20} />}
                             />
                         </Tooltip>
                     ))}

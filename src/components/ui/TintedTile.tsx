@@ -82,7 +82,7 @@ const TintedTile: React.FC<TintedTileProps> = ({
         </span>
     );
     const number = (
-        <span className="font-brand text-[22px] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+        <span className="font-brand text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
             {value}
         </span>
     );
@@ -92,7 +92,7 @@ const TintedTile: React.FC<TintedTileProps> = ({
             {chip}
             <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
                 {number}
-                <span className="text-[16px] leading-6 opacity-85">{label}</span>
+                <span className="text-[1rem] leading-6 opacity-85">{label}</span>
             </span>
         </>
     ) : (
@@ -100,7 +100,7 @@ const TintedTile: React.FC<TintedTileProps> = ({
             {chip}
             <span className="min-w-0">
                 <span className="block">{number}</span>
-                <span className="mt-0.5 block text-[12px] leading-4 opacity-85">{label}</span>
+                <span className="mt-0.5 block text-[0.75rem] leading-4 opacity-85">{label}</span>
             </span>
         </>
     );
