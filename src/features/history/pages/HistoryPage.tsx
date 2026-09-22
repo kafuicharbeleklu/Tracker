@@ -1,296 +1,416 @@
-import React, { useMemo, useState } from 'react';
-import {
-    ArrowUUpLeft,
-    Bell,
-    CheckCircle,
-    ClipboardText,
-    ClockCounterClockwise,
-    Export,
-    Handshake,
-    PaperPlaneTilt,
-    ShieldCheck,
-    SignOut,
-    UserPlus,
-    Wrench,
-    XCircle,
-    type Icon as PhosphorGlyph,
-} from '@phosphor-icons/react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ClockCounterClockwise, DotsThreeVertical, Export, Laptop } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import FilterMenuChip from '../../../components/ui/FilterMenuChip';
-import { libelleAttestation } from '../../../components/ui/Attestation';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
 import FilterButton from '../../../components/ui/FilterButton';
 import FacetChip from '../../../components/ui/FacetChip';
+import { PickRow } from '../../../components/ui/FormParts';
 import Icon from '../../../components/ui/Icon';
+import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import ScreenState from '../../../components/ui/ScreenState';
 import { useData } from '../../../context/DataContext';
+import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { useHistory } from '../../../hooks/useHistory';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useToast } from '../../../context/ToastContext';
 import { buildCsvLine } from '../../../lib/csv';
 import { cn } from '../../../lib/utils';
-import type { EventType, HistoryEvent } from '../../../types';
+import type { HistoryEvent } from '../../../types';
+import ConcernPicker, { type ChoixConcerne } from '../components/ConcernPicker';
+import FactSheet from '../components/FactSheet';
+import {
+    NATURES,
+    PERIODES,
+    ageDe,
+    auteurDe,
+    autrePartie,
+    complementDe,
+    concerne,
+    concerneLaPersonne,
+    debutDe,
+    faitDe,
+    groupeDe,
+    heure,
+    lieuDe,
+    marqueDe,
+    methodeDe,
+    natureDe,
+    sousLigneDe,
+    type Concerne,
+    type Groupe,
+    type Nature,
+    type PeriodeId,
+    type Registres,
+} from '../lib/journal';
 
 /**
- * **Historique — le journal des événements** (planche 18.1, dessinée le 05/09).
+ * **Historique — le journal des événements** (planche 18.1, dessinée le 05/09, bureau le
+ * 09/09).
  *
  * *« Audit » a été scindé le 03/09 : la campagne physique s'appelle Inventaire (16), le
- * journal s'appelle **Historique**, et il n'avait pas de planche.* Il n'avait pas de page
- * non plus : la feuille « Plus » réservait sa place et la laissait vide, parce qu'*« une
- * rangée qui ne mène nulle part est pire qu'une rangée absente »*. La voici.
+ * journal s'appelle **Historique**.* **Un fait par rangée** : l'objet ou la personne en
+ * titre, qui l'a fait et par quelle méthode en sous-ligne, l'heure à droite. *« Rien ne se
+ * refait ici »* — une rangée ouvre le fait, et le fait renvoie à l'objet et à la personne.
  *
- * **Un fait par rangée** : l'objet ou la personne en titre, qui l'a fait et par quelle
- * méthode en sous-ligne, l'heure à droite. *« Rien ne se refait ici »* — aucune rangée du
- * journal n'est un acte, et c'est ce qui le rend relisible deux ans après.
+ * ## Les six colonnes de la planche, et où elles vivent
  *
- * Les partitions sont **des chips dans la feuille de filtre** (R11, comme 03.3 et 16.1),
- * jamais des onglets ; et le gabarit est celui des huit listes (17.8).
+ * - **Au repos** — le gabarit des listes (17.8), le journal groupé par jour, une carte par
+ *   jour. Un jour de plus de quatre faits en montre quatre et nomme le reste (« Voir les 2
+ *   autres faits d'hier ») : le journal se parcourt, il ne se déroule pas.
+ * - **La feuille de filtre** — trois axes, jamais des onglets (R11) : la nature et la
+ *   période en chips avec leur compte, **une personne ou un objet** à choisir. Le pied dit
+ *   le résultat avant de le montrer.
+ * - **Un événement ouvert** — le fait, puis qui a attesté quoi et comment
+ *   (`FactSheet`).
+ * - **Mon historique** — le même écran réduit à ce qui concerne la personne, pour qui ne
+ *   lit pas le journal entier : sans recherche, sans le choix de personne ni la sécurité.
+ * - **Aucun fait** — le vide nomme le filtre qui le produit et rend le geste qui le lève ;
+ *   le badge de l'entonnoir reste.
+ * - **Au bureau** — *« le patron de 04.1 pour le temps »* : un tableau à cinq colonnes,
+ *   les jours en rangées de séparation de 36, les trois filtres en pastilles, le tri, et
+ *   l'export dans l'en-tête. Les rangées suivantes arrivent au défilement.
  *
- * ## Au bureau, le journal devient un tableau — 18.1, colonne « Vue — bureau à 1280 »
+ * ## Ce qui est au repos
  *
- * *« Le patron de 04.1 pour le temps. »* La sous-ligne du téléphone — qui a fait le
- * fait, par quelle méthode, où — **se déplie en trois colonnes** qu'on lit d'un coup, et
- * ne garde que le complément (à qui, pourquoi). Les jours ne disparaissent pas pour
- * autant : ils deviennent des **rangées de séparation de 36** avec leur compte.
- *
- * Rien de neuf n'apparaît : mêmes faits, mêmes marques de 32, mêmes jours, mêmes
- * filtres. C'est la forme qui change, jamais ce qu'on regarde.
+ * La période **par défaut** n'est pas un filtre posé : 30 jours pour le journal, tout pour
+ * *Mon historique* (dont la planche montre juillet). Le badge ne compte que ce qui s'en
+ * écarte — la colonne « aucun fait » compte deux filtres pour « Inventaires · 7 jours » —,
+ * et « Tout effacer » y revient.
  */
 
-/** Les six natures de la planche, et ce que chacune ramasse dans `EventType`. */
-type Nature = 'remises' | 'demandes' | 'incidents' | 'inventaires' | 'comptes' | 'securite';
+/** Au téléphone, un jour montre quatre faits et nomme le reste (colonne 1 : « Hier 6 »). */
+const PAR_JOUR = 4;
 
-const NATURES: readonly { id: Nature; label: string; types: readonly EventType[] }[] = [
-    {
-        id: 'remises',
-        label: 'Remises et retours',
-        types: ['ASSIGN', 'ASSIGN_PENDING', 'ASSIGN_CONFIRMED', 'ASSIGN_IT_SELECTED', 'RETURN'],
+/** Au bureau, le tableau reçoit ses rangées par cinquantaine, au défilement. */
+const PAR_PAGE = 50;
+
+const initiales = (nom: string): string =>
+    nom
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((mot) => mot[0]?.toUpperCase() ?? '')
+        .join('');
+
+/** La marque ronde de 32 — même icône, même teinte au téléphone et au bureau. */
+const MarqueRonde: React.FC<{ fait: HistoryEvent }> = ({ fait }) => {
+    const marque = marqueDe(fait);
+    return (
+        <span
+            className={cn(
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                marque.teinte,
+            )}
+        >
+            <Icon glyph={marque.glyph} size={18} />
+        </span>
+    );
+};
+
+/** Une rangée ou un renvoi qu'on active au clavier comme à la souris. */
+const activer = (geste: () => void) => ({
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick: geste,
+    onKeyDown: (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            geste();
+        }
     },
-    {
-        id: 'demandes',
-        label: 'Demandes',
-        types: [
-            'APPROVAL_CREATE',
-            'APPROVAL_MANAGER',
-            'APPROVAL_ADMIN',
-            'APPROVAL_REJECT',
-            'APPROVAL_CANCEL',
-            'APPROVAL_DOTATION_REJECT',
-            'ASSIGN_MANAGER_WAIT',
-            'ASSIGN_MANAGER_OK',
-            'ASSIGN_IT_PROCESSING',
-            'ASSIGN_DOTATION_WAIT',
-            'ASSIGN_DOTATION_OK',
-        ],
-    },
-    {
-        id: 'incidents',
-        label: 'Incidents et sorties',
-        types: ['REPAIR_START', 'REPAIR_END', 'DELETE'],
-    },
-    { id: 'inventaires', label: 'Inventaires', types: [] },
-    { id: 'comptes', label: 'Comptes et rôles', types: ['CREATE', 'UPDATE'] },
-    { id: 'securite', label: 'Sécurité et exports', types: ['LOGIN', 'LOGOUT', 'EXPORT'] },
-];
-
-/** La marque ronde de 32 : la nature par le pictogramme **et** la teinte (I3). */
-const MARQUE: Partial<Record<EventType, { glyph: PhosphorGlyph; teinte: string }>> = {
-    ASSIGN: { glyph: Handshake, teinte: 'bg-tint-vert text-on-tint-vert' },
-    ASSIGN_PENDING: { glyph: Handshake, teinte: 'bg-tint-ambre text-on-tint-ambre' },
-    ASSIGN_CONFIRMED: { glyph: CheckCircle, teinte: 'bg-tint-vert text-on-tint-vert' },
-    RETURN: { glyph: ArrowUUpLeft, teinte: 'bg-tint-vert text-on-tint-vert' },
-    REPAIR_START: { glyph: Wrench, teinte: 'bg-tint-orange text-on-tint-orange' },
-    REPAIR_END: { glyph: Wrench, teinte: 'bg-tint-vert text-on-tint-vert' },
-    DELETE: { glyph: SignOut, teinte: 'bg-tint-orange text-on-tint-orange' },
-    APPROVAL_CREATE: { glyph: PaperPlaneTilt, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    APPROVAL_MANAGER: { glyph: CheckCircle, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    APPROVAL_ADMIN: { glyph: CheckCircle, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    APPROVAL_REJECT: { glyph: XCircle, teinte: 'bg-tint-danger text-on-tint-danger' },
-    APPROVAL_CANCEL: { glyph: XCircle, teinte: 'bg-tint-danger text-on-tint-danger' },
-    CREATE: { glyph: UserPlus, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    UPDATE: { glyph: ShieldCheck, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    LOGIN: { glyph: ShieldCheck, teinte: 'bg-tint-bleu text-on-tint-bleu' },
-    EXPORT: { glyph: ClipboardText, teinte: 'bg-tint-ambre text-on-tint-ambre' },
-};
-
-const PERIODES = [
-    { id: '7', label: '7 jours', jours: 7 },
-    { id: '30', label: '30 jours', jours: 30 },
-    { id: 'tout', label: 'Tout', jours: null },
-] as const;
-
-type PeriodeId = (typeof PERIODES)[number]['id'];
-
-const heure = (iso: string) =>
-    new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-/**
- * Le titre d'un jour — « Aujourd'hui », « Hier », puis la date en toutes lettres. Un
- * journal se lit par proximité : la date absolue ne sert qu'au-delà de la veille.
- */
-const titreDuJour = (iso: string): string => {
-    const jour = new Date(iso);
-    const aujourdhui = new Date();
-    const veille = new Date();
-    veille.setDate(veille.getDate() - 1);
-    const memeJour = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-    if (memeJour(jour, aujourdhui)) return "Aujourd'hui";
-    if (memeJour(jour, veille)) return 'Hier';
-    return jour.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-};
-
-/**
- * **La méthode d'attestation, en sous-ligne** — *« c'est ce qui rend le fait relisible
- * deux ans après »*. Elle se lit dans les métadonnées de l'acte quand il en porte.
- */
-const sousLigne = (evenement: HistoryEvent): string => {
-    const morceaux: string[] = [];
-    if (evenement.isSystem) morceaux.push('automatique');
-    else if (evenement.actorName) morceaux.push(evenement.actorName);
-
-    /* Le sujet ne se répète pas sous lui-même : une connexion a pour cible la personne
-       qui l'a faite, et « Kafui EKLU · Kafui EKLU » ne dit rien deux fois. */
-    if (
-        evenement.targetName &&
-        evenement.targetName !== evenement.actorName &&
-        evenement.targetType !== 'USER'
-    )
-        morceaux.push(evenement.targetName);
-
-    const meta = evenement.metadata ?? {};
-    const methode = typeof meta.method === 'string' ? libelleAttestation(meta.method) : undefined;
-    if (methode) morceaux.push(methode);
-
-    const raison = typeof meta.reason === 'string' ? meta.reason : undefined;
-    if (raison) morceaux.push(raison);
-
-    return morceaux.filter(Boolean).join(' · ');
-};
-
-/**
- * La méthode d'attestation seule — colonne « Attestation » du bureau. Le téléphone la
- * fond dans la sous-ligne ; le tableau lui donne sa colonne, parce que c'est par elle
- * qu'un fait se prouve.
- */
-const attestation = (evenement: HistoryEvent): string => {
-    const methode =
-        typeof evenement.metadata?.method === 'string'
-            ? libelleAttestation(evenement.metadata.method)
-            : undefined;
-    /* La colonne porte une majuscule, la sous-ligne non : c'est la même phrase à deux
-       places, et une seule des deux commence quelque chose. */
-    return methode ? methode[0].toUpperCase() + methode.slice(1) : '—';
-};
-
-/**
- * Le complément du fait — « à Karim Diallo », « écran fendu ». Au bureau il reste seul
- * en sous-ligne : l'auteur, la méthode et le lieu ont leur colonne.
- */
-const complement = (evenement: HistoryEvent): string => {
-    const morceaux: string[] = [];
-    if (
-        evenement.targetName &&
-        evenement.targetName !== evenement.actorName &&
-        evenement.targetType !== 'USER'
-    )
-        morceaux.push(evenement.targetName);
-    const raison = evenement.metadata?.reason;
-    if (typeof raison === 'string' && raison) morceaux.push(raison);
-    return morceaux.join(' · ');
-};
+});
 
 interface HistoryPageProps {
     onBack?: () => void;
-    /** Réduit le journal à ce qui concerne une personne — la vue « Mon historique ». */
+    /**
+     * Réduit le journal à ce qui concerne une personne — la vue « Mon historique ». Sans
+     * elle, la page la prend d'elle-même pour qui ne peut pas lire le journal entier.
+     */
     scopeUserId?: string;
+    /** Le renvoi du fait ouvert vers l'objet. */
+    onOpenEquipment?: (id: string) => void;
+    /** Le renvoi du fait ouvert vers la personne. */
+    onOpenUser?: (id: string) => void;
 }
 
-const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
-    const { events } = useData();
+const HistoryPage: React.FC<HistoryPageProps> = ({
+    onBack,
+    scopeUserId,
+    onOpenEquipment,
+    onOpenUser,
+}) => {
+    const { events, equipment, approvals, users, settings } = useData();
+    const { user: moi, permissions } = useAccessControl();
+    const { filterEvents } = useHistory();
     const { showToast } = useToast();
+
+    /**
+     * **Mon historique** — 18.1, colonne 4. Le journal se lit par qui lit les rapports
+     * (17.7) ; les autres y arrivaient quand même par l'adresse, et lisaient tout. Ils
+     * lisent désormais ce qui les concerne, sous le nom que la planche leur donne.
+     */
+    const mien = scopeUserId ?? (permissions.canViewReports ? undefined : moi?.id);
+    const periodeAuRepos: PeriodeId = mien ? 'tout' : '30';
+
     const [recherche, setRecherche] = useState('');
     const [naturesActives, setNaturesActives] = useState<Nature[]>([]);
-    const [periode, setPeriode] = useState<PeriodeId>('30');
-    const [filtreOuvert, setFiltreOuvert] = useState(false);
+    const [periode, setPeriode] = useState<PeriodeId>(periodeAuRepos);
+    const [choisi, setChoisi] = useState<Concerne | null>(null);
+    const [ordre, setOrdre] = useState<'recent' | 'ancien'>('recent');
+    /** La feuille ouverte : le filtre, ou le choix d'une personne ou d'un objet. */
+    const [feuille, setFeuille] = useState<'filtre' | 'choix' | null>(null);
+    /** Le choix s'ouvre depuis la feuille (téléphone) ou depuis sa pastille (bureau). */
+    const [choixDepuis, setChoixDepuis] = useState<'filtre' | 'outils'>('filtre');
     const [ouvert, setOuvert] = useState<HistoryEvent | null>(null);
+    const [joursDeplies, setJoursDeplies] = useState<ReadonlySet<string>>(new Set());
 
     const rechercheRetardee = useDebounce(recherche, 250);
-    /* 1280 — le seuil des neuf écrans de bureau (17.11), et celui où six colonnes
-       tiennent sans troncature. En dessous, le journal garde ses cartes par jour. */
+    /* 1280 — le seuil des neuf écrans de bureau (17.11), et celui où cinq colonnes tiennent
+       sans troncature. En dessous, le journal garde ses cartes par jour. */
     const enTableau = useMediaQuery(MEDIA.twoColumn);
 
-    const natureDe = useMemo(() => {
-        const table = new Map<EventType, Nature>();
-        NATURES.forEach(({ id, types }) => types.forEach((t) => table.set(t, id)));
-        return table;
-    }, []);
-
-    /** La portée : tout le journal, ou les faits d'une personne. */
-    const perimetre = useMemo(
-        () =>
-            scopeUserId
-                ? events.filter((e) => e.actorId === scopeUserId || e.targetId === scopeUserId)
-                : events,
-        [events, scopeUserId],
-    );
-
-    const dansLaPeriode = useMemo(() => {
-        const jours = PERIODES.find((p) => p.id === periode)?.jours ?? null;
-        if (jours === null) return perimetre;
-        const depuis = Date.now() - jours * 86400000;
-        return perimetre.filter((e) => new Date(e.timestamp).getTime() >= depuis);
-    }, [perimetre, periode]);
-
-    const affiches = useMemo(() => {
-        const q = rechercheRetardee.trim().toLowerCase();
-        return dansLaPeriode
-            .filter((e) => {
-                if (naturesActives.length > 0) {
-                    const n = natureDe.get(e.type);
-                    if (!n || !naturesActives.includes(n)) return false;
-                }
-                if (!q) return true;
-                return [e.targetName, e.actorName, e.description]
-                    .filter(Boolean)
-                    .some((v) => String(v).toLowerCase().includes(q));
-            })
-            .slice()
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }, [dansLaPeriode, natureDe, naturesActives, rechercheRetardee]);
-
-    /** Le journal se lit **groupé par jour** : c'est la carte `.day` de la planche. */
-    const parJour = useMemo(() => {
-        const groupes = new Map<string, HistoryEvent[]>();
-        affiches.forEach((e) => {
-            const cle = new Date(e.timestamp).toDateString();
-            groupes.set(cle, [...(groupes.get(cle) ?? []), e]);
-        });
-        return [...groupes.entries()];
-    }, [affiches]);
-
-    const comptesParNature = useMemo(() => {
-        const compte = new Map<Nature, number>();
-        dansLaPeriode.forEach((e) => {
-            const n = natureDe.get(e.type);
-            if (n) compte.set(n, (compte.get(n) ?? 0) + 1);
-        });
-        return compte;
-    }, [dansLaPeriode, natureDe]);
-
-    /* Le compte d'un jour, pour la rangée de séparation du tableau. */
-    const comptesParJour = useMemo(
-        () => new Map(parJour.map(([cle, faits]) => [cle, faits.length])),
-        [parJour],
+    const registres: Registres = useMemo(
+        () => ({
+            equipment: new Map(equipment.map((e) => [e.id, e])),
+            approvals: new Map(approvals.map((a) => [a.id, a])),
+        }),
+        [equipment, approvals],
     );
 
     /**
+     * **Le périmètre** — le journal que cette personne a le droit de lire. Le responsable
+     * lit son équipe, l'administration tout (`useHistory`) ; *Mon historique* ce qui
+     * concerne la personne.
+     */
+    const perimetre = useMemo(
+        () =>
+            mien
+                ? events.filter((e) => concerneLaPersonne(e, mien, registres))
+                : filterEvents(events),
+        [events, filterEvents, mien, registres],
+    );
+
+    const dansLaPeriode = useMemo(() => {
+        const debut = debutDe(periode, settings.fiscalYearStart);
+        if (debut === null) return perimetre;
+        return perimetre.filter((e) => new Date(e.timestamp).getTime() >= debut);
+    }, [perimetre, periode, settings.fiscalYearStart]);
+
+    /** La recherche et le choix — tout sauf la nature, dont les chips comptent le reste. */
+    const correspond = useMemo(() => {
+        const terme = rechercheRetardee.trim().toLowerCase();
+        return (e: HistoryEvent) => {
+            if (choisi && !concerne(e, choisi, registres)) return false;
+            if (!terme) return true;
+            return [
+                faitDe(e, registres),
+                complementDe(e, registres),
+                e.targetName,
+                e.actorName,
+                e.description,
+                lieuDe(e),
+                registres.equipment.get(e.targetId)?.serialNumber,
+            ]
+                .filter(Boolean)
+                .some((v) => String(v).toLowerCase().includes(terme));
+        };
+    }, [choisi, rechercheRetardee, registres]);
+
+    const horsNature = useMemo(() => dansLaPeriode.filter(correspond), [correspond, dansLaPeriode]);
+
+    const comptesParNature = useMemo(() => {
+        const compte = new Map<Nature, number>();
+        horsNature.forEach((e) => {
+            const n = natureDe(e);
+            if (n) compte.set(n, (compte.get(n) ?? 0) + 1);
+        });
+        return compte;
+    }, [horsNature]);
+
+    const affiches = useMemo(() => {
+        const sens = ordre === 'recent' ? -1 : 1;
+        return horsNature
+            .filter((e) => {
+                if (naturesActives.length === 0) return true;
+                const n = natureDe(e);
+                return Boolean(n && naturesActives.includes(n));
+            })
+            .sort(
+                (a, b) =>
+                    sens * (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+            );
+    }, [horsNature, naturesActives, ordre]);
+
+    /** Le journal se lit **groupé par jour** — au-delà de trente jours, par mois. */
+    const parGroupe = useMemo(() => {
+        const groupes: { groupe: Groupe; faits: HistoryEvent[] }[] = [];
+        affiches.forEach((e) => {
+            const groupe = groupeDe(e.timestamp);
+            const dernier = groupes[groupes.length - 1];
+            if (dernier && dernier.groupe.cle === groupe.cle) dernier.faits.push(e);
+            else groupes.push({ groupe, faits: [e] });
+        });
+        return groupes;
+    }, [affiches]);
+
+    const comptesParGroupe = useMemo(
+        () => new Map(parGroupe.map(({ groupe, faits }) => [groupe.cle, faits.length])),
+        [parGroupe],
+    );
+
+    /* La sécurité ne se lit pas dans Mon historique : la feuille de la planche la retire. */
+    const natures = mien ? NATURES.filter((n) => n.id !== 'securite') : NATURES;
+
+    const filtresPoses =
+        naturesActives.length + (periode === periodeAuRepos ? 0 : 1) + (choisi ? 1 : 0);
+
+    const effacer = () => {
+        setNaturesActives([]);
+        setPeriode(periodeAuRepos);
+        setChoisi(null);
+    };
+
+    const basculerNature = (id: Nature) =>
+        setNaturesActives((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+        );
+
+    /* ------------------------------------------------------------ la personne ou l'objet */
+
+    /**
+     * **Ce que le choix propose** — les personnes et les objets que le périmètre cite, et
+     * seulement eux, chacun avec le nombre de faits qui le concernent.
+     */
+    const { personnes, objets } = useMemo(() => {
+        const faitsParPersonne = new Map<string, number>();
+        const faitsParObjet = new Map<string, number>();
+        const compter = (table: Map<string, number>, id?: string) => {
+            if (id) table.set(id, (table.get(id) ?? 0) + 1);
+        };
+        perimetre.forEach((e) => {
+            if (!e.isSystem && e.actorId !== 'system') compter(faitsParPersonne, e.actorId);
+            const autre = autrePartie(e, registres);
+            if (autre?.id) compter(faitsParPersonne, autre.id);
+            if (e.targetType === 'EQUIPMENT') compter(faitsParObjet, e.targetId);
+        });
+        const nFaits = (n: number) => `${n} fait${n > 1 ? 's' : ''}`;
+
+        const listePersonnes: ChoixConcerne[] = users
+            .filter((u) => faitsParPersonne.has(u.id))
+            .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+            .map((u) => ({
+                kind: 'personne',
+                id: u.id,
+                name: u.name,
+                vignette: initiales(u.name),
+                teinte: 'bg-tint-bleu text-on-tint-bleu',
+                subtitle: [u.department, u.site, nFaits(faitsParPersonne.get(u.id) ?? 0)]
+                    .filter(Boolean)
+                    .join(' · '),
+                searchText: [u.name, u.email, u.department].filter(Boolean).join(' '),
+            }));
+
+        const listeObjets: ChoixConcerne[] = equipment
+            .filter((e) => faitsParObjet.has(e.id))
+            .sort((a, b) => (a.assetId || a.name).localeCompare(b.assetId || b.name, 'fr'))
+            .map((e) => ({
+                kind: 'objet',
+                id: e.id,
+                name: e.assetId || e.name,
+                vignette: <Icon glyph={Laptop} size={20} />,
+                subtitle: [e.name, nFaits(faitsParObjet.get(e.id) ?? 0)]
+                    .filter(Boolean)
+                    .join(' · '),
+                searchText: [e.assetId, e.name, e.model, e.serialNumber].filter(Boolean).join(' '),
+            }));
+
+        return { personnes: listePersonnes, objets: listeObjets };
+    }, [equipment, perimetre, registres, users]);
+
+    const choixRetenu = choisi
+        ? [...personnes, ...objets].find((c) => c.kind === choisi.kind && c.id === choisi.id)
+        : undefined;
+
+    const ouvrirLeChoix = (depuis: 'filtre' | 'outils') => {
+        setChoixDepuis(depuis);
+        setFeuille('choix');
+    };
+
+    const choisir = (choix: Concerne) => {
+        setChoisi(choix);
+        setFeuille(choixDepuis === 'filtre' ? 'filtre' : null);
+    };
+
+    /* ------------------------------------------------------------------- le bureau */
+
+    /**
+     * **Les suivants au défilement** — `.lfoot` : « 9 sur 312 · les suivants au
+     * défilement ». Le compte se remet à une page dès que les filtres changent : il suit la
+     * signature de ce qui est affiché, sans effet ni état à resynchroniser.
+     */
+    const signature = [
+        rechercheRetardee,
+        naturesActives.join(','),
+        periode,
+        choisi?.id,
+        ordre,
+        mien,
+    ].join('|');
+    const [defilement, setDefilement] = useState({ signature, n: PAR_PAGE });
+    const nVisibles = defilement.signature === signature ? defilement.n : PAR_PAGE;
+    const visibles = useMemo(() => affiches.slice(0, nVisibles), [affiches, nVisibles]);
+    const sentinelle = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const cible = sentinelle.current;
+        if (!enTableau || !cible || nVisibles >= affiches.length) return;
+        const observateur = new IntersectionObserver(
+            (entrees) => {
+                if (entrees.some((entree) => entree.isIntersecting))
+                    setDefilement({ signature, n: nVisibles + PAR_PAGE });
+            },
+            { rootMargin: '0px 0px 480px 0px' },
+        );
+        observateur.observe(cible);
+        return () => observateur.disconnect();
+    }, [affiches.length, enTableau, nVisibles, signature]);
+
+    const peutOuvrirLaPersonne = (id: string) => permissions.canViewUsers || id === moi?.id;
+
+    /** ⋮ — ce que la rangée ouvre, au survol (17.11) : le fait, l'objet, la personne. */
+    const actesDeLaRangee = (fait: HistoryEvent): MenuItem[] => {
+        const actes: MenuItem[] = [
+            { id: 'fait', label: 'Ouvrir le fait', onSelect: () => setOuvert(fait) },
+        ];
+        const objet = fait.targetType === 'EQUIPMENT' && registres.equipment.get(fait.targetId);
+        if (objet && onOpenEquipment)
+            actes.push({
+                id: 'objet',
+                label: `Ouvrir ${objet.assetId || objet.name}`,
+                onSelect: () => onOpenEquipment(objet.id),
+            });
+        const autre = autrePartie(fait, registres);
+        const personneId = autre?.id ?? (fait.isSystem ? undefined : fait.actorId);
+        const personne = personneId ? users.find((u) => u.id === personneId) : undefined;
+        if (personne && onOpenUser && peutOuvrirLaPersonne(personne.id))
+            actes.push({
+                id: 'personne',
+                label: `Ouvrir la fiche de ${personne.name}`,
+                onSelect: () => onOpenUser(personne.id),
+            });
+        return actes;
+    };
+
+    /**
      * **Cinq colonnes, et la marque en tête** — 18.1 au bureau. L'ordre est celui de la
-     * planche : ce qui s'est passé, qui, par quelle preuve, où, quand. La marque de 32
-     * garde son icône et sa teinte : c'est le même vocabulaire qu'au téléphone.
+     * planche : ce qui s'est passé, qui, par quelle preuve, où, quand. *« La sous-ligne ne
+     * garde que le complément du fait (à qui, pourquoi). »*
      */
     const colonnes: DataColumn<HistoryEvent>[] = useMemo(
         () => [
@@ -298,33 +418,22 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                 id: 'marque',
                 header: '',
                 width: '52px',
-                cell: (fait) => {
-                    const marque = MARQUE[fait.type];
-                    return (
-                        <span
-                            className={cn(
-                                'flex h-8 w-8 items-center justify-center rounded-full',
-                                fait.isSystem
-                                    ? 'border-outline-variant text-text-tertiary border'
-                                    : (marque?.teinte ??
-                                          'bg-surface-container text-on-surface-variant'),
-                            )}
-                        >
-                            <Icon glyph={marque?.glyph ?? Bell} size={18} />
-                        </span>
-                    );
-                },
+                cell: (fait) => <MarqueRonde fait={fait} />,
             },
             {
                 id: 'fait',
                 header: 'Fait',
-                title: (fait) => fait.description || fait.targetName,
+                /* Le fait prend le reste : c'est la seule colonne qu'on lit, les autres
+                   se relèvent. Sans elle, « Attestation » s'étalait sur 320 px de tirets
+                   et le fait se coupait à 140. */
+                grow: true,
+                title: (fait) => faitDe(fait, registres),
                 cell: (fait) => {
-                    const suite = complement(fait);
+                    const suite = complementDe(fait, registres);
                     return (
                         <>
-                            <span className="block truncate">
-                                {fait.description || fait.targetName}
+                            <span className="block truncate tabular-nums">
+                                {faitDe(fait, registres)}
                             </span>
                             {suite && (
                                 <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
@@ -338,47 +447,49 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
             {
                 id: 'par',
                 header: 'Par',
-                title: (fait) => (fait.isSystem ? 'Automatique' : fait.actorName),
+                title: (fait) => auteurDe(fait, mien),
                 cell: (fait) => (
-                    <span className="text-on-surface-variant">
-                        {fait.isSystem ? 'Automatique' : fait.actorName}
+                    <span className="text-on-surface-variant first-letter:uppercase">
+                        {auteurDe(fait, mien)}
                     </span>
                 ),
             },
             {
                 id: 'attestation',
                 header: 'Attestation',
-                title: attestation,
+                title: (fait) => methodeDe(fait),
+                /* La colonne porte une majuscule, la sous-ligne non : c'est la même phrase
+                   à deux places, et une seule des deux commence quelque chose. */
                 cell: (fait) => (
-                    <span className="text-on-surface-variant">{attestation(fait)}</span>
+                    <span className="text-on-surface-variant first-letter:uppercase">
+                        {methodeDe(fait) ?? '—'}
+                    </span>
                 ),
             },
             {
                 id: 'lieu',
                 header: 'Lieu',
+                title: (fait) => lieuDe(fait),
                 cell: (fait) => (
-                    <span className="text-on-surface-variant">
-                        {typeof fait.metadata?.location === 'string' ? fait.metadata.location : '—'}
-                    </span>
+                    <span className="text-on-surface-variant">{lieuDe(fait) ?? '—'}</span>
                 ),
             },
             {
                 id: 'heure',
                 header: 'Heure',
                 width: '80px',
-                /* Le journal se lit du plus récent au plus ancien : c'est l'heure qui l'ordonne. */
-                sorted: 'desc',
+                /* Le journal se lit du plus récent au plus ancien : c'est l'heure qui
+                   l'ordonne, et l'en-tête le dit (`th.sorted`). */
+                sorted: ordre === 'recent' ? 'desc' : 'asc',
                 cell: (fait) => (
                     <span className="text-on-surface-variant tabular-nums">
-                        {heure(fait.timestamp)}
+                        {ageDe(fait.timestamp)}
                     </span>
                 ),
             },
         ],
-        [],
+        [mien, ordre, registres],
     );
-
-    const filtresPoses = naturesActives.length + (periode === 'tout' ? 0 : 1);
 
     /**
      * **L'export du journal** — 18.1 au bureau le pose en acte nommé dans l'en-tête. Il
@@ -387,18 +498,20 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
      */
     const exporterLeJournal = () => {
         const csv = [
-            buildCsvLine(['Date', 'Heure', 'Fait', 'Par', 'Attestation', 'Lieu'], ','),
+            buildCsvLine(
+                ['Date', 'Heure', 'Fait', 'Complément', 'Par', 'Attestation', 'Lieu'],
+                ',',
+            ),
             ...affiches.map((fait) =>
                 buildCsvLine(
                     [
                         new Date(fait.timestamp).toLocaleDateString('fr-FR'),
                         heure(fait.timestamp),
-                        [fait.description || fait.targetName, complement(fait)]
-                            .filter(Boolean)
-                            .join(' — '),
-                        fait.isSystem ? 'Automatique' : fait.actorName,
-                        attestation(fait),
-                        typeof fait.metadata?.location === 'string' ? fait.metadata.location : '',
+                        faitDe(fait, registres),
+                        complementDe(fait, registres),
+                        auteurDe(fait),
+                        methodeDe(fait) ?? '',
+                        lieuDe(fait) ?? '',
                     ],
                     ',',
                 ),
@@ -421,30 +534,249 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
         );
     };
 
-    const ordre = [
+    /* ------------------------------------------------------------------- les mots */
+
+    /**
+     * `.ord` — ce qu'on regarde à gauche, combien à droite (« Tout · les plus récents ·
+     * 312 faits », « Inventaires · 7 jours · 0 fait »). La période au repos ne s'y écrit
+     * pas : elle n'est pas un filtre posé.
+     */
+    const regard = [
         naturesActives.length === 0
             ? 'Tout'
-            : NATURES.filter((n) => naturesActives.includes(n.id))
-                  .map((n) => n.label.toLowerCase())
+            : natures
+                  .filter((n) => naturesActives.includes(n.id))
+                  .map((n) => n.label)
                   .join(', '),
-        PERIODES.find((p) => p.id === periode)?.label.toLowerCase(),
-        'les plus récents',
+        periode === periodeAuRepos ? null : PERIODES.find((p) => p.id === periode)?.regard,
+        choisi?.name,
+        filtresPoses === 0 ? (ordre === 'recent' ? 'les plus récents' : 'les plus anciens') : null,
     ]
         .filter(Boolean)
         .join(' · ');
+
+    const nFaits = `${affiches.length} fait${affiches.length > 1 ? 's' : ''}`;
+
+    /**
+     * **Le vide nomme le filtre qui le produit** — *« Aucun inventaire ces 7 jours »* — et
+     * dit quand le dernier a eu lieu, puis rend le geste qui le lève : la période juste
+     * plus large, pas « effacer les filtres ».
+     */
+    const decrireLeVide = () => {
+        const terme = rechercheRetardee.trim();
+        const phrase = PERIODES.find((p) => p.id === periode)?.phrase ?? '';
+        const nature =
+            naturesActives.length === 1 ? natures.find((n) => n.id === naturesActives[0]) : null;
+
+        if (filtresPoses === 0 && !terme) {
+            return {
+                titre: mien ? 'Rien ne vous concerne encore' : `Aucun fait ${phrase}`.trim(),
+                description: mien
+                    ? 'Vos remises, vos demandes et vos incidents apparaîtront ici.'
+                    : 'Le journal se remplit à mesure que des actes sont posés : une remise, un retour, une demande tranchée.',
+                geste:
+                    periode !== 'tout'
+                        ? { label: 'Voir tout le journal', onClick: () => setPeriode('tout') }
+                        : null,
+            };
+        }
+
+        const titre = terme
+            ? `Aucun fait pour « ${terme} »`
+            : `${nature?.aucun ?? 'Aucun fait'} ${phrase}`.trim();
+
+        /* Le dernier fait de même nature, toutes périodes confondues. */
+        const dernier = perimetre
+            .filter(correspond)
+            .filter((e) => {
+                if (naturesActives.length === 0) return true;
+                const n = natureDe(e);
+                return Boolean(n && naturesActives.includes(n));
+            })
+            .reduce<HistoryEvent | null>(
+                (plusRecent, e) =>
+                    !plusRecent || e.timestamp > plusRecent.timestamp ? e : plusRecent,
+                null,
+            );
+
+        const date = dernier
+            ? new Date(dernier.timestamp).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+              })
+            : null;
+        const description = [
+            date && periode !== 'tout' ? `Le dernier date du ${date}.` : null,
+            periode !== 'tout' ? 'Élargissez la période, ou changez de nature.' : null,
+            periode === 'tout' && terme
+                ? 'Vérifiez l’orthographe, ou cherchez un identifiant.'
+                : null,
+            periode === 'tout' && !terme ? 'Changez de nature, ou retirez le choix.' : null,
+        ]
+            .filter(Boolean)
+            .join(' ');
+
+        const plusLarge: { id: PeriodeId; label: string } | null =
+            periode === '7'
+                ? { id: '30', label: 'Voir les 30 derniers jours' }
+                : periode === '30'
+                  ? { id: 'exercice', label: "Voir l'exercice" }
+                  : periode === 'exercice'
+                    ? { id: 'tout', label: 'Voir tout le journal' }
+                    : null;
+
+        return {
+            titre,
+            description,
+            geste: plusLarge
+                ? { label: plusLarge.label, onClick: () => setPeriode(plusLarge.id) }
+                : terme
+                  ? { label: 'Effacer la recherche', onClick: () => setRecherche('') }
+                  : { label: 'Tout effacer', onClick: effacer },
+        };
+    };
+
+    /* Le vide ne se décrit que s'il se montre : chercher le dernier fait parcourt tout le
+       périmètre. */
+    const vide = affiches.length === 0 ? decrireLeVide() : null;
+
+    /* ------------------------------------------------------------------- le rendu */
+
+    const rangeeDuTelephone = (fait: HistoryEvent, index: number) => {
+        const detail = sousLigneDe(fait, registres, mien);
+        return (
+            <div
+                key={fait.id}
+                {...activer(() => setOuvert(fait))}
+                className={cn(
+                    'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                    index > 0 && 'border-outline-variant border-t',
+                )}
+            >
+                <MarqueRonde fait={fait} />
+                <span className="min-w-0 flex-1">
+                    {/* `.ev .t` — **le fait**, pas son sujet. */}
+                    <span className="text-on-surface text-ts-body leading-ts-body block truncate tabular-nums">
+                        {faitDe(fait, registres)}
+                    </span>
+                    {detail && (
+                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub line-clamp-2 block">
+                            {detail}
+                        </span>
+                    )}
+                </span>
+                <span className="text-text-tertiary shrink-0 text-[0.75rem] leading-4 tabular-nums">
+                    {ageDe(fait.timestamp)}
+                </span>
+            </div>
+        );
+    };
+
+    const feuilleDeFiltre = (
+        <div className="flex flex-col">
+            {/* `.sbody` et `.sfoot` — la feuille pose déjà 20 de chaque côté : libellés et
+                chips n'en rajoutent pas, et le pied reprend toute la largeur pour que son
+                filet coure d'un bord à l'autre. */}
+            <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
+                Nature
+            </p>
+            <div className="flex flex-wrap gap-2">
+                <FacetChip
+                    label="Tout"
+                    count={horsNature.length}
+                    selected={naturesActives.length === 0}
+                    onClick={() => setNaturesActives([])}
+                />
+                {natures.map((n) => (
+                    <FacetChip
+                        key={n.id}
+                        label={n.label}
+                        count={comptesParNature.get(n.id) ?? 0}
+                        selected={naturesActives.includes(n.id)}
+                        onClick={() => basculerNature(n.id)}
+                    />
+                ))}
+            </div>
+
+            <p className="text-on-surface-variant pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
+                Période
+            </p>
+            <div className="flex flex-wrap gap-2">
+                {PERIODES.map((p) => (
+                    <FacetChip
+                        key={p.id}
+                        label={p.label}
+                        selected={periode === p.id}
+                        onClick={() => setPeriode(p.id)}
+                    />
+                ))}
+            </div>
+
+            {/* « Personne ou objet » — *facultatif* ; Mon historique ne l'a pas. */}
+            {!mien && (
+                <>
+                    <p className="text-on-surface-variant flex items-baseline justify-between pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
+                        Personne ou objet
+                        <span className="text-text-tertiary font-normal">facultatif</span>
+                    </p>
+                    <PickRow
+                        vignette={
+                            choisi ? (
+                                (choixRetenu?.vignette ?? initiales(choisi.name))
+                            ) : (
+                                <Icon glyph={Laptop} size={20} />
+                            )
+                        }
+                        tint={choisi?.kind === 'personne' ? 'bleu' : undefined}
+                        title={choisi ? choisi.name : 'Tout le monde, tous les objets'}
+                        subtitle={choisi ? choixRetenu?.subtitle : undefined}
+                        empty={!choisi}
+                        actionLabel={choisi ? 'Changer' : 'Choisir'}
+                        onClick={() => ouvrirLeChoix('filtre')}
+                    />
+                    {choisi && (
+                        <Button
+                            variant="text"
+                            className="mt-1 self-start px-0"
+                            onClick={() => setChoisi(null)}
+                        >
+                            Retirer {choisi.name}
+                        </Button>
+                    )}
+                </>
+            )}
+
+            <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <Button
+                    variant="tonal"
+                    className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                    onClick={effacer}
+                >
+                    Tout effacer
+                </Button>
+                <Button
+                    variant="filled"
+                    className="justify-center"
+                    onClick={() => setFeuille(null)}
+                >
+                    Voir {nFaits}
+                </Button>
+            </div>
+        </div>
+    );
 
     return (
         <>
             <ListTemplate
                 /* 18.1 est une file d'événements — squelette de file (17.3, A2). */
                 skeleton="file"
-                /* Au bureau le corps est un tableau : il balaye, il ne se lit pas à
-                   960 (§2.43, exception déclarée). */
+                /* Au bureau le corps est un tableau : il balaye, il ne se lit pas à 960
+                   (§2.43, exception déclarée). Au téléphone, un jour est une carte. */
                 body={enTableau ? 'tableau' : 'cartes'}
-                title={scopeUserId ? 'Mon historique' : 'Historique'}
+                title={mien ? 'Mon historique' : 'Historique'}
                 onBack={onBack}
                 search={
-                    scopeUserId
+                    mien
                         ? undefined
                         : {
                               value: recherche,
@@ -452,24 +784,36 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                               placeholder: 'Identifiant, personne, lieu',
                           }
                 }
-                /*
-                  **Au bureau, les deux axes montent en pastilles à menu** — 18.1 :
-                  *« la ligne d'outils porte la recherche, les filtres de la feuille en
-                  pastilles, et le sens du tri »*. L'entonnoir n'a alors plus rien à
-                  porter. Au téléphone il reste, avec sa feuille et ses puces.
-                */
                 actions={
-                    enTableau && affiches.length > 0 ? (
-                        <Button
-                            variant="outlined"
-                            onClick={exporterLeJournal}
-                            icon={<Icon glyph={Export} size={20} />}
-                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
-                        >
-                            Exporter
-                        </Button>
+                    enTableau ? (
+                        !mien && permissions.canExportReports && affiches.length > 0 ? (
+                            <Button
+                                variant="outlined"
+                                onClick={exporterLeJournal}
+                                icon={<Icon glyph={Export} size={20} />}
+                                className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
+                            >
+                                Exporter
+                            </Button>
+                        ) : undefined
+                    ) : mien ? (
+                        /* Mon historique n'a pas de recherche : *« l'entonnoir ouvre la même
+                           feuille »*, et il monte dans la rangée du titre. */
+                        <FilterButton
+                            label="Filtrer mon historique"
+                            count={filtresPoses}
+                            onClick={() => setFeuille('filtre')}
+                            /* `.tb` de la rangée du titre : sans le creux de `.fbtn`, qui
+                               appartient à la bande de recherche absente ici. */
+                            className="hover:bg-surface-container -mr-2 bg-transparent"
+                        />
                     ) : undefined
                 }
+                /*
+                  **Au bureau, les axes montent en pastilles** — *« la recherche, les trois
+                  filtres de la feuille en pastilles (nature, période, personne ou objet) et
+                  le sens du tri »*. Au téléphone l'entonnoir reste, avec sa feuille.
+                */
                 filter={
                     enTableau ? (
                         <>
@@ -485,21 +829,17 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                                 }
                                 selectedIds={naturesActives}
                                 onChange={(id) =>
-                                    setNaturesActives((prev) =>
-                                        id === 'toutes'
-                                            ? []
-                                            : prev.includes(id as Nature)
-                                              ? prev.filter((x) => x !== id)
-                                              : [...prev, id as Nature],
-                                    )
+                                    id === 'toutes'
+                                        ? setNaturesActives([])
+                                        : basculerNature(id as Nature)
                                 }
                                 options={[
                                     {
                                         id: 'toutes',
                                         label: 'Toutes les natures',
-                                        count: dansLaPeriode.length,
+                                        count: horsNature.length,
                                     },
-                                    ...NATURES.map((n) => ({
+                                    ...natures.map((n) => ({
                                         id: n.id,
                                         label: n.label,
                                         count: comptesParNature.get(n.id) ?? 0,
@@ -508,240 +848,185 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack, scopeUserId }) => {
                             />
                             <FilterMenuChip
                                 axis="Période"
-                                neutralId="tout"
+                                neutralId={periodeAuRepos}
                                 value={periode}
                                 onChange={(id) => setPeriode(id as PeriodeId)}
                                 options={PERIODES.map((p) => ({ id: p.id, label: p.label }))}
                             />
+                            {!mien && (
+                                <FilterMenuChip
+                                    axis="Personne ou objet"
+                                    neutralId=""
+                                    value={choisi?.id ?? ''}
+                                    posed={Boolean(choisi)}
+                                    summary={choisi?.name ?? 'Personne ou objet'}
+                                    options={[]}
+                                    onChange={() => undefined}
+                                    onOpen={() => ouvrirLeChoix('outils')}
+                                />
+                            )}
                         </>
-                    ) : (
-                        /* **Le bouton de filtre partagé**, et non une copie : écrit à la main, il
-                           restait à 48 dans le chrome de 768 et du bureau, où `FilterButton` lit
-                           la mesure du gabarit (40, 17.11 — arbitré le 13/09). */
+                    ) : mien ? undefined : (
+                        /* **Le bouton de filtre partagé** : écrit à la main, il restait à 48
+                           dans le chrome de 768, où `FilterButton` lit la mesure du gabarit. */
                         <FilterButton
                             label="Filtrer le journal"
                             count={filtresPoses}
-                            onClick={() => setFiltreOuvert(true)}
+                            onClick={() => setFeuille('filtre')}
                         />
                     )
                 }
+                sort={
+                    enTableau
+                        ? {
+                              label: ordre === 'recent' ? 'Plus récent' : 'Plus ancien',
+                              onClick: () =>
+                                  setOrdre((prev) => (prev === 'recent' ? 'ancien' : 'recent')),
+                          }
+                        : undefined
+                }
                 count={{
                     total: affiches.length,
-                    noun: `fait${affiches.length > 1 ? 's' : ''} · ${ordre}`,
+                    noun: `fait${affiches.length > 1 ? 's' : ''}`,
+                    /* Au téléphone, ce qu'on regarde à gauche et le compte nommé à droite ;
+                       au bureau le compte monte à côté du titre (`.cnt2`). */
+                    regard: enTableau ? undefined : regard,
+                    unite: `fait${affiches.length > 1 ? 's' : ''}`,
                 }}
-                hasRows={parJour.length > 0}
+                hasRows={parGroupe.length > 0}
+                footer={
+                    enTableau && affiches.length > PAR_PAGE
+                        ? `${visibles.length} sur ${affiches.length}${visibles.length < affiches.length ? ' · les suivants au défilement' : ''}`
+                        : undefined
+                }
                 empty={
-                    <ScreenState
-                        icon={ClockCounterClockwise}
-                        title="Aucun fait ne correspond"
-                        description={
-                            filtresPoses > 0
-                                ? 'Élargissez la période, ou changez de nature.'
-                                : 'Le journal se remplit à mesure que des actes sont posés : une remise, un retour, une demande tranchée.'
-                        }
-                        actions={
-                            filtresPoses > 0 ? (
-                                <Button
-                                    variant="tonal"
-                                    onClick={() => {
-                                        setNaturesActives([]);
-                                        setPeriode('tout');
-                                    }}
-                                >
-                                    Voir tout le journal
-                                </Button>
-                            ) : undefined
-                        }
-                    />
+                    vide && (
+                        <ScreenState
+                            icon={ClockCounterClockwise}
+                            title={vide.titre}
+                            description={vide.description}
+                            actions={
+                                vide.geste ? (
+                                    <Button
+                                        variant="tonal"
+                                        className="bg-surface-container text-on-surface hover:bg-surface-container-high"
+                                        onClick={vide.geste.onClick}
+                                    >
+                                        {vide.geste.label}
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    )
                 }
             >
                 {enTableau ? (
-                    <DataTable<HistoryEvent>
-                        columns={colonnes}
-                        rows={affiches}
-                        rowId={(fait) => fait.id}
-                        onOpen={setOuvert}
-                        rowLabel={(fait) => fait.description || fait.targetName}
-                        /* Les jours restent, en rangées de séparation de 36. */
-                        groupOf={(fait) => {
-                            const cle = new Date(fait.timestamp).toDateString();
-                            return {
-                                id: cle,
-                                label: titreDuJour(fait.timestamp),
-                                count: comptesParJour.get(cle),
-                            };
-                        }}
-                    />
-                ) : (
-                    parJour.map(([cle, faits]) => (
-                        /* `.day` — **un jour, une carte** (18.1) : surface, rayon 8,
-                           intérieur 8 / 16, et 16 entre deux jours. Les jours étaient des
-                           sections à filet dans une carte unique : la date se lisait alors
-                           comme un titre de rangée, pas comme l'en-tête de sa journée. */
-                        <section key={cle} className="rounded-card bg-surface px-4 py-2">
-                            {/* `.dh` — le jour et son compte, 17 sur 24 en graisse d'appui. */}
-                            <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium first-letter:uppercase">
-                                    {titreDuJour(faits[0].timestamp)}
-                                </h3>
-                                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
-                                    {faits.length}
-                                </span>
-                            </div>
-                            {faits.map((fait, index) => {
-                                const marque = MARQUE[fait.type];
-                                const detail = sousLigne(fait);
-                                return (
-                                    <div
-                                        key={fait.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => setOuvert(fait)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                setOuvert(fait);
-                                            }
-                                        }}
-                                        className={cn(
-                                            'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                            index > 0 && 'border-outline-variant border-t',
-                                        )}
-                                    >
-                                        {/* `.mk` — 32 rond. Un fait **système** est cerclé, sans
-                                        fond : il n'a pas d'auteur à teinter. */}
-                                        <span
-                                            className={cn(
-                                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                                                fait.isSystem
-                                                    ? 'border-outline-variant text-text-tertiary border'
-                                                    : (marque?.teinte ??
-                                                          'bg-surface-container text-on-surface-variant'),
-                                            )}
+                    <>
+                        <DataTable<HistoryEvent>
+                            columns={colonnes}
+                            rows={visibles}
+                            rowId={(fait) => fait.id}
+                            onOpen={setOuvert}
+                            rowLabel={(fait) => faitDe(fait, registres)}
+                            rowActions={(fait) => (
+                                <Menu
+                                    align="end"
+                                    /* Le cadre du tableau le rognait : il flotte. */
+                                    floating
+                                    items={actesDeLaRangee(fait)}
+                                    trigger={
+                                        <Button
+                                            variant="text"
+                                            iconOnly
+                                            size="sm"
+                                            aria-label="Options du fait"
+                                            className="-mr-2"
                                         >
-                                            <Icon glyph={marque?.glyph ?? Bell} size={18} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            {/* `.ev .t` — **le fait**, pas son sujet : la
-                                            planche écrit « LFW-PF5XK2M remis », pas
-                                            « LFW-PF5XK2M ». La cible et la méthode
-                                            descendent en sous-ligne. */}
-                                            <span className="text-on-surface block truncate text-[1rem] leading-6">
-                                                {fait.description || fait.targetName}
-                                            </span>
-                                            {detail && (
-                                                <span className="text-on-surface-variant line-clamp-2 block text-[0.875rem] leading-5">
-                                                    {detail}
-                                                </span>
-                                            )}
-                                        </span>
-                                        <span className="text-text-tertiary shrink-0 text-[0.75rem] leading-4 tabular-nums">
-                                            {heure(fait.timestamp)}
-                                        </span>
+                                            <Icon glyph={DotsThreeVertical} size={20} />
+                                        </Button>
+                                    }
+                                />
+                            )}
+                            /* Les jours restent, en rangées de séparation de 36. */
+                            groupOf={(fait) => {
+                                const groupe = groupeDe(fait.timestamp);
+                                return {
+                                    id: groupe.cle,
+                                    label: groupe.titre,
+                                    count: comptesParGroupe.get(groupe.cle),
+                                };
+                            }}
+                        />
+                        <div ref={sentinelle} aria-hidden="true" />
+                    </>
+                ) : (
+                    parGroupe.map(({ groupe, faits }) => {
+                        const deplie = joursDeplies.has(groupe.cle) || faits.length <= PAR_JOUR;
+                        const montres = deplie ? faits : faits.slice(0, PAR_JOUR);
+                        const reste = faits.length - montres.length;
+                        return (
+                            /* `.day` — **un jour, une carte** : surface, rayon 8, intérieur
+                               8 / 16, et 16 entre deux jours. */
+                            <section key={groupe.cle} className="rounded-card bg-surface px-4 py-2">
+                                {/* `.dh` — le jour et son compte, 17 sur 24 en graisse d'appui. */}
+                                <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium first-letter:uppercase">
+                                        {groupe.titre}
+                                    </h3>
+                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                                        {faits.length}
+                                    </span>
+                                </div>
+                                {montres.map(rangeeDuTelephone)}
+                                {reste > 0 && (
+                                    /* `.more` — 48, centré, 16 en graisse d'appui, sur un filet. */
+                                    <div
+                                        {...activer(() =>
+                                            setJoursDeplies((prev) =>
+                                                new Set(prev).add(groupe.cle),
+                                            ),
+                                        )}
+                                        className="border-outline-variant text-on-surface text-ts-body flex min-h-12 cursor-pointer items-center justify-center gap-2 border-t font-medium"
+                                    >
+                                        {reste === 1
+                                            ? `Voir l'autre fait ${groupe.de}`
+                                            : `Voir les ${reste} autres faits ${groupe.de}`}
                                     </div>
-                                );
-                            })}
-                        </section>
-                    ))
+                                )}
+                            </section>
+                        );
+                    })
                 )}
             </ListTemplate>
 
-            {/* La feuille de filtre — les partitions en chips, jamais en onglets (R11). */}
-            <BottomSheet open={filtreOuvert} onClose={() => setFiltreOuvert(false)} title="Filtrer">
-                <div className="flex flex-col pb-0">
-                    {/* `.sbody` et `.sfoot` — la feuille pose déjà 20 de chaque côté : libellés et
-                        chips n'en rajoutent pas (ils tombaient à 40), et le pied reprend toute
-                        la largeur pour que son filet coure d'un bord à l'autre. */}
-                    <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
-                        Nature
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        <FacetChip
-                            label="Tout"
-                            count={dansLaPeriode.length}
-                            selected={naturesActives.length === 0}
-                            onClick={() => setNaturesActives([])}
-                        />
-                        {NATURES.map((n) => (
-                            <FacetChip
-                                key={n.id}
-                                label={n.label}
-                                count={comptesParNature.get(n.id) ?? 0}
-                                selected={naturesActives.includes(n.id)}
-                                onClick={() =>
-                                    setNaturesActives((prev) =>
-                                        prev.includes(n.id)
-                                            ? prev.filter((x) => x !== n.id)
-                                            : [...prev, n.id],
-                                    )
-                                }
-                            />
-                        ))}
-                    </div>
-
-                    <p className="text-on-surface-variant pt-4 pb-2 text-[0.75rem] leading-4 font-medium">
-                        Période
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {PERIODES.map((p) => (
-                            <FacetChip
-                                key={p.id}
-                                label={p.label}
-                                selected={periode === p.id}
-                                onClick={() => setPeriode(p.id)}
-                            />
-                        ))}
-                    </div>
-
-                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
-                        <Button
-                            variant="tonal"
-                            className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
-                            onClick={() => {
-                                setNaturesActives([]);
-                                setPeriode('tout');
-                            }}
-                        >
-                            Tout effacer
-                        </Button>
-                        <Button
-                            variant="filled"
-                            className="justify-center"
-                            onClick={() => setFiltreOuvert(false)}
-                        >
-                            Voir {affiches.length} fait{affiches.length > 1 ? 's' : ''}
-                        </Button>
-                    </div>
-                </div>
-            </BottomSheet>
-
-            {/* Un fait ouvert : ce qui a été attesté, et par qui. **Rien ne s'y modifie.** */}
+            {/* La feuille de filtre, puis le choix d'une personne ou d'un objet, dans la
+                même feuille : on y entre et on en revient sans la refermer. */}
             <BottomSheet
-                open={Boolean(ouvert)}
-                onClose={() => setOuvert(null)}
-                title={ouvert?.description || ouvert?.targetName || 'Fait'}
+                open={feuille !== null}
+                onClose={() => setFeuille(null)}
+                title={feuille === 'choix' ? 'Personne ou objet' : 'Filtrer'}
+                subtitle={
+                    feuille === 'choix' ? 'Les faits qui la concernent, et eux seuls.' : undefined
+                }
             >
-                {ouvert && (
-                    <div className="flex flex-col gap-4 px-5 pt-3 pb-1">
-                        <p className="text-on-surface-variant text-[0.875rem] leading-5">
-                            {titreDuJour(ouvert.timestamp)} à {heure(ouvert.timestamp)}
-                        </p>
-                        <p className="text-on-surface text-[1.0625rem] leading-6">
-                            {ouvert.description}
-                        </p>
-                        <div className="bg-surface-container flex flex-col gap-2 rounded-sm px-4 py-3">
-                            <span className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
-                                Qui l'a fait
-                            </span>
-                            <span className="text-on-surface text-[1rem] leading-6">
-                                {ouvert.isSystem
-                                    ? 'Le système, sans intervention'
-                                    : `${ouvert.actorName} · ${ouvert.actorRole}`}
-                            </span>
-                        </div>
-                    </div>
+                {feuille === 'choix' ? (
+                    <ConcernPicker personnes={personnes} objets={objets} onPick={choisir} />
+                ) : (
+                    feuilleDeFiltre
                 )}
             </BottomSheet>
+
+            <FactSheet
+                fait={ouvert}
+                journal={perimetre}
+                registres={registres}
+                users={users}
+                equipment={equipment}
+                onClose={() => setOuvert(null)}
+                onOpenEquipment={onOpenEquipment}
+                canOpenUser={peutOuvrirLaPersonne}
+                onOpenUser={onOpenUser}
+            />
         </>
     );
 };

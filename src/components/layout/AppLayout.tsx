@@ -285,6 +285,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'site_details',
         'audit',
         'audit_details',
+        /* 18.1 dessine sa barre du bas, « Plus » allumé, comme les autres destinations
+           de la feuille — y compris Mon historique. */
+        'history',
         'reports',
         'settings',
     ];
@@ -693,7 +696,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
             case 'history':
-                return <HistoryPage onBack={goBack} />;
+                return (
+                    <HistoryPage
+                        onBack={goBack}
+                        /* Le fait ouvert renvoie à l'objet et à la personne (18.1). */
+                        onOpenEquipment={(id) => handleItemClick('equipment_details', id)}
+                        onOpenUser={(id) => handleItemClick('user_details', id)}
+                    />
+                );
             case 'reports':
                 return <ReportsPage onBack={goBack} />;
             case 'settings':
