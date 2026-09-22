@@ -81,6 +81,12 @@ interface DataTableProps<T> {
     /** Les actes secondaires d'une rangée, révélés au survol et au focus. */
     rowActions?: (row: T) => React.ReactNode;
     /**
+     * **La vignette de `.lead`** — le pictogramme de l'objet dans son carré de 32, au repos,
+     * *« la vignette cède la place à la case »* au survol (04.1 et 05.1 au bureau). Sans
+     * elle, la première colonne d'un tableau est vide tant qu'on ne la survole pas.
+     */
+    rowLead?: (row: T) => React.ReactNode;
+    /**
      * **La rangée de séparation** — 18.1 au bureau : *« les jours restent des rangées
      * de séparation (36) dans le tableau, avec leur compte »*. Le journal ne perd pas
      * ses jours en devenant tableau ; ils cessent d'être des cartes et deviennent une
@@ -107,9 +113,9 @@ interface DataTableProps<T> {
 */
 const FIGEE = 'sticky z-[1] bg-[inherit]';
 const CASE_GAUCHE = 'left-0';
-/** 42 px — la largeur **rendue** de `.lead` dans les planches (10 d'intérieur, puis la case
- *  de 18 et ses marges de 7) ; leur `<col>` en demande 52, le tableau la ramène à son contenu. */
-const TETE_GAUCHE = 'left-[42px]';
+/** 52 px — `.lead` des planches : 10 d'intérieur de chaque côté autour du carré de 32 (la
+ *  vignette, ou la case qui la remplace). La cellule tenait 42, faute de son intérieur droit. */
+const TETE_GAUCHE = 'left-[52px]';
 
 function DataTable<T>({
     columns,
@@ -119,6 +125,7 @@ function DataTable<T>({
     rowLabel,
     selection,
     rowActions,
+    rowLead,
     groupOf,
     maxHeight,
     className,
@@ -259,11 +266,30 @@ function DataTable<T>({
                                         'group border-outline-variant bg-surface h-12 border-b transition-colors last:border-b-0',
                                         'hover:bg-surface-container focus-within:bg-surface-container',
                                         selected && 'bg-surface-container',
-                                        onOpen && 'cursor-pointer',
+                                        onOpen &&
+                                            /* `.tbl tr.foc` — **l'anneau de 2 au dedans**, et les
+                                               mêmes révélations qu'au survol (04.1, rangée 6). La
+                                               rangée n'était ni atteignable ni ouvrable au
+                                               clavier : seule la souris ouvrait une fiche depuis
+                                               le tableau. */
+                                            'focus-visible:outline-on-surface cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2',
                                     )}
+                                    tabIndex={onOpen ? 0 : undefined}
                                     onClick={
                                         onOpen
                                             ? () => {
+                                                  if (selection?.isActive) selection.toggle(id);
+                                                  else onOpen(row);
+                                              }
+                                            : undefined
+                                    }
+                                    onKeyDown={
+                                        onOpen
+                                            ? (event) => {
+                                                  if (event.target !== event.currentTarget) return;
+                                                  if (event.key !== 'Enter' && event.key !== ' ')
+                                                      return;
+                                                  event.preventDefault();
                                                   if (selection?.isActive) selection.toggle(id);
                                                   else onOpen(row);
                                               }
@@ -275,7 +301,7 @@ function DataTable<T>({
                                             className={cn(
                                                 FIGEE,
                                                 CASE_GAUCHE,
-                                                'pr-0 pl-2.5 align-middle',
+                                                'px-2.5 align-middle',
                                             )}
                                         >
                                             {/*
@@ -287,27 +313,45 @@ function DataTable<T>({
                                           toucher à la mise en page : c'est la cible qui ne
                                           rétrécit pas, pas la colonne qui grandit.
                                         */}
-                                            <button
-                                                type="button"
-                                                aria-label={
-                                                    selected
-                                                        ? 'Retirer de la sélection'
-                                                        : 'Sélectionner'
-                                                }
-                                                aria-pressed={selected}
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    selection?.toggle(id);
-                                                }}
-                                                className={cn(
-                                                    'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
-                                                    selection?.isActive || selected
-                                                        ? 'opacity-100'
-                                                        : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
+                                            <span className="relative flex h-8 w-8 items-center justify-center">
+                                                {/* **La vignette au repos, la case au geste.**
+                                                Elles occupent le même carré de 32 : rien ne
+                                                bouge quand l'une remplace l'autre. */}
+                                                {rowLead && (
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className={cn(
+                                                            'bg-surface-container text-text-tertiary pointer-events-none absolute inset-0 flex items-center justify-center rounded-md transition-opacity',
+                                                            selection?.isActive || selected
+                                                                ? 'opacity-0'
+                                                                : 'group-focus-within:opacity-0 group-hover:opacity-0',
+                                                        )}
+                                                    >
+                                                        {rowLead(row)}
+                                                    </span>
                                                 )}
-                                            >
-                                                <SelectionBox selected={selected} />
-                                            </button>
+                                                <button
+                                                    type="button"
+                                                    aria-label={
+                                                        selected
+                                                            ? 'Retirer de la sélection'
+                                                            : 'Sélectionner'
+                                                    }
+                                                    aria-pressed={selected}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        selection?.toggle(id);
+                                                    }}
+                                                    className={cn(
+                                                        'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
+                                                        selection?.isActive || selected
+                                                            ? 'opacity-100'
+                                                            : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
+                                                    )}
+                                                >
+                                                    <SelectionBox selected={selected} />
+                                                </button>
+                                            </span>
                                         </td>
                                     )}
 

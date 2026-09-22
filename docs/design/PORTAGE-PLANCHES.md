@@ -4303,3 +4303,25 @@ et se lisent de toute façon sur la fiche.
 **Le chevron par rangée tombe** dans les listes des feuilles d'acte : c'est l'arbitrage du
 07/09 sur la feuille « Plus » — *« toutes les rangées mènent ailleurs, la flèche ne distingue
 rien de sa voisine »* — appliqué au choix de l'objet et de la personne.
+
+### Actifs au bureau, relu sur 04.1 et 17.11 (22/09)
+
+**La remarque** : *« la version Actifs de desktop n'est pas fidèle à la planche »*. Relevé
+contre 04.1 (colonne « Vue — bureau à 1280, le tableau ») et 17.11 (la ligne d'outils), en
+mesurant l'écran à 1280 :
+
+| Ce que la planche pose | Ce que le code faisait | Corrigé |
+| --- | --- | --- |
+| `.lead` 52, vignette de 32 au repos, la case au survol | colonne rendue à 42, **vide** au repos | oui — `rowLead` dans `DataTable`, le pictogramme du type |
+| `th` « État », « Site · local » | « Statut », « Site / local » | oui |
+| `.fchip` de 17.11 : pastille cernée de 40, « Filtrer » en 13/500 | carré muet de 40 | oui — et les cinq listes du bureau en profitent |
+| `.tbl tr.foc` : anneau de 2 au dedans, mêmes révélations | rangée **ni atteignable ni ouvrable au clavier** | oui — `tabIndex`, Entrée et Espace, anneau 2 px |
+| ⋮ de rangée au survol, menu de la rangée, clic droit | absent | **non** — voir ci-dessous |
+
+**Mesuré après** : champ 320 × 40, pastille 40 en 13/500 cernée, tri 13/500, `.lead` 52,
+rangée 48, en-tête 40 en 12/500, anneau de focus `2px solid` à `-2px`.
+
+**Ce qui reste** : le ⋮ de rangée. La planche lui donne cinq verbes (ouvrir, attribuer,
+déplacer, modifier, sortir du parc) ; le produit les porte aujourd'hui sur la fiche, avec
+leurs feuilles d'acte. Les poser sur la rangée demande de sortir ces actes de
+`EquipmentDetailsPage` dans un endroit partagé — c'est un arbitrage, pas une reprise.

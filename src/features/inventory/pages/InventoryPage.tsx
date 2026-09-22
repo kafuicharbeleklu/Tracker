@@ -541,14 +541,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             },
             {
                 id: 'lieu',
-                header: 'Site / local',
+                /* `.tbl th` de 04.1 écrit **« Site · local »** : le point médian sépare
+                   deux faits de même rang, la barre oblique dirait « ou ». */
+                header: 'Site · local',
                 width: '130px',
                 title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
                 cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
             },
             {
                 id: 'statut',
-                header: 'Statut',
+                /* 04.1 nomme la colonne **« État »**, comme la ligne du décompte et le
+                   premier groupe du filtre. « Statut » n'est écrit nulle part. */
+                header: 'État',
                 width: '100px',
                 sorted: colonneTriee === 'statut' ? sensTri : undefined,
                 cell: (item) => {
@@ -949,6 +953,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         rowId={(item) => item.id}
                         onOpen={(item) => onEquipmentClick?.(item.id)}
                         rowLabel={(item) => `${item.name}, ouvrir la fiche`}
+                        /* **La vignette de la rangée** (04.1 au bureau) : le pictogramme du
+                           type dans son carré de 32, qui cède la place à la case au survol.
+                           La première colonne était vide au repos. */
+                        rowLead={(item) => <Icon glyph={getCategoryGlyph(item.type)} size={18} />}
                         selection={{
                             isActive: selection.isActive,
                             isSelected: (id) => selection.isSelected(id),
