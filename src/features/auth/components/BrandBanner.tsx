@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../../lib/utils';
 import { APP_CONFIG } from '../../../config';
-import { AUTH_MEASURE } from './AuthShell';
+import { AUTH_MEASURE } from './authLayout';
 
 /**
  * **Le bandeau de marque** — rôle nommé au registre §2.22, dessiné en 02.1 et repris
@@ -24,6 +24,9 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
         className={cn(
             'relative w-full overflow-hidden bg-[var(--tk-color-inverse-surface)] px-5 text-white',
             short ? 'pt-10 pb-7' : 'pt-14 pb-9',
+            /* Au-delà de 600, **le bloc de marque du plein champ** : plus de fond (le
+               champ le porte), centré au-dessus de la carte, 28 avant elle. */
+            'medium:max-w-[440px] medium:overflow-visible medium:bg-transparent medium:px-0 medium:pt-0 medium:pb-7 medium:text-center',
         )}
     >
         {/*
@@ -64,7 +67,7 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
             /* La forme courte a 16 d'air en moins au-dessus du filet jaune : les angles
                remontent d'autant, sinon le filet tombe sur leur troisième ligne. */
             className={cn(
-                'pointer-events-none absolute left-0 h-full w-[393px]',
+                'medium:hidden pointer-events-none absolute left-0 h-full w-[393px]',
                 short ? '-top-4' : 'top-0',
             )}
         >
@@ -78,7 +81,7 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
             aria-hidden="true"
             viewBox="0 0 393 199"
             preserveAspectRatio="xMaxYMax slice"
-            className="pointer-events-none absolute right-0 bottom-0 h-full w-[393px]"
+            className="medium:hidden pointer-events-none absolute right-0 bottom-0 h-full w-[393px]"
         >
             <defs>
                 {/* Le fondu vers le texte : opaque à 330, éteint à 180. */}
@@ -115,19 +118,97 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
             </g>
         </svg>
 
-        <div className={cn('relative', AUTH_MEASURE)}>
+        <div
+            className={cn(
+                'relative',
+                AUTH_MEASURE,
+                'medium:flex medium:flex-col medium:items-center',
+            )}
+        >
             <span
                 aria-hidden="true"
-                className={cn('bg-primary block h-[3px] w-10', short ? 'mb-4' : 'mb-6')}
+                className={cn(
+                    'bg-primary block h-[3px] w-10',
+                    short ? 'mb-4' : 'mb-6',
+                    'medium:mb-5',
+                )}
             />
-            <h1 className="font-brand mb-2 text-[1.75rem] leading-8 font-medium tracking-[-0.02em]">
+            <h1 className="font-brand text-ts-page leading-ts-page medium:text-[2.75rem] medium:leading-[3rem] mb-2 font-medium tracking-[-0.02em]">
                 {APP_CONFIG.appName}
             </h1>
-            <p className="max-w-[290px] text-[0.9375rem] leading-5 text-[var(--tk-color-text-on-inverse-muted)]">
+            <p className="text-ts-control leading-ts-control medium:max-w-none medium:text-[1rem] medium:leading-6 max-w-[290px] text-[var(--tk-color-text-on-inverse-muted)]">
                 Pilotez vos actifs avec une expérience unifiée.
             </p>
         </div>
     </header>
+);
+
+/**
+ * **Le cartouche en plein champ** — la connexion au bureau (direction B, 22/09). Le même
+ * vocabulaire que le bandeau, à l'échelle de la fenêtre : les angles emboîtés coupés par
+ * le bord gauche en haut, la diagonale olive qui entre par l'angle haut-droit, le
+ * triangle bleu tenu au bord droit, un filet bleu qui ferme l'angle bas-gauche, et **un
+ * seul accent plein** — les deux arcs orange de l'angle bas-droit, dont on voit le quart
+ * d'anneau, pas une écharde. Filets à 30 %, accent à 100 %.
+ *
+ * **Quatre cadres ancrés aux coins, jamais étirés** : une fenêtre plus large écarte les
+ * coins, elle ne déforme pas le dessin. Il n'existe qu'au-delà de 600 ; au téléphone, le
+ * bandeau porte son propre cartouche. **Sous 1 200, les cadres se réduisent d'un tiers**
+ * (l'accent excepté) : à 768 les angles touchaient le filet jaune et la diagonale
+ * passait derrière « Tracker » — ce que le commanditaire avait déjà refusé au bandeau.
+ */
+export const BrandField: React.FC = () => (
+    <div aria-hidden="true" className="medium:block pointer-events-none absolute inset-0 hidden">
+        <svg
+            width="440"
+            height="210"
+            className="large:scale-100 absolute top-0 left-0 origin-top-left scale-[0.66]"
+        >
+            <g fill="none" strokeWidth="1.5" className="stroke-[var(--color-login-live-vert)]">
+                <path d="M-40 52H420V200" />
+                <path d="M-40 100H350V200" />
+                <path d="M-40 148H280V200" />
+            </g>
+        </svg>
+        <svg
+            width="440"
+            height="700"
+            className="large:scale-100 absolute top-0 right-0 origin-top-right scale-[0.66]"
+        >
+            <g fill="none" strokeWidth="1.5">
+                <path
+                    className="stroke-[var(--color-login-live-jaune)] opacity-55"
+                    d="M40 -20L480 420"
+                />
+                <path
+                    className="stroke-[var(--color-login-live-jaune)]"
+                    d="M140 -20L480 320M240 -20L480 220"
+                />
+                <path
+                    className="stroke-[var(--color-login-live-bleu)]"
+                    d="M440 470L344 566L440 662Z"
+                />
+            </g>
+        </svg>
+        <svg
+            width="200"
+            height="200"
+            className="large:scale-100 absolute bottom-0 left-0 origin-bottom-left scale-[0.66]"
+        >
+            <path
+                fill="none"
+                strokeWidth="1.5"
+                className="stroke-[var(--color-login-live-bleu)] opacity-60"
+                d="M-20 20L160 200"
+            />
+        </svg>
+        <svg width="220" height="220" className="absolute right-0 bottom-0">
+            <g fill="none" strokeWidth="10" className="stroke-[var(--color-login-live-accent)]">
+                <circle cx="232" cy="234" r="44" />
+                <circle cx="232" cy="234" r="88" />
+            </g>
+        </svg>
+    </div>
 );
 
 export default BrandBanner;

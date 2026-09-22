@@ -1,13 +1,8 @@
 import React from 'react';
 import { cn } from '../../../lib/utils';
+import { BrandField } from './BrandBanner';
 
-/**
- * **La mesure de contenu des pages hors session** — 560 px, la valeur que la planche
- * 00.5 fixe pour un formulaire : *« une liste s'élargit, un formulaire se mesure »*.
- * Le bandeau de marque et le panneau la partagent, donc leur texte s'aligne sur le
- * même bord d'un bout à l'autre de la page.
- */
-export const AUTH_MEASURE = 'mx-auto w-full max-w-[560px]';
+export { AUTH_MEASURE, AUTH_PANEL } from './authLayout';
 
 /**
  * **La coque des pages hors session** — 02.1 et 02.2.
@@ -24,17 +19,28 @@ export const AUTH_MEASURE = 'mx-auto w-full max-w-[560px]';
  * sont maintenant deux pages du même produit, à la même échelle.
  *
  * Au téléphone, rien ne change : la page **est** la colonne.
+ *
+ * **`field` — le plein champ du bureau** (direction B, retenue le 22/09). Au-delà de
+ * 600, la page devient le bleu-noir de la marque, le cartouche LIVE la traverse d'un
+ * bord à l'autre, et le contenu se centre : le bloc de marque, la carte blanche du
+ * formulaire (`AUTH_PANEL`), puis ce qui suit la carte. La connexion étirée d'avant —
+ * un bandeau de 200, une colonne, un grand vide — était la mise en page du téléphone
+ * élargie. Les écrans à barre d'étape ne le prennent pas.
  */
-const AuthShell: React.FC<{ children: React.ReactNode; className?: string }> = ({
+const AuthShell: React.FC<{ children: React.ReactNode; className?: string; field?: boolean }> = ({
     children,
     className,
+    field = false,
 }) => (
     <div
         className={cn(
             'bg-background text-on-surface flex min-h-dvh w-full flex-col',
+            field &&
+                'medium:relative medium:items-center medium:justify-center medium:overflow-hidden medium:bg-[var(--tk-color-inverse-surface)] medium:px-6 medium:py-16',
             className,
         )}
     >
+        {field && <BrandField />}
         {children}
     </div>
 );

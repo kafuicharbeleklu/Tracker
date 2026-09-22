@@ -43,14 +43,14 @@ const OutcomePanel: React.FC<OutcomePanelProps> = ({
             >
                 <Icon glyph={icon} size={32} />
             </span>
-            <p className="font-brand mb-2 text-[1.375rem] leading-7 font-semibold tracking-[-0.01em]">
+            <p className="font-brand mb-2 text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.01em]">
                 {title}
             </p>
-            <p className="text-on-surface-variant max-w-[300px] text-[1rem] leading-6 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-primary)]">
+            <p className="text-on-surface-variant max-w-[300px] text-ts-body leading-ts-body text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-primary)]">
                 {message}
             </p>
             {detail && (
-                <p className="text-on-surface-variant mt-2 max-w-[300px] text-[0.875rem] leading-5 text-pretty">
+                <p className="text-on-surface-variant mt-2 max-w-[300px] text-ts-sub leading-ts-sub text-pretty">
                     {detail}
                 </p>
             )}

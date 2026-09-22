@@ -9,7 +9,7 @@ import Button from '../../../components/ui/Button';
 import { useData } from '../../../context/DataContext';
 import { cn } from '../../../lib/utils';
 import type { UserRole } from '../../../types';
-import AuthShell, { AUTH_MEASURE } from '../components/AuthShell';
+import AuthShell, { AUTH_PANEL } from '../components/AuthShell';
 import BrandBanner from '../components/BrandBanner';
 import OutcomePanel from '../components/OutcomePanel';
 
@@ -78,7 +78,7 @@ const SUBMIT_CLASSES = 'w-full !rounded-[4px] !shadow-none';
    de texte, pas à celle d'un bouton : `min-h-0` défait le gabarit de geste, la cible
    tactile reste à 48 par la couronne `touch-target` de la primitive. */
 const LINK_CLASSES =
-    'h-auto !min-h-0 min-w-0 p-0 text-[0.875rem] leading-5 font-medium text-[var(--tk-color-text-primary)] underline underline-offset-[3px] hover:bg-transparent hover:text-[var(--tk-color-text-muted)]';
+    'h-auto !min-h-0 min-w-0 p-0 text-ts-sub leading-ts-sub font-medium text-[var(--tk-color-text-primary)] underline underline-offset-[3px] hover:bg-transparent hover:text-[var(--tk-color-text-muted)]';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
@@ -292,74 +292,116 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
        `dev` — ils ne servent qu'en développement et le disent. Quatre vignettes de 40,
        le rôle en clair dessous (12 sur 16) ; celle dont l'adresse remplit le champ
        passe en sombre. */
-    const demoAccounts = DEMO_LOGIN_ENABLED && demoShortcuts.length > 0 && (
-        <div className="mt-auto pt-5">
-            <div className="text-on-surface-variant mb-3 flex items-center justify-between border-t border-[var(--tk-color-border-default)] pt-4 text-[0.75rem] leading-4">
-                <span>Comptes de démonstration</span>
-                <span className="bg-surface-container rounded-[2px] px-1.5 py-0.5 text-[0.6875rem] font-medium tracking-[0.04em] uppercase">
-                    dev
-                </span>
-            </div>
-            <div className="flex gap-2">
-                {demoShortcuts.map((user) => {
-                    const initiales = user.name
-                        .split(' ')
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((mot) => mot[0])
-                        .join('')
-                        .toUpperCase();
-                    const role = DEMO_ROLE_LABEL[user.role] ?? user.role;
-                    const isOn = email.trim().toLowerCase() === user.email.toLowerCase();
-                    return (
-                        <Button
-                            key={user.id}
-                            type="button"
-                            variant="text"
-                            onClick={() => fillDemoCredentials(user.email)}
-                            aria-label={`Connexion démo : ${user.name}, rôle ${role}`}
-                            aria-pressed={isOn}
-                            className="group text-on-surface-variant h-auto !min-h-16 min-w-0 flex-col items-center gap-1 rounded-[4px] px-2 py-1.5 text-center hover:bg-transparent"
-                        >
-                            {/* Vignette d'initiales — 40 × 40, rayon 6 (§2.2 ; arbitré le 04/09
-                                contre le 4 des pages : le jeton de vignette ne bouge pas). */}
-                            <span
+    /* **Sur le papier ou sur le champ.** Au téléphone le pied reste dans le panneau ; au
+       bureau (direction B) il passe sous la carte, sur le bleu-noir — mêmes vignettes,
+       encres du sombre. */
+    const renderDemoAccounts = (onDark: boolean) =>
+        DEMO_LOGIN_ENABLED &&
+        demoShortcuts.length > 0 && (
+            <div
+                className={
+                    onDark
+                        ? 'medium:flex relative mt-7 hidden w-full max-w-[440px] flex-col items-center gap-3'
+                        : 'medium:hidden mt-auto pt-5'
+                }
+            >
+                <div
+                    className={cn(
+                        'flex items-center text-[0.75rem] leading-4',
+                        onDark
+                            ? 'gap-2.5 text-[var(--tk-color-on-dark-2)]'
+                            : 'text-on-surface-variant mb-3 justify-between border-t border-[var(--tk-color-border-default)] pt-4',
+                    )}
+                >
+                    <span>Comptes de démonstration</span>
+                    <span
+                        className={cn(
+                            'rounded-[2px] px-1.5 py-0.5 text-[0.6875rem] font-medium tracking-[0.04em] uppercase',
+                            onDark ? 'bg-[var(--tk-color-dark-2)]' : 'bg-surface-container',
+                        )}
+                    >
+                        dev
+                    </span>
+                </div>
+                <div className="flex gap-2">
+                    {demoShortcuts.map((user) => {
+                        const initiales = user.name
+                            .split(' ')
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((mot) => mot[0])
+                            .join('')
+                            .toUpperCase();
+                        const role = DEMO_ROLE_LABEL[user.role] ?? user.role;
+                        const isOn = email.trim().toLowerCase() === user.email.toLowerCase();
+                        return (
+                            <Button
+                                key={user.id}
+                                type="button"
+                                variant="text"
+                                onClick={() => fillDemoCredentials(user.email)}
+                                aria-label={`Connexion démo : ${user.name}, rôle ${role}`}
+                                aria-pressed={isOn}
                                 className={cn(
-                                    'font-brand rounded-vignette flex h-10 w-10 items-center justify-center text-[0.9375rem] leading-normal font-semibold transition-colors',
-                                    isOn
-                                        ? 'bg-inverse-surface text-inverse-on-surface'
-                                        : 'bg-surface-container text-on-surface-variant group-hover:bg-surface-container-high',
+                                    'group h-auto !min-h-16 min-w-0 flex-col items-center gap-1 rounded-[4px] px-2 py-1.5 text-center hover:bg-transparent',
+                                    onDark
+                                        ? 'text-[var(--tk-color-on-dark-2)]'
+                                        : 'text-on-surface-variant',
                                 )}
                             >
-                                {initiales}
-                            </span>
-                            <span
-                                className={cn(
-                                    'block w-full text-[0.75rem] leading-4 transition-colors',
-                                    isOn
-                                        ? 'text-on-surface font-medium'
-                                        : 'text-on-surface-variant group-hover:text-on-surface font-normal',
-                                )}
-                            >
-                                {role}
-                            </span>
-                        </Button>
-                    );
-                })}
+                                {/* Vignette d'initiales — 40 × 40, rayon 6 (§2.2 ; arbitré le 04/09
+                                    contre le 4 des pages : le jeton de vignette ne bouge pas). */}
+                                <span
+                                    className={cn(
+                                        'font-brand rounded-vignette text-ts-control flex h-10 w-10 items-center justify-center leading-normal font-semibold transition-colors',
+                                        onDark
+                                            ? isOn
+                                                ? 'bg-[var(--tk-color-on-dark)] text-[var(--tk-color-inverse-surface)]'
+                                                : 'bg-[var(--tk-color-dark-2)] text-white group-hover:bg-white/[0.16]'
+                                            : isOn
+                                              ? 'bg-inverse-surface text-inverse-on-surface'
+                                              : 'bg-surface-container text-on-surface-variant group-hover:bg-surface-container-high',
+                                    )}
+                                >
+                                    {initiales}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'block w-full text-[0.75rem] leading-4 transition-colors',
+                                        onDark
+                                            ? isOn
+                                                ? 'font-medium text-white'
+                                                : 'font-normal text-[var(--tk-color-on-dark-2)] group-hover:text-white'
+                                            : isOn
+                                              ? 'text-on-surface font-medium'
+                                              : 'text-on-surface-variant group-hover:text-on-surface font-normal',
+                                    )}
+                                >
+                                    {role}
+                                </span>
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
-        </div>
-    );
+        );
 
     return (
-        <AuthShell>
+        <AuthShell field>
             <BrandBanner />
             {/*
               PANNEAU — la colonne du formulaire, bornée à la mesure. Métriques de la
               planche : 28 px de haut, 20 sur les côtés et en pied, 18 entre les groupes.
             */}
-            <main className={cn(AUTH_MEASURE, 'flex flex-1 flex-col px-5 pt-7 pb-5')}>
+            <main className={AUTH_PANEL}>
                 {authView === 'login' && (
                     <>
+                        {/* Au bureau, la carte porte son titre : le bloc de marque au-dessus
+                            dit « Tracker », la carte dit ce qu'on y fait. Le téléphone n'en a
+                            pas besoin — le bandeau touche le formulaire. */}
+                        <h2 className="font-brand medium:block text-ts-sheet leading-ts-sheet mb-6 hidden font-semibold tracking-[-0.015em]">
+                            Connexion
+                        </h2>
                         {/*
                               Rythme de la planche, et il ne se joue pas au `space-y` :
                               chaque groupe porte 18 px, le lien en reprend 2 au-dessus
@@ -465,7 +507,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             </Button>
                         </form>
 
-                        {demoAccounts}
+                        {renderDemoAccounts(false)}
                     </>
                 )}
 
@@ -484,16 +526,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                             onClick={backToLogin}
                             disabled={isSubmittingForgotPassword}
                             icon={<Icon glyph={ArrowLeft} size={18} />}
-                            className="text-on-surface-variant hover:text-on-surface mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 text-[0.875rem] leading-5 font-medium hover:bg-transparent"
+                            className="text-on-surface-variant hover:text-on-surface text-ts-sub leading-ts-sub mb-5 h-auto !min-h-0 min-w-0 gap-1.5 self-start p-0 font-medium hover:bg-transparent"
                         >
                             Retour à la connexion
                         </Button>
                         {/* `.pt` / `.ps` — titre de carte 17 sur 24 en Archivo 600, puis la
                                 phrase de soutien 14 sur 20, 20 px avant le champ. */}
-                        <h2 className="font-brand mb-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
+                        <h2 className="font-brand text-ts-head leading-ts-head mb-1 font-semibold tracking-[-0.01em]">
                             Mot de passe oublié
                         </h2>
-                        <p className="text-on-surface-variant mb-5 text-[0.875rem] leading-5">
+                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-5">
                             Un lien par courriel, valable 30 minutes. La phrase de retour est la
                             même que l'adresse ait un compte ou non.
                         </p>
@@ -569,6 +611,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     />
                 )}
             </main>
+            {authView === 'login' && renderDemoAccounts(true)}
         </AuthShell>
     );
 };
