@@ -4321,7 +4321,20 @@ mesurant l'écran à 1280 :
 **Mesuré après** : champ 320 × 40, pastille 40 en 13/500 cernée, tri 13/500, `.lead` 52,
 rangée 48, en-tête 40 en 12/500, anneau de focus `2px solid` à `-2px`.
 
-**Ce qui reste** : le ⋮ de rangée. La planche lui donne cinq verbes (ouvrir, attribuer,
-déplacer, modifier, sortir du parc) ; le produit les porte aujourd'hui sur la fiche, avec
-leurs feuilles d'acte. Les poser sur la rangée demande de sortir ces actes de
-`EquipmentDetailsPage` dans un endroit partagé — c'est un arbitrage, pas une reprise.
+**Le ⋮ de rangée, posé ensuite** (même jour, après arbitrage). La planche lui donne cinq
+verbes ; trois d'entre eux — attribuer, restituer, réaffecter — sont **des adresses**
+(`/wizards/assignment`, `/wizards/return`), et « Modifier la fiche » aussi. La rangée les
+ouvre donc par les mêmes adresses que 04.2 : aucun acte n'est recopié, aucune feuille ne
+déménage. Le verbe du milieu suit l'état, comme le bouton de la fiche.
+
+**La sortie du parc n'y est pas**, et c'est délibéré : c'est l'acte le plus destructeur, il
+s'atteste (17.4, bloc 4) et garde ses deux portes existantes — la fiche, et la sélection
+multiple avec sa confirmation. Le paramètre `context=` de la fiche n'a pas été recopié :
+personne ne le lit.
+
+**Mesuré** : colonne d'actes à 48, ⋮ invisible au repos, révélé au survol et au focus, menu
+ancré sous lui (« Ouvrir la fiche · Attribuer · Modifier la fiche » sur un actif
+disponible), et « Attribuer » ouvre l'assistant sur le bon actif.
+
+**Reste ouvert** : en cartes, de 840 à 1279, la planche montre aussi un ⋮ sur la rangée
+survolée. Pas fait.

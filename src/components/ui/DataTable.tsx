@@ -411,7 +411,10 @@ function DataTable<T>({
                                            **et** la fiche derrière lui (18.1, premier
                                            emploi). */
                                         <td
-                                            className="px-2.5 align-middle"
+                                            /* 10 à gauche, 6 à droite : avec le carré de 40
+                                               rentré de 8, la colonne rend les **48** de son
+                                               `<col>` (04.1) au lieu de 52. */
+                                            className="pr-1.5 pl-2.5 align-middle"
                                             onClick={(event) => event.stopPropagation()}
                                         >
                                             <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">

@@ -4,6 +4,7 @@ import {
     ArrowCircleRight,
     CaretDown,
     Clock,
+    DotsThreeVertical,
     FileCsv,
     Keyboard,
     Package,
@@ -22,11 +23,13 @@ import { ViewType, type Equipment } from '../../../types';
 
 import ListTemplate, { type ListFacet } from '../../../components/layout/ListTemplate';
 import FilterButton from '../../../components/ui/FilterButton';
+import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import FacetChip from '../../../components/ui/FacetChip';
 import ListRow, { TONE_CLASS } from '../../../components/ui/ListRow';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { MEDIA } from '../../../constants/breakpoints';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
@@ -257,6 +260,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const { filterEquipment, permissions } = useAccessControl();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
+    const { navigate } = useAppNavigation();
 
     const isManager = permissions.canManageInventory;
 
@@ -508,6 +512,56 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 ? 'modele'
                 : 'mouvement';
     const sensTri: 'asc' | 'desc' = triActif === 'recent' ? 'desc' : 'asc';
+
+    /**
+     * **Le ⋮ de la rangée** — 04.1 au bureau : *« au survol, la vignette cède la place à la
+     * case, le ⋮ apparaît »*, et son menu porte les verbes de l'objet. Il n'y en avait
+     * aucun : la rangée n'offrait que son ouverture, et tout acte demandait d'entrer dans
+     * la fiche puis d'en ressortir.
+     *
+     * **Ce sont les actes de la fiche, pas des copies** : chacun ouvre l'assistant ou
+     * l'écran que 04.2 ouvre déjà, par la même adresse. Le verbe du milieu suit l'état,
+     * comme le bouton de la fiche — attribuer ce qui est disponible, restituer ce qui est
+     * porté, réaffecter d'un geste. **La sortie du parc n'y est pas** : c'est l'acte le
+     * plus destructeur, il s'atteste (17.4, bloc 4) et garde donc son unique porte, la
+     * fiche — la sélection multiple la porte aussi, avec sa confirmation.
+     */
+    const actesDeLaRangee = (item: Equipment): MenuItem[] => {
+        const actes: MenuItem[] = [
+            {
+                id: 'ouvrir',
+                label: 'Ouvrir la fiche',
+                onSelect: () => onEquipmentClick?.(item.id),
+            },
+        ];
+        if (!isManager) return actes;
+
+        const lien = `equipmentId=${encodeURIComponent(item.id)}`;
+        if (item.status === 'Disponible')
+            actes.push({
+                id: 'attribuer',
+                label: 'Attribuer',
+                onSelect: () => navigate(`/wizards/assignment?${lien}`),
+            });
+        else if (item.status === 'Attribué') {
+            actes.push({
+                id: 'restituer',
+                label: 'Restituer',
+                onSelect: () => navigate(`/wizards/return?${lien}`),
+            });
+            actes.push({
+                id: 'reaffecter',
+                label: 'Réaffecter',
+                onSelect: () => navigate(`/wizards/assignment?reassign=true&${lien}`),
+            });
+        }
+        actes.push({
+            id: 'modifier',
+            label: 'Modifier la fiche',
+            onSelect: () => navigate(`/inventory/edit/${item.id}`),
+        });
+        return actes;
+    };
 
     const colonnes = useMemo<DataColumn<Equipment>[]>(
         () => [
@@ -965,6 +1019,27 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         /* **La vignette de la rangée** (04.1 au bureau) : le pictogramme du
                            type dans son carré de 32, qui cède la place à la case au survol.
                            La première colonne était vide au repos. */
+                        /* Le ⋮ se révèle au survol et au focus, dans la colonne de 48 que
+                           `.tbl` réserve au bout de la rangée (04.1). */
+                        rowActions={(item) => (
+                            <Menu
+                                align="end"
+                                /* Le cadre du tableau le rognerait : il flotte. */
+                                floating
+                                items={actesDeLaRangee(item)}
+                                trigger={
+                                    <Button
+                                        variant="text"
+                                        iconOnly
+                                        size="sm"
+                                        aria-label={`Actions pour ${item.name}`}
+                                        className="-mr-2"
+                                    >
+                                        <Icon glyph={DotsThreeVertical} size={20} />
+                                    </Button>
+                                }
+                            />
+                        )}
                         rowLead={(item) => (
                             <span className="bg-surface-container text-text-tertiary flex h-8 w-8 items-center justify-center rounded-md">
                                 <Icon glyph={getCategoryGlyph(item.type)} size={18} />
