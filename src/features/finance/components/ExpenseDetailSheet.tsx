@@ -272,7 +272,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                     <Icon glyph={Receipt} size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <b className="text-on-surface block truncate text-[0.875rem] font-medium">
+                                    <b className="text-on-surface text-ts-sub block truncate font-medium">
                                         {expense.sourceFileName ||
                                             `facture-${expense.supplier.toLowerCase().replace(/\s+/g, '-')}.pdf`}
                                     </b>

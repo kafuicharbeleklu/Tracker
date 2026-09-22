@@ -193,7 +193,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </Button>
                             )}
-                            <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                                 Finances
                             </h1>
                             <Menu
@@ -271,11 +271,11 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                             settings.compactNotation,
                                         )}
                                     </b>
-                                    <span className="text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                    <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                                         {settings.currency}
                                     </span>
                                 </div>
-                                <span className="mt-1 block text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                <span className="text-ts-sub leading-ts-sub mt-1 block text-[var(--tk-color-on-dark-2)]">
                                     restants sur{' '}
                                     {formatNumber(
                                         budgetStats.totalAllocated,
@@ -353,7 +353,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                             index > 0 && 'pl-4',
                                         )}
                                     >
-                                        <span className="font-brand flex items-baseline gap-2 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] tabular-nums">
+                                        <span className="font-brand text-ts-page leading-ts-page flex items-baseline gap-2 font-semibold tracking-[-0.02em] tabular-nums">
                                             {repere.valeur}
                                             {repere.unite && (
                                                 <small className="text-[0.8125rem] leading-4 font-normal tracking-normal text-[var(--tk-color-on-dark-2)]">
@@ -361,7 +361,12 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                 </small>
                                             )}
                                         </span>
-                                        <span className="mt-1 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
+                                        {/* `.k` — 12 sur 16. La planche l'écrit en ligne dans
+                                            son lien : sa ligne prend la hauteur du corps (24),
+                                            et le repère mesure 76. En bloc, l'écart se rend
+                                            par la marge — 8 au lieu de 4 —, sans inventer un
+                                            interligne que l'échelle n'a pas. */}
+                                        <span className="mt-2 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                                             {repere.legende}
                                         </span>
                                         {repere.jauge !== null && (
@@ -380,45 +385,62 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             </section>
                         )}
 
-                        {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
-                        {/* `.card` — **fond de surface, rayon 8, intérieur 8 / 16**, et rien
+                        {/* **Au bureau, deux zones à 7 et 5** (15.1 à 1280) : les postes à gauche,
+                            les destinations à droite. Elles s'empilaient sur toute la largeur. */}
+                        <div className="large:grid large:grid-cols-[7fr_5fr] large:items-start large:gap-4 large:space-y-0 space-y-4">
+                            {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
+                            {/* `.card` — **fond de surface, rayon 8, intérieur 8 / 16**, et rien
                             d'autre : ni filet ni ombre, qu'aucune planche ne déclare et
                             que les sept écrans déjà portés n'ont pas. Elle tenait 16 de
                             tous les côtés et un cadre. */}
-                        <section className="rounded-card bg-surface px-4 py-2">
-                            {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
+                            {/* `.dsk .card` — `4 20 8` au bureau. */}
+                            <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
+                                {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
                                 le compte en 14 sur 20. Il tenait 13 px des deux côtés. */}
-                            <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
-                                <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
-                                    Les postes
-                                </h3>
-                                <span className="text-on-surface-variant text-[0.875rem] leading-5 tabular-nums">
-                                    {currentBudget.items.length}
-                                </span>
-                            </div>
-                            <div className="divide-outline-variant divide-y">
-                                {currentBudget.items.length > 0 ? (
-                                    currentBudget.items.map((item, idx) => {
-                                        const itemPercent =
-                                            item.allocated > 0
-                                                ? (item.spent / item.allocated) * 100
-                                                : 0;
-                                        const itemRemaining = item.allocated - item.spent;
-                                        const isOver = itemRemaining < 0 || itemPercent >= 100;
-                                        const classification = budgetCapitalization(item);
-                                        return (
-                                            <div key={idx} className="flex flex-col gap-2 py-3">
-                                                {/* `.bt` — le nom en 16/24, puis **le
+                                <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                        Les postes
+                                    </h3>
+                                    {/* Au téléphone le compte ; au bureau, **l'en-tête de la
+                                    colonne des montants** — « consommé / enveloppe ». */}
+                                    <span className="text-on-surface-variant large:hidden text-ts-sub leading-ts-sub tabular-nums">
+                                        {currentBudget.items.length}
+                                    </span>
+                                    <span className="text-on-surface-variant large:inline text-ts-sub leading-ts-sub hidden">
+                                        consommé / enveloppe
+                                    </span>
+                                </div>
+                                {/* Au bureau, **pas de filet** entre les postes (`.dsk .post`,
+                                `border-top:0`) : la grille aligne, le filet ne sépare plus rien. */}
+                                <div className="divide-outline-variant large:divide-y-0 divide-y">
+                                    {currentBudget.items.length > 0 ? (
+                                        currentBudget.items.map((item, idx) => {
+                                            const itemPercent =
+                                                item.allocated > 0
+                                                    ? (item.spent / item.allocated) * 100
+                                                    : 0;
+                                            const itemRemaining = item.allocated - item.spent;
+                                            const isOver = itemRemaining < 0 || itemPercent >= 100;
+                                            const classification = budgetCapitalization(item);
+                                            return (
+                                                /* `.dsk .post` — **trois colonnes** au bureau : le
+                                               nom et son restant, la jauge sur 140, les montants
+                                               à droite sur 172 ; rangée de 64, `10 0`. */
+                                                <div
+                                                    key={idx}
+                                                    className="large:grid large:grid-cols-[minmax(0,1fr)_140px_172px] large:items-center large:gap-x-4 large:gap-y-0 large:py-2.5 flex flex-col gap-2 py-3"
+                                                >
+                                                    {/* `.bt` — le nom en 16/24, puis **le
                                                     consommé sur l'affecté** : le premier en
                                                     encre pleine, le second en secondaire.
                                                     Il était barré (`<s>`), ce qui dit
                                                     « annulé » d'un montant qui ne l'est
                                                     pas. */}
-                                                <div className="flex items-baseline justify-between gap-3">
-                                                    <span className="text-on-surface text-[1rem] leading-6">
-                                                        {item.category}
-                                                    </span>
-                                                    {/* **Des nombres nus.** `.bv` de 15.1
+                                                    <div className="large:contents flex items-baseline justify-between gap-3">
+                                                        <span className="text-on-surface large:col-start-1 large:row-start-1 large:truncate text-ts-body leading-ts-body">
+                                                            {item.category}
+                                                        </span>
+                                                        {/* **Des nombres nus.** `.bv` de 15.1
                                                         écrit « 18 900 000 / 21 000 000 » :
                                                         la devise est dite une fois, dans
                                                         le héro. Le produit l'accolait aux
@@ -426,133 +448,135 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         « XOF » par rangée, trente-trois sur
                                                         l'écran, et une ligne qui touchait
                                                         son libellé. */}
-                                                    <span className="text-on-surface-variant text-[0.875rem] leading-5 whitespace-nowrap tabular-nums">
-                                                        <b className="text-on-surface text-[1rem] font-medium">
+                                                        <span className="text-on-surface-variant large:col-start-3 large:row-span-2 large:row-start-1 large:text-right large:text-[0.8125rem] text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
+                                                            <b className="text-on-surface large:text-[0.875rem] text-ts-body font-medium">
+                                                                {formatNumber(
+                                                                    item.spent,
+                                                                    settings.compactNotation,
+                                                                )}
+                                                            </b>{' '}
+                                                            /{' '}
                                                             {formatNumber(
-                                                                item.spent,
+                                                                item.allocated,
                                                                 settings.compactNotation,
                                                             )}
-                                                        </b>{' '}
-                                                        /{' '}
-                                                        {formatNumber(
-                                                            item.allocated,
-                                                            settings.compactNotation,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                {/* `.gauge` — **le vert d'état**, l'orange
+                                                        </span>
+                                                    </div>
+                                                    {/* `.gauge` — **le vert d'état**, l'orange
                                                     quand l'enveloppe est épuisée. Elle
                                                     tirait le bleu, qui ne dit rien ici. */}
-                                                <div className="bg-surface-container h-1.5 overflow-hidden rounded-xs">
-                                                    <div
-                                                        className={cn(
-                                                            'h-full transition-all duration-300',
-                                                            isOver
-                                                                ? 'bg-[var(--tk-color-st-orange)]'
-                                                                : 'bg-[var(--tk-color-st-vert)]',
-                                                        )}
-                                                        style={{
-                                                            width: `${Math.min(itemPercent, 100)}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="text-on-surface-variant flex items-center gap-2 text-[0.75rem] leading-4">
-                                                    {/* Une ligne qui ne porte pas son classement **n'affiche rien** : un
+                                                    <div className="bg-surface-container large:col-start-2 large:row-span-2 large:row-start-1 h-1.5 overflow-hidden rounded-xs">
+                                                        <div
+                                                            className={cn(
+                                                                'h-full transition-all duration-300',
+                                                                isOver
+                                                                    ? 'bg-[var(--tk-color-st-orange)]'
+                                                                    : 'bg-[var(--tk-color-st-vert)]',
+                                                            )}
+                                                            style={{
+                                                                width: `${Math.min(itemPercent, 100)}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-on-surface-variant large:col-start-1 large:row-start-2 large:-mt-0.5 flex items-center gap-2 text-[0.75rem] leading-4">
+                                                        {/* Une ligne qui ne porte pas son classement **n'affiche rien** : un
                                                         blanc se remarque et se corrige, une supposition se recopie
                                                         dans le rapport de clôture (15.1). */}
-                                                    {classification && (
-                                                        /* `.tag` — 20 de haut, rayon **4**,
+                                                        {classification && (
+                                                            /* `.tag` — 20 de haut, rayon **4**,
                                                             creux : c'est une étiquette de
                                                             donnée, pas une pastille. */
-                                                        <span className="bg-surface-container text-on-surface-variant inline-flex h-5 items-center rounded-[4px] px-1.5 font-medium">
-                                                            {classification}
+                                                            <span className="bg-surface-container text-on-surface-variant inline-flex h-5 items-center rounded-[4px] px-1.5 font-medium">
+                                                                {classification}
+                                                            </span>
+                                                        )}
+                                                        <span>
+                                                            {isOver
+                                                                ? 'enveloppe épuisée'
+                                                                : `${formatNumber(itemRemaining, settings.compactNotation)} restants`}
                                                         </span>
-                                                    )}
-                                                    <span>
-                                                        {isOver
-                                                            ? 'enveloppe épuisée'
-                                                            : `${formatNumber(itemRemaining, settings.compactNotation)} restants`}
-                                                    </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="text-body-small text-text-muted py-4 text-center">
-                                        Aucun poste budgétaire défini pour cet exercice.
-                                    </p>
-                                )}
-                            </div>
-                        </section>
+                                            );
+                                        })
+                                    ) : (
+                                        <p className="text-body-small text-text-muted py-4 text-center">
+                                            Aucun poste budgétaire défini pour cet exercice.
+                                        </p>
+                                    )}
+                                </div>
+                            </section>
 
-                        {/*
+                            {/*
                           **« ALLER À » — deux destinations, pas un aperçu.** 15.1 :
                           *« l'accueil du domaine porte un exercice et **deux
                           destinations** : ses lignes, ses dépenses »*. La carte listait à
                           la place les trois dernières dépenses, avec un lien au bout :
                           un extrait de la page voisine, qu'il fallait lire pour découvrir
                           qu'elle existait. Les deux rangées la nomment et la comptent.
+                          Au bureau, `.dsk .card` — `4 20 8`, comme la carte des postes.
                         */}
-                        <section className="rounded-card bg-surface px-4 py-2">
-                            <div className="flex min-h-12 items-center pt-2 pb-1">
-                                <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
-                                    Aller à
-                                </h3>
-                            </div>
-                            {(
-                                [
-                                    {
-                                        id: 'lignes',
-                                        glyph: Calculator,
-                                        titre: 'Les lignes du budget',
-                                        detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
-                                        aller: () => setIsAddBudgetModalOpen(true),
-                                    },
-                                    {
-                                        id: 'depenses',
-                                        glyph: ListBullets,
-                                        titre: 'Les dépenses',
-                                        detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
-                                        aller: () => onViewChange('finance_expenses'),
-                                    },
-                                ] as const
-                            ).map((rangee, index) => (
-                                /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
-                                <div
-                                    key={rangee.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={rangee.aller}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            rangee.aller();
-                                        }
-                                    }}
-                                    className={cn(
-                                        'flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                        index > 0 && 'border-outline-variant border-t',
-                                    )}
-                                >
-                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                        <Icon glyph={rangee.glyph} size={20} />
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface block truncate text-[1rem] leading-6">
-                                            {rangee.titre}
-                                        </span>
-                                        <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
-                                            {rangee.detail}
-                                        </span>
-                                    </span>
-                                    <Icon
-                                        glyph={CaretRight}
-                                        size={20}
-                                        className="text-text-tertiary shrink-0"
-                                    />
+                            <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
+                                <div className="flex min-h-12 items-center pt-2 pb-1">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                        Aller à
+                                    </h3>
                                 </div>
-                            ))}
-                        </section>
+                                {(
+                                    [
+                                        {
+                                            id: 'lignes',
+                                            glyph: Calculator,
+                                            titre: 'Les lignes du budget',
+                                            detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
+                                            aller: () => setIsAddBudgetModalOpen(true),
+                                        },
+                                        {
+                                            id: 'depenses',
+                                            glyph: ListBullets,
+                                            titre: 'Les dépenses',
+                                            detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
+                                            aller: () => onViewChange('finance_expenses'),
+                                        },
+                                    ] as const
+                                ).map((rangee, index) => (
+                                    /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
+                                    <div
+                                        key={rangee.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={rangee.aller}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                rangee.aller();
+                                            }
+                                        }}
+                                        className={cn(
+                                            'flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                            index > 0 && 'border-outline-variant border-t',
+                                        )}
+                                    >
+                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                            <Icon glyph={rangee.glyph} size={20} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                {rangee.titre}
+                                            </span>
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                {rangee.detail}
+                                            </span>
+                                        </span>
+                                        <Icon
+                                            glyph={CaretRight}
+                                            size={20}
+                                            className="text-text-tertiary shrink-0"
+                                        />
+                                    </div>
+                                ))}
+                            </section>
+                        </div>
                     </div>
                 </Reading>
             </PageContainer>

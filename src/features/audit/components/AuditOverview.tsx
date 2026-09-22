@@ -106,7 +106,7 @@ const HeroTile: React.FC<{ value: React.ReactNode; label: string; tone?: 'ecart'
     <div className="min-w-0 flex-1 rounded-[4px] bg-white/[0.08] px-2.5 py-3">
         <span
             className={cn(
-                'font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums',
+                'font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums',
                 tone === 'ecart' && 'text-[var(--tk-color-live-ambre)]',
             )}
         >
@@ -125,7 +125,7 @@ const HeroTile: React.FC<{ value: React.ReactNode; label: string; tone?: 'ecart'
  * de gestes primaires qu'il y a de lieux à compter.
  */
 const ROW_ACTION_CLASS =
-    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 shrink-0 rounded-sm px-3.5 text-[0.9375rem] font-medium';
+    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 shrink-0 rounded-sm px-3.5 text-ts-control font-medium';
 
 export const AuditOverview: React.FC<AuditOverviewProps> = ({
     rows,
@@ -232,7 +232,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                           ? totals.found
                           : totals.expected}
                 </b>
-                <span className="text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                     {hasPendingDecisions
                         ? `manquant${totals.missing > 1 ? 's' : ''}`
                         : isCampaignClean
@@ -307,7 +307,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * explique le geste, et elle change avec le niveau où l'on se trouve.
      */
     const note = (
-        <div className="text-on-surface-variant flex items-start gap-2 px-1 text-[0.875rem] leading-5">
+        <div className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2 px-1">
             <Icon glyph={Info} size={18} className="text-text-muted mt-px shrink-0" />
             <span>
                 {openedSite ? (
@@ -397,7 +397,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <div className="min-w-0">
                     <span
                         className={cn(
-                            'block truncate text-[1rem] leading-6',
+                            'text-ts-body leading-ts-body block truncate',
                             muet ? 'text-on-surface-variant' : 'text-on-surface',
                         )}
                     >
@@ -415,7 +415,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     colonnes d'un coup d'œil (17.11, tableau). */}
                 <span
                     className={cn(
-                        'text-right text-[0.875rem] leading-5 tabular-nums',
+                        'text-ts-sub leading-ts-sub text-right tabular-nums',
                         muet ? 'text-on-surface-variant' : 'text-on-surface',
                     )}
                 >
@@ -429,7 +429,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
 
                 <span
                     className={cn(
-                        'inline-flex items-center gap-1.5 text-[0.875rem] leading-5 whitespace-nowrap',
+                        'text-ts-sub leading-ts-sub inline-flex items-center gap-1.5 whitespace-nowrap',
                         muet ? 'text-text-tertiary' : 'text-on-surface-variant',
                     )}
                 >
@@ -454,7 +454,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                                 event.stopPropagation();
                                 onStartPlace(row);
                             }}
-                            className={cn(ROW_ACTION_CLASS, 'h-9 min-h-9 px-3 text-[0.875rem]')}
+                            className={cn(ROW_ACTION_CLASS, 'text-ts-sub h-9 min-h-9 px-3')}
                         >
                             Lancer
                         </Button>
@@ -518,13 +518,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <div className="min-w-0 flex-1">
                     <span
                         className={cn(
-                            'block truncate text-[1rem] leading-6',
+                            'text-ts-body leading-ts-body block truncate',
                             muet ? 'text-on-surface-variant' : 'text-on-surface',
                         )}
                     >
                         {row.local ?? row.site}
                     </span>
-                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                         <RowSubline row={row} level={niveau} />
                     </span>
                     {/* `.mini` — l'avancement du lieu, dans la rangée : il
@@ -608,7 +608,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     key={chiffre.cle}
                     className="border-outline-variant min-w-0 flex-1 py-0.5 pr-4 not-first:pl-4"
                 >
-                    <span className="font-brand text-on-surface flex items-center gap-2 text-[1.375rem] leading-[1.625rem] font-semibold tabular-nums">
+                    <span className="font-brand text-on-surface text-ts-sheet flex items-center gap-2 leading-[1.625rem] font-semibold tabular-nums">
                         {chiffre.teinte && (
                             <i
                                 aria-hidden="true"
@@ -641,10 +641,10 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     const panneau = openedSite ? (
         <div className="flex flex-col gap-4">
             <div className="px-1">
-                <h2 className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
                     {openedSite.site}
                 </h2>
-                <p className="text-on-surface-variant mt-0.5 text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5">
                     {openedSite.country} · site · {scopedLocalCount}{' '}
                     {scopedLocalCount > 1 ? 'locaux' : 'local'}
                 </p>
@@ -660,7 +660,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     ) : (
         <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
             <Icon glyph={MapPin} size={24} className="text-text-tertiary" />
-            <p className="text-[0.875rem] leading-5">
+            <p className="text-ts-sub leading-ts-sub">
                 Choisissez un site pour voir ses locaux et son avancement.
             </p>
         </div>
@@ -673,10 +673,10 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <Icon glyph={MagnifyingGlassMinus} size={32} />
             </span>
             <div>
-                <p className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                <p className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
                     Aucun lieu ne correspond
                 </p>
-                <p className="text-on-surface-variant mx-auto mt-1 max-w-[280px] text-[1rem] leading-6">
+                <p className="text-on-surface-variant text-ts-body leading-ts-body mx-auto mt-1 max-w-[280px]">
                     {emptyCause}
                 </p>
             </div>

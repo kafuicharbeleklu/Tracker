@@ -249,17 +249,23 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 return;
             }
 
-            updateEquipment(objet.id, {
-                status: 'En attente',
-                assignmentStatus: suite,
-                assignedAt: maintenant,
-                assignedBy: adminUser?.id,
-                assignedByName: adminUser?.name,
-                /* « Qui, quand, par quelle méthode » (06.2) : c'est ce qui rend le
-                   passage de main relisible deux ans après. */
-                handoverProof: preuve,
-                user: porteur,
-            });
+            updateEquipment(
+                objet.id,
+                {
+                    status: 'En attente',
+                    assignmentStatus: suite,
+                    assignedAt: maintenant,
+                    assignedBy: adminUser?.id,
+                    assignedByName: adminUser?.name,
+                    /* « Qui, quand, par quelle méthode » (06.2) : c'est ce qui rend le
+                       passage de main relisible deux ans après. */
+                    handoverProof: preuve,
+                    user: porteur,
+                },
+                /* La méthode par son code, pour le journal : c'est elle qui dit qu'une
+                   signature a été apposée, et le fait ouvert de 18.1 la montre alors. */
+                { method },
+            );
 
             if (suite === 'WAITING_DOTATION_APPROVAL') {
                 showToast('En attente de validation par le manager.', 'success');
@@ -295,15 +301,19 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
             assignedEquipmentName: objet.name,
         });
 
-        updateEquipment(objet.id, {
-            status: 'En attente',
-            assignmentStatus: 'PENDING_DELIVERY' as AssignmentStatus,
-            assignedAt: maintenant,
-            assignedBy: adminUser?.id || '1',
-            assignedByName: adminUser?.name || 'Admin',
-            handoverProof: preuve,
-            user: porteur,
-        });
+        updateEquipment(
+            objet.id,
+            {
+                status: 'En attente',
+                assignmentStatus: 'PENDING_DELIVERY' as AssignmentStatus,
+                assignedAt: maintenant,
+                assignedBy: adminUser?.id || '1',
+                assignedByName: adminUser?.name || 'Admin',
+                handoverProof: preuve,
+                user: porteur,
+            },
+            { method },
+        );
 
         showToast('Remise attestée. En attente de confirmation.', 'success');
         setPhase('presence');
@@ -354,10 +364,10 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                                 <Icon glyph={Check} size={18} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="block text-[1rem] leading-6">
+                                <span className="text-ts-body leading-ts-body block">
                                     {adminUser?.name || 'Vous'} atteste avoir remis
                                 </span>
-                                <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                     à l’instant · {objet.handoverProof || 'attestation'}
                                 </span>
                             </span>
@@ -367,10 +377,10 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                                 <Icon glyph={UserIcon} size={18} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="block text-[1rem] leading-6">
+                                <span className="text-ts-body leading-ts-body block">
                                     {destinataire.name} atteste avoir reçu
                                 </span>
-                                <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                     par signature, sur cet appareil
                                 </span>
                             </span>
@@ -466,7 +476,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 question={{
                     label: 'À partir du',
                     children: (
-                        <div className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-[4px] px-3.5 text-[1rem] leading-6">
+                        <div className="bg-surface-container text-on-surface text-ts-body leading-ts-body flex min-h-12 items-center gap-2.5 rounded-[4px] px-3.5">
                             <Icon
                                 glyph={CalendarBlank}
                                 size={18}

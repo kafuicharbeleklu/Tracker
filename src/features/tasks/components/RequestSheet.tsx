@@ -242,7 +242,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
         return (
             <BottomSheet open onClose={() => setVue('demande')} title="Ce que je demande">
                 <div className="flex flex-col gap-4">
-                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                         Un type ; le modèle, c’est l’informatique qui le choisit.
                     </p>
 
@@ -257,10 +257,10 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                                 >
                                     <Icon glyph={FAMILLES[famille].glyph} size={18} />
                                 </span>
-                                <span className="text-on-surface flex-1 text-[1.0625rem] leading-6 font-medium">
+                                <span className="text-on-surface text-ts-head leading-ts-head flex-1 font-medium">
                                     {famille}
                                 </span>
-                                <span className="text-on-surface-variant text-[0.875rem] leading-5 tabular-nums">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
                                     {types.length}
                                 </span>
                             </div>
@@ -286,7 +286,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
 
                     {/* `.fnote` — pourquoi certains types n'y sont pas. */}
                     {desTypesSontExclus && (
-                        <p className="border-outline-variant text-on-surface-variant flex items-start gap-2 border-t pt-3 text-[0.875rem] leading-5">
+                        <p className="border-outline-variant text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2 border-t pt-3">
                             <Icon
                                 glyph={Info}
                                 size={18}
@@ -309,7 +309,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
     return (
         <BottomSheet open onClose={onClose} title="Demander un équipement">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     {pourUnAutre
                         ? `Pour ${beneficiaire?.name.split(' ')[0]}, à votre nom.`
                         : 'Votre manager décide, l’informatique remet.'}
@@ -322,10 +322,10 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                             <Icon glyph={Hourglass} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[1rem] leading-6">
+                            <span className="text-ts-body leading-ts-body block truncate">
                                 {getCategoryLabel(dejaEnCours.equipmentCategory || '')} attend déjà
                             </span>
-                            <span className="block truncate text-[0.875rem] leading-5 opacity-80">
+                            <span className="text-ts-sub leading-ts-sub block truncate opacity-80">
                                 {dejaEnCours.status === 'WAITING_MANAGER_APPROVAL'
                                     ? `chez ${manager?.name || 'le manager'}`
                                     : 'chez l’informatique'}
@@ -339,7 +339,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                                 onClose();
                                 navigate('/tasks');
                             }}
-                            className="h-auto !min-h-0 shrink-0 !px-0 !py-0 text-[0.9375rem] font-medium text-current underline underline-offset-2"
+                            className="text-ts-control h-auto !min-h-0 shrink-0 !px-0 !py-0 font-medium text-current underline underline-offset-2"
                         >
                             Ouvrir
                         </Button>
@@ -351,7 +351,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                     <div>
                         <FieldLabel>Pour qui</FieldLabel>
                         <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
-                            <span className="bg-tint-bleu text-on-tint-bleu font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold">
+                            <span className="bg-tint-bleu text-on-tint-bleu font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold">
                                 {(beneficiaire?.name || '?')
                                     .split(/\s+/)
                                     .slice(0, 2)
@@ -360,10 +360,10 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                                     .toUpperCase()}
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[1rem] leading-6 font-medium">
+                                <span className="text-ts-body leading-ts-body block truncate font-medium">
                                     {beneficiaire?.name}
                                 </span>
-                                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                     {[beneficiaire?.department, beneficiaire?.site]
                                         .filter(Boolean)
                                         .join(' · ')}
@@ -418,7 +418,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                     {erreurs.motif ? (
                         <InlineError className="mt-2">{erreurs.motif}</InlineError>
                     ) : (
-                        <p className="text-on-surface-variant mt-2 text-[0.875rem] leading-5">
+                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
                             Une phrase :{' '}
                             <strong className="text-on-surface font-medium">
                                 ce que vous avez, et ce qui ne va plus
@@ -449,7 +449,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                     <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                         Ce que cela déclenche
                     </p>
-                    <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                    <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                         <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                             <Icon glyph={passeParLeManager ? UserIcon : Buildings} size={18} />
                         </span>

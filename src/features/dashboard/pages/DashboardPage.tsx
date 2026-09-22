@@ -344,11 +344,11 @@ const Card: React.FC<{
             rangée n'était jamais la première de son type, et la planche (`.ev+.ev`,
             `.brow:first-of-type{border-top:0}`) n'a pas de filet sous le titre. */}
         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-            <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                 {title}
             </h3>
             {meta && (
-                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5">
+                <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0">
                     {meta}
                 </span>
             )}
@@ -379,7 +379,7 @@ const DashboardMoreAction: React.FC<{
                 /* `.more` mesure **48**, sauf dans les cartes de la mosaïque au bureau, où
                    03.1 la resserre à 40 : le geste y est au curseur. Dans le héro sombre, au
                    téléphone comme au bureau, elle garde ses 48. */
-                'min-h-12 w-full justify-start gap-2.5 border-t px-0 text-[1rem] font-normal hover:bg-transparent',
+                'text-ts-body min-h-12 w-full justify-start gap-2.5 border-t px-0 font-normal hover:bg-transparent',
                 !isInverse && 'large:min-h-10',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
@@ -434,10 +434,10 @@ const Gauge: React.FC<{
     return (
         <div>
             <p className="mt-2.5 flex items-baseline gap-2.5">
-                <span className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                <span className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums">
                     {value}
                 </span>
-                <span className="text-on-surface-variant min-w-0 flex-1 text-[1rem] leading-6">
+                <span className="text-on-surface-variant text-ts-body leading-ts-body min-w-0 flex-1">
                     {label}
                 </span>
             </p>
@@ -460,7 +460,9 @@ const Gauge: React.FC<{
                 )}
             </div>
 
-            {note && <p className="text-on-surface-variant mt-2 text-[1rem] leading-6">{note}</p>}
+            {note && (
+                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-2">{note}</p>
+            )}
         </div>
     );
 };
@@ -777,10 +779,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {/* `.topbar` — prénom en Archivo 600 / 28 / 32, sous-ligne 16 / 24. */}
             <header className="flex items-start justify-between gap-3 pt-2">
                 <div className="min-w-0">
-                    <h1 className="font-brand text-on-surface text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
                         Bonjour {firstName}
                     </h1>
-                    <p className="text-on-surface-variant mt-0.5 text-[1rem] leading-6">
+                    <p className="text-on-surface-variant text-ts-body leading-ts-body mt-0.5">
                         {subtitle}
                     </p>
                 </div>
@@ -803,7 +805,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                    ne bat pas : les deux minima sont abaissés avec (10/09). Les
                                    initiales en Archivo 600 de 15, **sans espacement** : elles en
                                    portaient 0,025em, que `.avat` ne déclare pas. */
-                                className="font-brand focus-visible:ring-primary flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.9375rem] font-semibold text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
+                                className="font-brand focus-visible:ring-primary text-ts-control flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] font-semibold text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
                                 aria-label={`Compte — ${compte.nom}`}
                             >
                                 {compte.initiales}
@@ -821,7 +823,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 <div className="grid grid-cols-2 gap-2.5">
                     <Button
                         variant="text"
-                        className="bg-surface text-on-surface hover:bg-surface-container h-12 gap-2 !rounded-[4px] px-3 text-[1rem] font-medium !shadow-none"
+                        className="bg-surface text-on-surface hover:bg-surface-container text-ts-body h-12 gap-2 !rounded-[4px] px-3 font-medium !shadow-none"
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
@@ -829,7 +831,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </Button>
                     <Button
                         variant="filled"
-                        className="bg-primary hover:bg-primary-hover h-12 gap-2 !rounded-[4px] px-3 text-[1rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        className="bg-primary hover:bg-primary-hover text-ts-body h-12 gap-2 !rounded-[4px] px-3 font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                         icon={<Icon glyph={ArrowCircleRight} size={20} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
@@ -839,7 +841,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             ) : (
                 <Button
                     variant="filled"
-                    className="bg-primary hover:bg-primary-hover h-12 w-full gap-2 !rounded-[4px] px-3 text-[1rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    className="bg-primary hover:bg-primary-hover text-ts-body h-12 w-full gap-2 !rounded-[4px] px-3 font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                     icon={<Icon glyph={Plus} size={20} />}
                     onClick={() => onViewChange('new_request')}
                 >
@@ -864,13 +866,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     {/* `.hero h3` — 17 / 500 / 24, sans glyphe : la zone se nomme,
                         elle ne s'illustre pas. Le compte, 14 / 20, dès qu'il y a
                         quelque chose à traiter. */}
-                    <h3 className="min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+                    <h3 className="text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                         À traiter
                     </h3>
                     {/* La colonne du porteur n'en porte aucun : sa zone ne
                         compte pas, elle montre ce qui l'attend. */}
                     {isManager && todo.length > 0 && (
-                        <span className="shrink-0 text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                        <span className="text-ts-sub leading-ts-sub shrink-0 text-[var(--tk-color-on-dark-2)] tabular-nums">
                             {todo.length}
                         </span>
                     )}
@@ -887,7 +889,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <Icon glyph={Check} size={20} />
                         </span>
                         <div className="min-w-0">
-                            <p className="text-[1.0625rem] leading-6">Vous êtes à jour</p>
+                            <p className="text-ts-head leading-ts-head">Vous êtes à jour</p>
                             <p className="mt-0.5 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                                 Rien n’attend votre geste.
                             </p>
@@ -913,10 +915,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     onClick={openTasks}
                                     className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-12 w-full justify-start gap-3 border-b border-white/[0.14] px-0 font-normal hover:bg-transparent"
                                 >
-                                    <span className="font-brand w-12 shrink-0 text-left text-[1.0625rem] font-semibold tabular-nums">
+                                    <span className="font-brand text-ts-head w-12 shrink-0 text-left font-semibold tabular-nums">
                                         {item.count}
                                     </span>
-                                    <span className="flex-1 text-left text-[1rem]">
+                                    <span className="text-ts-body flex-1 text-left">
                                         {item.label}
                                     </span>
                                     <Icon
@@ -982,16 +984,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         nommée, le glyphe de l'objet sinon ; la teinte
                                         dit la nature. */}
                                     <span
-                                        className="rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold"
+                                        className="rounded-vignette font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold"
                                         style={TASK_VIGNETTE[entry.kind]}
                                     >
                                         {initials ? initials : <Icon glyph={Package} size={20} />}
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[1.0625rem] leading-6 tracking-[-0.01em]">
+                                        <span className="text-ts-head leading-ts-head block truncate tracking-[-0.01em]">
                                             {entry.what}
                                         </span>
-                                        <span className="mt-0.5 block text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                                        <span className="text-ts-sub leading-ts-sub mt-0.5 block text-[var(--tk-color-on-dark-2)]">
                                             {[pourMoi ? '' : entry.who, nature]
                                                 .filter(Boolean)
                                                 .join(' · ')}
@@ -1025,7 +1027,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {isManager ? (
                 <section className="rounded-card bg-surface p-4">
                     <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+                        <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                             Le parc
                         </h3>
                         <Figure
@@ -1161,7 +1163,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                             >
                                 <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
-                                <span className="text-on-surface min-w-0 flex-1 truncate text-[1rem]">
+                                <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
                                     {entry.label}
                                 </span>
                                 <span className="text-on-surface-variant shrink-0 text-[0.75rem] leading-4 tabular-nums">
@@ -1289,7 +1291,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             key={item.type}
                             className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                         >
-                            <span className="text-on-surface min-w-0 flex-1 truncate text-[1rem]">
+                            <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
                                 {item.type}
                             </span>
                             <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
@@ -1298,7 +1300,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     style={{ width: `${item.percent}%` }}
                                 />
                             </span>
-                            <span className="text-on-surface min-w-5 shrink-0 text-right text-[1rem] tabular-nums">
+                            <span className="text-on-surface text-ts-body min-w-5 shrink-0 text-right tabular-nums">
                                 {item.count}
                             </span>
                         </div>
@@ -1373,7 +1375,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         {initials || <Icon glyph={glyph} size={18} />}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-on-surface text-[1rem] leading-6">
+                                        <p className="text-on-surface text-ts-body leading-ts-body">
                                             {getHistoryEventSentence({
                                                 event,
                                                 perspectiveActorId: currentUser?.id,
@@ -1457,7 +1459,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             ].map((entree, index) => {
                 const chiffre = (
                     <>
-                        <span className="font-brand text-on-surface flex items-center gap-2 text-[1.375rem] leading-[1.625rem] font-semibold tabular-nums">
+                        <span className="font-brand text-on-surface text-ts-sheet flex items-center gap-2 leading-[1.625rem] font-semibold tabular-nums">
                             {entree.pastille && (
                                 <span
                                     aria-hidden="true"
@@ -1516,10 +1518,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 {/* **Le titre de la page, et le seul** : l'écran n'avait aucun `h1` —
                     le plan du document commençait donc à `h2`, et une lecture au clavier
                     ou à la voix n'y trouvait pas d'entrée. */}
-                <h1 className="font-brand text-on-surface text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
                     Bonjour {firstName}
                 </h1>
-                <p className="text-on-surface-variant mt-0.5 text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5">
                     {subtitle}
                 </p>
             </div>

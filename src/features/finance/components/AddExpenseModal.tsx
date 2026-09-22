@@ -431,7 +431,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                 onClick={() => {
                     void handleSubmit();
                 }}
-                className="text-on-surface h-12 px-3 text-[1rem] font-medium"
+                className="text-on-surface text-ts-body h-12 px-3 font-medium"
             >
                 Enregistrer
             </Button>
@@ -486,10 +486,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                             <Icon glyph={FileText} size={20} />
                                         </span>
                                         <span className="min-w-0 flex-1">
-                                            <span className="text-on-surface block truncate text-[1rem] leading-6 font-medium">
+                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
                                                 {scannedFile.name}
                                             </span>
-                                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                                 {Math.max(1, Math.round(scannedFile.size / 1024))}{' '}
                                                 Ko
                                             </span>
@@ -513,7 +513,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                     {['Fournisseur', 'Montant', 'Date', 'N° de facture'].map(
                                         (label) => (
                                             <div key={label} className="flex items-center gap-3">
-                                                <span className="text-on-surface-variant w-[110px] shrink-0 text-[0.875rem] leading-5">
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub w-[110px] shrink-0">
                                                     {label}
                                                 </span>
                                                 <span className="bg-surface-container h-4 min-w-0 flex-1 rounded-[2px]" />
@@ -558,10 +558,10 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                         <Icon glyph={FileText} size={20} />
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface block truncate text-[1rem] leading-6 font-medium">
+                                        <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
                                             {scannedFile.name}
                                         </span>
-                                        <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                             lue le {formatReadDate(new Date())}
                                         </span>
                                     </span>
@@ -625,7 +625,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                                 key={row.label}
                                                 /* `.xrow` — 44 de haut, la clé à gauche en
                                                encre secondaire, la valeur à droite. */
-                                                className="flex min-h-11 items-center gap-2.5 text-[0.875rem] leading-5"
+                                                className="text-ts-sub leading-ts-sub flex min-h-11 items-center gap-2.5"
                                             >
                                                 <span className="text-on-surface-variant w-[110px] shrink-0">
                                                     {row.label}
@@ -668,7 +668,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                 </FormNote>
 
                                 {requiresLowConfidenceReview ? (
-                                    <label className="bg-surface-container text-on-surface-variant flex items-start gap-3 rounded-[4px] px-4 py-3 text-[0.875rem] leading-5">
+                                    <label className="bg-surface-container text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-3 rounded-[4px] px-4 py-3">
                                         <input
                                             type="checkbox"
                                             className="mt-0.5 h-4 w-4"

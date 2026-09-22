@@ -391,7 +391,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                 <span className="min-w-0 flex-1">
                                     <span
                                         className={cn(
-                                            'block truncate text-[1rem] leading-6 font-medium',
+                                            'text-ts-body leading-ts-body block truncate font-medium',
                                             selectedModel
                                                 ? 'text-on-surface'
                                                 : 'text-on-surface-variant',
@@ -399,7 +399,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     >
                                         {selectedModel?.name || 'Aucun modèle choisi'}
                                     </span>
-                                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                         {selectedModel
                                             ? `${getCategoryLabel(selectedModel.type)} · catalogue`
                                             : 'le type et la marque en viennent'}
@@ -410,13 +410,13 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     variant="text"
                                     size="sm"
                                     onClick={() => setIsModelSheetOpen(true)}
-                                    className="shrink-0 px-1 text-[0.9375rem] font-medium"
+                                    className="text-ts-control shrink-0 px-1 font-medium"
                                 >
                                     {selectedModel ? 'Changer' : 'Choisir'}
                                 </Button>
                             </div>
                             {erreursChamp.model && (
-                                <p className="text-error mt-1.5 text-[0.875rem] leading-5">
+                                <p className="text-error text-ts-sub leading-ts-sub mt-1.5">
                                     {erreursChamp.model}
                                 </p>
                             )}
@@ -447,7 +447,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         setIsScanning(true);
                                     }}
                                     icon={<Icon glyph={Scan} size={18} />}
-                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high h-12 shrink-0 rounded-md px-3.5 text-[0.9375rem] font-medium"
+                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high text-ts-control h-12 shrink-0 rounded-md px-3.5 font-medium"
                                 >
                                     Scanner
                                 </Button>
@@ -467,7 +467,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                         >
                             <Icon glyph={Tag} size={20} className="shrink-0" />
                             <span className="min-w-0 flex-1">
-                                <span className="font-brand block truncate text-[1.375rem] leading-7 font-semibold tracking-[-0.01em] tabular-nums">
+                                <span className="font-brand text-ts-sheet leading-ts-sheet block truncate font-semibold tracking-[-0.01em] tabular-nums">
                                     {countryPrefix ? (
                                         <>
                                             {countryPrefix}-
@@ -572,7 +572,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             </FieldLabel>
                             {stateComesFromAGesture ? (
                                 <>
-                                    <p className="bg-surface-container text-on-surface flex min-h-12 items-center gap-2.5 rounded-md px-3.5 text-[1rem] leading-6">
+                                    <p className="bg-surface-container text-on-surface text-ts-body leading-ts-body flex min-h-12 items-center gap-2.5 rounded-md px-3.5">
                                         {/* Une `Icon` sans `glyph` ne dessine rien : la
                                             rangée annonçait un état sans son
                                             pictogramme, et I3 en demande les deux. */}

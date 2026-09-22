@@ -432,7 +432,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             <Icon glyph={ArrowLeft} />
                         </Button>
                         <div className="min-w-0 flex-1 px-1">
-                            <p className="font-brand text-on-surface truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
+                            <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
                                 {openRole.name}
                             </p>
                         </div>
@@ -452,7 +452,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 <Icon glyph={ArrowLeft} size={20} />
                             </Button>
                             <div className="min-w-0 flex-1">
-                                <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
                                     {openRole.name}
                                 </h1>
                                 <span className="text-text-muted block truncate text-[0.8125rem] leading-4 tabular-nums">
@@ -529,6 +529,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                         title={permissionLabel(key)}
                                         value={ACCESS_LABEL[rule?.access ?? 'none']}
                                         valueTone={rule ? undefined : 'muted'}
+                                        off={!rule}
                                         trailing={
                                             editing ? (
                                                 <Toggle
@@ -569,6 +570,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                         title={permissionLabel(key)}
                                         value={ACCESS_LABEL[rule?.access ?? 'none']}
                                         valueTone={rule ? undefined : 'muted'}
+                                        off={!rule}
                                         trailing={
                                             editing ? (
                                                 <Toggle
@@ -876,8 +878,13 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             « 5 groupes · ce qui s'ajoute aux rôles ». */}
                         <RuleGroup className="px-5" header="Les groupes">
                             <RuleGroup.Row
+                                /* La vignette de 40 et la sous-ligne de 11.1, mot pour mot ; et
+                                   son écart, **12** (`.row` de 11.1) — la rangée partagée tient
+                                   les 16 de 05.2. */
+                                glyph={UsersThree}
+                                className="gap-3"
                                 title={`${rbacGroups.length} groupe${rbacGroups.length > 1 ? 's' : ''}`}
-                                subtitle="Ce qui s'ajoute aux rôles, à plusieurs personnes d'un coup"
+                                subtitle="Ce qui s'ajoute aux rôles"
                                 onOpen={() => navigate('/rbac/groups')}
                             />
                         </RuleGroup>

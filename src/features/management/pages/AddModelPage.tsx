@@ -153,11 +153,11 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
                                     <Icon glyph={getCategoryGlyph(lockedCategory)} size={20} />
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-[1rem] leading-6 font-medium">
+                                    <span className="text-ts-body leading-ts-body block truncate font-medium">
                                         {getCategoryLabel(lockedCategory)}
                                     </span>
                                     {lockedInfo && (
-                                        <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                             {lockedInfo.assignable
                                                 ? 'attribuable'
                                                 : 'non attribuable'}

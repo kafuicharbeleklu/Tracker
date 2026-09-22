@@ -158,7 +158,7 @@ const FilterChip: React.FC<{
         type="button"
         onClick={onClick}
         className={cn(
-            'inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 text-[0.9375rem] leading-5 transition-colors',
+            'text-ts-control leading-ts-control inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 transition-colors',
             selected
                 ? 'bg-inverse-surface text-inverse-on-surface font-medium'
                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
@@ -372,7 +372,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             {
                 id: 'compte',
                 header: 'État du compte',
-                width: '160px',
+                /* La colonne qui prend le reste — `width:100%` au `<colgroup>` de 05.1. */
+                grow: true,
                 cell: (user) => {
                     /* La **même** marque que la carte — `accountMark` : un compte ne
                        change pas d'état parce qu'on l'a mis dans une colonne. Sans
@@ -641,6 +642,23 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                               label: 'Ajouter',
                               description: 'Ajouter une personne',
                               onClick: () => setIsAddSheetOpen(true),
+                              /* Les deux chemins de la feuille, en menu ancré au bureau. */
+                              pathsTitle: 'Ajouter des personnes',
+                              paths: [
+                                  {
+                                      id: 'inviter',
+                                      label: 'Inviter une personne',
+                                      description: 'Une adresse, un rôle, un site.',
+                                      glyph: EnvelopeSimple,
+                                      onSelect: () => setIsInviteSheetOpen(true),
+                                  },
+                                  {
+                                      id: 'importer',
+                                      label: 'Importer une équipe',
+                                      glyph: FileCsv,
+                                      onSelect: () => onViewChange('import_users'),
+                                  },
+                              ],
                           }
                         : undefined
                 }
@@ -677,7 +695,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                 vignette={
                                     <span
                                         className={cn(
-                                            'font-brand flex h-full w-full items-center justify-center text-[0.9375rem] font-semibold',
+                                            'font-brand text-ts-control flex h-full w-full items-center justify-center font-semibold',
                                             VIGNETTE_TONE[user.role],
                                         )}
                                     >
@@ -801,14 +819,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                                 setSiteFilter('Tous');
                                 setStatusFilter('Tous');
                             }}
-                            className="bg-surface-container text-on-surface hover:bg-surface-container-high flex h-12 cursor-pointer items-center justify-center rounded-md text-[1rem] font-medium transition-colors"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high text-ts-body flex h-12 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
                         >
                             Tout effacer
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 flex h-12 cursor-pointer items-center justify-center rounded-md text-[1rem] font-medium transition-colors"
+                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 text-ts-body flex h-12 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
                         >
                             Voir {filteredUsers.length} personnes
                         </button>
@@ -842,10 +860,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             <Icon glyph={EnvelopeSimple} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[1rem] leading-6">
+                            <p className="text-on-surface text-ts-body leading-ts-body">
                                 Inviter une personne
                             </p>
-                            <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                                 Une adresse, un rôle, un site.
                             </p>
                         </div>
@@ -864,10 +882,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                             <Icon glyph={FileCsv} size={20} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-[1rem] leading-6">
+                            <p className="text-on-surface text-ts-body leading-ts-body">
                                 Importer une équipe
                             </p>
-                            <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                                 Un fichier, une ligne par personne.
                             </p>
                         </div>

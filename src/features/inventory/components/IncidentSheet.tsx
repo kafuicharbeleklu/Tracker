@@ -185,7 +185,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={close} title="Déclarer un incident">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     Trace enregistrée au nom de {declarerName}.
                 </p>
 
@@ -238,7 +238,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                         a été choisie, et nomme le fichier et sa taille (17.5). */}
                     {refusPhoto && (
                         <p
-                            className="text-error mt-2 flex items-start gap-1.5 text-[0.875rem] leading-5"
+                            className="text-error text-ts-sub leading-ts-sub mt-2 flex items-start gap-1.5"
                             role="alert"
                         >
                             <Icon glyph={XCircle} size={18} className="mt-px" />

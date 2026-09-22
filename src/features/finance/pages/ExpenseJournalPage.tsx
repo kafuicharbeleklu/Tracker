@@ -242,11 +242,11 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                             <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
                                 {formatNumber(consomme, settings.compactNotation)}
                             </b>
-                            <span className="text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                            <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                                 {settings.currency}
                             </span>
                         </div>
-                        <span className="mt-1 block text-[0.875rem] leading-5 text-[var(--tk-color-on-dark-2)]">
+                        <span className="text-ts-sub leading-ts-sub mt-1 block text-[var(--tk-color-on-dark-2)]">
                             consommés en {deLExercice.length} écriture
                             {deLExercice.length > 1 ? 's' : ''} · exercice {exerciseYear}
                         </span>
@@ -304,10 +304,10 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                             {/* `.ch` — le mois et **son total**, 17 sur 24 en graisse
                                 d'appui, le total en 14 sur 20 à droite. */}
                             <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                                <h3 className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium first-letter:uppercase">
+                                <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium first-letter:uppercase">
                                     {titreDuMois(ecritures[0].date)}
                                 </h3>
-                                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                                     {formatNumber(totalDuMois, settings.compactNotation)}
                                 </span>
                             </div>
@@ -318,12 +318,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                     exp.status === 'Paid'
                                         ? undefined
                                         : getExpenseStatusLabel(exp.status).toLowerCase();
-                                const sousLigne = [
-                                    jourEtMois(exp.date),
-                                    nature,
-                                    complement,
-                                    etat,
-                                ]
+                                const sousLigne = [jourEtMois(exp.date), nature, complement, etat]
                                     .filter(Boolean)
                                     .join(' · ');
                                 return (
@@ -350,20 +345,20 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                         >
                                             {/* `.vig` — 40, rayon 4, deux lettres du
                                                 fournisseur en fonte d'affichage. */}
-                                            <span className="bg-surface-container text-on-surface-variant font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold">
+                                            <span className="bg-surface-container text-on-surface-variant font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold">
                                                 {initiales(exp.supplier)}
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                                <span className="text-on-surface block truncate text-[1rem] leading-6">
+                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
                                                     {exp.supplier}
                                                 </span>
-                                                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                                     {sousLigne}
                                                 </span>
                                             </span>
                                             {/* `.amt` — **le nombre nu**, 16 sur 24 :
                                                 la devise est dite une fois, dans le héro. */}
-                                            <span className="text-on-surface shrink-0 text-[1rem] leading-6 tabular-nums">
+                                            <span className="text-on-surface text-ts-body leading-ts-body shrink-0 tabular-nums">
                                                 {formatNumber(exp.amount, settings.compactNotation)}
                                             </span>
                                         </div>

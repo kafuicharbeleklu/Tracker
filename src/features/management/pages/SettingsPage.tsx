@@ -24,7 +24,10 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import DetailHero from '../../../components/ui/DetailHero';
 import ActionCard from '../../../components/ui/ActionCard';
-import PinConfirmation, { PinSteps, usePinConfirmation } from '../../../components/ui/PinConfirmation';
+import PinConfirmation, {
+    PinSteps,
+    usePinConfirmation,
+} from '../../../components/ui/PinConfirmation';
 import PinField from '../../../components/ui/PinField';
 import { PIN_MAX_ATTEMPTS } from '../../../lib/security';
 import Slider from '../../../components/ui/Slider';
@@ -174,10 +177,11 @@ const FILE_LIMIT_SUBTITLES: Record<number, string> = {
 /**
  * L'ordinal se compose : 14.1 écrit `1<sup>er</sup> janv.`. L'exposant rend trois
  * pixels à la rangée — assez pour que « Devise et année fiscale » ne se coupe plus.
+ * Il ne descend pas sous le plancher de 11 : au bureau, 0,7em du corps de 14 font 9,8.
  */
 const Premier: React.FC = () => (
     <>
-        1<sup className="text-[0.7em] leading-none">er</sup>
+        1<sup className="text-[length:max(0.7em,0.6875rem)] leading-none">er</sup>
     </>
 );
 
@@ -323,7 +327,7 @@ const SettingsBar: React.FC<{
                             <Icon glyph={ArrowLeft} size={20} />
                         </Button>
                     )}
-                    <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                         {title}
                     </h1>
                 </div>
@@ -336,7 +340,7 @@ const SettingsBar: React.FC<{
         return (
             <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                 {retour}
-                <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
+                <h1 className="font-brand text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate px-1 font-semibold tracking-[-0.01em]">
                     {title}
                 </h1>
             </div>
@@ -351,7 +355,7 @@ const SettingsBar: React.FC<{
         <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
             <div className="flex min-h-12 items-center gap-1">
                 {retour && <span className="-ml-3 flex shrink-0">{retour}</span>}
-                <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                     {title}
                 </h1>
             </div>
@@ -607,11 +611,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
      * s'atteste, et son absence est déjà signalée par la feuille « Plus ».
      */
     const codePin: { tone: RuleRowTone; icon: PhosphorGlyph; label: string } = currentUser?.pin
-        /* **La valeur ne redit pas le titre.** « Code PIN défini » prenait 137 px à
+        ? /* **La valeur ne redit pas le titre.** « Code PIN défini » prenait 137 px à
            droite de « Mon compte » : avec la vignette, le titre n'avait plus la place et
            se coupait à « Mon… ». La rangée dit déjà de quel réglage il s'agit, et le
            pictogramme dit déjà que c'est une alerte. */
-        ? { tone: 'positive', icon: CheckCircle, label: 'Défini' }
+          { tone: 'positive', icon: CheckCircle, label: 'Défini' }
         : { tone: 'pending', icon: ShieldWarning, label: 'À définir' };
 
     const openSourceSheet = (id: AutoCollectionSource) => {
@@ -1358,7 +1362,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             >
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3">
-                        <span className="text-on-surface text-[0.875rem] font-medium">
+                        <span className="text-on-surface text-ts-sub font-medium">
                             Source active
                         </span>
                         <Toggle
@@ -1417,7 +1421,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 placeholder="http://localhost:8787"
                             />
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-on-surface text-[0.875rem]">
+                                <span className="text-on-surface text-ts-sub">
                                     Renvoyer les remontées à l'API
                                 </span>
                                 <Toggle
@@ -1550,7 +1554,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     {/* `.slead` — **la raison avant les chemins.** Sans elle, la feuille
                         demande un fichier sans dire ce qu'il deviendra ; c'est pourtant là
                         que se gagne l'envie d'en déposer un. */}
-                    <p className="text-on-surface-variant mb-2 text-[0.875rem] leading-5">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-2">
                         Une image de votre signature. Avec votre code PIN, elle s'apposera
                         d'elle-même.
                     </p>
@@ -1601,7 +1605,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 title="Ma signature"
             >
                 <div className="flex flex-col gap-4 pb-1">
-                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                         Avec votre code PIN, elle s'appose d'elle-même à chaque remise.
                     </p>
 
@@ -1622,7 +1626,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                             Si vous la supprimez
                         </p>
-                        <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                        <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={Key} size={18} />
                             </span>
@@ -1630,7 +1634,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 Le code PIN <b className="font-medium">suffit</b> à attester.
                             </span>
                         </p>
-                        <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                        <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                             <span className="bg-tint-vert text-on-tint-vert flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={Signature} size={18} />
                             </span>
@@ -1726,7 +1730,7 @@ const SignatureApercu: React.FC<{ image: Blob; nom: string; depuis?: string | nu
                 alt={`Signature de ${nom}`}
                 className="absolute inset-x-0 top-9 mx-auto h-[70px] w-auto max-w-[70%] object-contain"
             />
-            <span className="text-on-surface-variant absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
+            <span className="text-on-surface-variant text-ts-sub leading-ts-sub absolute inset-x-0 bottom-2.5 text-center">
                 {nom}
             </span>
         </div>
@@ -1878,7 +1882,7 @@ const SignatureCrop: React.FC<{
             {/* `.alt` — **sous le réglage, pas avant le cadre.** Elle ne dit plus quoi
                 faire (le cadre le montre) mais ce que le geste garantit : ce qu'on voit
                 est ce qui sera enregistré. C'est la phrase qui dispense de vérifier. */}
-            <p className="text-on-surface-variant flex items-start gap-2 text-[0.875rem] leading-5">
+            <p className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2">
                 <Icon
                     glyph={HandPointing}
                     size={18}
@@ -1886,9 +1890,7 @@ const SignatureCrop: React.FC<{
                 />
                 <span>
                     Glissez l'image, pincez pour zoomer.{' '}
-                    <b className="text-on-surface font-medium">
-                        Le cadre garde ce qu'il contient.
-                    </b>
+                    <b className="text-on-surface font-medium">Le cadre garde ce qu'il contient.</b>
                 </span>
             </p>
 
@@ -2051,14 +2053,14 @@ const PinSheet: React.FC<{
               Le titre de la feuille reste à gauche, comme dans toutes les feuilles.
             */}
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant mx-auto max-w-[300px] text-center text-[0.875rem] leading-5 text-balance">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mx-auto max-w-[300px] text-center text-balance">
                     {phrase}
                 </p>
 
                 {bloque ? (
-                    <p className="text-on-surface mx-auto max-w-[300px] text-center text-[0.875rem] leading-5 text-balance">
-                        Votre informatique peut réinitialiser votre code depuis votre fiche.
-                        Vous en poserez alors un nouveau.
+                    <p className="text-on-surface text-ts-sub leading-ts-sub mx-auto max-w-[300px] text-center text-balance">
+                        Votre informatique peut réinitialiser votre code depuis votre fiche. Vous en
+                        poserez alors un nouveau.
                     </p>
                 ) : phase === 'actuel' ? (
                     <div className="flex flex-col items-center">
@@ -2079,7 +2081,7 @@ const PinSheet: React.FC<{
                         <PinSteps className="mt-4" total={3} current={0} />
                         <p
                             className={cn(
-                                'mt-2 max-w-[300px] text-center text-[0.875rem] leading-5',
+                                'text-ts-sub leading-ts-sub mt-2 max-w-[300px] text-center',
                                 refusActuel ? 'text-error' : 'text-on-surface-variant',
                             )}
                             role={refusActuel ? 'alert' : undefined}
@@ -2199,7 +2201,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
            éviter se rejouerait ici sans elle. */
         <BottomSheet open={open} onClose={onClose} title="Changer mon mot de passe">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     Vous resterez connecté sur cet appareil.
                 </p>
 
@@ -2220,9 +2222,9 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                     <PasswordMeter filled={forceNouveau.score} />
                     {/* `.hint` — la règle se lit **avant** la faute, pas après : c'est la
                         seule ligne de l'écran qui évite un aller-retour. */}
-                    <p className="text-on-surface-variant mt-2 text-[0.875rem] leading-5">
-                        {PASSWORD_MIN_LENGTH} caractères minimum ; une phrase vaut mieux qu'un
-                        mot compliqué.
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
+                        {PASSWORD_MIN_LENGTH} caractères minimum ; une phrase vaut mieux qu'un mot
+                        compliqué.
                     </p>
                 </div>
 
@@ -2237,7 +2239,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                 </div>
 
                 {error && (
-                    <p className="text-error flex gap-2 text-[0.875rem] leading-5">
+                    <p className="text-error text-ts-sub leading-ts-sub flex gap-2">
                         <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                         <span>{error}</span>
                     </p>
@@ -2245,11 +2247,11 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
 
                 {/* `.alt` — **les deux secrets ne se confondent pas.** Une personne qui
                     vient de changer « son code » doit repartir en sachant lequel. */}
-                <p className="text-on-surface-variant flex items-start gap-2 text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2">
                     <Icon glyph={Key} size={18} className="text-text-tertiary mt-px shrink-0" />
                     <span>
-                        Votre <b className="text-on-surface font-medium">code PIN</b> ne change
-                        pas : il signe, il n'ouvre pas.
+                        Votre <b className="text-on-surface font-medium">code PIN</b> ne change pas
+                        : il signe, il n'ouvre pas.
                     </span>
                 </p>
 

@@ -152,7 +152,7 @@ const InviteSheet: React.FC<InviteSheetProps> = ({ open, onClose, onInvited, onO
     return (
         <BottomSheet open={open} onClose={close} title="Inviter une personne">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     Elle complète son profil à sa première connexion.
                 </p>
 
@@ -168,7 +168,7 @@ const InviteSheet: React.FC<InviteSheetProps> = ({ open, onClose, onInvited, onO
                         error={duplicate ? ' ' : undefined}
                     />
                     {duplicate && (
-                        <p className="text-error mt-1.5 text-[0.875rem] leading-5">
+                        <p className="text-error text-ts-sub leading-ts-sub mt-1.5">
                             Cette adresse a déjà un compte.{' '}
                             {/* La sortie est **dans la phrase**, comme sur la planche :
                                 on apprend le doublon et on ouvre la fiche du même
@@ -179,7 +179,7 @@ const InviteSheet: React.FC<InviteSheetProps> = ({ open, onClose, onInvited, onO
                                     onOpenExisting(duplicate);
                                     close();
                                 }}
-                                className="!text-error h-auto !min-h-0 !px-0 !py-0 align-baseline text-[0.875rem] font-medium underline underline-offset-2"
+                                className="!text-error text-ts-sub h-auto !min-h-0 !px-0 !py-0 align-baseline font-medium underline underline-offset-2"
                             >
                                 Ouvrir
                             </Button>

@@ -347,10 +347,10 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={option.glyph} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block truncate text-[1rem] leading-6">
+                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
                                     {option.title}
                                 </span>
-                                <span className="text-text-secondary block truncate text-[0.875rem] leading-5">
+                                <span className="text-text-secondary text-ts-sub leading-ts-sub block truncate">
                                     {option.sub}
                                 </span>
                             </span>
@@ -420,7 +420,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={ArrowLeft} size={24} />
                             </Button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
                     </div>
@@ -430,7 +430,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             ) : (
                 <div className="px-page flex flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
                         <Button
@@ -504,10 +504,10 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                                 <Icon glyph={GlobeHemisphereWest} size={18} />
                                             )}
                                         </span>
-                                        <span className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+                                        <span className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                                             {country}
                                         </span>
-                                        <span className="text-text-secondary shrink-0 text-[0.875rem] leading-5 tabular-nums">
+                                        <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                                             {items.length} site{items.length > 1 ? 's' : ''}
                                         </span>
                                     </div>

@@ -83,8 +83,6 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
         [modelEquipment],
     );
 
-
-
     const handleExportUnits = () => {
         if (modelEquipment.length === 0) {
             showToast('Aucune unité à exporter.', 'info');
@@ -363,10 +361,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                 */}
                 <section className="bg-surface rounded-lg px-5 py-2">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
+                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                             Unités
                         </h3>
-                        <span className="text-text-muted text-[0.875rem] leading-5 tabular-nums">
+                        <span className="text-text-muted text-ts-sub leading-ts-sub tabular-nums">
                             {firstThreeUnits.length} sur {totalUnits}
                         </span>
                     </div>
@@ -389,10 +387,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                                     {renderCategoryIcon(parentCategory, 20)}
                                 </span>
                                 <span className="min-w-0 flex-1">
-                                    <span className="text-on-surface block truncate text-[1rem] leading-6 tabular-nums">
+                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate tabular-nums">
                                         {item.assetId}
                                     </span>
-                                    <span className="text-text-muted block truncate text-[0.875rem] leading-5">
+                                    <span className="text-text-muted text-ts-sub leading-ts-sub block truncate">
                                         {[item.user?.name || item.status, item.site]
                                             .filter(Boolean)
                                             .join(' · ')}
@@ -406,7 +404,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                             </div>
                         ))
                     ) : (
-                        <p className="border-outline-variant text-text-muted border-t py-3 text-[0.875rem] leading-5">
+                        <p className="border-outline-variant text-text-muted text-ts-sub leading-ts-sub border-t py-3">
                             Aucune unité enregistrée pour ce modèle.
                         </p>
                     )}
@@ -414,7 +412,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                         <button
                             type="button"
                             onClick={() => navigateToView('equipment')}
-                            className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[0.9375rem] leading-5 font-medium transition-colors"
+                            className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control leading-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
                         >
                             Voir les {totalUnits} unités
                         </button>
@@ -430,12 +428,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                 */}
                 <section className="bg-surface rounded-lg px-5 py-2">
                     <div className="flex min-h-12 items-center pt-2 pb-1">
-                        <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
+                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                             Référence
                         </h3>
                     </div>
                     {amortissement && (
-                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+                        <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
                             <span className="text-text-muted">Amortissement</span>
                             <span className="text-on-surface text-right whitespace-nowrap">
                                 {amortissement}{' '}
@@ -445,15 +443,15 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     )}
                     {model.specs ? (
                         <div className="border-outline-variant border-t py-3">
-                            <span className="text-text-muted block text-[1rem] leading-6">
+                            <span className="text-text-muted text-ts-body leading-ts-body block">
                                 Spécifications
                             </span>
-                            <p className="text-on-surface mt-1 text-[0.875rem] leading-5 whitespace-pre-wrap">
+                            <p className="text-on-surface text-ts-sub leading-ts-sub mt-1 whitespace-pre-wrap">
                                 {model.specs}
                             </p>
                         </div>
                     ) : (
-                        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+                        <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
                             <span className="text-text-muted">Spécifications</span>
                             <span className="text-text-tertiary whitespace-nowrap">
                                 aucune saisie
@@ -463,7 +461,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     <button
                         type="button"
                         onClick={() => setIsEditModalOpen(true)}
-                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[0.9375rem] leading-5 font-medium transition-colors"
+                        className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control leading-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
                     >
                         <Icon glyph={model.specs ? PencilSimple : Plus} size={18} />
                         {model.specs ? 'Modifier les spécifications' : 'Ajouter des spécifications'}

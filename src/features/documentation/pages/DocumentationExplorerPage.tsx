@@ -1061,7 +1061,7 @@ const FlowCanvas: React.FC<{
                                     <span className="block text-[0.6875rem] font-medium tracking-wide uppercase opacity-70">
                                         {kindLabel[screen.kind]}
                                     </span>
-                                    <span className="mt-1 block text-sm leading-5 font-semibold">
+                                    <span className="text-ts-sub leading-ts-sub mt-1 block font-semibold">
                                         {screen.name}
                                     </span>
                                     <span className="mt-1 flex items-center justify-between text-[0.6875rem] opacity-65">
@@ -1122,7 +1122,7 @@ const FlowCanvas: React.FC<{
                             >
                                 {edgeLabel[selectedEdge.type]}
                             </p>
-                            <p className="mt-1 text-sm font-semibold">{selectedEdge.label}</p>
+                            <p className="text-ts-sub mt-1 font-semibold">{selectedEdge.label}</p>
                         </div>
                         <button
                             type="button"

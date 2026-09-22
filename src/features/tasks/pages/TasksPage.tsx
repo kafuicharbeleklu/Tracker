@@ -893,17 +893,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             <div className="flex items-start gap-3 pb-3">
                 <span
                     className={cn(
-                        'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold',
+                        'rounded-vignette text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold',
                         VIG_TINT[tache.nature],
                     )}
                 >
                     {tache.initials ?? <Icon glyph={tache.icon ?? ClipboardText} size={20} />}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <p className="text-on-surface text-[1.0625rem] leading-6 font-medium">
+                    <p className="text-on-surface text-ts-head leading-ts-head font-medium">
                         {tache.title}
                     </p>
-                    <p className="text-text-secondary mt-0.5 text-[0.875rem] leading-5">
+                    <p className="text-text-secondary text-ts-sub leading-ts-sub mt-0.5">
                         {tache.askedBy ?? tache.context}
                         {/* Une décision se date, elle ne se compte pas en jours :
                                         « le 14 août », pas « il y a 21 j » (planche 03.3). */}
@@ -923,12 +923,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             {(tache.reason || tache.detail) && (
                 <div className="bg-surface-container flex flex-col gap-2 rounded-md p-4">
                     {tache.reason && (
-                        <p className="text-on-surface text-[1rem] leading-6 italic">
+                        <p className="text-on-surface text-ts-body leading-ts-body italic">
                             «&nbsp;{tache.reason}&nbsp;»
                         </p>
                     )}
                     {tache.detail && (
-                        <p className="text-text-secondary text-[0.875rem] leading-5">
+                        <p className="text-text-secondary text-ts-sub leading-ts-sub">
                             {tache.who ? `${tache.who} ` : ''}
                             {tache.detail}
                         </p>
@@ -1002,7 +1002,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             {/* `.pinl` — le oui ne signe pas ici : il ouvre l'attestation. */}
             {(tache.transition || tache.reception) && (
-                <p className="text-text-secondary mt-3 text-center text-[0.875rem] leading-5">
+                <p className="text-text-secondary text-ts-sub leading-ts-sub mt-3 text-center">
                     {tache.action} ouvre l'attestation — signature ou code personnel, au choix.
                 </p>
             )}
@@ -1175,7 +1175,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     ) : (
                         <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
                             <Icon glyph={ClipboardText} size={24} className="text-text-tertiary" />
-                            <p className="text-[0.875rem] leading-5">
+                            <p className="text-ts-sub leading-ts-sub">
                                 Choisissez une tâche pour la traiter sans quitter la file.
                             </p>
                         </div>
@@ -1298,7 +1298,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
                     }
                     description={
-                        <span className="text-[1rem] leading-6">
+                        <span className="text-ts-body leading-ts-body">
                             {scope === 'todo'
                                 ? 'Rien n’attend votre geste. La file se remplira d’elle-même.'
                                 : 'Changez de vue ou de nature.'}
@@ -1354,7 +1354,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ) : (
                             <div
                                 className={cn(
-                                    'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-[0.9375rem] leading-5 font-semibold',
+                                    'font-brand text-ts-control leading-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-md font-semibold',
                                     VIG_TINT[tone],
                                     task.quote && 'mt-0.5',
                                 )}
@@ -1368,12 +1368,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         )}
 
                         <div className="min-w-0 flex-1">
-                            <p className="text-on-surface truncate text-[1.0625rem] leading-6 tracking-[-0.01em]">
+                            <p className="text-on-surface text-ts-head leading-ts-head truncate tracking-[-0.01em]">
                                 {task.title}
                             </p>
                             {/* La sous-ligne : qui, puis l'état en un mot. Deux lignes au
                                 plus — au-delà, une rangée n'est plus une rangée. */}
-                            <p className="text-on-surface-variant mt-0.5 line-clamp-2 text-[0.875rem] leading-5">
+                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 line-clamp-2">
                                 {task.who ? (
                                     <>
                                         <b className="text-on-surface font-medium">{task.who}</b> ·{' '}
@@ -1387,7 +1387,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 seul texte que le demandeur a reçu, l'historique ne le
                                 reformule pas (`.tt .q`). */}
                             {task.quote && (
-                                <p className="text-on-surface mt-1.5 text-[0.875rem] leading-5 italic">
+                                <p className="text-on-surface text-ts-sub leading-ts-sub mt-1.5 italic">
                                     «&nbsp;{task.quote}&nbsp;»
                                 </p>
                             )}
@@ -1451,7 +1451,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 <Button
                     variant="text"
                     onClick={() => setVisibleCount((count) => count + TASKS_PAGE_SIZE)}
-                    className="border-outline-variant text-on-surface min-h-12 w-full justify-between rounded-none border-t px-0 text-[0.9375rem] leading-5 font-medium"
+                    className="border-outline-variant text-on-surface text-ts-control leading-ts-control min-h-12 w-full justify-between rounded-none border-t px-0 font-medium"
                 >
                     {/*
                       `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3).
@@ -1497,7 +1497,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 .map(([label, value]) => (
                                     <div
                                         key={String(label)}
-                                        className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-2 text-[1rem] leading-6 first:border-t-0"
+                                        className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-2 first:border-t-0"
                                     >
                                         <dt className="text-text-secondary shrink-0">{label}</dt>
                                         <dd className="text-on-surface min-w-0 text-right font-medium break-words">
@@ -1683,7 +1683,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={3}
                                 placeholder="Budget gelé jusqu’au prochain exercice…"
-                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[1rem] leading-6 outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring text-ts-body leading-ts-body min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 outline-none focus-visible:ring-2"
                             />
                         ),
                     }}
@@ -1718,7 +1718,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             >
                 {cancelling?.cancel && (
                     <div className="space-y-4">
-                        <p className="text-text-secondary text-[1rem] leading-6">
+                        <p className="text-text-secondary text-ts-body leading-ts-body">
                             {cancelling.title}
                         </p>
                         <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-2 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
@@ -1738,7 +1738,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 onChange={(e) => setRefusalReason(e.target.value)}
                                 rows={2}
                                 placeholder="Plus besoin, j'ai trouvé un poste libre…"
-                                className="border-outline bg-surface text-on-surface focus:border-primary w-full rounded-md border p-4 text-[1rem] leading-6 focus:outline-hidden"
+                                className="border-outline bg-surface text-on-surface focus:border-primary text-ts-body leading-ts-body w-full rounded-md border p-4 focus:outline-hidden"
                             />
                         </label>
                         <div className="flex justify-end gap-2">

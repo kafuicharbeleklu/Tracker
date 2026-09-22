@@ -232,10 +232,10 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
             <span className="text-on-nav-surface-variant block text-[0.75rem] leading-4 tracking-[0.07em] uppercase">
                 {countryCode ? `${country} · ${countryCode}` : country}
             </span>
-            <span className="font-brand text-inverse-on-surface mt-1 block text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+            <span className="font-brand text-inverse-on-surface text-ts-page leading-ts-page mt-1 block font-semibold tracking-[-0.02em] text-pretty">
                 {siteName}
             </span>
-            <span className="text-on-nav-surface-variant mt-0.5 block text-[0.875rem] leading-5">
+            <span className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5 block">
                 {neverServed
                     ? 'Ouvert, jamais équipé.'
                     : "Une adresse : c'est elle qui décide si une remise demande un transport."}
@@ -269,7 +269,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             onClick={relay.onOpen}
                             className="text-inverse-on-surface flex min-h-0 min-w-0 flex-1 flex-col items-start gap-0 rounded-[4px] bg-white/[0.08] px-3.5 py-3 hover:bg-white/[0.14]"
                         >
-                            <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
                                 {relay.value}
                             </span>
                             <span className="text-on-nav-surface-variant mt-0.5 flex items-center gap-0.5 overflow-hidden text-[0.75rem] leading-4 font-normal whitespace-nowrap">
@@ -287,7 +287,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     <>
                         <Button
                             variant="filled"
-                            className="h-12 min-h-12 rounded-[4px] text-[1rem]"
+                            className="text-ts-body h-12 min-h-12 rounded-[4px]"
                             icon={<Icon glyph={Plus} size={20} />}
                             onClick={() => onViewChange('add_equipment')}
                         >
@@ -295,7 +295,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                         </Button>
                         <Button
                             variant="text"
-                            className="text-inverse-on-surface h-12 min-h-12 rounded-[4px] bg-white/[0.12] text-[1rem] hover:bg-white/20"
+                            className="text-inverse-on-surface text-ts-body h-12 min-h-12 rounded-[4px] bg-white/[0.12] hover:bg-white/20"
                             onClick={closeSite}
                         >
                             Fermer le site
@@ -309,11 +309,11 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
     /** `.ch` — le titre d'une carte, 17/24 en graisse moyenne, et son décompte. */
     const cardHeader = (title: string, count?: React.ReactNode) => (
         <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
-            <h3 className="text-on-surface min-w-0 truncate text-[1.0625rem] leading-6 font-medium">
+            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 truncate font-medium">
                 {title}
             </h3>
             {count !== undefined && (
-                <span className="text-text-secondary shrink-0 text-[0.875rem] leading-5 tabular-nums">
+                <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                     {count}
                 </span>
             )}
@@ -324,7 +324,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
     /* `.rrow` de 10.1 — une valeur qui manque (`.v.q` : « à désigner », « jamais ») se lit en
        encre tertiaire ; elle tenait l'encre secondaire, celle de la clé (relevé du 13/09). */
     const referenceRow = (label: string, value: React.ReactNode, missing = false) => (
-        <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+        <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
             <span className="text-text-secondary min-w-0 truncate">{label}</span>
             <span
                 className={cn(
@@ -505,7 +505,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                         <Button
                             variant="text"
                             onClick={() => setIsAddLocalOpen(true)}
-                            className="border-outline-variant text-on-surface flex min-h-12 w-full items-center justify-center gap-2 rounded-none border-t text-[0.9375rem] font-medium"
+                            className="border-outline-variant text-on-surface text-ts-control flex min-h-12 w-full items-center justify-center gap-2 rounded-none border-t font-medium"
                         >
                             <Icon glyph={Plus} size={18} className="text-text-secondary" />
                             Ajouter un local
@@ -517,7 +517,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     /* `.warn` — **hors carte**, sur fond de surface : ce que « fermer »
                        veut dire. C'est le seul texte que la passe sobre garde ici, parce
                        que c'est un fait sur un acte, pas une leçon sur l'écran. */
-                    <div className="bg-surface text-text-secondary flex gap-3 rounded-[4px] px-4 py-3 text-[0.875rem] leading-5">
+                    <div className="bg-surface text-text-secondary text-ts-sub leading-ts-sub flex gap-3 rounded-[4px] px-4 py-3">
                         <Icon glyph={Info} size={18} className="mt-px shrink-0" />
                         <span>
                             Fermer un site vide le retire des sélecteurs ; son nom reste dans

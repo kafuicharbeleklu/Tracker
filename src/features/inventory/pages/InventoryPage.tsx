@@ -198,8 +198,8 @@ const AddRoute: React.FC<{
             <Icon glyph={glyph} size={20} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block text-[1rem] leading-6">{title}</span>
-            <span className="text-text-muted block text-[0.875rem] leading-5">{detail}</span>
+            <span className="text-on-surface text-ts-body leading-ts-body block">{title}</span>
+            <span className="text-text-muted text-ts-sub leading-ts-sub block">{detail}</span>
         </span>
         <Icon glyph={CaretDown} size={18} className="text-text-tertiary shrink-0 -rotate-90" />
     </button>
@@ -482,23 +482,27 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'code',
                 header: 'Code',
+                /* Des **plafonds**, pas des largeurs : la colonne se tient à son contenu et
+                   ne se coupe qu'au-delà (04.1, `.tbl td`). Leur somme — 680 avec les
+                   intérieurs — laisse à « Dernier mouvement » sa largeur d'en-tête dans les
+                   992 du bureau ; au-delà, le tableau déborderait. */
+                width: '190px',
                 sorted: colonneTriee === 'code' ? sensTri : undefined,
-                width: '260px',
                 title: (item) => item.name,
                 cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
             },
             {
                 id: 'modele',
                 header: 'Modèle',
+                width: '130px',
                 sorted: colonneTriee === 'modele' ? sensTri : undefined,
-                width: '160px',
                 title: (item) => item.model || undefined,
                 cell: (item) => item.model || '—',
             },
             {
                 id: 'porteur',
                 header: 'Porteur',
-                width: '180px',
+                width: '130px',
                 title: (item) => item.user?.name || undefined,
                 cell: (item) =>
                     item.user?.name || <span className="text-text-tertiary">non attribué</span>,
@@ -506,15 +510,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'lieu',
                 header: 'Site / local',
-                width: '180px',
+                width: '130px',
                 title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
                 cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
             },
             {
                 id: 'statut',
                 header: 'Statut',
+                width: '100px',
                 sorted: colonneTriee === 'statut' ? sensTri : undefined,
-                width: '150px',
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
                        parce qu'on l'a mis dans une colonne. */
@@ -540,7 +544,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 id: 'mouvement',
                 header: 'Dernier mouvement',
                 sorted: colonneTriee === 'mouvement' ? sensTri : undefined,
-                width: '160px',
+                /* La colonne qui prend le reste — `width:100%` au `<colgroup>` de 04.1. */
+                grow: true,
                 cell: (item) => {
                     const quand = dernierMouvement(item);
                     return quand ? (
@@ -867,6 +872,34 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                               label: 'Ajouter',
                               description: 'Ajouter un équipement',
                               onClick: () => setIsAddSheetOpen(true),
+                              /* Les trois chemins de la feuille, en menu ancré au bureau. */
+                              pathsTitle: 'Nouvel équipement',
+                              paths: [
+                                  {
+                                      id: 'scan',
+                                      label: 'Scanner l’étiquette',
+                                      description: 'le code et le type sont lus sur l’objet',
+                                      glyph: Scan,
+                                      onSelect: () => {
+                                          setIsScanning(true);
+                                          setScanHit(null);
+                                      },
+                                  },
+                                  {
+                                      id: 'saisir',
+                                      label: 'Saisir la fiche',
+                                      description: 'type, code, emplacement, numéro de série',
+                                      glyph: Keyboard,
+                                      onSelect: () => onViewChange('add_equipment'),
+                                  },
+                                  {
+                                      id: 'importer',
+                                      label: 'Importer un fichier',
+                                      description: 'une ligne par objet, l’identifiant déduit',
+                                      glyph: FileCsv,
+                                      onSelect: () => onViewChange('import_equipment'),
+                                  },
+                              ],
                           }
                         : undefined
                 }
@@ -1016,7 +1049,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     <button
                         type="button"
                         onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                        className="border-outline-variant text-on-surface hover:bg-surface-container flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t text-[0.9375rem] font-medium transition-colors"
+                        className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
                     >
                         <Icon glyph={CaretDown} size={18} className="text-text-muted" />
                         Charger la suite

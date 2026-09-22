@@ -152,7 +152,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
     return (
         <BottomSheet open={open} onClose={close} title="Sortir du parc">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     Irréversible. L'historique, lui, est conservé.
                 </p>
 

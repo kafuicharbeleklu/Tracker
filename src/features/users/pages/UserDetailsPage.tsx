@@ -931,6 +931,94 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     }
                 />
             }
+            /* 05.2 — l'historique ferme la colonne de gauche au bureau (sous ce qu'elle
+               détient), et la page au téléphone (après le compte et les accès). */
+            asideTail={
+                <RuleGroup
+                    header="Historique"
+                    headerTrailing={
+                        userEvents.length > 0
+                            ? `${userEvents.length} mouvement${userEvents.length > 1 ? 's' : ''}`
+                            : undefined
+                    }
+                >
+                    <div>
+                        {userEvents.length === 0 && (
+                            <p className="text-body-medium text-text-secondary px-4 pt-3.5 pb-4">
+                                <strong className="text-on-surface font-medium">
+                                    Aucun mouvement enregistré
+                                </strong>{' '}
+                                pour {firstName}. Le journal n'a ni attribution, ni retour, ni
+                                changement de compte à son nom.
+                            </p>
+                        )}
+                        {visibleEvents.map((evt, i) => {
+                            const EvIcon = historyIcon(evt);
+                            const when = formatDate(evt.timestamp);
+                            return (
+                                <div
+                                    key={evt.id}
+                                    className={`flex min-h-[56px] items-center gap-3 px-4 py-2.5 ${i > 0 ? 'border-outline-variant border-t' : ''}`}
+                                >
+                                    <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                                        <Icon glyph={EvIcon} size={18} />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-label-large text-on-surface truncate">
+                                            {evt.description}
+                                        </p>
+                                        <p className="text-body-small text-text-secondary mt-px tabular-nums">
+                                            {when ?? '—'}
+                                            {evt.actorName && !evt.isSystem
+                                                ? ` · ${evt.actorName}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {userEvents.length > 3 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAllHistory((v) => !v)}
+                                className={rowClass}
+                            >
+                                <Icon
+                                    glyph={ClockCounterClockwise}
+                                    size={20}
+                                    className="text-text-secondary shrink-0"
+                                />
+                                <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
+                                    {showAllHistory
+                                        ? 'Replier'
+                                        : `Voir les ${userEvents.length} mouvements de ${firstName}`}
+                                </p>
+                            </button>
+                        )}
+                        {userEvents.length === 0 && (
+                            <button
+                                type="button"
+                                onClick={() => onViewChange?.('audit')}
+                                className={rowClass}
+                            >
+                                <Icon
+                                    glyph={ClockCounterClockwise}
+                                    size={20}
+                                    className="text-text-secondary shrink-0"
+                                />
+                                <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
+                                    Ouvrir l'Audit
+                                </p>
+                                <Icon
+                                    glyph={CaretRight}
+                                    size={20}
+                                    className="text-text-muted shrink-0"
+                                />
+                            </button>
+                        )}
+                    </div>
+                </RuleGroup>
+            }
             aside={
                 <>
                     <RuleGroup header="Équipements détenus">
@@ -960,10 +1048,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                                 occupait une colonne pour un fait qui
                                                 se dit dans la phrase. */}
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface truncate text-[1rem] leading-6 tabular-nums">
+                                                <p className="text-on-surface text-ts-body leading-ts-body truncate tabular-nums">
                                                     {item.name || item.assetId}
                                                 </p>
-                                                <p className="text-on-surface-variant truncate text-[0.875rem] leading-5">
+                                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub truncate">
                                                     {[
                                                         item.model || getCategoryLabel(item.type),
                                                         since ? `depuis le ${since}` : undefined,
@@ -992,7 +1080,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         ) : (
                             /* `.emp` — 14 sur 20 sur l'encre secondaire, et il nomme
                                la personne : « Aucun mouvement au nom de Marc ». */
-                            <p className="border-outline-variant text-on-surface-variant border-t pt-1 pb-3 text-[0.875rem] leading-5">
+                            <p className="border-outline-variant text-on-surface-variant text-ts-sub leading-ts-sub border-t pt-1 pb-3">
                                 Aucun équipement au nom de {firstName}.
                             </p>
                         )}
@@ -1070,7 +1158,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleCopyInvitation}
-                                className="h-10 shrink-0 px-3.5 text-[0.9375rem] font-medium"
+                                className="text-ts-control h-10 shrink-0 px-3.5 font-medium"
                             >
                                 Copier
                             </Button>
@@ -1134,91 +1222,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 </RuleGroup>
             )}
 
-            <RuleGroup
-                header="Historique"
-                headerTrailing={
-                    userEvents.length > 0
-                        ? `${userEvents.length} mouvement${userEvents.length > 1 ? 's' : ''}`
-                        : undefined
-                }
-            >
-                <div>
-                    {userEvents.length === 0 && (
-                        <p className="text-body-medium text-text-secondary px-4 pt-3.5 pb-4">
-                            <strong className="text-on-surface font-medium">
-                                Aucun mouvement enregistré
-                            </strong>{' '}
-                            pour {firstName}. Le journal n'a ni attribution, ni retour, ni
-                            changement de compte à son nom.
-                        </p>
-                    )}
-                    {visibleEvents.map((evt, i) => {
-                        const EvIcon = historyIcon(evt);
-                        const when = formatDate(evt.timestamp);
-                        return (
-                            <div
-                                key={evt.id}
-                                className={`flex min-h-[56px] items-center gap-3 px-4 py-2.5 ${i > 0 ? 'border-outline-variant border-t' : ''}`}
-                            >
-                                <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                                    <Icon glyph={EvIcon} size={18} />
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-label-large text-on-surface truncate">
-                                        {evt.description}
-                                    </p>
-                                    <p className="text-body-small text-text-secondary mt-px tabular-nums">
-                                        {when ?? '—'}
-                                        {evt.actorName && !evt.isSystem
-                                            ? ` · ${evt.actorName}`
-                                            : ''}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
-                    {userEvents.length > 3 && (
-                        <button
-                            type="button"
-                            onClick={() => setShowAllHistory((v) => !v)}
-                            className={rowClass}
-                        >
-                            <Icon
-                                glyph={ClockCounterClockwise}
-                                size={20}
-                                className="text-text-secondary shrink-0"
-                            />
-                            <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
-                                {showAllHistory
-                                    ? 'Replier'
-                                    : `Voir les ${userEvents.length} mouvements de ${firstName}`}
-                            </p>
-                        </button>
-                    )}
-                    {userEvents.length === 0 && (
-                        <button
-                            type="button"
-                            onClick={() => onViewChange?.('audit')}
-                            className={rowClass}
-                        >
-                            <Icon
-                                glyph={ClockCounterClockwise}
-                                size={20}
-                                className="text-text-secondary shrink-0"
-                            />
-                            <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
-                                Ouvrir l'Audit
-                            </p>
-                            <Icon
-                                glyph={CaretRight}
-                                size={20}
-                                className="text-text-muted shrink-0"
-                            />
-                        </button>
-                    )}
-                </div>
-            </RuleGroup>
-
             {/* Feuille — note */}
             <BottomSheet
                 open={sheet === 'note'}
@@ -1277,20 +1280,20 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     {/* `.slead` de 05.2 — la phrase qui dit que l'acte se défait, en 14 sur 20.
                         Elle tenait dans une pilule ambre : la planche n'en met pas, et une
                         alerte teintée pour un acte réversible dit le contraire du texte. */}
-                    <p className="text-on-surface-variant text-[0.875rem] leading-5">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                         Réversible : « Réactiver le compte » redevient le geste de la fiche.
                     </p>
 
                     {/* `.fixed` — sur qui porte l'acte : sa vignette, son nom, ce qu'il détient. */}
                     <div className="flex items-center gap-3 py-2">
-                        <span className="bg-tint-bleu text-on-tint-bleu rounded-vignette font-brand flex h-10 w-10 shrink-0 items-center justify-center text-[0.9375rem] font-semibold">
+                        <span className="bg-tint-bleu text-on-tint-bleu rounded-vignette font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold">
                             {initials}
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block truncate text-[1rem] leading-6">
+                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
                                 {user.name}
                             </span>
-                            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                 {held > 0 ? `${heldLabel} à son nom` : 'aucun objet à son nom'}
                             </span>
                         </span>
@@ -1303,7 +1306,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         <span className="text-text-muted text-[0.75rem] leading-4 font-medium">
                             Ce que cela change
                         </span>
-                        <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                        <span className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                             <span className="bg-tint-orange text-on-tint-orange flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={LockSimple} size={18} />
                             </span>
@@ -1312,7 +1315,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 <b className="text-on-surface font-medium">immédiatement</b>.
                             </span>
                         </span>
-                        <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                        <span className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={UserMinus} size={18} />
                             </span>
@@ -1322,7 +1325,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             </span>
                         </span>
                         {held > 0 && (
-                            <span className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                            <span className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                                 <span className="bg-tint-ambre text-on-tint-ambre flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
                                     <Icon glyph={Laptop} size={18} />
                                 </span>

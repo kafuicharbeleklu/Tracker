@@ -602,10 +602,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={Tag} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[1rem] leading-6">
+                            <span className="text-on-surface text-ts-body leading-ts-body block">
                                 Un type
                             </span>
-                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                 Une famille, un nom, attribuable ou non
                             </span>
                         </span>
@@ -621,10 +621,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={Laptop} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[1rem] leading-6">
+                            <span className="text-on-surface text-ts-body leading-ts-body block">
                                 Un modèle
                             </span>
-                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                 Un nom et son type ; le reste plus tard
                             </span>
                         </span>
@@ -649,10 +649,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             <Icon glyph={FileCsv} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[1rem] leading-6">
+                            <span className="text-on-surface text-ts-body leading-ts-body block">
                                 Importer des modèles
                             </span>
-                            <span className="text-on-surface-variant block text-[0.875rem] leading-5">
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
                                 Un fichier, une ligne par modèle
                             </span>
                         </span>
@@ -716,7 +716,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                             Catalogue
                         </h1>
                     </div>
@@ -859,10 +859,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                         size={18}
                                                     />
                                                 </span>
-                                                <span className="min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+                                                <span className="text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                                                     {family}
                                                 </span>
-                                                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                                                     {items.length} type{items.length > 1 ? 's' : ''}
                                                 </span>
                                             </div>
@@ -913,16 +913,17 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                    il retombe en `.ty.q` — 400, encre pâle :
                                                                    ce n'est plus un nombre, c'est un manque. */
                                                                 unusable ? (
-                                                                    <span className="text-text-muted text-[0.875rem] leading-5 font-normal">
+                                                                    <span className="text-text-muted text-ts-sub leading-ts-sub font-normal">
                                                                         aucun modèle
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-on-surface text-[0.875rem] leading-5 font-medium tabular-nums">
+                                                                    <span className="text-on-surface text-ts-sub leading-ts-sub font-medium tabular-nums">
                                                                         {modelCount} modèle
                                                                         {modelCount > 1 ? 's' : ''}
                                                                     </span>
                                                                 )
                                                             }
+                                                            muted={unusable}
                                                             status={
                                                                 /* Le glyphe de l'attente, en ambre — la paire
                                                                    canonique du registre §0.3. Un catalogue

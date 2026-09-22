@@ -213,27 +213,27 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
             */}
             <section className="bg-surface rounded-lg px-4 py-1">
                 <div className="flex min-h-12 items-center pt-2 pb-1">
-                    <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
+                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                         Référence
                     </h3>
                 </div>
-                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
                     <span className="text-text-muted">Clé de la donnée</span>
                     {isDataKeyReleve ? (
-                        <span className="text-on-surface font-mono text-[0.875rem] leading-5 whitespace-nowrap">
+                        <span className="text-on-surface text-ts-sub leading-ts-sub font-mono whitespace-nowrap">
                             {dataKey}
                         </span>
                     ) : (
                         <span className="text-text-tertiary whitespace-nowrap">à relever</span>
                     )}
                 </div>
-                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
                     <span className="text-text-muted">Attribuable</span>
                     <span className="text-on-surface whitespace-nowrap">
                         {isAssignable ? 'Oui' : 'Non'}
                     </span>
                 </div>
-                <div className="border-outline-variant flex min-h-12 items-center justify-between gap-4 border-t py-3 text-[1rem] leading-6">
+                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
                     <span className="text-text-muted">Amortissement</span>
                     <span className="text-on-surface whitespace-nowrap">
                         {depreciationMethod} · {depreciationYears} ans
@@ -246,10 +246,10 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 {/* `.ch` de 09.1 — le titre en 17 sur 24 et 500, le compte en 14 sur l'encre
                     secondaire, sans graisse : les deux étaient en 13 et en 600. */}
                 <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                    <h3 className="text-on-surface text-[1.0625rem] leading-6 font-medium">
+                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                         Modèles
                     </h3>
-                    <span className="text-text-muted text-[0.875rem] leading-5 tabular-nums">
+                    <span className="text-text-muted text-ts-sub leading-ts-sub tabular-nums">
                         {categoryModels.length}
                     </span>
                 </div>
@@ -275,7 +275,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                             fallback={
                                                 /* `.vig` — l'initiale en Archivo 600,
                                                    comme toute vignette ; elle tenait 500. */
-                                                <span className="text-[0.9375rem] font-semibold">
+                                                <span className="text-ts-control font-semibold">
                                                     {(model.brand || model.name)
                                                         .trim()
                                                         .charAt(0)

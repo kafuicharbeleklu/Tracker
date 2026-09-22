@@ -1099,14 +1099,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <Icon glyph={closureBlocked ? ArrowsLeftRight : CheckCircle} size={20} />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[1rem] leading-6">
+                    <span className="text-ts-body leading-ts-body block truncate">
                         {closureBlocked
                             ? `${pendingExceptions.length} objet${pendingExceptions.length > 1 ? 's' : ''} non attendu${pendingExceptions.length > 1 ? 's' : ''} ici`
                             : `${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
                     </span>
                     <span
                         className={cn(
-                            'block truncate text-[0.875rem] leading-5',
+                            'text-ts-sub leading-ts-sub block truncate',
                             closureBlocked ? 'opacity-80' : 'text-on-surface-variant',
                         )}
                     >
@@ -1116,7 +1116,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 {closureBlocked ? (
                     /* `.go` — le geste de la carte est **sombre**, pas jaune : le jaune de
                        l'écran est pris par le scan, et ceci mène à une décision. */
-                    <span className="bg-inverse-surface text-inverse-on-surface flex h-10 shrink-0 items-center rounded-sm px-3.5 text-[0.9375rem] font-medium">
+                    <span className="bg-inverse-surface text-inverse-on-surface text-ts-control flex h-10 shrink-0 items-center rounded-sm px-3.5 font-medium">
                         Trancher
                     </span>
                 ) : (
@@ -1442,7 +1442,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <Icon glyph={ArrowLeft} size={20} />
                     </Button>
                     <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
                             {selectedPlace || 'Campagne'}
                         </h1>
                         <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-4">
@@ -1488,7 +1488,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             icon={<Icon glyph={ArrowLeft} size={24} />}
                             aria-label="Retour"
                         />
-                        <span className="font-brand text-on-surface min-w-0 flex-1 truncate px-1 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
+                        <span className="font-brand text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate px-1 font-semibold tracking-[-0.01em]">
                             {vueEcarts ? 'Écarts' : 'Campagne'}
                         </span>
                         {/* Après la clôture il n'y a plus rien à décider : le débordement se
@@ -1667,7 +1667,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                            pas un écran : elle porte son nom et son reste à
                                            faire, comme une file. */
                                         <div className="flex min-h-10 items-center gap-3 px-1">
-                                            <h2 className="font-brand text-on-surface min-w-0 flex-1 text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                                            <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet min-w-0 flex-1 font-semibold tracking-[-0.015em]">
                                                 Écarts
                                             </h2>
                                             <span className="text-on-surface-variant shrink-0 text-[0.8125rem] leading-4 tabular-nums">
@@ -1750,7 +1750,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                               />
                                                           </span>
                                                           <div className="min-w-0 flex-1">
-                                                              <p className="font-brand text-on-surface truncate text-[1rem] font-semibold tracking-[-0.01em]">
+                                                              <p className="font-brand text-on-surface text-ts-body truncate font-semibold tracking-[-0.01em]">
                                                                   {code}
                                                               </p>
                                                               <p className="text-body-small text-text-secondary truncate">
@@ -1974,7 +1974,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     {enDeuxNiveaux &&
                                         !auditFinalized &&
                                         pendingExceptions.length > 0 && (
-                                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-md px-4 py-3 text-[0.875rem] leading-5">
+                                            <div className="bg-tint-ambre text-on-tint-ambre text-ts-sub leading-ts-sub flex gap-3 rounded-md px-4 py-3">
                                                 <Icon
                                                     glyph={LockSimple}
                                                     size={18}
