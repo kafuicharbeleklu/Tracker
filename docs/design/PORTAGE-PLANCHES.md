@@ -4338,3 +4338,28 @@ disponible), et « Attribuer » ouvre l'assistant sur le bon actif.
 
 **Reste ouvert** : en cartes, de 840 à 1279, la planche montre aussi un ⋮ sur la rangée
 survolée. Pas fait.
+
+### La mesure du bureau sur les autres pages (22/09)
+
+**La demande** : *« améliore le style de grille de la version desktop sur les autres
+pages »*. Mesuré à 1440 (1 200 px de contenu) avant de toucher :
+
+- **Paramètres, Accès, Rapports, Catalogue, Emplacements, Dépenses** : un corps qui est une
+  colonne de rangées, étiré sur 1 200. Le nom d'un réglage à gauche, sa valeur à 1 100 px de
+  là — l'œil perd la ligne. C'est le défaut que `Reading` corrige au téléphone et qu'il
+  relâchait au-delà de 1 200.
+- **Fiches (04.2, 05.2), Finances, Inventaire** : deux colonnes 7/5 remplies, rien à reprendre.
+- **Actifs, Équipe, Historique** : des tableaux, qui se balayent et remplissent ce qu'on leur
+  donne. Ils gardent toute la largeur.
+
+**Posé** : `.main.read` de 17.11 — **1 008 px de contenu** — sur les corps en colonne, au-delà
+de 1 200 comme en deçà. `Reading` prend un `desk`, `ListTemplate` borne le gabarit entier
+(gouttières comprises) sauf en tableau et sauf à deux zones, et les deux pages à mise en page
+propre (Catalogue, Emplacements) bornent leur en-tête **et** leur corps sur la même valeur.
+
+**Mesuré après**, à 1440 : les six pages en colonne se terminent toutes à 1 008 de contenu,
+au pixel près ; les tableaux et les pages à deux zones sont inchangés ; les 45 en-têtes fixes
+(15 routes × 393, 1280, 1920) tiennent toujours.
+
+**Pas vérifié** : Tâches (03.3), dont le corps à deux niveaux demande une file non vide — les
+données de démonstration n'en portent aucune.

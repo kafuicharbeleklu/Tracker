@@ -429,7 +429,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     {!isReferentialEmpty && ordLine}
                 </div>
             ) : (
-                <div className="px-page bg-background sticky top-0 z-20 flex flex-col gap-3 pt-5">
+                <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
                         <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
@@ -458,6 +458,10 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             {/* `.page` — gouttière de 16, et 96 px de pied quand le FAB est là. */}
             <div
                 className={cn(
+                    /* **La mesure du bureau** — `.main.read` de 17.11, 1008 de contenu : un
+                       corps qui est une colonne de rangées ne s'étire pas, sinon le nom d'une
+                       rangée et son compte se retrouvent aux deux bouts de l'écran. */
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
                     'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
                     isCompact && !isReferentialEmpty && 'pb-24',
                 )}

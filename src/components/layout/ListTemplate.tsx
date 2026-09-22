@@ -583,7 +583,22 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     );
 
     return (
-        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
+        <div
+            className={cn(
+                'relative flex min-h-0 w-full min-w-0 flex-1 flex-col',
+                /* **La mesure du bureau** — `.main.read` de 17.11, 1008. Une liste en cartes
+                   est une colonne de rangées : étirée sur 1200, le nom d'une rangée et son
+                   compte se retrouvent aux deux bouts de l'écran. Le tableau, lui, remplit ce
+                   qu'on lui donne (il se balaye), et un corps à deux zones aussi. */
+                !deuxNiveaux &&
+                    !enTableauLarge &&
+                    /* 1008 de **contenu** : le plafond porte sur le gabarit entier, gouttières
+                       comprises, sinon la mesure change d'une page à l'autre selon l'endroit
+                       où elle est posée. */
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
+                className,
+            )}
+        >
             {/* **L'en-tête est fixe ; le contenu défile** (17.8) — titre, recherche,
                 pastilles, ligne de compte : *« un filtre posé dans la page disparaît au
                 premier défilement, et la liste devient un sous-ensemble sans étiquette »*.

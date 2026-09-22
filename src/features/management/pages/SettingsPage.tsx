@@ -714,7 +714,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 pris de chaque côté à des rangées qui n'en avaient pas de trop. */}
             <div className="medium:px-page flex-1 overflow-y-auto px-4 pt-4 pb-6">
                 {/* `.page` de 07.1 : 16 d'écart entre le héro et les cartes (10/09 ; il valait 20). */}
-                <Reading className="flex flex-col gap-4 pb-16">
+                <Reading desk className="flex flex-col gap-4 pb-16">
                     {view === 'index' && (
                         <>
                             {/* **La liste ne porte plus de note.** Chaque groupe en avait

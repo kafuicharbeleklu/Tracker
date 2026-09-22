@@ -678,7 +678,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             */}
             {/* **Le bloc fixe l'est vraiment** (17.8) : titre, recherche, ligne de tri
                 restent quand le référentiel défile. Il partait avec lui. */}
-            <div className="bg-background sticky top-0 z-20">
+            <div className="bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20">
                 {isCompact && selection.isActive ? (
                     /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
                    change de régime, il ne gagne pas un palier. */
@@ -808,6 +808,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 className={cn(
                     /* `.page` de 09.1 : 16 de côté, 24 en bas, 96 quand le bouton
                        flottant occupe le coin (10/09 ; le code posait 20 / 36). */
+                    /* **La mesure du bureau** — `.main.read` de 17.11, 1008 de contenu : un
+                       corps qui est une colonne de rangées ne s'étire pas, sinon le nom d'une
+                       rangée et son compte se retrouvent aux deux bouts de l'écran. */
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
                     'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
                     isCompact && !isReferentialEmpty && 'pb-24',
                 )}

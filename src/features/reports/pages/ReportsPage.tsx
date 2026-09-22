@@ -388,7 +388,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
               l'autre — elle date d'avant le rapport par personne —, et une planche ne retire pas
               une fonction qu'elle n'a jamais eue à dessiner (arbitrage du 16/09).
             */}
-            <Reading>
+            <Reading desk>
                 <section className="bg-surface rounded-lg px-5 py-2">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">

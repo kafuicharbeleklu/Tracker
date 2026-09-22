@@ -22,16 +22,30 @@ import { cn } from '../../lib/utils';
  * toute la largeur : ce n'est pas de la lecture, c'est du balayage. Il sort de cette
  * mesure par un conteneur qui glisse (`overflow-x`), et lui seul.
  */
-const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
-    children,
-    className,
-}) => (
+const Reading: React.FC<{
+    children: React.ReactNode;
+    className?: string;
+    /**
+     * **La mesure tient aussi au bureau** — `.main.read` de 17.11 : **1008**. Elle vaut pour
+     * un corps qui est **une colonne de rangées** (les réglages, les rôles, les rapports, une
+     * liste en cartes) : à 1200 de large, le nom d'un réglage et sa valeur se retrouvent aux
+     * deux bouts de l'écran, et l'œil perd la ligne. Un tableau ou un corps à deux zones ne
+     * la prend pas : eux se balayent, et remplissent ce qu'on leur donne.
+     */
+    desk?: boolean;
+}> = ({ children, className, desk }) => (
     /* **Au-delà de 1200, la mesure s'efface** : aucune planche de bureau ne borne son
        corps — `.main` n'a qu'une gouttière de 24 —, et à 1280 les zones occupent 992. Le
        cadre de 960 centré posait le contenu 16 px trop à droite et lui coûtait 32 de
        large : la légende d'une bande y passait à la ligne (relevé du 16/09). En deçà, la
        mesure vaut : c'est là qu'on lit des lignes de texte. */
-    <div className={cn('large:mx-0 large:max-w-none mx-auto w-full max-w-[960px]', className)}>
+    <div
+        className={cn(
+            'large:mx-0 mx-auto w-full max-w-[960px]',
+            desk ? 'large:max-w-[63rem]' : 'large:max-w-none',
+            className,
+        )}
+    >
         {children}
     </div>
 );
