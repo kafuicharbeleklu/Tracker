@@ -956,7 +956,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         /* **La vignette de la rangée** (04.1 au bureau) : le pictogramme du
                            type dans son carré de 32, qui cède la place à la case au survol.
                            La première colonne était vide au repos. */
-                        rowLead={(item) => <Icon glyph={getCategoryGlyph(item.type)} size={18} />}
+                        rowLead={(item) => (
+                            <span className="bg-surface-container text-text-tertiary flex h-8 w-8 items-center justify-center rounded-md">
+                                <Icon glyph={getCategoryGlyph(item.type)} size={18} />
+                            </span>
+                        )}
                         selection={{
                             isActive: selection.isActive,
                             isSelected: (id) => selection.isSelected(id),

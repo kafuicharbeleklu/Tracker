@@ -645,6 +645,22 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         rowId={(user) => user.id}
                         onOpen={(user) => onUserClick?.(user.id)}
                         rowLabel={(user) => `${user.name}, ouvrir la fiche`}
+                        /* **La vignette de la rangée** — 05.1 au bureau : *« la vignette cède
+                           la place à la case »*. Ronde, aux initiales et à la teinte du rôle,
+                           comme en cartes. La colonne était vide au repos. */
+                        rowLead={(user) => (
+                            <span
+                                className={cn(
+                                    /* Le fond par défaut d'abord : « Utilisateurs » n'a pas
+                                       de teinte, et sans lui ses initiales flottaient sur la
+                                       rangée, sans pastille. */
+                                    'bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 items-center justify-center rounded-full text-[0.75rem] leading-4 font-semibold',
+                                    VIGNETTE_TONE[user.role],
+                                )}
+                            >
+                                {initials(user.name)}
+                            </span>
+                        )}
                         selection={{
                             isActive: selection.isActive,
                             isSelected: (id) => selection.isSelected(id),

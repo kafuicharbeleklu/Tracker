@@ -321,7 +321,12 @@ function DataTable<T>({
                                                     <span
                                                         aria-hidden="true"
                                                         className={cn(
-                                                            'bg-surface-container text-text-tertiary pointer-events-none absolute inset-0 flex items-center justify-center rounded-md transition-opacity',
+                                                            /* Le gabarit ne pose que la place :
+                                                               la forme de la vignette appartient
+                                                               à l'écran — carrée pour un objet
+                                                               (04.1), ronde pour une personne
+                                                               (05.1). */
+                                                            'pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity',
                                                             selection?.isActive || selected
                                                                 ? 'opacity-0'
                                                                 : 'group-focus-within:opacity-0 group-hover:opacity-0',
