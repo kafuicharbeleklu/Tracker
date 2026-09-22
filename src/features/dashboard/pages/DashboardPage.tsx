@@ -751,6 +751,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         onNavigate?.(`/inventory/filter/${encodeURIComponent(status)}`);
 
     const isManager = permissions.canManageInventory;
+    /**
+     * **La grille du bureau** (≥ 1280, gestionnaire) et la largeur qu'elle donne aux
+     * cartes. Sans campagne, la mosaïque tient trois cartes de 4/12 ; une campagne en
+     * ajoute une quatrième, et Budget et État du parc passent à 8/12 — la largeur où
+     * leurs deux moitiés se posent côte à côte (`.duo` de 03.1).
+     */
+    const enGrille = bureau && isManager;
+    const enDuo = enGrille && Boolean(campagne);
     const firstName = (currentUser?.name || '').split(' ')[0];
 
     /** Quatre rangées au plus dans la zone : au-delà, c'est la file qui prend. */
@@ -1206,31 +1214,37 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const etatDuParc = (
         <>
             <Card title="État du parc">
-                <Gauge
-                    value={fleet.endOfLife}
-                    label={`sur ${fleet.size} en fin de vie comptable`}
-                    percent={fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0}
-                    fill="bg-[var(--tk-color-st-orange)]"
-                    note={
-                        renewal ? (
-                            <>
-                                Renouvellement sur « {renewal.category} »,{' '}
-                                <span className="text-on-surface">
-                                    {new Intl.NumberFormat('fr-FR').format(renewal.remaining)} XOF
-                                </span>{' '}
-                                restants.
-                            </>
-                        ) : undefined
-                    }
-                />
-                {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
-                <div className="bg-outline-variant mt-5 h-px" />
-                <Gauge
-                    value={fleet.uncovered}
-                    label={`sur ${fleet.size} hors garantie`}
-                    percent={fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0}
-                    fill="bg-[var(--tk-color-st-orange)]"
-                />
+                {/* `.duo` au bureau quand la carte a 8/12 : les deux jauges côte à côte.
+                    Dans la grille, le renouvellement quitte la note de la fin de vie pour
+                    les montants du Budget, où 03.1 le range. */}
+                <div className={cn(enDuo && 'grid grid-cols-2 items-start gap-6')}>
+                    <Gauge
+                        value={fleet.endOfLife}
+                        label={`sur ${fleet.size} en fin de vie comptable`}
+                        percent={fleet.size > 0 ? (fleet.endOfLife / fleet.size) * 100 : 0}
+                        fill="bg-[var(--tk-color-st-orange)]"
+                        note={
+                            renewal && !enGrille ? (
+                                <>
+                                    Renouvellement sur « {renewal.category} »,{' '}
+                                    <span className="text-on-surface">
+                                        {new Intl.NumberFormat('fr-FR').format(renewal.remaining)}{' '}
+                                        XOF
+                                    </span>{' '}
+                                    restants.
+                                </>
+                            ) : undefined
+                        }
+                    />
+                    {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
+                    {!enDuo && <div className="bg-outline-variant mt-5 h-px" />}
+                    <Gauge
+                        value={fleet.uncovered}
+                        label={`sur ${fleet.size} hors garantie`}
+                        percent={fleet.size > 0 ? (fleet.uncovered / fleet.size) * 100 : 0}
+                        fill="bg-[var(--tk-color-st-orange)]"
+                    />
+                </div>
                 <DashboardMoreAction
                     label="Valeur et amortissement"
                     destination="Finances"
@@ -1245,22 +1259,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             <Card title={`Budget ${budgetStats?.year || 2026}`}>
                 {budgetStats ? (
                     <>
-                        <Gauge
-                            /* `.wrow` — **le chiffre est le pourcentage**, et
+                        <div className={cn(enDuo && 'grid grid-cols-2 items-start gap-6')}>
+                            <Gauge
+                                /* `.wrow` — **le chiffre est le pourcentage**, et
                                    le total passe au libellé : « 72 % · de
                                    42 000 000 XOF consommés ». Un montant engagé
                                    ne se compare à rien tant qu'on n'a pas lu
                                    l'enveloppe qui le suit. */
-                            value={`${Math.round(budgetStats.percentSpent)} %`}
-                            label={`de ${new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)} XOF consommés`}
-                            percent={budgetStats.percentSpent}
-                            marker={budgetPace ?? undefined}
-                            ariaLabel={
-                                budgetPace === null
-                                    ? `${budgetStats.percentSpent.toFixed(1)} %`
-                                    : `${budgetStats.percentSpent.toFixed(1)} % ; repère du rythme de l’exercice à ${Math.round(budgetPace)} %`
-                            }
-                            /*
+                                value={`${Math.round(budgetStats.percentSpent)} %`}
+                                label={`de ${new Intl.NumberFormat('fr-FR').format(budgetStats.totalAllocated)} XOF consommés`}
+                                percent={budgetStats.percentSpent}
+                                marker={budgetPace ?? undefined}
+                                ariaLabel={
+                                    budgetPace === null
+                                        ? `${budgetStats.percentSpent.toFixed(1)} %`
+                                        : `${budgetStats.percentSpent.toFixed(1)} % ; repère du rythme de l’exercice à ${Math.round(budgetPace)} %`
+                                }
+                                /*
                                   `.wnote` — la conséquence, pas le commentaire, et
                                   son `b` n'est pas gras : la planche le pose à 400,
                                   en encre pleine. Elle **date** sa mesure (« au 3
@@ -1269,19 +1284,57 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                   cours, il n'y a pas de rythme à tenir : la jauge
                                   reste seule.
                                 */
-                            note={
-                                budgetPace === null ? undefined : (
-                                    <>
-                                        <span className="text-on-surface">
-                                            {budgetGap === 0
-                                                ? 'Au rythme de l’exercice'
-                                                : `${Math.abs(budgetGap)} point${Math.abs(budgetGap) > 1 ? 's' : ''} ${budgetGap > 0 ? 'au-dessus du rythme' : 'sous le rythme'}`}
-                                        </span>{' '}
-                                        au {jourEnClair(new Date())}.
-                                    </>
-                                )
-                            }
-                        />
+                                note={
+                                    budgetPace === null ? undefined : (
+                                        <>
+                                            <span className="text-on-surface">
+                                                {budgetGap === 0
+                                                    ? 'Au rythme de l’exercice'
+                                                    : `${Math.abs(budgetGap)} point${Math.abs(budgetGap) > 1 ? 's' : ''} ${budgetGap > 0 ? 'au-dessus du rythme' : 'sous le rythme'}`}
+                                            </span>{' '}
+                                            au {jourEnClair(new Date())}.
+                                        </>
+                                    )
+                                }
+                            />
+                            {/*
+                          `.kv` — **les trois montants** de 03.1 au bureau : ce qui est
+                          consommé, ce qui reste, et la ligne du renouvellement. Le
+                          pourcentage dit l'allure ; eux disent la somme, et c'est ce
+                          qu'on vient chercher avant d'engager une commande. Ils
+                          remplissent la carte que la hauteur fixe laissait vide. Le
+                          libellé passe à la ligne plutôt que de se couper : dans un
+                          tiers à 1280, « Renouvellement Infrastructure » ne tient pas.
+                        */}
+                            {enGrille && (
+                                <dl className="mt-3 flex flex-col gap-1.5">
+                                    {[
+                                        { mot: 'Consommé', montant: budgetStats.totalSpent },
+                                        { mot: 'Restant', montant: budgetStats.remaining },
+                                        ...(renewal
+                                            ? [
+                                                  {
+                                                      mot: `Renouvellement ${renewal.category}`,
+                                                      montant: renewal.remaining,
+                                                  },
+                                              ]
+                                            : []),
+                                    ].map(({ mot, montant }) => (
+                                        <div
+                                            key={mot}
+                                            className="text-ts-body leading-ts-body flex justify-between gap-3"
+                                        >
+                                            <dt className="text-on-surface-variant min-w-0">
+                                                {mot}
+                                            </dt>
+                                            <dd className="text-on-surface shrink-0 tabular-nums">
+                                                {new Intl.NumberFormat('fr-FR').format(montant)}
+                                            </dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            )}
+                        </div>
                         <DashboardMoreAction
                             label="Détail par enveloppe"
                             destination="Finances"
@@ -1583,25 +1636,31 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
     /**
      * **Le seul écran multi-zones de la vague** (03.1, bureau du 08/09). À 1280 : la
-     * bande de chiffres en ligne, puis la file (8/12) et les événements (4/12) **à même
-     * hauteur** — une porte chacune —, puis la mosaïque, *pesée sur ce que les cartes
-     * portent* : Budget 7 (une jauge et trois montants) et Inventaire 5 ; Types en
-     * tension 5 (une liste courte) et État du parc 7 (deux jauges côte à côte).
+     * bande de chiffres en ligne, puis la file et les événements **à même hauteur**, puis
+     * la mosaïque.
      *
-     * Sans campagne en cours, la mosaïque n'a que trois cartes : l'État du parc prend
-     * alors la rangée entière plutôt que de laisser un trou de cinq colonnes.
+     * **Une seule grille de douze colonnes, et toutes les cartes y tombent sur les mêmes
+     * lignes** — arbitrage du commanditaire, 22/09, contre la mosaïque de 03.1. La
+     * planche pesait chaque carte sur ce qu'elle porte (7/5 puis 5/7) ; à l'écran, cela
+     * faisait trois découpes sur trois rangées (8/4, 7/5, 12), aucun bord aligné sur
+     * celui du dessus. Il ne reste que les lignes du tiers : la file 8 et les événements
+     * 4, puis des cartes de 4 ou de 8.
+     *
+     * - **Sans campagne** : Budget, État du parc et Types en tension, un tiers chacun.
+     * - **Avec campagne** : Budget 8 et Inventaire 4, puis État du parc 8 et Types en
+     *   tension 4 — la colonne de droite reste celle des événements.
      */
     const mosaique = campagne
         ? [
-              { cle: 'budget', span: 'col-span-7', contenu: budget },
-              { cle: 'inventaire', span: 'col-span-5', contenu: inventaire },
-              { cle: 'tension', span: 'col-span-5', contenu: typesEnTension },
-              { cle: 'etat', span: 'col-span-7', contenu: etatDuParc },
+              { cle: 'budget', span: 'col-span-8', contenu: budget },
+              { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
+              { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
+              { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
           ]
         : [
-              { cle: 'budget', span: 'col-span-7', contenu: budget },
-              { cle: 'tension', span: 'col-span-5', contenu: typesEnTension },
-              { cle: 'etat', span: 'col-span-12', contenu: etatDuParc },
+              { cle: 'budget', span: 'col-span-4', contenu: budget },
+              { cle: 'etat', span: 'col-span-4', contenu: etatDuParc },
+              { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
           ];
 
     /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
@@ -1627,35 +1686,24 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     {!large && gestes}
                     {large && isManager && bande}
 
-                    {bureau && isManager ? (
-                        <>
-                            {/* `.zones` — 8fr et 4fr, à hauteur égale : les événements
-                                sont **bornés à la hauteur de la file** au lieu de courir
-                                le long de la page. Pas huit colonnes sur douze : le partage
-                                de 03.1 ne compte pas les gouttières, et la colonne des
-                                événements tombait 5 px trop à droite (relevé du 13/09). */}
-                            {/*
-                              **Des rangées de hauteur fixe** — arbitrage du commanditaire,
-                              22/09. La rangée suivait son contenu : le héro vide tenait en
-                              deux lignes (128 px) à côté d'événements de 440, et la
-                              mosaïque changeait de hauteur d'un jour à l'autre. Chaque
-                              rangée a maintenant sa mesure — **448** pour la file et les
-                              événements, **320** pour la mosaïque ; une liste plus longue
-                              défile dans sa carte, une carte vide centre son état.
-                            */}
-                            <div className="grid h-[28rem] grid-cols-[8fr_4fr] items-stretch gap-4">
-                                <div className={CASE_GRILLE}>{aTraiter}</div>
-                                <div className={CASE_GRILLE}>{evenements}</div>
-                            </div>
-
-                            <div className="grid auto-rows-[20rem] grid-cols-12 items-stretch gap-4">
-                                {mosaique.map((carte) => (
-                                    <div key={carte.cle} className={cn(CASE_GRILLE, carte.span)}>
-                                        {carte.contenu}
-                                    </div>
-                                ))}
-                            </div>
-                        </>
+                    {enGrille ? (
+                        /*
+                          **Des rangées de hauteur fixe** — arbitrage du commanditaire,
+                          22/09 : **448** pour la file et les événements, **320** pour la
+                          mosaïque ; une liste plus longue défile dans sa carte, une carte
+                          vide centre son état. Une seule grille porte les deux, pour que
+                          la gouttière entre la file et les événements soit **la même
+                          ligne** que celle des cartes du dessous.
+                        */
+                        <div className="grid auto-rows-[20rem] grid-cols-12 grid-rows-[28rem] gap-4">
+                            <div className={cn(CASE_GRILLE, 'col-span-8')}>{aTraiter}</div>
+                            <div className={cn(CASE_GRILLE, 'col-span-4')}>{evenements}</div>
+                            {mosaique.map((carte) => (
+                                <div key={carte.cle} className={cn(CASE_GRILLE, carte.span)}>
+                                    {carte.contenu}
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <>
                             {aTraiter}

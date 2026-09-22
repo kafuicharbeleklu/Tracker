@@ -4208,3 +4208,28 @@ fait en 16 / 500, ce qu'il veut dire en 14, **160 px au moins** hors grille. Pos
 du tableau de bord (file, événements, types en tension, budget, équipements du porteur) et sur
 l'historique vide des fiches d'un objet et d'une personne. Ce n'est pas `ScreenState` (17.1),
 qui occupe un écran.
+
+### Une seule grille au tableau de bord (22/09)
+
+**La demande** : *« améliore le style de grille de la version desktop »* — précisée : la grille
+des cartes du tableau de bord.
+
+**Relevé** : trois découpes sur trois rangées — la file et les événements en `8fr 4fr`, la
+mosaïque en 7/5, État du parc sur 12. Aucun bord ne tombait sous celui du dessus (à 1280 :
+915 / 931, puis 834 / 850, puis rien). Et les cartes larges étaient vides : 03.1 y pose un
+`.duo` (Budget : la jauge et **trois montants** ; État du parc : **deux jauges côte à côte**)
+que le code n'avait jamais porté.
+
+**Posé** — arbitrage du commanditaire, contre la mosaïque 7/5 · 5/7 de 03.1 :
+- **Une seule grille de 12 colonnes**, rangées de 448 puis 320 : la gouttière entre la file et
+  les événements est la même ligne que celle des cartes du dessous.
+- **Sans campagne** : Budget, État du parc, Types en tension, un tiers chacun.
+  **Avec campagne** : Budget 8 · Inventaire 4, puis État du parc 8 · Types en tension 4 — la
+  colonne de droite reste celle des événements, et les cartes de 8 prennent le `.duo`.
+- **Budget porte ses trois montants** (Consommé, Restant, Renouvellement <ligne>) ; dans la
+  grille, le renouvellement quitte la note d'État du parc, comme sur la planche.
+
+**Mesuré** à 1280, 1440, 1600 et 1920, avec et sans campagne (campagne simulée par un
+interrupteur local retiré aussitôt) : bords identiques d'une rangée à l'autre, aucun
+débordement de carte. La bande de chiffres garde ses cinq cases : cinq ne se posent pas
+sur douze colonnes.
