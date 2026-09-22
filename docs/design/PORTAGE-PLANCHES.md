@@ -4275,3 +4275,31 @@ le nombre de faits.
 
 **Non touché** : l'Équipe au téléphone (rangée à deux lignes, déjà conforme) et son tableau
 de bureau (cinq colonnes, rangées de 48).
+
+### Deux faits par rangée au téléphone (22/09, second lot)
+
+**La demande**, précisée : *« liste des équipements, utilisateurs, et feuilles utilisateur et
+équipement pendant affectation et retour — bref toutes les listes en version mobile »*.
+
+**La règle existait déjà, et n'était pas appliquée.** `ListRow` la documente depuis le 20/08 :
+*« Deux faits au téléphone, quatre au-delà (00.4) : le modèle et la date apparaissent dès
+`medium` parce que la place existe. »* Material 3 dit la même chose — une rangée à deux lignes
+ne porte qu'une ligne secondaire — et NN/g y ajoute que le reste se relève, il ne s'affiche pas.
+
+**Mesuré à 393 :**
+
+| Liste | Avant | Après |
+| --- | --- | --- |
+| Actifs | 4 faits : code, **type**, état ou porteur, **ASSET-10001** | 2 : code, état ou porteur |
+| Dépenses | jour · poste · **référence de pièce** · état | jour · poste · libellé · état |
+| Choisir un objet / une personne (remise, restitution) | nom, sous-ligne, **chevron sur chaque rangée** | nom, sous-ligne |
+| Équipe | nom, site · objets détenus | inchangé — la rangée n'en portait que deux |
+| Tâches, Historique, Inventaire, Accès | 2 faits + l'âge ou le geste | inchangés |
+
+**Deux identifiants pour un objet** : la rangée d'un actif portait son code (`LPT-HQ-01`) **et**
+sa référence (`ASSET-10001`), sur 393 px. Le type et la référence reviennent dès la tablette,
+et se lisent de toute façon sur la fiche.
+
+**Le chevron par rangée tombe** dans les listes des feuilles d'acte : c'est l'arbitrage du
+07/09 sur la feuille « Plus » — *« toutes les rangées mènent ailleurs, la flèche ne distingue
+rien de sa voisine »* — appliqué au choix de l'objet et de la personne.

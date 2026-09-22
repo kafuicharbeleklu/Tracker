@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
-import { CaretRight, MagnifyingGlass, QrCode, X } from '@phosphor-icons/react';
+import { MagnifyingGlass, QrCode, X } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import Button from './Button';
@@ -405,6 +405,13 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                         key={item.id}
                                         type="button"
                                         onClick={() => picker.onPick(item.id)}
+                                        /* **Pas de chevron par rangée** (22/09) : dans une
+                                           liste où *toutes* les rangées mènent au même
+                                           endroit — le bloc qu'on est en train de choisir
+                                           —, la flèche ne distingue rien de sa voisine.
+                                           C'est l'arbitrage du 07/09 sur la feuille
+                                           « Plus », appliqué au choix d'un objet et d'une
+                                           personne. */
                                         className={cn(
                                             'flex min-h-14 w-full items-center gap-3 py-2 text-left',
                                             index > 0 && 'border-outline-variant border-t',
@@ -425,11 +432,6 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                                 </span>
                                             )}
                                         </span>
-                                        <Icon
-                                            glyph={CaretRight}
-                                            size={20}
-                                            className="text-text-tertiary shrink-0"
-                                        />
                                     </button>
                                 ))
                             )}

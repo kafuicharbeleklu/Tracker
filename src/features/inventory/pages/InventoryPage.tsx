@@ -1014,7 +1014,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                         />
                                     }
                                     title={item.name}
-                                    type={getCategoryLabel(item.type)}
+                                    type={isCompact ? undefined : getCategoryLabel(item.type)}
                                     status={userStatus}
                                     holder=""
                                     reference=""
@@ -1061,10 +1061,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     />
                                 }
                                 title={item.name}
-                                type={getCategoryLabel(item.type)}
+                                /*
+                                  **Deux faits au téléphone, quatre au-delà** (00.4, et la
+                                  rangée partagée le documente depuis le 20/08). La rangée
+                                  en portait quatre à 393 : le code, le type à droite,
+                                  l'état ou le porteur, et le **second identifiant**
+                                  (`ASSET-10001`) — deux codes pour un même objet sur une
+                                  ligne de 393 px. Le type et l'identifiant reviennent dès
+                                  la tablette, où la place existe, et se lisent de toute
+                                  façon sur la fiche. Arbitré le 22/09.
+                                */
+                                type={isCompact ? undefined : getCategoryLabel(item.type)}
                                 status={status}
                                 holder={holderText}
-                                reference={item.assetId}
+                                reference={isCompact ? undefined : item.assetId}
                                 onOpen={() => onEquipmentClick?.(item.id)}
                                 selectionActive={selection.isActive}
                                 selected={selection.isSelected(item.id)}

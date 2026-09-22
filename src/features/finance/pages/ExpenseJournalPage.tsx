@@ -12,6 +12,8 @@ import ScreenState from '../../../components/ui/ScreenState';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import type { FinanceExpense, FinanceExpenseType } from '../../../types';
@@ -109,6 +111,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
     const [naturesActives, setNaturesActives] = useState<FinanceExpenseType[]>([]);
     const [periode, setPeriode] = useState<PeriodeId>('exercice');
     const recherchee = useDebounce(recherche, 200);
+    const compact = useMediaQuery(MEDIA.compact);
 
     const [exerciseYear, setExerciseYear] = useState<number>(
         () => financeBudgets[0]?.year || new Date().getFullYear(),
@@ -313,7 +316,13 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                             </div>
                             {ecritures.map((exp, index) => {
                                 const nature = EXPENSE_TYPE_LABELS[exp.type].toLowerCase();
-                                const complement = exp.invoiceNumber || exp.description?.trim();
+                                /* **Deux faits au téléphone** (22/09) : la référence de la
+                                   pièce — `AWS-2026-215` — se relève sur la dépense ouverte ;
+                                   elle ne sert pas à la reconnaître dans la liste, dont la
+                                   sous-ligne porte déjà le jour, le poste et l'état. */
+                                const complement = compact
+                                    ? exp.description?.trim()
+                                    : exp.invoiceNumber || exp.description?.trim();
                                 const etat =
                                     exp.status === 'Paid'
                                         ? undefined
