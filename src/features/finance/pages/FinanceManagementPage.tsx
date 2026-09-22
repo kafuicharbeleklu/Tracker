@@ -449,7 +449,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         l'écran, et une ligne qui touchait
                                                         son libellé. */}
                                                         <span className="text-on-surface-variant large:col-start-3 large:row-span-2 large:row-start-1 large:text-right large:text-[0.8125rem] text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
-                                                            <b className="text-on-surface large:text-[0.875rem] text-ts-body font-medium">
+                                                            <b className="text-on-surface large:text-[0.875rem] large:leading-5 text-ts-body font-medium">
                                                                 {formatNumber(
                                                                     item.spent,
                                                                     settings.compactNotation,
