@@ -324,13 +324,18 @@ html {
 body {
     min-width: 0;
     max-width: 100%;
-    overflow-x: hidden;
+    /* **`clip`, pas `hidden`** — les deux coupent le débordement latéral, mais `hidden`
+       fait du corps un conteneur de défilement (son `overflow-y` passe à `auto`) : la
+       barre latérale `sticky` se collait alors à lui, qui ne défile jamais, et partait
+       avec la page au lieu de rester en place. Même règle pour `#root`. */
+    overflow-x: clip;
     font-family: var(--tk-type-font-plain);
     /* **Le corps des planches : `--t3`, 16 sur 1,5.** Le corps du produit empruntait le
        cran « mention » (13 sur 19) : tout texte qui ne déclarait pas sa taille sortait
        en 13, une marche qu'aucune planche ne dessine — et 16 est aussi le corps de
-       Material (body-large) et le plancher de lecture d'Apple à 17 pt près. */
-    font-size: 1rem;
+       Material (body-large) et le plancher de lecture d'Apple à 17 pt près. Au bureau,
+       14 : le corps des applications de bureau (22/09). */
+    font-size: var(--tk-ts-body-size);
     line-height: 1.5;
     letter-spacing: 0;
     color: var(--tk-color-on-surface);
@@ -343,7 +348,7 @@ body {
 #root {
     min-width: 0;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     color: inherit;
     background-color: inherit;
     transition:
@@ -996,6 +1001,41 @@ body {
     --tk-type-label-medium-tracking: 0;
     --tk-type-label-small-tracking: 0;
 
+    /* ---- L'échelle par régime (22/09) ----
+       **Six rôles, deux régimes.** Au téléphone, l'échelle des planches : 28 · 22 · 17 ·
+       16 · 15 · 14 — celle d'iOS (Title 1 28, Title 2 22, Headline et Body 17) et de
+       Material (Headline 28, Title 22, Body 16 / 14). Au bureau, **pointeur fin et
+       fenêtre de 840 et plus**, l'échelle des applications de bureau — Notion, Linear,
+       GitHub, Facebook web tiennent leur interface en 14 et leur secondaire en 12-13 :
+       24 · 20 · 15 · 14 · 14 · 13. Les planches dessinent le bureau aux tailles du
+       téléphone ; l'arbitrage du commanditaire (22/09) les descend d'un cran.
+       La légende (12), le plancher (11) et le chrome déjà dense du bureau (13, 14) ne
+       changent pas. `text-ts-*` ne pose que la taille, `leading-ts-*` que l'interligne :
+       une taille sans interligne hérite du sien, comme `text-[1rem]` le faisait. */
+    --tk-ts-page-size: 1.75rem;
+    --tk-ts-page-line: 2rem;
+    --tk-ts-sheet-size: 1.375rem;
+    --tk-ts-sheet-line: 1.75rem;
+    --tk-ts-head-size: 1.0625rem;
+    --tk-ts-head-line: 1.5rem;
+    --tk-ts-body-size: 1rem;
+    --tk-ts-body-line: 1.5rem;
+    --tk-ts-control-size: 0.9375rem;
+    --tk-ts-control-line: 1.25rem;
+    --tk-ts-sub-size: 0.875rem;
+    --tk-ts-sub-line: 1.25rem;
+    /* Le bureau. Un jeton n'est déclaré qu'une fois (garde des jetons) : la bascule vit
+       dans les règles, comme celle de l'échelle compacte (`Responsive Typography`). */
+    --tk-ts-page-size-bureau: 1.5rem;
+    --tk-ts-sheet-size-bureau: 1.25rem;
+    --tk-ts-head-size-bureau: 0.9375rem;
+    --tk-ts-head-line-bureau: 1.375rem;
+    --tk-ts-body-size-bureau: 0.875rem;
+    --tk-ts-body-line-bureau: 1.25rem;
+    --tk-ts-control-size-bureau: 0.875rem;
+    --tk-ts-sub-size-bureau: 0.8125rem;
+    --tk-ts-sub-line-bureau: 1.125rem;
+
     /* ============================================================
        ADN MOBILE v1 — VALEURS CIBLES (voir DESIGN_BRIEF.md)
        ------------------------------------------------------------
@@ -1116,6 +1156,74 @@ body {
     --tk-type-weight-strong-next: 500;
 }
 
+/* **L'échelle par régime, en utilitaires** — la taille seule, l'interligne seul. Le régime
+   du bureau : une fenêtre de 840 et plus **et** un pointeur fin. La largeur seule ne
+   suffit pas — un téléphone couché dépasse 840, et une tablette tenue au doigt garde les
+   tailles qu'on lit à bout de bras. */
+@utility text-ts-page {
+    font-size: var(--tk-ts-page-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-page-size-bureau);
+    }
+}
+@utility text-ts-sheet {
+    font-size: var(--tk-ts-sheet-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-sheet-size-bureau);
+    }
+}
+@utility text-ts-head {
+    font-size: var(--tk-ts-head-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-head-size-bureau);
+    }
+}
+@utility text-ts-body {
+    font-size: var(--tk-ts-body-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-body-size-bureau);
+    }
+}
+@utility text-ts-control {
+    font-size: var(--tk-ts-control-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-control-size-bureau);
+    }
+}
+@utility text-ts-sub {
+    font-size: var(--tk-ts-sub-size);
+    @media (min-width: 840px) and (pointer: fine) {
+        font-size: var(--tk-ts-sub-size-bureau);
+    }
+}
+@utility leading-ts-page {
+    line-height: var(--tk-ts-page-line);
+}
+@utility leading-ts-sheet {
+    line-height: var(--tk-ts-sheet-line);
+}
+@utility leading-ts-head {
+    line-height: var(--tk-ts-head-line);
+    @media (min-width: 840px) and (pointer: fine) {
+        line-height: var(--tk-ts-head-line-bureau);
+    }
+}
+@utility leading-ts-body {
+    line-height: var(--tk-ts-body-line);
+    @media (min-width: 840px) and (pointer: fine) {
+        line-height: var(--tk-ts-body-line-bureau);
+    }
+}
+@utility leading-ts-control {
+    line-height: var(--tk-ts-control-line);
+}
+@utility leading-ts-sub {
+    line-height: var(--tk-ts-sub-line);
+    @media (min-width: 840px) and (pointer: fine) {
+        line-height: var(--tk-ts-sub-line-bureau);
+    }
+}
+
 /* ============================================================
    TRACKER DS — TIER 3 : TOKENS DE COMPOSANT
    ------------------------------------------------------------
@@ -1208,6 +1316,17 @@ body,
     body,
     #root {
         background: var(--tk-color-login-desktop-canvas);
+    }
+
+    /* **Le verrou ne vaut que pour le cadre.** La racine se fixe à la fenêtre et cesse
+       de défiler parce que c'est `.tk-frame-scroll` qui défile, à l'intérieur de
+       l'appareil. Posé sans condition, il survivait à la levée de `MOBILE_ONLY` (08/09) :
+       sans cadre, plus rien ne défilait au-delà de 600 px — la page était coupée au bas
+       de la fenêtre, sur toutes les destinations du bureau. Il ne s'applique donc que
+       lorsque le cadre est monté. */
+    html:has(.tk-frame),
+    html:has(.tk-frame) body,
+    html:has(.tk-frame) #root {
         height: 100%;
         overflow: hidden;
     }
@@ -1446,6 +1565,46 @@ body {
     font-weight: var(--tk-type-label-small-weight-next);
     letter-spacing: var(--tk-type-label-small-tracking-next);
     text-transform: none;
+}
+
+/* **Le régime du bureau, pour les rôles maison** (22/09) — même bascule que les
+   utilitaires `text-ts-*`, posée après toutes les classes de rôle pour les surcharger.
+   Le titre de page et de feuille, le titre de rangée, le corps et le secondaire
+   descendent d'un cran ; les étiquettes (gestes, 14 en 500) et la légende restent. */
+@media (min-width: 840px) and (pointer: fine) {
+    body {
+        font-size: var(--tk-ts-body-size-bureau);
+    }
+
+    .page-title,
+    .text-display-small,
+    .text-headline-large {
+        font-size: var(--tk-ts-page-size-bureau);
+    }
+
+    .section-title,
+    .text-headline-medium,
+    .text-headline-medium-plain {
+        font-size: var(--tk-ts-sheet-size-bureau);
+    }
+
+    .text-headline-small,
+    .text-title-large {
+        font-size: var(--tk-ts-head-size-bureau);
+        line-height: var(--tk-ts-head-line-bureau);
+    }
+
+    .text-title-medium,
+    .text-title-medium-plain,
+    .text-body-large {
+        font-size: var(--tk-ts-body-size-bureau);
+        line-height: var(--tk-ts-body-line-bureau);
+    }
+
+    .text-body-medium {
+        font-size: var(--tk-ts-sub-size-bureau);
+        line-height: var(--tk-ts-sub-line-bureau);
+    }
 }
 
 .ui-panel {

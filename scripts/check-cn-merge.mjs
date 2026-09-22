@@ -122,6 +122,32 @@ check(
   { keeps: ['w-fab', 'h-fab'], drops: ['w-14', 'h-14'] }
 );
 
+// --- 1e. L'échelle par régime (source de vérité : index.css, `@utility text-ts-*`) -------
+// Des tailles qui changent au bureau (22/09). Non déclarées, `text-ts-body` serait lue comme
+// une couleur et avalerait `text-on-surface` — ou l'inverse — ; `leading-ts-body` ne
+// chasserait pas le `leading-6` d'une primitive.
+const echelle = [...new Set([...indexCss.matchAll(/@utility text-(ts-[a-z]+)\b/g)].map((m) => m[1]))];
+if (echelle.length < 6) {
+  failures.push(`échelle par régime : ${echelle.length}/6 utilitaires trouvés dans index.css (regex à revoir ?)`);
+}
+for (const name of echelle) {
+  check(
+    `text-${name} : doit coexister avec une couleur de texte`,
+    cn(`text-${name} text-on-surface-variant`),
+    { keeps: [`text-${name}`, 'text-on-surface-variant'] }
+  );
+  check(
+    `text-${name} : doit être classé taille (chasse text-[1rem])`,
+    cn('text-[1rem]', `text-${name}`),
+    { keeps: [`text-${name}`], drops: ['text-[1rem]'] }
+  );
+  check(
+    `leading-${name} : doit chasser l'interligne d'une primitive (groupe leading)`,
+    cn('leading-6', `leading-${name}`),
+    { keeps: [`leading-${name}`], drops: ['leading-6'] }
+  );
+}
+
 // --- 2. Cas mesurés (§11.3 / §11.4) -------------------------------------------------------
 check(
   'sonde §11.4 : le typescale ne doit pas être avalé par une couleur',
@@ -160,7 +186,7 @@ check(
 );
 
 // --- Verdict ------------------------------------------------------------------------------
-const total = typescale.length * 2 + elevations.length + spacings.length + adnRadii.length + 1 + 7;
+const total = typescale.length * 2 + elevations.length + spacings.length + adnRadii.length + echelle.length * 3 + 1 + 7;
 if (failures.length > 0) {
   console.error(`✗ Sonde cn()/tailwind-merge : ${failures.length} échec(s) sur ${total} vérifications\n`);
   for (const failure of failures) {
@@ -169,5 +195,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, élévations ${elevations.length}, espacements ${spacings.length}, rayons ADN ${adnRadii.length}, cas §11) — OK`
+  `✓ Sonde cn()/tailwind-merge : ${total} vérifications (typescale ${typescale.length}, échelle par régime ${echelle.length}, élévations ${elevations.length}, espacements ${spacings.length}, rayons ADN ${adnRadii.length}, cas §11) — OK`
 );

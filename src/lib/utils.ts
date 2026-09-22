@@ -38,6 +38,13 @@ const SPACING_PREFIXES = [
     'gap-y',
 ] as const;
 
+/**
+ * **L'échelle par régime** — six rôles dont la taille et l'interligne changent au bureau
+ * (index.css, 22/09) : titre de page, titre de feuille, titre de rangée, corps, geste,
+ * secondaire.
+ */
+const TYPE_SCALE_ROLES = ['page', 'sheet', 'head', 'body', 'control', 'sub'];
+
 const spacingClassGroups = Object.fromEntries(
     SPACING_PREFIXES.map((prefix) => [prefix, [{ [prefix]: SPACING_TOKENS }]]),
 );
@@ -85,9 +92,13 @@ const twMerge = extendTailwindMerge({
                         'title-medium-plain',
                         'label-large-plain',
                         'label-small-plain',
+                        // L'échelle par régime (index.css, `@utility text-ts-*`, 22/09).
+                        ...TYPE_SCALE_ROLES.map((role) => `ts-${role}`),
                     ],
                 },
             ],
+            // …et son interligne : `leading-ts-body` doit chasser un `leading-6`.
+            leading: [{ leading: TYPE_SCALE_ROLES.map((role) => `ts-${role}`) }],
             // Élévations MD3 (tailwind.config.js boxShadow) : même groupe que shadow-none.
             shadow: [
                 {
