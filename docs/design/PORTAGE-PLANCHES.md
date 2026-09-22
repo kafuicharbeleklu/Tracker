@@ -69,7 +69,7 @@ Une planche est dite **portée** quand sa forme a été relevée sur la planche 
 | 15.5 | Finances — les rapports | `ReportsPage` | **non portée** |
 | 16.1 | Inventaire — vue globale | `AuditPage`, `placeAudit`, `AuditOverview*` | **portée** — les deux niveaux, le héro, le périmètre à deux axes ; sur le gabarit 17.8. **Bureau porté le 09/09** : bande de chiffres, sites en tableau 8/12, site choisi en panneau 4/12 |
 | 16.2 | Inventaire — la campagne | `AuditDetailsPage` | **portée** — le parc et les écarts en deux écrans, le scan dans le héro, la clôture au ⋮. **Bureau porté le 09/09** : campagne 7/12, écarts 5/12 en panneau, « Saisir un code » à la place du scan |
-| 18.1 | Historique — le journal | `HistoryPage` | **portée** — le journal par jour au téléphone ; **bureau porté le 09/09** : tableau à cinq colonnes, jours en rangées de 36, pastilles de nature et de période sur la ligne d'outils, export dans l'en-tête |
+| 18.1 | Historique — le journal | `HistoryPage` | **portée en entier le 22/09** — les six colonnes : le journal par jour (quatre faits par jour, « Voir les n autres »), la feuille à trois axes (nature, période avec l'exercice, **personne ou objet**), **le fait ouvert et sa preuve** (fil des attestations, signature apposée, renvois), **Mon historique** pour le porteur, le vide qui nomme son filtre, le bureau en tableau avec ⋮, tri et rangées au défilement |
 
 ## Les composants partagés — 17.
 
@@ -3850,3 +3850,281 @@ contenu, pas de style.
 
 **Relevé v31** : **8 écarts** (0 de structure, 8 visibles), **73 familles conformes sur 73**,
 296 écarts visibles élément par élément sur 696 appariés.
+
+### Les tableaux du bureau, le geste d'ajout et la barre latérale (22/09)
+
+**Un tableau de planche se tasse à gauche, et une colonne prend le reste.** Les `<colgroup>` de
+04.1, 05.1, 18.1 et 15.3 laissent les colonnes à leur contenu (`.tbl td` en `nowrap`) et en
+désignent **une** à `width:100%` — « Dernier mouvement », « État du compte ». `DataTable`
+répartissait au contraire toute la largeur entre les colonnes (`max-w-0` sur chaque cellule) :
+le tableau s'étalait d'un bord à l'autre, « Objets » partait à 1 030 là où 05.1 le pose à 700.
+Il gagne `grow` ; dans un tableau qui en a une, les autres colonnes se tiennent à leur contenu
+**jusqu'à un plafond** (leur `width`) — les exemples des planches sont courts, un parc réel
+porte des noms de trente signes, et sans plafond Équipements débordait de 120 px.
+La colonne de tête rend **42** comme sur les planches (leur `<col>` en demande 52, le tableau
+la ramène à son contenu : 10 d'intérieur, la case de 18 et ses marges de 7) — la case garde
+une cible de 48 par `touch-target`, sans toucher à la mise en page. Le tableau perd le filet
+qui l'entourait : aucune des sept planches à tableau n'en dessine. Première colonne : 330 → 316,
+la position de la planche.
+
+**Au bureau, les chemins d'ajout sont un menu ancré.** 17.11 et 05.1 dessinent « + Ajouter ⌄ » ;
+15.3 le dit : *« le geste avec ses trois chemins en menu ancré »*. Le bouton d'en-tête ouvrait
+la feuille du téléphone, centrée en dialogue. `pageAction` reçoit `paths` : au bureau, un
+`Menu` sous un bouton à chevron (légende « Nouvel équipement », trois chemins avec leurs
+glyphes) ; au téléphone, le bouton rond ouvre toujours la feuille. `MenuItem` accepte un
+glyphe Phosphor, pour le scan et le fichier CSV que la table des noms Material ne connaît pas.
+
+**La barre latérale prend les noms des planches** : « Accueil », « Actifs », « Inventaire
+physique » — les douze barres latérales de bureau les écrivent ainsi. Elle écrivait « Tableau
+de bord » et « Équipements » : une page titrée « Actifs » s'ouvrait depuis une entrée
+« Équipements ». « Rapports » reste : les planches de bureau ne l'y mettent pas, mais la
+feuille « Plus » de 17.7 la tient pour une destination, et la retirer couperait les rapports
+d'inventaire à qui n'a pas accès aux Finances.
+
+**Ce que la mesure écarte, ajouté à la liste** : sur l'entrée active de la barre latérale, la
+planche écrit le texte dans le lien peint lui-même, le produit dans un `span` à l'intérieur du
+bouton peint — le rapprochement lit donc la planche contre la barre (50) et le produit contre
+l'entrée (38), pour les mêmes pixels. Compter l'élément lui-même comme surface répare cette
+paire et casse tous les en-têtes de tableau (le `th` collant du produit est peint, celui de la
+planche non) : essayé, retiré. Au tableau de bord, la mosaïque du produit est celle **sans
+campagne en cours** (trois cartes, l'État du parc sur toute la rangée) quand la planche dessine
+l'état avec campagne ; les liens `.more` sont bien à 16 dans leur carte.
+
+**Relevé v33** : 8 écarts, 73 familles conformes sur 73 ; 303 écarts visibles élément par
+élément sur **730** appariés — trente de plus, parce que les noms de la barre latérale se lisent
+enfin comme sur les planches.
+
+### Finances et la file au bureau (22/09, second lot)
+
+**Finances au bureau prend les deux zones de 15.1** — 7 et 5 : les postes à gauche, les
+destinations à droite ; elles s'empilaient sur toute la largeur. La rangée d'un poste devient
+la grille de `.dsk .post` : le nom et son restant (étiquette CAPEX/OPEX) dans la première
+colonne, la jauge sur 140, les montants à droite sur 172 en 13 ; rangée de 64, **sans filet**
+entre les postes. Les deux cartes prennent `.dsk .card`, `4 20 8`, et l'en-tête des postes dit
+« consommé / enveloppe » au bureau — l'en-tête de la colonne des montants — là où le téléphone
+garde le compte. « Exercices », la seconde carte de droite, n'est pas posée : l'écran qu'elle
+ouvre n'existe pas encore.
+
+**La bande de Finances mesure 112, pas 108.** 15.1 écrit la légende `.k` **en ligne** dans son
+lien : sa ligne prend la hauteur du corps (24) et non ses 16. Le produit garde 12 sur 16 et rend
+l'écart par la marge (8 au lieu de 4), sans inventer un interligne que l'échelle n'a pas.
+
+**La file : les pastilles avant le menu.** 03.3 pose « À faire · À suivre · Historique » puis
+« Toutes les natures ⌄ », à 12 l'une de l'autre comme tous les outils, le tri seul poussé à
+droite. Le gabarit posait le menu de filtre devant les pastilles, et le groupe des pastilles
+s'étirait sur la ligne (8 entre elles). Seule la file porte les deux.
+
+**Écartés, sans correction** : sur l'Inventaire physique, « Jamais vérifié » de la rangée
+rapproché de « jamais vérifié » de la bande (appariement sans casse) ; l'Historique au bureau
+porte dans la planche une colonne d'actes au survol (⋮) que le produit n'a pas encore — un
+manque de fonction, pas d'espacement — et ses colonnes se partagent la largeur selon le contenu
+d'exemple. **Piège** : un relevé de tablette revenu à 3 141 rangées (157 états) a été refait,
+pas lu ; le second en compte 8 839.
+
+**Relevé v34** : 8 écarts, 73 familles conformes sur 73 ; élément par élément 303 → **291**
+(Finances au bureau 12 → 6, tableau de bord 17 → 13, file 13 → 11).
+
+### Les écrans du téléphone, rangée par rangée (22/09, troisième lot)
+
+**La précision d'une section suit son titre.** Les trois planches de création l'écrivent dans le
+paragraphe du titre (`<p class="ct">Configuration <span class="cs">…`) ; `FormSection` la calait
+au bout de la ligne, en voisine. Elle passe dans la ligne, 8 après le titre, en **12 sur 16 à
+l'encre tertiaire** — la forme de 05.3 et 09.2 ; 04.3, seule, la dessine en 14 sur l'encre
+secondaire.
+
+**L'unité fait partie de la valeur.** 04.3 écrit « 1 250 XOF » d'un seul tenant, en 16 sur
+l'encre pleine ; le suffixe de `InputField` était une mention grise en 12. Un champ ne peut pas
+faire suivre ce qu'on tape : l'unité garde le bout du champ, mais prend la taille de la valeur.
+
+**Le retrait se voit avant de se lire.** 11.1 passe à l'encre tertiaire le nom d'une page où le
+rôle n'a « Aucun » accès (`.row.z`) — `RuleGroup.Row` reçoit `off`. 09.1 passe à l'encre
+secondaire un type sans modèle (`.lrow.mute`) — `ListRow` reçoit `muted`. L'état le disait déjà ;
+le retrait le fait voir d'un coup d'œil.
+
+**La fiche d'une personne, au bureau : l'historique à gauche.** 05.2 le pose sous ce qu'elle
+détient à 1280, et après le compte et les accès à 393. `DetailTemplate` reçoit `asideTail` —
+ce qui ferme la colonne de gauche en deux colonnes, et la page en une.
+
+**Accès** : la rangée « 5 groupes » reçoit sa vignette de 40 et la sous-ligne de 11.1 mot pour
+mot (« Ce qui s'ajoute aux rôles »), à **12** de sa vignette — la rangée partagée tient les 16 de
+05.2, et 11.1 en dessine 12.
+
+**Écartés, sans correction** : les feuilles d'acte (sortir du parc, incident) mesurées vides là
+où la planche les dessine remplies — un choix fait, des photos prises, le bouton actif ; les
+pastilles d'import (`.chp`) appariées au `<b>Type</b>` de la phrase dessous ; « Auditeur externe »
+et « Périodicité », dont la sous-ligne réelle diffère de l'exemple.
+
+**Relevé v35** : 8 écarts, 73 familles conformes sur 73 ; élément par élément **290**.
+
+### Le défilement du bureau (22/09)
+
+**Au-delà de 600 px, rien ne défilait.** Le verrou de la dimension mobile — `html, body, #root
+{ height:100%; overflow:hidden }` sous `@media (min-width: 600px)` — fixe la racine à la fenêtre
+parce que c'est `.tk-frame-scroll` qui défile, à l'intérieur de l'appareil. Il était posé sans
+condition et a survécu à la levée de `MOBILE_ONLY` (08/09) : sans cadre, la page était coupée
+au bas de la fenêtre sur toutes les destinations — 1 228 px d'Actifs, 3 036 d'Équipe, dans
+900. Il ne s'applique plus que sous `html:has(.tk-frame)`.
+
+**La barre latérale partait avec la page.** `body` et `#root` portaient `overflow-x: hidden`,
+qui en fait des conteneurs de défilement ; la barre, `sticky top-0`, se collait à eux — qui ne
+défilent jamais — et non à la fenêtre. Ils passent à `overflow-x: clip` : le débordement
+latéral est coupé de la même façon, sans conteneur. Vérifié à la molette à 393, 768 et 1280 :
+chaque page défile jusqu'à sa fin, la barre latérale reste en place.
+
+**Pourquoi la mesure ne l'avait pas vu** : le relevé lit `getBoundingClientRect` sur tout le
+DOM, et un contenu coupé se mesure quand même. Seul un défilement réel — molette, puis
+`scrollY` — le révèle.
+
+### 18.1 — l'Historique, porté en entier (22/09)
+
+Le portage du 07/09 n'avait pris que deux colonnes sur six : le journal au repos et le tableau
+du bureau. Les quatre autres sont portées, et avec elles ce que le journal devait écrire pour
+qu'on puisse les relire.
+
+**Un fait, pas une description.** La couche de données écrit « Statut mis à jour:
+PENDING_DELIVERY » ; la planche veut « LFW-PF5XK2M remis ». `features/history/lib/journal.ts`
+fait la traduction, une fois, pour les trois lectures : le titre (le code d'actif et le
+participe), la préposition de l'autre partie (« à Karim Diallo », « par Jane Smith », « pour
+Fatou Ndiaye »), la méthode, le lieu, la nature et la marque. Un fait qu'il ne sait pas nommer
+garde sa description. La nature suit la **source** de l'acte avant son type : une campagne
+d'inventaire écrit des `CREATE`, un incident un `UPDATE` — « Inventaires » comptait zéro.
+
+**La feuille : trois axes.** La période gagne **Exercice** (le mois de début vient de Paramètres,
+comme aux Finances). **Personne ou objet** se cherche au lieu de se choisir en chips : la
+recherche et la liste de 06.4, les personnes puis les objets, chacun avec son nombre de faits,
+et seulement ceux que le journal cite. Au bureau, la troisième pastille ouvre ce choix en
+dialogue — `FilterMenuChip` reçoit `onOpen`. La période **au repos** (30 jours, ou tout pour Mon
+historique) n'est pas un filtre posé : le badge ne compte que ce qui s'en écarte, comme la
+colonne « aucun fait » le montre (deux filtres pour « Inventaires · 7 jours »).
+
+**Le fait ouvert montre sa preuve.** Le fil `.trail` reprend `HandoverTrail` : un passage de main
+écrit deux faits, ouvrir l'un montre les deux attestations dans l'ordre, et la seconde qui
+manque encore se dit (« n'a pas encore confirmé »). Une réception est attestée **par qui
+reçoit**, même écrite depuis la session de qui remet. La signature enregistrée ne se montre que
+si elle était déjà posée au moment du fait : la remplacer purge l'ancienne, et montrer la
+nouvelle sous un fait plus ancien ferait attester un trait qui n'a pas été apposé. Deux renvois,
+l'objet et la personne, quand ils existent encore et qu'on peut les ouvrir. `BottomSheet` reçoit
+`subtitle` (`.sttl .sub`).
+
+**Ce que le journal écrit désormais.** Une remise écrit sa preuve dans l'événement (`proof`,
+copie de `handoverProof`, que la remise suivante remplace sur l'objet) et sa méthode par son
+code (`method`) ; toute écriture d'objet écrit le **lieu au moment de l'acte** (`location`). Les
+faits antérieurs ne les portent pas : leur colonne dit « — » et leur fil « méthode non
+consignée » — rien n'est reconstitué.
+
+**Mon historique.** Le journal entier se lit par qui lit les rapports ; les autres y arrivaient
+quand même par l'adresse et **lisaient tout** — `HistoryPage` lisait `events` sans le
+périmètre de `useHistory`. Ils lisent maintenant ce qui les concerne (leurs actes, ce qui leur
+a été remis ou repris, leurs demandes, leur compte ; ni la sécurité, ni l'histoire d'un objet
+d'avant qu'ils ne le tiennent), sans recherche, l'entonnoir dans la rangée du titre, sous le
+nom de la planche. La rangée « Mon historique » est dans « Plus » et dans la barre latérale
+(`useNavigationDestinations` reçoit `libelles`). Le responsable lit son équipe, par
+`useHistory`, dont `filterEvents` devient stable.
+
+**Au bureau.** Le ⋮ au survol (ouvrir le fait, l'objet, la personne) — `DataTable` n'ouvre plus
+la rangée sous sa cellule d'actes, et `Menu` reçoit `floating` : posé en absolu, le cadre du
+tableau le rognait à la hauteur des rangées. La colonne « Fait » prend le reste (`grow`). Le
+tri (« Plus récent » / « Plus ancien »), et **les suivants au défilement** par cinquantaine
+(« 50 sur 496 · les suivants au défilement »). L'export suit `canExportReports`.
+
+**Deux défauts trouvés en chemin, antérieurs au portage.** `navigateToView` n'avait pas
+d'entrée `history` : la rangée de « Plus », celle de la barre latérale et « Tout l'historique »
+de l'accueil **ne menaient nulle part** depuis le 07/09 — seule l'adresse ouvrait la page. Et
+`history` manquait à la liste des vues qui gardent la barre du bas, que 18.1 dessine avec
+« Plus » allumé. Le titre d'un dialogue sans poignée collait au bord (4 px) : `BottomSheet`
+pose 16 dans ce cas, comme `ActSheet`.
+
+**Mesuré à 393** : jour 8 / 16 rayon 8, en-tête 48 (`8 0 4`, 17 / 24 en 500, compte 14 / 20),
+rangée 56 (60 sur deux lignes), gouttière 12, marque 32, fait 16 / 24, sous-ligne 14 / 20,
+âge 12 / 16 tertiaire ; `.more` 48, 16 en 500, filet ; `.ord` 12 / 16 ; titre de feuille
+22 / 28 Archivo `-.015em`, sous-titre 14 / 20 à 4. **Non mesurable** : la signature apposée
+(aucun fait du jeu n'est postérieur à la méthode `pin+signature`) et l'état « à confirmer »
+(aucune remise en attente dans le jeu).
+
+### La connexion au bureau : le plein champ (22/09)
+
+**Au bureau, la connexion n'était que celle du téléphone élargie** — un bandeau sombre de 200,
+une colonne de formulaire, un grand vide, les comptes de démonstration relégués en bas. Trois
+directions ont été proposées (panneau de marque, plein champ, bandeau et carte) ; le
+commanditaire a retenu **B, le plein champ**.
+
+Au-delà de 600, la page devient le bleu-noir de la marque et **le cartouche LIVE la traverse** :
+les angles emboîtés coupés par le bord gauche, la diagonale olive par l'angle haut-droit, le
+triangle bleu au bord droit, un filet bleu dans l'angle bas-gauche, et l'unique accent plein —
+les deux arcs orange de l'angle bas-droit, en quart d'anneau. Quatre cadres ancrés aux coins,
+jamais étirés ; sous 1 200 ils se réduisent d'un tiers, pour qu'aucun filet ne passe derrière
+« Tracker » (refus déjà prononcé au bandeau). Le bloc de marque se centre au-dessus d'**une carte
+blanche de 440** — titre « Connexion », les champs, le lien, le geste jaune — et les comptes de
+démonstration passent sous la carte, sur le sombre. Mot de passe oublié et lien envoyé prennent
+la même carte.
+
+`AuthShell` reçoit `field`, `AUTH_PANEL` (dans `authLayout.ts`) fait la carte, `BrandBanner` se
+centre au-delà de 600 et porte `BrandField`. **Le téléphone ne change pas.** Les écrans de 02.2
+qui portent le bandeau prennent la même forme ; ses étapes à barre (mot de passe, code PIN) non.
+La planche 02.1 ne dessine que le téléphone : la vue bureau n'y est pas ajoutée sans demande.
+
+### L'échelle de type par régime : le bureau descend d'un cran (22/09)
+
+**La demande** : *« aligne la taille de police de tout le projet avec les standards
+internationaux, facebook, instagram, notion, etc… desktop comme mobile »* — la seconde fois,
+après le 18/09, où seule l'unité avait changé (px → rem) et pas un pixel.
+
+**Le constat.** Le produit rendait **les mêmes tailles au téléphone et au bureau** : corps 16,
+titre de rangée 17, titre de page 28. Au téléphone c'est la norme — iOS (Title 1 28, Title 2 22,
+Body 17), Material (Headline 28, Title 22, Body 16 / 14) ; Facebook (15) et Instagram (14) sont un
+cran en dessous. Au bureau c'est un cran au-dessus de tout le monde : Notion, Linear, GitHub et
+Facebook web tiennent leur interface en **14**, leur secondaire en 12-13, leurs titres de page
+entre 20 et 32.
+
+**L'arbitrage du commanditaire (22/09)** : bureau dense, téléphone inchangé, planches intactes.
+
+| Rôle | Téléphone | Bureau |
+| --- | --- | --- |
+| Titre de page | 28 / 32 | **24** / 32 |
+| Titre de feuille | 22 / 28 | **20** / 28 |
+| Titre de rangée | 17 / 24 | **15 / 22** |
+| Corps | 16 / 24 | **14 / 20** |
+| Geste (pastille, initiales) | 15 / 20 | **14** / 20 |
+| Secondaire | 14 / 20 | **13 / 18** |
+| Légende, plancher | 12 / 16, 11 | inchangés |
+
+**Le régime du bureau = une fenêtre de 840 et plus *et* un pointeur fin.** La largeur seule ne
+suffit pas : un téléphone couché dépasse 840, et une tablette tenue au doigt garde les tailles
+qu'on lit à bout de bras. Les champs de saisie gardent 16 au téléphone — sous 16, iOS agrandit
+la page au focus.
+
+**Comment.** Six utilitaires `text-ts-{page,sheet,head,body,control,sub}` (la taille seule) et
+`leading-ts-*` (l'interligne seul), déclarés en `@utility` dans `index.css`, lisent des jetons
+`--tk-ts-*` et leurs pendants `-bureau`. Un jeton n'étant déclaré qu'une fois (garde des jetons),
+la bascule vit dans les règles, comme l'échelle compacte. Les **rôles maison**
+(`text-body-large`, `text-title-large`, `.page-title`…) basculent dans un bloc posé après la
+dernière classe de rôle, et le `body` avec eux. 432 tailles écrites en dur dans 77 fichiers sont
+passées aux utilitaires, avec leur interligne quand il était apparié dans la même chaîne ; une
+taille seule hérite de son interligne, comme `text-[1rem]` le faisait. `cn()` connaît les douze
+classes, et `check-cn-merge` les vérifie désormais (82 cas).
+
+**Ce qui reste en dur, à dessein** : le chrome déjà dense du bureau (tableau `DataTable` en 14,
+barre latérale en 13, pastilles à menu, champ de recherche dense, boutons d'en-tête de 40), les
+tailles préfixées (`large:text-[0.875rem]`), la légende, le plancher et les chiffres de héros.
+L'exposant de « 1er » (0,7em) tombait à 9,8 au bureau : il est borné à 11.
+
+**Mesuré, avant et après, sur les mêmes données.** Firestore étant au bout de son quota, deux
+serveurs ont tourné sur les données de démonstration : l'arbre actuel, et une copie où la passe
+est inversée. Sur treize écrans : **à 393, zéro écart** ; **à 1280, 237 écarts**, tous dans le
+sens voulu (77 corps 16 → 14, 72 secondaires 14 → 13, 20 titres de rangée 17 → 15, 18 titres de
+page 28 → 24, 13 titres de feuille 22 → 20, le reste hérité).
+
+**Le relevé des planches comptera ces écarts au bureau** : ils sont voulus. Les planches
+dessinent toujours le bureau aux tailles du téléphone.
+
+### La feuille d'acte ne monte plus à 97 % (22/09)
+
+**Le choix d'un bloc reste dans la feuille** — la planche le dit : *« la feuille s'ouvre sur le
+choix du bloc 1 … Pas de stepper, pas de page »*. Mais elle dessine quatre objets ; le parc en
+propose 72 à remettre et 117 à retourner, et la feuille montait avec sa liste jusqu'à **97 %**
+de l'écran (94 % au bureau) : une page, sans ses atouts. Elle prend désormais **75 %, fixes**
+quand la liste est longue (plus de six rangées) — fixes, pour ne pas sauter de hauteur à chaque
+lettre tapée —, plafonnés à 75 % quand elle est courte ; **la recherche et l'intitulé du groupe
+restent en place**, seule la liste défile. La page d'où la feuille vient reste lisible au-dessus.
+L'acte lui-même (date, attestation, conséquence) suit son contenu jusqu'à 90 %, le plafond de
+`BottomSheet`. Vérifié au téléphone et au bureau, pour « Lequel ? » comme pour « À qui ? ».
