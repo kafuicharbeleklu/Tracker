@@ -301,7 +301,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             {
                 id: 'nom',
                 header: 'Nom',
-                width: '240px',
+                /* **Des parts de la largeur** (22/09) : mesuré à 1280, « État du compte »
+                   occupait 395 px pour 32 px de contenu — un vide au bord droit — pendant
+                   que les noms se coupaient à 260. Chaque colonne grandit maintenant avec la
+                   fenêtre, dans la proportion de ce qu'elle porte. */
+                width: '34%',
                 /* La liste est rangée par nom, et la flèche dit dans quel sens. */
                 sorted: ascending ? 'asc' : 'desc',
                 title: (user) => user.name,
@@ -310,13 +314,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             {
                 id: 'role',
                 header: 'Rôle',
-                width: '150px',
+                width: '16%',
                 cell: (user) => <span className="text-text-muted">{ROLE_LABEL[user.role]}</span>,
             },
             {
                 id: 'site',
                 header: 'Site',
-                width: '180px',
+                width: '18%',
                 title: (user) => user.site || user.department || undefined,
                 /* Le lieu d'abord, le service à défaut — la même substitution que la
                    carte, pour que les deux formes ne racontent pas deux choses. En encre
@@ -329,7 +333,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             {
                 id: 'objets',
                 header: 'Objets',
-                width: '100px',
+                width: '12%',
                 numeric: true,
                 cell: (user) => {
                     const nombre = holdings(user);
@@ -343,7 +347,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 id: 'compte',
                 header: 'État du compte',
                 /* La colonne qui prend le reste — `width:100%` au `<colgroup>` de 05.1. */
-                grow: true,
+                /* Le reste de la part : son en-tête tient en 95, ses trois crans en 32. */
+                width: '20%',
                 cell: (user) => {
                     /* La **même** marque que la carte — `accountMark` : un compte ne
                        change pas d'état parce qu'on l'a mis dans une colonne. Sans

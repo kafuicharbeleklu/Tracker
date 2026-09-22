@@ -514,11 +514,19 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'code',
                 header: 'Code',
-                /* Des **plafonds**, pas des largeurs : la colonne se tient à son contenu et
-                   ne se coupe qu'au-delà (04.1, `.tbl td`). Leur somme — 680 avec les
-                   intérieurs — laisse à « Dernier mouvement » sa largeur d'en-tête dans les
-                   992 du bureau ; au-delà, le tableau déborderait. */
-                width: '190px',
+                /*
+                  **Des parts de la largeur, pas des pixels** — arbitrage du commanditaire,
+                  22/09, contre le `<col style="width:100%">` que 04.1 pose sur la dernière
+                  colonne. Mesuré à 1280 : « Dernier mouvement » occupait 179 px pour 91 px
+                  de contenu — le vide que la planche laisse au bord droit —, pendant que le
+                  code, 718 px pour le plus long du parc, se coupait à 210. Une seule colonne
+                  qui absorbe déplace le vide au lieu de le supprimer : il faut donc que
+                  **chacune grandisse avec la fenêtre**, dans la proportion de ce qu'elle
+                  porte. **Les colonnes à vocabulaire fixe passent d'abord** : « État » et « Dernier
+                  mouvement » ne se coupent jamais — « En réparation » et « 13 septembre »
+                  tiennent en entier —, et le code prend le plus gros de ce qui reste.
+                */
+                width: '25%',
                 sorted: colonneTriee === 'code' ? sensTri : undefined,
                 title: (item) => item.name,
                 cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
@@ -526,7 +534,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'modele',
                 header: 'Modèle',
-                width: '130px',
+                width: '11%',
                 sorted: colonneTriee === 'modele' ? sensTri : undefined,
                 title: (item) => item.model || undefined,
                 cell: (item) => item.model || '—',
@@ -534,7 +542,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'porteur',
                 header: 'Porteur',
-                width: '130px',
+                width: '15%',
                 title: (item) => item.user?.name || undefined,
                 cell: (item) =>
                     item.user?.name || <span className="text-text-tertiary">non attribué</span>,
@@ -544,7 +552,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* `.tbl th` de 04.1 écrit **« Site · local »** : le point médian sépare
                    deux faits de même rang, la barre oblique dirait « ou ». */
                 header: 'Site · local',
-                width: '130px',
+                width: '17%',
                 title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
                 cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
             },
@@ -553,7 +561,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* 04.1 nomme la colonne **« État »**, comme la ligne du décompte et le
                    premier groupe du filtre. « Statut » n'est écrit nulle part. */
                 header: 'État',
-                width: '100px',
+                width: '16%',
                 sorted: colonneTriee === 'statut' ? sensTri : undefined,
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
@@ -580,8 +588,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 id: 'mouvement',
                 header: 'Dernier mouvement',
                 sorted: colonneTriee === 'mouvement' ? sensTri : undefined,
-                /* La colonne qui prend le reste — `width:100%` au `<colgroup>` de 04.1. */
-                grow: true,
+                /* Son plafond tient son en-tête (120) : « Dernier mouvement » ne se
+                   tronque jamais, et ses dates tiennent en 91. */
+                width: '16%',
                 cell: (item) => {
                     const quand = dernierMouvement(item);
                     return quand ? (
