@@ -208,73 +208,79 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
               gauche comme à droite, plus 4 de padding vertical qui poussaient la barre
               au-delà de 56 dès que la seconde ligne apparaissait.
             */}
-            {isCompact ? (
-                <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                    {onBack && (
-                        <Button
-                            variant="text"
-                            iconOnly
-                            aria-label="Retour"
-                            onClick={onBack}
-                            className="shrink-0"
-                        >
-                            <Icon glyph={ArrowLeft} />
-                        </Button>
-                    )}
-                    <div className="min-w-0 flex-1 px-1">
-                        {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`,
-                            coupé à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit
-                            bien 16, mais c'est la seule des quatre planches à barre —
-                            05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
-                            les huit écrans**. */}
-                        <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
-                            {code}
-                        </p>
-                    </div>
-                    {menu}
-                </div>
-            ) : (
-                /*
-                  `.dhead.fiche` — **le nom devient le titre de la page** : 28 sur 32,
-                  le retour à sa gauche en carré de 40, les actes et le ⋮ à sa droite.
-                  Pas de filet : le chrome du bureau n'en pose ni sous l'en-tête ni au
-                  bord de la barre latérale (17.11).
-                */
-                <div className="px-page flex min-h-10 items-center gap-2 pt-5">
-                    {onBack && (
-                        <Button
-                            variant="text"
-                            iconOnly
-                            aria-label="Retour"
-                            onClick={onBack}
-                            className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
-                        >
-                            <Icon glyph={ArrowLeft} size={20} />
-                        </Button>
-                    )}
-                    <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
-                            {code}
-                        </h1>
-                        {crumb && (
-                            <span className="text-text-muted block truncate text-[0.8125rem] leading-4">
-                                {crumb}
-                            </span>
+            {/* **L'en-tête reste ; le contenu défile.** 04.2 au bureau : *« la barre du haut
+                devient l'en-tête : retour, le code, le ⋮ des actes »* — et elle ne part pas avec
+                le corps. Au téléphone, la barre de 56 et son retour restent à portée ; tous deux
+                défilaient avec la page. */}
+            <div className="bg-background sticky top-0 z-20">
+                {isCompact ? (
+                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
+                        {onBack && (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="shrink-0"
+                            >
+                                <Icon glyph={ArrowLeft} />
+                            </Button>
                         )}
-                    </div>
-                    {/* Au bureau, les gestes d'en-tête sont des carrés de 40 (17.11). */}
-                    <IconGestureSizeContext.Provider value={40}>
-                        {actions}
-                        {/* Le geste d'ajout monte dans l'en-tête, avant le ⋮ (17.11). */}
-                        {!horsLigne && fab && (
-                            <AddGesturePlacementContext.Provider value="header">
-                                {fab}
-                            </AddGesturePlacementContext.Provider>
-                        )}
+                        <div className="min-w-0 flex-1 px-1">
+                            {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`,
+                                coupé à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit
+                                bien 16, mais c'est la seule des quatre planches à barre —
+                                05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
+                                les huit écrans**. */}
+                            <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
+                                {code}
+                            </p>
+                        </div>
                         {menu}
-                    </IconGestureSizeContext.Provider>
-                </div>
-            )}
+                    </div>
+                ) : (
+                    /*
+                      `.dhead.fiche` — **le nom devient le titre de la page** : 28 sur 32,
+                      le retour à sa gauche en carré de 40, les actes et le ⋮ à sa droite.
+                      Pas de filet : le chrome du bureau n'en pose ni sous l'en-tête ni au
+                      bord de la barre latérale (17.11).
+                    */
+                    <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                        {onBack && (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Retour"
+                                onClick={onBack}
+                                className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                            >
+                                <Icon glyph={ArrowLeft} size={20} />
+                            </Button>
+                        )}
+                        <div className="min-w-0 flex-1">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
+                                {code}
+                            </h1>
+                            {crumb && (
+                                <span className="text-text-muted block truncate text-[0.8125rem] leading-4">
+                                    {crumb}
+                                </span>
+                            )}
+                        </div>
+                        {/* Au bureau, les gestes d'en-tête sont des carrés de 40 (17.11). */}
+                        <IconGestureSizeContext.Provider value={40}>
+                            {actions}
+                            {/* Le geste d'ajout monte dans l'en-tête, avant le ⋮ (17.11). */}
+                            {!horsLigne && fab && (
+                                <AddGesturePlacementContext.Provider value="header">
+                                    {fab}
+                                </AddGesturePlacementContext.Provider>
+                            )}
+                            {menu}
+                        </IconGestureSizeContext.Provider>
+                    </div>
+                )}
+            </div>
 
             {showSkeleton ? (
                 <SkeletonDetail />

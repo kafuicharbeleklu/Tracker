@@ -676,80 +676,85 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
               général au particulier : où l'on est, ce qu'on cherche, quelle tranche, dans
               quel ordre »*. Les partitions sont dans la feuille (§ ci-dessus).
             */}
-            {isCompact && selection.isActive ? (
-                /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
+            {/* **Le bloc fixe l'est vraiment** (17.8) : titre, recherche, ligne de tri
+                restent quand le référentiel défile. Il partait avec lui. */}
+            <div className="bg-background sticky top-0 z-20">
+                {isCompact && selection.isActive ? (
+                    /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
                    change de régime, il ne gagne pas un palier. */
-                <SelectionTopBar
-                    count={selection.count}
-                    total={filteredCategories.length}
-                    onExit={selection.exit}
-                    onSelectAll={() =>
-                        selection.selectAll(filteredCategories.map((category) => category.id))
-                    }
-                    onClearAll={selection.clear}
-                />
-            ) : (
-                <div
-                    className={cn(
-                        'flex flex-col',
-                        isCompact
-                            ? 'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
-                            : 'px-page pt-5',
-                        !isReferentialEmpty && 'gap-3',
-                    )}
-                >
-                    {/* `.tt` — **le titre, et rien d'autre.** 17.8 tranche : *« une seule
+                    <SelectionTopBar
+                        count={selection.count}
+                        total={filteredCategories.length}
+                        onExit={selection.exit}
+                        onSelectAll={() =>
+                            selection.selectAll(filteredCategories.map((category) => category.id))
+                        }
+                        onClearAll={selection.clear}
+                    />
+                ) : (
+                    <div
+                        className={cn(
+                            'flex flex-col',
+                            isCompact
+                                ? 'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
+                                : 'px-page pt-5',
+                            !isReferentialEmpty && 'gap-3',
+                        )}
+                    >
+                        {/* `.tt` — **le titre, et rien d'autre.** 17.8 tranche : *« une seule
                         action de page dans le corpus : le scan de 04.1. Partout ailleurs
                         le geste de création vit dans le "+" (17.6) : le gabarit autorise
                         zéro action, et c'est le cas ordinaire. »* Le bouton « Ajouter »
                         posé ici le 07/09 était une **seconde porte** vers la feuille que
                         le bouton flottant ouvre déjà en bas de l'écran. La flèche de retour,
                         elle, y est : on arrive ici depuis « Plus », comme sur 18.1. */}
-                    <div className="flex min-h-12 items-center gap-1">
-                        {isCompact && onBack && (
-                            <button
-                                type="button"
-                                aria-label="Retour"
-                                onClick={onBack}
-                                className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                            >
-                                <Icon glyph={ArrowLeft} size={24} />
-                            </button>
-                        )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
-                            Catalogue
-                        </h1>
-                    </div>
-
-                    {/* La bande disparaît avec le référentiel vide : un outil qui trie ce
-                        qui n'existe pas apprend que l'écran est cassé. */}
-                    {!isReferentialEmpty && (
-                        <>
-                            {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
-                                champ cerné de 320 × 40, et le filtre à 40 comme lui. */}
-                            <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
-                                <Reading
-                                    className={cn(
-                                        'flex items-center',
-                                        isCompact ? 'gap-2' : 'gap-3',
-                                    )}
+                        <div className="flex min-h-12 items-center gap-1">
+                            {isCompact && onBack && (
+                                <button
+                                    type="button"
+                                    aria-label="Retour"
+                                    onClick={onBack}
+                                    className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
                                 >
-                                    <SearchField
-                                        dense={!isCompact}
-                                        value={searchQuery}
-                                        onChange={setSearchQuery}
-                                        placeholder="Type, modèle, marque"
-                                        className={isCompact ? 'flex-1' : 'w-[320px] max-w-full'}
-                                    />
-                                    <FilterButton
-                                        label="Filtrer le catalogue"
-                                        count={sheetFilterCount}
-                                        onClick={() => setIsFilterSheetOpen(true)}
-                                    />
-                                </Reading>
-                            </IconGestureSizeContext.Provider>
+                                    <Icon glyph={ArrowLeft} size={24} />
+                                </button>
+                            )}
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
+                                Catalogue
+                            </h1>
+                        </div>
 
-                            {/*
+                        {/* La bande disparaît avec le référentiel vide : un outil qui trie ce
+                        qui n'existe pas apprend que l'écran est cassé. */}
+                        {!isReferentialEmpty && (
+                            <>
+                                {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
+                                champ cerné de 320 × 40, et le filtre à 40 comme lui. */}
+                                <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
+                                    <Reading
+                                        className={cn(
+                                            'flex items-center',
+                                            isCompact ? 'gap-2' : 'gap-3',
+                                        )}
+                                    >
+                                        <SearchField
+                                            dense={!isCompact}
+                                            value={searchQuery}
+                                            onChange={setSearchQuery}
+                                            placeholder="Type, modèle, marque"
+                                            className={
+                                                isCompact ? 'flex-1' : 'w-[320px] max-w-full'
+                                            }
+                                        />
+                                        <FilterButton
+                                            label="Filtrer le catalogue"
+                                            count={sheetFilterCount}
+                                            onClick={() => setIsFilterSheetOpen(true)}
+                                        />
+                                    </Reading>
+                                </IconGestureSizeContext.Provider>
+
+                                {/*
                               `.ord` — **le cinquième slot, dans le bloc fixe.** Il vivait
                               dans le contenu, donc il défilait : *« un filtre posé dans
                               `.page` disparaît au premier défilement, et la liste devient
@@ -757,41 +762,43 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                               la **famille retenue se nomme**, puisqu'elle n'a plus de
                               rangée à elle : la ligne de tri porte la partition.
                             */}
-                            <Reading
-                                className={cn(
-                                    'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4',
-                                    selection.isActive && 'hidden',
-                                )}
-                            >
-                                <span className="min-w-0 truncate">
-                                    <b className="text-on-surface font-medium tabular-nums">
-                                        {filteredCategories.length}
-                                    </b>{' '}
-                                    type{filteredCategories.length > 1 ? 's' : ''}
-                                    {familyFilter !== ALL_FAMILIES && ` · ${familyFilter}`} ·{' '}
-                                    {modelCountLabel} · {equipment.length} actifs
-                                </span>
-                                <Button
-                                    variant="text"
-                                    onClick={() =>
-                                        setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
-                                    }
-                                    className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[0.75rem] leading-4 font-medium hover:bg-transparent"
-                                    icon={
-                                        <Icon
-                                            glyph={SortAscending}
-                                            size={18}
-                                            className="text-on-surface-variant"
-                                        />
-                                    }
+                                <Reading
+                                    className={cn(
+                                        'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4',
+                                        selection.isActive && 'hidden',
+                                    )}
                                 >
-                                    {SORT_OPTIONS[sortIndex].label}
-                                </Button>
-                            </Reading>
-                        </>
-                    )}
-                </div>
-            )}
+                                    <span className="min-w-0 truncate">
+                                        <b className="text-on-surface font-medium tabular-nums">
+                                            {filteredCategories.length}
+                                        </b>{' '}
+                                        type{filteredCategories.length > 1 ? 's' : ''}
+                                        {familyFilter !== ALL_FAMILIES &&
+                                            ` · ${familyFilter}`} · {modelCountLabel} ·{' '}
+                                        {equipment.length} actifs
+                                    </span>
+                                    <Button
+                                        variant="text"
+                                        onClick={() =>
+                                            setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
+                                        }
+                                        className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[0.75rem] leading-4 font-medium hover:bg-transparent"
+                                        icon={
+                                            <Icon
+                                                glyph={SortAscending}
+                                                size={18}
+                                                className="text-on-surface-variant"
+                                            />
+                                        }
+                                    >
+                                        {SORT_OPTIONS[sortIndex].label}
+                                    </Button>
+                                </Reading>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* `.page` — 16 px de haut, 20 de côté et de bas. La planche pousse le bas
                 à 92 quand le bouton flottant occupe le coin ; 56 de ces 92 sont la

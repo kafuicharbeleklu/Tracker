@@ -1593,7 +1593,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     {/* L'en-tête change de forme, jamais de contenu : le prénom, la
                         charge, les gestes. Au téléphone ils sont sous le titre et pleine
                         largeur ; au bureau ils tiennent sur sa ligne. */}
-                    {large ? enTeteBureau : enTete}
+                    {/* **L'en-tête reste** (01.1 bureau : *« barre latérale et en-tête
+                        restent »*). Il remonte dans la marge du haut et la reprend en
+                        padding : posé, il n'a pas bougé d'un pixel ; collé, le corps passe
+                        dessous sans affleurer le bord, et 8 de fond le séparent de la
+                        carte qui passe. */}
+                    <div className="bg-background sticky top-0 z-20 -mt-4 -mb-2 pt-4 pb-2">
+                        {large ? enTeteBureau : enTete}
+                    </div>
                     {!large && gestes}
                     {large && isManager && bande}
 

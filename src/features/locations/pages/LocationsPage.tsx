@@ -405,9 +405,10 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             </BottomSheet>
             {/* `.top` — **un seul bloc** : le titre à 28 px et la recherche sous lui,
                 sur le même fond de surface, séparés de 12. La planche ne met plus de
-                bande de filtres entre les deux. */}
+                bande de filtres entre les deux. Il **reste** quand les sites défilent
+                (17.8). */}
             {isCompact ? (
-                <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+                <div className="border-outline-variant bg-surface sticky top-0 z-20 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
                     <div className="flex min-h-12 items-center gap-1">
                         {onBack && (
                             <Button
@@ -428,7 +429,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     {!isReferentialEmpty && ordLine}
                 </div>
             ) : (
-                <div className="px-page flex flex-col gap-3 pt-5">
+                <div className="px-page bg-background sticky top-0 z-20 flex flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
                         <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}

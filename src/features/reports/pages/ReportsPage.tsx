@@ -348,10 +348,12 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
             <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
                 <div
                     className={cn(
-                        'mb-4 flex flex-col',
+                        /* L'en-tête **reste** quand les rapports défilent (17.8) ; au
+                           bureau il reprend la marge du haut en padding, comme Finances. */
+                        'sticky top-0 z-20 mb-4 flex flex-col',
                         isCompact
                             ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
-                            : '-mt-1',
+                            : 'bg-background -mt-page pt-[calc(var(--tk-space-page)-0.25rem)]',
                     )}
                 >
                     <div className="flex min-h-12 items-center gap-1">

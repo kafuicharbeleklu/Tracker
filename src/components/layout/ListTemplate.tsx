@@ -584,247 +584,257 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     return (
         <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
-            {selection?.active ? (
-                <SelectionTopBar
-                    count={selection.count}
-                    total={selection.total}
-                    onExit={selection.onExit}
-                    onSelectAll={selection.onSelectAll}
-                    onClearAll={selection.onClearAll}
-                    overflow={selection.overflow}
-                />
-            ) : isCompact ? (
-                /*
-                 * Passe sobre — **le titre et la recherche sont un seul bloc**, avec un
-                 * seul filet dessous (`.top` des planches 05.1, 03.3 et 10.1 : fond
-                 * surface, 8/16/16 d'intérieur, gouttière 12). Deux bandes empilées, deux
-                 * filets, faisaient deux fois l'en-tête.
-                 *
-                 * Le titre prend la première marche de R15 — **28 px** Archivo 600 sur 32,
-                 * et non 20 : c'est `--t1`, la marche que trois planches réclament et que
-                 * le gabarit rendait inatteignable depuis la page.
-                 */
-                <div
-                    className={cn(
-                        'border-outline-variant bg-surface flex flex-col border-b px-4',
-                        /* Avec sa bande : `.top` des planches — 8 en haut, gouttière
-                           12, 16 en bas. Sans elle : `.tbar.plain`, une barre de **56
-                           tout compris** (04.1 colonne 3, 17.8 colonne 4). Les 8 px
-                           qu'on ajoutait faisaient un en-tête de 64 sur un écran qui
-                           n'a qu'un titre à porter. */
-                        /* `.top` de 17.8 (passe du 06/09) : **8 en haut, 12 en bas**,
-                           12 entre les trois lignes. Le pied valait 16, ce qui creusait
-                           l'écart entre la ligne de tri et la première rangée. */
-                        /* **La ligne de compte suffit à faire un `.top`.** La condition ne
-                           regardait que la bande de recherche : le second niveau de 16.1 —
-                           un site ouvert, qui ne se cherche pas — retombait sur la barre
-                           nue, et sa ligne de compte se collait au filet, sans les 12 que
-                           la planche déclare. La barre de 56 tout compris reste pour ce
-                           qu'elle vise : un titre, et rien dessous. */
-                        hasSeekBand || orderRow ? 'gap-3 pt-2 pb-3' : '',
-                    )}
-                >
-                    {/* `.tt` — la rangée du titre se règle sur son geste : **48**, la
-                        mesure du bouton d'icône. Elle tenait 56 et le titre portait 12 px
-                        de padding vertical, si bien que le bloc gagnait 8 px que la
-                        planche ne déclare pas. */}
-                    <div className="flex min-h-12 items-center justify-between gap-1">
-                        {onBack && (
-                            <button
-                                type="button"
-                                aria-label="Retour"
-                                onClick={onBack}
-                                className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                            >
-                                <Icon glyph={ArrowLeft} size={24} />
-                            </button>
+            {/* **L'en-tête est fixe ; le contenu défile** (17.8) — titre, recherche,
+                pastilles, ligne de compte : *« un filtre posé dans la page disparaît au
+                premier défilement, et la liste devient un sous-ensemble sans étiquette »*.
+                04.1 le redit de la recherche, et 01.1 au bureau de l'en-tête. Il défilait
+                avec la page, au téléphone comme au bureau. */}
+            <div className="bg-background sticky top-0 z-20">
+                {selection?.active ? (
+                    <SelectionTopBar
+                        count={selection.count}
+                        total={selection.total}
+                        onExit={selection.onExit}
+                        onSelectAll={selection.onSelectAll}
+                        onClearAll={selection.onClearAll}
+                        overflow={selection.overflow}
+                    />
+                ) : isCompact ? (
+                    /*
+                     * Passe sobre — **le titre et la recherche sont un seul bloc**, avec un
+                     * seul filet dessous (`.top` des planches 05.1, 03.3 et 10.1 : fond
+                     * surface, 8/16/16 d'intérieur, gouttière 12). Deux bandes empilées, deux
+                     * filets, faisaient deux fois l'en-tête.
+                     *
+                     * Le titre prend la première marche de R15 — **28 px** Archivo 600 sur 32,
+                     * et non 20 : c'est `--t1`, la marche que trois planches réclament et que
+                     * le gabarit rendait inatteignable depuis la page.
+                     */
+                    <div
+                        className={cn(
+                            'border-outline-variant bg-surface flex flex-col border-b px-4',
+                            /* Avec sa bande : `.top` des planches — 8 en haut, gouttière
+                               12, 16 en bas. Sans elle : `.tbar.plain`, une barre de **56
+                               tout compris** (04.1 colonne 3, 17.8 colonne 4). Les 8 px
+                               qu'on ajoutait faisaient un en-tête de 64 sur un écran qui
+                               n'a qu'un titre à porter. */
+                            /* `.top` de 17.8 (passe du 06/09) : **8 en haut, 12 en bas**,
+                               12 entre les trois lignes. Le pied valait 16, ce qui creusait
+                               l'écart entre la ligne de tri et la première rangée. */
+                            /* **La ligne de compte suffit à faire un `.top`.** La condition ne
+                               regardait que la bande de recherche : le second niveau de 16.1 —
+                               un site ouvert, qui ne se cherche pas — retombait sur la barre
+                               nue, et sa ligne de compte se collait au filet, sans les 12 que
+                               la planche déclare. La barre de 56 tout compris reste pour ce
+                               qu'elle vise : un titre, et rien dessous. */
+                            hasSeekBand || orderRow ? 'gap-3 pt-2 pb-3' : '',
                         )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
-                            {title}
-                        </h1>
-                        {actions}
-                    </div>
-                    {hasSeekBand && seekBand}
-                    {orderRow}
-                </div>
-            ) : (
-                /*
-                  **L'en-tête « Liste » du bureau — `.dhead` puis `.tools` de 17.11.**
-                  Quatre écrans le partagent : 04.1, 05.1, 18.1 et 03.3.
-                  La barre ne redit pas la destination — le rail la porte déjà (00.4) —,
-                  et elle ne porte pas de filet : *« pas de filet au bord de la barre
-                  latérale »*, ni sous l'en-tête.
-
-                  Il tenait le titre à **20** et empilait dessous la bande de recherche
-                  du téléphone puis la ligne de service : trois bandes pour dire ce que
-                  la planche dit en deux. 17.11 les rassemble — le titre à **28 sur 32**
-                  avec son compte à côté, puis **une seule ligne d'outils** : la
-                  recherche à 320, les pastilles, le tri et le sélecteur de forme à
-                  droite.
-                */
-                /* Dans le chrome du bureau, un geste d'icône fait 40 (17.11). */
-                <IconGestureSizeContext.Provider value={40}>
-                    <div className="px-page flex flex-col gap-2 pt-5">
-                        <div className="flex min-h-[52px] items-center gap-4">
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
+                    >
+                        {/* `.tt` — la rangée du titre se règle sur son geste : **48**, la
+                            mesure du bouton d'icône. Elle tenait 56 et le titre portait 12 px
+                            de padding vertical, si bien que le bloc gagnait 8 px que la
+                            planche ne déclare pas. */}
+                        <div className="flex min-h-12 items-center justify-between gap-1">
+                            {onBack && (
+                                <button
+                                    type="button"
+                                    aria-label="Retour"
+                                    onClick={onBack}
+                                    className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
+                                >
+                                    <Icon glyph={ArrowLeft} size={24} />
+                                </button>
+                            )}
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                                 {title}
                             </h1>
-                            {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
-                                son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
-                            <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
-                                {ligneDeCompte}
-                            </span>
                             {actions}
-                            {/* Le geste d'ajout passé par `fab` monte ici au bureau : il n'y
-                                flotte pas (17.11). */}
-                            {!horsLigne && fab && (
-                                <AddGesturePlacementContext.Provider value="header">
-                                    {fab}
-                                </AddGesturePlacementContext.Provider>
-                            )}
-                            {/* `.hbtn` — 40 de haut, rayon 4, `0 12 0 10`, gouttière 8, 14
-                                en graisse d'appui. Sans ombre : au bureau, un bouton posé
-                                dans l'en-tête ne se détache pas du papier, il en fait
-                                partie. */}
-                            {pageAction &&
-                                (pageAction.paths && pageAction.paths.length > 1 ? (
-                                    <Menu
-                                        align="end"
-                                        title={pageAction.pathsTitle}
-                                        items={pageAction.paths}
-                                        trigger={
-                                            /* `.hbtn` à chemins — le plus, le mot, **puis le
-                                               chevron de 18** : il dit qu'un choix suit. */
-                                            <Button
-                                                variant="filled"
-                                                className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
-                                            >
-                                                <Icon glyph={pageAction.glyph ?? Plus} size={20} />
-                                                {pageAction.label}
-                                                <Icon glyph={CaretDown} size={18} />
-                                            </Button>
-                                        }
-                                    />
-                                ) : (
-                                    <Button
-                                        variant="filled"
-                                        onClick={pageAction.onClick}
-                                        /* `min-h-10` et pas seulement `h-10` : la taille `md`
-                                           de `Button` pose `min-h-12`, et une hauteur fixe ne
-                                           bat pas un minimum — le bouton restait à 48. */
-                                        className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
-                                    >
-                                        <Icon glyph={pageAction.glyph ?? Plus} size={20} />
-                                        {pageAction.label}
-                                    </Button>
-                                ))}
                         </div>
-
-                        {hasDeskTools && (
-                            /* Elle se replie plutôt qu'elle ne déborde : au rail (600–839) il
-                               reste 680 px, et le champ, l'entonnoir, les pastilles, le tri
-                               et le sélecteur n'y tiennent pas d'une seule ligne. */
-                            <div className="flex flex-wrap items-center gap-3 pb-1">
-                                {search && (
-                                    <SearchField
-                                        dense
-                                        value={search.value}
-                                        onChange={search.onChange}
-                                        placeholder={search.placeholder}
-                                        className="w-[320px] max-w-full"
-                                    />
-                                )}
-                                {/* Les pastilles d'abord, **puis** le menu de filtre : 03.3 pose
-                                   « À faire · À suivre · Historique » avant « Toutes les natures ⌄ ».
-                                   Le menu passait devant. Seule la file porte les deux. */}
-                                {facets && facets.length > 0 && (
-                                    /* `.tools .fchip` — des voisines de la ligne, à **12** comme le
-                                       reste des outils ; le groupe ne s'étire plus (`flex-1`),
-                                       sinon le menu qui suit partait au bout de la ligne. */
-                                    <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
-                                        {facets.map((facet) => (
-                                            <FacetChip
-                                                key={facet.id}
-                                                dense
-                                                label={facet.label}
-                                                count={facet.count}
-                                                icon={facet.icon}
-                                                tone={facet.tone}
-                                                selected={facet.id === activeFacetId}
-                                                onClick={() => onFacetSelect?.(facet.id)}
-                                                onClear={
-                                                    facet.id === activeFacetId
-                                                        ? onActiveFacetClear
-                                                        : undefined
-                                                }
-                                                clearLabel={activeFacetClearLabel}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                                {filter}
-                                {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
-                                    deux réglages de la vue, quand ce qui précède la filtre. */}
-                                {(sort || view) && (
-                                    <span className="ml-auto flex shrink-0 items-center gap-3">
-                                        {sort && (
-                                            <button
-                                                type="button"
-                                                onClick={sort.onClick}
-                                                className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[0.8125rem] leading-[1.125rem] font-medium"
-                                            >
-                                                <Icon
-                                                    glyph={SortAscending}
-                                                    size={18}
-                                                    className="text-text-muted"
-                                                />
-                                                {sort.label}
-                                            </button>
-                                        )}
-                                        {view && (
-                                            /* `.seg` — deux crans de 40 sur 38 dans un cerné
-                                               de rayon 4, le cran retenu en `--inset-2`. Au
-                                               téléphone le même sélecteur vit dans la ligne
-                                               de service, en creux et sans filet : ici il
-                                               s'aligne sur les autres objets de la ligne. */
-                                            <span className="border-outline-variant bg-surface flex shrink-0 items-center overflow-hidden rounded-md border">
-                                                {[
-                                                    {
-                                                        id: 'cartes' as const,
-                                                        glyph: Rows,
-                                                        mot: 'Cartes',
-                                                    },
-                                                    {
-                                                        id: 'tableau' as const,
-                                                        glyph: Table,
-                                                        mot: 'Tableau',
-                                                    },
-                                                ].map((cran) => (
-                                                    <button
-                                                        key={cran.id}
-                                                        type="button"
-                                                        onClick={() => view.onChange(cran.id)}
-                                                        aria-pressed={view.value === cran.id}
-                                                        aria-label={cran.mot}
-                                                        className={cn(
-                                                            'flex h-[38px] w-10 cursor-pointer items-center justify-center border-0 bg-transparent',
-                                                            view.value === cran.id
-                                                                ? 'bg-surface-muted-strong text-on-surface'
-                                                                : 'text-text-muted hover:text-on-surface',
-                                                        )}
-                                                    >
-                                                        <Icon glyph={cran.glyph} size={20} />
-                                                    </button>
-                                                ))}
-                                            </span>
-                                        )}
-                                    </span>
-                                )}
-                            </div>
-                        )}
+                        {hasSeekBand && seekBand}
+                        {orderRow}
                     </div>
-                </IconGestureSizeContext.Provider>
-            )}
+                ) : (
+                    /*
+                      **L'en-tête « Liste » du bureau — `.dhead` puis `.tools` de 17.11.**
+                      Quatre écrans le partagent : 04.1, 05.1, 18.1 et 03.3.
+                      La barre ne redit pas la destination — le rail la porte déjà (00.4) —,
+                      et elle ne porte pas de filet : *« pas de filet au bord de la barre
+                      latérale »*, ni sous l'en-tête.
+
+                      Il tenait le titre à **20** et empilait dessous la bande de recherche
+                      du téléphone puis la ligne de service : trois bandes pour dire ce que
+                      la planche dit en deux. 17.11 les rassemble — le titre à **28 sur 32**
+                      avec son compte à côté, puis **une seule ligne d'outils** : la
+                      recherche à 320, les pastilles, le tri et le sélecteur de forme à
+                      droite.
+                    */
+                    /* Dans le chrome du bureau, un geste d'icône fait 40 (17.11). */
+                    <IconGestureSizeContext.Provider value={40}>
+                        <div className="px-page flex flex-col gap-2 pt-5">
+                            <div className="flex min-h-[52px] items-center gap-4">
+                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
+                                    {title}
+                                </h1>
+                                {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
+                                    son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
+                                <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
+                                    {ligneDeCompte}
+                                </span>
+                                {actions}
+                                {/* Le geste d'ajout passé par `fab` monte ici au bureau : il n'y
+                                    flotte pas (17.11). */}
+                                {!horsLigne && fab && (
+                                    <AddGesturePlacementContext.Provider value="header">
+                                        {fab}
+                                    </AddGesturePlacementContext.Provider>
+                                )}
+                                {/* `.hbtn` — 40 de haut, rayon 4, `0 12 0 10`, gouttière 8, 14
+                                    en graisse d'appui. Sans ombre : au bureau, un bouton posé
+                                    dans l'en-tête ne se détache pas du papier, il en fait
+                                    partie. */}
+                                {pageAction &&
+                                    (pageAction.paths && pageAction.paths.length > 1 ? (
+                                        <Menu
+                                            align="end"
+                                            title={pageAction.pathsTitle}
+                                            items={pageAction.paths}
+                                            trigger={
+                                                /* `.hbtn` à chemins — le plus, le mot, **puis le
+                                                   chevron de 18** : il dit qu'un choix suit. */
+                                                <Button
+                                                    variant="filled"
+                                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                                >
+                                                    <Icon
+                                                        glyph={pageAction.glyph ?? Plus}
+                                                        size={20}
+                                                    />
+                                                    {pageAction.label}
+                                                    <Icon glyph={CaretDown} size={18} />
+                                                </Button>
+                                            }
+                                        />
+                                    ) : (
+                                        <Button
+                                            variant="filled"
+                                            onClick={pageAction.onClick}
+                                            /* `min-h-10` et pas seulement `h-10` : la taille `md`
+                                               de `Button` pose `min-h-12`, et une hauteur fixe ne
+                                               bat pas un minimum — le bouton restait à 48. */
+                                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                        >
+                                            <Icon glyph={pageAction.glyph ?? Plus} size={20} />
+                                            {pageAction.label}
+                                        </Button>
+                                    ))}
+                            </div>
+
+                            {hasDeskTools && (
+                                /* Elle se replie plutôt qu'elle ne déborde : au rail (600–839) il
+                                   reste 680 px, et le champ, l'entonnoir, les pastilles, le tri
+                                   et le sélecteur n'y tiennent pas d'une seule ligne. */
+                                <div className="flex flex-wrap items-center gap-3 pb-1">
+                                    {search && (
+                                        <SearchField
+                                            dense
+                                            value={search.value}
+                                            onChange={search.onChange}
+                                            placeholder={search.placeholder}
+                                            className="w-[320px] max-w-full"
+                                        />
+                                    )}
+                                    {/* Les pastilles d'abord, **puis** le menu de filtre : 03.3 pose
+                                       « À faire · À suivre · Historique » avant « Toutes les natures ⌄ ».
+                                       Le menu passait devant. Seule la file porte les deux. */}
+                                    {facets && facets.length > 0 && (
+                                        /* `.tools .fchip` — des voisines de la ligne, à **12** comme le
+                                           reste des outils ; le groupe ne s'étire plus (`flex-1`),
+                                           sinon le menu qui suit partait au bout de la ligne. */
+                                        <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
+                                            {facets.map((facet) => (
+                                                <FacetChip
+                                                    key={facet.id}
+                                                    dense
+                                                    label={facet.label}
+                                                    count={facet.count}
+                                                    icon={facet.icon}
+                                                    tone={facet.tone}
+                                                    selected={facet.id === activeFacetId}
+                                                    onClick={() => onFacetSelect?.(facet.id)}
+                                                    onClear={
+                                                        facet.id === activeFacetId
+                                                            ? onActiveFacetClear
+                                                            : undefined
+                                                    }
+                                                    clearLabel={activeFacetClearLabel}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                    {filter}
+                                    {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
+                                        deux réglages de la vue, quand ce qui précède la filtre. */}
+                                    {(sort || view) && (
+                                        <span className="ml-auto flex shrink-0 items-center gap-3">
+                                            {sort && (
+                                                <button
+                                                    type="button"
+                                                    onClick={sort.onClick}
+                                                    className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[0.8125rem] leading-[1.125rem] font-medium"
+                                                >
+                                                    <Icon
+                                                        glyph={SortAscending}
+                                                        size={18}
+                                                        className="text-text-muted"
+                                                    />
+                                                    {sort.label}
+                                                </button>
+                                            )}
+                                            {view && (
+                                                /* `.seg` — deux crans de 40 sur 38 dans un cerné
+                                                   de rayon 4, le cran retenu en `--inset-2`. Au
+                                                   téléphone le même sélecteur vit dans la ligne
+                                                   de service, en creux et sans filet : ici il
+                                                   s'aligne sur les autres objets de la ligne. */
+                                                <span className="border-outline-variant bg-surface flex shrink-0 items-center overflow-hidden rounded-md border">
+                                                    {[
+                                                        {
+                                                            id: 'cartes' as const,
+                                                            glyph: Rows,
+                                                            mot: 'Cartes',
+                                                        },
+                                                        {
+                                                            id: 'tableau' as const,
+                                                            glyph: Table,
+                                                            mot: 'Tableau',
+                                                        },
+                                                    ].map((cran) => (
+                                                        <button
+                                                            key={cran.id}
+                                                            type="button"
+                                                            onClick={() => view.onChange(cran.id)}
+                                                            aria-pressed={view.value === cran.id}
+                                                            aria-label={cran.mot}
+                                                            className={cn(
+                                                                'flex h-[38px] w-10 cursor-pointer items-center justify-center border-0 bg-transparent',
+                                                                view.value === cran.id
+                                                                    ? 'bg-surface-muted-strong text-on-surface'
+                                                                    : 'text-text-muted hover:text-on-surface',
+                                                            )}
+                                                        >
+                                                            <Icon glyph={cran.glyph} size={20} />
+                                                        </button>
+                                                    ))}
+                                                </span>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </IconGestureSizeContext.Provider>
+                )}
+            </div>
 
             {/* **96 px de pied quand un bouton flottant est posé** (`.phone:has(.fab) .page`),
                 sans quoi le bouton recouvre la dernière rangée de la liste. */}

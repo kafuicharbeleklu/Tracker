@@ -171,10 +171,14 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                 <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
                     <div
                         className={cn(
-                            'mb-4 flex flex-col gap-3',
+                            /* **L'en-tête reste** quand les postes défilent (17.8). Au bureau
+                               il remonte dans la marge de la page et la reprend en padding,
+                               moins les 4 du `-mt-1` : posé, le titre n'a pas bougé ; collé,
+                               il ne touche pas le bord. */
+                            'sticky top-0 z-20 mb-4 flex flex-col gap-3',
                             isCompact
                                 ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
-                                : '-mt-1',
+                                : 'bg-background -mt-page pt-[calc(var(--tk-space-page)-0.25rem)]',
                         )}
                     >
                         <div className="flex min-h-12 items-center gap-1">

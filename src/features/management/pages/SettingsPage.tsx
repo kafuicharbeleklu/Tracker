@@ -309,13 +309,17 @@ const SettingsBar: React.FC<{
         </Button>
     );
 
+    /* Les trois formes **restent** quand le réglage défile (17.8 : *« l'en-tête est fixe ;
+       le contenu défile »*) — d'où `sticky` sur chacune, et un fond au bureau, où la barre
+       n'en avait pas. */
+
     /* Au-delà de 600, les deux barres prennent **l'en-tête du bureau** (17.11) : sur le
        canevas, sans filet, le retour en carré de 40 et le titre en 28 sur 32 — la forme
        des fiches du gabarit. Le bloc blanc du téléphone y faisait une seconde surface. */
     if (!isCompact) {
         return (
             <IconGestureSizeContext.Provider value={40}>
-                <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                <div className="px-page bg-background sticky top-0 z-20 flex min-h-10 items-center gap-2 pt-5">
                     {onBack && (
                         <Button
                             variant="text"
@@ -338,7 +342,7 @@ const SettingsBar: React.FC<{
     if (variant === 'fiche') {
         /* `.tbar` — l'intérieur `0 8 0 4` place déjà la flèche à 4 du bord. */
         return (
-            <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
+            <div className="border-outline-variant bg-surface sticky top-0 z-20 flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
                 {retour}
                 <h1 className="font-brand text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate px-1 font-semibold tracking-[-0.01em]">
                     {title}
@@ -352,7 +356,7 @@ const SettingsBar: React.FC<{
        retrait de 8 ne venait que de 17.9, et posait le titre à 60 sur toutes les pages du
        menu (relevé du 13/09). */
     return (
-        <div className="border-outline-variant bg-surface flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+        <div className="border-outline-variant bg-surface sticky top-0 z-20 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
             <div className="flex min-h-12 items-center gap-1">
                 {retour && <span className="-ml-3 flex shrink-0">{retour}</span>}
                 <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
