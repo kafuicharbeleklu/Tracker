@@ -120,13 +120,13 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
                             'min-w-0',
                             form === 'grp'
                                 ? 'text-on-surface-variant text-[0.75rem] leading-4 font-medium'
-                                : 'text-on-surface text-[1.0625rem] leading-6 font-medium',
+                                : 'text-on-surface text-ts-head leading-ts-head font-medium',
                         )}
                     >
                         {header}
                     </span>
                     {headerTrailing && (
-                        <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5 tabular-nums">
+                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                             {headerTrailing}
                         </span>
                     )}
@@ -172,6 +172,12 @@ interface RuleGroupRowProps {
     /** Teinte de la valeur, quand elle porte le mot de l'état. */
     valueTone?: RuleRowTone;
     /**
+     * **Le réglage à zéro** — `.row.z` de 11.1 : une page où le rôle n'a « Aucun » accès
+     * passe son nom à l'encre tertiaire, comme sa valeur. La liste se lit alors d'un coup
+     * d'œil : ce qui est ouvert en encre pleine, le reste en retrait.
+     */
+    off?: boolean;
+    /**
      * Un contrôle posé au bout de la rangée — une bascule. Il **remplace** la valeur
      * et le chevron : un réglage qui se pose du pouce ne s'ouvre pas.
      */
@@ -207,6 +213,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     value,
     status,
     valueTone,
+    off = false,
     trailing,
     onOpen,
     external = false,
@@ -239,7 +246,8 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                     qu'on ne peut pas nommer ne se règle pas : on préfère deux lignes. */}
                 <span
                     className={cn(
-                        'text-on-surface block text-[1rem] leading-6',
+                        'text-ts-body leading-ts-body block',
+                        off ? 'text-text-tertiary' : 'text-on-surface',
                         glyph ? 'break-words' : 'truncate',
                     )}
                 >
@@ -255,7 +263,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                             'text-on-surface-variant block',
                             form === 'grp'
                                 ? 'mt-0.5 text-[0.75rem] leading-4'
-                                : 'text-[0.875rem] leading-5',
+                                : 'text-ts-sub leading-ts-sub',
                         )}
                     >
                         {subtitle}
@@ -274,7 +282,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
             {value !== undefined && value !== null && (
                 <span
                     className={cn(
-                        'shrink-0 text-right text-[1rem] leading-6 whitespace-nowrap',
+                        'text-ts-body leading-ts-body shrink-0 text-right whitespace-nowrap',
                         quiet ? 'text-text-muted font-normal' : 'font-medium',
                         valueTone ? TONE_CLASS[valueTone] : !quiet && 'text-on-surface',
                     )}

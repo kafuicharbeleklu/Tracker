@@ -83,10 +83,10 @@ const ClosureBanner: React.FC<ClosureBannerProps> = ({
             )}
         >
             <Icon glyph={glyph} size={20} className="shrink-0" />
-            <span className="min-w-0 flex-1 text-[0.875rem] leading-5">
+            <span className="text-ts-sub leading-ts-sub min-w-0 flex-1">
                 <strong
                     className={cn(
-                        'block text-[1rem] leading-6 font-medium',
+                        'text-ts-body leading-ts-body block font-medium',
                         tone === 'neutre' && 'text-on-surface',
                     )}
                 >
@@ -98,7 +98,7 @@ const ClosureBanner: React.FC<ClosureBannerProps> = ({
                 <Button
                     variant="text"
                     onClick={action.onClick}
-                    className="h-auto !min-h-0 shrink-0 !px-0 !py-0 text-[0.875rem] leading-5 font-medium text-current"
+                    className="text-ts-sub leading-ts-sub h-auto !min-h-0 shrink-0 !px-0 !py-0 font-medium text-current"
                 >
                     {action.label}
                 </Button>

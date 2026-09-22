@@ -81,8 +81,11 @@ export type Tint = keyof typeof TINT_CLASS;
  * L'intérieur passe de **20 à 16** dans le même mouvement — la mesure que les trois
  * planches déclarent.
  *
- * La précision (`.cs`) se pose **au bout de la ligne du titre**, pas en dessous : la
- * ligne fait 24 de haut, le titre prend la place et la précision ferme à droite.
+ * La précision (`.cs`) **suit le titre, dans sa ligne** : les trois planches l'écrivent
+ * dans le paragraphe du titre (`<p class="ct">Configuration <span class="cs">…`), pas en
+ * voisine calée à droite comme le code le faisait. Sa forme est celle de 05.3 et 09.2 —
+ * **12 sur 16, encre tertiaire, sans graisse, 8 après le titre** ; 04.3, seule, la
+ * dessine en 14 sur l'encre secondaire.
  */
 export const FormSection: React.FC<{
     title: string;
@@ -91,15 +94,15 @@ export const FormSection: React.FC<{
     children: React.ReactNode;
 }> = ({ title, caption, children }) => (
     <section className="rounded-card bg-surface flex flex-col gap-4 p-4">
-        <div className="flex min-h-6 items-center justify-between gap-3">
-            <p className="text-on-surface min-w-0 flex-1 truncate text-[1.0625rem] leading-6 font-medium">
+        <div className="flex min-h-6 items-center gap-3">
+            <p className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                 {title}
+                {caption && (
+                    <span className="text-text-tertiary ml-2 text-[0.75rem] leading-4 font-normal">
+                        {caption}
+                    </span>
+                )}
             </p>
-            {caption && (
-                <span className="text-on-surface-variant shrink-0 text-[0.875rem] leading-5">
-                    {caption}
-                </span>
-            )}
         </div>
         {children}
     </section>
@@ -118,7 +121,7 @@ export const FormWarn: React.FC<{
 }> = ({ children, glyph, tint }) => (
     <p
         className={cn(
-            'flex gap-3 rounded-md px-4 py-3 text-[0.875rem] leading-5',
+            'text-ts-sub leading-ts-sub flex gap-3 rounded-md px-4 py-3',
             tint ? TINT_CLASS[tint] : 'bg-surface-container text-on-surface-variant',
         )}
     >
@@ -171,10 +174,10 @@ export const OptionRow: React.FC<{
         )}
     >
         <span className="min-w-0 flex-1">
-            <span className="block text-[1rem] leading-6">{title}</span>
+            <span className="text-ts-body leading-ts-body block">{title}</span>
             <span
                 className={cn(
-                    'block text-[0.875rem] leading-5',
+                    'text-ts-sub leading-ts-sub block',
                     selected ? 'opacity-80' : 'text-on-surface-variant',
                 )}
             >
@@ -208,10 +211,10 @@ export const SubjectRow: React.FC<{
             <Icon glyph={glyph} size={20} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="text-on-surface block truncate text-[1rem] leading-6 tabular-nums">
+            <span className="text-on-surface text-ts-body leading-ts-body block truncate tabular-nums">
                 {title}
             </span>
-            <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                 {detail}
             </span>
         </span>
@@ -232,7 +235,7 @@ export const Consequences: React.FC<{
         {lines.map((line, index) => (
             <span
                 key={index}
-                className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5"
+                className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3"
             >
                 <span
                     className={cn(
@@ -273,7 +276,7 @@ export const PickRow: React.FC<{
     >
         <span
             className={cn(
-                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold',
+                'font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold',
                 tint ? TINT_CLASS[tint] : 'bg-surface text-text-tertiary',
             )}
         >
@@ -282,19 +285,19 @@ export const PickRow: React.FC<{
         <span className="min-w-0 flex-1">
             <span
                 className={cn(
-                    'block truncate text-[1rem] leading-6',
+                    'text-ts-body leading-ts-body block truncate',
                     empty ? 'text-text-tertiary' : 'font-medium',
                 )}
             >
                 {title}
             </span>
             {subtitle && (
-                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                     {subtitle}
                 </span>
             )}
         </span>
-        <span className="shrink-0 text-[0.9375rem] font-medium">{actionLabel}</span>
+        <span className="text-ts-control shrink-0 font-medium">{actionLabel}</span>
     </button>
 );
 
@@ -327,7 +330,7 @@ export const Segmented = <T extends string>({
                 onClick={() => onChange(option.value)}
                 aria-pressed={value === option.value}
                 className={cn(
-                    'flex min-h-9 flex-1 items-center justify-center rounded-[2px] text-[0.875rem] leading-5',
+                    'text-ts-sub leading-ts-sub flex min-h-9 flex-1 items-center justify-center rounded-[2px]',
                     value === option.value
                         ? 'bg-surface text-on-surface font-medium shadow-[0_1px_2px_rgba(10,25,29,0.08)]'
                         : 'text-on-surface-variant',
@@ -398,6 +401,6 @@ export const ChoiceTile: React.FC<{
             size={24}
             className={selected ? undefined : 'text-on-surface-variant'}
         />
-        <span className="text-[1rem] leading-6">{label}</span>
+        <span className="text-ts-body leading-ts-body">{label}</span>
     </button>
 );

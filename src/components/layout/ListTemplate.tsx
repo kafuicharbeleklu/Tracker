@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+    CaretDown,
     ArrowBendDownLeft,
     ArrowLeft,
     Funnel,
@@ -14,6 +15,7 @@ import {
 
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
+import Menu, { type MenuItem } from '../ui/Menu';
 import SearchField from '../ui/SearchField';
 import FacetChip from '../ui/FacetChip';
 import { FabContainer } from '../ui/FabContainer';
@@ -162,8 +164,16 @@ interface ListTemplateProps {
      * états » — le nombre en tête. Forme de 03.3 (17.8, colonne « un filtre posé ») :
      * `regard` nomme ce qu'on regarde à gauche (« **À faire** · les plus anciennes »),
      * et le nombre passe **à droite**, relatif quand `de` est donné (« 6 des 17 »).
+     * `unite` le nomme à droite quand la planche l'écrit — 18.1 : « 312 faits », « 0 fait ».
      */
-    count?: { total: number; shown?: number; noun: string; regard?: React.ReactNode; de?: number };
+    count?: {
+        total: number;
+        shown?: number;
+        noun: string;
+        regard?: React.ReactNode;
+        de?: number;
+        unite?: string;
+    };
     sort?: { label: string; onClick: () => void };
     /**
      * **Cartes ou tableau** — la coexistence arbitrée par la recherche bureau du 08/09,
@@ -262,6 +272,15 @@ interface ListTemplateProps {
         description?: string;
         /** Le glyphe du geste — le plus, sauf mention contraire. */
         glyph?: PhosphorGlyph;
+        /**
+         * **Les chemins du geste, au bureau.** Au téléphone, le bouton rond ouvre la feuille
+         * de la page (17.7) ; au bureau, 17.11 et 15.3 posent les mêmes chemins **en menu
+         * ancré**, sous un bouton qui porte un chevron — « Ajouter ⌄ ». Sans eux, le bouton
+         * d'en-tête ouvre la feuille, centrée en dialogue.
+         */
+        paths?: MenuItem[];
+        /** La légende du menu (`.menu .cap`) — « Nouvel équipement ». */
+        pathsTitle?: string;
     };
     /**
      * Le bouton flottant écrit à la main — la forme d'avant `pageAction`, gardée pour
@@ -430,7 +449,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <span className="tabular-nums">
                             {typeof count.de === 'number' && count.de !== count.total
                                 ? `${count.total} des ${count.de}`
-                                : count.total}
+                                : count.unite
+                                  ? `${count.total} ${count.unite}`
+                                  : count.total}
                         </span>
                     )}
                     {sort && (
@@ -618,7 +639,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 <Icon glyph={ArrowLeft} size={24} />
                             </button>
                         )}
-                        <h1 className="font-brand text-on-surface min-w-0 flex-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                             {title}
                         </h1>
                         {actions}
@@ -645,7 +666,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 <IconGestureSizeContext.Provider value={40}>
                     <div className="px-page flex flex-col gap-2 pt-5">
                         <div className="flex min-h-[52px] items-center gap-4">
-                            <h1 className="font-brand text-on-surface shrink-0 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
                                 {title}
                             </h1>
                             {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
@@ -665,19 +686,38 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 en graisse d'appui. Sans ombre : au bureau, un bouton posé
                                 dans l'en-tête ne se détache pas du papier, il en fait
                                 partie. */}
-                            {pageAction && (
-                                <Button
-                                    variant="filled"
-                                    onClick={pageAction.onClick}
-                                    /* `min-h-10` et pas seulement `h-10` : la taille `md`
-                                       de `Button` pose `min-h-12`, et une hauteur fixe ne
-                                       bat pas un minimum — le bouton restait à 48. */
-                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
-                                >
-                                    <Icon glyph={pageAction.glyph ?? Plus} size={20} />
-                                    {pageAction.label}
-                                </Button>
-                            )}
+                            {pageAction &&
+                                (pageAction.paths && pageAction.paths.length > 1 ? (
+                                    <Menu
+                                        align="end"
+                                        title={pageAction.pathsTitle}
+                                        items={pageAction.paths}
+                                        trigger={
+                                            /* `.hbtn` à chemins — le plus, le mot, **puis le
+                                               chevron de 18** : il dit qu'un choix suit. */
+                                            <Button
+                                                variant="filled"
+                                                className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                            >
+                                                <Icon glyph={pageAction.glyph ?? Plus} size={20} />
+                                                {pageAction.label}
+                                                <Icon glyph={CaretDown} size={18} />
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <Button
+                                        variant="filled"
+                                        onClick={pageAction.onClick}
+                                        /* `min-h-10` et pas seulement `h-10` : la taille `md`
+                                           de `Button` pose `min-h-12`, et une hauteur fixe ne
+                                           bat pas un minimum — le bouton restait à 48. */
+                                        className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                    >
+                                        <Icon glyph={pageAction.glyph ?? Plus} size={20} />
+                                        {pageAction.label}
+                                    </Button>
+                                ))}
                         </div>
 
                         {hasDeskTools && (
@@ -694,9 +734,14 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         className="w-[320px] max-w-full"
                                     />
                                 )}
-                                {filter}
+                                {/* Les pastilles d'abord, **puis** le menu de filtre : 03.3 pose
+                                   « À faire · À suivre · Historique » avant « Toutes les natures ⌄ ».
+                                   Le menu passait devant. Seule la file porte les deux. */}
                                 {facets && facets.length > 0 && (
-                                    <div className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-2 overflow-x-auto">
+                                    /* `.tools .fchip` — des voisines de la ligne, à **12** comme le
+                                       reste des outils ; le groupe ne s'étire plus (`flex-1`),
+                                       sinon le menu qui suit partait au bout de la ligne. */
+                                    <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
                                         {facets.map((facet) => (
                                             <FacetChip
                                                 key={facet.id}
@@ -717,6 +762,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         ))}
                                     </div>
                                 )}
+                                {filter}
                                 {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
                                     deux réglages de la vue, quand ce qui précède la filtre. */}
                                 {(sort || view) && (

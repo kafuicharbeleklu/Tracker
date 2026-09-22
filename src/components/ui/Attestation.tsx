@@ -206,7 +206,7 @@ const Attestation: React.FC<AttestationProps> = ({
                             setMethod('signature');
                             settle('signature', false);
                         }}
-                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[0.875rem] font-medium underline underline-offset-2"
+                        className="text-on-surface text-ts-sub h-auto !min-h-0 !px-0 !py-0 font-medium underline underline-offset-2"
                     >
                         Signer à la place
                     </Button>
@@ -219,7 +219,7 @@ const Attestation: React.FC<AttestationProps> = ({
                             setPin('');
                             settle('pin', false);
                         }}
-                        className="text-on-surface h-auto !min-h-0 !px-0 !py-0 text-[0.875rem] font-medium underline underline-offset-2"
+                        className="text-on-surface text-ts-sub h-auto !min-h-0 !px-0 !py-0 font-medium underline underline-offset-2"
                     >
                         Code PIN
                     </Button>
@@ -241,7 +241,7 @@ const Attestation: React.FC<AttestationProps> = ({
                     <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
                         apposée · code PIN
                     </span>
-                    <span className="absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
+                    <span className="text-ts-sub leading-ts-sub absolute inset-x-0 bottom-2.5 text-center">
                         {signerName}
                     </span>
                 </div>
@@ -267,8 +267,8 @@ const Attestation: React.FC<AttestationProps> = ({
             <p
                 className={
                     failed && method === 'pin'
-                        ? 'text-error mt-2 text-center text-[0.875rem] leading-5'
-                        : 'text-on-surface-variant mt-2 text-center text-[0.875rem] leading-5'
+                        ? 'text-error text-ts-sub leading-ts-sub mt-2 text-center'
+                        : 'text-on-surface-variant text-ts-sub leading-ts-sub mt-2 text-center'
                 }
             >
                 {hint}

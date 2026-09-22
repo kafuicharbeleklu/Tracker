@@ -35,7 +35,17 @@ export interface NavigationDestinations {
     principales: DestinationId[];
     /** Ce que « Plus » range, et que le bureau déplie. Un groupe vide n'est pas rendu. */
     groupes: NavigationGroup[];
+    /**
+     * **Le nom qu'une destination prend pour cette personne**, quand il n'est pas celui du
+     * registre. Une seule aujourd'hui : *Historique* devient **Mon historique** pour qui
+     * ne lit pas le journal entier (18.1, colonne 4) — même page, réduite à ce qui la
+     * concerne, et la rangée doit dire ce qu'elle ouvre.
+     */
+    libelles: Partial<Record<DestinationId, string>>;
 }
+
+/** Le nom de *Mon historique* — la rangée de « Plus », la barre latérale, le titre. */
+export const LIBELLE_MON_HISTORIQUE = 'Mon historique';
 
 export const useNavigationDestinations = (): NavigationDestinations => {
     const { permissions } = useAccessControl();
@@ -52,9 +62,10 @@ export const useNavigationDestinations = (): NavigationDestinations => {
 
         const suivi: DestinationId[] = [];
         if (permissions.canViewAudit) suivi.push('audit');
-        /* Le journal se lit par qui peut lire les rapports : ce sont les mêmes faits,
-           l'un par nature et par jour, l'autre agrégés. */
-        if (permissions.canViewReports) suivi.push('history');
+        /* Le journal entier se lit par qui peut lire les rapports : ce sont les mêmes
+           faits, l'un par nature et par jour, l'autre agrégés. Les autres y ont **Mon
+           historique** — *« joignable depuis Plus »* (18.1, colonne 4). */
+        suivi.push('history');
         if (permissions.canViewFinance) suivi.push('finance');
         if (permissions.canViewReports) suivi.push('reports');
 
@@ -66,6 +77,7 @@ export const useNavigationDestinations = (): NavigationDestinations => {
 
         return {
             principales,
+            libelles: permissions.canViewReports ? {} : { history: LIBELLE_MON_HISTORIQUE },
             groupes: [
                 { label: 'Référentiels', ids: referentiels },
                 { label: 'Suivi', ids: suivi },

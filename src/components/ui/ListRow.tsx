@@ -142,6 +142,12 @@ interface ListRowProps {
      * porte quatre ; la planche lui donne donc un cran de moins.
      */
     dense?: boolean;
+    /**
+     * **La rangée en retrait** — `.lrow.mute` de 09.1 : un type sans modèle garde sa
+     * place dans la liste, mais son nom passe à l'encre secondaire et sa vignette à la
+     * tertiaire. L'état le dit déjà ; le retrait le fait voir avant de le lire.
+     */
+    muted?: boolean;
     className?: string;
 }
 
@@ -162,6 +168,7 @@ const ListRow: React.FC<ListRowProps> = ({
     onToggle,
     onLongPress,
     dense = false,
+    muted = false,
     className,
 }) => {
     const longPress = useLongPress(selectionActive ? undefined : onLongPress);
@@ -175,7 +182,12 @@ const ListRow: React.FC<ListRowProps> = ({
                     /* `.vig` — 40 de côté, et **les initiales en Archivo 600 sur 15**
                        quand la vignette n'a pas d'image : c'est ce que 05.1 déclare,
                        et elles sortaient en Inter 400 sur 14. */
-                    <span className="font-brand rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-[0.9375rem] font-semibold">
+                    <span
+                        className={cn(
+                            'font-brand rounded-vignette bg-surface-container text-ts-control flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden font-semibold',
+                            muted ? 'text-text-tertiary' : 'text-on-surface-variant',
+                        )}
+                    >
                         {vignette}
                     </span>
                 )
@@ -198,13 +210,14 @@ const ListRow: React.FC<ListRowProps> = ({
                         et une rangée sans type ne dit plus ce qu'est l'objet. */}
                     <span
                         className={cn(
-                            'text-on-surface min-w-0 truncate',
+                            'min-w-0 truncate',
+                            muted ? 'text-on-surface-variant' : 'text-on-surface',
                             /* L'interligne suit le corps : `tailwind-merge` retire un
                                `leading-*` posé *avant* une taille, puisque la taille en
                                porte un. */
                             person
-                                ? 'text-[1.0625rem] leading-6 tracking-[-0.01em]'
-                                : 'text-[1rem] leading-6',
+                                ? 'text-ts-head leading-ts-head tracking-[-0.01em]'
+                                : 'text-ts-body leading-ts-body',
                         )}
                     >
                         {title}
@@ -225,7 +238,7 @@ const ListRow: React.FC<ListRowProps> = ({
                     une rangée de 68 (04.1) ; gouttière 6. Les 2 px d'écart poussaient la
                     rangée à 70 et 71 (13/09). La rangée d'une personne suit la même mesure :
                     05.1 dessinait `.tt` à 46, arbitré le 13/09 pour 68 partout. */}
-                <span className="text-text-muted flex min-w-0 items-center gap-1.5 text-[0.875rem] leading-5">
+                <span className="text-text-muted text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1.5">
                     {status && (
                         <Icon
                             glyph={status.icon}

@@ -73,7 +73,7 @@ const Toggle: React.FC<ToggleProps> = ({
                     )}
                 </div>
             </div>
-            {label && <span className="text-on-surface text-[1rem] leading-6">{label}</span>}
+            {label && <span className="text-on-surface text-ts-body leading-ts-body">{label}</span>}
         </label>
     );
 };

@@ -17,6 +17,11 @@ interface BottomSheetProps {
     dragHandle?: boolean;
     /** Title (optional) */
     title?: string;
+    /**
+     * `.sttl .sub` — ce que le titre situe : « Aujourd'hui à 09:42 · Lomé Siège » sous le
+     * fait ouvert de 18.1. 14 sur 20, encre secondaire, 4 sous le titre.
+     */
+    subtitle?: string;
     /** Classes du titre — permet à un écran d'imposer sa graisse (l'ADN mobile n'en
         admet que deux par écran, DESIGN_BRIEF.md §8.5, et `.section-title` porte 700). */
     titleClassName?: string;
@@ -50,6 +55,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     children,
     dragHandle = true,
     title,
+    subtitle,
     titleClassName,
     className,
 }) => {
@@ -256,16 +262,32 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                        titre, 4 px au-dessus, 20 à gauche, 12 à droite, et le titre à
                        22 sur 28 en Archivo 600. Le filet faisait un second en-tête
                        dans une feuille qui n'en a qu'un. */
-                    <div className="flex items-center gap-2 pt-1 pr-3 pb-0 pl-5">
-                        <h2
-                            id={titleId}
-                            className={cn(
-                                'font-brand text-on-surface min-w-0 flex-1 text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]',
-                                titleClassName,
+                    <div
+                        className={cn(
+                            'flex items-center gap-2 pr-3 pb-0 pl-5',
+                            /* Sans poignée — le dialogue du bureau (00.5) —, les 14 px
+                               qu'elle occupait au-dessus du titre tombent avec elle : le
+                               titre collait au bord. La feuille d'acte (`ActSheet`) pose
+                               16 dans ce cas ; la feuille les pose aussi. */
+                            dragHandle && compact ? 'pt-1' : 'pt-4',
+                        )}
+                    >
+                        <div className="min-w-0 flex-1">
+                            <h2
+                                id={titleId}
+                                className={cn(
+                                    'font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]',
+                                    titleClassName,
+                                )}
+                            >
+                                {title}
+                            </h2>
+                            {subtitle && (
+                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-1">
+                                    {subtitle}
+                                </p>
                             )}
-                        >
-                            {title}
-                        </h2>
+                        </div>
                         <CloseButton onClick={onClose} />
                     </div>
                 )}

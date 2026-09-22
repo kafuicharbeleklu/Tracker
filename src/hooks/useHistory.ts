@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+
 import { useData } from '../context/DataContext';
 import { useAccessControl } from './useAccessControl';
 import { HistoryEvent, HistoryFilter } from '../types';
@@ -7,121 +9,129 @@ export const useHistory = () => {
     const { user: currentUser } = useAccessControl();
 
     /**
-     * Filtrer l'historique selon le rôle
+     * Filtrer l'historique selon le rôle. Stable tant que la personne, l'annuaire et le
+     * parc ne changent pas : le journal (18.1) en dérive toute sa pile de filtres, qui
+     * se recalculait à chaque frappe de la recherche.
      */
-    const filterEvents = (allEvents: HistoryEvent[], filter?: HistoryFilter): HistoryEvent[] => {
-        let filtered = [...allEvents];
+    const filterEvents = useCallback(
+        (allEvents: HistoryEvent[], filter?: HistoryFilter): HistoryEvent[] => {
+            let filtered = [...allEvents];
 
-        // Filtrage RBAC
-        const role = currentUser?.role;
+            // Filtrage RBAC
+            const role = currentUser?.role;
 
-        if (role === 'User') {
-            // User voit seulement ce qui le concerne
-            filtered = filtered.filter((event) => {
-                // Événements où il est l'acteur
-                if (event.actorId === currentUser.id) return true;
+            if (role === 'User') {
+                // User voit seulement ce qui le concerne
+                filtered = filtered.filter((event) => {
+                    // Événements où il est l'acteur
+                    if (event.actorId === currentUser.id) return true;
 
-                // Événements où il est la cible
-                if (event.targetType === 'USER' && event.targetId === currentUser.id) return true;
-                if (event.targetType === 'EQUIPMENT') {
-                    // Visible si l'événement le désigne comme bénéficiaire (snapshot historique)
-                    // OU si l'équipement lui est actuellement attribué (événements sans metadata).
-                    if (event.metadata?.beneficiaryId === currentUser.id) return true;
-                    const eq = equipment.find((item) => item.id === event.targetId);
-                    return eq?.user?.id === currentUser.id;
-                }
+                    // Événements où il est la cible
+                    if (event.targetType === 'USER' && event.targetId === currentUser.id)
+                        return true;
+                    if (event.targetType === 'EQUIPMENT') {
+                        // Visible si l'événement le désigne comme bénéficiaire (snapshot historique)
+                        // OU si l'équipement lui est actuellement attribué (événements sans metadata).
+                        if (event.metadata?.beneficiaryId === currentUser.id) return true;
+                        const eq = equipment.find((item) => item.id === event.targetId);
+                        return eq?.user?.id === currentUser.id;
+                    }
 
-                return false;
-            });
+                    return false;
+                });
 
-            // Masquer événements sensibles
-            filtered = filtered.filter((e) => !e.isSensitive);
+                // Masquer événements sensibles
+                filtered = filtered.filter((e) => !e.isSensitive);
 
-            // Anonymiser les acteurs (sauf si c'est lui)
-            filtered = filtered.map((event) => ({
-                ...event,
-                actorName:
-                    event.actorId === currentUser.id
-                        ? event.actorName
-                        : event.actorRole === 'SuperAdmin' || event.actorRole === 'Admin'
-                          ? 'Administrateur'
-                          : 'Manager',
-            }));
-        }
+                // Anonymiser les acteurs (sauf si c'est lui)
+                filtered = filtered.map((event) => ({
+                    ...event,
+                    actorName:
+                        event.actorId === currentUser.id
+                            ? event.actorName
+                            : event.actorRole === 'SuperAdmin' || event.actorRole === 'Admin'
+                              ? 'Administrateur'
+                              : 'Manager',
+                }));
+            }
 
-        if (role === 'Manager') {
-            // Manager voit son équipe + ses propres actions
-            // Calcul des IDs de l'équipe (ceux qui ont ce manager comme managerId)
-            const teamUserIds = users
-                .filter((u) => u.managerId === currentUser.id)
-                .map((u) => u.id);
+            if (role === 'Manager') {
+                // Manager voit son équipe + ses propres actions
+                // Calcul des IDs de l'équipe (ceux qui ont ce manager comme managerId)
+                const teamUserIds = users
+                    .filter((u) => u.managerId === currentUser.id)
+                    .map((u) => u.id);
 
-            filtered = filtered.filter((event) => {
-                // Ses propres actions
-                if (event.actorId === currentUser.id) return true;
+                filtered = filtered.filter((event) => {
+                    // Ses propres actions
+                    if (event.actorId === currentUser.id) return true;
 
-                // Actions de/sur son équipe
-                if (event.targetType === 'USER' && teamUserIds.includes(event.targetId))
-                    return true;
-                if (event.actorId && teamUserIds.includes(event.actorId)) return true;
+                    // Actions de/sur son équipe
+                    if (event.targetType === 'USER' && teamUserIds.includes(event.targetId))
+                        return true;
+                    if (event.actorId && teamUserIds.includes(event.actorId)) return true;
 
-                // Équipements de son équipe
-                if (event.targetType === 'EQUIPMENT') {
-                    /* `metadata` est un sac de `unknown` : la valeur se lit, elle ne se
+                    // Équipements de son équipe
+                    if (event.targetType === 'EQUIPMENT') {
+                        /* `metadata` est un sac de `unknown` : la valeur se lit, elle ne se
                        suppose pas — c'est la même précaution que `readMetadataString`
                        prend dans `lib/reports.ts`. */
-                    const beneficiaire = event.metadata?.beneficiaryId;
-                    if (typeof beneficiaire === 'string' && teamUserIds.includes(beneficiaire))
-                        return true;
-                    const eq = equipment.find((item) => item.id === event.targetId);
-                    return Boolean(eq?.user?.id && teamUserIds.includes(eq.user.id));
+                        const beneficiaire = event.metadata?.beneficiaryId;
+                        if (typeof beneficiaire === 'string' && teamUserIds.includes(beneficiaire))
+                            return true;
+                        const eq = equipment.find((item) => item.id === event.targetId);
+                        return Boolean(eq?.user?.id && teamUserIds.includes(eq.user.id));
+                    }
+
+                    return false;
+                });
+
+                // Masquer événements Admin sensibles
+                filtered = filtered.filter((e) => !e.isSensitive || e.actorId === currentUser.id);
+            }
+
+            // Admin : visibilité globale de l'historique à ce stade (pas de cloisonnement géographique).
+            // Le géo-scoping par pays gérés (managedCountries) sera implémenté avec le backend,
+            // où la localisation des événements sera fiable. Cf. docs/AUDIT_LOGIQUE_METIER.md (D4).
+
+            // SuperAdmin voit tout (pas de filtrage)
+
+            // Filtres additionnels
+            if (filter) {
+                if (filter.targetType) {
+                    filtered = filtered.filter((e) => e.targetType === filter.targetType);
                 }
-
-                return false;
-            });
-
-            // Masquer événements Admin sensibles
-            filtered = filtered.filter((e) => !e.isSensitive || e.actorId === currentUser.id);
-        }
-
-        // Admin : visibilité globale de l'historique à ce stade (pas de cloisonnement géographique).
-        // Le géo-scoping par pays gérés (managedCountries) sera implémenté avec le backend,
-        // où la localisation des événements sera fiable. Cf. docs/AUDIT_LOGIQUE_METIER.md (D4).
-
-        // SuperAdmin voit tout (pas de filtrage)
-
-        // Filtres additionnels
-        if (filter) {
-            if (filter.targetType) {
-                filtered = filtered.filter((e) => e.targetType === filter.targetType);
+                if (filter.targetId) {
+                    filtered = filtered.filter((e) => e.targetId === filter.targetId);
+                }
+                if (filter.actorId) {
+                    filtered = filtered.filter((e) => e.actorId === filter.actorId);
+                }
+                if (filter.eventTypes) {
+                    filtered = filtered.filter((e) => filter.eventTypes!.includes(e.type));
+                }
+                if (filter.startDate) {
+                    filtered = filtered.filter((e) => e.timestamp >= filter.startDate!);
+                }
+                if (filter.endDate) {
+                    filtered = filtered.filter((e) => e.timestamp <= filter.endDate!);
+                }
             }
-            if (filter.targetId) {
-                filtered = filtered.filter((e) => e.targetId === filter.targetId);
-            }
-            if (filter.actorId) {
-                filtered = filtered.filter((e) => e.actorId === filter.actorId);
-            }
-            if (filter.eventTypes) {
-                filtered = filtered.filter((e) => filter.eventTypes!.includes(e.type));
-            }
-            if (filter.startDate) {
-                filtered = filtered.filter((e) => e.timestamp >= filter.startDate!);
-            }
-            if (filter.endDate) {
-                filtered = filtered.filter((e) => e.timestamp <= filter.endDate!);
-            }
-        }
 
-        // Tri par date décroissante
-        filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            // Tri par date décroissante
+            filtered.sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+            );
 
-        // Limite
-        if (filter?.limit) {
-            filtered = filtered.slice(0, filter.limit);
-        }
+            // Limite
+            if (filter?.limit) {
+                filtered = filtered.slice(0, filter.limit);
+            }
 
-        return filtered;
-    };
+            return filtered;
+        },
+        [currentUser, users, equipment],
+    );
 
     /**
      * Récupérer l'historique d'un équipement

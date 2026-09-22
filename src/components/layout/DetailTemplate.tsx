@@ -131,6 +131,13 @@ interface DetailTemplateProps {
      * d'incident en cours, un rappel d'action.
      */
     aside?: React.ReactNode;
+    /**
+     * **Ce qui ferme la colonne de gauche au bureau, et la page au téléphone** — les deux
+     * ordres que 05.2 dessine pour l'historique d'une personne : sous ce qu'elle détient à
+     * 1280, après le compte et les accès à 393. Posé dans `aside`, il remontait au
+     * téléphone ; posé dans les cartes de référence, il passait à droite au bureau.
+     */
+    asideTail?: React.ReactNode;
 
     loading?: boolean;
     /** Les cartes de référence. */
@@ -162,6 +169,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     error,
     banner,
     aside,
+    asideTail,
     loading = false,
     children,
     className,
@@ -219,7 +227,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             bien 16, mais c'est la seule des quatre planches à barre —
                             05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
                             les huit écrans**. */}
-                        <p className="font-brand text-on-surface truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]">
+                        <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
                             {code}
                         </p>
                     </div>
@@ -245,7 +253,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                         </Button>
                     )}
                     <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-8 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
                             {code}
                         </h1>
                         {crumb && (
@@ -298,6 +306,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                 {hero}
                                 {error}
                                 {aside}
+                                {twoColumn && asideTail}
                             </div>
                         )}
 
@@ -309,6 +318,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             )}
                         >
                             {children}
+                            {!twoColumn && asideTail}
                         </div>
                     </div>
                 </div>

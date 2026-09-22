@@ -238,7 +238,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                              * posé sur `surface-container`, où le creux ne se verrait
                              * pas.
                              */
-                            'text-on-surface min-h-12 w-full py-3 text-[1rem] leading-6',
+                            'text-on-surface text-ts-body leading-ts-body min-h-12 w-full py-3',
                             'duration-short4 ease-emphasized transition-[color,background-color,border-color,box-shadow]',
                             'focus:outline-none',
                             /*
@@ -283,7 +283,12 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     {hasTrailingElement && (
                         <div className="absolute inset-y-0 right-3 flex items-center gap-1">
                             {suffix && (
-                                <span className="text-body-small text-on-surface-variant pointer-events-none">
+                                /* L'unité **fait partie de la valeur** — `.val` de 04.3 écrit
+                                   « 1 250 XOF » d'un seul tenant, en 16 sur l'encre pleine. Un
+                                   champ ne peut pas la faire suivre ce qu'on tape : elle garde
+                                   le bout du champ, mais plus la petite taille grise d'une
+                                   mention. */
+                                <span className="text-on-surface text-ts-body leading-ts-body pointer-events-none">
                                     {suffix}
                                 </span>
                             )}
@@ -345,7 +350,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {error && (
                                 <p
                                     id={errorId}
-                                    className="text-error flex items-start gap-1.5 text-[0.875rem] leading-5"
+                                    className="text-error text-ts-sub leading-ts-sub flex items-start gap-1.5"
                                     role="alert"
                                 >
                                     <Icon glyph={XCircle} size={18} className="mt-px" />
@@ -356,7 +361,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                             {!error && supportingText && (
                                 <p
                                     id={supportingId}
-                                    className="text-on-surface-variant text-[0.875rem] leading-5"
+                                    className="text-on-surface-variant text-ts-sub leading-ts-sub"
                                 >
                                     {supportingText}
                                 </p>

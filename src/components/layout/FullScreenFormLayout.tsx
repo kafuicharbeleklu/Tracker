@@ -106,7 +106,7 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
                 form={formId}
                 variant="text"
                 disabled={isSaving}
-                className="text-on-surface h-12 px-3 text-[1rem] font-medium"
+                className="text-on-surface text-ts-body h-12 px-3 font-medium"
             >
                 {saveLabel}
             </Button>

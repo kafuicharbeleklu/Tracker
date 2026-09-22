@@ -79,10 +79,20 @@ const SideRow: React.FC<{
     active: boolean;
     collapsed: boolean;
     count?: number;
+    /** Le nom propre à cette personne — « Mon historique » (`useNavigationDestinations`). */
+    libelle?: string;
     onSelect: () => void;
-}> = ({ id, active, collapsed, count, onSelect }) => {
+}> = ({ id, active, collapsed, count, libelle, onSelect }) => {
     const destination = DESTINATIONS[id];
-    const label = collapsed ? (destination.shortLabel ?? destination.label) : destination.label;
+    /* **Les noms des planches de bureau** — « Accueil », « Actifs », « Inventaire physique »
+       (les douze barres latérales de 17.11 à 18.1). La barre déployée écrivait le libellé
+       long, « Tableau de bord » et « Équipements » : une page titrée « Actifs » s'ouvrait
+       depuis une entrée « Équipements », deux noms pour une destination. */
+    const label =
+        libelle ??
+        (collapsed
+            ? (destination.shortLabel ?? destination.label)
+            : (destination.sidebarLabel ?? destination.shortLabel ?? destination.label));
 
     return (
         <Button
@@ -169,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     canExpand = true,
     className,
 }) => {
-    const { principales, groupes } = useNavigationDestinations();
+    const { principales, groupes, libelles } = useNavigationDestinations();
     const { count: pendingCount } = usePendingTasks();
     const compte = useAccountMenu();
     const section = sectionOfView(currentView);
@@ -202,6 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             active={section === id}
             collapsed={isCollapsed}
             count={id === 'tasks' ? pendingCount : undefined}
+            libelle={libelles[id]}
             onSelect={() => onViewChange(id)}
         />
     );

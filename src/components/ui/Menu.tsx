@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
 import MaterialIcon from './MaterialIcon';
+import Icon from './Icon';
+import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import Divider from './Divider';
 
 export interface MenuItem {
@@ -15,6 +17,9 @@ export interface MenuItem {
     description?: string;
     onSelect: () => void;
     icon?: string;
+    /** Le glyphe Phosphor, quand la table des noms Material ne le connaît pas (le
+     *  scan, le fichier CSV). Il l'emporte sur `icon`. */
+    glyph?: PhosphorGlyph;
     trailingText?: string;
     disabled?: boolean;
     destructive?: boolean;
@@ -40,6 +45,15 @@ interface MenuProps {
     align?: 'start' | 'end';
     placement?: 'bottom' | 'top';
     widthClassName?: string;
+    /**
+     * **Le menu sort du cadre qui défile.** Posé en absolu, il reste prisonnier de son
+     * premier ancêtre qui coupe : dans la cellule d'actes d'un tableau (le ⋮ de 18.1 au
+     * bureau), le cadre de `DataTable` le rognait à la hauteur des rangées — une seule
+     * rangée, et le menu n'était plus qu'une ombre. Flottant, il se pose en fixe sous son
+     * déclencheur (au-dessus, s'il manque de place), et se referme au défilement plutôt
+     * que de rester suspendu loin de sa rangée.
+     */
+    floating?: boolean;
     className?: string;
 }
 
@@ -61,9 +75,12 @@ const Menu: React.FC<MenuProps> = ({
      long ni étirer un menu de deux mots.
   */
     widthClassName = 'min-w-[236px] max-w-[calc(100vw-32px)]',
+    floating = false,
     className,
 }) => {
     const [open, setOpen] = useState(false);
+    /** La place du menu flottant, relevée sur le déclencheur à l'ouverture. */
+    const [coords, setCoords] = useState<React.CSSProperties | null>(null);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const rootRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLElement | null>(null);
@@ -99,11 +116,39 @@ const Menu: React.FC<MenuProps> = ({
      */
     const openMenu = useCallback(
         (parLeClavier = false) => {
+            if (floating && triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                /* 48 par entrée, 8 d'intérieur de chaque côté, la légende s'il y en a une. */
+                const hauteur = items.length * 48 + 16 + (title ? 30 : 0);
+                const enHaut =
+                    placement === 'top' || rect.bottom + 4 + hauteur > window.innerHeight - 8;
+                setCoords({
+                    position: 'fixed',
+                    ...(enHaut
+                        ? { bottom: window.innerHeight - rect.top + 4 }
+                        : { top: rect.bottom + 4 }),
+                    ...(align === 'end'
+                        ? { right: window.innerWidth - rect.right }
+                        : { left: rect.left }),
+                });
+            }
             setOpen(true);
             setHighlightedIndex(parLeClavier ? firstEnabled : -1);
         },
-        [firstEnabled],
+        [align, firstEnabled, floating, items.length, placement, title],
     );
+
+    /* Flottant, le menu ne suit pas sa rangée quand la page défile : il se referme. */
+    useEffect(() => {
+        if (!open || !floating) return;
+        const fermer = () => closeMenu(false);
+        window.addEventListener('scroll', fermer, true);
+        window.addEventListener('resize', fermer);
+        return () => {
+            window.removeEventListener('scroll', fermer, true);
+            window.removeEventListener('resize', fermer);
+        };
+    }, [open, floating, closeMenu]);
 
     useEffect(() => {
         if (!open) return;
@@ -244,6 +289,7 @@ const Menu: React.FC<MenuProps> = ({
                     aria-orientation="vertical"
                     aria-labelledby={triggerId}
                     onKeyDown={onMenuKeyDown}
+                    style={floating && coords ? coords : undefined}
                     className={cn(
                         /* `.menu` de `menus.css` — **la surface, pas le creux**, rayon 8,
                            une seule ombre (`0 8px 24px rgba(10,25,29,.2)`) et **aucun
@@ -257,15 +303,19 @@ const Menu: React.FC<MenuProps> = ({
                            prend sa position statique : dans un conteneur `flex` aligné
                            au centre, c'est le haut du conteneur — et le menu recouvrait
                            le titre et le retour de la barre de 56 qu'il surmonte. */
-                        placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-1',
+                        !floating && (placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-1'),
                         widthClassName,
-                        align === 'end'
-                            ? placement === 'top'
-                                ? 'right-0 origin-bottom-right'
-                                : 'right-0 origin-top-right'
-                            : placement === 'top'
-                              ? 'left-0 origin-bottom-left'
-                              : 'left-0 origin-top-left',
+                        floating
+                            ? align === 'end'
+                                ? 'origin-top-right'
+                                : 'origin-top-left'
+                            : align === 'end'
+                              ? placement === 'top'
+                                  ? 'right-0 origin-bottom-right'
+                                  : 'right-0 origin-top-right'
+                              : placement === 'top'
+                                ? 'left-0 origin-bottom-left'
+                                : 'left-0 origin-top-left',
                         className,
                     )}
                 >
@@ -309,7 +359,7 @@ const Menu: React.FC<MenuProps> = ({
                                        trois marches sous ce que la feuille partagée
                                        déclare, dans le seul endroit du produit où l'on
                                        choisit un acte à l'aveugle du bout du pouce. */
-                                    'group duration-short3 ease-emphasized state-layer flex w-full items-center gap-3 px-4 py-2 text-left text-[1rem] leading-6 transition-[color,background-color,opacity] outline-none',
+                                    'group duration-short3 ease-emphasized state-layer text-ts-body leading-ts-body flex w-full items-center gap-3 px-4 py-2 text-left transition-[color,background-color,opacity] outline-none',
                                     'min-h-12',
                                     item.selected &&
                                         'bg-surface-container font-medium text-[var(--tk-color-nav-active)]',
@@ -329,12 +379,12 @@ const Menu: React.FC<MenuProps> = ({
                                         : 'cursor-pointer',
                                 )}
                             >
-                                {item.icon && (
-                                    /* `.menu .mi .ic` prend l'encre secondaire — le glyphe ne
-                                       prend la couleur du libellé que sur un acte
-                                       destructeur (`.dg .ic{color:inherit}`). */
-                                    <MaterialIcon
-                                        name={item.icon}
+                                {/* `.menu .mi .ic` prend l'encre secondaire — le glyphe ne
+                                    prend la couleur du libellé que sur un acte destructeur
+                                    (`.dg .ic{color:inherit}`). */}
+                                {item.glyph ? (
+                                    <Icon
+                                        glyph={item.glyph}
                                         size={20}
                                         className={cn(
                                             item.destructive && !item.disabled
@@ -342,6 +392,18 @@ const Menu: React.FC<MenuProps> = ({
                                                 : 'text-on-surface-variant',
                                         )}
                                     />
+                                ) : (
+                                    item.icon && (
+                                        <MaterialIcon
+                                            name={item.icon}
+                                            size={20}
+                                            className={cn(
+                                                item.destructive && !item.disabled
+                                                    ? undefined
+                                                    : 'text-on-surface-variant',
+                                            )}
+                                        />
+                                    )
                                 )}
                                 <div className="flex min-w-0 flex-1 items-baseline gap-2">
                                     <span className="truncate">{item.label}</span>

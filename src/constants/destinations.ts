@@ -30,6 +30,12 @@ export interface AppDestination {
     label: string;
     /** Libellé court — bottom bar et rail (espace contraint) ; absent = utiliser `label` */
     shortLabel?: string;
+    /**
+     * **Le nom dans la barre latérale du bureau**, quand il diffère des deux autres. Les
+     * douze planches de bureau y écrivent « Inventaire physique » là où la page se titre
+     * « Inventaire » (16.1). Absent : le libellé court, puis le complet.
+     */
+    sidebarLabel?: string;
     /** Nom d'icône Material Symbols — les surfaces qui n'ont pas encore basculé. */
     icon: string;
     /**
@@ -119,6 +125,7 @@ export const DESTINATIONS: Record<DestinationId, AppDestination> = {
     },
     audit: {
         label: GLOSSARY.AUDIT,
+        sidebarLabel: 'Inventaire physique',
         icon: 'fact_check',
         route: '/audit/overview',
         glyph: ClipboardText,

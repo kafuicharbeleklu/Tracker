@@ -25,7 +25,9 @@ const ActionCard: React.FC<{ title: string; children: React.ReactNode }> & {
 } = ({ title, children }) => (
     <section className="rounded-card bg-surface overflow-hidden px-4 py-2">
         <div className="flex min-h-12 items-center pt-2 pb-1">
-            <span className="text-on-surface text-[1.0625rem] leading-6 font-medium">{title}</span>
+            <span className="text-on-surface text-ts-head leading-ts-head font-medium">
+                {title}
+            </span>
         </div>
         <div>{children}</div>
     </section>
@@ -69,13 +71,13 @@ const ActionRow: React.FC<{
                 <Icon glyph={glyph} size={20} />
             </span>
             <span className="min-w-0 flex-1">
-                <span className="text-on-surface block truncate text-[1rem] leading-6">
+                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
                     {title}
                 </span>
                 {subtitle && (
                     <span
                         className={cn(
-                            'block truncate text-[0.875rem] leading-5',
+                            'text-ts-sub leading-ts-sub block truncate',
                             tone === 'refus' ? 'text-error' : 'text-on-surface-variant',
                         )}
                     >

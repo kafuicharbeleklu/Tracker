@@ -74,7 +74,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({
                     className={cn(
                         /* Derrière le retour, `gap 4` puis l'intérieur de `.tid`, 4 : le titre
                            part à 60, comme sur toutes les barres de second niveau. */
-                        'font-brand flex-1 truncate text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]',
+                        'font-brand text-ts-head leading-ts-head flex-1 truncate font-semibold tracking-[-0.01em] text-[var(--tk-color-text-primary)]',
                         leadingAction ? 'ml-2' : 'ml-1',
                         titleClassName,
                     )}

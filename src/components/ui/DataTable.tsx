@@ -47,8 +47,21 @@ export interface DataColumn<T> {
      * l'écran ; sans elle, rien ne dit par quoi le tableau est rangé.
      */
     sorted?: 'asc' | 'desc';
-    /** La largeur de la colonne — `minmax` interdit, c'est un `<col>`. */
+    /**
+     * La largeur de la colonne — `minmax` interdit, c'est un `<col>`. **Dans un tableau qui a
+     * une colonne de reste**, c'est un **plafond** : la colonne se tient à son contenu, comme
+     * `.tbl td` des planches, et ne se coupe qu'au-delà — leurs exemples sont courts, un parc
+     * réel porte des noms de trente signes.
+     */
     width?: string;
+    /**
+     * **La colonne qui prend le reste** — le `<col style="width:100%">` des planches (04.1 :
+     * « Dernier mouvement », 05.1 : « État du compte »). Les autres gardent leur mesure
+     * et se tassent à gauche ; celle-ci absorbe la largeur qui reste. Sans elle, le reste
+     * se répartissait entre toutes les colonnes, et le tableau s'étalait d'un bord à
+     * l'autre : « Objets » partait à 1 030 là où 05.1 le pose à 700.
+     */
+    grow?: boolean;
 }
 
 export interface DataTableSelection {
@@ -94,8 +107,9 @@ interface DataTableProps<T> {
 */
 const FIGEE = 'sticky z-[1] bg-[inherit]';
 const CASE_GAUCHE = 'left-0';
-/** 48 px — la largeur de la colonne de sélection. */
-const TETE_GAUCHE = 'left-12';
+/** 42 px — la largeur **rendue** de `.lead` dans les planches (10 d'intérieur, puis la case
+ *  de 18 et ses marges de 7) ; leur `<col>` en demande 52, le tableau la ramène à son contenu. */
+const TETE_GAUCHE = 'left-[42px]';
 
 function DataTable<T>({
     columns,
@@ -110,6 +124,7 @@ function DataTable<T>({
     className,
 }: DataTableProps<T>) {
     const selectable = Boolean(selection);
+    const avecReste = columns.some((column) => column.grow);
     /* Le `colspan` d'une rangée de séparation : tout le tableau, cases et actes
        compris. */
     const colonnes = columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0);
@@ -118,21 +133,32 @@ function DataTable<T>({
     return (
         <div
             className={cn(
-                'rounded-card bg-surface border-outline-variant relative overflow-auto border',
+                /* `.tbl` — surface blanche, rayon 8, **sans filet autour** : aucune des
+                   sept planches à tableau n'en dessine ; une carte ne se cerne pas. */
+                'rounded-card bg-surface relative overflow-auto',
                 className,
             )}
             style={maxHeight ? { maxHeight } : undefined}
         >
             <table className="w-full border-collapse text-left text-[0.875rem] leading-5">
+                {/* Le `<colgroup>` des planches : `.lead` de **52** (la case à cocher, `0 0 0 10`
+                    autour de 18 et ses marges de 7), les colonnes à leur mesure, **une** qui
+                    prend le reste, et les actes de rangée sur **48**. Elles tenaient 48 et 56. */}
                 <colgroup>
-                    {selectable && <col style={{ width: '48px' }} />}
+                    {selectable && <col style={{ width: '52px' }} />}
                     {columns.map((column) => (
                         <col
                             key={column.id}
-                            style={column.width ? { width: column.width } : undefined}
+                            style={
+                                column.grow
+                                    ? { width: '100%' }
+                                    : column.width && !avecReste
+                                      ? { width: column.width }
+                                      : undefined
+                            }
                         />
                     ))}
-                    {rowActions && <col style={{ width: '56px' }} />}
+                    {rowActions && <col style={{ width: '48px' }} />}
                 </colgroup>
 
                 {/* `.tbl` de 17.11 — **cellules `0 10`, en-tête en `--ink2`**. Elles tenaient
@@ -143,7 +169,8 @@ function DataTable<T>({
                             <th
                                 scope="col"
                                 className={cn(
-                                    'bg-surface sticky top-0 left-0 z-20 h-10 px-2.5',
+                                    /* `th.lead` — `0 0 0 10`. */
+                                    'bg-surface sticky top-0 left-0 z-20 h-10 pr-0 pl-2.5',
                                     'text-text-muted text-[0.75rem] leading-4 font-medium',
                                 )}
                             >
@@ -183,7 +210,12 @@ function DataTable<T>({
                             </th>
                         ))}
                         {rowActions && (
-                            <th scope="col" className="bg-surface sticky top-0 z-10 h-10 px-2.5">
+                            /* Même en-tête que les autres colonnes — 12 en 500 : sans ces
+                               classes, le `th` vide prenait le gras du navigateur. */
+                            <th
+                                scope="col"
+                                className="bg-surface sticky top-0 z-10 h-10 px-2.5 text-[0.75rem] leading-4 font-medium"
+                            >
                                 <span className="sr-only">Actions</span>
                             </th>
                         )}
@@ -243,15 +275,17 @@ function DataTable<T>({
                                             className={cn(
                                                 FIGEE,
                                                 CASE_GAUCHE,
-                                                'px-2.5 align-middle',
+                                                'pr-0 pl-2.5 align-middle',
                                             )}
                                         >
                                             {/*
                                           **La case se révèle au survol et au focus**, et
                                           reste en permanence dès qu'une sélection est
-                                          ouverte. Sa cible garde ses 40 px même dans une
-                                          rangée de 48 : c'est la cible qui ne rétrécit
-                                          pas, pas la rangée qui grandit.
+                                          ouverte. Elle occupe les 32 de `.cb` et ses marges
+                                          — la colonne rend 42 comme sur les planches —,
+                                          mais `touch-target` étend sa **cible à 48** sans
+                                          toucher à la mise en page : c'est la cible qui ne
+                                          rétrécit pas, pas la colonne qui grandit.
                                         */}
                                             <button
                                                 type="button"
@@ -266,7 +300,7 @@ function DataTable<T>({
                                                     selection?.toggle(id);
                                                 }}
                                                 className={cn(
-                                                    'focus-visible:ring-focus-ring -ml-1 flex h-10 w-10 items-center justify-center rounded-md outline-none focus-visible:ring-2',
+                                                    'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
                                                     selection?.isActive || selected
                                                         ? 'opacity-100'
                                                         : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
@@ -284,7 +318,14 @@ function DataTable<T>({
                                             <td
                                                 key={column.id}
                                                 className={cn(
-                                                    'text-on-surface max-w-0 truncate px-2.5 align-middle',
+                                                    'text-on-surface px-2.5 align-middle',
+                                                    /* Quand une colonne prend le reste, les autres
+                                                       **se tiennent à leur contenu** (`nowrap`, comme
+                                                       `.tbl td`) et seule celle-là se coupe. Sans
+                                                       colonne de reste, toutes se coupent. */
+                                                    avecReste && !column.grow
+                                                        ? 'whitespace-nowrap'
+                                                        : 'max-w-0 truncate',
                                                     column.numeric && 'text-right tabular-nums',
                                                     premiere &&
                                                         cn(
@@ -297,13 +338,33 @@ function DataTable<T>({
                                                 {index === 0 && rowLabel ? (
                                                     <span className="sr-only">{rowLabel(row)}</span>
                                                 ) : null}
-                                                {column.cell(row)}
+                                                {avecReste && !column.grow ? (
+                                                    <span
+                                                        className="block truncate"
+                                                        style={
+                                                            column.width
+                                                                ? { maxWidth: column.width }
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        {column.cell(row)}
+                                                    </span>
+                                                ) : (
+                                                    column.cell(row)
+                                                )}
                                             </td>
                                         );
                                     })}
 
                                     {rowActions && (
-                                        <td className="px-2.5 align-middle">
+                                        /* Le geste de la cellule d'actes n'ouvre pas la
+                                           rangée : sans cet arrêt, le ⋮ ouvrait son menu
+                                           **et** la fiche derrière lui (18.1, premier
+                                           emploi). */
+                                        <td
+                                            className="px-2.5 align-middle"
+                                            onClick={(event) => event.stopPropagation()}
+                                        >
                                             <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                                                 {rowActions(row)}
                                             </span>

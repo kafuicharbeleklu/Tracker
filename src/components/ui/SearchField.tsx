@@ -86,7 +86,10 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 placeholder={placeholder}
                 className={cn(
                     'text-on-surface min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tk-color-text-tertiary)]',
-                    dense ? 'text-[0.875rem] leading-5' : 'text-[1rem] leading-6',
+                    /* Dense, c'est le champ de la ligne d'outils du bureau : il est déjà
+                       à la taille du corps de bureau (14), qu'il garde. Au téléphone, 16 —
+                       sous 16, iOS agrandit la page au focus d'un champ. */
+                    dense ? 'text-[0.875rem] leading-5' : 'text-ts-body leading-ts-body',
                 )}
             />
         </div>

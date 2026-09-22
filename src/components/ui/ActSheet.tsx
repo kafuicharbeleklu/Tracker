@@ -239,7 +239,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
     const vignetteBox = (party: { vignette?: React.ReactNode; vignetteTone?: ConsequenceTone }) => (
         <span
             className={cn(
-                'font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-[0.9375rem] font-semibold',
+                'font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold',
                 party.vignetteTone
                     ? TEINTE[party.vignetteTone]
                     : 'bg-surface-container text-on-surface-variant',
@@ -259,12 +259,15 @@ const ActSheet: React.FC<ActSheetProps> = ({
             {party.vignette && vignetteBox(party)}
             <span className="min-w-0 flex-1">
                 <span
-                    className={cn('block truncate text-[1rem] leading-6', filled && 'font-medium')}
+                    className={cn(
+                        'text-ts-body leading-ts-body block truncate',
+                        filled && 'font-medium',
+                    )}
                 >
                     {party.title}
                 </span>
                 {party.subtitle && (
-                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                         {party.subtitle}
                     </span>
                 )}
@@ -290,7 +293,15 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 aria-modal="true"
                 aria-labelledby={titleId}
                 className={cn(
-                    'bg-surface animate-in relative flex max-h-[97%] w-full flex-col pb-3 duration-300',
+                    'bg-surface animate-in relative flex w-full flex-col pb-3 duration-300',
+                    /* **Une feuille laisse voir la page d'où elle vient.** Elle montait à 97 % :
+                       à cette hauteur, ce n'était plus une feuille mais une page sans ses
+                       atouts. Le choix d'un bloc — une liste qu'on cherche — prend **75 %,
+                       fixes** quand la liste est longue, pour ne pas sauter de hauteur à
+                       chaque lettre tapée ; plafonnés à 75 % quand elle est courte (les
+                       quatre objets que la planche dessine). L'acte lui-même suit son
+                       contenu, jusqu'à 90 % — le plafond de `BottomSheet`. */
+                    picker ? (picker.items.length > 6 ? 'h-[75%]' : 'max-h-[75%]') : 'max-h-[90%]',
                     compact
                         ? 'rounded-t-card shadow-sheet slide-in-from-bottom-4'
                         : 'rounded-card shadow-dialog fade-in max-w-[560px]',
@@ -308,12 +319,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     <div className="min-w-0 flex-1">
                         <h2
                             id={titleId}
-                            className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] text-pretty"
+                            className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] text-pretty"
                         >
                             {picker ? picker.title : title}
                         </h2>
                         {(picker ? picker.prompt : subtitle) && (
-                            <p className="text-on-surface-variant mt-1 text-[0.875rem] leading-5">
+                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-1">
                                 {picker ? picker.prompt : subtitle}
                             </p>
                         )}
@@ -324,9 +335,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 </div>
 
                 {picker ? (
-                    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
-                        {/* La recherche et le scan tiennent sur une ligne. */}
-                        <div className="flex gap-2">
+                    <div className="flex min-h-0 flex-1 flex-col px-5 pt-3">
+                        {/* La recherche et le scan tiennent sur une ligne — **et restent en
+                            place** : seule la liste défile dessous. Tout le corps défilait
+                            d'un bloc, et la recherche partait avec la première rangée. */}
+                        <div className="flex shrink-0 gap-2">
                             <label className="bg-surface-container flex min-h-12 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
                                 <Icon
                                     glyph={MagnifyingGlass}
@@ -340,7 +353,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                     placeholder={picker.searchPlaceholder}
                                     aria-label={picker.searchPlaceholder}
                                     autoComplete="off"
-                                    className="text-on-surface placeholder:text-text-tertiary min-w-0 flex-1 bg-transparent text-[1rem] leading-6 outline-none"
+                                    className="text-on-surface placeholder:text-text-tertiary text-ts-body leading-ts-body min-w-0 flex-1 bg-transparent outline-none"
                                 />
                             </label>
                             {picker.onScan && (
@@ -355,16 +368,16 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             )}
                         </div>
 
-                        <div>
-                            <p className="text-on-surface-variant mb-2 flex items-baseline justify-between gap-3 text-[0.75rem] leading-4 font-medium">
-                                <span>{picker.groupLabel}</span>
-                                <span className="text-text-tertiary font-normal tabular-nums">
-                                    {resultats.length}
-                                </span>
-                            </p>
+                        <p className="text-on-surface-variant mt-4 mb-2 flex shrink-0 items-baseline justify-between gap-3 text-[0.75rem] leading-4 font-medium">
+                            <span>{picker.groupLabel}</span>
+                            <span className="text-text-tertiary font-normal tabular-nums">
+                                {resultats.length}
+                            </span>
+                        </p>
 
+                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto px-5">
                             {resultats.length === 0 ? (
-                                <p className="text-on-surface-variant py-2 text-[0.875rem] leading-5">
+                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub py-2">
                                     {picker.emptyLabel}
                                 </p>
                             ) : (
@@ -384,11 +397,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                                 vignetteTone: item.highlighted ? 'bleu' : undefined,
                                             })}
                                         <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-[1rem] leading-6">
+                                            <span className="text-ts-body leading-ts-body block truncate">
                                                 {item.title}
                                             </span>
                                             {item.subtitle && (
-                                                <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                                     {item.subtitle}
                                                 </span>
                                             )}
@@ -449,7 +462,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                     <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                                         Ce que cela déclenche
                                     </p>
-                                    <p className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5">
+                                    <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
                                         <span
                                             className={cn(
                                                 'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',

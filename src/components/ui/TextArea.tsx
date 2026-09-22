@@ -97,7 +97,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
                     'min-h-24 w-full px-3.5 py-3',
                     'focus:outline-none',
                     'duration-short4 ease-emphasized resize-none transition-[color,background-color,border-color,box-shadow]',
-                    'text-on-surface text-[1rem] leading-6',
+                    'text-on-surface text-ts-body leading-ts-body',
                     'placeholder:text-text-tertiary',
                     'disabled:text-on-surface/[0.38] disabled:placeholder:text-on-surface/[0.38] disabled:cursor-not-allowed',
                     variant === 'filled'

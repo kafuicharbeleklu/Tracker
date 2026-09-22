@@ -126,7 +126,7 @@ const ScanHitRow: React.FC<{ hit: ScanHit; dense?: boolean }> = ({ hit, dense = 
                 <span
                     className={cn(
                         'font-brand text-on-surface block truncate leading-5 font-semibold tracking-tight',
-                        dense ? 'text-[0.9375rem]' : 'text-base',
+                        dense ? 'text-ts-control' : 'text-ts-body',
                     )}
                 >
                     {hit.code}

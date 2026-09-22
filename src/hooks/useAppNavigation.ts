@@ -175,6 +175,10 @@ export const useAppNavigation = () => {
                 site_details: '/locations',
                 audit: '/audit/overview',
                 audit_details: '/audit/details',
+                /* 18.1 — l'adresse se lisait (`#/history` ouvrait la page) mais ne
+                   s'écrivait pas : la rangée de « Plus », celle de la barre latérale et
+                   « Tout l'historique » de l'accueil ne menaient nulle part. */
+                history: '/history',
                 reports: '/reports',
                 finance: '/finance',
                 finance_expenses: '/finance/expenses',

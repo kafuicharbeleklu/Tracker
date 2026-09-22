@@ -108,7 +108,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
                     signez ici
                 </span>
             )}
-            <span className="pointer-events-none absolute inset-x-0 bottom-2.5 text-center text-[0.875rem] leading-5">
+            <span className="text-ts-sub leading-ts-sub pointer-events-none absolute inset-x-0 bottom-2.5 text-center">
                 {signerName}
             </span>
             {hasInk && (

@@ -204,7 +204,7 @@ function ReferentialImportTemplate<T>({
                             <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={FileCsv} size={18} />
                             </span>
-                            <p className="text-on-surface flex-1 text-[1.0625rem] leading-6 font-medium">
+                            <p className="text-on-surface text-ts-head leading-ts-head flex-1 font-medium">
                                 Le fichier
                             </p>
                         </div>
@@ -222,7 +222,7 @@ function ReferentialImportTemplate<T>({
                                     <span
                                         key={column.key}
                                         className={cn(
-                                            'inline-flex min-h-8 items-center rounded-[4px] px-3 font-mono text-[0.875rem] leading-5',
+                                            'text-ts-sub leading-ts-sub inline-flex min-h-8 items-center rounded-[4px] px-3 font-mono',
                                             column.required
                                                 ? 'bg-tint-bleu text-on-tint-bleu'
                                                 : 'bg-surface-container text-on-surface',
@@ -233,7 +233,7 @@ function ReferentialImportTemplate<T>({
                                 ))}
                             </div>
                             {contractNote && (
-                                <p className="text-on-surface-variant mt-2 text-[0.875rem] leading-5">
+                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
                                     {contractNote}
                                 </p>
                             )}
@@ -244,7 +244,7 @@ function ReferentialImportTemplate<T>({
                         <Button
                             variant="text"
                             onClick={downloadSample}
-                            className="border-outline-variant text-on-surface hover:text-text-secondary mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left text-[0.875rem] font-medium transition-colors"
+                            className="border-outline-variant text-on-surface hover:text-text-secondary text-ts-sub mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium transition-colors"
                         >
                             <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
                             Télécharger un fichier d'exemple
@@ -268,7 +268,7 @@ function ReferentialImportTemplate<T>({
                             <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={FileCsv} size={18} />
                             </span>
-                            <p className="text-on-surface flex-1 text-[1.0625rem] leading-6 font-medium">
+                            <p className="text-on-surface text-ts-head leading-ts-head flex-1 font-medium">
                                 Le fichier
                             </p>
                         </div>
@@ -281,10 +281,10 @@ function ReferentialImportTemplate<T>({
                                 <Icon glyph={Check} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block truncate text-[1rem] leading-6 font-medium">
+                                <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
                                     {file?.name}
                                 </span>
-                                <span className="text-on-surface-variant block text-[0.875rem] leading-5 tabular-nums">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block tabular-nums">
                                     {candidates.length} ligne{candidates.length > 1 ? 's' : ''} ·{' '}
                                     {columns.length} colonnes
                                 </span>
@@ -292,7 +292,7 @@ function ReferentialImportTemplate<T>({
                             <Button
                                 variant="text"
                                 onClick={reset}
-                                className="h-auto !min-h-0 shrink-0 !px-0 !py-0 text-[0.9375rem] font-medium"
+                                className="text-ts-control h-auto !min-h-0 shrink-0 !px-0 !py-0 font-medium"
                             >
                                 Changer
                             </Button>
@@ -307,17 +307,17 @@ function ReferentialImportTemplate<T>({
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={ListChecks} size={18} />
                             </span>
-                            <p className="text-on-surface flex-1 text-[1.0625rem] leading-6 font-medium">
+                            <p className="text-on-surface text-ts-head leading-ts-head flex-1 font-medium">
                                 Ce qui sera créé
                             </p>
                         </div>
 
                         <div className="flex flex-col gap-2">
                             <p className="flex items-baseline gap-2">
-                                <b className="font-brand text-on-surface text-[1.75rem] leading-8 font-semibold tracking-[-0.01em] tabular-nums">
+                                <b className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.01em] tabular-nums">
                                     {acceptedCount}
                                 </b>
-                                <span className="text-on-surface-variant text-[0.875rem] leading-5">
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
                                     {acceptedCount > 1 ? noun.many : noun.one} sur{' '}
                                     {candidates.length} ligne{candidates.length > 1 ? 's' : ''}
                                 </span>
@@ -348,7 +348,7 @@ function ReferentialImportTemplate<T>({
                                     <span className="min-w-0 flex-1">
                                         <span
                                             className={cn(
-                                                'block truncate text-[1rem] leading-6',
+                                                'text-ts-body leading-ts-body block truncate',
                                                 row.error
                                                     ? 'text-on-surface-variant'
                                                     : 'text-on-surface',
@@ -357,7 +357,7 @@ function ReferentialImportTemplate<T>({
                                             {row.label}
                                         </span>
                                         {row.error && (
-                                            <span className="text-error block text-[0.875rem] leading-5">
+                                            <span className="text-error text-ts-sub leading-ts-sub block">
                                                 {row.error}
                                             </span>
                                         )}
@@ -377,7 +377,7 @@ function ReferentialImportTemplate<T>({
                         </div>
 
                         {rejectionNote && rejected.length > 0 && (
-                            <div className="bg-tint-ambre text-on-tint-ambre flex gap-3 rounded-[4px] px-4 py-3 text-[0.875rem] leading-5">
+                            <div className="bg-tint-ambre text-on-tint-ambre text-ts-sub leading-ts-sub flex gap-3 rounded-[4px] px-4 py-3">
                                 {rejectionNote}
                             </div>
                         )}

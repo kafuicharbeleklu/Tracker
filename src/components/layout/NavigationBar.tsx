@@ -14,6 +14,7 @@ import { useAccessControl } from '../../hooks/useAccessControl';
 import { useAuth } from '../../context/AuthContext';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
 import { useRouter } from '../../hooks/useRouter';
+import { LIBELLE_MON_HISTORIQUE } from '../../hooks/useNavigationDestinations';
 import Icon from '../ui/Icon';
 import {
     DESTINATIONS,
@@ -163,11 +164,11 @@ const MoreSheetRow: React.FC<{ row: MoreRow; here?: boolean; onDone: () => void 
             <Icon glyph={row.glyph} size={20} emphasis={here ? 'fill' : 'regular'} />
         </span>
         <span className="min-w-0 flex-1">
-            <span className="block truncate text-[1rem] leading-6">{row.label}</span>
+            <span className="text-ts-body leading-ts-body block truncate">{row.label}</span>
             {row.fact && (
                 <span
                     className={cn(
-                        'block truncate text-[0.875rem] leading-5',
+                        'text-ts-sub leading-ts-sub block truncate',
                         row.fact.warn
                             ? 'text-[var(--tk-color-on-tint-ambre)]'
                             : 'text-on-surface-variant',
@@ -230,9 +231,14 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
         const suivi: MoreRow[] = [];
         if (permissions.canViewAudit) suivi.push(row('audit'));
-        /* Le journal se lit par qui peut lire les rapports : ce sont les mêmes faits,
-           l'un par nature et par jour, l'autre agrégés. */
-        if (permissions.canViewReports) suivi.push(row('history'));
+        /* Le journal entier se lit par qui peut lire les rapports : ce sont les mêmes
+           faits, l'un par nature et par jour, l'autre agrégés. Les autres y trouvent
+           **Mon historique** — *« joignable depuis Plus »* (18.1, colonne 4). */
+        suivi.push(
+            permissions.canViewReports
+                ? row('history')
+                : { ...row('history'), label: LIBELLE_MON_HISTORIQUE },
+        );
         if (permissions.canViewFinance) suivi.push(row('finance'));
         if (permissions.canViewReports) suivi.push(row('reports'));
 
@@ -457,7 +463,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
                     {/* `.sttl` — le titre des feuilles : 22 sur 28, Archivo 600. */}
                     <div className="px-5 pt-1 pb-1">
-                        <h2 className="font-brand text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                        <h2 className="font-brand text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
                             Plus
                         </h2>
                     </div>

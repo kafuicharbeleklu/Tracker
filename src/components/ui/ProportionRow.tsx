@@ -74,7 +74,7 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
                     {value}
                 </span>
                 {/* `.wrow .n` — 16 sur 24 (passe sobre du 05/09) ; 15 n'est sur aucune marche. */}
-                <span className="text-on-surface-variant min-w-0 flex-1 text-[1rem] leading-6">
+                <span className="text-on-surface-variant text-ts-body leading-ts-body min-w-0 flex-1">
                     {label}
                 </span>
             </p>
@@ -90,7 +90,9 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
                 />
             </div>
 
-            {note && <p className="text-on-surface-variant mt-2 text-[1rem] leading-6">{note}</p>}
+            {note && (
+                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-2">{note}</p>
+            )}
 
             {source && (
                 /* **12 sur 16, sans interlettrage.** Cette ligne portait

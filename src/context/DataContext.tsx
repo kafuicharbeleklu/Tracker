@@ -2891,6 +2891,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 let eventType: HistoryEvent['type'] = 'UPDATE';
                 let description = `Mise à jour équipement`;
                 const metadata: Record<string, unknown> = {
+                    /* Le lieu **au moment de l'acte** : la colonne « Lieu » et le sous-titre
+                       du fait ouvert (18.1) le relisent, et l'objet aura peut-être changé de
+                       site d'ici qu'on le relise. */
+                    ...(nextItem.site ? { location: nextItem.site } : {}),
+                    /* La preuve d'une remise est écrite sur l'objet (`handoverProof`) et
+                       remplacée à la suivante : le journal en garde la copie, sans quoi la
+                       colonne « Attestation » restait vide sur un passage de main attesté. */
+                    ...(typeof writeUpdates.handoverProof === 'string' && writeUpdates.handoverProof
+                        ? { proof: writeUpdates.handoverProof }
+                        : {}),
                     ...(logMetadata || {}),
                     fromStatus: oldItem.status,
                     toStatus: nextItem.status,

@@ -105,8 +105,8 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <h1
                                     className={cn(
                                         /* 17 sur 24 en Archivo 600 — `.tbar h2`. */
-                                        'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]',
-                                        isCompactLandscape && 'text-[0.9375rem] leading-5',
+                                        'font-brand text-on-surface medium:line-clamp-1 text-ts-head leading-ts-head line-clamp-2 font-semibold tracking-[-0.01em]',
+                                        isCompactLandscape && 'text-ts-control leading-ts-control',
                                     )}
                                 >
                                     {title}
@@ -138,8 +138,9 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <div className="min-w-0 px-1">
                                     <h1
                                         className={cn(
-                                            'font-brand text-on-surface medium:line-clamp-1 line-clamp-2 text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em]',
-                                            isCompactLandscape && 'text-[0.9375rem] leading-5',
+                                            'font-brand text-on-surface medium:line-clamp-1 text-ts-head leading-ts-head line-clamp-2 font-semibold tracking-[-0.01em]',
+                                            isCompactLandscape &&
+                                                'text-ts-control leading-ts-control',
                                         )}
                                     >
                                         {title}

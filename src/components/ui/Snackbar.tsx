@@ -147,7 +147,7 @@ const Snackbar: React.FC<SnackbarProps> = ({ messages, onDismiss, className }) =
                 {/* La nature, portée par le glyphe — la couleur n'est que son renfort (I3). */}
                 <Icon glyph={nature.glyph} size={20} className={nature.tone} />
 
-                <p className="min-w-0 flex-1 text-[0.875rem] leading-5 break-words">
+                <p className="text-ts-sub leading-ts-sub min-w-0 flex-1 break-words">
                     {current.message}
                 </p>
 

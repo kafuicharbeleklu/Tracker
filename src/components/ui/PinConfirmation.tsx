@@ -161,7 +161,7 @@ const PinConfirmation: React.FC<{
 
             <p
                 className={cn(
-                    'mt-2 max-w-[300px] text-center text-[0.875rem] leading-5',
+                    'text-ts-sub leading-ts-sub mt-2 max-w-[300px] text-center',
                     issue ? 'text-error' : 'text-on-surface-variant',
                 )}
                 role={issue ? 'alert' : undefined}
@@ -176,7 +176,7 @@ const PinConfirmation: React.FC<{
                         <Button
                             variant="text"
                             onClick={restart}
-                            className="text-on-surface hover:text-on-surface h-auto !min-h-0 min-w-0 p-0 align-baseline text-[0.875rem] leading-5 font-medium underline underline-offset-[3px] hover:bg-transparent"
+                            className="text-on-surface hover:text-on-surface text-ts-sub leading-ts-sub h-auto !min-h-0 min-w-0 p-0 align-baseline font-medium underline underline-offset-[3px] hover:bg-transparent"
                         >
                             Recommencer
                         </Button>

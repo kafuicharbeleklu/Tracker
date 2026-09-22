@@ -52,6 +52,13 @@ interface FilterMenuChipProps {
     posed?: boolean;
     /** Les valeurs retenues, quand l'axe en accepte plusieurs. Par défaut, `value` seule. */
     selectedIds?: string[];
+    /**
+     * **Un axe qui ne tient pas dans un menu** — « Personne ou objet » de 18.1 : soixante
+     * personnes et deux cents objets ne se parcourent pas en liste déroulante, ils se
+     * cherchent. La pastille garde sa forme et ouvre alors le choix de l'appelant (un
+     * dialogue avec sa recherche) au lieu de son menu ; `options` n'y sert plus.
+     */
+    onOpen?: () => void;
     className?: string;
 }
 
@@ -64,11 +71,36 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
     summary,
     posed,
     selectedIds,
+    onOpen,
     className,
 }) => {
     const retenue = options.find((option) => option.id === value) ?? options[0];
     const pose = posed ?? value !== neutralId;
     const retenus = selectedIds ?? [value];
+
+    const classes = cn(
+        'flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
+        'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        pose
+            ? 'bg-inverse-surface border-inverse-surface text-inverse-on-surface'
+            : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container',
+        className,
+    );
+
+    if (onOpen) {
+        return (
+            <button
+                type="button"
+                onClick={onOpen}
+                aria-haspopup="dialog"
+                aria-label={`${axis} : ${summary ?? retenue?.label ?? axis}`}
+                className={classes}
+            >
+                {summary ?? retenue?.label ?? axis}
+                <Icon glyph={CaretDown} size={18} />
+            </button>
+        );
+    }
 
     const items: MenuItem[] = options.map((option) => ({
         id: option.id,
@@ -90,14 +122,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                 <button
                     type="button"
                     aria-label={`${axis} : ${summary ?? retenue?.label ?? ''}`}
-                    className={cn(
-                        'flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
-                        'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                        pose
-                            ? 'bg-inverse-surface border-inverse-surface text-inverse-on-surface'
-                            : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container',
-                        className,
-                    )}
+                    className={classes}
                 >
                     {summary ?? retenue?.label}
                     {!summary && typeof retenue?.count === 'number' && (

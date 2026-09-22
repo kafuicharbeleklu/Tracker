@@ -112,7 +112,7 @@ const Slider: React.FC<SliderProps> = ({
             )}
             {/* `.zoom .v` — 40 de large, 14 sur 20 : 13 n'est sur aucune marche. */}
             {valueText && (
-                <span className="text-on-surface-variant w-10 shrink-0 text-right text-[0.875rem] leading-5 tabular-nums">
+                <span className="text-on-surface-variant text-ts-sub leading-ts-sub w-10 shrink-0 text-right tabular-nums">
                     {valueText}
                 </span>
             )}

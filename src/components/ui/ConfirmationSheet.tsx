@@ -247,14 +247,14 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 <div className="px-5 pt-1">
                     <h2
                         id={titleId}
-                        className="font-brand text-on-surface text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] text-pretty"
+                        className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] text-pretty"
                     >
                         {title}
                     </h2>
                     {reversibility && (
                         <p
                             className={cn(
-                                'mt-1 text-[0.875rem] leading-5',
+                                'text-ts-sub leading-ts-sub mt-1',
                                 irreversible ? 'text-danger' : 'text-on-surface-variant',
                             )}
                         >
@@ -273,11 +273,11 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 </span>
                             )}
                             <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[1rem] leading-6">
+                                <span className="text-ts-body leading-ts-body block truncate">
                                     {subject.title}
                                 </span>
                                 {subject.subtitle && (
-                                    <span className="text-on-surface-variant block truncate text-[0.875rem] leading-5">
+                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                                         {subject.subtitle}
                                     </span>
                                 )}
@@ -292,14 +292,14 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 Ce que cela change
                             </p>
                             {message && (
-                                <p className="text-on-surface text-[0.875rem] leading-5">
+                                <p className="text-on-surface text-ts-sub leading-ts-sub">
                                     {message}
                                 </p>
                             )}
                             {details?.map((detail) => (
                                 <p
                                     key={detail.label}
-                                    className="text-on-surface flex items-center gap-3 text-[0.875rem] leading-5"
+                                    className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3"
                                 >
                                     {detail.icon && (
                                         <span className="bg-surface text-on-surface-variant flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]">
@@ -333,10 +333,10 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 value={reasonInput}
                                 onChange={(event) => setReasonInput(event.target.value)}
                                 placeholder={reason.placeholder}
-                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 text-[1rem] leading-6 outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface placeholder:text-on-surface-variant focus-visible:ring-focus-ring text-ts-body leading-ts-body min-h-24 w-full rounded-[4px] border-0 px-3.5 py-3 outline-none focus-visible:ring-2"
                             />
                             {reason.hint && (
-                                <p className="text-on-surface-variant mt-2 text-[0.875rem] leading-5">
+                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
                                     {reason.hint}
                                 </p>
                             )}
@@ -359,7 +359,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                                 value={keywordInput}
                                 onChange={(event) => setKeywordInput(event.target.value)}
                                 placeholder={confirmKeyword}
-                                className="bg-surface-container text-on-surface focus-visible:ring-focus-ring min-h-12 w-full rounded-[4px] border-0 px-3.5 text-[1rem] leading-6 outline-none focus-visible:ring-2"
+                                className="bg-surface-container text-on-surface focus-visible:ring-focus-ring text-ts-body leading-ts-body min-h-12 w-full rounded-[4px] border-0 px-3.5 outline-none focus-visible:ring-2"
                             />
                         </div>
                     )}

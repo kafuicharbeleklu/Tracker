@@ -238,7 +238,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                         {label}
                     </p>
                 )}
-                <p className="font-brand text-inverse-on-surface mt-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+                <p className="font-brand text-inverse-on-surface text-ts-page leading-ts-page mt-1 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
                 {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
@@ -247,7 +247,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     pas d'autre endroit où écrire l'adresse. Les deux variantes la
                     posent désormais à la même mesure. */}
                 {subtitle && (
-                    <p className="text-on-nav-surface-variant mt-0.5 text-[0.875rem] leading-5">
+                    <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
                         {subtitle}
                     </p>
                 )}
@@ -292,7 +292,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     </p>
                 )}
 
-                <p className="font-brand text-inverse-on-surface mt-1 text-[1.75rem] leading-8 font-semibold tracking-[-0.02em] text-pretty">
+                <p className="font-brand text-inverse-on-surface text-ts-page leading-ts-page mt-1 font-semibold tracking-[-0.02em] text-pretty">
                     {subject}
                 </p>
 
@@ -301,7 +301,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                        c'est-à-dire l'ancien `body-medium` : une marche que R15 ne déclare
                        pas — l'échelle est 28 · 22 · 17 · 16 · 14 · 12 — et le seul endroit
                        du héro où un 13 subsistait. */
-                    <p className="text-on-nav-surface-variant mt-0.5 text-[0.875rem] leading-5">
+                    <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
                         {subtitle}
                     </p>
                 )}
@@ -347,7 +347,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                             metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
                         )}
                     >
-                        <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] tabular-nums">
+                        <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
                             {metric.value}
                         </span>
                         <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
@@ -363,7 +363,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 {metrics.map((metric, index) => (
                     <div key={index} className="min-w-0 flex-1">
                         {/* `.hk .v` — 22 sur 28, comme les tuiles ; `.hk .k` en 12 sur 16 (11.1). */}
-                        <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                        <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                             {metric.value}
                         </span>
                         <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
@@ -405,7 +405,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 {metrics.map((metric, index) => {
                     const contenu = (
                         <>
-                            <span className="font-brand block text-[1.375rem] leading-7 font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
                                 {metric.value}
                             </span>
                             <span
@@ -491,7 +491,7 @@ const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
                 {/* `.hrow .t` — **17 sur 24**, la deuxième marche de R15, et sans graisse
                     d'appui : c'est un nom, pas un fait mis en avant. Il tenait
                     `text-body-large` (15/21) en 500. */}
-                <span className="block truncate text-[1.0625rem] leading-6">{title}</span>
+                <span className="text-ts-head leading-ts-head block truncate">{title}</span>
                 {detail && (
                     <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
                         {detail}
