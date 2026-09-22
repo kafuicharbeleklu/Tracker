@@ -4158,3 +4158,20 @@ place de l'invite « signez ici ».
 **Mesuré après** (393 × 852, données de démonstration) : récapitulatif 537 px, attestation
 520 px — plus aucune des deux ne touche le plafond. L'incident et la sortie du parc gardent un
 récapitulatif qui défile (photos, crans, commentaire), leur attestation tient en 512.
+
+### L'en-tête reste (22/09)
+
+**La question** : *« normalement les headers doivent être fixes non ? »* — oui. 17.8 :
+*« L'en-tête est fixe ; le contenu défile »* ; 04.1 le redit de la recherche, 01.1 au bureau
+(*« barre latérale et en-tête restent »*), 04.2 de l'en-tête de fiche. Le code n'en tenait
+aucun : sur 15 routes, le titre sortait de l'écran au premier défilement.
+
+**Posé** : le bloc d'en-tête de `ListTemplate` et de `DetailTemplate` dans un conteneur
+`sticky top-0` sur le fond du canevas ; même règle pour les six pages qui dessinent leur
+propre en-tête (Tableau de bord, Catalogue, Finances, Paramètres, Emplacements, Rapports).
+Là où l'en-tête du bureau n'avait pas de fond, il remonte dans la marge du haut et la reprend
+en padding : posé, le titre n'a pas bougé ; collé, il ne touche pas le bord.
+
+**Mesuré** : 15 routes × 393 et 1280, titre à la même hauteur avant et après 700 px de
+défilement, partout. **Pas fait** : la ligne des colonnes des tableaux du bureau part encore
+avec les rangées — aucune planche ne la fige, on ne l'invente pas.
