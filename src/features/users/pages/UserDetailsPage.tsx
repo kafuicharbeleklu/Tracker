@@ -40,6 +40,7 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import BottomSheet from '../../../components/ui/BottomSheet';
 
@@ -943,14 +944,13 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     }
                 >
                     <div>
+                        {/* Le vide garde sa place dans la carte (22/09). */}
                         {userEvents.length === 0 && (
-                            <p className="text-body-medium text-text-secondary px-4 pt-3.5 pb-4">
-                                <strong className="text-on-surface font-medium">
-                                    Aucun mouvement enregistré
-                                </strong>{' '}
-                                pour {firstName}. Le journal n'a ni attribution, ni retour, ni
-                                changement de compte à son nom.
-                            </p>
+                            <CardEmptyState
+                                glyph={ClockCounterClockwise}
+                                title="Aucun mouvement"
+                                description={`Le journal n'a ni attribution, ni retour, ni changement de compte au nom de ${firstName}.`}
+                            />
                         )}
                         {visibleEvents.map((evt, i) => {
                             const EvIcon = historyIcon(evt);

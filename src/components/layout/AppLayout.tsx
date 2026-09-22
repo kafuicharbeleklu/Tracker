@@ -851,9 +851,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                                     <ClosureBanner {...cloture} />
                                 </div>
                             )}
-                            <Suspense fallback={<PageLoadingFallback />}>
-                                {renderContent()}
-                            </Suspense>
+                            {/*
+                              **La mesure du bureau** (22/09) : au-delà de 1 280 px, le
+                              contenu se centre au lieu de s'étirer. Sans elle, à 1 920 la
+                              page faisait 1 632 px — des cartes de 1 300 px pour trois
+                              lignes, un tableau dont la dernière colonne prenait la moitié
+                              de l'écran. Le canevas continue de chaque côté ; rien ne
+                              change sous 840.
+                            */}
+                            <div className="expanded:mx-auto expanded:max-w-[80rem] flex w-full min-w-0 flex-1 flex-col">
+                                <Suspense fallback={<PageLoadingFallback />}>
+                                    {renderContent()}
+                                </Suspense>
+                            </div>
                         </ErrorBoundary>
                     </main>
                 </div>

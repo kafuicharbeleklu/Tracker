@@ -5,7 +5,9 @@ import {
     CaretRight,
     Check,
     ClockCounterClockwise,
+    Coins,
     Handshake,
+    Laptop,
     Package,
     Plus,
     Wrench,
@@ -28,6 +30,7 @@ import Button from '../../../components/ui/Button';
 import Menu from '../../../components/ui/Menu';
 import Icon from '../../../components/ui/Icon';
 import Figure from '../../../components/ui/Figure';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
 import { rememberAuditScope } from '../../../lib/auditScope';
@@ -338,7 +341,10 @@ const Card: React.FC<{
     meta?: React.ReactNode;
     children: React.ReactNode;
 }> = ({ title, meta, children }) => (
-    <section className="rounded-card bg-surface p-4">
+    /* **Une colonne dont le corps s'étire** (22/09) : dans la grille du bureau, la carte
+       prend la hauteur fixe de sa rangée, sa liste défile dedans, et le renvoi du bas
+       (`.more`) reste calé au pied au lieu de flotter sous la dernière rangée. */
+    <section className="rounded-card bg-surface flex min-h-0 flex-col p-4">
         {/* `<header>`, pas `<div>` (10/09) : les rangées qui suivent sont des `div` et
             comptent sur `first-of-type:border-t-0` — avec un en-tête `div`, la première
             rangée n'était jamais la première de son type, et la planche (`.ev+.ev`,
@@ -353,7 +359,7 @@ const Card: React.FC<{
                 </span>
             )}
         </header>
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </section>
 );
 
@@ -383,7 +389,9 @@ const DashboardMoreAction: React.FC<{
                 !isInverse && 'large:min-h-10',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
-                    : 'border-outline-variant text-on-surface hover:text-on-surface mt-1',
+                    : /* `mt-auto` : dans une carte de hauteur fixe (grille du bureau), le
+                         renvoi se cale au pied ; dans une carte empilée, il suit le contenu. */
+                      'border-outline-variant text-on-surface hover:text-on-surface mt-auto',
             )}
         >
             <span className="shrink-0">{label}</span>
@@ -854,7 +862,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     const aTraiter = (
         <>
             <section
-                className="rounded-card text-inverse-on-surface relative isolate overflow-hidden p-5"
+                className="rounded-card text-inverse-on-surface relative isolate flex min-h-0 flex-col overflow-hidden p-5"
                 style={HERO_STYLE}
             >
                 <div
@@ -880,17 +888,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
                 {todo.length === 0 ? (
                     /* Régime `vide` — `.vide` / `.vmot` : une pastille ronde de 48
-                       au vert vivant, deux lignes, et pas de rassurance ajoutée. */
-                    <div className="flex items-center gap-3.5 pt-3 pb-1">
+                       au vert vivant, deux lignes, et pas de rassurance ajoutée. **Il
+                       tient le centre de la carte** (22/09) : la carte garde sa taille
+                       dans la grille, et au téléphone ses 160 px au moins. */
+                    <div className="flex min-h-40 flex-1 flex-col items-center justify-center gap-3 text-center">
                         <span
                             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
                             style={EMPTY_MOTIF_STYLE}
                         >
-                            <Icon glyph={Check} size={20} />
+                            <Icon glyph={Check} size={24} />
                         </span>
                         <div className="min-w-0">
                             <p className="text-ts-head leading-ts-head">Vous êtes à jour</p>
-                            <p className="mt-0.5 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
+                            <p className="text-ts-sub leading-ts-sub mt-1 text-[var(--tk-color-on-dark-2)]">
                                 Rien n’attend votre geste.
                             </p>
                         </div>
@@ -1153,24 +1163,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             >
                 {tension.stressed.length > 0 ? (
                     <>
-                        {tension.stressed.map(([type, entry]) => (
-                            /* `.brow` — 48 px, filet au-dessus, pastille carrée
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {tension.stressed.map(([type, entry]) => (
+                                /* `.brow` — 48 px, filet au-dessus, pastille carrée
                                    de 8 en `--st-orange`. Le pictogramme d'alerte
                                    que le code posait sur chaque ligne redisait ce
                                    que la carte dit déjà par son titre. */
-                            <div
-                                key={type}
-                                className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
-                            >
-                                <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
-                                <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
-                                    {entry.label}
-                                </span>
-                                <span className="text-on-surface-variant shrink-0 text-[0.75rem] leading-4 tabular-nums">
-                                    0 sur {entry.total}
-                                </span>
-                            </div>
-                        ))}
+                                <div
+                                    key={type}
+                                    className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
+                                >
+                                    <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
+                                    <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
+                                        {entry.label}
+                                    </span>
+                                    <span className="text-on-surface-variant shrink-0 text-[0.75rem] leading-4 tabular-nums">
+                                        0 sur {entry.total}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                         {tension.calm > 0 && (
                             <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
                                 {tension.calm === 1
@@ -1180,9 +1192,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         )}
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
-                        Chaque type a au moins une unité.
-                    </p>
+                    <CardEmptyState
+                        glyph={Check}
+                        tone="positive"
+                        title="Aucun type en tension"
+                        description="Chaque type a au moins une unité disponible."
+                    />
                 )}
             </Card>
         </>
@@ -1274,9 +1289,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         />
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
-                        Aucun budget configuré pour cet exercice.
-                    </p>
+                    <CardEmptyState
+                        glyph={Coins}
+                        title="Aucun budget pour cet exercice"
+                        description="Les enveloppes se saisissent dans Finances."
+                    />
                 )}
             </Card>
         </>
@@ -1306,9 +1323,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         </div>
                     ))
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
-                        Aucun équipement ne vous est actuellement attribué.
-                    </p>
+                    <CardEmptyState
+                        glyph={Laptop}
+                        title="Aucun équipement attribué"
+                        description="Ce qui vous est remis s'affichera ici."
+                    />
                 )}
             </Card>
         </>
@@ -1347,47 +1366,49 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             <Card title="Derniers événements">
                 {recentEvents.length > 0 ? (
                     <>
-                        {recentEvents.map((event) => {
-                            /*
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {recentEvents.map((event) => {
+                                /*
                               `.mk` — §2.5 : 32 px, ronde, sur le creux. La passe sobre
                               **ne tinte plus** la marque d'une personne : la planche
                               pose une seule déclaration pour les deux cas, et c'est le
                               contenu — initiales ou glyphe de l'acte — qui distingue.
                             */
-                            const glyph = EVENT_GLYPH[event.type] ?? ClockCounterClockwise;
-                            const initials =
-                                !event.isSystem && event.actorName
-                                    ? event.actorName
-                                          .split(' ')
-                                          .map((part) => part[0])
-                                          .filter(Boolean)
-                                          .slice(0, 2)
-                                          .join('')
-                                          .toUpperCase()
-                                    : '';
+                                const glyph = EVENT_GLYPH[event.type] ?? ClockCounterClockwise;
+                                const initials =
+                                    !event.isSystem && event.actorName
+                                        ? event.actorName
+                                              .split(' ')
+                                              .map((part) => part[0])
+                                              .filter(Boolean)
+                                              .slice(0, 2)
+                                              .join('')
+                                              .toUpperCase()
+                                        : '';
 
-                            return (
-                                <div
-                                    key={event.id}
-                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
-                                >
-                                    <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-semibold">
-                                        {initials || <Icon glyph={glyph} size={18} />}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-on-surface text-ts-body leading-ts-body">
-                                            {getHistoryEventSentence({
-                                                event,
-                                                perspectiveActorId: currentUser?.id,
-                                            })}
-                                        </p>
-                                        <p className="text-on-surface-variant mt-0.5 text-[0.75rem] leading-4 tabular-nums">
-                                            {formatMoment(event.timestamp)}
-                                        </p>
+                                return (
+                                    <div
+                                        key={event.id}
+                                        className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
+                                    >
+                                        <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-semibold">
+                                            {initials || <Icon glyph={glyph} size={18} />}
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-on-surface text-ts-body leading-ts-body">
+                                                {getHistoryEventSentence({
+                                                    event,
+                                                    perspectiveActorId: currentUser?.id,
+                                                })}
+                                            </p>
+                                            <p className="text-on-surface-variant mt-0.5 text-[0.75rem] leading-4 tabular-nums">
+                                                {formatMoment(event.timestamp)}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                         {/*
                           « Tout l'historique » mène au journal (18.1), écrit le
                           05/09 : le renvoi que la planche dessine n'est plus un
@@ -1413,9 +1434,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                               )}
                     </>
                 ) : (
-                    <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
-                        Aucun événement enregistré pour l’instant.
-                    </p>
+                    <CardEmptyState
+                        glyph={ClockCounterClockwise}
+                        title="Aucun événement"
+                        description="Les remises, les retours et les demandes s'afficheront ici."
+                    />
                 )}
             </Card>
         </>
@@ -1583,7 +1606,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
     /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
     const CASE_GRILLE =
-        'flex min-w-0 flex-col [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
+        'flex min-h-0 min-w-0 flex-col [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
 
     return (
         <div className="bg-background flex min-w-0 flex-1 flex-col">
@@ -1611,21 +1634,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 le long de la page. Pas huit colonnes sur douze : le partage
                                 de 03.1 ne compte pas les gouttières, et la colonne des
                                 événements tombait 5 px trop à droite (relevé du 13/09). */}
-                            <div className="grid grid-cols-[8fr_4fr] items-stretch gap-4">
-                                {/*
-                                  **C'est la file qui donne sa hauteur à la rangée, jamais
-                                  l'inverse.** Le héro garde donc sa hauteur naturelle : au
-                                  régime vide il tient en deux lignes, et l'étirer
-                                  fabriquerait un pan sombre de 400 px pour dire « rien à
-                                  traiter ». Les événements, eux, s'étirent — c'est ce que
-                                  la planche demande : qu'ils cessent de courir le long de
-                                  la page.
-                                */}
-                                <div className="flex min-w-0 flex-col">{aTraiter}</div>
+                            {/*
+                              **Des rangées de hauteur fixe** — arbitrage du commanditaire,
+                              22/09. La rangée suivait son contenu : le héro vide tenait en
+                              deux lignes (128 px) à côté d'événements de 440, et la
+                              mosaïque changeait de hauteur d'un jour à l'autre. Chaque
+                              rangée a maintenant sa mesure — **448** pour la file et les
+                              événements, **320** pour la mosaïque ; une liste plus longue
+                              défile dans sa carte, une carte vide centre son état.
+                            */}
+                            <div className="grid h-[28rem] grid-cols-[8fr_4fr] items-stretch gap-4">
+                                <div className={CASE_GRILLE}>{aTraiter}</div>
                                 <div className={CASE_GRILLE}>{evenements}</div>
                             </div>
 
-                            <div className="grid grid-cols-12 items-stretch gap-4">
+                            <div className="grid auto-rows-[20rem] grid-cols-12 items-stretch gap-4">
                                 {mosaique.map((carte) => (
                                     <div key={carte.cle} className={cn(CASE_GRILLE, carte.span)}>
                                         {carte.contenu}

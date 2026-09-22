@@ -931,7 +931,11 @@ body {
     /* ---- Espacement — crans nommés du DS (pont Tailwind : p-page, p-card…) ----
        Étaient des littéraux dans tailwind.config.js : tokenisés ici pour que
        l'espacement soit lisible et surchargeable comme le reste du tier 2. */
-    --tk-space-page: 1.5rem;
+    /* **La gouttière de page suit la fenêtre** (22/09) — 24 au rail et sur un petit
+       bureau, 40 dès 1 334 px : à 24 sur un écran large, le contenu collait à la barre
+       latérale et les cartes couraient d'un bord à l'autre. Une seule déclaration,
+       fluide : le garde des jetons interdit de la redéclarer par régime. */
+    --tk-space-page: clamp(1.5rem, 3vw, 2.5rem);
     --tk-space-page-sm: 1rem;
     --tk-space-card: 1.5rem;
     --tk-space-card-compact: 1rem;

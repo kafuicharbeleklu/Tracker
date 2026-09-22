@@ -89,10 +89,7 @@ const SideRow: React.FC<{
        long, « Tableau de bord » et « Équipements » : une page titrée « Actifs » s'ouvrait
        depuis une entrée « Équipements », deux noms pour une destination. */
     const label =
-        libelle ??
-        (collapsed
-            ? (destination.shortLabel ?? destination.label)
-            : (destination.sidebarLabel ?? destination.shortLabel ?? destination.label));
+        libelle ?? destination.sidebarLabel ?? destination.shortLabel ?? destination.label;
 
     return (
         <Button
@@ -100,11 +97,10 @@ const SideRow: React.FC<{
             layout="card"
             onClick={onSelect}
             aria-current={active ? 'page' : undefined}
-            /* Replié, le libellé court est visible mais peut se tronquer : le
-               `title` **redit** ce que la rangée montre déjà et que l'`aria-label`
-               vocalise — c'est le seul emploi que le socle autorise. */
-            aria-label={collapsed ? destination.label : undefined}
-            title={collapsed ? destination.label : undefined}
+            /* Replié, le glyphe est seul : l'`aria-label` le nomme, et le `title` en
+               fait l'infobulle au survol. */
+            aria-label={collapsed ? (libelle ?? destination.label) : undefined}
+            title={collapsed ? (libelle ?? destination.label) : undefined}
             className={cn(
                 'h-auto min-w-0 shadow-none hover:bg-transparent',
                 /* Rayon **4**, pas 8 : l'échelle du bureau est 2 · 4 · 8 et 17.11 met
@@ -112,10 +108,11 @@ const SideRow: React.FC<{
                    rangée de navigation n'en est pas une. */
                 'focus-visible:ring-focus-ring rounded-md outline-none focus-visible:ring-2 focus-visible:ring-inset',
                 collapsed
-                    ? /* `.side.fold>a` — 72 × 64, le glyphe puis le mot en 11. Le padding
-                         horizontal du bouton est neutralisé : à 16 px de chaque côté il
-                         ne restait que 40 px de texte. */
-                      'relative mx-auto flex min-h-16 w-[72px] flex-col items-center justify-center gap-1 !px-1 text-center text-[0.6875rem] leading-4'
+                    ? /* **Repliée, le glyphe seul** (arbitrage du 22/09) — un carré de 40.
+                         La planche posait le mot en 11 sous le glyphe, dans 72 × 64 : les
+                         noms longs s'y coupaient (« Emplace… ») et la colonne serrait ses
+                         rangées. Le nom reste l'infobulle et le nom accessible. */
+                      'relative mx-auto flex h-10 min-h-10 w-10 items-center justify-center !px-0'
                     : /* `.side>a` — **40 de haut, 13 sur 18, gouttière 10, rayon 4.**
                          J'avais posé 48 / 14 / 12 / rayon 8 en lisant 00.3 ; 17.11
                          consolide le chrome des neuf écrans et c'est elle qui fait foi. */
@@ -130,7 +127,7 @@ const SideRow: React.FC<{
         >
             <Icon
                 glyph={destination.glyph}
-                size={18}
+                size={collapsed ? 20 : 18}
                 emphasis={active ? 'fill' : 'regular'}
                 className="shrink-0"
             />
@@ -143,9 +140,7 @@ const SideRow: React.FC<{
               **un** nom, celui du registre — deux noms pour une destination, c'est
               l'écart que 11.1 a fait fermer.
             */}
-            <span className={cn('min-w-0 truncate', collapsed ? 'max-w-full' : 'flex-1')}>
-                {label}
-            </span>
+            {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
             {/*
               `.side>a .n` — **une pastille**, pas un nombre nu : 11 sur 16, `0 5`, rayon
               2, sur `--inset-2` — et sur `--surface` quand la rangée est courante, pour
@@ -161,7 +156,7 @@ const SideRow: React.FC<{
                     className={cn(
                         'text-on-surface shrink-0 rounded-xs px-[5px] text-[0.6875rem] leading-4 tabular-nums',
                         active ? 'bg-surface' : 'bg-surface-muted-strong',
-                        collapsed ? 'absolute top-1.5 right-2' : 'ml-auto',
+                        collapsed ? 'absolute -top-1 -right-1' : 'ml-auto',
                     )}
                 >
                     {count}
@@ -231,7 +226,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   Elle tient la **fenêtre** : c'est le corps qui défile sous elle.
                 */
                 'bg-surface sticky top-0 flex h-screen shrink-0 flex-col py-4',
-                isCollapsed ? 'w-[88px] px-2' : 'w-[240px] px-3',
+                /* Repliée : 64, les carrés de 40 et 12 de chaque côté. */
+                isCollapsed ? 'w-16 px-3' : 'w-[240px] px-3',
                 className,
             )}
         >
@@ -280,12 +276,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {groupes.map((groupe) => (
                     <React.Fragment key={groupe.label}>
                         {isCollapsed ? (
-                            /* Replié, le nom du groupe n'a pas la place — et **rien ne
-                               le remplace** : la colonne « rail » de 17.11 enchaîne ses
-                               dix destinations sans coupure, et le chrome du bureau ne
-                               pose pas de filet. Un filet y dirait une séparation que le
-                               rail, sans les noms, ne peut plus nommer. */
-                            <React.Fragment />
+                            /* Replié, le nom du groupe n'a pas la place, et le chrome du
+                               bureau ne pose pas de filet. **Un blanc de 12** en tient lieu :
+                               sans les mots, treize glyphes à la suite ne se regroupent plus
+                               d'eux-mêmes. */
+                            <span aria-hidden="true" className="h-3 shrink-0" />
                         ) : (
                             <p className="text-text-tertiary px-2.5 pt-3 pb-1 text-[0.6875rem] leading-4 font-normal tracking-[0.06em] uppercase">
                                 {groupe.label}

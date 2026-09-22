@@ -4175,3 +4175,36 @@ en padding : posé, le titre n'a pas bougé ; collé, il ne touche pas le bord.
 **Mesuré** : 15 routes × 393 et 1280, titre à la même hauteur avant et après 700 px de
 défilement, partout. **Pas fait** : la ligne des colonnes des tableaux du bureau part encore
 avec les rangées — aucune planche ne la fige, on ne l'invente pas.
+
+### Le bureau prend de l'air : rail d'icônes, gouttière, mesure, cartes de taille fixe (22/09)
+
+**La demande** : *« le menu latéral rétracté déborde avec les icônes et leur libellé […] le
+margin du desktop est trop petit, ce qui fait que les cartes apparaissent trop larges avec
+beaucoup d'espacement vide […] évite que les cartes aient une taille très petite à vide, je
+préfère qu'elles aient une taille fixe avec une bonne gestion d'état à vide »*.
+
+**La barre repliée ne montre que les glyphes** — 64 px au lieu de 88, des carrés de 40, le
+nom en infobulle et en nom accessible, la pastille des tâches au coin du glyphe, et un blanc
+de 12 entre les groupes. 17.11 posait le mot en 11 sous le glyphe, dans 72 × 64 : les noms
+longs s'y coupaient (« Emplace… »). Le rail de la tablette, qui est la même barre, suit.
+
+**La gouttière suit la fenêtre** : `--tk-space-page` passe de 24 à `clamp(24px, 3vw, 40px)`
+— 24 au rail, 38 à 1 280, 40 dès 1 334. Une seule déclaration (le garde des jetons interdit de
+la redéclarer par régime) ; Finances et Rapports, qui la lisent en `calc`, suivent.
+
+**Le contenu se centre au-delà de 1 280** (`AppLayout`, dès 840) : à 1 920 la page faisait
+1 632 px — des cartes de 1 300 px pour trois lignes, un tableau dont la dernière colonne
+prenait la moitié de l'écran. Elle en fait 1 200 entre deux gouttières, le canevas continue de
+chaque côté.
+
+**Les cartes du tableau de bord ont une taille fixe** (grille de 1 280) : **448** pour la file
+et les événements, **320** pour la mosaïque. Une liste plus longue défile dans sa carte, le
+renvoi (`.more`) se cale au pied. La note qui gardait au héro « sa hauteur naturelle » (deux
+lignes, 128 px, à côté d'événements de 440) est remplacée : le héro remplit sa case et centre
+son vide.
+
+**Une carte vide garde sa place** — `CardEmptyState`, composant partagé : pastille de 48, le
+fait en 16 / 500, ce qu'il veut dire en 14, **160 px au moins** hors grille. Posé sur les vides
+du tableau de bord (file, événements, types en tension, budget, équipements du porteur) et sur
+l'historique vide des fiches d'un objet et d'une personne. Ce n'est pas `ScreenState` (17.1),
+qui occupe un écran.

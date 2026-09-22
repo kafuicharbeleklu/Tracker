@@ -44,6 +44,7 @@ import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 
 import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
@@ -973,9 +974,12 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 </button>
                             </>
                         ) : (
-                            <p className="text-on-surface-variant text-ts-body leading-ts-body mt-2">
-                                Aucun mouvement enregistré pour cet équipement.
-                            </p>
+                            /* Le vide garde sa place dans la carte (22/09). */
+                            <CardEmptyState
+                                glyph={ClockCounterClockwise}
+                                title="Aucun mouvement"
+                                description="Les remises, les retours et les réparations de cet équipement s'afficheront ici."
+                            />
                         )}
                     </section>
                 )}
