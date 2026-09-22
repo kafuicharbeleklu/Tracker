@@ -94,10 +94,13 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
         done: false,
     });
     const [signature, setSignature] = useState<Blob | null>(null);
+    /* Le récapitulatif, puis l'attestation seule — l'étape de 17.4 (arbitrage du 22/09). */
+    const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
 
     useEffect(() => {
         let vivant = true;
         setAttestation({ method: actor?.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
         if (!open || !actor?.pin || !actor?.id) {
             setSignature(null);
             return;
@@ -112,7 +115,14 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
 
     const close = () => {
         setReason(null);
+        setEtape('recap');
         onClose();
+    };
+
+    /* Revenir au récapitulatif rend l'attestation : on n'atteste pas ce qu'on a quitté. */
+    const retour = () => {
+        setAttestation({ method: actor?.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
     };
 
     const lines = [
@@ -151,69 +161,88 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
 
     return (
         <BottomSheet open={open} onClose={close} title="Sortir du parc">
-            <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                    Irréversible. L'historique, lui, est conservé.
-                </p>
+            {etape === 'recap' ? (
+                <div className="flex flex-col gap-4">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
+                        Irréversible. L'historique, lui, est conservé.
+                    </p>
 
-                <SubjectRow
-                    glyph={Package}
-                    title={item.name}
-                    detail={[item.model || item.type, item.status.toLowerCase(), item.site]
-                        .filter(Boolean)
-                        .join(' · ')}
-                />
+                    <SubjectRow
+                        glyph={Package}
+                        title={item.name}
+                        detail={[item.model || item.type, item.status.toLowerCase(), item.site]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    />
 
-                <div>
-                    <FieldLabel note="obligatoire">Motif</FieldLabel>
-                    <div className="flex flex-col gap-2">
-                        {REASONS.map((entry) => (
-                            <OptionRow
-                                key={entry.value}
-                                title={entry.title}
-                                hint={entry.hint}
-                                tint={entry.tint}
-                                selected={reason === entry.value}
-                                onSelect={() => setReason(entry.value)}
-                            />
-                        ))}
+                    <div>
+                        <FieldLabel note="obligatoire">Motif</FieldLabel>
+                        <div className="flex flex-col gap-2">
+                            {REASONS.map((entry) => (
+                                <OptionRow
+                                    key={entry.value}
+                                    title={entry.title}
+                                    hint={entry.hint}
+                                    tint={entry.tint}
+                                    selected={reason === entry.value}
+                                    onSelect={() => setReason(entry.value)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <Consequences label="Ce que cela change" lines={lines} />
+
+                    <FormWarn glyph={Info}>
+                        Un objet <b className="font-medium">attribué</b> ne sort pas d'ici :
+                        l'entrée devient <b className="font-medium">« Organiser la restitution »</b>
+                        .
+                    </FormWarn>
+
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={close}>
+                            Annuler
+                        </Button>
+                        {/* On ne passe à l'attestation qu'une fois le motif pris. */}
+                        <Button
+                            variant="filled"
+                            disabled={!reason}
+                            onClick={() => setEtape('attester')}
+                        >
+                            Continuer
+                        </Button>
                     </div>
                 </div>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {/* 4 · l'attestation, seule dans son étape (17.4, arbitrage du 22/09). */}
+                    <Attestation
+                        signerName={actorName}
+                        signerPin={actor?.pin}
+                        signature={signature}
+                        onChange={setAttestation}
+                    />
 
-                {/* 4 · l'attestation — après le motif, avant les conséquences (17.4). */}
-                <Attestation
-                    signerName={actorName}
-                    signerPin={actor?.pin}
-                    signature={signature}
-                    onChange={setAttestation}
-                />
-
-                <Consequences label="Ce que cela change" lines={lines} />
-
-                <FormWarn glyph={Info}>
-                    Un objet <b className="font-medium">attribué</b> ne sort pas d'ici : l'entrée
-                    devient <b className="font-medium">« Organiser la restitution »</b>.
-                </FormWarn>
-
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
-                    <Button variant="ghost" onClick={close}>
-                        Annuler
-                    </Button>
-                    {/* `.btn-x` — le seul rouge plein du produit, et il ne s'allume
-                        qu'une fois le motif pris. */}
-                    <Button
-                        variant="danger"
-                        disabled={!reason || !attestation.done}
-                        onClick={() => {
-                            if (!reason) return;
-                            onRetire(reason, attestation.method);
-                            close();
-                        }}
-                    >
-                        Sortir du parc
-                    </Button>
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={retour}>
+                            Retour
+                        </Button>
+                        {/* `.btn-x` — le seul rouge plein du produit, et il ne s'allume
+                            qu'une fois l'acte attesté. */}
+                        <Button
+                            variant="danger"
+                            disabled={!reason || !attestation.done}
+                            onClick={() => {
+                                if (!reason) return;
+                                onRetire(reason, attestation.method);
+                                close();
+                            }}
+                        >
+                            Sortir du parc
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
         </BottomSheet>
     );
 };

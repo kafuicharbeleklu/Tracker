@@ -101,10 +101,13 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
         done: false,
     });
     const [signature, setSignature] = useState<Blob | null>(null);
+    /* Le récapitulatif, puis l'attestation seule — l'étape de 17.4 (arbitrage du 22/09). */
+    const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
 
     useEffect(() => {
         let vivant = true;
         setAttestation({ method: declarer?.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
         if (!open || !declarer?.pin || !declarer?.id) {
             setSignature(null);
             return;
@@ -179,128 +182,152 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
         setOutcome('immobilised');
         setPhotos([]);
         setComment('');
+        setEtape('recap');
         onClose();
+    };
+
+    /* Revenir au récapitulatif rend l'attestation : on n'atteste pas ce qu'on a quitté. */
+    const retour = () => {
+        setAttestation({ method: declarer?.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
     };
 
     return (
         <BottomSheet open={open} onClose={close} title="Déclarer un incident">
-            <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                    Trace enregistrée au nom de {declarerName}.
-                </p>
+            {etape === 'recap' ? (
+                <div className="flex flex-col gap-4">
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
+                        Trace enregistrée au nom de {declarerName}.
+                    </p>
 
-                <SubjectRow
-                    glyph={Package}
-                    title={item.name}
-                    detail={[item.model || item.type, holderName ? `chez ${holderName}` : item.site]
-                        .filter(Boolean)
-                        .join(' · ')}
-                />
+                    <SubjectRow
+                        glyph={Package}
+                        title={item.name}
+                        detail={[
+                            item.model || item.type,
+                            holderName ? `chez ${holderName}` : item.site,
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    />
 
-                <div>
-                    <FieldLabel>Ce qu'on voit</FieldLabel>
-                    {/* `.shots` — des carrés de 56, la case d'une photo. */}
-                    <div className="flex flex-wrap gap-2">
-                        {photos.map((name, index) => (
+                    <div>
+                        <FieldLabel>Ce qu'on voit</FieldLabel>
+                        {/* `.shots` — des carrés de 56, la case d'une photo. */}
+                        <div className="flex flex-wrap gap-2">
+                            {photos.map((name, index) => (
+                                <ShotBox
+                                    key={`${name}-${index}`}
+                                    glyph={Camera}
+                                    filled
+                                    title={name}
+                                    aria-label={`Photo jointe : ${name} — retirer`}
+                                    onClick={() =>
+                                        setPhotos((prev) =>
+                                            prev.filter((_, position) => position !== index),
+                                        )
+                                    }
+                                />
+                            ))}
                             <ShotBox
-                                key={`${name}-${index}`}
                                 glyph={Camera}
-                                filled
-                                title={name}
-                                aria-label={`Photo jointe : ${name} — retirer`}
-                                onClick={() =>
+                                label="ajouter"
+                                aria-label="Ajouter une photo de l'incident"
+                                onClick={() => photoInput.current?.click()}
+                            />
+                            <FilePicker
+                                ref={photoInput}
+                                accept="image/*"
+                                multiple
+                                onFiles={(names) => {
+                                    setRefusPhoto(null);
                                     setPhotos((prev) =>
-                                        prev.filter((_, position) => position !== index),
-                                    )
-                                }
+                                        names.length > 0 ? [...prev, ...names] : prev,
+                                    );
+                                }}
+                                onReject={setRefusPhoto}
                             />
-                        ))}
-                        <ShotBox
-                            glyph={Camera}
-                            label="ajouter"
-                            aria-label="Ajouter une photo de l'incident"
-                            onClick={() => photoInput.current?.click()}
-                        />
-                        <FilePicker
-                            ref={photoInput}
-                            accept="image/*"
-                            multiple
-                            onFiles={(names) => {
-                                setRefusPhoto(null);
-                                setPhotos((prev) =>
-                                    names.length > 0 ? [...prev, ...names] : prev,
-                                );
-                            }}
-                            onReject={setRefusPhoto}
-                        />
-                    </div>
-                    {/* La borne de 17.10 : le refus se lit **au champ**, là où la photo
+                        </div>
+                        {/* La borne de 17.10 : le refus se lit **au champ**, là où la photo
                         a été choisie, et nomme le fichier et sa taille (17.5). */}
-                    {refusPhoto && (
-                        <p
-                            className="text-error text-ts-sub leading-ts-sub mt-2 flex items-start gap-1.5"
-                            role="alert"
-                        >
-                            <Icon glyph={XCircle} size={18} className="mt-px" />
-                            <span>{refusPhoto}</span>
-                        </p>
-                    )}
-                </div>
+                        {refusPhoto && (
+                            <p
+                                className="text-error text-ts-sub leading-ts-sub mt-2 flex items-start gap-1.5"
+                                role="alert"
+                            >
+                                <Icon glyph={XCircle} size={18} className="mt-px" />
+                                <span>{refusPhoto}</span>
+                            </p>
+                        )}
+                    </div>
 
-                <div>
-                    <FieldLabel>Ce que ça change pour l'objet</FieldLabel>
-                    <div className="flex flex-col gap-2">
-                        {OUTCOMES.map((entry) => (
-                            <OptionRow
-                                key={entry.value}
-                                title={entry.title}
-                                hint={entry.hint}
-                                tint={entry.tint}
-                                selected={outcome === entry.value}
-                                onSelect={() => setOutcome(entry.value)}
-                            />
-                        ))}
+                    <div>
+                        <FieldLabel>Ce que ça change pour l'objet</FieldLabel>
+                        <div className="flex flex-col gap-2">
+                            {OUTCOMES.map((entry) => (
+                                <OptionRow
+                                    key={entry.value}
+                                    title={entry.title}
+                                    hint={entry.hint}
+                                    tint={entry.tint}
+                                    selected={outcome === entry.value}
+                                    onSelect={() => setOutcome(entry.value)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* `.free` — 96 de haut sur le creux, l'invite en encre tertiaire. */}
+                    <TextArea
+                        value={comment}
+                        onChange={(event) => setComment(event.target.value)}
+                        rows={3}
+                        aria-label="Décrire l'incident"
+                        placeholder="Décrire, si la photo ne suffit pas."
+                    />
+
+                    <Consequences label="Ce que cela déclenche" lines={consequences} />
+
+                    {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={close}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={() => setEtape('attester')}>
+                            Continuer
+                        </Button>
                     </div>
                 </div>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {/* 4 · l'attestation, seule dans son étape — le compte décide de la
+                        méthode (17.4, arbitrage du 22/09). */}
+                    <Attestation
+                        signerName={declarerName}
+                        signerPin={declarer?.pin}
+                        signature={signature}
+                        onChange={setAttestation}
+                    />
 
-                {/* `.free` — 96 de haut sur le creux, l'invite en encre tertiaire. */}
-                <TextArea
-                    value={comment}
-                    onChange={(event) => setComment(event.target.value)}
-                    rows={3}
-                    aria-label="Décrire l'incident"
-                    placeholder="Décrire, si la photo ne suffit pas."
-                />
-
-                {/* 4 · l'attestation — le compte décide de la méthode (17.4). */}
-                <Attestation
-                    signerName={declarerName}
-                    signerPin={declarer?.pin}
-                    signature={signature}
-                    onChange={setAttestation}
-                />
-
-                <Consequences label="Ce que cela déclenche" lines={consequences} />
-
-                {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
-                    <Button variant="ghost" onClick={close}>
-                        Annuler
-                    </Button>
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={Warning} size={18} />}
-                        disabled={!attestation.done}
-                        onClick={() => {
-                            onDeclare({ outcome, photos, comment, method: attestation.method });
-                            close();
-                        }}
-                        className={cn(chosen.value === 'serves' && 'bg-primary')}
-                    >
-                        Déclarer
-                    </Button>
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={retour}>
+                            Retour
+                        </Button>
+                        <Button
+                            variant="filled"
+                            icon={<Icon glyph={Warning} size={18} />}
+                            disabled={!attestation.done}
+                            onClick={() => {
+                                onDeclare({ outcome, photos, comment, method: attestation.method });
+                                close();
+                            }}
+                            className={cn(chosen.value === 'serves' && 'bg-primary')}
+                        >
+                            Déclarer
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            )}
         </BottomSheet>
     );
 };

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import Button from './Button';
 import PinField from './PinField';
-import SignaturePad from './SignaturePad';
+import SignaturePad, { SIGNATURE_BOX } from './SignaturePad';
+import { cn } from '../../lib/utils';
 import { FieldLabel } from './FormParts';
 import { PIN_LENGTH, PIN_MAX_ATTEMPTS } from '../../lib/security';
 import type { AttestationMethod } from '../../types';
@@ -232,11 +233,18 @@ const Attestation: React.FC<AttestationProps> = ({
                   s'y affiche, le nom au bas comme sur un tracé, et le coin dit par quoi
                   elle a été autorisée. Aucun geste n'est demandé ici : c'est un constat.
                 */
-                <div className="bg-tint-vert text-on-tint-vert relative h-[120px] overflow-hidden rounded-md">
+                <div
+                    className={cn(
+                        'bg-tint-vert text-on-tint-vert relative overflow-hidden rounded-md',
+                        /* La place de la case qu'on aurait tracée : la preuve posée ne
+                           rétrécit pas l'étape. */
+                        SIGNATURE_BOX,
+                    )}
+                >
                     <img
                         src={signatureUrl}
                         alt={`Signature de ${signerName}`}
-                        className="absolute inset-x-0 top-3 mx-auto h-[64px] w-auto max-w-[70%] object-contain"
+                        className="absolute inset-x-0 top-1/2 mx-auto h-[45%] w-auto max-w-[70%] -translate-y-1/2 object-contain"
                     />
                     <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
                         apposée · code PIN

@@ -4128,3 +4128,33 @@ lettre tapée —, plafonnés à 75 % quand elle est courte ; **la recherche et 
 restent en place**, seule la liste défile. La page d'où la feuille vient reste lisible au-dessus.
 L'acte lui-même (date, attestation, conséquence) suit son contenu jusqu'à 90 %, le plafond de
 `BottomSheet`. Vérifié au téléphone et au bureau, pour « Lequel ? » comme pour « À qui ? ».
+
+### L'attestation a son étape (22/09)
+
+**La demande** : *« la carte de signature de la feuille est de petite hauteur et trop
+rectangle ; remplace le libellé Effacer par une icône ; on peut carrément avoir une feuille
+dédiée pour signer / PIN »*.
+
+**Mesuré avant de choisir.** La feuille « Remettre l'équipement » faisait **745 px** sur un
+téléphone de 852, pour un plafond de 767 (90 %). La case de signature — 353 × 120, trois
+fois plus large que haute — ne pouvait gagner que 20 px sans faire défiler la feuille. Le
+commanditaire a tranché pour l'étape dédiée, **contre 17.4** (*« Votre attestation — et
+c'est un bloc, jamais un écran »*).
+
+**Deux temps, une seule feuille.** Le récapitulatif (l'objet, l'autre partie, la question,
+ce que cela déclenche) se clôt par **Continuer** ; l'étape suivante ne porte que
+l'attestation, avec **Retour** et le verbe de l'acte. La feuille change de contenu comme elle
+le fait déjà pour choisir un bloc : pas d'écran, pas de page de validation. Revenir au
+récapitulatif rend l'attestation. Appliqué aux trois feuilles qui attestent : `ActSheet`
+(remettre, recevoir, rendre, réceptionner, trancher une demande…), **Sortir du parc** (où
+Continuer attend le motif) et **Déclarer un incident**.
+
+**La case prend 4:3**, plafonnée à 320 px et à 42 % de l'écran : **353 × 265** au téléphone,
+520 × 320 au bureau. La signature apposée par le code occupe la même case. Le canevas se règle
+sur la taille affichée, à la densité de l'écran — il était dessiné à 720 × 240 puis étiré, ce
+qui aurait écrasé le trait à 4:3. **Effacer devient la gomme**, un bouton d'icône de 40 à la
+place de l'invite « signez ici ».
+
+**Mesuré après** (393 × 852, données de démonstration) : récapitulatif 537 px, attestation
+520 px — plus aucune des deux ne touche le plafond. L'incident et la sortie du parc gardent un
+récapitulatif qui défile (photos, crans, commentaire), leur attestation tient en 512.

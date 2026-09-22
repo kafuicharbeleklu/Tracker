@@ -20,14 +20,24 @@ import { MEDIA } from '../../constants/breakpoints';
  * validation : *« jamais un wizard à étapes, une page de validation, un PIN saisi sur
  * l'appareil d'un autre. »*
  *
- * ## Six blocs, et cet ordre
+ * ## Six blocs, et cet ordre — en deux temps
  *
  * 1. **L'objet** — fixe, il ne se change pas ici.
  * 2. **L'autre partie**, si l'acte en a une. Connue par l'entrée, ou à choisir.
  * 3. **La question** propre à l'acte — une seule, parfois aucune.
- * 4. **Votre attestation** — et c'est un bloc, jamais un écran.
  * 5. **Ce que cela déclenche** — une ligne, dite avant le geste.
- * 6. **Le verbe** — Annuler à gauche, le verbe de l'acte à droite. Jamais « OK ».
+ *    → **Continuer**.
+ * 4. **Votre attestation** — **son étape à elle**, dans la même feuille.
+ * 6. **Le verbe** — Retour à gauche, le verbe de l'acte à droite. Jamais « OK ».
+ *
+ * **L'arbitrage du 22/09 contre la planche.** 17.4 tenait l'attestation pour *« un bloc,
+ * jamais un écran »*. Mesurée au téléphone, la feuille de remise faisait 745 px sur un
+ * plafond de 767 : la case de signature ne pouvait gagner que 20 px sans faire défiler
+ * la feuille, et elle restait une bande de 353 × 120 où l'on signait comme dans une
+ * marge. Le commanditaire a tranché : **le récapitulatif d'abord, puis une étape qui
+ * ne porte que l'attestation**, avec une case à la mesure d'une signature. Ce n'est pas
+ * un assistant : pas d'écran, pas de page de validation — la feuille change de contenu,
+ * comme elle le fait déjà pour choisir un bloc, et « Retour » ramène au récapitulatif.
  *
  * ## Le bloc 4 n'a pas de sélecteur de méthode
  *
@@ -171,6 +181,8 @@ const ActSheet: React.FC<ActSheetProps> = ({
         done: false,
     });
     const [recherche, setRecherche] = useState('');
+    /** Le récapitulatif, puis l'attestation — deux temps d'une même feuille (22/09). */
+    const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
 
     /**
      * **La signature enregistrée du signataire** — lue seulement s'il a un code : elle ne
@@ -206,7 +218,14 @@ const ActSheet: React.FC<ActSheetProps> = ({
      */
     useEffect(() => {
         setAttestation({ method: signer.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
     }, [open, signer.name, signer.pin]);
+
+    /* Revenir au récapitulatif rend l'attestation : on n'atteste pas ce qu'on a quitté. */
+    const retour = () => {
+        setAttestation({ method: signer.pin ? 'pin' : 'signature', done: false });
+        setEtape('recap');
+    };
 
     /* Un choix fait vide la recherche : le choix suivant repart de la liste entière. */
     useEffect(() => {
@@ -416,7 +435,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             )}
                         </div>
                     </div>
-                ) : (
+                ) : etape === 'recap' ? (
                     <>
                         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
                             {preamble}
@@ -444,19 +463,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                 </div>
                             )}
 
-                            {/* 4 · l'attestation — le compte décide de la méthode */}
-                            <Attestation
-                                /* Le bloc entier repart : le pavé du précédent
-                                   signataire ne doit pas rester à l'écran. */
-                                key={signer.name}
-                                signerName={signer.name}
-                                signerPin={signer.pin}
-                                signature={signature}
-                                label={attestationLabel}
-                                onChange={setAttestation}
-                            />
-
-                            {/* 5 · ce que cela déclenche */}
+                            {/* 5 · ce que cela déclenche — dit avant d'attester */}
                             {consequence && (
                                 <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
                                     <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
@@ -475,6 +482,37 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                     </p>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Le récapitulatif ne porte pas le verbe : on ne fait rien encore,
+                            on passe à la preuve. */}
+                        <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                            <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
+                                {cancelLabel}
+                            </Button>
+                            <Button
+                                variant="filled"
+                                onClick={() => setEtape('attester')}
+                                className="!rounded-[4px]"
+                            >
+                                Continuer
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                            {/* 4 · l'attestation — le compte décide de la méthode. Le bloc
+                                entier repart à chaque signataire : le pavé du précédent ne
+                                doit pas rester à l'écran. */}
+                            <Attestation
+                                key={signer.name}
+                                signerName={signer.name}
+                                signerPin={signer.pin}
+                                signature={signature}
+                                label={attestationLabel}
+                                onChange={setAttestation}
+                            />
 
                             {error && <InlineError>{error}</InlineError>}
                         </div>
@@ -483,11 +521,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                         <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                             <Button
                                 variant="ghost"
-                                onClick={onClose}
+                                onClick={retour}
                                 disabled={isLoading}
                                 className="!rounded-[4px]"
                             >
-                                {cancelLabel}
+                                Retour
                             </Button>
                             <Button
                                 variant={confirmVariant}
