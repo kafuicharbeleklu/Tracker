@@ -4233,3 +4233,45 @@ que le code n'avait jamais porté.
 interrupteur local retiré aussitôt) : bords identiques d'une rangée à l'autre, aucun
 débordement de carte. La bande de chiffres garde ses cinq cases : cinq ne se posent pas
 sur douze colonnes.
+
+### Moins par rangée, des axes qui se déplient (22/09)
+
+**La demande** : *« la liste user, des registres et des feuilles est un peu dense ; fais des
+recherches UI en ligne pour nous proposer quelque chose »*.
+
+**Ce que dit l'état de l'art.** Material 3 : une rangée à deux lignes fait 72 dp et ne porte
+**qu'une** ligne secondaire ; une feuille modale ne s'ouvre pas au-delà de la moitié de
+l'écran et ne porte que l'essentiel. NN/g (divulgation progressive) : ce qui sert souvent
+reste sous les yeux, le reste se déplie — le seul vrai risque est de cacher ce dont on a
+besoin. Pencil & Paper (tables d'entreprise) : 40 / 48 / 56 px de rangée selon la densité
+voulue, et surtout **ne pas répéter dans la cellule ce que dit l'en-tête**, garder les filets
+fins pour réduire le bruit.
+
+**Mesuré avant.** Catalogue : rangée de 64 portant **quatre** faits — le type, « 2 modèles »,
+« 4 actifs dans le parc », et la **clé technique** en chasse fixe (`Laptop`,
+`DockingStation`). Emplacements : trois compteurs (« 8 actifs · 8 personnes · 1 local »).
+Feuille de filtre de l'Équipe : quatre axes, **22 puces, 800 px** sur un écran de 852.
+Actifs : cinq axes, dont l'emplacement qui porte les sites *et* les locaux.
+
+**Ce qui change, et contre quelle planche.**
+
+- **Catalogue (09.1)** : la clé technique quitte la rangée — elle sert aux imports, pas à
+  reconnaître un type, et se lit sur la fiche, carte « Référence ». « rien pour en créer »
+  tombe aussi : la pastille « aucun modèle » le dit déjà, deux centimètres plus haut. La
+  rangée garde le type, les actifs, et le nombre de modèles à droite.
+- **Emplacements (10.1)** : deux chiffres au lieu de trois. Le compte des locaux quitte la
+  rangée, comme les locaux eux-mêmes l'ont quittée — la planche écrit déjà *« les locaux
+  sont dans la fiche du site, pas dans la liste »*.
+- **Les feuilles de filtre** : un axe montre **six valeurs** et nomme le reste (« Voir les 3
+  autres »). La valeur retenue reste toujours visible, où qu'elle soit dans la liste — c'est
+  le « mauvais partage » que NN/g décrit. Composant partagé `FacetChipGroup` (Équipe) ; la
+  feuille des Actifs reçoit la même règle sur ses axes longs (Emplacement, Type), par son
+  `SheetGroup`.
+
+**Mesuré après** (393 × 852) : feuille de l'Équipe **678 px** (767 une fois un axe déplié),
+feuille des Actifs **639 px**, aucune des deux ne défile. Les rangées gardent leurs mesures —
+68 au téléphone, 48 au tableau du bureau : ce n'était pas la hauteur qui était dense, c'était
+le nombre de faits.
+
+**Non touché** : l'Équipe au téléphone (rangée à deux lignes, déjà conforme) et son tableau
+de bureau (cinq colonnes, rangées de 48).

@@ -25,6 +25,7 @@ import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import FacetChipGroup from '../../../components/ui/FacetChipGroup';
 import FilterButton from '../../../components/ui/FilterButton';
 import InviteSheet from '../components/InviteSheet';
 
@@ -147,37 +148,6 @@ const initials = (name: string) =>
  * gouttière, rayon 4, et l'aplat sombre pour l'axe posé. Quatre groupes la
  * partagent ; elle était recopiée trois fois avant que le rôle ne les rejoigne.
  */
-const FilterChip: React.FC<{
-    selected: boolean;
-    onClick: () => void;
-    /** Le décompte, quand l'axe en a un — seul le rôle le porte sur la planche. */
-    count?: number;
-    children: React.ReactNode;
-}> = ({ selected, onClick, count, children }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-            'text-ts-control leading-ts-control inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-md px-3.5 transition-colors',
-            selected
-                ? 'bg-inverse-surface text-inverse-on-surface font-medium'
-                : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
-        )}
-    >
-        {children}
-        {typeof count === 'number' && (
-            <b
-                className={cn(
-                    'font-medium tabular-nums',
-                    selected ? 'text-[var(--tk-color-on-dark-2)]' : 'text-text-secondary',
-                )}
-            >
-                {count}
-            </b>
-        )}
-    </button>
-);
-
 interface UsersPageProps {
     onUserClick?: (id: string) => void;
     onViewChange: (view: ViewType) => void;
@@ -731,81 +701,48 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                 title="Filtrer"
             >
                 <div className="space-y-5 px-1 pb-2">
-                    {/* Rôle — descendu de la bande de tête : c'est la feuille qui porte
-                        désormais les trois axes de restriction (05.1). */}
-                    <div>
-                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
-                            Rôle
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {roleOptions.map((option) => (
-                                <FilterChip
-                                    key={option.id || 'tous'}
-                                    selected={roleFilter === option.id}
-                                    count={option.count}
-                                    onClick={() => setRoleFilter(option.id)}
-                                >
-                                    {option.label}
-                                </FilterChip>
-                            ))}
-                        </div>
-                    </div>
+                    {/* **Les axes se déplient au-delà de six valeurs** (22/09) : la
+                        feuille portait vingt-deux puces sur quatre axes, soit 800 px —
+                        Material borne une feuille modale à la moitié de l'écran. Le rôle
+                        et le site tiennent d'un coup ; le département et l'état nomment
+                        leur reste. Rôle en tête : c'est lui que la bande de la page a
+                        cédé à la feuille (05.1). */}
+                    <FacetChipGroup
+                        label="Rôle"
+                        options={roleOptions.map((option) => ({
+                            id: option.id,
+                            label: option.label,
+                            count: option.count,
+                        }))}
+                        value={roleFilter}
+                        onChange={setRoleFilter}
+                    />
 
                     {/* Département — la planche ne dessine pas ce groupe, mais son intro
                         dit que le service « se filtre » depuis qu'il a quitté la rangée :
                         le retirer supprimerait l'axe que la rangée vient de céder. */}
-                    <div>
-                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
-                            Département
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {departments.map((dept) => (
-                                <FilterChip
-                                    key={dept}
-                                    selected={departmentFilter === dept}
-                                    onClick={() => setDepartmentFilter(dept)}
-                                >
-                                    {dept}
-                                </FilterChip>
-                            ))}
-                        </div>
-                    </div>
+                    <FacetChipGroup
+                        label="Département"
+                        options={departments.map((dept) => ({ id: dept, label: dept }))}
+                        value={departmentFilter}
+                        onChange={setDepartmentFilter}
+                    />
 
-                    {/* Site */}
-                    <div>
-                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
-                            Site
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {sites.map((s) => (
-                                <FilterChip
-                                    key={s}
-                                    selected={siteFilter === s}
-                                    onClick={() => setSiteFilter(s)}
-                                >
-                                    {s}
-                                </FilterChip>
-                            ))}
-                        </div>
-                    </div>
+                    <FacetChipGroup
+                        label="Site"
+                        options={sites.map((site) => ({ id: site, label: site }))}
+                        value={siteFilter}
+                        onChange={setSiteFilter}
+                    />
 
-                    {/* État du compte */}
-                    <div>
-                        <p className="text-text-muted mb-2 text-[0.75rem] leading-4 font-medium">
-                            État du compte
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {['Tous', 'Actif', 'Invité', 'Suspendu', 'Départ prévu'].map((st) => (
-                                <FilterChip
-                                    key={st}
-                                    selected={statusFilter === st}
-                                    onClick={() => setStatusFilter(st)}
-                                >
-                                    {st}
-                                </FilterChip>
-                            ))}
-                        </div>
-                    </div>
+                    <FacetChipGroup
+                        label="État du compte"
+                        options={['Tous', 'Actif', 'Invité', 'Suspendu', 'Départ prévu'].map(
+                            (etat) => ({ id: etat, label: etat }),
+                        )}
+                        value={statusFilter}
+                        onChange={setStatusFilter}
+                    />
 
                     {/* Le pied de la feuille : deux boutons de même largeur, sans filet
                         (`.sfoot`, grille 1fr 1fr). L'effacement porte maintenant le rôle

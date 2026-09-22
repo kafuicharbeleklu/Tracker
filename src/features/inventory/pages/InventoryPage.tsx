@@ -168,15 +168,47 @@ const getDaysSince = (dateStr?: string): number => {
  * qu'un groupe de réglages et qu'une légende de menu) — puis ses pastilles, gouttière 8.
  * Ces pastilles sont celles de 04.1 : 14 sur 20, 36 de haut (`.sgrp .chip`).
  */
-const SheetGroup: React.FC<{ label: string; children: React.ReactNode }> = ({
-    label,
-    children,
-}) => (
-    <div>
-        <p className="text-text-muted text-[0.75rem] leading-4 font-medium">{label}</p>
-        <div className="mt-2 flex flex-wrap gap-2">{children}</div>
-    </div>
-);
+/**
+ * Un axe de la feuille de filtre. **Au-delà de six valeurs, il se déplie** (22/09) :
+ * l'emplacement porte les sites *et* leurs locaux, et posait quatre rangées de pastilles
+ * dans une feuille que Material veut bornée à la moitié de l'écran. `keep` garde sous les
+ * yeux la valeur retenue, où qu'elle soit dans la liste : replier ne doit jamais cacher
+ * le filtre qu'on a posé.
+ */
+const SheetGroup: React.FC<{
+    label: string;
+    children: React.ReactNode;
+    max?: number;
+    keep?: number;
+}> = ({ label, children, max, keep = -1 }) => {
+    const [deplie, setDeplie] = useState(false);
+    const puces = React.Children.toArray(children);
+    const visibles =
+        !max || deplie || puces.length <= max
+            ? puces
+            : keep >= max
+              ? [...puces.slice(0, max - 1), puces[keep]]
+              : puces.slice(0, max);
+    const reste = puces.length - visibles.length;
+
+    return (
+        <div>
+            <p className="text-text-muted text-[0.75rem] leading-4 font-medium">{label}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+                {visibles}
+                {reste > 0 && (
+                    <Button
+                        variant="text"
+                        onClick={() => setDeplie(true)}
+                        className="text-on-surface text-ts-sub min-h-9 px-2 font-medium underline underline-offset-2"
+                    >
+                        Voir {reste > 1 ? `les ${reste} autres` : "l'autre"}
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+};
 
 /**
  * `.si.big` — une des trois routes de la feuille d'ajout. La planche donne 64 de
@@ -1106,7 +1138,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         </SheetGroup>
 
                         {familyFilter !== 'Toutes' && availableTypesForFamily.length > 0 && (
-                            <SheetGroup label="Type">
+                            <SheetGroup
+                                label="Type"
+                                max={6}
+                                keep={
+                                    typeFilter
+                                        ? availableTypesForFamily.indexOf(typeFilter) + 1
+                                        : -1
+                                }
+                            >
                                 <FacetChip
                                     compact
                                     label="Tous les types"
@@ -1125,7 +1165,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             </SheetGroup>
                         )}
 
-                        <SheetGroup label="Emplacement">
+                        <SheetGroup
+                            label="Emplacement"
+                            max={6}
+                            keep={availableLocations.indexOf(locationFilter)}
+                        >
                             {availableLocations.map((loc) => (
                                 <FacetChip
                                     compact

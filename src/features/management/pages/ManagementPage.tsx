@@ -881,12 +881,6 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                         assetCountByType.get(cat.name) ?? 0;
                                                     const unusable = modelCount === 0;
                                                     const label = getCategoryLabel(cat.name);
-                                                    /* La clé ne se redit pas quand elle **est** le libellé :
-                                                       un type créé par un administrateur n'a pas d'entrée
-                                                       de traduction, et « Vidéoprojecteur · Vidéoprojecteur »
-                                                       fait passer pour deux faits ce qui n'en est qu'un. */
-                                                    const dataKey =
-                                                        label === cat.name ? undefined : cat.name;
 
                                                     return (
                                                         <ListRow
@@ -944,23 +938,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                       }
                                                                     : undefined
                                                             }
-                                                            holder={
-                                                                unusable
-                                                                    ? `${assetCount} actif${assetCount > 1 ? 's' : ''}, rien pour en créer`
-                                                                    : `${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`
-                                                            }
-                                                            /* `.key` — la clé anglaise se
-                                                               lit en **chasse fixe** : c'est
-                                                               une valeur de donnée, pas un
-                                                               mot. Absente, la planche la
-                                                               réclame — « clé ? », souligné
-                                                               en pointillé. */
-                                                            reference={dataKey ?? 'clé ?'}
-                                                            referenceClassName={cn(
-                                                                'text-text-tertiary font-mono tracking-[0.02em]',
-                                                                !dataKey &&
-                                                                    'underline decoration-dotted underline-offset-2',
-                                                            )}
+                                                            /*
+                                                              **Un fait par rangée, et un seul**
+                                                              (22/09). La rangée en portait quatre :
+                                                              le type, le nombre de modèles, les
+                                                              actifs, et la **clé technique** en
+                                                              chasse fixe que 09.1 dessine. La clé
+                                                              sert aux imports, pas à reconnaître un
+                                                              type : elle se lit sur la fiche, carte
+                                                              « Référence ». Et « rien pour en
+                                                              créer » redisait la pastille
+                                                              « aucun modèle » posée deux
+                                                              centimètres plus haut.
+                                                            */
+                                                            holder={`${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`}
                                                             onOpen={() => onCategoryClick?.(cat.id)}
                                                             /* 09.1 — `.lrow` de 64, gouttière 12. */
                                                             dense

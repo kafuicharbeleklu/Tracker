@@ -552,15 +552,16 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                                             Jamais servi
                                                         </b>
                                                     ) : (
+                                                        /* **Deux chiffres, pas trois** (22/09) :
+                                                           le compte des locaux quitte la rangée,
+                                                           comme les locaux eux-mêmes l'ont quittée
+                                                           — ils vivent dans la fiche du site, qui
+                                                           les liste. Restent ce qui décide d'un
+                                                           site : ce qu'il porte, et qui y est. */
                                                         [
                                                             `${site.assetCount} actif${site.assetCount > 1 ? 's' : ''}`,
                                                             `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
-                                                            site.locals.length > 0
-                                                                ? `${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}`
-                                                                : null,
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(' · ')
+                                                        ].join(' · ')
                                                     )
                                                 }
                                                 onOpen={() => onSiteClick?.(site.name)}
