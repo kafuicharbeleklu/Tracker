@@ -439,9 +439,17 @@ const Gauge: React.FC<{
 }> = ({ value, label, percent, fill = 'bg-on-surface', marker, note, ariaLabel }) => {
     const clamped = Math.max(0, Math.min(100, percent));
 
+    /*
+      **L'air de la jauge** (23/09, à la demande : « entre le libellé 0 % et le ruban il n'y
+      a pas trop d'espace, et entre la jauge et ce qui est en bas non plus »). Sur la
+      grille de 8 (Atlassian `space.150` / `space.200`) et la règle de proximité : ce qui
+      décrit la jauge s'en tient à **16** au-dessus et **12** dessous, ce qui vient après
+      elle s'en écarte de **24**. Le ruban passe à **8** d'épaisseur — la variante épaisse
+      de l'indicateur linéaire de Material 3 : à 6, il se lisait comme un filet.
+    */
     return (
         <div>
-            <p className="mt-2.5 flex items-baseline gap-2.5">
+            <p className="mt-3 flex items-baseline gap-2.5">
                 <span className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums">
                     {value}
                 </span>
@@ -453,7 +461,7 @@ const Gauge: React.FC<{
             <div
                 role="img"
                 aria-label={ariaLabel ?? `${Math.round(clamped)} %`}
-                className="bg-surface-container relative mt-3 h-1.5 rounded-xs"
+                className="bg-surface-container relative mt-4 h-2 rounded-xs"
             >
                 <span
                     className={cn('block h-full rounded-xs', fill)}
@@ -461,7 +469,7 @@ const Gauge: React.FC<{
                 />
                 {marker !== undefined && (
                     <span
-                        className="bg-outline absolute -top-1 h-3.5 w-0.5"
+                        className="bg-outline absolute -top-1 h-4 w-0.5"
                         style={{ left: `${marker}%` }}
                         aria-hidden="true"
                     />
@@ -469,7 +477,7 @@ const Gauge: React.FC<{
             </div>
 
             {note && (
-                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-2">{note}</p>
+                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-3">{note}</p>
             )}
         </div>
     );
@@ -757,8 +765,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
      * ajoute une quatrième, et Budget et État du parc passent à 8/12 — la largeur où
      * leurs deux moitiés se posent côte à côte (`.duo` de 03.1).
      */
-    const enGrille = bureau && isManager;
-    const enDuo = enGrille && Boolean(campagne);
+    /* **La grille vaut pour tout le monde au bureau** (23/09) : l'accueil d'un employé
+       empilait ses cartes sur 1 200 px de large — une carte « Garantie » de trois lignes
+       étirée d'un bord à l'autre. Il prend la même grille que celui d'un gestionnaire. */
+    const enGrille = bureau;
+    const enDuo = enGrille && isManager && Boolean(campagne);
     const firstName = (currentUser?.name || '').split(' ')[0];
 
     /** Quatre rangées au plus dans la zone : au-delà, c'est la file qui prend. */
@@ -1192,7 +1203,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ))}
                         </div>
                         {tension.calm > 0 && (
-                            <p className="text-on-surface-variant mt-2.5 text-[0.75rem] leading-4">
+                            <p className="text-on-surface-variant mt-3 text-[0.75rem] leading-4">
                                 {tension.calm === 1
                                     ? 'L’autre type a au moins une unité.'
                                     : `Les ${tension.calm} autres types ont au moins une unité.`}
@@ -1236,8 +1247,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ) : undefined
                         }
                     />
-                    {/* `.wsep` — 1 px de filet, 20 px au-dessus. */}
-                    {!enDuo && <div className="bg-outline-variant mt-5 h-px" />}
+                    {/* `.wsep` — 1 px de filet, **24 de part et d'autre** (23/09 ; 20 au-dessus
+                        et 12 dessous collaient la seconde jauge au filet). */}
+                    {!enDuo && <div className="bg-outline-variant mt-6 mb-3 h-px" />}
                     <Gauge
                         value={fleet.uncovered}
                         label={`sur ${fleet.size} hors garantie`}
@@ -1307,7 +1319,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                           tiers à 1280, « Renouvellement Infrastructure » ne tient pas.
                         */}
                             {enGrille && (
-                                <dl className="mt-3 flex flex-col gap-1.5">
+                                /* 24 sous la jauge : les montants sont un second
+                                   groupe, pas la suite de sa note. */
+                                <dl className="mt-6 flex flex-col gap-2">
                                     {[
                                         { mot: 'Consommé', montant: budgetStats.totalSpent },
                                         { mot: 'Restant', montant: budgetStats.remaining },
@@ -1650,22 +1664,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
      * - **Avec campagne** : Budget 8 et Inventaire 4, puis État du parc 8 et Types en
      *   tension 4 — la colonne de droite reste celle des événements.
      */
-    const mosaique = campagne
-        ? [
-              { cle: 'budget', span: 'col-span-8', contenu: budget },
-              { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
-              { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
-              { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
+    const mosaique = !isManager
+        ? /* L'employé : ses deux chiffres, ce qu'il détient, sa garantie — un tiers chacun. */
+          [
+              { cle: 'parc', span: 'col-span-4', contenu: leParc },
+              { cle: 'mes', span: 'col-span-4', contenu: mesEquipements },
+              { cle: 'garantie', span: 'col-span-4', contenu: garantie },
           ]
-        : [
-              { cle: 'budget', span: 'col-span-4', contenu: budget },
-              { cle: 'etat', span: 'col-span-4', contenu: etatDuParc },
-              { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
-          ];
+        : campagne
+          ? [
+                { cle: 'budget', span: 'col-span-8', contenu: budget },
+                { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
+                { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
+                { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
+            ]
+          : [
+                { cle: 'budget', span: 'col-span-4', contenu: budget },
+                { cle: 'etat', span: 'col-span-4', contenu: etatDuParc },
+                { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
+            ];
 
     /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
     const CASE_GRILLE =
-        'flex min-h-0 min-w-0 flex-col [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
+        'flex min-h-0 min-w-0 flex-col [&>div]:flex-1 [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
 
     return (
         <div className="bg-background flex min-w-0 flex-1 flex-col">

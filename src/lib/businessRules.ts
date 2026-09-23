@@ -554,14 +554,36 @@ export const isEquipmentMovementEvent = (event: HistoryEvent): boolean => {
     return isMovementHistoryEventType(event.type) || isMovementUpdateEvent(event);
 };
 
+/** Les actes qui portent sur la session elle-même : leur cible est l'acteur, pas un objet. */
+const SESSION_EVENT_TYPES: EventType[] = ['LOGIN', 'LOGOUT'];
+
+/**
+ * **La phrase d'un fait, vue par la personne qui la lit** (23/09 : *« je suis connecté en
+ * tant que Kafui Charbel EKLU, le « vous » est largement suffisant »*).
+ *
+ * - Une ouverture ou une fermeture de session **n'a pas d'objet** : sa cible est l'acteur
+ *   lui-même. « Vous avez ouvert une session Kafui Charbel EKLU » répétait le nom de la
+ *   personne qui lisait ; on s'arrête au verbe.
+ * - Quand la cible **est** la personne qui lit (sa fiche mise à jour par un autre), elle
+ *   s'écrit « votre compte », jamais son propre nom.
+ */
 export const getHistoryEventSentence = ({
     event,
     perspectiveActorId,
 }: HistorySentenceContext): string => {
     const action = HISTORY_EVENT_ACTIONS[event.type] || 'agi sur';
-    const target = event.targetName || 'cet élément';
     const isSelf = Boolean(perspectiveActorId && event.actorId === perspectiveActorId);
     const subject = isSelf ? 'Vous avez' : `${event.actorName || 'Un utilisateur'} a`;
+
+    const ciblePropre =
+        SESSION_EVENT_TYPES.includes(event.type) ||
+        (event.targetType === 'USER' && event.targetId === event.actorId);
+    if (ciblePropre) return `${subject} ${action}.`;
+
+    const cibleEstLeLecteur = Boolean(
+        perspectiveActorId && event.targetType === 'USER' && event.targetId === perspectiveActorId,
+    );
+    const target = cibleEstLeLecteur ? 'votre compte' : event.targetName || 'cet élément';
     return `${subject} ${action} ${target}.`;
 };
 
