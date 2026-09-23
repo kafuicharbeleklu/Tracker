@@ -42,7 +42,10 @@ const Reading: React.FC<{
     <div
         className={cn(
             'large:mx-0 mx-auto w-full max-w-[960px]',
-            desk ? 'large:max-w-[63rem]' : 'large:max-w-none',
+            /* **Une colonne de lecture se centre** (23/09, à la demande : « les pages comme
+               Catalogue alignées à gauche, c'est trop moche »). Bornée à 1008 dans un canevas
+               de 1 232, elle laissait 224 px d'un seul côté. */
+            desk ? 'large:mx-auto large:max-w-[63rem]' : 'large:max-w-none',
             className,
         )}
     >

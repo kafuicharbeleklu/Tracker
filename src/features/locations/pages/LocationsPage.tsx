@@ -27,6 +27,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { cn } from '../../../lib/utils';
+import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import { ViewType } from '../../../types';
 import { countryCodeOf } from '../lib/siteCode';
 
@@ -280,7 +281,9 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     );
 
     return (
-        <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
+        /* **Les emplacements tiennent la fenêtre au bureau** (23/09) — même régime que le
+           gabarit des listes : l'en-tête reste, les pays défilent dessous. */
+        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', PAGE_BUREAU)}>
             {/* « Ajouter un emplacement » — la feuille de 10.1 : **quatre chemins, pas
                 de pied**. Chaque rangée fait 64 px, porte sa vignette de 40, un titre à
                 16/24, une sous-ligne à 14/20 et un chevron. Les sous-lignes de la
@@ -429,7 +432,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     {!isReferentialEmpty && ordLine}
                 </div>
             ) : (
-                <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex flex-col gap-3 pt-5">
+                <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
                         <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
@@ -461,28 +464,44 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     /* **La mesure du bureau** — `.main.read` de 17.11, 1008 de contenu : un
                        corps qui est une colonne de rangées ne s'étire pas, sinon le nom d'une
                        rangée et son compte se retrouvent aux deux bouts de l'écran. */
-                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto w-full',
                     'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
                     isCompact && !isReferentialEmpty && 'pb-24',
+                    CADRE_BUREAU,
                 )}
             >
                 {isReferentialEmpty ? (
-                    <ScreenState
-                        icon={GlobeHemisphereWest}
-                        title="Aucun emplacement"
-                        description="Sans pays ni site, aucun actif ne peut être localisé."
-                        actions={
-                            <Button
-                                variant="filled"
-                                icon={<Icon glyph={Plus} size={18} />}
-                                onClick={() => openCreate('country')}
-                            >
-                                Créer le premier pays
-                            </Button>
-                        }
-                    />
+                    <div
+                        className={cn(
+                            'flex flex-col',
+                            CADRE_BUREAU,
+                            'expanded:flex-1 expanded:justify-center',
+                        )}
+                    >
+                        <ScreenState
+                            icon={GlobeHemisphereWest}
+                            title="Aucun emplacement"
+                            description="Sans pays ni site, aucun actif ne peut être localisé."
+                            actions={
+                                <Button
+                                    variant="filled"
+                                    icon={<Icon glyph={Plus} size={18} />}
+                                    onClick={() => openCreate('country')}
+                                >
+                                    Créer le premier pays
+                                </Button>
+                            }
+                        />
+                    </div>
                 ) : (
-                    <Reading className="flex flex-col gap-4">
+                    <Reading
+                        className={cn(
+                            'flex flex-col gap-4',
+                            visibleSites.length > 0
+                                ? CORPS_BUREAU
+                                : cn(CADRE_BUREAU, 'expanded:flex-1 expanded:justify-center'),
+                        )}
+                    >
                         {visibleSites.length > 0 ? (
                             families.map(({ country, items, code, tint }) => (
                                 /* `.fam` — l'en-tête coiffe la carte sans être dedans

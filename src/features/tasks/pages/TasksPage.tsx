@@ -17,6 +17,7 @@ import ListTemplate from '../../../components/layout/ListTemplate';
 import FilterMenuChip from '../../../components/ui/FilterMenuChip';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import FilterButton from '../../../components/ui/FilterButton';
 import FacetChip from '../../../components/ui/FacetChip';
 import SelectableRow, { SelectionBox } from '../../../components/ui/SelectableRow';
@@ -1173,11 +1174,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             )}
                         </div>
                     ) : (
-                        <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
-                            <Icon glyph={ClipboardText} size={24} className="text-text-tertiary" />
-                            <p className="text-ts-sub leading-ts-sub">
-                                Choisissez une tâche pour la traiter sans quitter la file.
-                            </p>
+                        /* **Le panneau vide tient la colonne** (23/09) : à côté d'une file
+                           qui prend la fenêtre, une vignette de 110 px se lisait comme un
+                           oubli. */
+                        <div className="bg-surface flex h-full flex-col rounded-xl">
+                            <CardEmptyState
+                                glyph={ClipboardText}
+                                title="Aucune tâche ouverte"
+                                description="Choisissez une tâche dans la file pour la traiter sans la quitter."
+                            />
                         </div>
                     )
                 ) : undefined

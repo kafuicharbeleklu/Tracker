@@ -356,7 +356,8 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                             : 'bg-background -mt-page pt-[calc(var(--tk-space-page)-0.25rem)]',
                     )}
                 >
-                    <div className="flex min-h-12 items-center gap-1">
+                    {/* Le titre suit la colonne centrée des rapports (23/09). */}
+                    <div className="large:mx-auto large:w-full large:max-w-[63rem] flex min-h-12 items-center gap-1">
                         {/* Au bureau, pas de flèche : le titre s'y pose au bord, et la
                             barre latérale mène déjà partout. */}
                         {onBack && isCompact && (
@@ -450,8 +451,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
 
                     {/* `.emp` — le pied dit le format, et où trouver le reste. */}
                     <p className="border-outline-variant text-text-muted text-ts-sub leading-ts-sub border-t pt-1 pb-3">
-                        Chaque export part en CSV ; le PDF et le choix de la personne s'ouvrent
-                        depuis la rangée.
+                        Export en CSV. Le PDF et le choix de la personne s'ouvrent depuis la rangée.
                     </p>
                 </section>
             </Reading>

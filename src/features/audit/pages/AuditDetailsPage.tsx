@@ -41,6 +41,7 @@ import { buildCsvLine } from '../../../lib/csv';
 import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../../types';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
+import { CADRE_BUREAU } from '../../../lib/regimeBureau';
 
 interface AuditDetailsPageProps {
     onBack: () => void;
@@ -1526,7 +1527,17 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 sur toute la fenêtre alors que la vue globale d'où l'on vient s'arrête à
                 960 : on ouvrait un service et la page changeait de largeur sous le
                 doigt. Une largeur, une seule, et le reste est de la marge. */}
-            <div className="overflow-y-auto">
+            {/* **Le corps défile, l'en-tête reste** (23/09) : au bureau, chaque zone
+                défile pour son compte — on tranche un écart à droite sans perdre la
+                rangée qu'on vient de scanner à gauche. */}
+            <div
+                className={cn(
+                    'overflow-y-auto',
+                    CADRE_BUREAU,
+                    'expanded:flex-1',
+                    enDeuxNiveaux && 'expanded:overflow-hidden',
+                )}
+            >
                 {/* **Deux zones au bureau** — 7 douzièmes pour la campagne, 5 pour les
                     écarts (16.2). En deçà de 1280, la mesure de lecture reprend : une
                     colonne de 960, et les écarts derrière leur carte de tension. */}
@@ -1534,7 +1545,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     className={cn(
                         'p-page-sm medium:p-page w-full',
                         enDeuxNiveaux
-                            ? 'flex items-start gap-4'
+                            ? 'flex h-full min-h-0 items-stretch gap-4'
                             : 'mx-auto max-w-[960px] space-y-4',
                     )}
                 >
@@ -1545,7 +1556,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <EmptyState
                             icon="pin_drop"
                             title="Aucune campagne ouverte"
-                            description="Une campagne porte sur un lieu, et c'est la vue globale qui le désigne : sa rangée dit ce qui reste à vérifier, et son geste lance le relevé."
+                            description="Une campagne porte sur un lieu : la vue globale le désigne, et sa rangée lance le relevé."
                             action={
                                 <Button variant="filled" onClick={backToOverview}>
                                     Choisir un lieu à compter
@@ -1560,7 +1571,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 <div
                                     className={cn(
                                         'space-y-4',
-                                        enDeuxNiveaux && 'min-w-0 shrink grow-[7] basis-0',
+                                        enDeuxNiveaux &&
+                                            'min-h-0 min-w-0 shrink grow-[7] basis-0 overflow-y-auto',
                                     )}
                                 >
                                     {hero}
@@ -1659,7 +1671,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 <div
                                     className={cn(
                                         'space-y-3',
-                                        enDeuxNiveaux && 'min-w-0 shrink grow-[5] basis-0',
+                                        enDeuxNiveaux &&
+                                            'min-h-0 min-w-0 shrink grow-[5] basis-0 overflow-y-auto',
                                     )}
                                 >
                                     {enDeuxNiveaux ? (

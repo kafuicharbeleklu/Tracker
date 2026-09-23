@@ -76,7 +76,12 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                            air — et `0 12 0 24` au-delà de 600 (00.5). Il tenait la gouttière
                            de page, 16, si bien que le retour et le titre partaient 12 px trop
                            à droite (13/09). */
-                        'medium:pr-3 medium:pl-6 mx-auto flex max-w-5xl items-center pr-2 pl-1',
+                        /* **La barre suit la mesure du flux** (23/09) : bornée à 1 024, elle
+                           posait le retour et « Enregistrer » à 230 px de part et d'autre
+                           d'un formulaire de 560 — les deux gestes de la saisie étaient
+                           ailleurs que ce qu'on remplissait. 00.5 le dit du pied ; c'est
+                           vrai de la tête. */
+                        'medium:px-page mx-auto flex max-w-[560px] items-center pr-2 pl-1',
                         isCompactLandscape ? 'min-h-12 py-1' : 'min-h-14',
                     )}
                 >
@@ -160,7 +165,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                 {headerContent && (
                     <div
                         className={cn(
-                            'px-page-sm medium:px-page mx-auto max-w-5xl',
+                            'px-page-sm medium:px-page mx-auto max-w-[560px]',
                             isCompactLandscape ? 'pb-2' : 'pb-4',
                         )}
                     >

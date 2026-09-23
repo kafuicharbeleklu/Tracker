@@ -41,6 +41,7 @@ import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { cn } from '../../../lib/utils';
+import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import { CATEGORY_FAMILIES, Category, ViewType } from '../../../types';
 import AddCategoryPage from './AddCategoryPage';
 import AddModelPage from './AddModelPage';
@@ -473,7 +474,9 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     };
 
     return (
-        <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
+        /* **Le catalogue tient la fenêtre au bureau** (23/09) — même régime que le
+           gabarit des listes : l'en-tête reste, les familles défilent dessous. */
+        <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', PAGE_BUREAU)}>
             <AddCategoryPage
                 isOpen={isCategoryModalOpen}
                 onClose={() => {
@@ -678,7 +681,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             */}
             {/* **Le bloc fixe l'est vraiment** (17.8) : titre, recherche, ligne de tri
                 restent quand le référentiel défile. Il partait avec lui. */}
-            <div className="bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20">
+            <div className="bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 w-full">
                 {isCompact && selection.isActive ? (
                     /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
                    change de régime, il ne gagne pas un palier. */
@@ -719,9 +722,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </button>
                             )}
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                                 Catalogue
                             </h1>
+                            {/* `.cnt2` du téléphone — le compte à droite du titre : c'est la
+                                ligne de service en moins, 30 px d'en-tête (23/09). */}
+                            {isCompact && !isReferentialEmpty ? (
+                                <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.75rem] leading-4 tabular-nums">
+                                    {filteredCategories.length} type
+                                    {filteredCategories.length > 1 ? 's' : ''}
+                                    {familyFilter !== ALL_FAMILIES && ` · ${familyFilter}`}
+                                </span>
+                            ) : (
+                                <span className="flex-1" />
+                            )}
                         </div>
 
                         {/* La bande disparaît avec le référentiel vide : un outil qui trie ce
@@ -746,6 +760,23 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                 isCompact ? 'flex-1' : 'w-[320px] max-w-full'
                                             }
                                         />
+                                        {/* Le tri monte dans la bande au téléphone : c'était
+                                            le seul geste de la ligne de service (23/09). */}
+                                        {isCompact && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setSortIndex(
+                                                        (prev) => (prev + 1) % SORT_OPTIONS.length,
+                                                    )
+                                                }
+                                                aria-label={`Trier — ${SORT_OPTIONS[sortIndex].label}`}
+                                                title={SORT_OPTIONS[sortIndex].label}
+                                                className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+                                            >
+                                                <Icon glyph={SortAscending} size={20} />
+                                            </button>
+                                        )}
                                         <FilterButton
                                             label="Filtrer le catalogue"
                                             count={sheetFilterCount}
@@ -765,7 +796,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 <Reading
                                     className={cn(
                                         'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4',
-                                        selection.isActive && 'hidden',
+                                        (selection.isActive || isCompact) && 'hidden',
                                     )}
                                 >
                                     <span className="min-w-0 truncate">
@@ -811,34 +842,51 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                     /* **La mesure du bureau** — `.main.read` de 17.11, 1008 de contenu : un
                        corps qui est une colonne de rangées ne s'étire pas, sinon le nom d'une
                        rangée et son compte se retrouvent aux deux bouts de l'écran. */
-                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto w-full',
                     'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
                     isCompact && !isReferentialEmpty && 'pb-24',
+                    CADRE_BUREAU,
                 )}
             >
                 {isReferentialEmpty ? (
                     /* Le référentiel vide — colonne 4 de 09.1. Il ne compte pas jusqu'à
                        zéro : il dit la conséquence, puis met le seul geste utile à
-                       portée. */
-                    <ScreenState
-                        icon={Books}
-                        title="Le catalogue est vide"
-                        description={
-                            <>
-                                Commencez par un type : sans lui,{' '}
-                                <b className="text-on-surface font-medium">
-                                    aucun modèle ni équipement ne peut être créé
-                                </b>
-                                .
-                            </>
-                        }
-                        /* **Ni bouton, ni note** — 09.1, colonne 5 : *« un seul geste
+                       portée. Au bureau il se centre dans la fenêtre plutôt que de se
+                       coller sous la recherche. */
+                    <div
+                        className={cn(
+                            'flex flex-col',
+                            CADRE_BUREAU,
+                            'expanded:flex-1 expanded:justify-center',
+                        )}
+                    >
+                        <ScreenState
+                            icon={Books}
+                            title="Le catalogue est vide"
+                            description={
+                                <>
+                                    Commencez par un type : sans lui,{' '}
+                                    <b className="text-on-surface font-medium">
+                                        aucun modèle ni équipement ne peut être créé
+                                    </b>
+                                    .
+                                </>
+                            }
+                            /* **Ni bouton, ni note** — 09.1, colonne 5 : *« un seul geste
                            d'ajout, le FAB, le même qu'au repos ; la phrase dit par quoi
                            commencer »*. Le bouton posé ici doublait le geste flottant, et
                            la note expliquait l'import à qui n'a pas encore de type. */
-                    />
+                        />
+                    </div>
                 ) : (
-                    <Reading className="flex flex-col">
+                    <Reading
+                        className={cn(
+                            'flex flex-col',
+                            filteredCategories.length > 0
+                                ? CORPS_BUREAU
+                                : cn(CADRE_BUREAU, 'expanded:flex-1 expanded:justify-center'),
+                        )}
+                    >
                         {filteredCategories.length > 0 ? (
                             <>
                                 {/* A2 — deux niveaux, famille → type. Le référentiel est

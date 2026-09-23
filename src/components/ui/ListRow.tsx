@@ -290,7 +290,17 @@ const ListRow: React.FC<ListRowProps> = ({
 
     const shell = cn(
         'flex w-full items-center border-t border-outline-variant text-left first:border-t-0',
-        dense ? 'min-h-16 gap-3 py-2' : 'min-h-[68px] gap-4 py-3',
+        /*
+          **72 au téléphone, 68 au-delà** (arbitrage du 23/09). Material pose la rangée à
+          deux lignes à **72 dp** — 04.1 en dessine 68, mesurées sur un écran de bureau —,
+          et Apple sa cellule à sous-titre à 60 pt avec une cible de 44 : sur un téléphone,
+          la rangée est aussi une cible de pouce. Les quatre pixels reviennent en air
+          au-dessus et au-dessous du texte, pas en contenu. La rangée dense (09.1, 64)
+          suit le même écart : 68 au téléphone.
+        */
+        dense
+            ? 'min-h-[68px] gap-3 py-2 medium:min-h-16'
+            : 'min-h-[72px] gap-4 py-3 medium:min-h-[68px]',
         (onOpen || selectionActive) &&
             'outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
         // Le fond de la rangée cochée déborde la gouttière de la carte (16 px) :

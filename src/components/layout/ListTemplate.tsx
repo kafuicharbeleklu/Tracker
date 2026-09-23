@@ -33,6 +33,8 @@ import { MEDIA } from '../../constants/breakpoints';
 import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
 import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
 import { cn } from '../../lib/utils';
+/* Le régime du bureau : la fenêtre, les étages qui rétrécissent, le corps qui défile. */
+import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../lib/regimeBureau';
 import type { FacetTone } from '../ui/FacetChip';
 
 /**
@@ -430,8 +432,19 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             </FabContainer>
         ) : null;
 
+    /**
+     * **Au téléphone, le compte rejoint le titre** (arbitrage du commanditaire, 23/09).
+     * La ligne de service coûtait **30 px** d'en-tête (18 et sa gouttière de 12) pour y
+     * écrire un nombre : l'en-tête d'une liste faisait 159 px avant la première rangée.
+     * Elle ne reste que là où elle porte une **phrase** — la file et le journal, qui
+     * nomment ce qu'on regarde (`regard`) : « À faire · les plus anciennes d'abord ».
+     * Ailleurs, le nombre se lit à droite du titre, comme `.cnt2` au bureau, et le tri —
+     * le seul geste de cette ligne — monte dans la bande de recherche.
+     */
+    const compteAuTitre = isCompact && Boolean(count) && !count?.regard;
+
     const orderRow =
-        count && !selection?.active ? (
+        count && !selection?.active && !compteAuTitre ? (
             <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
                 {count.regard ? (
                     <span className="min-w-0 truncate">{count.regard}</span>
@@ -454,7 +467,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                   : count.total}
                         </span>
                     )}
-                    {sort && (
+                    {sort && !isCompact && (
                         <button
                             type="button"
                             onClick={sort.onClick}
@@ -471,7 +484,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                       lui-même. Chaque cran dit son nom à qui ne voit pas les glyphes, et
                       porte `aria-pressed` — c'est un état, pas une destination.
                     */}
-                    {view && (
+                    {view && !isCompact && (
                         <span className="bg-surface-container flex shrink-0 items-center rounded-[4px] p-0.5">
                             {[
                                 { id: 'cartes' as const, glyph: Rows, mot: 'Cartes' },
@@ -500,8 +513,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
             </div>
         ) : null;
 
+    /**
+     * `.srch` — la bande de recherche. **Au téléphone elle porte aussi le tri** depuis le
+     * 23/09 : c'était le seul geste de la ligne de service, et la ligne est partie. Un
+     * bouton d'icône de 48, à gauche de l'entonnoir, qui dit son cran (« Ajout récent »)
+     * par son nom accessible et son infobulle.
+     */
+    const triAuTelephone = isCompact && sort && !selection?.active;
+
     const hasSeekBand =
-        Boolean(search || filter || (facets && facets.length > 0)) && !selection?.active;
+        Boolean(search || filter || (facets && facets.length > 0) || triAuTelephone) &&
+        !selection?.active;
 
     /*
       **Le tableau balaye, il ne se lit pas.** §2.43 borne le contenu à 960 — « une liste
@@ -530,7 +552,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
 
     const seekBand = (
         <div className={cn('flex flex-col gap-2.5', !isCompact && 'px-page pt-4')}>
-            {(search || (filter && !(facets && facets.length > 0 && !search))) && (
+            {(search ||
+                triAuTelephone ||
+                (filter && !(facets && facets.length > 0 && !search))) && (
                 <Reading className="flex items-center gap-2">
                     {search && (
                         <SearchField
@@ -539,6 +563,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             placeholder={search.placeholder}
                             className="flex-1"
                         />
+                    )}
+                    {triAuTelephone && sort && (
+                        <button
+                            type="button"
+                            onClick={sort.onClick}
+                            aria-label={`Trier — ${sort.label}`}
+                            title={sort.label}
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+                        >
+                            <Icon glyph={SortAscending} size={20} />
+                        </button>
                     )}
                     {filter}
                 </Reading>
@@ -586,6 +621,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
         <div
             className={cn(
                 'relative flex min-h-0 w-full min-w-0 flex-1 flex-col',
+                PAGE_BUREAU,
                 /* **La mesure du bureau** — `.main.read` de 17.11, 1008. Une liste en cartes
                    est une colonne de rangées : étirée sur 1200, le nom d'une rangée et son
                    compte se retrouvent aux deux bouts de l'écran. Le tableau, lui, remplit ce
@@ -595,7 +631,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     /* 1008 de **contenu** : le plafond porte sur le gabarit entier, gouttières
                        comprises, sinon la mesure change d'une page à l'autre selon l'endroit
                        où elle est posée. */
-                    'large:max-w-[calc(63rem+2*var(--tk-space-page))]',
+                    'large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto w-full',
                 className,
             )}
         >
@@ -660,9 +696,20 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </button>
                             )}
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                                 {title}
                             </h1>
+                            {/* `.cnt2` du téléphone — le compte à droite du titre, aligné
+                                sur sa première ligne, en 12 sur 16 : c'est la ligne de
+                                service en moins (23/09). Il cède avant le titre et se coupe
+                                à l'ellipse. */}
+                            {compteAuTitre && count ? (
+                                <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.75rem] leading-4 tabular-nums">
+                                    {count.total} {count.noun}
+                                </span>
+                            ) : (
+                                <span className="flex-1" />
+                            )}
                             {actions}
                         </div>
                         {hasSeekBand && seekBand}
@@ -862,6 +909,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 className={cn(
                     'medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4',
                     isCompact && (fab || gesteFlottant) && !selection?.active ? 'pb-24' : 'pb-6',
+                    /* Le corps **se partage la hauteur restante** au lieu de la fabriquer :
+                       sans `min-h-0`, un enfant en `flex-1` ne sait pas rétrécir. */
+                    CADRE_BUREAU,
                 )}
             >
                 {deuxNiveaux && hero && <Reading>{hero}</Reading>}
@@ -869,7 +919,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 <div
                     className={cn(
                         'flex min-w-0 flex-1',
-                        deuxNiveaux ? 'items-start gap-4' : 'flex-col gap-4',
+                        deuxNiveaux
+                            ? /* Les deux zones vont **à même hauteur** : le panneau ne se
+                                 cale plus en haut d'une colonne plus longue que lui. */
+                              'min-h-0 items-stretch gap-4'
+                            : 'flex-col gap-4',
+                        CADRE_BUREAU,
                     )}
                 >
                     <div
@@ -877,6 +932,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             'flex min-w-0 flex-col gap-4',
                             deuxNiveaux ? 'shrink grow-[8] basis-0' : 'flex-1',
                             deuxNiveaux && panelRatio === 5 && 'grow-[7]',
+                            CADRE_BUREAU,
                         )}
                     >
                         {!deuxNiveaux && hero && <Reading>{hero}</Reading>}
@@ -967,29 +1023,52 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             </Reading>
                         ) : hasRows ? (
                             enTableauLarge ? (
-                                <>
+                                /* Le tableau porte déjà son cadre et son défilement
+                                   (`DataTable` : `overflow-auto`, en-tête et colonne de
+                                   tête figés) ; il ne lui manquait que la permission de
+                                   rétrécir pour tenir dans la fenêtre. */
+                                <div
+                                    className={cn(
+                                        'flex min-w-0 flex-col',
+                                        CADRE_BUREAU,
+                                        /* `:first-of-type` — le tableau, et lui seul : le
+                                           journal pose une sentinelle de défilement après
+                                           lui, et un `[&>div]` nu lui donnait la moitié de
+                                           la hauteur. */
+                                        'expanded:flex-1 expanded:[&>div:first-of-type]:min-h-0 expanded:[&>div:first-of-type]:flex-1',
+                                    )}
+                                >
                                     {children}
                                     {footer && (
                                         <p className="text-text-muted mt-1.5 text-center text-[0.75rem] tabular-nums">
                                             {footer}
                                         </p>
                                     )}
-                                </>
+                                </div>
                             ) : (
                                 <div
                                     className={cn(
-                                        'w-full',
+                                        'flex w-full flex-col',
                                         !deuxNiveaux && 'large:max-w-none max-w-[960px]',
+                                        CADRE_BUREAU,
+                                        'expanded:flex-1',
                                     )}
                                 >
                                     {body === 'cartes' ? (
-                                        <div className="flex flex-col gap-4">{children}</div>
+                                        <div className={cn('flex flex-col gap-4', CORPS_BUREAU)}>
+                                            {children}
+                                        </div>
                                     ) : (
                                         /* `.card` des listes — **`2 16`** (04.1, 05.1, 03.3) : deux
                                            pixels au-dessus de la première rangée et sous la
                                            dernière, pour que leur filet ne touche pas l'arrondi.
                                            Elle tenait `0 16`. */
-                                        <section className="bg-surface rounded-xl px-4 py-0.5">
+                                        <section
+                                            className={cn(
+                                                'bg-surface rounded-xl px-4 py-0.5',
+                                                CORPS_BUREAU,
+                                            )}
+                                        >
                                             {children}
                                         </section>
                                     )}
@@ -1006,13 +1085,30 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                            l'état vide** — et jamais en bandeau. Quand il n'y a rien à
                            lire, c'est la coupure qu'il faut nommer, pas l'absence de
                            donnée : « aucun équipement » serait faux. */
+                            /* **Le vide occupe la même boîte que la liste** : il se centre
+                               dans ce qui reste de la fenêtre, au lieu de se coller sous la
+                               recherche avec 600 px de canevas dessous. */
                             (horsLigne ? (
-                                <OfflineState depuis={derniereLecture} />
+                                <div
+                                    className={cn(
+                                        'flex flex-col justify-center',
+                                        CADRE_BUREAU,
+                                        'expanded:flex-1',
+                                    )}
+                                >
+                                    <OfflineState depuis={derniereLecture} />
+                                </div>
                             ) : (
-                                <>
+                                <div
+                                    className={cn(
+                                        'flex flex-col justify-center',
+                                        CADRE_BUREAU,
+                                        'expanded:flex-1',
+                                    )}
+                                >
                                     {empty}
                                     {children}
-                                </>
+                                </div>
                             ))
                         )}
 
@@ -1043,12 +1139,16 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     </div>
 
                     {/* Le second niveau — il ne défile pas avec la liste, c'est elle qui
-                        défile sous lui. */}
+                        défile sous lui. Au bureau il prend **toute la hauteur** de la zone
+                        et défile pour son propre compte : un site à quinze locaux ne
+                        rallonge plus la page, et un panneau vide ne fait plus une vignette
+                        de 138 px à côté d'une liste de 300. */}
                     {deuxNiveaux && (
                         <aside
                             className={cn(
                                 'sticky top-4 min-w-0 shrink basis-0',
                                 panelRatio === 4 ? 'grow-[4]' : 'grow-[5]',
+                                'expanded:static expanded:min-h-0 expanded:self-stretch expanded:overflow-y-auto',
                             )}
                         >
                             {panel}

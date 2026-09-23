@@ -4,9 +4,11 @@ import { CaretRight, DoorOpen, Info, MagnifyingGlassMinus, MapPin } from '@phosp
 import ListTemplate from '../../../components/layout/ListTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
 import Icon from '../../../components/ui/Icon';
+import InfoTip from '../../../components/ui/InfoTip';
 import { cn } from '../../../lib/utils';
 import {
     ALL_VALUE,
@@ -566,68 +568,159 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
         () => sites.reduce((somme, row) => somme + (row.localCount ?? 0), 0),
         [sites],
     );
-    const jamaisVerifies = useMemo(
-        () => sites.filter((row) => row.status === 'A lancer' && row.expected > 0).length,
-        [sites],
+
+    /**
+     * **Où en est l'inventaire du parc** — le diagramme de la grille du bureau (23/09).
+     *
+     * Une barre empilée plutôt qu'un camembert : quatre parts d'un seul tout se comparent
+     * mieux alignées sur une ligne, et la barre tient dans la hauteur d'une tuile. Elle
+     * compte des **actifs**, pas des sites — un site de 243 actifs jamais vérifié pèse plus
+     * qu'un local de deux qu'on vient de recompter. Les sites sans actif n'y entrent pas.
+     */
+    const couverture = useMemo(() => {
+        const parts = {
+            ajour: { actifs: 0, sites: 0 },
+            encours: { actifs: 0, sites: 0 },
+            retard: { actifs: 0, sites: 0 },
+            jamais: { actifs: 0, sites: 0 },
+        };
+        sites.forEach((row) => {
+            if (row.expected === 0) return;
+            const cle =
+                row.status === 'En cours'
+                    ? 'encours'
+                    : !row.lastScanAt
+                      ? 'jamais'
+                      : enRetard(row, settings.inventoryPeriodMonths)
+                        ? 'retard'
+                        : 'ajour';
+            parts[cle].actifs += row.expected;
+            parts[cle].sites += 1;
+        });
+        const total = Object.values(parts).reduce((somme, part) => somme + part.actifs, 0);
+        return { parts, total };
+    }, [sites, settings.inventoryPeriodMonths]);
+
+    const PARTS_COUVERTURE = [
+        { cle: 'ajour', libelle: 'à jour', teinte: 'bg-[var(--tk-color-st-vert)]' },
+        { cle: 'encours', libelle: 'en cours', teinte: 'bg-[var(--tk-color-st-bleu)]' },
+        { cle: 'retard', libelle: 'en retard', teinte: 'bg-[var(--tk-color-st-orange)]' },
+        { cle: 'jamais', libelle: 'jamais vérifiés', teinte: 'bg-[var(--tk-color-st-ambre)]' },
+    ] as const;
+
+    const partAJour =
+        couverture.total > 0
+            ? Math.round((couverture.parts.ajour.actifs / couverture.total) * 100)
+            : 0;
+
+    /**
+     * **La bande éclatée en grille** (23/09, à la demande : « éclater aussi Inventaire pour
+     * avoir une grille »). La bande de 16.1 tenait cinq chiffres sur une seule surface ;
+     * ils deviennent une tuile chacun, sur la grille de 12 : le diagramme de couverture
+     * prend la moitié — c'est la seule réponse à « où en est-on » —, les trois comptes se
+     * partagent l'autre. Même gabarit que les tuiles de Finances : 12 pour ce qu'on lit,
+     * 28 pour le chiffre, 14 pour ce qu'il veut dire.
+     */
+    const tuile = (titre: string, valeur: React.ReactNode, sens: React.ReactNode, cle: string) => (
+        <section key={cle} className="bg-surface col-span-2 flex flex-col rounded-lg p-5">
+            <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                {titre}
+            </h3>
+            <span className="font-brand text-on-surface text-ts-page leading-ts-page mt-3 font-semibold tracking-[-0.02em] tabular-nums">
+                {valeur}
+            </span>
+            <span className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">{sens}</span>
+        </section>
     );
 
     const bande = (
-        <section className="bg-surface flex rounded-lg px-5 py-3.5">
-            {[
-                {
-                    cle: 'attendus',
-                    valeur: totalsParc.expected,
-                    legende: `actif${totalsParc.expected > 1 ? 's' : ''} attendu${totalsParc.expected > 1 ? 's' : ''} · ${
-                        filters.country === ALL_VALUE ? 'tout le parc' : filters.country
-                    }`,
-                },
-                {
-                    cle: 'lieux',
-                    valeur: sites.length,
-                    legende: `site${sites.length > 1 ? 's' : ''} · ${locauxDuParc} ${locauxDuParc > 1 ? 'locaux' : 'local'}`,
-                },
-                {
-                    cle: 'jamais',
-                    valeur: jamaisVerifies,
-                    legende: `jamais vérifié${jamaisVerifies > 1 ? 's' : ''}`,
-                    teinte: 'bg-[var(--tk-color-st-ambre)]',
-                },
-                {
-                    cle: 'encours',
-                    valeur: totalsParc.activeCampaigns,
-                    legende: `campagne${totalsParc.activeCampaigns > 1 ? 's' : ''} en cours`,
-                    teinte: 'bg-[var(--tk-color-st-bleu)]',
-                },
-                {
-                    cle: 'ecarts',
-                    valeur: totalsParc.exceptions,
-                    legende: `écart${totalsParc.exceptions > 1 ? 's' : ''} relevé${totalsParc.exceptions > 1 ? 's' : ''}`,
-                },
-            ].map((chiffre) => (
+        <div className="grid grid-cols-12 items-stretch gap-4">
+            {/* **Le même gabarit que les autres tuiles** (23/09) : ce qu'on lit en 12, le
+                chiffre en 28, ce qu'il veut dire en 14, puis le ruban de **8** à 16 de sa
+                phrase — celui des jauges de l'accueil et de Finances. Le diagramme tenait
+                un en-tête à deux bouts et un ruban de 12 : il ne ressemblait à rien d'autre. */}
+            <section className="bg-surface col-span-6 flex flex-col rounded-lg p-5">
+                <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                    Couverture de l'inventaire
+                </h3>
+                <span className="font-brand text-on-surface text-ts-page leading-ts-page mt-3 font-semibold tracking-[-0.02em] tabular-nums">
+                    {partAJour} %
+                </span>
+                <span className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
+                    du parc vérifié dans la périodicité · {couverture.total} actif
+                    {couverture.total > 1 ? 's' : ''} situé{couverture.total > 1 ? 's' : ''}
+                </span>
                 <div
-                    key={chiffre.cle}
-                    className="border-outline-variant min-w-0 flex-1 py-0.5 pr-4 not-first:pl-4"
+                    role="img"
+                    aria-label={PARTS_COUVERTURE.map(
+                        (part) =>
+                            `${part.libelle} : ${couverture.parts[part.cle].actifs} actifs, ${couverture.parts[part.cle].sites} sites`,
+                    ).join(' ; ')}
+                    className="bg-surface-container mt-4 flex h-2 gap-px overflow-hidden rounded-xs"
                 >
-                    <span className="font-brand text-on-surface text-ts-sheet flex items-center gap-2 leading-[1.625rem] font-semibold tabular-nums">
-                        {chiffre.teinte && (
-                            <i
-                                aria-hidden="true"
-                                className={cn('h-2 w-2 shrink-0 rounded-xs', chiffre.teinte)}
-                            />
+                    {couverture.total > 0 &&
+                        PARTS_COUVERTURE.map((part) =>
+                            couverture.parts[part.cle].actifs > 0 ? (
+                                <i
+                                    key={part.cle}
+                                    className={cn('block h-full', part.teinte)}
+                                    style={{
+                                        width: `${(couverture.parts[part.cle].actifs / couverture.total) * 100}%`,
+                                    }}
+                                />
+                            ) : null,
                         )}
-                        {chiffre.valeur}
-                    </span>
-                    {/* La légende **se replie**, elle ne se coupe pas : « actifs attendus ·
-                        tout le parc » vaut 175 px en 12, et la bande n'en donne que 200 à
-                        1280. Une ellipse y mangerait le périmètre, qui est le sujet. Sa boîte
-                        tient 24 — 16 de ligne, 4 de part et d'autre —, sans marge : dans
-                        16.1 elle est un `span` en ligne. */}
-                    <span className="text-on-surface-variant block py-1 text-[0.75rem] leading-4">
-                        {chiffre.legende}
-                    </span>
                 </div>
-            ))}
-        </section>
+                {/* La légende de l'histogramme de Finances : la pastille, le mot, le compte.
+                    Le nombre de sites est dit par le ruban au lecteur d'écran ; une part vide s'estompe. */}
+                <ul className="text-on-surface-variant mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] leading-4 tabular-nums">
+                    {PARTS_COUVERTURE.map((part) => {
+                        const { actifs } = couverture.parts[part.cle];
+                        return (
+                            <li
+                                key={part.cle}
+                                className={cn(
+                                    'flex items-center gap-1.5',
+                                    actifs === 0 && 'text-text-tertiary',
+                                )}
+                            >
+                                <i
+                                    aria-hidden="true"
+                                    className={cn(
+                                        'h-2 w-2 rounded-[2px]',
+                                        actifs === 0 ? 'bg-surface-container' : part.teinte,
+                                    )}
+                                />
+                                {part.libelle} · {actifs}
+                            </li>
+                        );
+                    })}
+                </ul>
+            </section>
+            {tuile(
+                'Actifs attendus',
+                totalsParc.expected,
+                filters.country === ALL_VALUE ? 'tout le parc' : filters.country,
+                'attendus',
+            )}
+            {tuile(
+                'Sites',
+                sites.length,
+                `${locauxDuParc} ${locauxDuParc > 1 ? 'locaux' : 'local'} · ${couverture.parts.jamais.sites} jamais vérifié${couverture.parts.jamais.sites > 1 ? 's' : ''}`,
+                'sites',
+            )}
+            {tuile(
+                'Campagnes en cours',
+                totalsParc.activeCampaigns,
+                <span
+                    className={cn(totalsParc.exceptions > 0 && 'text-[var(--tk-color-st-orange)]')}
+                >
+                    {totalsParc.exceptions} écart{totalsParc.exceptions > 1 ? 's' : ''} relevé
+                    {totalsParc.exceptions > 1 ? 's' : ''}
+                </span>,
+                'campagnes',
+            )}
+        </div>
     );
 
     /**
@@ -638,31 +731,138 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * cet état — elle montre toujours un site sélectionné — mais un panneau qui
      * apparaîtrait au premier clic ferait sauter la largeur de la liste sous le curseur.
      */
-    const panneau = openedSite ? (
-        <div className="flex flex-col gap-4">
-            <div className="px-1">
-                <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
-                    {openedSite.site}
+    /**
+     * **Le panneau du site — claire, et la liste d'abord** (23/09, reprise).
+     *
+     * Le héro sombre prenait la moitié de la colonne : à 900 de fenêtre, la liste des
+     * locaux n'en montrait que trois, et la note en retenait encore 60 au pied. Le site
+     * tient désormais dans une carte blanche de 140 px — le pays, le nom en 22, trois
+     * chiffres en 17 sur une ligne, le petit gabarit des tuiles —, et ses locaux dans une
+     * seconde carte qui prend le reste et défile. La note passe dans l'infobulle de
+     * l'en-tête de liste : on la lit quand on la cherche.
+     */
+    const chiffresDuSite: Array<{
+        cle: string;
+        valeur: React.ReactNode;
+        libelle: string;
+        ecart?: boolean;
+    }> = isCampaignActive
+        ? [
+              { cle: 'attendus', valeur: totals.expected, libelle: 'attendus' },
+              { cle: 'trouves', valeur: totals.found, libelle: 'trouvés' },
+              {
+                  cle: 'ecarts',
+                  valeur: totals.exceptions,
+                  libelle: `écart${totals.exceptions > 1 ? 's' : ''}`,
+                  ecart: totals.exceptions > 0,
+              },
+          ]
+        : [
+              {
+                  cle: 'attendus',
+                  valeur: totals.expected,
+                  libelle: `actif${totals.expected > 1 ? 's' : ''} attendu${totals.expected > 1 ? 's' : ''}`,
+              },
+              {
+                  cle: 'locaux',
+                  valeur: scopedLocalCount,
+                  libelle: `${scopedLocalCount > 1 ? 'locaux' : 'local'} à compter`,
+              },
+              {
+                  cle: 'verifie',
+                  valeur: totals.lastScanAt ? formatSince(totals.lastScanAt) : '—',
+                  libelle: totals.lastScanAt ? 'dernier comptage' : 'jamais vérifié',
+              },
+          ];
+
+    /**
+     * **Deux cartes, toujours là** (23/09, troisième reprise) : la carte du site en tête,
+     * celle de ses locaux dessous. Elles existent **avant** qu'un site soit choisi — à
+     * vide, chacune dit ce qu'elle montrera —, si bien que choisir un site remplit deux
+     * cadres au lieu de faire apparaître un panneau : rien ne bouge sous le curseur.
+     */
+    const panneau = (
+        <div className="flex h-full min-h-0 flex-col gap-4">
+            <section className="bg-surface shrink-0 rounded-xl px-5 pt-5 pb-4">
+                <span className="text-on-surface-variant block text-[0.75rem] leading-4">
+                    {openedSite ? `${openedSite.country} · site` : 'Site'}
+                </span>
+                <h2
+                    className={cn(
+                        'font-brand text-ts-sheet leading-ts-sheet mt-1 truncate font-semibold tracking-[-0.015em]',
+                        openedSite ? 'text-on-surface' : 'text-text-tertiary',
+                    )}
+                >
+                    {openedSite ? openedSite.site : 'Aucun site choisi'}
                 </h2>
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5">
-                    {openedSite.country} · site · {scopedLocalCount}{' '}
-                    {scopedLocalCount > 1 ? 'locaux' : 'local'}
-                </p>
-            </div>
-            {hero}
-            {rows.length > 0 && (
-                <section className="bg-surface rounded-xl px-4">
-                    {rows.map((row, index) => rangeeDeLieu(row, index, 'local'))}
-                </section>
-            )}
-            {note}
-        </div>
-    ) : (
-        <div className="bg-surface text-on-surface-variant flex flex-col items-center gap-2 rounded-xl px-5 py-8 text-center">
-            <Icon glyph={MapPin} size={24} className="text-text-tertiary" />
-            <p className="text-ts-sub leading-ts-sub">
-                Choisissez un site pour voir ses locaux et son avancement.
-            </p>
+                {/* À vide, les trois cases gardent leur place avec un tiret : la carte a
+                    déjà sa hauteur, et le site choisi ne la fera pas grandir. */}
+                <dl className="mt-4 grid grid-cols-3 gap-3">
+                    {chiffresDuSite.map((chiffre) => (
+                        <div key={chiffre.cle} className="min-w-0">
+                            <dt className="sr-only">{chiffre.libelle}</dt>
+                            <dd
+                                className={cn(
+                                    'font-brand text-ts-head leading-ts-head truncate font-semibold tabular-nums',
+                                    !openedSite
+                                        ? 'text-text-tertiary'
+                                        : chiffre.ecart
+                                          ? 'text-[var(--tk-color-st-orange)]'
+                                          : 'text-on-surface',
+                                )}
+                            >
+                                {openedSite ? chiffre.valeur : '—'}
+                            </dd>
+                            <dd
+                                aria-hidden="true"
+                                className="text-on-surface-variant mt-0.5 truncate text-[0.75rem] leading-4"
+                            >
+                                {chiffre.libelle}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+                {openedSite && isCampaignActive && (
+                    /* En campagne, le ruban de 8 des autres jauges, à 16 des chiffres. */
+                    <div className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs">
+                        <i
+                            className="block h-full bg-[var(--tk-color-st-vert)]"
+                            style={{ width: `${totals.coverage}%` }}
+                        />
+                    </div>
+                )}
+            </section>
+
+            <section className="bg-surface flex min-h-0 flex-1 flex-col rounded-xl">
+                <header className="flex shrink-0 items-center gap-1 px-5 pt-3">
+                    <h3 className="text-on-surface-variant min-w-0 flex-1 text-[0.75rem] leading-4 font-medium">
+                        {/* Le compte des locaux, celui de la carte du site : la rangée « hors local »
+                            n'en est pas un. */}
+                        Locaux{openedSite ? ` · ${scopedLocalCount}` : ''}
+                    </h3>
+                    <InfoTip
+                        title="Comment on compte"
+                        detail="Le local s'ouvre sur ses équipements et le scan. Le site se clôt quand tous ses locaux sont comptés."
+                    />
+                </header>
+                {!openedSite ? (
+                    <CardEmptyState
+                        glyph={MapPin}
+                        title="Choisissez un site"
+                        description="Ses locaux s'affichent ici, avec ce qu'il reste à compter dans chacun."
+                    />
+                ) : rows.length > 0 ? (
+                    <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
+                        {rows.map((row, index) => rangeeDeLieu(row, index, 'local'))}
+                    </div>
+                ) : (
+                    <CardEmptyState
+                        glyph={DoorOpen}
+                        title="Aucun local dans ce site"
+                        description="Il se compte d'un seul tenant : lancez-le depuis sa rangée."
+                    />
+                )}
+            </section>
         </div>
     );
 

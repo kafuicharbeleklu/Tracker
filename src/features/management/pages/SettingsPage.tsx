@@ -35,6 +35,7 @@ import FilePicker from '../../../components/ui/FilePicker';
 import { formatFileSize, getImportLimitBytes } from '../../../lib/fileImport';
 import { signatureService } from '../../../services/signatureService';
 import { cn } from '../../../lib/utils';
+import { PAGE_BUREAU } from '../../../lib/regimeBureau';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
@@ -319,7 +320,8 @@ const SettingsBar: React.FC<{
     if (!isCompact) {
         return (
             <IconGestureSizeContext.Provider value={40}>
-                <div className="px-page bg-background sticky top-0 z-20 flex min-h-10 items-center gap-2 pt-5">
+                {/* Le titre suit la colonne centrée des réglages (23/09). */}
+                <div className="px-page bg-background large:mx-auto large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex min-h-10 w-full items-center gap-2 pt-5">
                     {onBack && (
                         <Button
                             variant="text"
@@ -703,7 +705,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     const goBack = () => setView('index');
 
     return (
-        <div className="flex min-h-0 w-full flex-1 flex-col">
+        /* **Au bureau, la page tient la fenêtre** (23/09) : la barre reste, les groupes
+           défilent dessous. Le corps portait déjà son `overflow-y-auto` ; il lui manquait
+           une hauteur à remplir — sans elle, il s'étirait au contenu et c'était la page
+           entière qui défilait, titre compris. */
+        <div className={cn('flex min-h-0 w-full flex-1 flex-col', PAGE_BUREAU)}>
             <SettingsBar
                 title={VIEW_TITLE[view]}
                 variant={view === 'index' || view === 'account' ? 'liste' : 'fiche'}
@@ -989,16 +995,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
                     {view === 'currency' && (
                         <>
-                            <RuleGroup
-                                form="grp"
-                                header="Lecture des montants"
-                                note="Ces réglages ne changent pas un calcul mais une lecture : tous les montants du produit s'écrivent avec."
-                            >
-                                <RuleGroup.Row
-                                    title="Devise"
-                                    subtitle="Le franc CFA est la seule devise du parc"
-                                    value={settings.currency}
-                                />
+                            <RuleGroup form="grp" header="Lecture des montants">
+                                <RuleGroup.Row title="Devise" value={settings.currency} />
                                 <RuleGroup.Row
                                     title="Notation compacte"
                                     subtitle="1 200 000 s'écrit 1,2 M"
@@ -1049,32 +1047,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             <RuleGroup
                                 form="grp"
                                 header="Par défaut"
+                                /* **Une note dit une chose** (23/09) : le plan de secours,
+                                   et ce qu'il décide aujourd'hui. Le reste — l'ordre fiche,
+                                   type, défaut, et le passé qui ne bouge pas — se lisait en
+                                   cinq lignes sous un titre de deux mots. */
                                 note={
-                                    <>
-                                        Un plan se prend d'abord sur la fiche, puis sur le type, et
-                                        seulement ensuite ici.
-                                        {typesWithOwnPlan === categories.length &&
-                                        categories.length > 0
-                                            ? ` Les ${categories.length} types portent déjà le leur : ce plan ne sert donc qu'aux types créés sans lui.`
-                                            : ` ${categories.length - typesWithOwnPlan} type(s) n'en portent pas : ce plan est le leur.`}{' '}
-                                        {governedAssets > 0 && (
-                                            <>
-                                                {' '}
-                                                Il décide aujourd'hui de la valeur de{' '}
-                                                <strong className="text-text-secondary font-medium">
-                                                    {governedAssets} actif
-                                                    {governedAssets > 1 ? 's' : ''}
-                                                </strong>
-                                                .
-                                            </>
-                                        )}{' '}
-                                        Les changer{' '}
-                                        <strong className="text-text-secondary font-medium">
-                                            ne touche pas au passé
-                                        </strong>{' '}
-                                        : les objets déjà amortis gardent leur plan, les prochains
-                                        prennent le nouveau.
-                                    </>
+                                    governedAssets > 0
+                                        ? `Il ne vaut que pour les types sans plan à eux — ${governedAssets} actif${governedAssets > 1 ? 's' : ''} aujourd'hui.`
+                                        : 'Il ne vaut que pour les types sans plan à eux.'
                                 }
                             >
                                 {DEPRECIATION_METHODS.map((method) => (
@@ -1176,8 +1156,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             <Notice>
                                 <strong className="text-on-surface font-medium">
                                     La devise et l'année fiscale sont ailleurs.
-                                </strong>{' '}
-                                Elles ne changent pas un calcul mais une lecture.
+                                </strong>
                             </Notice>
 
                             <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
@@ -1253,7 +1232,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             <RuleGroup
                                 form="grp"
                                 header="Ce qu'un dépôt accepte"
-                                note="Un fichier au-delà de la borne est refusé au dépôt, nommé et mesuré — il ne part pas dans une lecture qui ne finira pas. La borne vaut pour toutes les formes : le tableur d'un import, la pièce jointe d'une facture, la photo d'un incident."
+                                note="Au-delà de la borne, un fichier est refusé — import, facture ou photo."
                             >
                                 {FILE_LIMITS.map((mo) => (
                                     <RuleGroup.Row
@@ -1288,7 +1267,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         <>
                             <RuleGroup
                                 form="grp"
-                                note="L'état d'une source, c'est ce qu'elle a renvoyé et quand. Une source qui ne dit plus rien depuis six jours est le seul fait qui mérite d'être remonté au sommaire."
+                                note="Une source muette depuis six jours remonte au sommaire."
                             >
                                 {SOURCES.map((source) => {
                                     const enabled = Boolean(settings[source.enabledKey]);
@@ -1329,7 +1308,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             <RuleGroup
                                 form="grp"
                                 header="Alimenter à la main"
-                                note="Une machine remontée n'entre pas au parc toute seule : elle attend une validation dans Tâches."
+                                note="Une machine remontée attend une validation dans Tâches."
                             >
                                 <RuleGroup.Row
                                     title="Importer des fichiers de remontée"

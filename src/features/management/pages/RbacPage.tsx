@@ -311,11 +311,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         return rbacGroups.filter((group) => group.name.toLowerCase().includes(needle));
     }, [query, rbacGroups]);
 
-    const customRoles = useMemo(
-        () => rbacRoles.filter((role) => role.kind === 'custom'),
-        [rbacRoles],
-    );
-
     /**
      * **Qui porte chaque rôle** — le chiffre que 11.1 met à droite de la rangée, sous
      * l'en-tête « porteurs ». L'écran affichait à la place le nombre de *permissions*
@@ -514,7 +509,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 </span>
                             }
                             headerTrailing={`${openViews.length} vue${openViews.length > 1 ? 's' : ''}`}
-                            note="Les vues fermées ne sont pas listées : l'inventaire de ce qu'un rôle n'a pas est aussi long que la matrice entière."
+                            note="Seules les vues ouvertes sont listées."
                         >
                             {VIEW_KEYS.filter((key) =>
                                 editing ? true : allowed.some((rule) => rule.key === key),
@@ -596,7 +591,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                     </span>
                                 }
                                 headerTrailing={`${denied.length} action${denied.length > 1 ? 's' : ''}`}
-                                note="Aucune bascule sur ces rangées. Un refus n'est pas un droit éteint qu'on rallume : c'est une décision qui gagne contre tout groupe. Le remettre à permis demande de retirer le refus — deux gestes différents, deux formes différentes."
+                                note="Un refus ne se bascule pas : il se retire."
                             >
                                 {denied.map((rule) => (
                                     <RuleGroup.Row
@@ -642,7 +637,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                     La portée déclarée
                                 </span>
                             }
-                            note="Elle est déclarée, rassemblée par le moteur d'accès… et lue par personne. Le filtrage ligne à ligne décide sur le rôle historique de la personne, quatre noms écrits en dur. Le savoir évite de croire qu'on a borné un périmètre."
+                            note="La portée est déclarée, pas encore appliquée."
                         >
                             <RuleGroup.Row
                                 title={`Portée ${SCOPE_LABEL[scope]}`}
@@ -661,7 +656,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                     Ce que « rôle du système » ne veut pas dire
                                 </span>
                             }
-                            note="La donnée déclare un seul rôle intouchable ; l'écran en protège quatre, en gatant la suppression sur le genre du rôle et jamais sur ce champ. Les deux règles ne se rencontrent pas."
+                            note="Les quatre rôles du système sont protégés."
                         >
                             <RuleGroup.Row
                                 title="Déclaré immuable"
@@ -834,19 +829,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             className="px-5"
                             header="Les rôles"
                             headerTrailing="porteurs"
-                            note={
-                                <>
-                                    Les rôles du système ne se suppriment pas.{' '}
-                                    <strong className="text-on-surface font-medium">
-                                        La portée écrite sous un nom est déclarée, pas appliquée
-                                    </strong>{' '}
-                                    : le filtrage teste en dur les{' '}
-                                    {Object.keys(SYSTEM_ROLE_ID_BY_USER_ROLE).length} valeurs de{' '}
-                                    <code className="font-mono tracking-[0.02em]">UserRole</code>,
-                                    et les {customRoles.length} rôles sur mesure n'ont aucune
-                                    branche.
-                                </>
-                            }
+                            note="Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée."
                         >
                             {filteredRoles.map((role) => {
                                 const niveau = declaredScope(role);
@@ -894,7 +877,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         className="px-5"
                         header="Ce qu'ils ajoutent"
                         headerTrailing="membres"
-                        note="Un groupe ajoute une ligne ou un périmètre, jamais la hiérarchie. Le droit ajouté s'applique ; la portée écrite sous le nom est déclarée puis ignorée."
+                        note="Un groupe ajoute un droit, jamais la hiérarchie. Sa portée est déclarée, pas encore appliquée."
                     >
                         {filteredGroups.map((group) => (
                             <RuleGroup.Row
