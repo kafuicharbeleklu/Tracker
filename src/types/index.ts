@@ -41,6 +41,7 @@ export type ViewType =
     | 'return_wizard'
     | 'finance'
     | 'finance_expenses'
+    | 'finance_lines'
     | 'settings'
     | 'not_found';
 

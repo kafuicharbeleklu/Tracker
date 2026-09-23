@@ -37,6 +37,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
     return_wizard: 'Rendre et réceptionner',
     finance: DESTINATIONS.finance.label,
     finance_expenses: 'Journal des dépenses',
+    finance_lines: 'Lignes du budget',
     settings: DESTINATIONS.settings.label,
     not_found: 'Page introuvable',
 };
@@ -131,6 +132,8 @@ export const useAppNavigation = () => {
             // « Voir les N dépenses de l'exercice » mène ici, et le retour ramène
             // à la page Finances.
             if (action === 'expenses') computedView = 'finance_expenses';
+            // 15.2 — les lignes d'un exercice : `/finance/lines/<année>`.
+            else if (action === 'lines') computedView = 'finance_lines';
             else computedView = 'finance';
         } else if (section === 'settings') {
             computedView = 'settings';
@@ -182,6 +185,7 @@ export const useAppNavigation = () => {
                 reports: '/reports',
                 finance: '/finance',
                 finance_expenses: '/finance/expenses',
+                finance_lines: '/finance/lines',
                 settings: '/settings',
                 assignment_wizard: '/wizards/assignment',
                 return_wizard: '/wizards/return',

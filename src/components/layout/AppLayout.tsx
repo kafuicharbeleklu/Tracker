@@ -9,6 +9,8 @@ import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { scrollAppToTop } from '../../lib/appScroll';
+import { APP_SCROLLER_ID } from './MobileFrame';
+import { cn } from '../../lib/utils';
 import { APP_CONFIG } from '../../config';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import ScreenState from '../ui/ScreenState';
@@ -30,6 +32,7 @@ const FinanceManagementPage = lazy(
     () => import('../../features/finance/pages/FinanceManagementPage'),
 );
 const ExpenseJournalPage = lazy(() => import('../../features/finance/pages/ExpenseJournalPage'));
+const BudgetLinesPage = lazy(() => import('../../features/finance/pages/BudgetLinesPage'));
 const ManagementPage = lazy(() => import('../../features/management/pages/ManagementPage'));
 const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
@@ -80,6 +83,13 @@ const lireObjetDeLAdresse = (): string | null => {
     const query = hash.includes('?') ? hash.split('?')[1] : '';
     if (!query) return null;
     return new URLSearchParams(query).get('equipmentId');
+};
+
+/** L'exercice que désigne `/finance/lines/<année>` — l'année en cours à défaut. */
+const lireAnneeDeLAdresse = (): number => {
+    const segments = window.location.hash.replace(/^#/, '').split('?')[0].split('/');
+    const annee = Number(segments[3]);
+    return Number.isInteger(annee) && annee > 1900 ? annee : new Date().getFullYear();
 };
 
 /** Le repli de la barre latérale, retenu d'une session à l'autre. */
@@ -340,6 +350,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'settings',
         'rbac',
         'finance_expenses',
+        'finance_lines',
         /* Emplacements et la fiche d'un site portent la barre de 04.1 et celle de la
            fiche : la barre du haut redirait la destination une ligne plus bas. */
         'locations',
@@ -412,6 +423,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.finance.label;
             case 'finance_expenses':
                 return 'Journal des dépenses';
+            case 'finance_lines':
+                return 'Lignes du budget';
             case 'management':
                 return DESTINATIONS.management.label;
             case 'add_category':
@@ -482,6 +495,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             if (view === 'finance' || view === 'finance_expenses') {
                 return permissions.canViewFinance || permissions.canManageFinance;
             }
+            /* Ajuster les enveloppes écrit : la lecture seule ne suffit pas. */
+            if (view === 'finance_lines') return permissions.canManageFinance;
             if (
                 view === 'management' ||
                 view === 'rbac' ||
@@ -619,6 +634,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <FinanceManagementPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'finance_expenses':
                 return <ExpenseJournalPage onBack={() => handleViewChange('finance')} />;
+            case 'finance_lines':
+                return (
+                    <BudgetLinesPage
+                        /* L'exercice est dans l'adresse : `/finance/lines/<année>`. */
+                        key={lireAnneeDeLAdresse()}
+                        year={lireAnneeDeLAdresse()}
+                        onBack={() => handleViewChange('finance')}
+                    />
+                );
 
             case 'management':
                 return (
@@ -743,7 +767,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <ScreenState
                         icon={MagnifyingGlass}
                         title="Cette page n'existe plus"
-                        description="L'équipement ou la personne que vous cherchiez a peut-être été sortie du parc, ou son compte supprimé. Son historique, lui, est conservé dans l'Historique."
+                        description="Cet objet ou ce compte n'existe plus. Son historique, lui, est conservé."
                         actions={
                             <>
                                 <Button
@@ -782,7 +806,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
     return (
         <SelectionRegimeProvider value={regimeSelection}>
-            <div className="bg-background flex min-h-screen flex-col font-sans">
+            {/*
+              **Au bureau, la coque tient la fenêtre** (23/09). Sans hauteur définie en
+              haut de la chaîne, un écran qui veut faire défiler son corps n'y arrive
+              pas : un conteneur `flex` de hauteur automatique prend la taille de son
+              contenu, et `min-h-0` sur les étages du dessous n'y change rien. La coque
+              se borne donc à `100dvh` au-delà de 840 px, et c'est `<main>` qui défile.
+            */}
+            <div
+                className={cn(
+                    'bg-background flex min-h-screen flex-col font-sans',
+                    'expanded:h-dvh expanded:min-h-0',
+                )}
+            >
                 {/* Top App Bar — Mobile Only when active */}
                 {/*
                   `onMenuClick` n'existe pas sur `TopAppBar` — la barre n'a qu'un
@@ -830,9 +866,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
                     {/* Main Content Area */}
                     <main
-                        className={`bg-background relative flex min-w-0 flex-1 flex-col ${
-                            enSelection ? 'pb-[76px]' : usesBottomNavShortcuts ? 'pb-16' : ''
-                        }`}
+                        /* Le conteneur de défilement du bureau — `getAppScroller` le
+                           retrouve par cet identifiant pour remonter en tête de page.
+                           Sous 840 px il ne défile pas : c'est le document. */
+                        id={APP_SCROLLER_ID}
+                        className={cn(
+                            'bg-background relative flex min-w-0 flex-1 flex-col',
+                            enSelection ? 'pb-[76px]' : usesBottomNavShortcuts ? 'pb-16' : '',
+                            'expanded:min-h-0 expanded:overflow-y-auto',
+                        )}
                     >
                         <ErrorBoundary>
                             {/* L'accusé se pose **en tête de page**, là où la planche le
@@ -859,7 +901,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                               de l'écran. Le canevas continue de chaque côté ; rien ne
                               change sous 840.
                             */}
-                            <div className="expanded:mx-auto expanded:max-w-[80rem] flex w-full min-w-0 flex-1 flex-col">
+                            <div className="expanded:mx-auto expanded:max-w-[80rem] expanded:min-h-0 flex w-full min-w-0 flex-1 flex-col">
                                 <Suspense fallback={<PageLoadingFallback />}>
                                     {renderContent()}
                                 </Suspense>

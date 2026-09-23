@@ -328,7 +328,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                 onClick={handleSubmit}
                 disabled={requiresLowConfidenceReview && !isLowConfidenceReviewed}
             >
-                Valider le Budget
+                Créer l’exercice
             </Button>
         </>
     );
@@ -347,7 +347,9 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Définir le Budget Annuel"
+            /* Ajuster les lignes d'un exercice est la page 15.2 ; cette boîte n'ouvre plus
+               qu'un exercice neuf. Libellés en casse de phrase (R15). */
+            title="Nouvel exercice"
             footer={mode === 'manual' ? footer : undefined}
             maxWidth="max-w-4xl" // Wider modal for table view
         >
