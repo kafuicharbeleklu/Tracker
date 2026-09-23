@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ClockCounterClockwise, DotsThreeVertical, Export, Laptop } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
@@ -86,9 +86,6 @@ import {
 
 /** Au téléphone, un jour montre quatre faits et nomme le reste (colonne 1 : « Hier 6 »). */
 const PAR_JOUR = 4;
-
-/** Au bureau, le tableau reçoit ses rangées par cinquantaine, au défilement. */
-const PAR_PAGE = 50;
 
 const initiales = (nom: string): string =>
     nom
@@ -349,37 +346,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
 
     /* ------------------------------------------------------------------- le bureau */
 
-    /**
-     * **Les suivants au défilement** — `.lfoot` : « 9 sur 312 · les suivants au
-     * défilement ». Le compte se remet à une page dès que les filtres changent : il suit la
-     * signature de ce qui est affiché, sans effet ni état à resynchroniser.
-     */
-    const signature = [
-        rechercheRetardee,
-        naturesActives.join(','),
-        periode,
-        choisi?.id,
-        ordre,
-        mien,
-    ].join('|');
-    const [defilement, setDefilement] = useState({ signature, n: PAR_PAGE });
-    const nVisibles = defilement.signature === signature ? defilement.n : PAR_PAGE;
-    const visibles = useMemo(() => affiches.slice(0, nVisibles), [affiches, nVisibles]);
-    const sentinelle = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        const cible = sentinelle.current;
-        if (!enTableau || !cible || nVisibles >= affiches.length) return;
-        const observateur = new IntersectionObserver(
-            (entrees) => {
-                if (entrees.some((entree) => entree.isIntersecting))
-                    setDefilement({ signature, n: nVisibles + PAR_PAGE });
-            },
-            { rootMargin: '0px 0px 480px 0px' },
-        );
-        observateur.observe(cible);
-        return () => observateur.disconnect();
-    }, [affiches.length, enTableau, nVisibles, signature]);
+    /*
+      **Plus de tranches de cinquante** (23/09) : le tableau monte lui-même ce qui se voit
+      (`DataTable` → `useVirtualWindow`), et reçoit donc tout le journal filtré. La
+      sentinelle, puis l'écoute du cadre, n'avaient plus rien à réclamer.
+    */
 
     const peutOuvrirLaPersonne = (id: string) => permissions.canViewUsers || id === moi?.id;
 
@@ -894,11 +865,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                     unite: `fait${affiches.length > 1 ? 's' : ''}`,
                 }}
                 hasRows={parGroupe.length > 0}
-                footer={
-                    enTableau && affiches.length > PAR_PAGE
-                        ? `${visibles.length} sur ${affiches.length}${visibles.length < affiches.length ? ' · les suivants au défilement' : ''}`
-                        : undefined
-                }
                 empty={
                     vide && (
                         <ScreenState
@@ -924,7 +890,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                     <>
                         <DataTable<HistoryEvent>
                             columns={colonnes}
-                            rows={visibles}
+                            rows={affiches}
                             rowId={(fait) => fait.id}
                             onOpen={setOuvert}
                             rowLabel={(fait) => faitDe(fait, registres)}
@@ -940,7 +906,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                                             iconOnly
                                             size="sm"
                                             aria-label="Options du fait"
-                                            className="-mr-2"
                                         >
                                             <Icon glyph={DotsThreeVertical} size={20} />
                                         </Button>
@@ -957,7 +922,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                                 };
                             }}
                         />
-                        <div ref={sentinelle} aria-hidden="true" />
                     </>
                 ) : (
                     parGroupe.map(({ groupe, faits }) => {

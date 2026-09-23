@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import Icon from './Icon';
 import { SelectionBox } from './SelectableRow';
+import { VIRTUAL_SPACER, useVirtualWindow } from '../../hooks/useVirtualWindow';
 
 /**
  * **Le tableau dense** — la seconde forme d'une liste au bureau, arbitrée par la
@@ -130,12 +131,62 @@ function DataTable<T>({
     maxHeight,
     className,
 }: DataTableProps<T>) {
+    /*
+      **Le tableau ne monte que ce qui se voit** (23/09) — la fenêtre virtuelle de
+      `useVirtualWindow`. Les rangées de séparation du journal sont des éléments comme les
+      autres : une rangée de groupe, une rangée de donnée, chacune son `<tr>`, chacune sa
+      hauteur (36 et 48, puis mesurées).
+    */
+    /* `groupOf` arrive souvent en fermeture neuve à chaque rendu : la liste ne se
+       recalcule que sur les rangées, sinon la fenêtre repartirait de zéro à chaque rendu. */
+    const grouper = React.useRef(groupOf);
+    grouper.current = groupOf;
+    const elements = React.useMemo(() => {
+        const liste: Array<
+            | { type: 'groupe'; groupe: { id: string; label: string; count?: number } }
+            | { type: 'rangee'; row: T; index: number }
+        > = [];
+        let groupePose: string | null = null;
+        rows.forEach((row, index) => {
+            const groupe = grouper.current?.(row);
+            if (groupe && groupe.id !== groupePose) {
+                groupePose = groupe.id;
+                liste.push({ type: 'groupe', groupe });
+            }
+            liste.push({ type: 'rangee', row, index });
+        });
+        return liste;
+    }, [rows]);
+
+    const fenetre = useVirtualWindow<HTMLTableSectionElement>({
+        count: elements.length,
+        estimateSize: (i) => (elements[i]?.type === 'groupe' ? 36 : 48),
+    });
+
     const selectable = Boolean(selection);
     const avecReste = columns.some((column) => column.grow);
+
+    /*
+      **Des parts de la largeur utile** (23/09). En `table-fixed`, le navigateur pose d'abord
+      les colonnes en pixels (la case, le ⋮), puis répartit ce qui reste **au prorata** des
+      colonnes en pour cent — mesuré : 25/11/15/17/16/16 sur 700 px utiles rendent
+      175/77/105/119/112/112, sans un pixel de débord. Une colonne sans mesure reçoit une
+      part égale de ce qui n'est pas attribué. (`calc(% - px)` sur un `<col>` est ignoré
+      par Chrome : il retombe sur des colonnes égales.)
+    */
+    const partsDeclarees = columns.reduce(
+        (somme, c) => somme + (c.width?.endsWith('%') ? parseFloat(c.width) : 0),
+        0,
+    );
+    const sansMesure = columns.filter((c) => !c.width).length;
+    const partLibre = sansMesure > 0 ? Math.max(0, 100 - partsDeclarees) / sansMesure : 0;
+    const largeurEnPart = (column: DataColumn<T>): string =>
+        column.width?.endsWith('px')
+            ? column.width
+            : `${column.width?.endsWith('%') ? parseFloat(column.width) : partLibre}%`;
     /* Le `colspan` d'une rangée de séparation : tout le tableau, cases et actes
        compris. */
     const colonnes = columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0);
-    let groupePose: string | null = null;
 
     return (
         <div
@@ -147,7 +198,16 @@ function DataTable<T>({
             )}
             style={maxHeight ? { maxHeight } : undefined}
         >
-            <table className="w-full border-collapse text-left text-[0.875rem] leading-5">
+            <table
+                aria-rowcount={rows.length + 1}
+                className={cn(
+                    'w-full border-collapse text-left text-[0.875rem] leading-5',
+                    /* Sans colonne de reste, **la largeur se partage, elle ne se négocie
+                       pas** : `table-fixed` tient le tableau à la largeur de son cadre, et le
+                       contenu se coupe dans sa colonne au lieu de pousser le tableau. */
+                    !avecReste && 'table-fixed',
+                )}
+            >
                 {/* Le `<colgroup>` des planches : `.lead` de **52** (la case à cocher, `0 0 0 10`
                     autour de 18 et ses marges de 7), les colonnes à leur mesure, **une** qui
                     prend le reste, et les actes de rangée sur **48**. Elles tenaient 48 et 56. */}
@@ -159,8 +219,8 @@ function DataTable<T>({
                             style={
                                 column.grow
                                     ? { width: '100%' }
-                                    : column.width && !avecReste
-                                      ? { width: column.width }
+                                    : !avecReste
+                                      ? { width: largeurEnPart(column) }
                                       : undefined
                             }
                         />
@@ -229,82 +289,83 @@ function DataTable<T>({
                     </tr>
                 </thead>
 
-                <tbody>
-                    {rows.map((row) => {
+                <tbody ref={fenetre.anchorRef}>
+                    {fenetre.before > 0 && (
+                        <tr {...VIRTUAL_SPACER} style={{ height: fenetre.before }}>
+                            <td colSpan={colonnes} className="p-0" />
+                        </tr>
+                    )}
+                    {elements.slice(fenetre.start, fenetre.end).map((element) => {
+                        if (element.type === 'groupe') {
+                            const { groupe } = element;
+                            return (
+                                /* 36 de haut, sur le canevas, en 12 d'appui — elle
+                                       sépare, elle ne se lit pas comme une donnée. */
+                                <tr key={`groupe-${groupe.id}`} className="bg-background">
+                                    <td
+                                        colSpan={colonnes}
+                                        className="text-on-surface-variant sticky left-0 h-9 px-2.5 text-[0.75rem] leading-4 font-medium"
+                                    >
+                                        <span className="first-letter:uppercase">
+                                            {groupe.label}
+                                        </span>
+                                        {typeof groupe.count === 'number' && (
+                                            <span className="text-text-tertiary ml-2 font-normal tabular-nums">
+                                                {groupe.count}
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        }
+
+                        const { row, index } = element;
                         const id = rowId(row);
                         const selected = selection?.isSelected(id) ?? false;
-                        const groupe = groupOf?.(row);
-                        const ouvreGroupe = groupe && groupe.id !== groupePose;
-                        if (groupe) groupePose = groupe.id;
-
                         return (
-                            <React.Fragment key={id}>
-                                {ouvreGroupe && (
-                                    /* 36 de haut, sur le canevas, en 12 d'appui — elle
-                                       sépare, elle ne se lit pas comme une donnée. */
-                                    <tr className="bg-background">
-                                        <td
-                                            colSpan={colonnes}
-                                            className="text-on-surface-variant sticky left-0 h-9 px-2.5 text-[0.75rem] leading-4 font-medium"
-                                        >
-                                            <span className="first-letter:uppercase">
-                                                {groupe.label}
-                                            </span>
-                                            {typeof groupe.count === 'number' && (
-                                                <span className="text-text-tertiary ml-2 font-normal tabular-nums">
-                                                    {groupe.count}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )}
-                                <tr
-                                    /* Le fond vit sur la rangée : les cellules figées en
+                            <tr
+                                key={id}
+                                aria-rowindex={index + 2}
+                                /* Le fond vit sur la rangée : les cellules figées en
                                    héritent (`bg-[inherit]`), donc elles se repeignent
                                    au survol comme le reste. */
-                                    className={cn(
-                                        'group border-outline-variant bg-surface h-12 border-b transition-colors last:border-b-0',
-                                        'hover:bg-surface-container focus-within:bg-surface-container',
-                                        selected && 'bg-surface-container',
-                                        onOpen &&
-                                            /* `.tbl tr.foc` — **l'anneau de 2 au dedans**, et les
+                                className={cn(
+                                    'group border-outline-variant bg-surface h-12 border-b transition-colors last:border-b-0',
+                                    'hover:bg-surface-container focus-within:bg-surface-container',
+                                    selected && 'bg-surface-container',
+                                    onOpen &&
+                                        /* `.tbl tr.foc` — **l'anneau de 2 au dedans**, et les
                                                mêmes révélations qu'au survol (04.1, rangée 6). La
                                                rangée n'était ni atteignable ni ouvrable au
                                                clavier : seule la souris ouvrait une fiche depuis
                                                le tableau. */
-                                            'focus-visible:outline-on-surface cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2',
-                                    )}
-                                    tabIndex={onOpen ? 0 : undefined}
-                                    onClick={
-                                        onOpen
-                                            ? () => {
-                                                  if (selection?.isActive) selection.toggle(id);
-                                                  else onOpen(row);
-                                              }
-                                            : undefined
-                                    }
-                                    onKeyDown={
-                                        onOpen
-                                            ? (event) => {
-                                                  if (event.target !== event.currentTarget) return;
-                                                  if (event.key !== 'Enter' && event.key !== ' ')
-                                                      return;
-                                                  event.preventDefault();
-                                                  if (selection?.isActive) selection.toggle(id);
-                                                  else onOpen(row);
-                                              }
-                                            : undefined
-                                    }
-                                >
-                                    {selectable && (
-                                        <td
-                                            className={cn(
-                                                FIGEE,
-                                                CASE_GAUCHE,
-                                                'px-2.5 align-middle',
-                                            )}
-                                        >
-                                            {/*
+                                        'focus-visible:outline-on-surface cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2',
+                                )}
+                                tabIndex={onOpen ? 0 : undefined}
+                                onClick={
+                                    onOpen
+                                        ? () => {
+                                              if (selection?.isActive) selection.toggle(id);
+                                              else onOpen(row);
+                                          }
+                                        : undefined
+                                }
+                                onKeyDown={
+                                    onOpen
+                                        ? (event) => {
+                                              if (event.target !== event.currentTarget) return;
+                                              if (event.key !== 'Enter' && event.key !== ' ')
+                                                  return;
+                                              event.preventDefault();
+                                              if (selection?.isActive) selection.toggle(id);
+                                              else onOpen(row);
+                                          }
+                                        : undefined
+                                }
+                            >
+                                {selectable && (
+                                    <td className={cn(FIGEE, CASE_GAUCHE, 'px-2.5 align-middle')}>
+                                        {/*
                                           **La case se révèle au survol et au focus**, et
                                           reste en permanence dès qu'une sélection est
                                           ouverte. Elle occupe les 32 de `.cb` et ses marges
@@ -313,119 +374,125 @@ function DataTable<T>({
                                           toucher à la mise en page : c'est la cible qui ne
                                           rétrécit pas, pas la colonne qui grandit.
                                         */}
-                                            <span className="relative flex h-8 w-8 items-center justify-center">
-                                                {/* **La vignette au repos, la case au geste.**
+                                        <span className="relative flex h-8 w-8 items-center justify-center">
+                                            {/* **La vignette au repos, la case au geste.**
                                                 Elles occupent le même carré de 32 : rien ne
                                                 bouge quand l'une remplace l'autre. */}
-                                                {rowLead && (
-                                                    <span
-                                                        aria-hidden="true"
-                                                        className={cn(
-                                                            /* Le gabarit ne pose que la place :
+                                            {rowLead && (
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                        /* Le gabarit ne pose que la place :
                                                                la forme de la vignette appartient
                                                                à l'écran — carrée pour un objet
                                                                (04.1), ronde pour une personne
                                                                (05.1). */
-                                                            'pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity',
-                                                            selection?.isActive || selected
-                                                                ? 'opacity-0'
-                                                                : 'group-focus-within:opacity-0 group-hover:opacity-0',
-                                                        )}
-                                                    >
-                                                        {rowLead(row)}
-                                                    </span>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    aria-label={
-                                                        selected
-                                                            ? 'Retirer de la sélection'
-                                                            : 'Sélectionner'
-                                                    }
-                                                    aria-pressed={selected}
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        selection?.toggle(id);
-                                                    }}
-                                                    className={cn(
-                                                        'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
+                                                        'pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity',
                                                         selection?.isActive || selected
-                                                            ? 'opacity-100'
-                                                            : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
+                                                            ? 'opacity-0'
+                                                            : 'group-focus-within:opacity-0 group-hover:opacity-0',
                                                     )}
                                                 >
-                                                    <SelectionBox selected={selected} />
-                                                </button>
-                                            </span>
-                                        </td>
-                                    )}
-
-                                    {columns.map((column, index) => {
-                                        const infobulle = column.title?.(row);
-                                        const premiere = index === 0;
-                                        return (
-                                            <td
-                                                key={column.id}
+                                                    {rowLead(row)}
+                                                </span>
+                                            )}
+                                            <button
+                                                type="button"
+                                                aria-label={
+                                                    selected
+                                                        ? 'Retirer de la sélection'
+                                                        : 'Sélectionner'
+                                                }
+                                                aria-pressed={selected}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    selection?.toggle(id);
+                                                }}
                                                 className={cn(
-                                                    'text-on-surface px-2.5 align-middle',
-                                                    /* Quand une colonne prend le reste, les autres
+                                                    'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
+                                                    selection?.isActive || selected
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
+                                                )}
+                                            >
+                                                <SelectionBox selected={selected} />
+                                            </button>
+                                        </span>
+                                    </td>
+                                )}
+
+                                {columns.map((column, index) => {
+                                    const infobulle = column.title?.(row);
+                                    const premiere = index === 0;
+                                    return (
+                                        <td
+                                            key={column.id}
+                                            className={cn(
+                                                'text-on-surface px-2.5 align-middle',
+                                                /* Quand une colonne prend le reste, les autres
                                                        **se tiennent à leur contenu** (`nowrap`, comme
                                                        `.tbl td`) et seule celle-là se coupe. Sans
                                                        colonne de reste, toutes se coupent. */
-                                                    avecReste && !column.grow
-                                                        ? 'whitespace-nowrap'
-                                                        : 'max-w-0 truncate',
-                                                    column.numeric && 'text-right tabular-nums',
-                                                    premiere &&
-                                                        cn(
-                                                            FIGEE,
-                                                            selectable ? TETE_GAUCHE : CASE_GAUCHE,
-                                                        ),
-                                                )}
-                                                title={infobulle}
-                                            >
-                                                {index === 0 && rowLabel ? (
-                                                    <span className="sr-only">{rowLabel(row)}</span>
-                                                ) : null}
-                                                {avecReste && !column.grow ? (
-                                                    <span
-                                                        className="block truncate"
-                                                        style={
-                                                            column.width
-                                                                ? { maxWidth: column.width }
-                                                                : undefined
-                                                        }
-                                                    >
-                                                        {column.cell(row)}
-                                                    </span>
-                                                ) : (
-                                                    column.cell(row)
-                                                )}
-                                            </td>
-                                        );
-                                    })}
+                                                avecReste && !column.grow
+                                                    ? 'whitespace-nowrap'
+                                                    : 'max-w-0 truncate',
+                                                column.numeric && 'text-right tabular-nums',
+                                                premiere &&
+                                                    cn(
+                                                        FIGEE,
+                                                        selectable ? TETE_GAUCHE : CASE_GAUCHE,
+                                                    ),
+                                            )}
+                                            title={infobulle}
+                                        >
+                                            {index === 0 && rowLabel ? (
+                                                <span className="sr-only">{rowLabel(row)}</span>
+                                            ) : null}
+                                            {avecReste && !column.grow ? (
+                                                <span
+                                                    className="block truncate"
+                                                    style={
+                                                        column.width
+                                                            ? { maxWidth: column.width }
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {column.cell(row)}
+                                                </span>
+                                            ) : (
+                                                column.cell(row)
+                                            )}
+                                        </td>
+                                    );
+                                })}
 
-                                    {rowActions && (
-                                        /* Le geste de la cellule d'actes n'ouvre pas la
+                                {rowActions && (
+                                    /* Le geste de la cellule d'actes n'ouvre pas la
                                            rangée : sans cet arrêt, le ⋮ ouvrait son menu
                                            **et** la fiche derrière lui (18.1, premier
                                            emploi). */
-                                        <td
-                                            /* 10 à gauche, 6 à droite : avec le carré de 40
-                                               rentré de 8, la colonne rend les **48** de son
-                                               `<col>` (04.1) au lieu de 52. */
-                                            className="pr-1.5 pl-2.5 align-middle"
-                                            onClick={(event) => event.stopPropagation()}
-                                        >
-                                            <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                                                {rowActions(row)}
-                                            </span>
-                                        </td>
-                                    )}
-                                </tr>
-                            </React.Fragment>
+                                    <td
+                                        /* **4 de part et d'autre du carré de 40 : les 48 du
+                                           `<col>`, sans rien qui déborde** (23/09). Le ⋮ était
+                                           rentré de 8 dans 6 d'intérieur : il sortait de 2 px
+                                           de la cellule, et ces 2 px suffisaient à ouvrir une
+                                           barre de défilement horizontale sous chaque tableau. */
+                                        className="px-1 align-middle"
+                                        onClick={(event) => event.stopPropagation()}
+                                    >
+                                        <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                                            {rowActions(row)}
+                                        </span>
+                                    </td>
+                                )}
+                            </tr>
                         );
                     })}
+                    {fenetre.after > 0 && (
+                        <tr {...VIRTUAL_SPACER} style={{ height: fenetre.after }}>
+                            <td colSpan={colonnes} className="p-0" />
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

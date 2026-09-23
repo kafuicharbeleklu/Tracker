@@ -44,7 +44,7 @@ import { getStatusPresentation } from '../../../constants/statusPresentation';
 import { buildCsvLine } from '../../../lib/csv';
 import { cn } from '../../../lib/utils';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
-import Thumbnail from '../../../components/ui/Thumbnail';
+import { VIRTUAL_SPACER, useVirtualWindow } from '../../../hooks/useVirtualWindow';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 
 /**
@@ -120,7 +120,6 @@ const FAMILY_TYPE_KEYS: Record<EquipmentFamily, readonly string[]> = {
 };
 
 const PERIODS = ['Toute période', '30 derniers jours', 'Cette année'] as const;
-const PAGE_SIZE = 20;
 
 /**
  * **Le dernier mouvement d'un actif** — la sixième colonne de 04.1 au bureau.
@@ -292,7 +291,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [sortIndex, setSortIndex] = useState(DEFAULT_SORT_INDEX);
     const [scanHit, setScanHit] = useState<ScanHit | null>(null);
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const selection = useSelection();
 
     // Filtres de la feuille montante
@@ -441,15 +439,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         isManager,
     ]);
 
-    useEffect(() => {
-        setVisibleCount(PAGE_SIZE);
-    }, [filteredEquipment]);
-
-    const visibleEquipment = useMemo<Equipment[]>(
-        () => filteredEquipment.slice(0, visibleCount),
-        [filteredEquipment, visibleCount],
-    );
-
     /**
      * Les états montent en tête avec leurs compteurs.
      */
@@ -488,6 +477,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const vue = useListView('inventory');
     /* Le scan ne vit qu'au téléphone (17.11) — la coque le dit, pas le gabarit. */
     const isCompact = useMediaQuery(MEDIA.compact);
+
+    /* La fenêtre de la liste en cartes — 72 au téléphone, 68 dès la tablette, puis
+       mesurée rangée par rangée (`ListRow`). */
+    const liste = useVirtualWindow<HTMLDivElement>({
+        count: filteredEquipment.length,
+        estimateSize: () => (isCompact ? 72 : 68),
+    });
     const enTableau = isManager && vue.view === 'tableau';
 
     /**
@@ -812,32 +808,31 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                    l'onglet qui l'y mène. « Équipements » / « Mes équipements » faisaient
                    deux mots pour une destination. */
                 title="Actifs"
-                subtitle={isManager ? `${accessibleEquipment.length} au parc` : undefined}
-                /* **Le scan est un geste de téléphone** : *« le geste de la caméra reste
-                   au téléphone »* (17.11, « ce que le bureau ne fait pas »). Au bureau
-                   on cherche un code en le tapant — la recherche de la ligne d'outils
-                   accepte le code, l'identifiant et le modèle. */
-                actions={
-                    isManager && isCompact ? (
-                        <button
-                            type="button"
-                            aria-label="Scanner une étiquette"
-                            onClick={() => {
-                                setIsScanning(true);
-                                setScanHit(null);
-                            }}
-                            className="text-on-surface hover:bg-surface-container flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                        >
-                            <Icon glyph={Scan} size={24} />
-                        </button>
-                    ) : undefined
+                /* `.cnt2` du bureau — « 243 au parc » ne s'écrit que si la liste montre
+                   autre chose que le parc entier : sinon c'est le nombre qu'on vient de
+                   lire, une seconde fois (23/09). */
+                subtitle={
+                    isManager && filteredEquipment.length !== accessibleEquipment.length
+                        ? `${accessibleEquipment.length} au parc`
+                        : undefined
                 }
+                /* **Le scan n'est plus dans l'en-tête** (23/09). Il reste un geste de
+                   téléphone — *« le geste de la caméra reste au téléphone »* (17.11) —,
+                   mais il vit là où l'on ajoute : la feuille « Nouvel équipement » l'offre
+                   en première route, et le geste d'ajout est à portée de pouce. Un glyphe
+                   de plus dans la rangée du titre lui prenait 48 px et redisait un chemin
+                   qui existait déjà. */
                 search={
                     isManager
                         ? {
                               value: searchQuery,
                               onChange: setSearchQuery,
-                              placeholder: 'Code, identifiant, modèle',
+                              /* Au téléphone, la bande porte aussi le tri depuis le
+                                 23/09 : l'invite se dit en deux mots pour ne pas se
+                                 couper. */
+                              placeholder: isCompact
+                                  ? 'Code ou modèle'
+                                  : 'Code, identifiant, modèle',
                           }
                         : undefined
                 }
@@ -871,13 +866,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     isManager
                         ? {
                               total: filteredEquipment.length,
-                              shown: visibleEquipment.length,
-                              /* « 14 actifs · tous les états », « 2 actifs · en
-                                 réparation » : la ligne du décompte **nomme ce qu'on
-                                 voit**, puisque plus aucune pastille ne le dit. */
+                              /*
+                                **La ligne du décompte ne dit que ce qui change** (23/09).
+                                Elle portait « 243 actifs · tous les états · 20 affichés »
+                                sur 393 px : « tous les états » est l'absence de filtre,
+                                « 20 affichés » est la pagination — que « Charger la
+                                suite » dit déjà au bas de la liste. Reste le nombre, et
+                                le filtre **quand il est posé** : « 12 actifs · en
+                                réparation ».
+                              */
                               noun: statusFilter
                                   ? `actifs · ${getStatusLabel(statusFilter).toLowerCase()}`
-                                  : 'actifs · tous les états',
+                                  : 'actifs',
                           }
                         : undefined
                 }
@@ -924,7 +924,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         />
                     ) : undefined,
                 }}
-                hasRows={visibleEquipment.length > 0}
+                hasRows={filteredEquipment.length > 0}
                 empty={
                     <ScreenState
                         icon={Package}
@@ -1005,14 +1005,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             >
                 {/*
                   **Cartes ou tableau** — la même liste, la même donnée, deux formes.
-                  Le tableau n'est pas une seconde page : il lit `visibleEquipment`,
+                  Le tableau n'est pas une seconde page : il lit `filteredEquipment`,
                   garde la sélection, la pagination et l'état vide du gabarit. C'est
                   la forme qui change, jamais ce qu'on regarde.
                 */}
                 {enTableau ? (
                     <DataTable<Equipment>
                         columns={colonnes}
-                        rows={visibleEquipment}
+                        rows={filteredEquipment}
                         rowId={(item) => item.id}
                         onOpen={(item) => onEquipmentClick?.(item.id)}
                         rowLabel={(item) => `${item.name}, ouvrir la fiche`}
@@ -1033,7 +1033,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                         iconOnly
                                         size="sm"
                                         aria-label={`Actions pour ${item.name}`}
-                                        className="-mr-2"
                                     >
                                         <Icon glyph={DotsThreeVertical} size={20} />
                                     </Button>
@@ -1052,112 +1051,101 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         }}
                     />
                 ) : (
-                    visibleEquipment.map((item) => {
-                        if (!isManager) {
-                            // Vue Utilisateur final (Colonne 3)
-                            const isRep = item.status === 'En réparation';
-                            const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
-                            const repairDays = getDaysSince(item.repairStartDate);
-                            /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
+                    /* **La liste ne monte que ce qui se voit** (23/09) : plus de « Charger
+                       la suite ». Deux cales gardent sa hauteur réelle — la barre de
+                       défilement dit la vraie longueur du parc. */
+                    <div ref={liste.anchorRef}>
+                        {liste.before > 0 && (
+                            <div {...VIRTUAL_SPACER} style={{ height: liste.before }} />
+                        )}
+                        {filteredEquipment.slice(liste.start, liste.end).map((item) => {
+                            if (!isManager) {
+                                // Vue Utilisateur final (Colonne 3)
+                                const isRep = item.status === 'En réparation';
+                                const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
+                                const repairDays = getDaysSince(item.repairStartDate);
+                                /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
                            mouvement. La planche n'écrit jamais une date absente ;
                            sans date, la rangée dit l'état, qui reste vrai. */
-                            const sinceDate = formatDate(item.confirmedAt);
+                                const sinceDate = formatDate(item.confirmedAt);
 
-                            const userStatus = isRep
-                                ? {
-                                      label:
-                                          repairDays > 0
-                                              ? `En réparation · ${repairDays} j`
-                                              : 'En réparation',
-                                      icon: Warning,
-                                      tone: 'attention' as const,
-                                  }
-                                : isPending
-                                  ? {
-                                        label: 'Réception à confirmer',
-                                        icon: Clock,
-                                        tone: 'pending' as const,
-                                    }
-                                  : {
-                                        label:
-                                            sinceDate === '—'
-                                                ? 'Attribué'
-                                                : `Depuis le ${sinceDate}`,
-                                        icon: ArrowCircleRight,
-                                        tone: 'info' as const,
-                                    };
+                                const userStatus = isRep
+                                    ? {
+                                          label:
+                                              repairDays > 0
+                                                  ? `En réparation · ${repairDays} j`
+                                                  : 'En réparation',
+                                          icon: Warning,
+                                          tone: 'attention' as const,
+                                      }
+                                    : isPending
+                                      ? {
+                                            label: 'Réception à confirmer',
+                                            icon: Clock,
+                                            tone: 'pending' as const,
+                                        }
+                                      : {
+                                            label:
+                                                sinceDate === '—'
+                                                    ? 'Attribué'
+                                                    : `Depuis le ${sinceDate}`,
+                                            icon: ArrowCircleRight,
+                                            tone: 'info' as const,
+                                        };
 
-                            return (
-                                <ListRow
-                                    key={item.id}
-                                    /* **La vignette retombe sur son pictogramme** : un `<img>`
-                                   nu affiche une image cassée quand l'adresse ne répond
-                                   pas — et les 243 actifs importés portaient tous une
-                                   photo d'illustration externe, bloquée par le
-                                   navigateur. `Thumbnail` écoute l'échec et rend le
-                                   glyphe de la catégorie à la place. */
-                                    vignette={
-                                        <Thumbnail
-                                            src={item.image}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                            fallback={
-                                                <Icon
-                                                    glyph={getCategoryGlyph(item.type)}
-                                                    size={20}
-                                                />
-                                            }
-                                        />
-                                    }
-                                    title={item.name}
-                                    type={isCompact ? undefined : getCategoryLabel(item.type)}
-                                    status={userStatus}
-                                    holder=""
-                                    reference=""
-                                    onOpen={() => onEquipmentClick?.(item.id)}
-                                />
+                                return (
+                                    <ListRow
+                                        key={item.id}
+                                        /* **Le pictogramme du type, jamais la photo** (23/09) :
+                                           réduite à 40 px, une photo ne distingue rien et
+                                           se charge pour rien. Elle s'ouvre en grand par
+                                           l'aperçu de la fiche. */
+                                        vignette={
+                                            <Icon glyph={getCategoryGlyph(item.type)} size={20} />
+                                        }
+                                        title={item.name}
+                                        type={isCompact ? undefined : getCategoryLabel(item.type)}
+                                        status={userStatus}
+                                        holder=""
+                                        reference=""
+                                        onOpen={() => onEquipmentClick?.(item.id)}
+                                    />
+                                );
+                            }
+
+                            // Vue Gestionnaire (Colonnes 2 et 4)
+                            const status = getStatusPresentation(
+                                getDisplayedEquipmentStatus({
+                                    status: item.status,
+                                    assignmentStatus: item.assignmentStatus,
+                                }),
                             );
-                        }
 
-                        // Vue Gestionnaire (Colonnes 2 et 4)
-                        const status = getStatusPresentation(
-                            getDisplayedEquipmentStatus({
-                                status: item.status,
-                                assignmentStatus: item.assignmentStatus,
-                            }),
-                        );
-
-                        /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
+                            /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
                        « Disponible » sous le code d'un actif libre — pas son site :
                        un actif disponible à Paris se lit d'abord *disponible*, et le
                        site n'ajoute rien qu'on soit venu chercher. Le porteur prend
                        la place dès qu'il existe, et un local en tient lieu quand
                        l'objet est attribué à une pièce (« Salle serveurs »). */
-                        const repairDays = getDaysSince(item.repairStartDate);
-                        const holderText =
-                            item.status === 'En réparation'
-                                ? repairDays > 0
-                                    ? `En réparation · ${repairDays} j`
-                                    : 'En réparation'
-                                : (item.user?.name ??
-                                  (item.status === 'Attribué' ? item.site : undefined) ??
-                                  status.label);
+                            const repairDays = getDaysSince(item.repairStartDate);
+                            const holderText =
+                                item.status === 'En réparation'
+                                    ? repairDays > 0
+                                        ? `En réparation · ${repairDays} j`
+                                        : 'En réparation'
+                                    : (item.user?.name ??
+                                      (item.status === 'Attribué' ? item.site : undefined) ??
+                                      status.label);
 
-                        return (
-                            <ListRow
-                                key={item.id}
-                                vignette={
-                                    <Thumbnail
-                                        src={item.image}
-                                        alt=""
-                                        className="h-full w-full object-cover"
-                                        fallback={
-                                            <Icon glyph={getCategoryGlyph(item.type)} size={20} />
-                                        }
-                                    />
-                                }
-                                title={item.name}
-                                /*
+                            return (
+                                <ListRow
+                                    key={item.id}
+                                    /* Le pictogramme du type, jamais la photo (23/09). */
+                                    vignette={
+                                        <Icon glyph={getCategoryGlyph(item.type)} size={20} />
+                                    }
+                                    title={item.name}
+                                    /*
                                   **Deux faits au téléphone, quatre au-delà** (00.4, et la
                                   rangée partagée le documente depuis le 20/08). La rangée
                                   en portait quatre à 393 : le code, le type à droite,
@@ -1167,31 +1155,22 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                   la tablette, où la place existe, et se lisent de toute
                                   façon sur la fiche. Arbitré le 22/09.
                                 */
-                                type={isCompact ? undefined : getCategoryLabel(item.type)}
-                                status={status}
-                                holder={holderText}
-                                reference={isCompact ? undefined : item.assetId}
-                                onOpen={() => onEquipmentClick?.(item.id)}
-                                selectionActive={selection.isActive}
-                                selected={selection.isSelected(item.id)}
-                                onToggle={() => selection.toggle(item.id)}
-                                onLongPress={() => selection.enter(item.id)}
-                            />
-                        );
-                    })
-                )}
-
-                {isManager && visibleEquipment.length < filteredEquipment.length && (
-                    /* `.more` : 48 de haut, un filet au-dessus, **15 en 500** sur
-                       l'encre pleine, chevron 18 sur l'encre secondaire. */
-                    <button
-                        type="button"
-                        onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                        className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
-                    >
-                        <Icon glyph={CaretDown} size={18} className="text-text-muted" />
-                        Charger la suite
-                    </button>
+                                    type={isCompact ? undefined : getCategoryLabel(item.type)}
+                                    status={status}
+                                    holder={holderText}
+                                    reference={isCompact ? undefined : item.assetId}
+                                    onOpen={() => onEquipmentClick?.(item.id)}
+                                    selectionActive={selection.isActive}
+                                    selected={selection.isSelected(item.id)}
+                                    onToggle={() => selection.toggle(item.id)}
+                                    onLongPress={() => selection.enter(item.id)}
+                                />
+                            );
+                        })}
+                        {liste.after > 0 && (
+                            <div {...VIRTUAL_SPACER} style={{ height: liste.after }} />
+                        )}
+                    </div>
                 )}
 
                 {/* Feuille montante Filtrer (Planche 04.1) — quatre groupes, dans

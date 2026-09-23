@@ -33,6 +33,7 @@ import { canDeleteUserByRoleRule } from '../../../lib/businessRules';
 import { buildCsvLine } from '../../../lib/csv';
 import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
 import { cn } from '../../../lib/utils';
+import { VIRTUAL_SPACER, useVirtualWindow } from '../../../hooks/useVirtualWindow';
 
 /**
  * Annuaire des personnes — **porté sur la planche 05.1** (gabarit `ListTemplate`).
@@ -270,6 +271,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
             .slice()
             .sort((a, b) => (ascending ? 1 : -1) * a.name.localeCompare(b.name, 'fr'));
     }, [users, debouncedSearch, roleFilter, departmentFilter, siteFilter, statusFilter, ascending]);
+
+    /* **La liste ne monte que ce qui se voit** (23/09) — même fenêtre que les Actifs. */
+    const liste = useVirtualWindow<HTMLDivElement>({
+        count: filteredUsers.length,
+        estimateSize: () => 72,
+    });
 
     /** Les puces de rôle — descendues de la bande de tête dans la feuille (05.1). */
     const roleOptions = useMemo(() => {
@@ -673,45 +680,53 @@ const UsersPage: React.FC<UsersPageProps> = ({ onUserClick, onViewChange, initia
                         }}
                     />
                 ) : (
-                    filteredUsers.map((user) => {
-                        const held = holdings(user);
-                        /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
+                    <div ref={liste.anchorRef}>
+                        {liste.before > 0 && (
+                            <div {...VIRTUAL_SPACER} style={{ height: liste.before }} />
+                        )}
+                        {filteredUsers.slice(liste.start, liste.end).map((user) => {
+                            const held = holdings(user);
+                            /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
                        À défaut de site, le service prend sa place : c'est déjà la
                        substitution que la planche dessine sur la vue « choisir un
                        destinataire », où le site est l'en-tête du groupe. */
-                        const place = user.site || user.department || '—';
-                        return (
-                            <ListRow
-                                key={user.id}
-                                vignette={
-                                    <span
-                                        className={cn(
-                                            'font-brand text-ts-control flex h-full w-full items-center justify-center font-semibold',
-                                            VIGNETTE_TONE[user.role],
-                                        )}
-                                    >
-                                        {initials(user.name)}
-                                    </span>
-                                }
-                                title={user.name}
-                                person
-                                /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
+                            const place = user.site || user.department || '—';
+                            return (
+                                <ListRow
+                                    key={user.id}
+                                    vignette={
+                                        <span
+                                            className={cn(
+                                                'font-brand text-ts-control flex h-full w-full items-center justify-center font-semibold',
+                                                VIGNETTE_TONE[user.role],
+                                            )}
+                                        >
+                                            {initials(user.name)}
+                                        </span>
+                                    }
+                                    title={user.name}
+                                    person
+                                    /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
                                La charge disparaît quand elle est nulle — « aucun
                                équipement » sur six rangées sur onze était du bruit. */
-                                holder={
-                                    held > 0
-                                        ? `${place} · ${held} objet${held > 1 ? 's' : ''}`
-                                        : place
-                                }
-                                mark={accountMark(user)}
-                                onOpen={() => onUserClick?.(user.id)}
-                                selectionActive={selection.isActive}
-                                selected={selection.isSelected(user.id)}
-                                onToggle={() => selection.toggle(user.id)}
-                                onLongPress={() => selection.enter(user.id)}
-                            />
-                        );
-                    })
+                                    holder={
+                                        held > 0
+                                            ? `${place} · ${held} objet${held > 1 ? 's' : ''}`
+                                            : place
+                                    }
+                                    mark={accountMark(user)}
+                                    onOpen={() => onUserClick?.(user.id)}
+                                    selectionActive={selection.isActive}
+                                    selected={selection.isSelected(user.id)}
+                                    onToggle={() => selection.toggle(user.id)}
+                                    onLongPress={() => selection.enter(user.id)}
+                                />
+                            );
+                        })}
+                        {liste.after > 0 && (
+                            <div {...VIRTUAL_SPACER} style={{ height: liste.after }} />
+                        )}
+                    </div>
                 )}
             </ListTemplate>
 
