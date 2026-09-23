@@ -4,7 +4,6 @@ import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import DetailHero from '../../../components/ui/DetailHero';
-import Thumbnail from '../../../components/ui/Thumbnail';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -241,8 +240,8 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 </div>
             </section>
 
-            {/* Section 2 : Modèles référencés */}
-            <section className="bg-surface rounded-lg p-4">
+            {/* Section 2 : Modèles référencés — sous le héro au bureau (23/09). */}
+            <section data-colonne="gauche" className="bg-surface rounded-lg p-4">
                 {/* `.ch` de 09.1 — le titre en 17 sur 24 et 500, le compte en 14 sur l'encre
                     secondaire, sans graisse : les deux étaient en 13 et en 600. */}
                 <div className="mb-2 flex min-h-6 items-center justify-between gap-3">
@@ -259,30 +258,25 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                        09.1 dessine sous « Modèles » : **la photo du modèle** à gauche, la
                        marque à droite de la ligne 1, le nombre d'unités en dessous. La
                        liste était une rangée maison de 56 px, sans vignette : un modèle se
-                       reconnaît d'abord à sa photo, c'est ce qui le distingue de son voisin
-                       de même marque (09.2). Sans photo, la rangée porte **l'initiale de la
-                       marque** — jamais un cadre vide. */
+                       reconnaît à sa marque et à son nom. Depuis le 23/09 la rangée porte
+                       **l'initiale de la marque** et plus la photo, que l'aperçu de la fiche
+                       du modèle ouvre en grand. */
                     <>
                         <div>
                             {categoryModels.map((model) => (
                                 <ListRow
                                     key={model.id}
+                                    /* **L'initiale de la marque, jamais la photo** (23/09) :
+                                       réduite à 40 px, la photo ne distinguait rien ; elle
+                                       s'ouvre en grand par l'aperçu de la fiche du modèle.
+                                       `.vig` — l'initiale en Archivo 600. */
                                     vignette={
-                                        <Thumbnail
-                                            src={model.image}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                            fallback={
-                                                /* `.vig` — l'initiale en Archivo 600,
-                                                   comme toute vignette ; elle tenait 500. */
-                                                <span className="text-ts-control font-semibold">
-                                                    {(model.brand || model.name)
-                                                        .trim()
-                                                        .charAt(0)
-                                                        .toUpperCase()}
-                                                </span>
-                                            }
-                                        />
+                                        <span className="text-ts-control font-semibold">
+                                            {(model.brand || model.name)
+                                                .trim()
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                        </span>
                                     }
                                     title={model.name}
                                     type={model.brand || undefined}
@@ -323,7 +317,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 est en retard sur elle**. Sans cette carte, le vide de la liste des modèles
                 laisse croire que le type ne sert à rien. */}
             {categoryModels.length === 0 && categoryEquipment.length > 0 && (
-                <section className="bg-surface rounded-lg p-4">
+                <section data-colonne="gauche" className="bg-surface rounded-lg p-4">
                     <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
                         <Icon
                             glyph={Info}

@@ -140,7 +140,13 @@ interface DetailTemplateProps {
     asideTail?: React.ReactNode;
 
     loading?: boolean;
-    /** Les cartes de référence. */
+    /**
+     * Les cartes de référence. **Une carte marquée `data-colonne="gauche"` passe sous le
+     * héro au bureau** (23/09) et garde sa place au téléphone : ce que le sujet contient
+     * — les modèles d'un type, les unités d'un modèle, les locaux d'un site — se lit à
+     * côté de lui, et la colonne de gauche ne porte plus le héro seul au-dessus de
+     * 500 px de vide.
+     */
     children?: React.ReactNode;
     className?: string;
 }
@@ -195,6 +201,16 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     /* La colonne de gauche n'existe que si quelque chose la remplit. Vide, elle
        laissait 440 px de blanc à côté des cartes au-delà de 1280. */
     const twoColumn = twoColumnCapable && Boolean(hero || error || aside || banner);
+
+    const cartes = React.Children.toArray(children);
+    const aGauche = twoColumn
+        ? cartes.filter(
+              (carte) =>
+                  React.isValidElement(carte) &&
+                  (carte.props as { 'data-colonne'?: string })['data-colonne'] === 'gauche',
+          )
+        : [];
+    const aDroite = cartes.filter((carte) => !aGauche.includes(carte));
 
     return (
         <div className={cn('flex min-h-0 w-full min-w-0 flex-1 flex-col', className)}>
@@ -312,6 +328,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                 {hero}
                                 {error}
                                 {aside}
+                                {aGauche}
                                 {twoColumn && asideTail}
                             </div>
                         )}
@@ -323,7 +340,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                 twoColumn ? 'shrink grow-[5] basis-0' : 'flex-1',
                             )}
                         >
-                            {children}
+                            {aDroite}
                             {!twoColumn && asideTail}
                         </div>
                     </div>

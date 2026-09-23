@@ -18,6 +18,7 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { renderCategoryIcon } from '../../../constants/categoryIcons';
 import Menu from '../../../components/ui/Menu';
+import ImagePreview from '../../../components/ui/ImagePreview';
 import ScreenState from '../../../components/ui/ScreenState';
 import AddModelPage from './AddModelPage';
 import { buildCsvLine } from '../../../lib/csv';
@@ -233,20 +234,22 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                 code="Modèle"
                 onBack={retour}
                 menu={
-                    <Menu
-                        align="end"
-                        items={menuItems}
-                        trigger={
-                            <Button
-                                variant="text"
-                                iconOnly
-                                aria-label="Autres actions"
-                                className="text-on-surface hover:bg-surface-container rounded-md transition-colors"
-                            >
-                                <Icon glyph={DotsThreeVertical} size={20} />
-                            </Button>
-                        }
-                    />
+                    <>
+                        <Menu
+                            align="end"
+                            items={menuItems}
+                            trigger={
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label="Autres actions"
+                                    className="text-on-surface hover:bg-surface-container rounded-md transition-colors"
+                                >
+                                    <Icon glyph={DotsThreeVertical} size={20} />
+                                </Button>
+                            }
+                        />
+                    </>
                 }
                 hero={
                     /*
@@ -266,7 +269,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                             .filter(Boolean)
                             .join(' · ')}
                         subject={model.name}
-                        image={model.image || undefined}
+                        /* La photo du modèle se regarde à part (23/09), comme celle d'un actif. */
+                        corner={
+                            model.image ? (
+                                <ImagePreview src={model.image} subject={model.name} />
+                            ) : undefined
+                        }
                         meter={
                             totalUnits > 0 ? (
                                 <span className="flex h-2 gap-0.5 overflow-hidden rounded-[4px]">
@@ -359,7 +367,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                   rangées tenaient 56, sans vignette, le numéro en Archivo 14, et le lien
                   portait un chevron à gauche (relevé du 13/09).
                 */}
-                <section className="bg-surface rounded-lg px-5 py-2">
+                <section data-colonne="gauche" className="bg-surface rounded-lg px-5 py-2">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                             Unités

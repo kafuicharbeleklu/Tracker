@@ -463,7 +463,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     la note que R15 retire. Le geste ne se perd pas pour autant : la
                     feuille du FAB de 10.1 ouvre « Un local » et fait choisir son site. */}
                 {(!neverServed || locals.length > 0) && (
-                    <section className="rounded-card bg-surface px-4 py-1">
+                    <section data-colonne="gauche" className="rounded-card bg-surface px-4 py-1">
                         {cardHeader('Locaux', locals.length)}
                         {locals.length > 0 && (
                             <div className="border-outline-variant border-t">

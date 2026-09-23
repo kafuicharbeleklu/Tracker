@@ -45,6 +45,7 @@ import Menu from '../../../components/ui/Menu';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import ImagePreview from '../../../components/ui/ImagePreview';
 
 import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
@@ -679,7 +680,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 : getCategoryLabel(item.type)
                         }
                         subject={item.model || item.name}
-                        image={item.image || undefined}
+                        /* **La photo se regarde à part** (23/09) : elle tapissait le héro,
+                           floue sous son voile ; l'œil l'ouvre en plein écran, à sa taille. */
+                        corner={
+                            item.image ? (
+                                <ImagePreview src={item.image} subject={item.model || item.name} />
+                            ) : undefined
+                        }
                         relation={
                             item.status === 'En réparation'
                                 ? {
@@ -749,6 +756,130 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         metricsDeskColumns={3}
                         actions={primaryAction}
                     />
+                }
+                /* **La colonne de gauche ne tient plus le héro seul** (23/09) : au bureau,
+                   la remise en cours, l'historique et les documents passent sous lui — ce
+                   qui s'est passé à l'objet se lit à côté de son état, et la référence
+                   (numéro de série, garantie) reste à droite. Au téléphone l'ordre ne
+                   change pas : ils suivent les cartes de référence, comme avant. */
+                asideTail={
+                    <>
+                        {handoverTrail && (
+                            <RuleGroup header="Où en est la remise">
+                                <HandoverTrail steps={handoverTrail} />
+                            </RuleGroup>
+                        )}
+
+                        {permissions.canManageInventory && (
+                            <section className="rounded-card bg-surface p-4">
+                                <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
+                                        Historique
+                                    </h3>
+                                </header>
+                                {history.length > 0 ? (
+                                    <>
+                                        {/* `.ev` — la rangée d'événement de 04.2 : marque ronde de 32,
+                                    le fait en 16 sur 24, la date en 14 sur 20 ; 56 de haut,
+                                    12 de remplissage, un filet entre deux. Elle passait par
+                                    `ReferenceRow`, qui est une rangée de référence, pas de
+                                    récit. */}
+                                        <div className="mt-2">
+                                            {history.map((event) => (
+                                                <div
+                                                    key={event.id}
+                                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first:border-t-0"
+                                                >
+                                                    <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                                                        <Icon
+                                                            glyph={ClockCounterClockwise}
+                                                            size={18}
+                                                        />
+                                                    </span>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="text-on-surface text-ts-body leading-ts-body block">
+                                                            {event.title}
+                                                        </span>
+                                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 block tabular-nums">
+                                                            {event.date}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* `.more` — vers **l'Historique** (18.1), qui existe depuis le
+                                    05/09 : le renvoi menait à Audit, qui n'est pas là où le
+                                    journal se lit. */}
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/history')}
+                                            className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
+                                        >
+                                            <span>
+                                                {history.length > 1
+                                                    ? `Les ${history.length} événements`
+                                                    : 'L’événement'}
+                                            </span>
+                                            <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
+                                                dans l’Historique
+                                            </span>
+                                            <Icon
+                                                glyph={CaretDown}
+                                                size={18}
+                                                className="text-text-secondary -rotate-90"
+                                            />
+                                        </button>
+                                    </>
+                                ) : (
+                                    /* Le vide garde sa place dans la carte (22/09). */
+                                    <CardEmptyState
+                                        glyph={ClockCounterClockwise}
+                                        title="Aucun mouvement"
+                                        description="Les remises, les retours et les réparations de cet équipement s'afficheront ici."
+                                    />
+                                )}
+                            </section>
+                        )}
+
+                        {item.documents && item.documents.length > 0 && (
+                            <section className="rounded-card bg-surface p-4">
+                                <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
+                                        Documents
+                                    </h3>
+                                    <DemoBadge />
+                                </header>
+                                {/* `.doc` — vignette de 40, le nom en 16, la nature et le poids en 12,
+                            chevron en encre tertiaire ; 56 de haut. */}
+                                <div className="mt-2">
+                                    {item.documents.map((document) => (
+                                        <div
+                                            key={document.id}
+                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-1.5 first:border-t-0"
+                                        >
+                                            <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
+                                                <Icon glyph={FileText} size={18} />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                    {document.name}
+                                                </span>
+                                                <span className="text-on-surface-variant mt-0.5 block text-[0.75rem] leading-4 tabular-nums">
+                                                    {document.type}
+                                                    {document.size ? ` · ${document.size}` : ''}
+                                                </span>
+                                            </span>
+                                            <Icon
+                                                glyph={CaretDown}
+                                                size={18}
+                                                className="text-text-tertiary -rotate-90"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </>
                 }
             >
                 <section className="rounded-card bg-surface p-4">
@@ -910,118 +1041,6 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                   par quelle méthode le premier geste a été attesté. Le lecteur ne
                   pouvait donc ni relancer, ni comprendre.
                 */}
-                {handoverTrail && (
-                    <RuleGroup header="Où en est la remise">
-                        <HandoverTrail steps={handoverTrail} />
-                    </RuleGroup>
-                )}
-
-                {permissions.canManageInventory && (
-                    <section className="rounded-card bg-surface p-4">
-                        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
-                                Historique
-                            </h3>
-                        </header>
-                        {history.length > 0 ? (
-                            <>
-                                {/* `.ev` — la rangée d'événement de 04.2 : marque ronde de 32,
-                                    le fait en 16 sur 24, la date en 14 sur 20 ; 56 de haut,
-                                    12 de remplissage, un filet entre deux. Elle passait par
-                                    `ReferenceRow`, qui est une rangée de référence, pas de
-                                    récit. */}
-                                <div className="mt-2">
-                                    {history.map((event) => (
-                                        <div
-                                            key={event.id}
-                                            className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first:border-t-0"
-                                        >
-                                            <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                                                <Icon glyph={ClockCounterClockwise} size={18} />
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="text-on-surface text-ts-body leading-ts-body block">
-                                                    {event.title}
-                                                </span>
-                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 block tabular-nums">
-                                                    {event.date}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* `.more` — vers **l'Historique** (18.1), qui existe depuis le
-                                    05/09 : le renvoi menait à Audit, qui n'est pas là où le
-                                    journal se lit. */}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/history')}
-                                    className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
-                                >
-                                    <span>
-                                        {history.length > 1
-                                            ? `Les ${history.length} événements`
-                                            : 'L’événement'}
-                                    </span>
-                                    <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
-                                        dans l’Historique
-                                    </span>
-                                    <Icon
-                                        glyph={CaretDown}
-                                        size={18}
-                                        className="text-text-secondary -rotate-90"
-                                    />
-                                </button>
-                            </>
-                        ) : (
-                            /* Le vide garde sa place dans la carte (22/09). */
-                            <CardEmptyState
-                                glyph={ClockCounterClockwise}
-                                title="Aucun mouvement"
-                                description="Les remises, les retours et les réparations de cet équipement s'afficheront ici."
-                            />
-                        )}
-                    </section>
-                )}
-
-                {item.documents && item.documents.length > 0 && (
-                    <section className="rounded-card bg-surface p-4">
-                        <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
-                            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
-                                Documents
-                            </h3>
-                            <DemoBadge />
-                        </header>
-                        {/* `.doc` — vignette de 40, le nom en 16, la nature et le poids en 12,
-                            chevron en encre tertiaire ; 56 de haut. */}
-                        <div className="mt-2">
-                            {item.documents.map((document) => (
-                                <div
-                                    key={document.id}
-                                    className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-1.5 first:border-t-0"
-                                >
-                                    <span className="rounded-vignette bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center">
-                                        <Icon glyph={FileText} size={18} />
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                            {document.name}
-                                        </span>
-                                        <span className="text-on-surface-variant mt-0.5 block text-[0.75rem] leading-4 tabular-nums">
-                                            {document.type}
-                                            {document.size ? ` · ${document.size}` : ''}
-                                        </span>
-                                    </span>
-                                    <Icon
-                                        glyph={CaretDown}
-                                        size={18}
-                                        className="text-text-tertiary -rotate-90"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
             </DetailTemplate>
 
             {/*

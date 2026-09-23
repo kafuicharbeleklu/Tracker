@@ -3,7 +3,6 @@ import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import { CaretRight } from '@phosphor-icons/react';
 
 import Icon from './Icon';
-import Thumbnail from './Thumbnail';
 import { cn } from '../../lib/utils';
 
 /**
@@ -155,10 +154,14 @@ interface DetailHeroProps {
         detail?: React.ReactNode;
         onOpen?: () => void;
     };
-    /** L'image du sujet lui-même — la photo de l'actif, jamais une image d'ambiance. */
-    image?: string;
     /** Les gestes. Le premier est le geste primaire, et il suit l'état. */
     actions?: React.ReactNode;
+    /**
+     * **Le coin haut droit du héro** — un geste d'icône, pas davantage : l'œil de l'aperçu
+     * de la photo (23/09). Il se pose en absolu, à la hauteur de la pastille d'état ; le
+     * sujet commence sous lui et ne le croise pas.
+     */
+    corner?: React.ReactNode;
     /**
      * Le geste du héro **à droite du sujet, et à sa mesure** — le bureau (16.2 : `.hero`
      * en grille `minmax(0,1fr) auto`, `.hact` en colonne 2, rangée 1).
@@ -190,8 +193,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     gauge,
     facts,
     relation,
-    image,
     actions,
+    corner,
     actionsInline = false,
     className,
 }) => (
@@ -207,23 +210,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
             className,
         )}
     >
-        {image && (
-            <>
-                <Thumbnail
-                    src={image}
-                    alt=""
-                    className="absolute inset-0 -z-20 h-full w-full object-cover"
-                    /* Sans image, le héro garde sa surface inversée : c'est déjà un fond. */
-                    fallback={null}
-                />
-                {/* Le voile monte vers le bas : le sujet reste lisible sur n'importe
-                    quelle photo, et le bas du héro porte le texte le plus dense. */}
-                <span
-                    aria-hidden="true"
-                    className="from-inverse-surface/60 via-inverse-surface/80 to-inverse-surface/95 absolute inset-0 -z-10 bg-gradient-to-b"
-                />
-            </>
-        )}
+        {corner && <div className="absolute top-4 right-4 z-10">{corner}</div>}
+        {/* **Plus de photo en fond** (23/09) : étirée en `object-cover` sous un voile à
+            80 %, elle était floue et gênait le texte. Elle s'ouvre à part, par l'aperçu
+            de la fiche (`ImagePreview`). */}
 
         {avatar ? (
             /* La pastille se pose **au-dessus** du sujet, pas à côté : la passe sobre
@@ -309,7 +299,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
         )}
 
         {avatar && status && (
-            /* `statusDetail` se pose ici aussi, pas seulement dans la variante à image :
+            /* `statusDetail` se pose ici aussi :
                sur une fiche de personne (05.2) c'est la ligne « Départ le … », et un héro
                à avatar l'avalait en silence. Lot 2. */
             <div className="mt-4 flex flex-wrap items-center gap-2">
