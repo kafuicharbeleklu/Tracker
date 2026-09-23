@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowLeft,
+    CalendarBlank,
+    CalendarPlus,
     Calculator,
     CaretRight,
     DotsThreeVertical,
+    Export,
     ListBullets,
+    LockSimple,
+    Plus,
 } from '@phosphor-icons/react';
 
 import { PageContainer } from '../../../components/layout/PageContainer';
@@ -109,6 +114,38 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
         [],
     );
 
+    /**
+     * **Les autres exercices** — ceux que la carte de droite liste au bureau : celui qu'on
+     * regarde n'y est pas, la page entière le porte déjà. Un exercice sans ligne est *à
+     * projeter* ; les autres disent ce qu'ils ont consommé sur ce qu'ils avaient.
+     */
+    const autresExercices = useMemo(
+        () =>
+            financeBudgets
+                .filter((budget) => budget.year !== selectedYear)
+                .sort((a, b) => b.year - a.year)
+                .map((budget) => {
+                    const consomme = budget.items.reduce((somme, item) => somme + item.spent, 0);
+                    const aProjeter = budget.items.length === 0;
+                    return {
+                        year: budget.year,
+                        aProjeter,
+                        detail: aProjeter
+                            ? 'aucune ligne · à projeter'
+                            : `${formatNumber(consomme, settings.compactNotation)} sur ${formatNumber(budget.totalAllocated, settings.compactNotation)}`,
+                    };
+                }),
+        [financeBudgets, selectedYear, settings.compactNotation],
+    );
+
+    const exercicesClos = useMemo(
+        () =>
+            financeBudgets.filter(
+                (budget) => budget.year !== selectedYear && budget.status !== 'En cours',
+            ).length,
+        [financeBudgets, selectedYear],
+    );
+
     const budgetYearOptions = useMemo(() => {
         if (financeBudgets.length > 0) {
             return financeBudgets.map((budget) => ({
@@ -197,11 +234,56 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </Button>
                             )}
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
-                                Finances
-                            </h1>
+                            {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
+                                que l'on regarde** : *« Exercice 2026 · en cours · au 3
+                                septembre »*. La page ne disait nulle part, au bureau, de quel
+                                exercice elle parlait ; le sélecteur pleine largeur le portait
+                                pour elle. */}
+                            <div className="min-w-0 flex-1">
+                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
+                                    Finances
+                                </h1>
+                                <p className="text-on-surface-variant text-ts-body leading-ts-body large:block mt-0.5 hidden">
+                                    Exercice {selectedYear} · {currentBudget.status.toLowerCase()} ·
+                                    au {currentFrenchDate}
+                                </p>
+                            </div>
+
+                            {/* **Les deux gestes passent dans l'en-tête au bureau** (15.1) :
+                                « Changer d'exercice » — le sélecteur du téléphone devient un
+                                menu ancré à son bouton — et « Enregistrer une dépense », le
+                                geste jaune. Au téléphone ils restent au ⋮ : *« trois contrôles
+                                empilés repousseraient le héro sous la ligne de flottaison »*. */}
                             <Menu
                                 align="end"
+                                items={financeBudgets.map((budget) => ({
+                                    id: `exercice-${budget.year}`,
+                                    label: `Exercice ${budget.year}`,
+                                    description: budget.status,
+                                    onSelect: () => setSelectedYear(budget.year),
+                                }))}
+                                trigger={
+                                    <Button
+                                        variant="text"
+                                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container large:inline-flex hidden h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[0.875rem] font-medium !shadow-none"
+                                        icon={<Icon glyph={CalendarBlank} size={20} />}
+                                    >
+                                        Changer d’exercice
+                                    </Button>
+                                }
+                            />
+                            <Button
+                                variant="filled"
+                                onClick={() => setIsAddExpenseModalOpen(true)}
+                                icon={<Icon glyph={Plus} size={20} />}
+                                className="large:inline-flex hidden h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                            >
+                                Enregistrer une dépense
+                            </Button>
+                            <Menu
+                                align="end"
+                                /* Le ⋮ du téléphone : au bureau, ses deux verbes sont des
+                                   boutons. */
                                 items={[
                                     {
                                         id: 'budget',
@@ -221,7 +303,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         variant="text"
                                         iconOnly
                                         aria-label="Actes de l’exercice"
-                                        className="text-on-surface hover:bg-surface-container shrink-0 rounded-md"
+                                        className="text-on-surface hover:bg-surface-container large:hidden shrink-0 rounded-md"
                                     >
                                         <Icon glyph={DotsThreeVertical} size={20} />
                                     </Button>
@@ -231,13 +313,15 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                         {/* Changer d'exercice — 15.1 en fait un geste du héro qui mène à
                             l'écran « Exercices » ; celui-ci n'existe pas encore, le sélecteur
                             tient la place et reste dans le bloc fixe. */}
+                        {/* 15.1 ne dessine ce sélecteur nulle part au bureau : l'exercice s'y
+                            lit dans la sous-ligne et se change par le bouton de l'en-tête. */}
                         <SelectField
                             name="finance-year"
                             value={selectedYear.toString()}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
                             options={budgetYearOptions}
                             placeholder="Choisir un exercice"
-                            className="space-y-0"
+                            className="large:hidden space-y-0"
                         />
                     </div>
                 </IconGestureSizeContext.Provider>
@@ -509,9 +593,32 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         </p>
                                     )}
                                 </div>
+                                {/* **Le pied de la carte des postes** (15.1 au bureau) : une
+                                    rangée de 48 qui mène aux enveloppes. Sans elle, la carte
+                                    dit l'état des postes sans offrir de les corriger, et le
+                                    geste ne vivait qu'au ⋮ du téléphone. */}
+                                {currentBudget.items.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddBudgetModalOpen(true)}
+                                        className="text-on-surface hover:bg-surface-container large:flex -mx-2 hidden min-h-12 w-full cursor-pointer items-center gap-2 rounded-[4px] px-2 text-left"
+                                    >
+                                        <span className="text-ts-body leading-ts-body min-w-0 flex-1 font-medium">
+                                            Ajuster les enveloppes
+                                        </span>
+                                        <Icon
+                                            glyph={CaretRight}
+                                            size={20}
+                                            className="text-text-tertiary shrink-0"
+                                        />
+                                    </button>
+                                )}
                             </section>
 
-                            {/*
+                            {/* `.zcol` de 15.1 — **la colonne de droite** : où aller, puis les
+                                autres exercices. Au téléphone, les deux cartes se suivent. */}
+                            <div className="flex flex-col gap-4">
+                                {/*
                           **« ALLER À » — deux destinations, pas un aperçu.** 15.1 :
                           *« l'accueil du domaine porte un exercice et **deux
                           destinations** : ses lignes, ses dépenses »*. La carte listait à
@@ -520,20 +627,20 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                           qu'elle existait. Les deux rangées la nomment et la comptent.
                           Au bureau, `.dsk .card` — `4 20 8`, comme la carte des postes.
                         */}
-                            <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
-                                <div className="flex min-h-12 items-center pt-2 pb-1">
-                                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
-                                        Aller à
-                                    </h3>
-                                </div>
-                                {(
-                                    [
+                                <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
+                                    <div className="flex min-h-12 items-center pt-2 pb-1">
+                                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                            Aller à
+                                        </h3>
+                                    </div>
+                                    {[
                                         {
                                             id: 'lignes',
                                             glyph: Calculator,
                                             titre: 'Les lignes du budget',
                                             detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
                                             aller: () => setIsAddBudgetModalOpen(true),
+                                            bureauSeul: false,
                                         },
                                         {
                                             id: 'depenses',
@@ -541,45 +648,127 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                             titre: 'Les dépenses',
                                             detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
                                             aller: () => onViewChange('finance_expenses'),
+                                            bureauSeul: false,
                                         },
-                                    ] as const
-                                ).map((rangee, index) => (
-                                    /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
-                                    <div
-                                        key={rangee.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={rangee.aller}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                rangee.aller();
-                                            }
-                                        }}
-                                        className={cn(
-                                            'flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                            index > 0 && 'border-outline-variant border-t',
-                                        )}
-                                    >
-                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                            <Icon glyph={rangee.glyph} size={20} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                                {rangee.titre}
+                                        {
+                                            /* **Trois destinations au bureau** (15.1) : les
+                                               rapports s'y ajoutent. Au téléphone la carte n'en
+                                               porte que deux — la planche les compte ainsi, et
+                                               « Plus » y mène déjà. */
+                                            id: 'rapports',
+                                            glyph: Export,
+                                            titre: 'Les rapports',
+                                            detail: '4 exports fixes',
+                                            aller: () => onViewChange('reports'),
+                                            bureauSeul: true,
+                                        },
+                                    ].map((rangee, index) => (
+                                        /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
+                                        <div
+                                            key={rangee.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={rangee.aller}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    rangee.aller();
+                                                }
+                                            }}
+                                            className={cn(
+                                                'min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                                rangee.bureauSeul ? 'large:flex hidden' : 'flex',
+                                                /* `.dsk .lrow` — **pas de filet au bureau**, un
+                                                   fond au survol à rayon 4, rentré de 8. */
+                                                'large:hover:bg-surface-container large:-mx-2 large:rounded-[4px] large:px-2',
+                                                index > 0 &&
+                                                    'border-outline-variant large:border-t-0 border-t',
+                                            )}
+                                        >
+                                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                                <Icon glyph={rangee.glyph} size={20} />
                                             </span>
-                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                                {rangee.detail}
+                                            <span className="min-w-0 flex-1">
+                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                    {rangee.titre}
+                                                </span>
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                    {rangee.detail}
+                                                </span>
                                             </span>
-                                        </span>
-                                        <Icon
-                                            glyph={CaretRight}
-                                            size={20}
-                                            className="text-text-tertiary shrink-0"
-                                        />
-                                    </div>
-                                ))}
-                            </section>
+                                            <Icon
+                                                glyph={CaretRight}
+                                                size={20}
+                                                className="text-text-tertiary shrink-0"
+                                            />
+                                        </div>
+                                    ))}
+                                </section>
+
+                                {/*
+                              **« EXERCICES » — la carte de droite du bureau** (15.1) : *« la
+                              vue Exercices devient une carte de droite »*. Le bureau n'avait
+                              que le sélecteur de l'en-tête, qui dit l'année et rien d'autre :
+                              ni ce qu'un exercice clos a consommé, ni qu'un exercice à venir
+                              n'a aucune ligne. L'exercice affiché n'y est pas — c'est toute
+                              la page qui le porte.
+                            */}
+                                {autresExercices.length > 0 && (
+                                    <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 large:block hidden px-4 py-2">
+                                        <div className="flex min-h-12 items-center gap-3 pt-2 pb-1">
+                                            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 font-medium">
+                                                Exercices
+                                            </h3>
+                                            {exercicesClos > 0 && (
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
+                                                    {exercicesClos} clos
+                                                </span>
+                                            )}
+                                        </div>
+                                        {autresExercices.map((exercice) => (
+                                            <button
+                                                key={exercice.year}
+                                                type="button"
+                                                onClick={() => setSelectedYear(exercice.year)}
+                                                className={cn(
+                                                    'hover:bg-surface-container -mx-2 flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-[4px] px-2 py-2 text-left',
+                                                )}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                                                        exercice.aProjeter
+                                                            ? 'bg-tint-ambre text-on-tint-ambre'
+                                                            : 'bg-surface-container text-on-surface-variant',
+                                                    )}
+                                                >
+                                                    <Icon
+                                                        glyph={
+                                                            exercice.aProjeter
+                                                                ? CalendarPlus
+                                                                : LockSimple
+                                                        }
+                                                        size={20}
+                                                    />
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                        Exercice {exercice.year}
+                                                    </span>
+                                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                        {exercice.detail}
+                                                    </span>
+                                                </span>
+                                                <Icon
+                                                    glyph={CaretRight}
+                                                    size={20}
+                                                    className="text-text-tertiary shrink-0"
+                                                />
+                                            </button>
+                                        ))}
+                                    </section>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </Reading>

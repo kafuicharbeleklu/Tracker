@@ -4363,3 +4363,25 @@ au pixel près ; les tableaux et les pages à deux zones sont inchangés ; les 4
 
 **Pas vérifié** : Tâches (03.3), dont le corps à deux niveaux demande une file non vide — les
 données de démonstration n'en portent aucune.
+
+### Finances au bureau, relu sur 15.1 (23/09)
+
+**La remarque** : *« la page finance n'est pas alignée avec la planche »*. Relevé contre la
+colonne « Vue — bureau à 1280 » de 15.1 et sa feuille `finances.css` :
+
+| Ce que la planche pose | Ce que le code faisait |
+| --- | --- |
+| `.dhead` : le titre, **la sous-ligne** « Exercice 2026 · en cours · au 3 septembre » (14/20), puis **« Changer d'exercice »** et **« Enregistrer une dépense »** (jaune) | titre seul, un ⋮ de deux verbes, et un sélecteur d'exercice **pleine largeur** que la planche ne dessine nulle part au bureau |
+| `Aller à` — **trois** destinations : lignes, dépenses, **rapports** | deux |
+| **La carte « Exercices »** dans la colonne de droite (`.zcol`) | absente : l'exercice ne se changeait que par le sélecteur |
+| Le pied de la carte des postes : **« Ajuster les enveloppes »**, rangée de 48 | absent — la carte disait l'état des postes sans offrir de les corriger |
+| `.dsk .lrow` et `.dsk .post` : **pas de filet**, fond au survol à rayon 4, rentrés de 8 | filets entre les rangées, aucun survol |
+
+**Posé**, au bureau seulement — le téléphone garde son ⋮, son sélecteur et ses deux
+destinations, comme les trois colonnes de la planche le dessinent. « Changer d'exercice »
+ouvre un menu ancré à son bouton : l'écran « Exercices » du téléphone n'existe pas, et 17.11
+interdit une coordonnée écrite à la main.
+
+**Mesuré après** (1440) : sous-ligne 14/20 en encre secondaire, rangées sans filet à rayon 4
+avec leur fond au survol, trois destinations, et la carte « Exercices » qui n'apparaît que
+s'il existe un autre exercice — les données de démonstration n'en portent qu'un.
