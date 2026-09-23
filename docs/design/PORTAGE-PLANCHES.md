@@ -4385,3 +4385,278 @@ interdit une coordonnée écrite à la main.
 **Mesuré après** (1440) : sous-ligne 14/20 en encre secondaire, rangées sans filet à rayon 4
 avec leur fond au survol, trois destinations, et la carte « Exercices » qui n'apparaît que
 s'il existe un autre exercice — les données de démonstration n'en portent qu'un.
+
+### L'en-tête d'une liste perd une ligne au téléphone (23/09)
+
+**La demande** : *« 243 actifs · tous les états · 20 affichés · 243 au parc — sur la version
+mobile il rallonge trop la hauteur des header »*.
+
+**Mesuré** : l'en-tête d'une liste faisait **159 px** avant la première rangée — titre 48,
+recherche 48, ligne de service 18 et ses gouttières. La ligne coûtait **30 px** pour y écrire
+un nombre.
+
+**Ce qui change, au téléphone seulement :**
+
+- **Le nombre rejoint le titre** — « **Actifs** 14 actifs », comme `.cnt2` au bureau, aligné
+  sur la première ligne du titre, en 12 sur 16, qui cède avant lui.
+- **Le tri monte dans la bande de recherche** : un bouton d'icône de 48 entre le champ et
+  l'entonnoir, qui dit son cran par son nom accessible et son infobulle. C'était le seul geste
+  de la ligne de service.
+- **La ligne ne reste que là où elle porte une phrase** : la file (03.3) et le journal (18.1)
+  nomment ce qu'on regarde — « À faire · les plus anciennes d'abord », « Tout · les plus
+  récents ». Ailleurs — Actifs, Équipe, Catalogue, Emplacements, Dépenses — elle disparaît.
+- **Le décompte ne dit plus ce qui ne change pas** : « tous les états » (l'absence de filtre),
+  « 20 affichés » (la pagination, que « Charger la suite » annonce au bas de la liste) et
+  « 243 au parc » (le même nombre, tant qu'aucun filtre ne réduit la liste) sont retirés.
+  Reste « 243 actifs », et « 12 actifs · en réparation » quand un filtre est posé.
+- L'invite de recherche des Actifs tient en deux mots au téléphone (« Code ou modèle »), la
+  bande portant un geste de plus.
+
+**Mesuré après** : **129 px** sur Actifs, Équipe et Catalogue — 30 de moins, la première
+rangée d'autant plus haute. Tâches et Historique gardent leurs 157.
+
+**Écart assumé** : 17.8 dessine cette ligne de service sous la recherche, et le bureau la
+garde. C'est l'arbitrage du commanditaire pour le téléphone.
+
+### La rangée du téléphone passe à 72, et le scan quitte l'en-tête (23/09)
+
+**La demande** : *« retire l'icône scan dans le header de Actifs »* ; *« je trouve toujours
+que la hauteur des listes sur le format mobile est trop petite »*.
+
+**Le scan quitte la rangée du titre.** Il reste un geste de téléphone (17.11), mais il vit là
+où l'on ajoute : la feuille « Nouvel équipement » l'offre en **première route**, sous le geste
+d'ajout, à portée de pouce. Un glyphe de plus dans l'en-tête lui prenait 48 px et redisait un
+chemin qui existait déjà.
+
+**La rangée passe de 68 à 72 au téléphone**, et garde 68 au-delà. C'est la mesure de Material
+pour une rangée à **deux lignes** (72 dp, vignette 40, texte à 72 du bord) ; Apple pose sa
+cellule à sous-titre à 60 pt et rappelle qu'une cible se vise à 44 au moins — sur un
+téléphone, la rangée **est** la cible. 04.1 dessine 68 : ils ont été mesurés sur une planche
+de bureau, où la souris vise au pixel. La rangée dense du Catalogue suit le même écart :
+64 au bureau, **68** au téléphone.
+
+Les quatre pixels reviennent en **air autour du texte**, pas en contenu : la rangée porte
+toujours deux faits. **Mesuré à 393 × 852** : rangée 72, neuf rangées visibles sous un en-tête
+de 129 — contre huit et demie auparavant, l'en-tête ayant maigri de 30 px le même jour.
+
+**S'il faut plus d'air** : 80 px avec une vignette de 48 — la forme des listes à photo — coûte
+une rangée visible. Non retenu à ce stade.
+
+### Une note dit une chose (23/09)
+
+**La demande** : *« les détails […] sont trop longs et encombrants »*, avec en exemple la
+note des rôles, celle de l'amortissement, le pied des rapports et la sous-ligne « Le franc
+CFA est la seule devise du parc ».
+
+**La règle** : une note porte **un fait**, en une phrase, dans la langue de la personne —
+jamais la mécanique du produit. R15 le disait déjà pour les écrans (*« aucune note dans
+l'écran »*) ; les groupes de réglages et les cartes de règles y avaient échappé.
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| Accès — les rôles | 3 phrases, `UserRole` et le filtrage en dur | « Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée. » |
+| Accès — refus, portée, rôles protégés, groupes | 231, 226, 180, 150 signes | 42, 47, 45, 96 |
+| Paramètres — lecture des montants | une note + « Le franc CFA est la seule devise du parc » | rien : le titre du groupe et la valeur XOF le disent |
+| Paramètres — amortissement | cinq lignes (l'ordre des plans, le passé, le compte) | « Il ne vaut que pour les types sans plan à eux — 14 actifs aujourd'hui. » |
+| Paramètres — fichiers, sources, agents | 238, 162, 94 signes | 71, 55, 55 |
+| Rapports — pied | « Chaque export part en CSV ; le PDF et le choix de la personne s'ouvrent depuis la rangée. » | « Export en CSV. Le PDF et le choix de la personne s'ouvrent depuis la rangée. » |
+| Introuvable, campagne | 155 et 141 signes | 71 et 99 |
+
+**Ce qui reste long, à dessein** : les états vides (17.1), où la phrase *est* le contenu de
+l'écran, et la note « Aucun bouton d'enregistrement » des Paramètres, qui dit une règle du
+produit en une ligne.
+
+### La page tient la fenêtre, et c'est le corps qui défile (23/09)
+
+**La demande** : *« on avait demandé d'éviter que les cartes aient une taille très petite
+à vide ou quand elles n'ont qu'un seul élément à afficher […] une taille fixe max
+directement, scrollable pleine, avec une bonne gestion d'état à vide, plutôt que la taille
+grandisse en fonction du contenu. Mais ce n'est pas appliqué à toutes les pages où ça
+devrait se faire (Inventaire, finance, audit, paramètres, Site, etc.) »*.
+
+L'arbitrage du 22/09 n'avait été posé que sur l'accueil (rangées de 448 et 320). Relevé au
+bureau avant la passe, fenêtre de 1 440 × 900 :
+
+| Écran | La carte | Le canevas nu dessous |
+| --- | --- | --- |
+| Historique, un seul fait | 124 px | ~700 px |
+| Emplacements, un site par pays | 76 px | ~370 px |
+| Inventaire, panneau sans site choisi | 138 px | ~560 px |
+| Tâches, panneau sans tâche ouverte | 110 px | ~590 px |
+| Équipe, 11 personnes | 568 px | 180 px |
+
+**Ce qui est posé** — `src/lib/regimeBureau.ts`, trois classes, **au-delà de 840 px
+seulement** :
+
+- `PAGE_BUREAU` (`expanded:h-full`) sur la racine d'un écran ;
+- `CADRE_BUREAU` (`expanded:min-h-0`) sur chaque étage intermédiaire — sans lui, un enfant
+  en `flex-1` refuse de descendre sous la hauteur de son contenu ;
+- `CORPS_BUREAU` (`min-h-0 flex-1 overflow-y-auto` + `[&>*]:shrink-0`) sur le corps qui
+  reste, et son défilement.
+
+Deux conditions ont dû être réglées avant que la chaîne tienne :
+
+1. **La coque n'avait pas de hauteur.** `AppLayout` était en `min-h-screen` : une hauteur
+   *minimale* ne borne rien, et un `h-dvh` posé plus bas était repoussé par la croissance
+   des parents (le catalogue faisait 1 447 px de racine pour 900 de fenêtre). La coque
+   prend donc `expanded:h-dvh`, et **`<main>` devient le conteneur de défilement** —
+   `getAppScroller` le retrouve par l'identifiant qui servait au cadre mobile. Un écran qui
+   n'adopte pas le régime ne casse pas : `<main>` le fait défiler, comme le document avant.
+2. **Une colonne `flex` qui défile écrase ses enfants** au lieu de les laisser déborder :
+   la carte des rôles perdait 54 px de sa liste sur une fenêtre de 700. D'où le
+   `shrink-0` porté par `CORPS_BUREAU` à ses enfants directs.
+
+**Les écrans repris** : le gabarit `ListTemplate` (Actifs, Équipe, Tâches, Historique,
+Inventaire physique, Dépenses, Accès), plus Catalogue et Emplacements qui refont son
+chrome à la main, Paramètres (dont le corps portait déjà son `overflow-y-auto` sans
+hauteur à remplir), la Campagne (deux zones qui défilent chacune pour soi) et Finances
+(les deux colonnes à même hauteur, les postes qui défilent dans leur carte, « Ajuster les
+enveloppes » calé au pied).
+
+**Les états vides prennent la boîte** : `CardEmptyState` remplace les deux invitations en
+vignette (Inventaire, Tâches), et les `ScreenState` des listes se centrent dans ce qui
+reste au lieu de se coller sous la recherche.
+
+**Deux effets de bord traités** : la sentinelle de défilement du journal observait le
+viewport — elle y restait visible en permanence une fois le tableau borné, et réclamait
+page après page ; `DataTable` reçoit donc un `onNearEnd` qui écoute **son** scrollport. Et
+le ⋮ d'une dépense prend `floating`, sinon le corps qui défile le coupe.
+
+**Ce qui n'a pas changé, et pourquoi** : sous 840 px, rien — un téléphone n'a pas de
+hauteur à distribuer, et c'est la page qui défile (vérifié à 393 : document de 1 317 px sur
+Actifs, en-tête et rangées au pixel près). Les fiches (actif, personne, site, type) gardent
+leur hauteur de contenu : ce sont des pages de lecture, et étirer « Référence » à trois
+rangées sur 800 px creuserait un vide au lieu d'en combler un. Rapports garde sa carte de
+quatre rangées fixes.
+
+**Mesure après la passe** : sur les 24 routes du produit, à 1 440 × 900 comme à 1 024 × 700,
+le document vaut exactement la fenêtre — plus une page qui défile sous son propre en-tête —
+et aucun corps n'est coupé.
+
+### Quatre demandes du 23/09 (soir) : fenêtre virtuelle, air des jauges, colonne centrée, Finances
+
+**1. La liste ne monte que ce qui se voit.** « Charger la suite » (Actifs) et les tranches
+de cinquante du journal sont remplacées par une **fenêtre virtuelle** (*windowing*, la
+technique de TanStack Virtual et de react-window) : `src/hooks/useVirtualWindow.ts`. On
+monte les rangées visibles et une marge de 480 px de chaque côté ; deux cales gardent la
+hauteur réelle, donc la barre de défilement dit la vraie longueur. Les hauteurs sont
+estimées (48 en tableau, 36 pour une rangée de jour, 72/68 en cartes) puis **mesurées**
+par `ResizeObserver`. Branché dans `DataTable` (Actifs, Équipe, Historique au bureau) et
+dans les listes en cartes d'Actifs et d'Équipe. Mesuré avec 3 000 actifs : 25 à 37
+rangées dans le DOM, la bonne rangée au milieu et au bout. `onNearEnd` (posé plus tôt dans
+la journée) est retiré : plus rien à réclamer. *Ce n'est pas de la pagination serveur* :
+les données arrivent déjà en mémoire par `DataContext` ; ce qui coûtait, c'était le DOM.
+Le journal au téléphone garde ses jours plafonnés à quatre faits.
+
+**2. L'air des jauges de l'accueil** (Budget, État du parc, Types en tension). Grille de 8
+(Atlassian `space.100`–`space.300`) et proximité : 16 entre le chiffre et le ruban, 12
+entre le ruban et sa note, **24** avant le groupe suivant (montants, seconde jauge) ; le
+ruban passe de 6 à **8** (variante épaisse de l'indicateur linéaire Material 3).
+
+**3. La colonne de lecture se centre.** `Reading desk` et les gabarits bornés à 1 008
+(`ListTemplate`, Catalogue, Emplacements) prennent `mx-auto` ; les titres de Rapports et
+de Paramètres suivent la colonne. Mesuré : 96/96 à 1 440, 336/336 à 1 920.
+
+**4. Finances refondue au bureau.**
+- La bande sombre éclate en **quatre tuiles** (`FinanceKpiTiles`) : restant (et sa
+  jauge), consommé, **moyenne mensuelle** et sa projection en fin d'exercice (orange si
+  elle dépasse l'enveloppe), postes (épuisés, le plus entamé).
+- **Histogramme mensuel** (`MonthlySpendChart`) : une barre par mois, axe à zéro, le
+  douzième de l'enveloppe en tirets ; au-delà, la barre passe à l'orange ; le pic est nommé
+  et chiffré ; les mois à venir n'ont pas de barre.
+- **Huit postes au plus**, les plus entamés d'abord, puis « Voir les N postes ».
+- Grille de 12 : histogramme 8 · « Aller à » 4, postes 8 · exercices 4. Au téléphone : le
+  héro, les postes, l'histogramme, « Aller à ». La date de la dernière dépense passe dans
+  « Les dépenses ».
+
+*Piège de banc* : sur hgfs, le serveur de dev ne réinjecte pas toujours les classes
+Tailwind neuves d'un module chargé en différé (`order-*` absents de la feuille injectée,
+présents dans `?direct`). Le build de production les porte ; vérifier l'ordre d'une
+colonne sur un build + preview, pas sur le dev.
+
+### Inventaire au bureau : la bande en grille, la carte du site fixe (23/09)
+
+**La demande** : *« éclater également Inventaire pour avoir une grille (actifs attendus,
+sites…), histogramme ou diagramme selon la pertinence »* ; et le nom du site, sa ligne
+« Togo · site · 9 locaux » et son héro *« devraient être fixes dans une carte isolée
+au-dessus de la liste »*.
+
+- **La bande de 16.1 devient une grille de 12** (≥ 1280, `AuditOverview`) : un
+  **diagramme de couverture** sur 6 colonnes, puis trois tuiles de 2 — actifs attendus,
+  sites (locaux, jamais vérifiés), campagnes en cours (écarts relevés, en orange s'il y en
+  a). Même gabarit que les tuiles de Finances.
+- **Le diagramme** : une barre empilée des **actifs** (pas des sites) selon l'état de
+  leur site — à jour, en cours, en retard (au-delà de la périodicité de 14.1), jamais
+  vérifiés — avec le pourcentage « à jour » en chiffre de tête et une légende qui compte
+  actifs et sites. Barre plutôt que camembert : quatre parts d'un tout s'alignent mieux
+  sur une ligne, et tiennent dans la hauteur d'une tuile.
+- **Le panneau du site** : le titre et sa ligne quittent le canevas et entrent dans le
+  héro sombre (surtitre « Togo · site · 9 locaux », nom du site en 22), qui forme une
+  carte fixe ; seuls les locaux défilent dessous, la note reste au pied. Le surtitre ne se
+  redit plus.
+- Au téléphone et sous 1280 : rien ne change (vérifié à 393).
+- *Reprise du même soir* : la tuile de couverture prend le gabarit des autres tuiles (titre
+  12, chiffre 28, phrase 14, ruban de **8** à 16 dessous — il était de 12, sous un en-tête
+  à deux bouts) et la légende de l'histogramme de Finances (pastille, mot, compte ; les
+  sites dits au lecteur d'écran par le ruban, une part vide estompée).
+- *Seconde reprise* (« pas aussi élégant ; la liste n'affiche que trois éléments ; la carte
+  du haut occupe la moitié ») : le panneau du site devient **une seule carte blanche**. En
+  tête, le pays, le nom en 22 et trois chiffres en 17 sur une ligne (hors campagne :
+  attendus, locaux à compter, dernier comptage ; en campagne : attendus, trouvés, écarts,
+  et le ruban de 8) — 140 px au lieu de 240. Un filet, « Locaux · N » avec la note passée
+  dans une `InfoTip`, puis les locaux, qui prennent le reste et défilent : 7 visibles à
+  900 de fenêtre, contre 3. Le héro sombre ne sert plus qu'au téléphone.
+- *Troisième reprise* : **deux cartes distinctes, présentes avant tout choix** — la carte
+  du site (à vide : « Site / Aucun site choisi » et trois tirets, à la même hauteur) et la
+  carte des locaux (à vide : `CardEmptyState` « Choisissez un site » ; site sans local :
+  « Aucun local dans ce site »). Choisir un site remplit deux cadres, rien ne bouge. Le
+  compte de l'en-tête de liste est celui des locaux, pas des rangées (« hors local » n'en
+  est pas un).
+
+### Cinq demandes du 23/09 (nuit) : tableaux, phrases, photos, 15.2, grilles restantes
+
+**1. Plus de barre de défilement horizontale sous les tableaux.** Le ⋮ de rangée était
+rentré de 8 dans 6 d'intérieur : il sortait de 2 px de sa cellule, et ces 2 px ouvraient
+une barre sous Actifs et Historique. La cellule prend 4 de part et d'autre du carré de 40.
+Sans colonne de reste, `DataTable` passe en `table-fixed` : le navigateur pose les colonnes
+en pixels (case, ⋮) puis répartit le reste **au prorata** des pour cent — mesuré, 25/11/15/
+17/16/16 rendent 255/112/153/173/163/163 à 1 440, sans débord. (`calc(% − px)` sur un
+`<col>` est ignoré par Chrome, qui retombe sur des colonnes égales.)
+
+**2. Les phrases de « Derniers événements »** (`getHistoryEventSentence`) : une ouverture ou
+une fermeture de session n'a pas d'objet — « Vous avez ouvert une session. », sans redire
+le nom de la personne qui lit ; une cible qui est le lecteur s'écrit « votre compte ».
+
+**3. Plus de photo floue.** `DetailHero` perd sa photo en fond (étirée sous un voile à
+80 %) ; les listes (Actifs, modèles d'un type) montrent le pictogramme ou l'initiale. La
+photo s'ouvre par un **œil dans le coin haut droit du héro** (`DetailHero.corner`,
+`ImagePreview`) : une visionneuse plein écran, fond sombre, image **à sa taille réelle,
+jamais agrandie** (réduite seulement pour tenir), sa définition au pied ; Échap, la croix ou
+un geste à côté la ferment. Les photos de démonstration font 100 × 100 : elles restent
+petites, c'est le prix de la netteté.
+
+**4. 15.2 — Lignes du budget, portée.** « Définir le Budget Annuel » était une boîte
+générique sans consommé. `BudgetLinesPage` (`/finance/lines/<année>`) : au téléphone la
+barre à « Enregistrer », le héro (enveloppe, réparti, état) et la carte des lignes ; au
+bureau le **tableau éditable à six colonnes** (enveloppe en champ — `AmountField`, jauge,
+restant, ⋮) et son **pied qui totalise**. La seule règle — pas de baisse sous le consommé —
+se dit sur la ligne. La boîte ne sert plus qu'à ouvrir un **nouvel exercice**.
+*Écart assumé* : « Supprimer · 18 dépenses » devient « déjà consommée » (les dépenses ne
+sont pas encore rattachées à leur ligne). *Défaut trouvé en passant* : le champ perdait sa
+sélection au focus et ajoutait les chiffres tapés au bout (« 850005000 ») ; il resélectionne.
+
+**5. Les grilles restantes.**
+- **Fiches** : une carte marquée `data-colonne="gauche"` passe sous le héro au bureau et
+  garde sa place au téléphone (`DetailTemplate`). Modèles d'un type, unités d'un modèle,
+  locaux d'un site à gauche ; l'historique et les documents d'un actif aussi (`asideTail`).
+  Colonnes mesurées : actif 707/665, type 400/364, modèle 464/208, site 415/200 (au lieu de
+  226/389 et 184/580).
+- **Accueil d'un employé** : la grille du gestionnaire (file 8 · événements 4, puis ses
+  chiffres, ses équipements, sa garantie à 4), au lieu de cartes pleine largeur.
+- **Formulaires plein écran** : la barre suit la mesure de 560 du flux (00.5) — le retour et
+  « Enregistrer » étaient à 230 px de part et d'autre du formulaire.
+
+**Plantage trouvé et corrigé** : Actifs plantait pour un **employé** (« Maximum update depth
+exceeded ») — la fenêtre virtuelle effaçait ses mesures à chaque liste neuve, et cette vue
+recalcule sa liste à chaque rendu. Les mesures restent désormais attachées à l'indice.
+Balayage après correction : 4 comptes de démo × 21 routes × 2 largeurs, aucune panne.
