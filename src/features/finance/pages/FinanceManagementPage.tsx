@@ -30,6 +30,8 @@ import { AddBudgetModal } from '../components/AddBudgetModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import ExpenseDetailSheet from '../components/ExpenseDetailSheet';
 import { useBudgetExercise } from '../hooks/useBudgetExercise';
+import FinanceKpiTiles from '../components/FinanceKpiTiles';
+import MonthlySpendChart from '../components/MonthlySpendChart';
 
 interface FinanceManagementPageProps {
     onViewChange: (view: ViewType) => void;
@@ -49,6 +51,9 @@ interface FinanceManagementPageProps {
  * Une ligne héritée qui n'en porte pas n'affiche rien : un blanc se remarque et se
  * corrige, une supposition se recopie dans le rapport de clôture.
  */
+/** Les postes montrés sur l'accueil du domaine ; le reste s'ouvre en entier. */
+const POSTES_MONTRES = 8;
+
 const budgetCapitalization = (item: FinanceBudgetItem): 'CAPEX' | 'OPEX' | null =>
     item.capitalization ?? null;
 
@@ -145,6 +150,40 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
             ).length,
         [financeBudgets, selectedYear],
     );
+
+    /** Les mois vécus de l'exercice regardé : 12 s'il est passé, 0 s'il est à venir. */
+    const moisVecus = useMemo(() => {
+        const maintenant = new Date();
+        if (selectedYear < maintenant.getFullYear()) return 12;
+        if (selectedYear > maintenant.getFullYear()) return 0;
+        return maintenant.getMonth() + 1;
+    }, [selectedYear]);
+
+    /** Les postes, **les plus entamés d'abord** — ce sont eux qui demandent un regard. */
+    const postesParEntame = useMemo(
+        () =>
+            [...currentBudget.items].sort(
+                (a, b) =>
+                    (b.allocated > 0 ? b.spent / b.allocated : 0) -
+                    (a.allocated > 0 ? a.spent / a.allocated : 0),
+            ),
+        [currentBudget.items],
+    );
+    const postesTronques = postesParEntame.length > POSTES_MONTRES;
+    const postesMontres = postesParEntame.slice(0, POSTES_MONTRES);
+    const plusEntame =
+        postesParEntame[0] && postesParEntame[0].allocated > 0
+            ? {
+                  category: postesParEntame[0].category,
+                  percent: (postesParEntame[0].spent / postesParEntame[0].allocated) * 100,
+              }
+            : null;
+
+    /** 15.2 — ajuster les enveloppes de l'exercice regardé, sur sa page. La boîte
+        « Définir le budget » reste le chemin d'un **nouvel** exercice (et de l'import). */
+    const ouvrirLesLignes = () => {
+        window.location.hash = `/finance/lines/${selectedYear}`;
+    };
 
     const budgetYearOptions = useMemo(() => {
         if (financeBudgets.length > 0) {
@@ -285,10 +324,18 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 /* Le ⋮ du téléphone : au bureau, ses deux verbes sont des
                                    boutons. */
                                 items={[
+                                    /* 15.2 : ajuster les lignes a sa page ; la boîte ne sert
+                                       plus qu'à ouvrir un exercice (saisi ou importé). */
+                                    {
+                                        id: 'lignes',
+                                        label: 'Ajuster les enveloppes',
+                                        description: 'les lignes du budget de l’exercice',
+                                        onSelect: ouvrirLesLignes,
+                                    },
                                     {
                                         id: 'budget',
-                                        label: 'Définir le budget',
-                                        description: 'les postes de l’exercice et leurs enveloppes',
+                                        label: 'Nouvel exercice',
+                                        description: 'ses postes et ses enveloppes, ou un fichier',
                                         onSelect: () => setIsAddBudgetModalOpen(true),
                                     },
                                     {
@@ -393,96 +440,52 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             </section>
                         ) : (
                             /*
-                              **Au bureau, `.bande` remplace le héro** (15.1 à 1280) : le grand
-                              restant en 44 est un dessin de téléphone. Quatre repères en 28 sur
-                              le sombre — ce qui reste et sa jauge, ce qui est consommé, les
-                              postes, les dépenses —, chacun sous sa légende en 12.
+                              **Au bureau, la bande éclate en quatre tuiles** (23/09) : ce qui
+                              reste, ce qui est consommé, la moyenne mensuelle et ce qu'elle
+                              donne en fin d'année, les postes. La bande sombre de 15.1 les
+                              tenait sur un seul aplat, serrés comme une phrase.
                             */
-                            <section className="bg-inverse-surface text-inverse-on-surface rounded-card flex px-5 py-[18px]">
-                                {[
-                                    {
-                                        cle: 'restant',
-                                        valeur: formatNumber(
-                                            budgetStats.remaining,
-                                            settings.compactNotation,
-                                        ),
-                                        unite: settings.currency,
-                                        legende: `restants sur ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)}`,
-                                        jauge: budgetStats.totalAllocated > 0 ? spentPercent : null,
-                                    },
-                                    {
-                                        cle: 'consomme',
-                                        valeur: `${spentPercent.toFixed(0)} %`,
-                                        legende: `consommés · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
-                                        jauge: null,
-                                    },
-                                    {
-                                        cle: 'postes',
-                                        valeur: `${currentBudget.items.length}`,
-                                        legende:
-                                            enveloppesEpuisees > 0
-                                                ? `postes · ${enveloppesEpuisees} enveloppe${enveloppesEpuisees > 1 ? 's' : ''} épuisée${enveloppesEpuisees > 1 ? 's' : ''}`
-                                                : 'postes · aucune enveloppe épuisée',
-                                        jauge: null,
-                                    },
-                                    {
-                                        cle: 'depenses',
-                                        valeur: `${financeExpenses.length}`,
-                                        legende: derniereDepense
-                                            ? `dépenses · dernière le ${derniereDepense}`
-                                            : 'dépenses · aucune écriture',
-                                        jauge: null,
-                                    },
-                                ].map((repere, index) => (
-                                    <div
-                                        key={repere.cle}
-                                        className={cn(
-                                            'min-w-0 flex-1 py-0.5 pr-4',
-                                            index > 0 && 'pl-4',
-                                        )}
-                                    >
-                                        <span className="font-brand text-ts-page leading-ts-page flex items-baseline gap-2 font-semibold tracking-[-0.02em] tabular-nums">
-                                            {repere.valeur}
-                                            {repere.unite && (
-                                                <small className="text-[0.8125rem] leading-4 font-normal tracking-normal text-[var(--tk-color-on-dark-2)]">
-                                                    {repere.unite}
-                                                </small>
-                                            )}
-                                        </span>
-                                        {/* `.k` — 12 sur 16. La planche l'écrit en ligne dans
-                                            son lien : sa ligne prend la hauteur du corps (24),
-                                            et le repère mesure 76. En bloc, l'écart se rend
-                                            par la marge — 8 au lieu de 4 —, sans inventer un
-                                            interligne que l'échelle n'a pas. */}
-                                        <span className="mt-2 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
-                                            {repere.legende}
-                                        </span>
-                                        {repere.jauge !== null && (
-                                            /* `.bp` — 6 px, rayon 2, sur le voile à 12 %, bornée à 220. */
-                                            <div className="mt-2.5 h-1.5 max-w-[220px] overflow-hidden rounded-xs bg-white/[0.12]">
-                                                <i
-                                                    className="block h-full bg-[var(--tk-color-live-vert)]"
-                                                    style={{
-                                                        width: `${Math.min(repere.jauge, 100)}%`,
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </section>
+                            <FinanceKpiTiles
+                                remaining={budgetStats.remaining}
+                                allocated={budgetStats.totalAllocated}
+                                spent={budgetStats.totalSpent}
+                                percent={spentPercent}
+                                currency={settings.currency}
+                                compactNotation={settings.compactNotation}
+                                dateLabel={currentFrenchDate}
+                                monthsElapsed={moisVecus}
+                                postes={currentBudget.items.length}
+                                epuisees={enveloppesEpuisees}
+                                plusEntame={plusEntame}
+                            />
                         )}
 
                         {/* **Au bureau, deux zones à 7 et 5** (15.1 à 1280) : les postes à gauche,
                             les destinations à droite. Elles s'empilaient sur toute la largeur. */}
-                        <div className="large:grid large:grid-cols-[7fr_5fr] large:items-start large:gap-4 large:space-y-0 space-y-4">
+                        {/* **Les deux zones vont à même hauteur** (23/09) : à `items-start`,
+                            la colonne de droite s'arrêtait 120 px avant celle de gauche, et
+                            « Exercices » flottait en carte courte au milieu du canevas. */}
+                        {/* **Une grille de 12 au bureau** (23/09) : l'histogramme (8) et
+                            « Aller à » (4) sur la première rangée, les postes (8) et les
+                            exercices (4) sur la seconde. Au téléphone, une colonne dont
+                            l'ordre est porté par `order` : les postes d'abord, comme avant. */}
+                        <div className="large:grid large:grid-cols-12 large:items-stretch large:gap-4 flex flex-col gap-4">
+                            <MonthlySpendChart
+                                className="large:order-none large:col-span-8 large:row-start-1 order-2"
+                                expenses={financeExpenses}
+                                year={selectedYear}
+                                allocated={budgetStats.totalAllocated}
+                                currency={settings.currency}
+                                compactNotation={settings.compactNotation}
+                            />
+
                             {/* SECTION 1 : LES POSTES (PLANCHE 15.1) */}
                             {/* `.card` — **fond de surface, rayon 8, intérieur 8 / 16**, et rien
                             d'autre : ni filet ni ombre, qu'aucune planche ne déclare et
                             que les sept écrans déjà portés n'ont pas. Elle tenait 16 de
                             tous les côtés et un cadre. */}
                             {/* `.dsk .card` — `4 20 8` au bureau. */}
-                            <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
+                            <section className="rounded-card bg-surface large:order-none large:col-span-8 large:row-start-2 large:flex large:min-h-0 large:flex-col large:px-5 large:pt-1 large:pb-2 order-1 px-4 py-2">
                                 {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
                                 le compte en 14 sur 20. Il tenait 13 px des deux côtés. */}
                                 <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
@@ -492,17 +495,23 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     {/* Au téléphone le compte ; au bureau, **l'en-tête de la
                                     colonne des montants** — « consommé / enveloppe ». */}
                                     <span className="text-on-surface-variant large:hidden text-ts-sub leading-ts-sub tabular-nums">
-                                        {currentBudget.items.length}
+                                        {postesTronques
+                                            ? `les ${POSTES_MONTRES} plus entamés`
+                                            : currentBudget.items.length}
                                     </span>
                                     <span className="text-on-surface-variant large:inline text-ts-sub leading-ts-sub hidden">
-                                        consommé / enveloppe
+                                        {postesTronques
+                                            ? `les ${POSTES_MONTRES} plus entamés sur ${currentBudget.items.length} · consommé / enveloppe`
+                                            : 'consommé / enveloppe'}
                                     </span>
                                 </div>
                                 {/* Au bureau, **pas de filet** entre les postes (`.dsk .post`,
                                 `border-top:0`) : la grille aligne, le filet ne sépare plus rien. */}
-                                <div className="divide-outline-variant large:divide-y-0 divide-y">
+                                {/* Les postes défilent **dans la carte** : douze enveloppes ne
+                                    rallongent plus la page, et le pied reste au pied. */}
+                                <div className="divide-outline-variant large:min-h-0 large:flex-1 large:divide-y-0 large:overflow-y-auto divide-y">
                                     {currentBudget.items.length > 0 ? (
-                                        currentBudget.items.map((item, idx) => {
+                                        postesMontres.map((item, idx) => {
                                             const itemPercent =
                                                 item.allocated > 0
                                                     ? (item.spent / item.allocated) * 100
@@ -597,11 +606,30 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     rangée de 48 qui mène aux enveloppes. Sans elle, la carte
                                     dit l'état des postes sans offrir de les corriger, et le
                                     geste ne vivait qu'au ⋮ du téléphone. */}
-                                {currentBudget.items.length > 0 && (
+                                {postesTronques && (
+                                    /* **Huit postes, pas davantage** (23/09 : « la liste des
+                                       postes est trop longue ») — les plus entamés, ceux qui
+                                       demandent un regard. Le reste est à un geste. */
                                     <button
                                         type="button"
-                                        onClick={() => setIsAddBudgetModalOpen(true)}
-                                        className="text-on-surface hover:bg-surface-container large:flex -mx-2 hidden min-h-12 w-full cursor-pointer items-center gap-2 rounded-[4px] px-2 text-left"
+                                        onClick={ouvrirLesLignes}
+                                        className="border-outline-variant text-on-surface hover:bg-surface-container large:-mx-2 large:rounded-[4px] large:border-t-0 large:px-2 flex min-h-12 w-full shrink-0 cursor-pointer items-center gap-2 border-t text-left"
+                                    >
+                                        <span className="text-ts-body leading-ts-body min-w-0 flex-1 font-medium">
+                                            Voir les {currentBudget.items.length} postes
+                                        </span>
+                                        <Icon
+                                            glyph={CaretRight}
+                                            size={20}
+                                            className="text-text-tertiary shrink-0"
+                                        />
+                                    </button>
+                                )}
+                                {currentBudget.items.length > 0 && !postesTronques && (
+                                    <button
+                                        type="button"
+                                        onClick={ouvrirLesLignes}
+                                        className="text-on-surface hover:bg-surface-container large:mt-auto large:flex -mx-2 hidden min-h-12 w-full shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-2 text-left"
                                     >
                                         <span className="text-ts-body leading-ts-body min-w-0 flex-1 font-medium">
                                             Ajuster les enveloppes
@@ -615,10 +643,9 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 )}
                             </section>
 
-                            {/* `.zcol` de 15.1 — **la colonne de droite** : où aller, puis les
-                                autres exercices. Au téléphone, les deux cartes se suivent. */}
-                            <div className="flex flex-col gap-4">
-                                {/*
+                            {/* `.zcol` de 15.1 — où aller, puis les autres exercices : deux
+                                cartes placées chacune dans sa rangée de la grille. */}
+                            {/*
                           **« ALLER À » — deux destinations, pas un aperçu.** 15.1 :
                           *« l'accueil du domaine porte un exercice et **deux
                           destinations** : ses lignes, ses dépenses »*. La carte listait à
@@ -627,85 +654,87 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                           qu'elle existait. Les deux rangées la nomment et la comptent.
                           Au bureau, `.dsk .card` — `4 20 8`, comme la carte des postes.
                         */}
-                                <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 px-4 py-2">
-                                    <div className="flex min-h-12 items-center pt-2 pb-1">
-                                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
-                                            Aller à
-                                        </h3>
-                                    </div>
-                                    {[
-                                        {
-                                            id: 'lignes',
-                                            glyph: Calculator,
-                                            titre: 'Les lignes du budget',
-                                            detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
-                                            aller: () => setIsAddBudgetModalOpen(true),
-                                            bureauSeul: false,
-                                        },
-                                        {
-                                            id: 'depenses',
-                                            glyph: ListBullets,
-                                            titre: 'Les dépenses',
-                                            detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalSpent, settings.compactNotation)}`,
-                                            aller: () => onViewChange('finance_expenses'),
-                                            bureauSeul: false,
-                                        },
-                                        {
-                                            /* **Trois destinations au bureau** (15.1) : les
+                            <section className="rounded-card bg-surface large:order-none large:col-span-4 large:row-start-1 large:px-5 large:pt-1 large:pb-2 order-3 px-4 py-2">
+                                <div className="flex min-h-12 items-center pt-2 pb-1">
+                                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                        Aller à
+                                    </h3>
+                                </div>
+                                {[
+                                    {
+                                        id: 'lignes',
+                                        glyph: Calculator,
+                                        titre: 'Les lignes du budget',
+                                        detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
+                                        aller: ouvrirLesLignes,
+                                        bureauSeul: false,
+                                    },
+                                    {
+                                        id: 'depenses',
+                                        glyph: ListBullets,
+                                        titre: 'Les dépenses',
+                                        /* La date de la dernière écriture vivait dans la bande sombre ; elle
+                                               revient ici, à côté du journal qu'elle date. */
+                                        detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''}${derniereDepense ? ` · dernière le ${derniereDepense}` : ''}`,
+                                        aller: () => onViewChange('finance_expenses'),
+                                        bureauSeul: false,
+                                    },
+                                    {
+                                        /* **Trois destinations au bureau** (15.1) : les
                                                rapports s'y ajoutent. Au téléphone la carte n'en
                                                porte que deux — la planche les compte ainsi, et
                                                « Plus » y mène déjà. */
-                                            id: 'rapports',
-                                            glyph: Export,
-                                            titre: 'Les rapports',
-                                            detail: '4 exports fixes',
-                                            aller: () => onViewChange('reports'),
-                                            bureauSeul: true,
-                                        },
-                                    ].map((rangee, index) => (
-                                        /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
-                                        <div
-                                            key={rangee.id}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={rangee.aller}
-                                            onKeyDown={(event) => {
-                                                if (event.key === 'Enter' || event.key === ' ') {
-                                                    event.preventDefault();
-                                                    rangee.aller();
-                                                }
-                                            }}
-                                            className={cn(
-                                                'min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                                rangee.bureauSeul ? 'large:flex hidden' : 'flex',
-                                                /* `.dsk .lrow` — **pas de filet au bureau**, un
+                                        id: 'rapports',
+                                        glyph: Export,
+                                        titre: 'Les rapports',
+                                        detail: '4 exports fixes',
+                                        aller: () => onViewChange('reports'),
+                                        bureauSeul: true,
+                                    },
+                                ].map((rangee, index) => (
+                                    /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
+                                    <div
+                                        key={rangee.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={rangee.aller}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                rangee.aller();
+                                            }
+                                        }}
+                                        className={cn(
+                                            'min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                            rangee.bureauSeul ? 'large:flex hidden' : 'flex',
+                                            /* `.dsk .lrow` — **pas de filet au bureau**, un
                                                    fond au survol à rayon 4, rentré de 8. */
-                                                'large:hover:bg-surface-container large:-mx-2 large:rounded-[4px] large:px-2',
-                                                index > 0 &&
-                                                    'border-outline-variant large:border-t-0 border-t',
-                                            )}
-                                        >
-                                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                                <Icon glyph={rangee.glyph} size={20} />
+                                            'large:hover:bg-surface-container large:-mx-2 large:rounded-[4px] large:px-2',
+                                            index > 0 &&
+                                                'border-outline-variant large:border-t-0 border-t',
+                                        )}
+                                    >
+                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                            <Icon glyph={rangee.glyph} size={20} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                {rangee.titre}
                                             </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                                    {rangee.titre}
-                                                </span>
-                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                                    {rangee.detail}
-                                                </span>
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                {rangee.detail}
                                             </span>
-                                            <Icon
-                                                glyph={CaretRight}
-                                                size={20}
-                                                className="text-text-tertiary shrink-0"
-                                            />
-                                        </div>
-                                    ))}
-                                </section>
+                                        </span>
+                                        <Icon
+                                            glyph={CaretRight}
+                                            size={20}
+                                            className="text-text-tertiary shrink-0"
+                                        />
+                                    </div>
+                                ))}
+                            </section>
 
-                                {/*
+                            {/*
                               **« EXERCICES » — la carte de droite du bureau** (15.1) : *« la
                               vue Exercices devient une carte de droite »*. Le bureau n'avait
                               que le sélecteur de l'en-tête, qui dit l'année et rien d'autre :
@@ -713,62 +742,61 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                               n'a aucune ligne. L'exercice affiché n'y est pas — c'est toute
                               la page qui le porte.
                             */}
-                                {autresExercices.length > 0 && (
-                                    <section className="rounded-card bg-surface large:px-5 large:pt-1 large:pb-2 large:block hidden px-4 py-2">
-                                        <div className="flex min-h-12 items-center gap-3 pt-2 pb-1">
-                                            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 font-medium">
-                                                Exercices
-                                            </h3>
-                                            {exercicesClos > 0 && (
-                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
-                                                    {exercicesClos} clos
-                                                </span>
+                            {autresExercices.length > 0 && (
+                                <section className="rounded-card bg-surface large:order-none large:col-span-4 large:row-start-2 large:flex large:min-h-0 large:flex-col large:px-5 large:pt-1 large:pb-2 order-4 hidden px-4 py-2">
+                                    <div className="flex min-h-12 items-center gap-3 pt-2 pb-1">
+                                        <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 font-medium">
+                                            Exercices
+                                        </h3>
+                                        {exercicesClos > 0 && (
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
+                                                {exercicesClos} clos
+                                            </span>
+                                        )}
+                                    </div>
+                                    {autresExercices.map((exercice) => (
+                                        <button
+                                            key={exercice.year}
+                                            type="button"
+                                            onClick={() => setSelectedYear(exercice.year)}
+                                            className={cn(
+                                                'hover:bg-surface-container -mx-2 flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-[4px] px-2 py-2 text-left',
                                             )}
-                                        </div>
-                                        {autresExercices.map((exercice) => (
-                                            <button
-                                                key={exercice.year}
-                                                type="button"
-                                                onClick={() => setSelectedYear(exercice.year)}
+                                        >
+                                            <span
                                                 className={cn(
-                                                    'hover:bg-surface-container -mx-2 flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-[4px] px-2 py-2 text-left',
+                                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                                                    exercice.aProjeter
+                                                        ? 'bg-tint-ambre text-on-tint-ambre'
+                                                        : 'bg-surface-container text-on-surface-variant',
                                                 )}
                                             >
-                                                <span
-                                                    className={cn(
-                                                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
-                                                        exercice.aProjeter
-                                                            ? 'bg-tint-ambre text-on-tint-ambre'
-                                                            : 'bg-surface-container text-on-surface-variant',
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        glyph={
-                                                            exercice.aProjeter
-                                                                ? CalendarPlus
-                                                                : LockSimple
-                                                        }
-                                                        size={20}
-                                                    />
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                                        Exercice {exercice.year}
-                                                    </span>
-                                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                                        {exercice.detail}
-                                                    </span>
-                                                </span>
                                                 <Icon
-                                                    glyph={CaretRight}
+                                                    glyph={
+                                                        exercice.aProjeter
+                                                            ? CalendarPlus
+                                                            : LockSimple
+                                                    }
                                                     size={20}
-                                                    className="text-text-tertiary shrink-0"
                                                 />
-                                            </button>
-                                        ))}
-                                    </section>
-                                )}
-                            </div>
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                    Exercice {exercice.year}
+                                                </span>
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                    {exercice.detail}
+                                                </span>
+                                            </span>
+                                            <Icon
+                                                glyph={CaretRight}
+                                                size={20}
+                                                className="text-text-tertiary shrink-0"
+                                            />
+                                        </button>
+                                    ))}
+                                </section>
+                            )}
                         </div>
                     </div>
                 </Reading>

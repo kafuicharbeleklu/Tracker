@@ -373,6 +373,9 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                         </div>
                                         <Menu
                                             align="end"
+                                            /* Le corps de la page défile au bureau : un menu
+                                               posé dans le flux s'y ferait couper. */
+                                            floating
                                             title={exp.supplier}
                                             items={[
                                                 {
