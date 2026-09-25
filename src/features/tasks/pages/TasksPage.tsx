@@ -11,6 +11,7 @@ import {
     Prohibit,
     X,
     type Icon as PhosphorGlyph,
+    Wrench,
 } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
@@ -44,7 +45,8 @@ import { ApprovalStatus, ViewType } from '../../../types';
 import { cn } from '../../../lib/utils';
 
 /** La boîte de travail unique de la planche 08.1. */
-export type TaskNature = 'validation' | 'collecte' | 'reception' | 'retour' | 'remise';
+export type TaskNature =
+    'validation' | 'collecte' | 'reception' | 'retour' | 'remise' | 'reparation';
 type TaskScope = 'todo' | 'following' | 'history';
 type TaskOrder = 'oldest' | 'newest';
 
@@ -142,6 +144,7 @@ const NATURE_LABEL: Record<TaskNature, string> = {
     remise: 'Remises',
     reception: 'Réceptions',
     retour: 'Retours',
+    reparation: 'Réparations',
 };
 
 /**
@@ -172,6 +175,7 @@ const VIG_TINT: Record<TaskTone, string> = {
     reception: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
     retour: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
     collecte: 'bg-[var(--tk-color-surface-muted-strong)] text-on-surface-variant',
+    reparation: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
     ok: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
     no: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
     undone: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
@@ -654,6 +658,85 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 }
             }
 
+            /* **Le parcours de réparation dans la file** (24/09) : chaque étape est la
+               tâche de qui la tient. Ce qu'on attend d'un autre passe à « À suivre ». */
+            const dossier = item.repair;
+            if (dossier) {
+                const base = {
+                    nature: 'reparation' as const,
+                    title,
+                    who: dossier.holderName || item.assetId,
+                    target: 'equipment_details' as ViewType,
+                    targetId: item.id,
+                    icon: Wrench,
+                };
+                const gere = permissions.canManageInventory;
+                if (dossier.stage === 'declared') {
+                    if (gere)
+                        out.push({
+                            ...base,
+                            id: `rep-depot-${item.id}`,
+                            scope: 'todo',
+                            context: 'dépôt à recevoir',
+                            since: dossier.openedAt,
+                            action: 'Recevoir',
+                        });
+                    else if (dossier.holderId === currentUser.id)
+                        out.push({
+                            ...base,
+                            id: `rep-deposer-${item.id}`,
+                            scope: 'todo',
+                            context: 'à déposer à l’informatique',
+                            since: dossier.openedAt,
+                        });
+                } else if (dossier.stage === 'deposited' && gere) {
+                    out.push({
+                        ...base,
+                        id: `rep-charge-${item.id}`,
+                        scope: 'todo',
+                        context:
+                            dossier.quoteDecision?.status === 'rejected'
+                                ? 'devis refusé, à reprendre'
+                                : 'à prendre en charge',
+                        quote:
+                            dossier.quoteDecision?.status === 'rejected'
+                                ? dossier.quoteDecision.reason
+                                : undefined,
+                        since: dossier.deposit?.at ?? dossier.openedAt,
+                        action: 'Prendre en charge',
+                    });
+                } else if (dossier.stage === 'quote_pending') {
+                    if (permissions.canManageFinance)
+                        out.push({
+                            ...base,
+                            id: `rep-devis-${item.id}`,
+                            scope: 'todo',
+                            context: `devis · ${(dossier.quote?.amount ?? 0).toLocaleString('fr-FR')}`,
+                            since: dossier.takenCharge?.at ?? null,
+                            action: 'Examiner',
+                        });
+                    else if (gere)
+                        out.push({
+                            ...base,
+                            id: `rep-devis-${item.id}`,
+                            scope: 'following',
+                            context: 'devis chez la Finance',
+                            since: dossier.takenCharge?.at ?? null,
+                        });
+                } else if (dossier.stage === 'at_repairer' && gere) {
+                    const attendu = dossier.takenCharge?.expectedReturn;
+                    const enRetard = attendu ? new Date(attendu).getTime() < Date.now() : false;
+                    out.push({
+                        ...base,
+                        id: `rep-retour-${item.id}`,
+                        scope: enRetard ? 'todo' : 'following',
+                        context: `chez ${dossier.takenCharge?.repairer ?? 'le prestataire'}${enRetard ? ' · retour en retard' : ''}`,
+                        since: dossier.sentAt ?? null,
+                        action: enRetard ? 'Récupérer' : undefined,
+                    });
+                }
+            }
+
             if (item.assignmentStatus === 'PENDING_RETURN') {
                 if (role !== 'User') {
                     out.push({
@@ -722,6 +805,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         currentUser,
         role,
         permissions.canManageInventory,
+        permissions.canManageFinance,
     ]);
 
     const scopeTasks = useMemo(() => tasks.filter((task) => task.scope === scope), [scope, tasks]);
@@ -732,6 +816,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             remise: 0,
             reception: 0,
             retour: 0,
+            reparation: 0,
         };
         scopeTasks.forEach((task) => {
             next[task.nature] += 1;
@@ -1262,6 +1347,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </>
                 ),
                 de: scopeTasks.length,
+                /* Le mot du compte à côté du titre, au téléphone (24/09). */
+                unite: `tâche${filteredTasks.length > 1 ? 's' : ''}`,
             }}
             /*
               17.2 — la sélection groupée. Le pied ne porte que ce que la file sait

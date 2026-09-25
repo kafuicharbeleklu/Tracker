@@ -3,12 +3,14 @@ import {
     ArrowElbowDownRight,
     ArrowLeft,
     Briefcase,
+    Check,
     Crosshair,
     Eye,
     Flag,
     GlobeHemisphereWest,
     Lightning,
     LockSimpleOpen,
+    PencilSimple,
     Prohibit,
     ShieldPlus,
     User as UserGlyph,
@@ -19,13 +21,17 @@ import {
 } from '@phosphor-icons/react';
 
 import Icon from '../../../components/ui/Icon';
+import { cn } from '../../../lib/utils';
 import Button from '../../../components/ui/Button';
 import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
-import { FormWarn } from '../../../components/ui/FormParts';
+import { FormWarn, type Tint } from '../../../components/ui/FormParts';
+import FactRow from '../../../components/ui/FactRow';
 import RuleGroup from '../../../components/ui/RuleGroup';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import ScreenState from '../../../components/ui/ScreenState';
 import ListTemplate from '../../../components/layout/ListTemplate';
+import BarreDePage from '../../../components/layout/BarreDePage';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import InputField from '../../../components/ui/InputField';
@@ -132,6 +138,17 @@ const SCOPE_ICON: Record<ScopeLevel, PhosphorGlyph> = {
     service: Briefcase,
     self: UserGlyph,
     custom: Crosshair,
+};
+
+/** La teinte d'une portée — de la plus large (orange) à la plus étroite (neutre). */
+const SCOPE_TINT: Record<ScopeLevel, Tint | undefined> = {
+    global: 'orange',
+    country: 'bleu',
+    site: 'bleu',
+    team: 'vert',
+    service: 'vert',
+    self: undefined,
+    custom: 'ambre',
 };
 
 const ACCESS_LABEL: Record<PermissionAccessLevel, string> = {
@@ -250,6 +267,8 @@ interface RbacPageProps {
 const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
     const { routeSegments, navigate } = useRouter();
     const isCompact = useMediaQuery(MEDIA.compact);
+    /* Les rôles et les groupes côte à côte à deux colonnes (≥ 1280, 23/09). */
+    const enColonnes = useMediaQuery(MEDIA.twoColumn);
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const {
@@ -409,6 +428,310 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
             .map((method) => AUTH_METHOD_LABEL[method] ?? method)
             .join(' et ');
 
+        /** Ceux qui portent le rôle — par `rbacRoleIds` ou par le rôle historique. */
+        const titulaires = users.filter(
+            (user) =>
+                (user.rbacRoleIds ?? []).includes(openRole.id) ||
+                SYSTEM_ROLE_ID_BY_USER_ROLE[user.role] === openRole.id,
+        );
+
+        const hero = (
+            <DetailHero
+                label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
+                subject={openRole.name}
+                status={
+                    denied.length > 0
+                        ? {
+                              icon: Prohibit,
+                              label: `Refuse ${denied.length} action${denied.length > 1 ? 's' : ''} explicitement`,
+                              tone: 'attention',
+                          }
+                        : {
+                              icon: SCOPE_ICON[scope],
+                              label: `Portée déclarée : ${SCOPE_LABEL[scope]}`,
+                              tone: 'info',
+                          }
+                }
+                metrics={[
+                    { value: openViews.length, label: 'vues ouvertes' },
+                    { value: openActions.length, label: 'actions permises' },
+                    {
+                        value: sessionLabel(openRole.authPolicy.sessionMaxMinutes),
+                        label: 'session maximale',
+                    },
+                ]}
+                note={
+                    <>
+                        Connexion par <strong className="font-medium">{methods}</strong>.{' '}
+                        {openRole.authPolicy.requireStepUpForSensitiveActions
+                            ? 'Une élévation est demandée sur les actes sensibles.'
+                            : 'Aucun renforcement demandé sur les actes sensibles.'}
+                    </>
+                }
+            />
+        );
+
+        const matrices = (
+            <>
+                {/* `.card` de 11.1 — **8 sur 20** : la gouttière de cette page, quand le gabarit
+                en pose 16 pour 04.1 et 05.2. */}
+                <RuleGroup
+                    className="px-5"
+                    header={
+                        <span className="flex items-center gap-2">
+                            <Icon glyph={Eye} size={20} />
+                            Ce que le rôle peut ouvrir
+                        </span>
+                    }
+                    headerTrailing={`${openViews.length} vue${openViews.length > 1 ? 's' : ''}`}
+                    note="Seules les vues ouvertes sont listées."
+                >
+                    {VIEW_KEYS.filter((key) =>
+                        editing ? true : allowed.some((rule) => rule.key === key),
+                    ).map((key) => {
+                        /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
+                       technique y tenait la sous-ligne : elle nommait le code plutôt
+                       que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
+                        const rule = allowed.find((entry) => entry.key === key);
+                        return (
+                            <RuleGroup.Row
+                                key={key}
+                                title={permissionLabel(key)}
+                                value={ACCESS_LABEL[rule?.access ?? 'none']}
+                                valueTone={rule ? undefined : 'muted'}
+                                off={!rule}
+                                trailing={
+                                    editing ? (
+                                        <Toggle
+                                            checked={Boolean(rule)}
+                                            onChange={(next) => toggleRule(key, next, 'read')}
+                                        />
+                                    ) : undefined
+                                }
+                            />
+                        );
+                    })}
+                </RuleGroup>
+
+                <RuleGroup
+                    className="px-5"
+                    header={
+                        <span className="flex items-center gap-2">
+                            <Icon glyph={Lightning} size={20} />
+                            Ce que le rôle peut faire
+                        </span>
+                    }
+                    headerTrailing={`${openActions.length} action${openActions.length > 1 ? 's' : ''}`}
+                >
+                    {ACTION_KEYS.filter(
+                        (key) =>
+                            (editing || allowed.some((rule) => rule.key === key)) &&
+                            !denied.some((rule) => rule.key === key),
+                    ).map((key) => {
+                        /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
+                       technique y tenait la sous-ligne : elle nommait le code plutôt
+                       que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
+                        const rule = allowed.find((entry) => entry.key === key);
+                        return (
+                            <RuleGroup.Row
+                                key={key}
+                                title={permissionLabel(key)}
+                                value={ACCESS_LABEL[rule?.access ?? 'none']}
+                                valueTone={rule ? undefined : 'muted'}
+                                off={!rule}
+                                trailing={
+                                    editing ? (
+                                        <Toggle
+                                            checked={Boolean(rule)}
+                                            onChange={(next) => toggleRule(key, next, 'write')}
+                                        />
+                                    ) : undefined
+                                }
+                            />
+                        );
+                    })}
+                </RuleGroup>
+            </>
+        );
+
+        const nuances = (
+            <>
+                {denied.length > 0 && (
+                    <RuleGroup
+                        className="px-5"
+                        header={
+                            <span className="flex items-center gap-2">
+                                <Icon glyph={Prohibit} size={20} />
+                                Ce que le rôle refuse
+                            </span>
+                        }
+                        headerTrailing={`${denied.length} action${denied.length > 1 ? 's' : ''}`}
+                        note="Un refus ne se bascule pas : il se retire."
+                    >
+                        {denied.map((rule) => (
+                            <RuleGroup.Row
+                                key={rule.key}
+                                title={permissionLabel(rule.key)}
+                                value="refusé"
+                                valueTone="refused"
+                                status={{ icon: Prohibit, tone: 'refused' }}
+                            />
+                        ))}
+                    </RuleGroup>
+                )}
+
+                {inheritance && (
+                    <RuleGroup
+                        className="px-5"
+                        header={
+                            <span className="flex items-center gap-2">
+                                <Icon glyph={ArrowElbowDownRight} size={20} />
+                                Ce que l'héritage change
+                            </span>
+                        }
+                        note={
+                            inheritance.addsNothing
+                                ? `Toutes ses règles sont déjà dans celles de ${inheritance.baseName} : ajout net, aucun. Ce rôle ne diffère de sa base que par ses réglages de connexion.`
+                                : `Il reprend les permissions de ${inheritance.baseName}, puis ajoute ou refuse les siennes. Son décompte ne dit donc pas ce qu'il porte.`
+                        }
+                    >
+                        <RuleGroup.Row
+                            title={`Part de ${inheritance.baseName}`}
+                            subtitle={openRole.baseRoleId}
+                            value={`${rolesById.get(openRole.baseRoleId as string)?.permissions.length ?? 0} règles héritées`}
+                            onOpen={() => goToRole(openRole.baseRoleId as string)}
+                        />
+                    </RuleGroup>
+                )}
+
+                <RuleGroup
+                    className="px-5"
+                    header={
+                        <span className="flex items-center gap-2">
+                            <Icon glyph={Crosshair} size={20} />
+                            La portée déclarée
+                        </span>
+                    }
+                    note="La portée est déclarée, pas encore appliquée."
+                >
+                    <RuleGroup.Row
+                        title={`Portée ${SCOPE_LABEL[scope]}`}
+                        subtitle={openRole.dataScopes?.[0]?.expression}
+                        value="non appliquée"
+                        valueTone="refused"
+                        status={{ icon: Warning, tone: 'pending' }}
+                    />
+                </RuleGroup>
+
+                <RuleGroup
+                    className="px-5"
+                    header={
+                        <span className="flex items-center gap-2">
+                            <Icon glyph={LockSimpleOpen} size={20} />
+                            Ce que « rôle du système » ne veut pas dire
+                        </span>
+                    }
+                    note="Les quatre rôles du système sont protégés."
+                >
+                    <RuleGroup.Row
+                        title="Déclaré immuable"
+                        subtitle="immutable"
+                        value={openRole.immutable ? 'oui' : 'non'}
+                        valueTone={openRole.immutable ? undefined : 'muted'}
+                    />
+                    <RuleGroup.Row
+                        title="Protégé par l'écran"
+                        subtitle="kind === 'system'"
+                        value={openRole.kind === 'system' ? 'oui' : 'non'}
+                        valueTone={openRole.kind === 'system' ? undefined : 'muted'}
+                    />
+                </RuleGroup>
+
+                {/* `.warn` de 11.1 — **l'ambre, en 14 sur 20**, et le fait en 500. Il tenait
+                le rappel neutre de 02.2 (12 sur 17, sur le creux), qui dit une
+                précision ; ici la planche dit une conséquence. */}
+                <FormWarn glyph={Warning} tint="ambre">
+                    <strong className="font-medium">
+                        Valider une demande n'est pas dans cette matrice.
+                    </strong>{' '}
+                    Cette autorité est <strong className="font-medium">relationnelle</strong> — être
+                    le manager de, être le bénéficiaire de — et vit dans les gardes métier. La case
+                    est nommée ici parce que c'est là qu'on la chercherait.
+                </FormWarn>
+            </>
+        );
+
+        /* **Qui le porte** — la carte que la fiche n'avait pas : on lisait ce qu'un rôle
+           permet sans savoir à qui. Hauteur bornée au bureau, la liste défile dedans. */
+        const porteurs = (
+            <RuleGroup
+                className="flex min-h-0 flex-1 flex-col px-5"
+                header={
+                    <span className="flex items-center gap-2">
+                        <Icon glyph={UsersThree} size={20} />
+                        Qui le porte
+                    </span>
+                }
+                headerTrailing={`${titulaires.length} personne${titulaires.length > 1 ? 's' : ''}`}
+            >
+                {titulaires.length === 0 ? (
+                    <CardEmptyState
+                        glyph={UsersThree}
+                        title="Personne ne le porte"
+                        description="Affectez-le depuis la liste des accès."
+                    />
+                ) : (
+                    <div className={cn(enColonnes && 'max-h-[16.5rem] overflow-y-auto')}>
+                        {titulaires.map((user) => (
+                            <RuleGroup.Row
+                                key={user.id}
+                                title={user.name}
+                                subtitle={[user.site, user.department].filter(Boolean).join(' · ')}
+                                onOpen={() => {
+                                    window.location.hash = `/users/${user.id}`;
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
+            </RuleGroup>
+        );
+
+        const gestes = (
+            <div className="flex flex-col gap-3">
+                {editing ? (
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="text"
+                            onClick={() => {
+                                setEditing(false);
+                                setDraft(null);
+                            }}
+                        >
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={saveDraft} className="flex-1">
+                            Enregistrer le rôle
+                        </Button>
+                    </div>
+                ) : (
+                    <Button variant="outlined" onClick={() => setEditing(true)}>
+                        Modifier le rôle
+                    </Button>
+                )}
+
+                {openRole.kind === 'custom' && !editing && (
+                    <Button
+                        variant="text"
+                        onClick={() => removeRole(openRole)}
+                        className="text-error"
+                    >
+                        Supprimer le rôle
+                    </Button>
+                )}
+            </div>
+        );
+
         return (
             <div className="flex min-h-0 w-full flex-1 flex-col">
                 {isCompact ? (
@@ -416,27 +739,16 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                        en 17 sur 24, puis ⋮. La barre portait le nom en 16 sur 20 resserré et,
                        dessous, la clé technique (`role.system.superadmin`) : R16 ne veut pas
                        de sous-titre dans une barre, et la clé nomme le code, pas le rôle. */
-                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                        <Button
-                            variant="text"
-                            iconOnly
-                            aria-label="Retour aux rôles"
-                            onClick={() => navigate('/rbac/roles')}
-                            className="shrink-0"
-                        >
-                            <Icon glyph={ArrowLeft} />
-                        </Button>
-                        <div className="min-w-0 flex-1 px-1">
-                            <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
-                                {openRole.name}
-                            </p>
-                        </div>
-                    </div>
+                    <BarreDePage
+                        title={openRole.name}
+                        onBack={() => navigate('/rbac/roles')}
+                        backLabel="Retour aux rôles"
+                    />
                 ) : (
                     /* `.dhead.fiche` au bureau (17.11) — le nom du rôle en titre de page,
                        le retour en carré de 40, l'identifiant dessous en fil. */
                     <IconGestureSizeContext.Provider value={40}>
-                        <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                        <div className="px-page flex min-h-[72px] items-center gap-2 pt-5">
                             <Button
                                 variant="text"
                                 iconOnly
@@ -454,6 +766,51 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                     {openRole.id}
                                 </span>
                             </div>
+                            {/* Les gestes de la fiche, dans l'en-tête dès que la fiche a
+                                ses colonnes : ils fermaient la page, sous le pli. */}
+                            {enColonnes && (
+                                <div className="flex shrink-0 items-center gap-2">
+                                    {editing ? (
+                                        <>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => {
+                                                    setEditing(false);
+                                                    setDraft(null);
+                                                }}
+                                            >
+                                                Annuler
+                                            </Button>
+                                            <Button
+                                                variant="filled"
+                                                icon={<Icon glyph={Check} size={20} />}
+                                                onClick={saveDraft}
+                                            >
+                                                Enregistrer le rôle
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {openRole.kind === 'custom' && (
+                                                <Button
+                                                    variant="text"
+                                                    onClick={() => removeRole(openRole)}
+                                                    className="text-error"
+                                                >
+                                                    Supprimer
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="outlined"
+                                                icon={<Icon glyph={PencilSimple} size={20} />}
+                                                onClick={() => setEditing(true)}
+                                            >
+                                                Modifier le rôle
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </IconGestureSizeContext.Provider>
                 )}
@@ -463,260 +820,32 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     permission à 40 au lieu de 36. */}
                 <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
                     <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
-                        <DetailHero
-                            label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
-                            subject={openRole.name}
-                            status={
-                                denied.length > 0
-                                    ? {
-                                          icon: Prohibit,
-                                          label: `Refuse ${denied.length} action${denied.length > 1 ? 's' : ''} explicitement`,
-                                          tone: 'attention',
-                                      }
-                                    : {
-                                          icon: SCOPE_ICON[scope],
-                                          label: `Portée déclarée : ${SCOPE_LABEL[scope]}`,
-                                          tone: 'info',
-                                      }
-                            }
-                            metrics={[
-                                { value: openViews.length, label: 'vues ouvertes' },
-                                { value: openActions.length, label: 'actions permises' },
-                                {
-                                    value: sessionLabel(openRole.authPolicy.sessionMaxMinutes),
-                                    label: 'session maximale',
-                                },
-                            ]}
-                            note={
-                                <>
-                                    Connexion par <strong className="font-medium">{methods}</strong>
-                                    .{' '}
-                                    {openRole.authPolicy.requireStepUpForSensitiveActions
-                                        ? 'Une élévation est demandée sur les actes sensibles.'
-                                        : 'Aucun renforcement demandé sur les actes sensibles.'}
-                                </>
-                            }
-                        />
-
-                        {/* `.card` de 11.1 — **8 sur 20** : la gouttière de cette page, quand le gabarit
-                            en pose 16 pour 04.1 et 05.2. */}
-                        <RuleGroup
-                            className="px-5"
-                            header={
-                                <span className="flex items-center gap-2">
-                                    <Icon glyph={Eye} size={20} />
-                                    Ce que le rôle peut ouvrir
-                                </span>
-                            }
-                            headerTrailing={`${openViews.length} vue${openViews.length > 1 ? 's' : ''}`}
-                            note="Seules les vues ouvertes sont listées."
-                        >
-                            {VIEW_KEYS.filter((key) =>
-                                editing ? true : allowed.some((rule) => rule.key === key),
-                            ).map((key) => {
-                                /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
-                                   technique y tenait la sous-ligne : elle nommait le code plutôt
-                                   que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
-                                const rule = allowed.find((entry) => entry.key === key);
-                                return (
-                                    <RuleGroup.Row
-                                        key={key}
-                                        title={permissionLabel(key)}
-                                        value={ACCESS_LABEL[rule?.access ?? 'none']}
-                                        valueTone={rule ? undefined : 'muted'}
-                                        off={!rule}
-                                        trailing={
-                                            editing ? (
-                                                <Toggle
-                                                    checked={Boolean(rule)}
-                                                    onChange={(next) =>
-                                                        toggleRule(key, next, 'read')
-                                                    }
-                                                />
-                                            ) : undefined
-                                        }
-                                    />
-                                );
-                            })}
-                        </RuleGroup>
-
-                        <RuleGroup
-                            className="px-5"
-                            header={
-                                <span className="flex items-center gap-2">
-                                    <Icon glyph={Lightning} size={20} />
-                                    Ce que le rôle peut faire
-                                </span>
-                            }
-                            headerTrailing={`${openActions.length} action${openActions.length > 1 ? 's' : ''}`}
-                        >
-                            {ACTION_KEYS.filter(
-                                (key) =>
-                                    (editing || allowed.some((rule) => rule.key === key)) &&
-                                    !denied.some((rule) => rule.key === key),
-                            ).map((key) => {
-                                /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
-                                   technique y tenait la sous-ligne : elle nommait le code plutôt
-                                   que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
-                                const rule = allowed.find((entry) => entry.key === key);
-                                return (
-                                    <RuleGroup.Row
-                                        key={key}
-                                        title={permissionLabel(key)}
-                                        value={ACCESS_LABEL[rule?.access ?? 'none']}
-                                        valueTone={rule ? undefined : 'muted'}
-                                        off={!rule}
-                                        trailing={
-                                            editing ? (
-                                                <Toggle
-                                                    checked={Boolean(rule)}
-                                                    onChange={(next) =>
-                                                        toggleRule(key, next, 'write')
-                                                    }
-                                                />
-                                            ) : undefined
-                                        }
-                                    />
-                                );
-                            })}
-                        </RuleGroup>
-
-                        {denied.length > 0 && (
-                            <RuleGroup
-                                className="px-5"
-                                header={
-                                    <span className="flex items-center gap-2">
-                                        <Icon glyph={Prohibit} size={20} />
-                                        Ce que le rôle refuse
-                                    </span>
-                                }
-                                headerTrailing={`${denied.length} action${denied.length > 1 ? 's' : ''}`}
-                                note="Un refus ne se bascule pas : il se retire."
-                            >
-                                {denied.map((rule) => (
-                                    <RuleGroup.Row
-                                        key={rule.key}
-                                        title={permissionLabel(rule.key)}
-                                        value="refusé"
-                                        valueTone="refused"
-                                        status={{ icon: Prohibit, tone: 'refused' }}
-                                    />
-                                ))}
-                            </RuleGroup>
-                        )}
-
-                        {inheritance && (
-                            <RuleGroup
-                                className="px-5"
-                                header={
-                                    <span className="flex items-center gap-2">
-                                        <Icon glyph={ArrowElbowDownRight} size={20} />
-                                        Ce que l'héritage change
-                                    </span>
-                                }
-                                note={
-                                    inheritance.addsNothing
-                                        ? `Toutes ses règles sont déjà dans celles de ${inheritance.baseName} : ajout net, aucun. Ce rôle ne diffère de sa base que par ses réglages de connexion.`
-                                        : `Il reprend les permissions de ${inheritance.baseName}, puis ajoute ou refuse les siennes. Son décompte ne dit donc pas ce qu'il porte.`
-                                }
-                            >
-                                <RuleGroup.Row
-                                    title={`Part de ${inheritance.baseName}`}
-                                    subtitle={openRole.baseRoleId}
-                                    value={`${rolesById.get(openRole.baseRoleId as string)?.permissions.length ?? 0} règles héritées`}
-                                    onOpen={() => goToRole(openRole.baseRoleId as string)}
-                                />
-                            </RuleGroup>
-                        )}
-
-                        <RuleGroup
-                            className="px-5"
-                            header={
-                                <span className="flex items-center gap-2">
-                                    <Icon glyph={Crosshair} size={20} />
-                                    La portée déclarée
-                                </span>
-                            }
-                            note="La portée est déclarée, pas encore appliquée."
-                        >
-                            <RuleGroup.Row
-                                title={`Portée ${SCOPE_LABEL[scope]}`}
-                                subtitle={openRole.dataScopes?.[0]?.expression}
-                                value="non appliquée"
-                                valueTone="refused"
-                                status={{ icon: Warning, tone: 'pending' }}
-                            />
-                        </RuleGroup>
-
-                        <RuleGroup
-                            className="px-5"
-                            header={
-                                <span className="flex items-center gap-2">
-                                    <Icon glyph={LockSimpleOpen} size={20} />
-                                    Ce que « rôle du système » ne veut pas dire
-                                </span>
-                            }
-                            note="Les quatre rôles du système sont protégés."
-                        >
-                            <RuleGroup.Row
-                                title="Déclaré immuable"
-                                subtitle="immutable"
-                                value={openRole.immutable ? 'oui' : 'non'}
-                                valueTone={openRole.immutable ? undefined : 'muted'}
-                            />
-                            <RuleGroup.Row
-                                title="Protégé par l'écran"
-                                subtitle="kind === 'system'"
-                                value={openRole.kind === 'system' ? 'oui' : 'non'}
-                                valueTone={openRole.kind === 'system' ? undefined : 'muted'}
-                            />
-                        </RuleGroup>
-
-                        {/* `.warn` de 11.1 — **l'ambre, en 14 sur 20**, et le fait en 500. Il tenait
-                            le rappel neutre de 02.2 (12 sur 17, sur le creux), qui dit une
-                            précision ; ici la planche dit une conséquence. */}
-                        <FormWarn glyph={Warning} tint="ambre">
-                            <strong className="font-medium">
-                                Valider une demande n'est pas dans cette matrice.
-                            </strong>{' '}
-                            Cette autorité est{' '}
-                            <strong className="font-medium">relationnelle</strong> — être le manager
-                            de, être le bénéficiaire de — et vit dans les gardes métier. La case est
-                            nommée ici parce que c'est là qu'on la chercherait.
-                        </FormWarn>
-
-                        <div className="flex flex-col gap-3">
-                            {editing ? (
-                                <div className="flex items-center gap-3">
-                                    <Button
-                                        variant="text"
-                                        onClick={() => {
-                                            setEditing(false);
-                                            setDraft(null);
-                                        }}
-                                    >
-                                        Annuler
-                                    </Button>
-                                    <Button variant="filled" onClick={saveDraft} className="flex-1">
-                                        Enregistrer le rôle
-                                    </Button>
+                        {enColonnes ? (
+                            /* **Au bureau, la fiche en grille** (24/09). Elle courait sur une
+                               colonne de 1 008 : le héro, puis dix rangées de 60 pour les vues,
+                               puis tout le reste sous le pli. La première rangée pose le héro
+                               (7) à côté de ceux qui portent le rôle (5) ; dessous, les deux
+                               matrices à gauche, et ce qui les nuance — refus, héritage,
+                               portée — à droite. Les gestes sont montés dans l'en-tête. */
+                            <div className="grid grid-cols-12 items-start gap-4">
+                                <div className="col-span-7 flex flex-col gap-4 self-stretch">
+                                    {hero}
                                 </div>
-                            ) : (
-                                <Button variant="outlined" onClick={() => setEditing(true)}>
-                                    Modifier le rôle
-                                </Button>
-                            )}
-
-                            {openRole.kind === 'custom' && !editing && (
-                                <Button
-                                    variant="text"
-                                    onClick={() => removeRole(openRole)}
-                                    className="text-error"
-                                >
-                                    Supprimer le rôle
-                                </Button>
-                            )}
-                        </div>
+                                <div className="col-span-5 flex flex-col self-stretch">
+                                    {porteurs}
+                                </div>
+                                <div className="col-span-7 flex flex-col gap-4">{matrices}</div>
+                                <div className="col-span-5 flex flex-col gap-4">{nuances}</div>
+                            </div>
+                        ) : (
+                            <>
+                                {hero}
+                                {matrices}
+                                {nuances}
+                                {porteurs}
+                                {gestes}
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -737,6 +866,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                  */
                 title={view === 'groups' ? 'Groupes' : 'Accès'}
                 onBack={view === 'groups' ? () => navigate('/rbac/roles') : onBack}
+                /* Groupes est une sous-page d'Accès : sa flèche vaut aussi au bureau. */
+                retourAuBureau={view === 'groups'}
+                backLabel={view === 'groups' ? 'Retour aux accès' : 'Retour'}
                 search={{
                     value: query,
                     onChange: setQuery,
@@ -815,7 +947,15 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                 body="cartes"
             >
                 {view === 'roles' ? (
-                    <>
+                    <div
+                        className={cn(
+                            /* **Au bureau, deux colonnes** (23/09) : les rôles sur 8, les
+                               groupes sur 4. Empilée, la carte des groupes n'était qu'une
+                               rangée de 124 px sous 580 de rôles. */
+                            'flex flex-col gap-4',
+                            enColonnes && 'grid grid-cols-12 items-start',
+                        )}
+                    >
                         {/*
                          * **La carte des rôles de 11.1** — un rôle par rangée, ce qu'il
                          * couvre en sous-ligne, et **le nombre de personnes qui le
@@ -826,7 +966,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                          * c'est qui est concerné.
                          */}
                         <RuleGroup
-                            className="px-5"
+                            className={cn('px-5', enColonnes && 'col-span-8')}
                             header="Les rôles"
                             headerTrailing="porteurs"
                             note="Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée."
@@ -844,34 +984,67 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 ].filter(Boolean);
                                 const porteurs = porteursParRole.get(role.id) ?? 0;
 
+                                /* **La portée se voit avant de se lire** (24/09) :
+                                   huit rangées grises identiques ne distinguaient pas
+                                   « tout le parc » de « ses objets ». La vignette porte
+                                   le glyphe de la portée dans sa teinte, les porteurs
+                                   passent en chiffre. */
                                 return (
-                                    <RuleGroup.Row
+                                    <FactRow
                                         key={role.id}
+                                        glyph={SCOPE_ICON[niveau]}
+                                        tint={SCOPE_TINT[niveau]}
                                         title={role.name}
                                         subtitle={faits.join(' · ')}
-                                        value={porteurs}
-                                        quiet
+                                        figure={{
+                                            value: porteurs,
+                                            unit: porteurs > 1 ? 'porteurs' : 'porteur',
+                                        }}
                                         onOpen={() => goToRole(role.id)}
+                                        className="-mx-5 w-[calc(100%+2.5rem)] px-5"
                                     />
                                 );
                             })}
                         </RuleGroup>
 
-                        {/* 11.1 : la seconde carte ne liste pas les groupes, elle y mène.
-                            « 5 groupes · ce qui s'ajoute aux rôles ». */}
-                        <RuleGroup className="px-5" header="Les groupes">
+                        {/* **La carte liste les groupes** (23/09, contre 11.1 qui n'y met qu'un
+                            renvoi) : les premiers et leurs membres — cinq au bureau, trois au
+                            téléphone —, puis le renvoi vers la page des groupes. */}
+                        <RuleGroup
+                            className={cn('px-5', enColonnes && 'col-span-4')}
+                            header="Les groupes"
+                            headerTrailing="membres"
+                        >
+                            {rbacGroups.slice(0, enColonnes ? 5 : 3).map((group) => {
+                                const membres = membresParGroupe.get(group.id) ?? 0;
+                                return (
+                                    <FactRow
+                                        key={group.id}
+                                        glyph={UsersThree}
+                                        title={group.name}
+                                        subtitle={groupSummary(group, rolesById)}
+                                        figure={{
+                                            value: membres,
+                                            unit: membres > 1 ? 'membres' : 'membre',
+                                        }}
+                                        onOpen={() => navigate('/rbac/groups')}
+                                        className="-mx-5 w-[calc(100%+2.5rem)] px-5"
+                                    />
+                                );
+                            })}
                             <RuleGroup.Row
-                                /* La vignette de 40 et la sous-ligne de 11.1, mot pour mot ; et
-                                   son écart, **12** (`.row` de 11.1) — la rangée partagée tient
-                                   les 16 de 05.2. */
                                 glyph={UsersThree}
                                 className="gap-3"
-                                title={`${rbacGroups.length} groupe${rbacGroups.length > 1 ? 's' : ''}`}
+                                title={
+                                    rbacGroups.length > (enColonnes ? 5 : 3)
+                                        ? `Voir les ${rbacGroups.length} groupes`
+                                        : 'Ouvrir les groupes'
+                                }
                                 subtitle="Ce qui s'ajoute aux rôles"
                                 onOpen={() => navigate('/rbac/groups')}
                             />
                         </RuleGroup>
-                    </>
+                    </div>
                 ) : (
                     <RuleGroup
                         className="px-5"

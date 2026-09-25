@@ -46,3 +46,24 @@ export const PAGE_BUREAU = 'expanded:h-full';
 export const CADRE_BUREAU = 'expanded:min-h-0';
 export const CORPS_BUREAU =
     'expanded:min-h-0 expanded:flex-1 expanded:overflow-y-auto expanded:[&>*]:shrink-0';
+
+/**
+ * **Un formulaire au bureau : deux colonnes de 560, pas un champ de 1 136** (24/09).
+ *
+ * 00.5 borne le contenu d'un flux à 560 px « à toutes les largeurs » : un champ de 680
+ * pour saisir un numéro de série se vise et se relit plus mal. La règle vise **le champ**.
+ * Appliquée à la page, elle laissait à 1 440 une colonne de 560 au milieu de 880 px vides,
+ * et une fiche de cinq sections à faire défiler sur trois hauteurs d'écran.
+ *
+ * Dès 1 200, la page prend donc **deux mesures de 560** (1 136 avec la gouttière) : les
+ * sections se rangent en colonnes, chacune garde sa largeur de lecture, et la barre et le
+ * pied s'alignent sur les bords du formulaire. En deçà, rien ne change.
+ *
+ * - `MESURE_DOUBLE` — la borne de la barre, du corps et du pied (`FullScreenLayout`,
+ *   `mesure="double"`) ;
+ * - `COLONNES_FORMULAIRE` — le conteneur des sections : il passe de la colonne `flex` à
+ *   deux colonnes CSS, et une section ne se coupe jamais entre elles.
+ */
+export const MESURE_DOUBLE = 'large:max-w-[71rem]';
+export const COLONNES_FORMULAIRE =
+    'large:block large:columns-2 large:gap-4 large:[&>*]:mb-4 large:[&>*]:break-inside-avoid';

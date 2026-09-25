@@ -380,6 +380,7 @@ const DashboardMoreAction: React.FC<{
     return (
         <Button
             variant="text"
+            data-pied=""
             onClick={onClick}
             className={cn(
                 /* `.more` mesure **48**, sauf dans les cartes de la mosaïque au bureau, où
@@ -389,9 +390,10 @@ const DashboardMoreAction: React.FC<{
                 !isInverse && 'large:min-h-10',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
-                    : /* `mt-auto` : dans une carte de hauteur fixe (grille du bureau), le
-                         renvoi se cale au pied ; dans une carte empilée, il suit le contenu. */
-                      'border-outline-variant text-on-surface hover:text-on-surface mt-auto',
+                    : /* Au pied de la carte : `mt-auto` dans la grille du bureau (la case
+                         le force par `data-pied`), et **24 d'air** dans une carte empilée —
+                         au téléphone, la rangée collait à la dernière jauge (23/09). */
+                      'border-outline-variant text-on-surface hover:text-on-surface mt-5',
             )}
         >
             <span className="shrink-0">{label}</span>
@@ -405,7 +407,7 @@ const DashboardMoreAction: React.FC<{
             </span>
             <Icon
                 glyph={CaretRight}
-                size={18}
+                size={20}
                 className={cn(
                     'shrink-0',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface',
@@ -952,7 +954,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     </span>
                                     <Icon
                                         glyph={CaretRight}
-                                        size={18}
+                                        size={20}
                                         className="text-on-nav-surface-variant shrink-0"
                                     />
                                 </Button>
@@ -1247,9 +1249,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ) : undefined
                         }
                     />
-                    {/* `.wsep` — 1 px de filet, **24 de part et d'autre** (23/09 ; 20 au-dessus
-                        et 12 dessous collaient la seconde jauge au filet). */}
-                    {!enDuo && <div className="bg-outline-variant mt-6 mb-3 h-px" />}
+                    {/* `.wsep` — 1 px de filet, **20 de part et d'autre** (24/09 : 24 au-dessus et
+                        15 dessous faisaient deux rythmes ; 20 est celui du titre à la jauge. Le bloc
+                        n'est pas `flex` : `mb-5` fusionne avec le `mt-3` de la jauge). */}
+                    {!enDuo && <div className="bg-outline-variant mt-5 mb-5 h-px" />}
                     <Gauge
                         value={fleet.uncovered}
                         label={`sur ${fleet.size} hors garantie`}
@@ -1458,8 +1461,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         key={event.id}
                                         className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
                                     >
-                                        <span className="bg-surface-container text-on-surface-variant font-brand flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-semibold">
-                                            {initials || <Icon glyph={glyph} size={18} />}
+                                        <span className="bg-surface-container text-on-surface-variant font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[0.8125rem] font-semibold">
+                                            {initials || <Icon glyph={glyph} size={20} />}
                                         </span>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-on-surface text-ts-body leading-ts-body">
@@ -1620,7 +1623,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     <Button
                         variant="text"
                         className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[0.875rem] font-medium !shadow-none"
-                        icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                        icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
                         Restituer
@@ -1628,7 +1631,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     <Button
                         variant="filled"
                         className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
-                        icon={<Icon glyph={ArrowCircleRight} size={18} />}
+                        icon={<Icon glyph={ArrowCircleRight} size={20} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
                         Attribuer
@@ -1639,7 +1642,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 <Button
                     variant="filled"
                     className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
-                    icon={<Icon glyph={Plus} size={18} />}
+                    icon={<Icon glyph={Plus} size={20} />}
                     onClick={() => onViewChange('new_request')}
                 >
                     Demander un équipement
@@ -1686,7 +1689,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
     /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
     const CASE_GRILLE =
-        'flex min-h-0 min-w-0 flex-col [&>div]:flex-1 [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto';
+        'flex min-h-0 min-w-0 flex-col [&>div]:flex-1 [&>section]:flex [&>section]:flex-1 [&>section]:flex-col [&_.mt-auto]:mt-auto [&_[data-pied]]:mt-auto';
 
     return (
         <div className="bg-background flex min-w-0 flex-1 flex-col">

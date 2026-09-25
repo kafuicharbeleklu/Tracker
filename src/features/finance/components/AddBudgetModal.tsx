@@ -1,30 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import Icon from '../../../components/ui/Icon';
-import {
-    Stack,
-    ShoppingBag,
-    Key,
-    Cloud,
-    FileCsv,
-    Check,
-    SpinnerGap,
-    Sparkle,
-    Calendar,
-    Plus,
-} from '@phosphor-icons/react';
-import Modal from '../../../components/ui/Modal';
+import { FileCsv, Check, Keyboard, Plus } from '@phosphor-icons/react';
+import { FullScreenLayout } from '../../../components/layout/FullScreenLayout';
+import { FormNote, FormSection } from '../../../components/ui/FormParts';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
 import SelectField from '../../../components/ui/SelectField';
-import SegmentedButton from '../../../components/ui/SegmentedButton';
 import IconButton from '../../../components/ui/IconButton';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { cn } from '../../../lib/utils';
-import { MEDIA } from '../../../constants/breakpoints';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { formatCurrency } from '../../../lib/financial';
 import { FinanceBudget, FinanceExpenseType } from '../../../types';
 import { ExtractedBudgetDraft, extractBudgetDraftFromFile } from '../../../lib/budgetExtraction';
@@ -69,20 +57,10 @@ const CAPITALIZATION_OPTIONS = [
     { value: 'OPEX', label: 'OPEX — frais courant' },
 ];
 
-const MODE_OPTIONS = [
-    { value: 'import', label: 'Import fichier' },
-    { value: 'manual', label: 'Saisie manuelle' },
-];
-
 export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose }) => {
     const { showToast } = useToast();
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
-    const isCompact = useMediaQuery(MEDIA.compact);
-    /* La corbeille d'une ligne ne s'efface au survol que là où le survol existe : sans
-       ce test elle restait invisible au doigt. `isHoverCapable` était employée sans
-       jamais être déclarée dans ce fichier. */
-    const isHoverCapable = useMediaQuery(MEDIA.hoverCapable);
 
     const [mode, setMode] = useState<AddBudgetMode>('import');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -103,64 +81,15 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
       trois clés `undefined` côte à côte. Le formulaire s'ouvrait donc sur trois lignes
       qu'on ne pouvait ni corriger ni supprimer.
     */
+    /* Une ligne vide, pas trois lignes d'exemple chiffrées (24/09) : 25 000, 12 000 et
+       8 000 arrivaient pré-remplis et passaient pour un budget. */
     const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([
-        {
-            id: 'depart-materiel',
-            category: 'Matériel IT',
-            amount: '25000',
-            capitalization: 'CAPEX',
-        },
-        {
-            id: 'depart-licences',
-            category: 'Licences & Logiciels',
-            amount: '12000',
-            capitalization: 'OPEX',
-        },
-        {
-            id: 'depart-cloud',
-            category: 'Infrastructure Cloud',
-            amount: '8000',
-            capitalization: 'OPEX',
-        },
+        { id: 'depart', category: '', amount: '' },
     ]);
 
     const totalBudget = useMemo(() => {
         return budgetLines.reduce((acc, line) => acc + (parseFloat(line.amount) || 0), 0);
     }, [budgetLines]);
-
-    /** L'icône d'une catégorie — une aide à la lecture, pas un classement comptable. */
-    const getCategoryDetails = (category: string) => {
-        const lower = category.toLowerCase();
-
-        let icon = <Icon glyph={Stack} size={18} />;
-        let iconBg = 'bg-surface-container text-on-surface-variant';
-
-        // Détection Icône & Style
-        if (
-            lower.includes('matériel') ||
-            lower.includes('capex') ||
-            lower.includes('hardware') ||
-            lower.includes('serveur')
-        ) {
-            icon = <Icon glyph={ShoppingBag} size={18} />;
-            iconBg = 'bg-secondary-container text-secondary';
-        } else if (lower.includes('licence') || lower.includes('software')) {
-            icon = <Icon glyph={Key} size={18} />;
-            iconBg = 'bg-secondary-container text-on-secondary-container';
-        } else if (
-            lower.includes('cloud') ||
-            lower.includes('hosting') ||
-            lower.includes('infrastructure')
-        ) {
-            icon = <Icon glyph={Cloud} size={18} />;
-            iconBg = 'bg-tertiary-container text-tertiary';
-        } else if (lower.includes('maintenance') || lower.includes('service')) {
-            icon = <Icon glyph={Stack} size={18} />;
-            iconBg = 'bg-surface-container text-on-surface-variant';
-        }
-
-        return { icon, iconBg };
-    };
 
     const getFinanceTypeFromCategory = (category: string): FinanceExpenseType => {
         const lower = category.toLowerCase();
@@ -182,21 +111,12 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         setImportMeta(null);
         setIsLowConfidenceReviewed(false);
         setYear(new Date().getFullYear().toString());
-        setBudgetLines([
-            { id: '1', category: 'Matériel IT', amount: '' },
-            { id: '2', category: 'Licences Logiciel', amount: '' },
-        ]);
+        setBudgetLines([{ id: 'depart', category: '', amount: '' }]);
     };
 
     const handleClose = () => {
         reset();
         onClose();
-    };
-
-    const handleModeChange = (value: string | string[]) => {
-        if (typeof value === 'string') {
-            setMode(value as AddBudgetMode);
-        }
     };
 
     // --- Row Management ---
@@ -318,21 +238,6 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         handleClose();
     };
 
-    const footer = (
-        <>
-            <Button variant="outlined" onClick={handleClose}>
-                Annuler
-            </Button>
-            <Button
-                variant="filled"
-                onClick={handleSubmit}
-                disabled={requiresLowConfidenceReview && !isLowConfidenceReviewed}
-            >
-                Créer l’exercice
-            </Button>
-        </>
-    );
-
     const categoryOptions = [
         { value: 'Matériel IT', label: 'Matériel IT' },
         { value: 'Licences Logiciel', label: 'Licences Logiciel' },
@@ -343,417 +248,236 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
         { value: 'Autre', label: 'Autre' },
     ];
 
-    return (
-        <Modal
-            isOpen={isOpen}
-            onClose={handleClose}
-            /* Ajuster les lignes d'un exercice est la page 15.2 ; cette boîte n'ouvre plus
-               qu'un exercice neuf. Libellés en casse de phrase (R15). */
-            title="Nouvel exercice"
-            footer={mode === 'manual' ? footer : undefined}
-            maxWidth="max-w-4xl" // Wider modal for table view
-        >
-            <div className="border-outline-variant bg-surface-container-low mb-6 rounded-xl border p-2">
-                <SegmentedButton
-                    options={MODE_OPTIONS}
-                    value={mode}
-                    onChange={handleModeChange}
-                    className="w-full"
-                />
-            </div>
+    if (!isOpen) return null;
 
-            {mode === 'import' && (
-                <div className="animate-in fade-in zoom-in-95 flex min-h-[350px] flex-col items-center justify-center space-y-6 text-center duration-300">
-                    {!isProcessing ? (
-                        <div className="w-full space-y-4">
+    const enRevue = mode === 'manual';
+
+    /*
+      **Lire un budget — un formulaire plein écran, pas une boîte** (24/09). La boîte de
+      896 px portait des onglets « Import fichier | Saisie manuelle », un bandeau « Données
+      pré-remplies par IA » en capitales avec sa confiance, un tableau à en-têtes espacés
+      et trois lignes d'exemple chiffrées. Elle prend la coque des formulaires : au bureau,
+      deux colonnes — la lecture et l'exercice à gauche, les lignes à droite —, au
+      téléphone une seule. Ce qui a été lu arrive rempli ; rien ne s'écrit avant « Créer ».
+    */
+    return (
+        <FullScreenLayout
+            title="Lire un budget"
+            onBack={handleClose}
+            onClose={handleClose}
+            className="bg-background"
+            mesure="double"
+            headerActions={
+                enRevue ? (
+                    <Button
+                        variant="text"
+                        onClick={handleSubmit}
+                        disabled={requiresLowConfidenceReview && !isLowConfidenceReviewed}
+                        className="text-on-surface text-ts-body h-12 px-3 font-medium"
+                    >
+                        Créer l’exercice
+                    </Button>
+                ) : undefined
+            }
+        >
+            {!enRevue ? (
+                <div className="mx-auto flex max-w-[560px] flex-col gap-4">
+                    {isProcessing ? (
+                        <FormSection title="Lecture en cours">
+                            <div className="flex min-h-14 items-center gap-3">
+                                <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                    <Icon glyph={FileCsv} size={20} />
+                                </span>
+                                <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate font-medium">
+                                    {importedFile?.name}
+                                </span>
+                            </div>
+                            <div
+                                className="bg-surface-container h-1 overflow-hidden rounded-full"
+                                role="progressbar"
+                                aria-label="Lecture du budget"
+                            >
+                                <div className="bg-on-surface h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full" />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                {['Exercice', 'Postes', 'Montants'].map((label) => (
+                                    <div key={label} className="flex items-center gap-3">
+                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub w-[110px] shrink-0">
+                                            {label}
+                                        </span>
+                                        <span className="bg-surface-container h-4 min-w-0 flex-1 rounded-[2px]" />
+                                    </div>
+                                ))}
+                            </div>
+                        </FormSection>
+                    ) : (
+                        <FormSection title="Le fichier" caption="tableur, PDF ou photo">
                             <FileDropzone
                                 onFileSelect={startImportProcess}
                                 accept=".xlsx,.xls,.csv,.txt,.pdf,.jpg,.jpeg,.png,.webp"
-                                label="Importer votre fichier Budget"
-                                subLabel={
-                                    "L'IA détectera automatiquement les colonnes Catégorie, Montant et Année."
-                                }
-                                className="border-outline-variant hover:border-tertiary hover:bg-tertiary-container/10 h-72 w-full"
+                                label="Déposer le budget"
+                                subLabel="L'année, les postes et leurs montants arrivent remplis ; ce qui est mal lu arrive vide."
                             />
-                            <div className="flex justify-center gap-2">
-                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
-                                    .XLSX
+                            <Button
+                                variant="text"
+                                icon={<Icon glyph={Keyboard} size={20} />}
+                                onClick={() => setMode('manual')}
+                                className="self-start"
+                            >
+                                Saisir à la main
+                            </Button>
+                        </FormSection>
+                    )}
+                </div>
+            ) : (
+                <div className={cn('flex flex-col gap-4', COLONNES_FORMULAIRE)}>
+                    {importedFile && (
+                        <FormSection title="La lecture">
+                            <div className="flex min-h-14 items-center gap-3">
+                                <span className="bg-tint-vert text-on-tint-vert flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                    <Icon glyph={Check} size={20} />
                                 </span>
-                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
-                                    .CSV
+                                <span className="min-w-0 flex-1">
+                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
+                                        {importedFile.name}
+                                    </span>
+                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
+                                        {budgetLines.length} ligne
+                                        {budgetLines.length > 1 ? 's' : ''} lue
+                                        {budgetLines.length > 1 ? 's' : ''} · à relire
+                                    </span>
                                 </span>
-                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
-                                    .PDF
-                                </span>
-                                <span className="text-label-small bg-surface-container text-on-surface-variant rounded-md px-2 py-1 font-bold">
-                                    .JPG/.PNG
-                                </span>
+                                <Button
+                                    variant="text"
+                                    onClick={() => {
+                                        reset();
+                                    }}
+                                    className="text-ts-control shrink-0 font-medium"
+                                >
+                                    Changer
+                                </Button>
                             </div>
+                            {importMeta?.warnings?.length ? (
+                                <FormNote>{importMeta.warnings[0]}</FormNote>
+                            ) : null}
+                            {requiresLowConfidenceReview ? (
+                                <label className="bg-surface-container text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-3 rounded-[4px] px-4 py-3">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-0.5 h-4 w-4"
+                                        checked={isLowConfidenceReviewed}
+                                        onChange={(e) =>
+                                            setIsLowConfidenceReviewed(e.target.checked)
+                                        }
+                                    />
+                                    <span>J'ai relu l'année, les postes et les montants.</span>
+                                </label>
+                            ) : null}
+                        </FormSection>
+                    )}
+
+                    <FormSection title="L'exercice">
+                        <InputField
+                            label="Année"
+                            name="annee"
+                            inputMode="numeric"
+                            mesure="courte"
+                            value={year}
+                            onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            required
+                        />
+                        <div className="border-outline-variant border-t pt-4">
+                            <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                                Enveloppe, somme des lignes
+                            </p>
+                            <p className="mt-1 flex items-baseline gap-2">
+                                <b className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em] tabular-nums">
+                                    {formatCurrency(
+                                        totalBudget,
+                                        settings.currency,
+                                        settings.compactNotation,
+                                    )}
+                                </b>
+                            </p>
                         </div>
-                    ) : (
-                        <div className="flex w-full max-w-sm flex-col items-center">
-                            <div className="mb-6 flex w-full items-center gap-4">
-                                <div className="bg-surface border-outline-variant shadow-elevation-1 flex h-12 w-12 items-center justify-center rounded-lg border">
-                                    <Icon glyph={FileCsv} size={24} className="text-tertiary" />
-                                </div>
-                                <div className="flex-1 space-y-2">
-                                    <div className="bg-surface-container h-2 overflow-hidden rounded-full">
-                                        <div
-                                            className="bg-tertiary h-full animate-[width_2s_var(--tk-motion-easing-emphasized)_infinite]"
-                                            style={{ width: '60%' }}
+                    </FormSection>
+
+                    <FormSection
+                        title="Les lignes"
+                        caption={`${budgetLines.length} poste${budgetLines.length > 1 ? 's' : ''}`}
+                    >
+                        <div className="flex flex-col">
+                            {budgetLines.map((line, index) => (
+                                <div
+                                    key={line.id}
+                                    className="border-outline-variant flex flex-col gap-3 border-t py-4 first:border-t-0 first:pt-0"
+                                >
+                                    <div className="flex items-end gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <SelectField
+                                                name={`cat-${line.id}`}
+                                                label={`Poste ${index + 1}`}
+                                                options={categoryOptions}
+                                                value={line.category}
+                                                onChange={(e) =>
+                                                    updateLine(line.id, 'category', e.target.value)
+                                                }
+                                                placeholder="Choisir un poste"
+                                            />
+                                        </div>
+                                        <IconButton
+                                            icon="delete"
+                                            variant="standard"
+                                            aria-label={`Retirer le poste ${index + 1}`}
+                                            onClick={() => removeLine(line.id)}
+                                            className="text-on-surface-variant hover:text-error shrink-0"
                                         />
                                     </div>
-                                    <div className="text-label-medium text-on-surface-variant flex justify-between font-bold">
-                                        <span>Analyse structurelle...</span>
-                                        <span>60%</span>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputField
+                                            label="Montant"
+                                            name={`montant-${line.id}`}
+                                            inputMode="decimal"
+                                            value={line.amount}
+                                            onChange={(e) =>
+                                                updateLine(line.id, 'amount', e.target.value)
+                                            }
+                                            placeholder="0"
+                                            suffix={settings.currency}
+                                            className="tabular-nums"
+                                        />
+                                        <SelectField
+                                            name={`cap-${line.id}`}
+                                            label="Nature"
+                                            options={CAPITALIZATION_OPTIONS}
+                                            value={line.capitalization}
+                                            onChange={(e) =>
+                                                updateLine(
+                                                    line.id,
+                                                    'capitalization',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="À renseigner"
+                                        />
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="bg-surface-container border-outline-variant w-full space-y-2 rounded-xl border p-4 text-left">
-                                <p className="text-label-medium text-on-surface-variant mb-2 font-bold tracking-widest uppercase">
-                                    Journal de traitement
-                                </p>
-                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-100">
-                                    <Icon glyph={Check} size={18} className="text-tertiary" />{' '}
-                                    Fichier "{importedFile?.name}" chargé
-                                </span>
-                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-500">
-                                    <Icon glyph={Check} size={18} className="text-tertiary" />{' '}
-                                    Détection de l'exercice fiscal
-                                </span>
-                                <span className="animate-in fade-in slide-in-from-left-4 text-body-medium text-on-surface-variant flex items-center gap-2 delay-1000">
-                                    <Icon
-                                        glyph={SpinnerGap}
-                                        size={18}
-                                        className="text-primary animate-spin"
-                                    />{' '}
-                                    Extraction des lignes budgétaires...
-                                </span>
-                            </div>
+                            ))}
+                            {budgetLines.length === 0 && (
+                                <FormNote>Aucune ligne : ajoutez le premier poste.</FormNote>
+                            )}
                         </div>
-                    )}
+                        <Button
+                            variant="outlined"
+                            icon={<Icon glyph={Plus} size={20} />}
+                            onClick={addLine}
+                            className="w-full"
+                        >
+                            Ajouter un poste
+                        </Button>
+                    </FormSection>
                 </div>
             )}
-
-            {mode === 'manual' && (
-                <div className="animate-in slide-in-from-right-8 space-y-6 duration-300">
-                    {importedFile && (
-                        <div className="bg-tertiary-container border-tertiary/20 flex items-center justify-between rounded-xl border p-3">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-tertiary/20 text-on-tertiary-container rounded-lg p-2">
-                                    <Icon glyph={Sparkle} size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-label-medium text-on-tertiary-container font-bold uppercase">
-                                        Données pré-remplies par IA
-                                    </p>
-                                    <p className="text-body-small text-tertiary">
-                                        Vérifiez les montants ci-dessous.
-                                    </p>
-                                    {importMeta && (
-                                        <p className="text-label-small text-on-tertiary-container/80 mt-0.5">
-                                            Confiance:{' '}
-                                            {importMeta.confidence === 'high'
-                                                ? 'elevee'
-                                                : importMeta.confidence === 'medium'
-                                                  ? 'moyenne'
-                                                  : 'faible'}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                            <IconButton
-                                icon="close"
-                                variant="standard"
-                                aria-label="Retirer le fichier importé"
-                                onClick={() => {
-                                    setImportedFile(null);
-                                    setImportMeta(null);
-                                    setIsLowConfidenceReviewed(false);
-                                }}
-                            />
-                        </div>
-                    )}
-
-                    {importMeta?.warnings?.length ? (
-                        <div className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant rounded-xl border px-3 py-2">
-                            {importMeta.warnings[0]}
-                        </div>
-                    ) : null}
-
-                    {requiresLowConfidenceReview ? (
-                        <label className="border-outline-variant bg-surface-container-low text-body-small text-on-surface-variant flex items-start gap-2 rounded-xl border px-3 py-2">
-                            <input
-                                type="checkbox"
-                                className="mt-0.5 h-4 w-4"
-                                checked={isLowConfidenceReviewed}
-                                onChange={(e) => setIsLowConfidenceReviewed(e.target.checked)}
-                            />
-                            <span>
-                                Je confirme avoir verifie manuellement l'annee, les categories et
-                                les montants.
-                            </span>
-                        </label>
-                    ) : null}
-
-                    <div className="flex items-end gap-4">
-                        <div className="w-40">
-                            <InputField
-                                label="Exercice Fiscal *"
-                                type="number"
-                                value={year}
-                                onChange={(e) => setYear(e.target.value)}
-                                icon={<Icon glyph={Calendar} size={18} />}
-                                className="font-bold"
-                                required
-                            />
-                        </div>
-                        <div className="bg-surface-container-low border-outline-variant flex h-[54px] flex-1 items-center justify-between rounded-xl border p-3">
-                            <span className="text-label-large text-on-surface-variant pl-2 font-bold">
-                                Budget Global Calculé
-                            </span>
-                            <span className="text-title-large text-on-surface pr-2 font-black">
-                                {formatCurrency(totalBudget, settings.currency)}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Table Container exactly like Finance Detail List */}
-                    <div className="bg-surface shadow-elevation-1 border-outline-variant overflow-hidden rounded-xl border">
-                        {isCompact ? (
-                            <div className="divide-outline-variant divide-y">
-                                {budgetLines.map((line) => {
-                                    const details = getCategoryDetails(line.category);
-                                    return (
-                                        <div key={line.id} className="space-y-3 p-4">
-                                            <div className="flex items-end gap-3">
-                                                <div
-                                                    className={cn(
-                                                        'mb-1 shrink-0 rounded-lg p-2',
-                                                        details.iconBg,
-                                                    )}
-                                                >
-                                                    {details.icon}
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <SelectField
-                                                        name={`cat-${line.id}`}
-                                                        label="Catégorie"
-                                                        options={categoryOptions}
-                                                        value={line.category}
-                                                        onChange={(e) =>
-                                                            updateLine(
-                                                                line.id,
-                                                                'category',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        placeholder="Choisir une catégorie..."
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <IconButton
-                                                    icon="delete"
-                                                    variant="standard"
-                                                    aria-label="Supprimer la ligne budgétaire"
-                                                    onClick={() => removeLine(line.id)}
-                                                    className="text-on-surface-variant hover:text-error hover:bg-error-container mb-1 shrink-0"
-                                                />
-                                            </div>
-                                            <div className="flex items-end gap-3">
-                                                <div className="min-w-0 flex-1">
-                                                    <InputField
-                                                        label="Montant alloué"
-                                                        type="number"
-                                                        value={line.amount}
-                                                        onChange={(e) =>
-                                                            updateLine(
-                                                                line.id,
-                                                                'amount',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
-                                                        placeholder="0.00"
-                                                        prefix={
-                                                            settings.currency === 'USD'
-                                                                ? '$'
-                                                                : settings.currency === 'XOF'
-                                                                  ? 'XOF'
-                                                                  : '€'
-                                                        }
-                                                        className="bg-surface-container-low py-2 text-right font-mono font-bold"
-                                                    />
-                                                </div>
-                                                <div className="w-40 shrink-0">
-                                                    <SelectField
-                                                        name={`cap-${line.id}`}
-                                                        label="Immobilisation"
-                                                        options={CAPITALIZATION_OPTIONS}
-                                                        value={line.capitalization}
-                                                        onChange={(e) =>
-                                                            updateLine(
-                                                                line.id,
-                                                                'capitalization',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        placeholder="À renseigner"
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {budgetLines.length === 0 && (
-                                    <p className="text-on-surface-variant text-body-medium px-6 py-8 text-center italic">
-                                        Aucune ligne budgétaire.
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="text-body-medium w-full text-left">
-                                    <thead className="bg-surface-container text-on-surface-variant text-label-small font-bold tracking-widest uppercase">
-                                        <tr>
-                                            <th className="px-6 py-4">Catégorie</th>
-                                            <th className="w-48 px-6 py-4 text-right">
-                                                Montant Alloué
-                                            </th>
-                                            <th className="w-40 px-6 py-4 text-center">
-                                                Immobilisation
-                                            </th>
-                                            <th className="w-16 px-6 py-4"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-outline-variant bg-surface divide-y">
-                                        {budgetLines.map((line) => {
-                                            const details = getCategoryDetails(line.category);
-                                            return (
-                                                <tr
-                                                    key={line.id}
-                                                    className="hover:bg-surface-container/50 group transition-colors"
-                                                >
-                                                    <td className="px-6 py-3">
-                                                        <div className="flex w-full items-center gap-3">
-                                                            <div
-                                                                className={cn(
-                                                                    'shrink-0 rounded-lg p-2',
-                                                                    details.iconBg,
-                                                                )}
-                                                            >
-                                                                {details.icon}
-                                                            </div>
-                                                            <div className="min-w-[200px] flex-1">
-                                                                <SelectField
-                                                                    name={`cat-${line.id}`}
-                                                                    options={categoryOptions}
-                                                                    value={line.category}
-                                                                    onChange={(e) =>
-                                                                        updateLine(
-                                                                            line.id,
-                                                                            'category',
-                                                                            e.target.value,
-                                                                        )
-                                                                    }
-                                                                    placeholder="Choisir une catégorie..."
-                                                                    className="mb-0 h-auto w-full border-none bg-transparent px-0 py-0 hover:bg-transparent"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <div className="relative">
-                                                            <span className="text-on-surface-variant text-label-medium absolute top-1/2 left-3 -translate-y-1/2 font-bold">
-                                                                {settings.currency === 'USD'
-                                                                    ? '$'
-                                                                    : settings.currency === 'XOF'
-                                                                      ? 'XOF'
-                                                                      : '€'}
-                                                            </span>
-                                                            <InputField
-                                                                type="number"
-                                                                value={line.amount}
-                                                                onChange={(e) =>
-                                                                    updateLine(
-                                                                        line.id,
-                                                                        'amount',
-                                                                        e.target.value,
-                                                                    )
-                                                                }
-                                                                aria-label={`Montant pour ${line.category || 'la ligne budgétaire'}`}
-                                                                placeholder="0.00"
-                                                                className="bg-surface-container-low py-2 pr-4 pl-8 text-right font-mono font-bold"
-                                                            />
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-center">
-                                                        <SelectField
-                                                            name={`cap-${line.id}`}
-                                                            options={CAPITALIZATION_OPTIONS}
-                                                            value={line.capitalization}
-                                                            onChange={(e) =>
-                                                                updateLine(
-                                                                    line.id,
-                                                                    'capitalization',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                            placeholder="À renseigner"
-                                                            className="mb-0 w-full"
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right">
-                                                        <IconButton
-                                                            icon="delete"
-                                                            variant="standard"
-                                                            aria-label="Supprimer la ligne budgétaire"
-                                                            onClick={() => removeLine(line.id)}
-                                                            className={cn(
-                                                                'text-on-surface-variant hover:text-error hover:bg-error-container transition-opacity',
-                                                                isHoverCapable
-                                                                    ? 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'
-                                                                    : 'opacity-100',
-                                                            )}
-                                                            title="Supprimer la ligne"
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-
-                                        {budgetLines.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={4}
-                                                    className="text-on-surface-variant text-body-medium px-6 py-8 text-center italic"
-                                                >
-                                                    Aucune ligne budgétaire.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        <div className="border-outline-variant border-t p-2">
-                            <Button
-                                variant="outlined"
-                                size="sm"
-                                onClick={addLine}
-                                className="w-full border-dashed"
-                                icon={<Icon glyph={Plus} size={18} />}
-                            >
-                                Ajouter une ligne
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </Modal>
+        </FullScreenLayout>
     );
 };

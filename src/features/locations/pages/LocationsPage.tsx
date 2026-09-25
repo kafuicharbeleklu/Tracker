@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     ArrowLeft,
     CaretRight,
+    Hourglass,
     DoorOpen,
     FileCsv,
     GlobeHemisphereWest,
@@ -16,7 +17,9 @@ import Button from '../../../components/ui/Button';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
-import ListRow from '../../../components/ui/ListRow';
+import FactRow from '../../../components/ui/FactRow';
+import GlobePointille from '../components/GlobePointille';
+import { positionDuPays } from '../lib/paysCoordonnees';
 import ScreenState from '../../../components/ui/ScreenState';
 import SearchField from '../../../components/ui/SearchField';
 import SelectField from '../../../components/ui/SelectField';
@@ -110,6 +113,8 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     const { locationData, equipment, users, addLocation } = useData();
     const { showToast } = useToast();
     const isCompact = useMediaQuery(MEDIA.compact);
+    /* Les sites en grille de cartes au-delà de 840 (23/09). */
+    const enGrille = useMediaQuery(MEDIA.expandedUp);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -191,6 +196,27 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     );
 
     const isFiltered = Boolean(debouncedSearch);
+
+    /* **Le globe au bureau** (24/09, essai) : dès 1 280, la grille de cartes laissait le
+       tiers droit vide ; les pays passent sur un globe en pointillés, et le pays choisi
+       ouvre sa carte à côté. */
+    const avecGlobe = useMediaQuery(MEDIA.twoColumn);
+    const statsParPays = useMemo(
+        () =>
+            families.map(({ country, items, code }) => ({
+                country,
+                code,
+                items,
+                actifs: items.reduce((t, site) => t + site.assetCount, 0),
+                personnes: items.reduce((t, site) => t + site.userCount, 0),
+                position: positionDuPays(country),
+            })),
+        [families],
+    );
+    const [paysChoisi, setPaysChoisi] = useState<string | null>(null);
+    const paysAffiche =
+        statsParPays.find((pays) => pays.country === paysChoisi) ??
+        [...statsParPays].sort((a, b) => b.actifs - a.actifs)[0];
     const isReferentialEmpty = sites.length === 0 && locationData.countries.length === 0;
 
     /* Le parent possible du nouvel emplacement : un pays pour un site, un site pour
@@ -260,24 +286,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             placeholder="Site, local, pays"
             className={isCompact ? undefined : 'w-[320px] max-w-full'}
         />
-    );
-
-    /**
-     * `.ord` — **le cinquième slot de 17.8, dans le bloc fixe.** Deux faits, un de
-     * chaque côté, à 12 sur 16. Il vivait dans le contenu, donc il défilait : tout ce
-     * qui restreint la liste vit dans l'en-tête ou dans sa feuille, jamais dans le
-     * contenu.
-     */
-    const ordLine = (
-        <Reading className="text-text-secondary flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
-            <span className="truncate tabular-nums">
-                {sites.length} site{sites.length > 1 ? 's' : ''} · {locationData.countries.length}{' '}
-                pays
-            </span>
-            <span className="shrink-0 tabular-nums">
-                {localisedAssets} actif{localisedAssets > 1 ? 's' : ''}
-            </span>
-        </Reading>
     );
 
     return (
@@ -424,19 +432,33 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={ArrowLeft} size={24} />
                             </Button>
                         )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
+                        {/* **Le compte à côté du titre, plus de ligne de service** (24/09) — la
+                            règle des listes du 23/09 : « 4 sites » monte en 12 à droite du
+                            titre ; les pays se lisent dans les en-têtes de groupe, les actifs
+                            dans chaque rangée. */}
+                        {!isReferentialEmpty && (
+                            <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.75rem] leading-4 tabular-nums">
+                                {sites.length} site{sites.length > 1 ? 's' : ''}
+                            </span>
+                        )}
                     </div>
                     {!isReferentialEmpty && searchField}
-                    {!isReferentialEmpty && ordLine}
                 </div>
             ) : (
                 <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-3 pt-5">
                     <div className="flex items-center gap-3">
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
+                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
+                        {/* Le compte à côté du titre, comme toutes les listes (24/09) : la
+                            ligne de service sous la recherche est retirée au bureau. */}
+                        <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
+                            {!isReferentialEmpty &&
+                                `${sites.length} site${sites.length > 1 ? 's' : ''} · ${locationData.countries.length} pays · ${localisedAssets} actif${localisedAssets > 1 ? 's' : ''}`}
+                        </span>
                         <Button
                             variant="outlined"
                             icon={<Icon glyph={UploadSimple} size={20} />}
@@ -455,7 +477,6 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                         </Button>
                     </div>
                     {!isReferentialEmpty && <Reading>{searchField}</Reading>}
-                    {!isReferentialEmpty && ordLine}
                 </div>
             )}
             {/* `.page` — gouttière de 16, et 96 px de pied quand le FAB est là. */}
@@ -502,7 +523,134 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 : cn(CADRE_BUREAU, 'expanded:flex-1 expanded:justify-center'),
                         )}
                     >
-                        {visibleSites.length > 0 ? (
+                        {visibleSites.length > 0 && avecGlobe && paysAffiche ? (
+                            <div className="grid grid-cols-12 items-start gap-4">
+                                {/* **Le globe, sans carte autour** (24/09) : la sphère porte sa
+                                    propre nuit et flotte sur la page ; « Vue d'ensemble » se pose
+                                    sur elle quand un pays est choisi. */}
+                                <div className="col-span-7 flex flex-col gap-3">
+                                    <div className="relative">
+                                        <GlobePointille
+                                            className="mx-auto max-w-[34rem]"
+                                            noeuds={statsParPays.flatMap((pays) =>
+                                                pays.position
+                                                    ? [
+                                                          {
+                                                              id: pays.country,
+                                                              label: pays.country,
+                                                              lat: pays.position[0],
+                                                              lng: pays.position[1],
+                                                              poids: pays.actifs,
+                                                              detail: `${pays.actifs} actif${pays.actifs > 1 ? 's' : ''}`,
+                                                          },
+                                                      ]
+                                                    : [],
+                                            )}
+                                            /* Rien de choisi : la vue d'ensemble ; un choix
+                                               fait pivoter et approcher le globe. */
+                                            selection={paysChoisi}
+                                            onSelect={setPaysChoisi}
+                                        />
+                                        {paysChoisi && (
+                                            <Button
+                                                variant="text"
+                                                size="sm"
+                                                onClick={() => setPaysChoisi(null)}
+                                                icon={
+                                                    <Icon glyph={GlobeHemisphereWest} size={18} />
+                                                }
+                                                className="bg-surface text-on-surface hover:bg-surface-container absolute top-2 right-2 rounded-md px-2.5 shadow-[0_2px_8px_rgba(10,25,29,0.18)]"
+                                            >
+                                                Vue d’ensemble
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-text-muted px-1 text-center text-[0.75rem] leading-4">
+                                        La taille d’un point suit le nombre d’actifs · faites
+                                        tourner le globe, choisissez un pays.
+                                        {statsParPays.some((pays) => !pays.position) &&
+                                            ` Nom non reconnu, donc non placé : ${statsParPays
+                                                .filter((pays) => !pays.position)
+                                                .map((pays) => pays.country)
+                                                .join(', ')}.`}
+                                    </p>
+                                </div>
+
+                                <div className="col-span-5 flex flex-col gap-4">
+                                    <section className="rounded-card bg-surface px-4 py-1">
+                                        <div className="flex min-h-12 items-center justify-between pt-2 pb-1">
+                                            <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                                Les pays
+                                            </h3>
+                                            <span className="text-text-secondary text-ts-sub leading-ts-sub tabular-nums">
+                                                {statsParPays.length}
+                                            </span>
+                                        </div>
+                                        {statsParPays.map((pays) => (
+                                            <FactRow
+                                                key={pays.country}
+                                                vignetteText={pays.code || undefined}
+                                                glyph={pays.code ? undefined : GlobeHemisphereWest}
+                                                tint={
+                                                    pays.country === paysAffiche.country
+                                                        ? 'ambre'
+                                                        : undefined
+                                                }
+                                                title={pays.country}
+                                                subtitle={`${pays.items.length} site${pays.items.length > 1 ? 's' : ''} · ${pays.personnes} personne${pays.personnes > 1 ? 's' : ''}`}
+                                                figure={{
+                                                    value: pays.actifs,
+                                                    unit: pays.actifs > 1 ? 'actifs' : 'actif',
+                                                }}
+                                                onOpen={() => setPaysChoisi(pays.country)}
+                                                className={cn(
+                                                    pays.country === paysAffiche.country &&
+                                                        'bg-surface-container',
+                                                )}
+                                            />
+                                        ))}
+                                    </section>
+
+                                    <section className="rounded-card bg-surface px-4 py-1">
+                                        <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                                            <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 truncate font-medium">
+                                                {paysAffiche.country}
+                                            </h3>
+                                            <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                                                {paysAffiche.items.length} site
+                                                {paysAffiche.items.length > 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        {paysAffiche.items.map((site) => (
+                                            <FactRow
+                                                key={site.name}
+                                                glyph={site.neverServed ? Hourglass : MapPin}
+                                                tint={site.neverServed ? undefined : 'ambre'}
+                                                muted={site.neverServed}
+                                                title={site.name}
+                                                subtitle={
+                                                    site.neverServed
+                                                        ? 'Jamais servi'
+                                                        : `${site.userCount} personne${site.userCount > 1 ? 's' : ''}${site.locals.length > 0 ? ` · ${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}` : ''}`
+                                                }
+                                                figure={
+                                                    site.neverServed
+                                                        ? undefined
+                                                        : {
+                                                              value: site.assetCount,
+                                                              unit:
+                                                                  site.assetCount > 1
+                                                                      ? 'actifs'
+                                                                      : 'actif',
+                                                          }
+                                                }
+                                                onOpen={() => onSiteClick?.(site.name)}
+                                            />
+                                        ))}
+                                    </section>
+                                </div>
+                            </div>
+                        ) : visibleSites.length > 0 ? (
                             families.map(({ country, items, code, tint }) => (
                                 /* `.fam` — l'en-tête coiffe la carte sans être dedans
                                    (§2.36), et n'en est séparé que de 8. */
@@ -535,62 +683,157 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                             {items.length} site{items.length > 1 ? 's' : ''}
                                         </span>
                                     </div>
-                                    <div className="rounded-card bg-surface px-4 py-1">
-                                        {items.map((site) => (
-                                            <ListRow
-                                                key={site.name}
-                                                vignette={
-                                                    /* `.lrow.mute` éteint aussi la vignette :
-                                                       un site qui n'a jamais servi se lit
-                                                       d'un coup d'œil, sans qu'on ait à
-                                                       chercher le mot. */
-                                                    <span
-                                                        className={
-                                                            site.neverServed
-                                                                ? 'text-text-muted'
-                                                                : undefined
-                                                        }
+                                    {enGrille ? (
+                                        /*
+                                          **Au bureau, un site est une carte** (23/09). Les rangées
+                                          de 64 couraient sur 1 008 px pour porter un nom et deux
+                                          chiffres : le nom à gauche, le vide au milieu. Les sites
+                                          se rangent par trois (deux en deçà de 1 200), chacun sa
+                                          carte : le nom, puis ce qu'il porte et qui y est, en
+                                          chiffres qu'on compare d'une carte à l'autre. Un site
+                                          qui n'a jamais servi s'éteint et le dit en ambre.
+                                        */
+                                        <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                            {items.map((site) => (
+                                                <li key={site.name}>
+                                                    {/* **La carte d'un site, en deux étages** (24/09) :
+                                                        le nom et le chevron, puis un filet et deux
+                                                        cases égales — le mot au-dessus, le nombre en
+                                                        22 dessous. Les deux chiffres se serraient à
+                                                        gauche sous le nom, en 17, avec leur mot en
+                                                        12 collé dessous : on lisait « 8 8 ». */}
+                                                    <Button
+                                                        variant="text"
+                                                        onClick={() => onSiteClick?.(site.name)}
+                                                        className="rounded-card bg-surface hover:bg-surface-container h-full w-full flex-col items-stretch justify-start gap-0 p-0 text-left font-normal whitespace-normal"
                                                     >
-                                                        <Icon glyph={MapPin} size={20} />
-                                                    </span>
-                                                }
-                                                title={
-                                                    site.neverServed ? (
-                                                        <span className="text-text-secondary">
-                                                            {site.name}
+                                                        <span className="flex min-h-16 items-center gap-3 px-4 py-3">
+                                                            <span
+                                                                className={cn(
+                                                                    'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
+                                                                    site.neverServed
+                                                                        ? 'bg-surface-container text-text-muted'
+                                                                        : 'bg-tint-ambre text-on-tint-ambre',
+                                                                )}
+                                                            >
+                                                                <Icon glyph={MapPin} size={20} />
+                                                            </span>
+                                                            <span
+                                                                className={cn(
+                                                                    'text-ts-body leading-ts-body min-w-0 flex-1 truncate font-medium',
+                                                                    site.neverServed
+                                                                        ? 'text-text-secondary'
+                                                                        : 'text-on-surface',
+                                                                )}
+                                                            >
+                                                                {site.name}
+                                                            </span>
+                                                            <Icon
+                                                                glyph={CaretRight}
+                                                                size={20}
+                                                                className="text-text-tertiary shrink-0"
+                                                            />
                                                         </span>
-                                                    ) : (
-                                                        site.name
-                                                    )
-                                                }
-                                                /* Une seule sous-ligne, et elle porte tous les
-                                                   chiffres du site : la planche a vidé la droite
-                                                   de la rangée pour n'y laisser que le chevron.
-                                                   Un site qui n'a jamais servi le dit là, en
-                                                   ambre — pas par une pastille d'état, que la
-                                                   planche ne dessine plus. */
-                                                holder={
-                                                    site.neverServed ? (
-                                                        <b className="font-medium text-[var(--tk-color-on-tint-ambre)]">
-                                                            Jamais servi
-                                                        </b>
-                                                    ) : (
-                                                        /* **Deux chiffres, pas trois** (22/09) :
-                                                           le compte des locaux quitte la rangée,
-                                                           comme les locaux eux-mêmes l'ont quittée
-                                                           — ils vivent dans la fiche du site, qui
-                                                           les liste. Restent ce qui décide d'un
-                                                           site : ce qu'il porte, et qui y est. */
-                                                        [
-                                                            `${site.assetCount} actif${site.assetCount > 1 ? 's' : ''}`,
-                                                            `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
-                                                        ].join(' · ')
-                                                    )
-                                                }
-                                                onOpen={() => onSiteClick?.(site.name)}
-                                            />
-                                        ))}
-                                    </div>
+                                                        {site.neverServed ? (
+                                                            <span className="border-outline-variant text-ts-sub leading-ts-sub flex min-h-[4.25rem] items-center gap-2 border-t px-4 text-[var(--tk-color-on-tint-ambre)]">
+                                                                <Icon
+                                                                    glyph={Hourglass}
+                                                                    size={18}
+                                                                    className="shrink-0"
+                                                                />
+                                                                <b className="font-medium">
+                                                                    Jamais servi
+                                                                </b>
+                                                                <span className="text-text-tertiary">
+                                                                    · aucun actif, personne
+                                                                </span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="border-outline-variant divide-outline-variant grid grid-cols-2 divide-x border-t">
+                                                                {[
+                                                                    {
+                                                                        cle: 'actifs',
+                                                                        n: site.assetCount,
+                                                                        mot: 'Actifs',
+                                                                    },
+                                                                    {
+                                                                        cle: 'personnes',
+                                                                        n: site.userCount,
+                                                                        mot: 'Personnes',
+                                                                    },
+                                                                ].map((chiffre) => (
+                                                                    <span
+                                                                        key={chiffre.cle}
+                                                                        className="flex flex-col gap-1 px-4 py-3"
+                                                                    >
+                                                                        <span className="text-on-surface-variant text-[0.75rem] leading-4">
+                                                                            {chiffre.mot}
+                                                                        </span>
+                                                                        <span
+                                                                            className={cn(
+                                                                                'font-brand text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums',
+                                                                                chiffre.n === 0
+                                                                                    ? 'text-text-tertiary'
+                                                                                    : 'text-on-surface',
+                                                                            )}
+                                                                        >
+                                                                            {chiffre.n}
+                                                                        </span>
+                                                                    </span>
+                                                                ))}
+                                                            </span>
+                                                        )}
+                                                    </Button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        /* **La rangée à chiffre** (24/09) : les actifs à
+                                           droite, en chiffre qu'on compare d'un site à
+                                           l'autre ; les personnes et les locaux en fait
+                                           dessous. « 8 actifs · 8 personnes » se lisait,
+                                           ne se comparait pas. Un site jamais servi
+                                           s'éteint et le dit en ambre. */
+                                        <div className="rounded-card bg-surface px-4 py-1">
+                                            {items.map((site) => (
+                                                <FactRow
+                                                    key={site.name}
+                                                    glyph={site.neverServed ? Hourglass : MapPin}
+                                                    tint={site.neverServed ? undefined : 'ambre'}
+                                                    muted={site.neverServed}
+                                                    title={site.name}
+                                                    subtitle={
+                                                        site.neverServed ? (
+                                                            <b className="font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                                Jamais servi
+                                                            </b>
+                                                        ) : (
+                                                            [
+                                                                `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
+                                                                site.locals.length > 0
+                                                                    ? `${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}`
+                                                                    : null,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(' · ')
+                                                        )
+                                                    }
+                                                    figure={
+                                                        site.neverServed
+                                                            ? undefined
+                                                            : {
+                                                                  value: site.assetCount,
+                                                                  unit:
+                                                                      site.assetCount > 1
+                                                                          ? 'actifs'
+                                                                          : 'actif',
+                                                              }
+                                                    }
+                                                    onOpen={() => onSiteClick?.(site.name)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </section>
                             ))
                         ) : (

@@ -41,6 +41,7 @@ import BulkOverflow from '../../../components/ui/BulkOverflow';
 import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/businessRules';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
+import { presentationEtat } from '../reparation';
 import { buildCsvLine } from '../../../lib/csv';
 import { cn } from '../../../lib/utils';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
@@ -616,12 +617,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
                        parce qu'on l'a mis dans une colonne. */
-                    const etat = getStatusPresentation(
-                        getDisplayedEquipmentStatus({
-                            status: item.status,
-                            assignmentStatus: item.assignmentStatus,
-                        }),
-                    );
+                    /* L'étape de réparation prime (24/09). */
+                    const etat = item.repair
+                        ? presentationEtat(item)
+                        : getStatusPresentation(
+                              getDisplayedEquipmentStatus({
+                                  status: item.status,
+                                  assignmentStatus: item.assignmentStatus,
+                              }),
+                          );
                     return (
                         <span className="flex min-w-0 items-center gap-1.5">
                             <Icon
@@ -1114,12 +1118,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             }
 
                             // Vue Gestionnaire (Colonnes 2 et 4)
-                            const status = getStatusPresentation(
-                                getDisplayedEquipmentStatus({
-                                    status: item.status,
-                                    assignmentStatus: item.assignmentStatus,
-                                }),
-                            );
+                            const status = item.repair
+                                ? presentationEtat(item)
+                                : getStatusPresentation(
+                                      getDisplayedEquipmentStatus({
+                                          status: item.status,
+                                          assignmentStatus: item.assignmentStatus,
+                                      }),
+                                  );
 
                             /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
                        « Disponible » sous le code d'un actif libre — pas son site :

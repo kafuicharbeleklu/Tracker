@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
+import { cn } from '../../../lib/utils';
 import { EnvelopeSimple, LockSimple } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
@@ -309,9 +311,15 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
             onSave={handleSubmit}
             saveLabel="Enregistrer"
             submitButtonLocation="header"
+            mesure="double"
             className="bg-background"
         >
-            <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+            <div
+                className={cn(
+                    'large:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
+                    COLONNES_FORMULAIRE,
+                )}
+            >
                 {/* ── Identité ─────────────────────────────────────────────────── */}
                 <FormSection title="Identité">
                     <div>

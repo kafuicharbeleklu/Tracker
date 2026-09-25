@@ -671,12 +671,12 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
 
     const heroAction = isSuspended ? (
         <Button variant="filled" onClick={handleReactivate} className={primaryButtonClass}>
-            <Icon glyph={ArrowCounterClockwise} size={18} />
+            <Icon glyph={ArrowCounterClockwise} size={20} />
             Réactiver le compte
         </Button>
     ) : departure && held > 0 ? (
         <Button variant="filled" onClick={openRestitution} className={primaryButtonClass}>
-            <Icon glyph={SignOut} size={18} />
+            <Icon glyph={SignOut} size={20} />
             Organiser la restitution
         </Button>
     ) : (
@@ -685,7 +685,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             onClick={() => go(`/wizards/assignment?userId=${encodeURIComponent(user.id)}`)}
             className={primaryButtonClass}
         >
-            <Icon glyph={Plus} size={18} />
+            <Icon glyph={Plus} size={20} />
             {/* Deux gestes sur une ligne : le libellé long déborde le demi-bouton à
                 393 px. Le sujet est déjà nommé par le héro qui le surmonte. */}
             {isInvited ? 'Attribuer' : 'Attribuer un équipement'}
@@ -701,7 +701,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 onClick={handleResendInvitation}
                 className="w-full !bg-white/12 !text-[var(--tk-color-inverse-on-surface)] hover:!bg-white/20"
             >
-                <Icon glyph={PaperPlaneTilt} size={18} />
+                <Icon glyph={PaperPlaneTilt} size={20} />
                 Renvoyer
             </Button>
         ) : undefined;
@@ -857,7 +857,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     items={menuItems}
                     trigger={
                         <Button variant="text" iconOnly aria-label="Options de la personne">
-                            <Icon glyph={DotsThreeVertical} />
+                            <Icon glyph={DotsThreeVertical} size="geste" />
                         </Button>
                     }
                 />
@@ -960,8 +960,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     key={evt.id}
                                     className={`flex min-h-[56px] items-center gap-3 px-4 py-2.5 ${i > 0 ? 'border-outline-variant border-t' : ''}`}
                                 >
-                                    <span className="bg-surface-container text-text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                                        <Icon glyph={EvIcon} size={18} />
+                                    <span className="bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                                        <Icon glyph={EvIcon} size={20} />
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-label-large text-on-surface truncate">

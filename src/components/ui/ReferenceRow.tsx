@@ -82,7 +82,7 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                     className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring text-ts-body leading-ts-body -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 font-normal outline-none focus-visible:ring-2"
                 >
                     <span className="tabular-nums">{value}</span>
-                    <Icon glyph={Copy} size={18} className="text-on-surface-variant" />
+                    <Icon glyph={Copy} size={20} className="text-on-surface-variant" />
                     <span className="sr-only">{copied ? 'Copié' : 'Copier'}</span>
                 </button>
             ) : (

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CaretLeft, DotsThreeVertical, SidebarSimple } from '@phosphor-icons/react';
+import { CaretLeft, CaretUpDown, SidebarSimple } from '@phosphor-icons/react';
 
 import { cn } from '../../lib/utils';
 import { ViewType } from '../../types';
@@ -224,8 +224,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                   03.1 et 05.1 disaient déjà cela.
 
                   Elle tient la **fenêtre** : c'est le corps qui défile sous elle.
+
+                  **`z-30`, parce que `sticky` isole** (24/09). Un élément collant crée son
+                  propre contexte d'empilement : le `z-50` du menu du compte ne valait
+                  qu'à l'intérieur de la barre, et le contenu principal, peint après, le
+                  recouvrait — barre repliée, on n'en voyait que les 64 px qui dépassent.
+                  Au-dessus des en-têtes collants du contenu (`z-20`), sous les feuilles
+                  et dialogues (`z-[100]`).
                 */
-                'bg-surface sticky top-0 flex h-screen shrink-0 flex-col py-4',
+                'bg-surface sticky top-0 z-30 flex h-screen shrink-0 flex-col py-4',
                 /* Repliée : 64, les carrés de 40 et 12 de chaque côté. */
                 isCollapsed ? 'w-16 px-3' : 'w-[240px] px-3',
                 className,
@@ -296,7 +303,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={cn(
                     /* `.sfoot` — `margin-top:auto`, gouttière 10, `12 4 0`. **Pas de
                        filet** : 17.11 n'en dessine aucun au bord de la barre. */
-                    'mt-auto flex items-center gap-2.5 px-1 pt-3',
+                    'mt-auto flex items-center gap-2.5 pt-3',
                     isCollapsed ? 'justify-center' : 'px-1',
                 )}
             >
@@ -310,6 +317,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <Menu
                         align="start"
                         placement="top"
+                        floating
                         title={compte.legende}
                         items={compte.items}
                         trigger={
@@ -317,43 +325,50 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 variant="text"
                                 iconOnly
                                 aria-label={`Compte — ${compte.nom}`}
-                                className="h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white shadow-none hover:opacity-90"
+                                className="h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white shadow-none hover:bg-[var(--tk-color-inverse-surface)] hover:opacity-90"
                             >
                                 {compte.initiales}
                             </Button>
                         }
                     />
                 ) : (
-                    <>
-                        {/* `.av` — Inter 12 en 500 : l'Archivo est la voix du produit, pas celle des initiales (17.11). */}
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white">
-                            {compte.initiales}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block truncate text-[0.8125rem] leading-4">
-                                {compte.nom}
-                            </span>
-                            <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
-                                {compte.role}
-                            </span>
-                        </span>
-                        <Menu
-                            align="end"
-                            placement="top"
-                            title={compte.legende}
-                            items={compte.items}
-                            trigger={
-                                <Button
-                                    variant="text"
-                                    iconOnly
-                                    aria-label={`Compte — ${compte.nom}`}
-                                    className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 w-10 shrink-0 rounded-md shadow-none"
-                                >
-                                    <Icon glyph={DotsThreeVertical} size={20} />
-                                </Button>
-                            }
-                        />
-                    </>
+                    /* **Toute la rangée ouvre le menu** (24/09) : la personne — pastille, nom,
+                       rôle — est le déclencheur, plus un ⋮ de 40 posé à côté. Le menu part du
+                       bord gauche de la rangée et s'ouvre au-dessus. */
+                    <Menu
+                        align="start"
+                        placement="top"
+                        floating
+                        rootClassName="min-w-0 flex-1"
+                        title={compte.legende}
+                        items={compte.items}
+                        trigger={
+                            <Button
+                                variant="text"
+                                layout="card"
+                                aria-label={`Compte — ${compte.nom}`}
+                                className="hover:bg-surface-container flex h-auto min-h-12 w-full min-w-0 items-center justify-start gap-2.5 rounded-md px-2 py-2 text-left font-normal shadow-none"
+                            >
+                                {/* `.av` — Inter 12 en 500 : l'Archivo est la voix du produit, pas celle des initiales (17.11). */}
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white">
+                                    {compte.initiales}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                    <span className="text-on-surface block truncate text-[0.8125rem] leading-4">
+                                        {compte.nom}
+                                    </span>
+                                    <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
+                                        {compte.role}
+                                    </span>
+                                </span>
+                                <Icon
+                                    glyph={CaretUpDown}
+                                    size={18}
+                                    className="text-text-tertiary shrink-0"
+                                />
+                            </Button>
+                        }
+                    />
                 )}
             </div>
         </aside>

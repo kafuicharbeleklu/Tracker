@@ -15,6 +15,7 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import { Consequences, FieldLabel, FormWarn, SubjectRow } from '../../../components/ui/FormParts';
+import RepairFileField from './RepairFileField';
 import type { Equipment } from '../../../types';
 
 /**
@@ -59,11 +60,19 @@ interface TakeChargeSheetProps {
      * nom du modèle, alors que la planche dit « le constructeur ».
      */
     brandName?: string;
+    /** Le seuil au-delà duquel le devis part à la Finance, et la devise des réglages. */
+    seuil: number;
+    devise: string;
+    /** Ce qui reste sur la ligne Maintenance de l'exercice — null si la ligne n'existe pas. */
+    resteLigne: number | null;
+    formatMontant: (valeur: number) => string;
     onConfirm: (valeurs: {
         repairer: string;
-        repairExpectedReturn: string;
-        repairCost?: number;
-        repairTicket?: string;
+        underWarranty: boolean;
+        expectedReturn: string;
+        ticket?: string;
+        quote?: { amount: number; file: File };
+        pickupSlip?: File;
     }) => void;
 }
 
@@ -91,11 +100,20 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
     holderName,
     siteName,
     brandName,
+    seuil,
+    devise,
+    resteLigne,
+    formatMontant,
     onConfirm,
 }) => {
     const [retour, setRetour] = useState(dansDixJours);
     const [montant, setMontant] = useState('');
     const [dossier, setDossier] = useState('');
+    /* Hors garantie, **le prestataire se nomme** (24/09) : l'atelier du site était déduit,
+       alors que la réparation part le plus souvent chez un tiers, et c'est son devis. */
+    const [prestataire, setPrestataire] = useState('');
+    const [devis, setDevis] = useState<File | null>(null);
+    const [bon, setBon] = useState<File | null>(null);
 
     /* Le seul fait qui décide de tout le reste. Sans date de fin déclarée, on ne peut
        pas affirmer que l'objet est couvert : l'écran suppose alors qu'il ne l'est pas,
@@ -107,37 +125,56 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
         return !Number.isNaN(fin.getTime()) && fin.getTime() > Date.now();
     }, [item.warrantyEnd]);
 
-    /* Le réparateur se déduit, il ne se saisit pas (04.4). */
+    /* Sous garantie, le réparateur se déduit (04.4) ; hors garantie, il se nomme. */
     const reparateur = sousGarantie
         ? brandName || item.model || 'Le constructeur'
-        : `Atelier informatique${siteName ? ` · ${siteName}` : ''}`;
+        : prestataire.trim();
 
-    const cout = Number(montant.replace(/\s/g, '').replace(',', '.'));
+    const cout = Number(montant.replace(/[\s\u202f\u00a0]/g, '').replace(',', '.'));
     const coutValide = Number.isFinite(cout) && cout > 0;
+    const aLaFinance = !sousGarantie && coutValide && cout > seuil;
+    const pret =
+        Boolean(retour) && (sousGarantie || (Boolean(reparateur) && coutValide && Boolean(devis)));
 
+    const reste = resteLigne !== null && coutValide ? resteLigne - cout : null;
     const consequences = [
         holderName
             ? {
                   tint: 'bleu' as const,
                   glyph: User,
-                  content: `${holderName} est prévenu du départ de son poste.`,
+                  content: `Il reviendra à ${holderName} après réparation.`,
               }
-            : { tint: 'bleu' as const, glyph: User, content: "L'objet quitte son emplacement." },
-        {
-            tint: 'ambre' as const,
-            glyph: Wrench,
-            content: 'Un remplacement est proposé à l’écran suivant.',
-        },
+            : { tint: 'bleu' as const, glyph: User, content: 'Il reviendra au stock.' },
         ...(sousGarantie
-            ? []
+            ? [
+                  {
+                      tint: 'vert' as const,
+                      glyph: Wrench,
+                      content: 'Il part chez le constructeur, sans frais.',
+                  },
+              ]
             : [
                   {
-                      tint: 'orange' as const,
+                      tint: aLaFinance ? ('ambre' as const) : ('vert' as const),
                       glyph: Coins,
-                      content: coutValide
-                          ? `${cout.toLocaleString('fr-FR')} XOF partent en validation avant la réparation.`
-                          : 'Le montant part en validation avant la réparation.',
+                      content: !coutValide
+                          ? `Au-delà de ${formatMontant(seuil)} ${devise}, le devis part à la Finance.`
+                          : aLaFinance
+                            ? `Au-delà de ${formatMontant(seuil)} ${devise} : la Finance valide avant l'envoi.`
+                            : `Sous ${formatMontant(seuil)} ${devise} : vous validez, il part chez ${reparateur || 'le prestataire'}.`,
                   },
+                  ...(reste !== null
+                      ? [
+                            {
+                                tint: reste < 0 ? ('orange' as const) : ('bleu' as const),
+                                glyph: Coins,
+                                content:
+                                    reste < 0
+                                        ? `La ligne Maintenance dépassera de ${formatMontant(-reste)} ${devise}.`
+                                        : `Il restera ${formatMontant(reste)} ${devise} sur la ligne Maintenance.`,
+                            },
+                        ]
+                      : []),
               ]),
     ];
 
@@ -145,6 +182,9 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
         setRetour(dansDixJours());
         setMontant('');
         setDossier('');
+        setPrestataire('');
+        setDevis(null);
+        setBon(null);
         onClose();
     };
 
@@ -182,23 +222,34 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
                     </FormWarn>
                 )}
 
-                <div>
-                    <FieldLabel>Qui répare</FieldLabel>
-                    {/* Déduit de la garantie : la planche ne le fait pas choisir. */}
-                    <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
-                        <span className="bg-surface text-text-tertiary flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                            <Icon glyph={Buildings} size={20} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                            <span className="text-ts-body leading-ts-body block truncate font-medium">
-                                {reparateur}
+                {sousGarantie ? (
+                    <div>
+                        <FieldLabel>Qui répare</FieldLabel>
+                        {/* Déduit de la garantie : la planche ne le fait pas choisir. */}
+                        <div className="bg-surface-container flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
+                            <span className="bg-surface text-text-tertiary flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                <Icon glyph={Buildings} size={20} />
                             </span>
-                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                {sousGarantie ? 'enlèvement sur site' : 'interne'}
+                            <span className="min-w-0 flex-1">
+                                <span className="text-ts-body leading-ts-body block truncate font-medium">
+                                    {reparateur}
+                                </span>
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                    enlèvement sur site
+                                </span>
                             </span>
-                        </span>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <InputField
+                        label="Prestataire"
+                        name="prestataire"
+                        value={prestataire}
+                        onChange={(event) => setPrestataire(event.target.value)}
+                        placeholder={`Atelier informatique${siteName ? ` · ${siteName}` : ''}, ou un tiers`}
+                        required
+                    />
+                )}
 
                 <div className="flex gap-3">
                     <div className="min-w-0 flex-1">
@@ -211,23 +262,40 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
                         />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <FieldLabel>{sousGarantie ? 'Coût' : 'Montant estimé'}</FieldLabel>
+                        <FieldLabel>{sousGarantie ? 'Coût' : 'Montant du devis'}</FieldLabel>
                         {sousGarantie ? (
                             <p className="bg-surface-container text-text-tertiary text-ts-body leading-ts-body flex min-h-12 items-center rounded-[4px] px-3.5">
                                 pris en charge
                             </p>
                         ) : (
                             <InputField
-                                mesure="courte"
                                 inputMode="numeric"
                                 value={montant}
                                 onChange={(event) => setMontant(event.target.value)}
                                 placeholder="0"
-                                suffix="XOF"
+                                suffix={devise}
+                                className="tabular-nums"
                             />
                         )}
                     </div>
                 </div>
+
+                {!sousGarantie && (
+                    <RepairFileField
+                        label="Le devis"
+                        appel="Joindre le devis"
+                        file={devis}
+                        onChange={setDevis}
+                        manquant={coutValide && !devis}
+                    />
+                )}
+                <RepairFileField
+                    label="Bon d'enlèvement"
+                    note="facultatif"
+                    appel="Joindre le bon du prestataire"
+                    file={bon}
+                    onChange={setBon}
+                />
 
                 <div>
                     <FieldLabel note="facultatif">Dossier du réparateur</FieldLabel>
@@ -246,19 +314,24 @@ const TakeChargeSheet: React.FC<TakeChargeSheetProps> = ({
                     </Button>
                     <Button
                         variant="filled"
-                        disabled={!retour || (!sousGarantie && !coutValide)}
+                        disabled={!pret}
                         onClick={() => {
                             onConfirm({
                                 repairer: reparateur,
-                                repairExpectedReturn: new Date(retour).toISOString(),
-                                repairCost: sousGarantie ? undefined : cout,
-                                repairTicket: dossier.trim() || undefined,
+                                underWarranty: sousGarantie,
+                                expectedReturn: new Date(retour).toISOString(),
+                                ticket: dossier.trim() || undefined,
+                                quote:
+                                    !sousGarantie && devis
+                                        ? { amount: cout, file: devis }
+                                        : undefined,
+                                pickupSlip: bon ?? undefined,
                             });
                             fermer();
                         }}
                     >
                         {/* Le pied nomme ce qui va réellement se passer. */}
-                        {sousGarantie ? 'Prendre en charge' : 'Demander la validation'}
+                        {aLaFinance ? 'Envoyer à la Finance' : 'Envoyer en réparation'}
                     </Button>
                 </div>
             </div>

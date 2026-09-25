@@ -302,7 +302,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 className={
                     onDark
                         ? 'medium:flex relative mt-7 hidden w-full max-w-[440px] flex-col items-center gap-3'
-                        : 'medium:hidden mt-auto pt-5'
+                        : 'medium:hidden mt-6'
                 }
             >
                 <div
@@ -399,7 +399,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         {/* Au bureau, la carte porte son titre : le bloc de marque au-dessus
                             dit « Tracker », la carte dit ce qu'on y fait. Le téléphone n'en a
                             pas besoin — le bandeau touche le formulaire. */}
-                        <h2 className="font-brand medium:block text-ts-sheet leading-ts-sheet mb-6 hidden font-semibold tracking-[-0.015em]">
+                        <h2 className="font-brand text-ts-sheet leading-ts-sheet mb-6 font-semibold tracking-[-0.015em]">
                             Connexion
                         </h2>
                         {/*
@@ -490,9 +490,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 variant="text"
                                 onClick={openForgotPassword}
                                 disabled={isLoading}
-                                className={cn(LINK_CLASSES, 'mt-0.5 mb-7 self-start')}
+                                /* À droite sous le mot de passe, sans soulignement : un
+                                   renvoi discret, pas un second geste (24/09). */
+                                className={cn(
+                                    LINK_CLASSES,
+                                    'text-on-surface-variant hover:text-on-surface -mt-1.5 mb-6 self-end no-underline',
+                                )}
                             >
-                                Mot de passe oublié
+                                Mot de passe oublié ?
                             </Button>
 
                             <Button

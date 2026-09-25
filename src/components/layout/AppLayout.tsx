@@ -33,6 +33,7 @@ const FinanceManagementPage = lazy(
 );
 const ExpenseJournalPage = lazy(() => import('../../features/finance/pages/ExpenseJournalPage'));
 const BudgetLinesPage = lazy(() => import('../../features/finance/pages/BudgetLinesPage'));
+const ExercisesPage = lazy(() => import('../../features/finance/pages/ExercisesPage'));
 const ManagementPage = lazy(() => import('../../features/management/pages/ManagementPage'));
 const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
@@ -351,6 +352,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'rbac',
         'finance_expenses',
         'finance_lines',
+        'finance_exercises',
         /* Emplacements et la fiche d'un site portent la barre de 04.1 et celle de la
            fiche : la barre du haut redirait la destination une ligne plus bas. */
         'locations',
@@ -425,6 +427,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return 'Journal des dépenses';
             case 'finance_lines':
                 return 'Lignes du budget';
+            case 'finance_exercises':
+                return 'Exercices';
             case 'management':
                 return DESTINATIONS.management.label;
             case 'add_category':
@@ -497,6 +501,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             }
             /* Ajuster les enveloppes écrit : la lecture seule ne suffit pas. */
             if (view === 'finance_lines') return permissions.canManageFinance;
+            if (view === 'finance_exercises') {
+                return permissions.canViewFinance || permissions.canManageFinance;
+            }
             if (
                 view === 'management' ||
                 view === 'rbac' ||
@@ -608,7 +615,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 );
             case 'add_user':
-                return <AddUserPage onCancel={() => goBack()} onSave={() => goBack()} />;
+                /* Créer un compte, c'est inviter (05.3) : la liste, et sa feuille ouverte. */
+                return (
+                    <UsersPage
+                        key="inviter"
+                        onViewChange={handleViewChange}
+                        onUserClick={(id) => handleItemClick('user_details', id)}
+                        inviter
+                        onInviteClose={() => handleViewChange('users')}
+                    />
+                );
             case 'edit_user':
                 return selectedItemId ? (
                     <AddUserPage
@@ -634,6 +650,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <FinanceManagementPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'finance_expenses':
                 return <ExpenseJournalPage onBack={() => handleViewChange('finance')} />;
+            case 'finance_exercises':
+                return <ExercisesPage onBack={() => handleViewChange('finance')} />;
             case 'finance_lines':
                 return (
                     <BudgetLinesPage

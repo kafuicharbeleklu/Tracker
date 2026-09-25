@@ -1,5 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { CaretRight, DoorOpen, Info, MagnifyingGlassMinus, MapPin } from '@phosphor-icons/react';
+import {
+    CaretRight,
+    DoorOpen,
+    Info,
+    MagnifyingGlassMinus,
+    MapPin,
+    Play,
+} from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -526,8 +533,35 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     >
                         {row.local ?? row.site}
                     </span>
-                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                        <RowSubline row={row} level={niveau} />
+                    {/* **L'état dans la sous-ligne, le compte à droite** (24/09) : « France ·
+                        8 attendus » disait le nombre dans la phrase ; il passe en chiffre, et la
+                        sous-ligne dit où en est le lieu, par un point de sa teinte. */}
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1.5">
+                        {/* Le pays cède la place à l'état : entre le chiffre et le ▶, la sous-ligne
+                            n'avait plus que 150 px et coupait « jamais véri… ». */}
+                        {niveau === 'local' && row.horsLocal && (
+                            <span className="shrink-0">Hors local ·</span>
+                        )}
+                        {!muet && (
+                            <i
+                                aria-hidden="true"
+                                className={cn(
+                                    'h-2 w-2 shrink-0 rounded-xs',
+                                    TEINTE_STATUT[row.status] || 'bg-outline',
+                                )}
+                            />
+                        )}
+                        <span className="truncate">
+                            {muet
+                                ? 'rien à inventorier'
+                                : row.status === 'En cours'
+                                  ? `en cours · ${row.found}/${row.expected}`
+                                  : row.status === 'Complet'
+                                    ? 'complet'
+                                    : row.status === 'A lancer'
+                                      ? 'jamais vérifié'
+                                      : STATUS_LABELS[row.status].toLowerCase()}
+                        </span>
                     </span>
                     {/* `.mini` — l'avancement du lieu, dans la rangée : il
                                     n'existe qu'une fois le comptage commencé. */}
@@ -541,16 +575,26 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     )}
                 </div>
 
+                {!muet && (
+                    <span className="flex shrink-0 flex-col items-end">
+                        <span className="font-brand text-on-surface text-ts-head leading-ts-head font-semibold tabular-nums">
+                            {row.expected}
+                        </span>
+                        <span className="text-text-muted text-[0.75rem] leading-4">attendus</span>
+                    </span>
+                )}
                 {seLance ? (
                     <Button
                         variant="text"
+                        iconOnly
+                        aria-label={`Lancer le comptage — ${row.local ?? row.site}`}
                         onClick={(event) => {
                             event.stopPropagation();
                             onStartPlace(row);
                         }}
-                        className={ROW_ACTION_CLASS}
+                        className="bg-tint-ambre text-on-tint-ambre h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-md hover:opacity-90"
                     >
-                        Lancer
+                        <Icon glyph={Play} size={20} emphasis="fill" />
                     </Button>
                 ) : (
                     <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
@@ -1032,61 +1076,6 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     </div>
                 </div>
             </BottomSheet>
-        </>
-    );
-};
-
-/**
- * La sous-ligne de 16.1 — elle ne dit pas la même chose aux deux niveaux. Au premier,
- * d'où l'on est et combien de locaux restent à ouvrir ; au second, l'avancement du
- * local. Le gras y porte le fait, jamais le décor.
- */
-const RowSubline: React.FC<{ row: PlaceAuditRow; level: 'site' | 'local' }> = ({ row, level }) => {
-    if (row.expected === 0) {
-        return <>{level === 'site' ? row.country : row.site} · rien à inventorier</>;
-    }
-
-    if (level === 'site') {
-        return (
-            <>
-                {row.country} ·{' '}
-                <b className="text-on-surface font-medium">{row.expected} attendus</b>
-                {(row.localCount ?? 0) > 0 && (
-                    <>
-                        {' '}
-                        · {row.localCount} {(row.localCount ?? 0) > 1 ? 'locaux' : 'local'}
-                    </>
-                )}
-            </>
-        );
-    }
-
-    const prefixe = row.horsLocal ? 'Hors local · ' : '';
-    if (row.status === 'En cours') {
-        return (
-            <>
-                {prefixe}
-                <b className="text-on-surface font-medium">En cours</b> · {row.found} /{' '}
-                {row.expected} comptés
-            </>
-        );
-    }
-    if (row.status === 'Complet') {
-        return (
-            <>
-                {prefixe}
-                <b className="text-on-surface font-medium">Complet</b> · {row.found} /{' '}
-                {row.expected}
-            </>
-        );
-    }
-    return (
-        <>
-            {prefixe}
-            <b className="text-on-surface font-medium">
-                {row.expected} attendu{row.expected > 1 ? 's' : ''}
-            </b>{' '}
-            · jamais compté
         </>
     );
 };

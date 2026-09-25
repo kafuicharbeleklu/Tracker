@@ -10,11 +10,14 @@ import {
     DotsThreeVertical,
     FileText,
     Package,
+    Receipt,
+    Tray,
     Warning,
     Wrench,
 } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
+import type { RepairCase } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
@@ -32,6 +35,11 @@ import IncidentSheet from '../components/IncidentSheet';
 import TakeChargeSheet from '../components/TakeChargeSheet';
 import { motifIncident } from '../incidents';
 import ReceiveRepairSheet from '../components/ReceiveRepairSheet';
+import DepositSheet from '../components/DepositSheet';
+import QuoteDecisionSheet from '../components/QuoteDecisionSheet';
+import { phraseEtape, presentationEtat, seuilDevis } from '../reparation';
+import { useFinanceData } from '../../../context/FinanceDataContext';
+import { getExpenseSourceFile, saveExpenseSourceFile } from '../../../lib/financeFileStorage';
 import ActSheet from '../../../components/ui/ActSheet';
 import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import RetireSheet from '../components/RetireSheet';
@@ -49,7 +57,12 @@ import ImagePreview from '../../../components/ui/ImagePreview';
 
 import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
-import { calculateLinearDepreciation, formatCurrency } from '../../../lib/financial';
+import {
+    calculateLinearDepreciation,
+    formatCurrency,
+    formatNumber,
+    getBudgetCategoryByExpenseType,
+} from '../../../lib/financial';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
 import { cn } from '../../../lib/utils';
 import { GLOSSARY } from '../../../constants/glossary';
@@ -120,6 +133,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         updateEquipment,
         deleteEquipment,
         declareIncident,
+        advanceRepair,
         remindApproval,
         confirmEquipmentReception,
         settings,
@@ -129,6 +143,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     const { permissions, user: currentUser } = useAccessControl();
     const { navigate } = useAppNavigation();
     const { requestConfirmation } = useConfirmation();
+    const { financeBudgets, addFinanceExpense } = useFinanceData();
 
     const item = equipment.find((entry) => entry.id === equipmentId);
 
@@ -153,6 +168,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     const [isIncidentSheetOpen, setIsIncidentSheetOpen] = useState(false);
     const [isTakeChargeOpen, setIsTakeChargeOpen] = useState(false);
     const [isReceiveRepairOpen, setIsReceiveRepairOpen] = useState(false);
+    /* Le parcours de réparation (24/09) : le dépôt attesté, la décision sur le devis. */
+    const [isDepositOpen, setIsDepositOpen] = useState(false);
+    const [isQuoteOpen, setIsQuoteOpen] = useState(false);
     /* 17.4 — « Confirmer la réception » est l'un des neuf actes : il s'atteste. */
     const [confirmationOuverte, setConfirmationOuverte] = useState(false);
     /** La clôture du dernier acte posé ici — 06.3, forme 1. */
@@ -212,7 +230,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         status: item.status,
         assignmentStatus: item.assignmentStatus,
     });
-    const status = getStatusPresentation(displayedStatus);
+    /* L'étape de réparation prime sur l'état : « Incident déclaré », « Devis à valider »,
+       « En réparation » ne se confondent plus (24/09). */
+    const status = item.repair ? presentationEtat(item) : getStatusPresentation(displayedStatus);
 
     const holder = item.user
         ? users.find(
@@ -379,6 +399,214 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
      */
     const handleEndRepair = () => setIsReceiveRepairOpen(true);
 
+    // ---- la réparation (24/09) -------------------------------------------------
+    const dossier = item.repair;
+    const n = (valeur: number) => formatNumber(valeur, settings.compactNotation);
+    /** Ce qui reste sur la ligne Maintenance de l'exercice en cours — null sans ligne. */
+    const resteMaintenance = (() => {
+        const annee = new Date().getFullYear();
+        const ligne = financeBudgets
+            .find((budget) => budget.year === annee)
+            ?.items.find(
+                (entry) => entry.category === getBudgetCategoryByExpenseType('Maintenance'),
+            );
+        return ligne ? ligne.allocated - ligne.spent : null;
+    })();
+    /* Qui remet au dépôt : le porteur, présent au comptoir. **Sur l'appareil d'un autre,
+       il signe** — son code n'est proposé que s'il est lui-même connecté (17.4). Sans
+       porteur, le gestionnaire atteste. */
+    const porteurDuDossier = dossier?.holderId
+        ? users.find((user) => user.id === dossier.holderId)
+        : undefined;
+    const signataireDepot = porteurDuDossier
+        ? {
+              name: porteurDuDossier.name,
+              pin: porteurDuDossier.id === currentUser?.id ? currentUser?.pin : undefined,
+          }
+        : { name: currentUser?.name || 'Le gestionnaire', pin: currentUser?.pin };
+
+    /** Garder un fichier au magasin local, comme un justificatif de dépense. */
+    const garder = async (file: File) => ({
+        fileId: await saveExpenseSourceFile(file).catch(() => undefined),
+        fileName: file.name,
+        uploadedAt: new Date().toISOString(),
+    });
+
+    const ouvrirFichier = async (fileId?: string) => {
+        const stocke = await getExpenseSourceFile(fileId).catch(() => null);
+        if (!stocke?.blob) {
+            showToast('Le fichier n’est gardé que sur l’appareil qui l’a joint.', 'info');
+            return;
+        }
+        window.open(URL.createObjectURL(stocke.blob), '_blank', 'noopener');
+    };
+
+    const dire = (decision: { allowed: boolean; reason?: string }, succes: string) =>
+        showToast(
+            decision.allowed ? succes : decision.reason || 'Refusé.',
+            decision.allowed ? 'success' : 'error',
+        );
+
+    const surDepot = (method: AttestationMethod) => {
+        setIsDepositOpen(false);
+        dire(
+            advanceRepair(item.id, { type: 'deposit', method }),
+            'Dépôt reçu : il attend sa prise en charge.',
+        );
+    };
+
+    const surPriseEnCharge = async (valeurs: {
+        repairer: string;
+        underWarranty: boolean;
+        expectedReturn: string;
+        ticket?: string;
+        quote?: { amount: number; file: File };
+        pickupSlip?: File;
+    }) => {
+        const quote = valeurs.quote
+            ? { ...(await garder(valeurs.quote.file)), amount: valeurs.quote.amount }
+            : undefined;
+        const pickupSlip = valeurs.pickupSlip ? await garder(valeurs.pickupSlip) : undefined;
+        const aLaFinance = Boolean(
+            quote && !valeurs.underWarranty && quote.amount > seuilDevis(settings),
+        );
+        dire(
+            advanceRepair(item.id, {
+                type: 'take_charge',
+                repairer: valeurs.repairer,
+                underWarranty: valeurs.underWarranty,
+                expectedReturn: valeurs.expectedReturn,
+                ticket: valeurs.ticket,
+                quote,
+                pickupSlip,
+            }),
+            aLaFinance
+                ? 'Devis envoyé à la Finance.'
+                : `Pris en charge : il part chez ${valeurs.repairer}.`,
+        );
+    };
+
+    const surDecision = (approve: boolean, reason?: string) =>
+        dire(
+            advanceRepair(item.id, { type: 'decide_quote', approve, reason }),
+            approve
+                ? 'Devis validé : il part en réparation.'
+                : 'Devis refusé : l’informatique reprend le dossier.',
+        );
+
+    const surRecuperation = async (
+        outcome: 'repaired' | 'diminished' | 'irreparable',
+        facture?: { amount: number; supplier: string; file: File },
+    ) => {
+        let invoice: RepairCase['invoice'] = undefined;
+        if (facture) {
+            const piece = await garder(facture.file);
+            /* **La facture fait la dépense** (24/09) : sur Maintenance & Services, datée du
+               jour, le fichier en justificatif, et l'objet nommé dans la description. */
+            const depense = addFinanceExpense({
+                date: new Date().toISOString().slice(0, 10),
+                supplier: facture.supplier,
+                amount: facture.amount,
+                type: 'Maintenance',
+                status: 'Paid',
+                description: `Réparation ${item.name}${item.assetId ? ` (${item.assetId})` : ''}`,
+                sourceFileName: piece.fileName,
+                sourceFileId: piece.fileId,
+            });
+            invoice = {
+                ...piece,
+                amount: facture.amount,
+                supplier: facture.supplier,
+                expenseId: depense.ok ? depense.expense?.id : undefined,
+            };
+            if (!depense.ok) showToast('La dépense n’a pas pu être enregistrée.', 'error');
+        }
+        const decision = advanceRepair(item.id, { type: 'receive', outcome, invoice });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Réception refusée.', 'error');
+            return;
+        }
+        if (outcome === 'irreparable') {
+            handleRetire();
+            return;
+        }
+        const porteur = item.repairPreviousUser?.name;
+        showToast(
+            [
+                porteur ? `Récupéré, il repart chez ${porteur}` : 'Récupéré, il repasse disponible',
+                invoice ? ` ; ${n(invoice.amount)} ${settings.currency} en dépense` : '',
+                '.',
+            ].join(''),
+            'success',
+        );
+    };
+
+    /** « Où en est la réparation » — les étapes du dossier, faites ou attendues. */
+    const etapesReparation: TrailStep[] | null = dossier
+        ? [
+              {
+                  title: 'Incident déclaré',
+                  detail: formatDate(dossier.openedAt),
+                  state: 'done',
+              },
+              dossier.deposit
+                  ? {
+                        title: 'Déposé à l’informatique',
+                        detail: `${formatDate(dossier.deposit.at)} · attesté`,
+                        state: 'done',
+                    }
+                  : {
+                        title: 'Dépôt',
+                        detail: dossier.holderName ? `chez ${dossier.holderName}` : 'à recevoir',
+                        state: dossier.stage === 'declared' ? 'late' : 'done',
+                    },
+              dossier.takenCharge
+                  ? {
+                        title: `Pris en charge · ${dossier.takenCharge.repairer}`,
+                        detail: `retour prévu le ${formatDate(dossier.takenCharge.expectedReturn)}`,
+                        state: 'done',
+                    }
+                  : {
+                        title: 'Prise en charge',
+                        detail: 'prestataire, devis',
+                        state: dossier.stage === 'deposited' ? 'late' : 'wait',
+                    },
+              ...(dossier.takenCharge
+                  ? [
+                        dossier.takenCharge.underWarranty
+                            ? ({
+                                  title: 'Sous garantie',
+                                  detail: 'sans frais',
+                                  state: 'done',
+                              } as TrailStep)
+                            : ({
+                                  title: `Devis · ${n(dossier.quote?.amount ?? 0)} ${settings.currency}`,
+                                  detail:
+                                      dossier.quoteDecision?.status === 'approved'
+                                          ? `validé par ${dossier.quoteDecision.byName ?? '—'}${dossier.quoteDecision.level === 'finance' ? ' (Finance)' : ''}`
+                                          : dossier.quoteDecision?.status === 'rejected'
+                                            ? `refusé — ${dossier.quoteDecision.reason ?? ''}`
+                                            : 'en attente de la Finance',
+                                  state:
+                                      dossier.quoteDecision?.status === 'approved'
+                                          ? 'done'
+                                          : dossier.quoteDecision?.status === 'rejected'
+                                            ? 'fail'
+                                            : 'late',
+                              } as TrailStep),
+                    ]
+                  : []),
+              {
+                  title: 'Récupération',
+                  detail:
+                      dossier.stage === 'at_repairer'
+                          ? `chez ${dossier.takenCharge?.repairer ?? 'le prestataire'} · facture à joindre`
+                          : 'après réparation',
+                  state: dossier.stage === 'at_repairer' ? 'late' : 'wait',
+              },
+          ]
+        : null;
+
     const handleRetire = () => {
         if (item.status !== 'Disponible' && item.status !== 'En réparation') {
             showToast('Un équipement attribué ne peut pas sortir du parc.', 'error');
@@ -457,6 +685,37 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     /** Le geste primaire **suit l'état** — c'est la règle du héro (04.2). */
     const primaryAction = (() => {
+        /* **Le geste suit l'étape de la réparation** (24/09) : un seul, et celui de qui
+           tient l'étape — l'informatique reçoit, prend en charge, récupère ; la Finance
+           tranche le devis. */
+        if (dossier) {
+            const geste = (glyph: typeof Tray, libelle: string, onClick: () => void) => (
+                <Button
+                    variant="filled"
+                    className="w-full"
+                    icon={<Icon glyph={glyph} size={20} />}
+                    onClick={onClick}
+                >
+                    {libelle}
+                </Button>
+            );
+            if (dossier.stage === 'quote_pending') {
+                return permissions.canManageFinance ? (
+                    geste(Receipt, 'Examiner le devis', () => setIsQuoteOpen(true))
+                ) : (
+                    <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub w-full">
+                        Le devis attend la Finance.
+                    </p>
+                );
+            }
+            if (!permissions.canManageInventory) return null;
+            if (dossier.stage === 'declared')
+                return geste(Tray, 'Recevoir le dépôt', () => setIsDepositOpen(true));
+            if (dossier.stage === 'deposited')
+                return geste(Wrench, 'Prendre en charge', handleTakeCharge);
+            return geste(ArrowUUpLeft, 'Récupérer', handleEndRepair);
+        }
+
         /* Une réception en attente passe **avant** la branche du porteur : le
            bénéficiaire est justement la personne censée confirmer, et la branche
            « non-gestionnaire » retournait avant ce test — il ne voyait donc jamais
@@ -599,10 +858,13 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                   {
                       id: 'incident',
                       label: 'Déclarer un incident',
-                      description: 'passe l’actif en réparation et ouvre une tâche',
+                      description: 'ouvre un dossier de réparation : dépôt, devis, retour',
                       onSelect: handleDeclareIncident,
                   },
-                  ...(item.status === 'En réparation'
+                  ...(item.status === 'En réparation' &&
+                  (!item.repair ||
+                      item.repair.stage === 'declared' ||
+                      item.repair.stage === 'deposited')
                       ? [
                             {
                                 id: 'take_charge',
@@ -659,7 +921,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             items={menuItems}
                             trigger={
                                 <Button variant="text" iconOnly aria-label="Autres actions">
-                                    <Icon glyph={DotsThreeVertical} />
+                                    <Icon glyph={DotsThreeVertical} size="geste" />
                                 </Button>
                             }
                         />
@@ -691,8 +953,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                             item.status === 'En réparation'
                                 ? {
                                       vignette: <Icon glyph={Wrench} size={20} />,
-                                      title: motifIncident(item) || 'En réparation',
-                                      detail: `signalé le ${formatDate(item.repairStartDate)} · en atelier`,
+                                      title: motifIncident(item) || presentationEtat(item).label,
+                                      detail:
+                                          phraseEtape(item) ??
+                                          `signalé le ${formatDate(item.repairStartDate)} · en atelier`,
                                   }
                                 : item.assignmentStatus === 'PENDING_DELIVERY' && holder
                                   ? {
@@ -764,6 +1028,12 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                    change pas : ils suivent les cartes de référence, comme avant. */
                 asideTail={
                     <>
+                        {etapesReparation && (
+                            <RuleGroup header="Où en est la réparation">
+                                <HandoverTrail steps={etapesReparation} />
+                            </RuleGroup>
+                        )}
+
                         {handoverTrail && (
                             <RuleGroup header="Où en est la remise">
                                 <HandoverTrail steps={handoverTrail} />
@@ -790,10 +1060,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                     key={event.id}
                                                     className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first:border-t-0"
                                                 >
-                                                    <span className="bg-surface-container text-on-surface-variant flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                                                    <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
                                                         <Icon
                                                             glyph={ClockCounterClockwise}
-                                                            size={18}
+                                                            size={20}
                                                         />
                                                     </span>
                                                     <span className="min-w-0 flex-1">
@@ -813,7 +1083,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         <button
                                             type="button"
                                             onClick={() => navigate('/history')}
-                                            className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
+                                            className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-5 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
                                         >
                                             <span>
                                                 {history.length > 1
@@ -825,7 +1095,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             </span>
                                             <Icon
                                                 glyph={CaretDown}
-                                                size={18}
+                                                size={20}
                                                 className="text-text-secondary -rotate-90"
                                             />
                                         </button>
@@ -871,7 +1141,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             </span>
                                             <Icon
                                                 glyph={CaretDown}
-                                                size={18}
+                                                size={20}
                                                 className="text-text-tertiary -rotate-90"
                                             />
                                         </div>
@@ -926,7 +1196,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
                 {(warrantyPercent !== null ||
                     (financialStats && permissions.canManageInventory)) && (
-                    <section className="rounded-card bg-surface p-4">
+                    <section className="rounded-card bg-surface flex flex-col p-4">
                         <header className="mb-2 flex min-h-6 items-center justify-between gap-3">
                             <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
                                 {permissions.canManageInventory ? 'Garantie et valeur' : 'Garantie'}
@@ -968,7 +1238,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <ProportionRow
                                     className={
                                         warrantyPercent !== null
-                                            ? 'border-outline-variant mt-4 border-t pt-1'
+                                            ? /* 20 de part et d'autre du filet, comme sur
+                                                 l'accueil (24/09) : un seul rythme. */
+                                              'border-outline-variant mt-5 border-t pt-2'
                                             : undefined
                                     }
                                     value={`${Math.round(financialStats.progressPercent)} %`}
@@ -1011,7 +1283,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                 <button
                                     type="button"
                                     onClick={() => navigate('/finance')}
-                                    className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-3 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
+                                    className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-5 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
                                 >
                                     {/* `.more` de la planche écrit **« Amortissement »**,
                                         pas « Prix d'achat et amortissement » : la phrase
@@ -1023,7 +1295,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                     </span>
                                     <Icon
                                         glyph={CaretDown}
-                                        size={18}
+                                        size={20}
                                         className="text-text-secondary -rotate-90"
                                     />
                                 </button>
@@ -1108,8 +1380,17 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             <ReceiveRepairSheet
                 open={isReceiveRepairOpen}
                 item={item}
+                devise={settings.currency}
+                formatMontant={n}
                 onClose={() => setIsReceiveRepairOpen(false)}
-                onConfirm={(outcome) => {
+                onConfirm={(outcome, facture) => {
+                    setIsReceiveRepairOpen(false);
+                    /* **Un objet du parcours se récupère par son dossier** (24/09) : la
+                       facture fait la dépense, le dossier se clôt dans l'historique. */
+                    if (item.repair) {
+                        void surRecuperation(outcome, facture);
+                        return;
+                    }
                     if (outcome === 'irreparable') {
                         /* La sortie du parc est un acte à part, irréversible : elle ne
                            se glisse pas dans la fermeture d'une intervention. */
@@ -1153,21 +1434,67 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             <TakeChargeSheet
                 open={isTakeChargeOpen}
                 item={item}
-                holderName={item.user?.name}
+                holderName={item.repair?.holderName ?? item.repairPreviousUser?.name}
                 siteName={item.site}
                 brandName={marqueDuModele}
+                seuil={seuilDevis(settings)}
+                devise={settings.currency}
+                resteLigne={resteMaintenance}
+                formatMontant={n}
                 onClose={() => setIsTakeChargeOpen(false)}
                 onConfirm={(valeurs) => {
-                    const decision = updateEquipment(item.id, valeurs);
+                    if (item.repair) {
+                        void surPriseEnCharge(valeurs);
+                        return;
+                    }
+                    /* Un objet passé « En réparation » avant le parcours : les champs
+                       d'avant, sans dossier. */
+                    const decision = updateEquipment(item.id, {
+                        repairer: valeurs.repairer,
+                        repairExpectedReturn: valeurs.expectedReturn,
+                        repairCost: valeurs.quote?.amount,
+                        repairTicket: valeurs.ticket,
+                    });
                     showToast(
                         decision.allowed
-                            ? valeurs.repairCost
-                                ? 'Montant envoyé en validation.'
-                                : 'Prise en charge enregistrée.'
+                            ? 'Prise en charge enregistrée.'
                             : decision.reason || 'Prise en charge refusée.',
                         decision.allowed ? 'success' : 'error',
                     );
                 }}
+            />
+
+            <DepositSheet
+                open={isDepositOpen}
+                item={item}
+                signataire={signataireDepot}
+                onClose={() => setIsDepositOpen(false)}
+                onConfirm={surDepot}
+            />
+
+            <QuoteDecisionSheet
+                open={isQuoteOpen}
+                item={item}
+                montant={`${n(item.repair?.quote?.amount ?? 0)} ${settings.currency}`}
+                resteApres={
+                    resteMaintenance !== null && item.repair?.quote
+                        ? (() => {
+                              const reste = resteMaintenance - item.repair.quote.amount;
+                              return reste < 0
+                                  ? {
+                                        texte: `La ligne Maintenance dépassera de ${n(-reste)} ${settings.currency}.`,
+                                        depasse: true,
+                                    }
+                                  : {
+                                        texte: `Il restera ${n(reste)} ${settings.currency} sur la ligne Maintenance.`,
+                                        depasse: false,
+                                    };
+                          })()
+                        : null
+                }
+                onOpenFile={() => void ouvrirFichier(item.repair?.quote?.fileId)}
+                onClose={() => setIsQuoteOpen(false)}
+                onDecide={surDecision}
             />
 
             <IncidentSheet
@@ -1186,7 +1513,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         payload.outcome === 'serves'
                             ? 'Incident déclaré. L’objet reste chez son porteur.'
                             : payload.outcome === 'immobilised'
-                              ? 'Incident déclaré. L’équipement est passé en réparation.'
+                              ? 'Incident déclaré. À déposer à l’informatique.'
                               : 'Incident déclaré. L’équipement est hors service.',
                         'info',
                     );

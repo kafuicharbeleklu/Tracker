@@ -4660,3 +4660,460 @@ sélection au focus et ajoutait les chiffres tapés au bout (« 850005000 ») ; 
 exceeded ») — la fenêtre virtuelle effaçait ses mesures à chaque liste neuve, et cette vue
 recalcule sa liste à chaque rendu. Les mesures restent désormais attachées à l'indice.
 Balayage après correction : 4 comptes de démo × 21 routes × 2 largeurs, aucune panne.
+
+### Les grilles du bureau, page par page (23/09, fin de soirée)
+
+Demande : *« améliore le style de grille de la version desktop sur les autres pages »* — Site
+(« Locaux est trop long »), Emplacements, Catalogue, la campagne « Lomé Siège — hors local »
+et le vide des Écarts, Rapports, Accès, et Mon compte / Paramètres. Rien ne change au
+téléphone : chaque grille est derrière une largeur (≥ 840 ou ≥ 1280).
+
+- **Emplacements** (≥ 840) : un site est une carte — nom, puis actifs et personnes en
+  chiffres ; par trois (deux sous 1 200) ; « Jamais servi » éteint la carte.
+- **Catalogue** (≥ 840, hors sélection) : un type est une carte — pictogramme, nom, modèles
+  et actifs au parc ; « aucun modèle » en ambre avec l'horloge.
+- **Fiche de type** (≥ 1280) : les modèles en cartes de trois — l'initiale de la marque,
+  le nom, puis ce qu'ils comptent au parc.
+- **Fiche de site** (≥ 1280) : les locaux en tuiles de trois, la dernière ajoute. Le clic
+  d'une rangée de local ouvrait… la suppression ; elle passe au ⋮, nommée.
+- **Campagne** : le site va au titre de la page, le lieu (« Hors local », un local) au héro,
+  et le site redescend dans sa sous-ligne ; plus de « Lomé Siège — hors local » écrit deux
+  fois. Au bureau, les Écarts vides deviennent une carte à la hauteur de la zone, qui dit ce
+  qu'elle recevra avant le premier scan et « Aucun écart » après.
+- **Rapports** (≥ 840) : quatre cartes en grille de deux — ce que le rapport contient en une
+  ligne, son compte, puis **CSV et PDF à parts égales** (15.1), qui ouvrent l'aperçu sur le
+  format demandé.
+- **Accès** (≥ 1280) : les rôles sur 8, les groupes sur 4 — et au bureau la carte **liste
+  les groupes** (les cinq premiers et leurs membres), contre 11.1 qui n'y met qu'un renvoi :
+  un renvoi seul laissait 400 px de vide.
+- **Paramètres** (≥ 1280) : les groupes en deux colonnes équilibrées (colonnes de texte, pas
+  une grille : aucun trou sous un groupe court). **Mon compte** : l'identité à gauche (5),
+  les actes à droite (7).
+- **Mon compte et Paramètres ne fusionnent pas** : le premier est à chacun (mot de passe,
+  PIN, signature, session), le second à l'administration (devise, amortissement, sources).
+  Les fusionner montrerait à un employé une page de réglages où il ne peut rien régler, ou
+  cacherait son propre compte derrière des droits d'administrateur. Ils restent deux
+  destinations, reliées par la rangée « Mon compte » de Paramètres.
+
+### L'écran d'erreur prend la forme des états d'écran (23/09)
+
+`ErrorBoundary` empruntait l'ancien `EmptyState` : glyphe Material, titre de 20, une phrase
+de trois propositions, un bouton de 56, et le détail technique dans une boîte à filet. Il
+passe par `ScreenState` (17.1), comme la page introuvable et le hors-ligne : pastille de 96
+et glyphe Phosphor (`WarningCircle`), titre de 22 **qui dit le fait** (« Cette page n'a pas
+pu s'afficher »), une phrase courte, **deux gestes** empilés — Recharger, Revenir à
+l'accueil — et **l'heure de l'incident** au pied, que la phrase demandait de donner au
+support sans la montrer. Le détail technique reste au développement, dans le panneau de
+pied des états. La racine (« L'application n'a pas pu démarrer ») prend la même phrase.
+
+*En passant* : la galerie du design system plantait à l'ouverture depuis le 08/09 —
+`DetailTemplate` et `ListTemplate` y lisaient `useData()` hors de `DataProvider`. Ils lisent
+désormais `useOptionalData()`, qui rend `undefined` hors de l'application.
+
+### Téléphone : titres, jauges, Finances et ses filles, Rapports, Accès (23/09, nuit)
+
+- **Un seul titre de page, 28 sur 32** (Archivo 600), parente ou secondaire : les barres de
+  56 des fiches (`DetailTemplate`), des sous-écrans de Paramètres, de la fiche d'un rôle, de
+  la campagne, des formulaires plein écran et de « Lignes du budget » tenaient 17. Écart
+  assumé à 17.8. Mesuré : les 13 pages vérifiées titrent à 28px/32px 600.
+- **Icônes par rôle** : 24 pour le retour d'une barre de téléphone (les formulaires tenaient
+  20, seuls de leur taille), 20 dans l'en-tête du bureau, 20 en rangée, 18 en ligne.
+- **Un seul rythme de jauge** : `ProportionRow` (fiche d'actif, garantie et valeur) prend
+  celui de `Gauge` — 16 / 12, ruban de 8, chiffre en 22 ; 24 avant le filet qui sépare deux
+  jauges. Sur l'accueil empilé, le renvoi de pied (« Valeur et amortissement ») prend 24
+  d'air ; la grille du bureau le cale au pied par `data-pied`.
+- **Finances au téléphone** : le sélecteur « 2026 (En cours) » quitte l'en-tête fixe et
+  devient la pastille du surtitre du héro, qui ouvre la liste des exercices ; le héro porte
+  le consommé et la moyenne mensuelle ; **trois postes** (les plus entamés) puis « Voir les
+  N postes », qui mène à « Lignes du budget ». Postes et lignes : ruban de 8, rangées de 16.
+- **Lignes du budget** : titre à 28, « Enregistrer » devient une coche nommée (le titre se
+  coupait) ; les rangées prennent le rythme des jauges.
+- **Rapports** : les cartes du bureau à toutes les largeurs — CSV et PDF à parts égales
+  (15.1) plutôt que la rangée de 15.5 qui cachait le PDF.
+- **Accès** : la carte des groupes les liste aussi au téléphone (trois, puis le renvoi).
+- *Défaut trouvé* : un commentaire de code s'affichait en tête de Rapports après le retrait
+  d'une branche. Le balayage des comptes cherche désormais tout `/*` ou `*/` visible.
+
+### La taille des icônes, par rôle et mesurée (23/09)
+
+Relevé sur 20 routes aux deux largeurs, chaque icône rapportée à la hauteur de son contrôle.
+La règle, qui est celle que 17.11 et `FilterButton` suivaient déjà :
+
+| Rôle | Taille |
+| --- | --- |
+| Geste d'une barre de 56 au téléphone (retour, ⋮, fermer, valider), bouton flottant | **24** |
+| Contrôle de 36 à 48 : bouton à libellé, bouton d'icône, geste d'en-tête du bureau (carré de 40), chevron et ⋮ d'une rangée, copie d'une valeur | **20** |
+| Dans une ligne de texte de 12 à 14 : état, note, pastille, bouton `sm`, vignette de 32 | **18** |
+| Vignette de 40 · pastille de 48 · état d'écran de 96 | 20 · 24 · 32 |
+
+Écarts corrigés : 27 icônes à 18 dans des contrôles de 40 ou 48 (chevrons de renvoi de
+l'accueil, de la fiche d'actif, du type, de l'import ; « Attribuer », « Restituer »,
+« Ajouter » de l'en-tête ; filtre, menus déroulants et tri de la ligne d'outils ; CSV/PDF ;
+copie du numéro de série ; les quatre gestes du héro d'une personne). Et le ⋮ des fiches,
+posé à 24 ici et 20 là : `Icon` accepte désormais **`size="geste"`**, qui suit le carré que le
+gabarit a décidé (`IconGestureSizeContext`) — 24 dans le carré de 48, 20 dans celui de 40.
+Relevé après correction : aucun écart au bureau ; au téléphone, seules les deux exceptions
+voulues (le filtre de la bande de recherche à 20, le bouton flottant à 24).
+
+*Reprise* : au téléphone, les rangées de l'Historique posaient la marque ronde de **32** et un
+glyphe de **18**, quand toutes les autres listes posent une vignette de **40** et un glyphe de
+**20**. `MarqueRonde` prend une taille : 32 / 18 dans la colonne de tête du tableau (la
+vignette de `DataTable`), 40 / 20 dans une rangée. Les faits des cartes « Derniers
+événements », « Historique » d'un actif et d'une personne suivent : un fait a la même marque
+partout. Mesuré : 40 / 20 sur les cinq écrans concernés.
+
+
+### En-têtes alignés, « Exercices » porté, bouton flottant des lignes (24/09)
+
+- **Une seule barre du haut au téléphone** — `BarreDePage` : intérieur `8 / 16 / 12`,
+  rangée de 48, retour rentré de 12. Les fiches (`DetailTemplate`), la fiche d'un rôle, la
+  campagne, « Lignes du budget », les sous-écrans de Paramètres et les formulaires plein
+  écran posaient leur titre à 60 / 12 dans une barre de 56 ; ils le posent à **56 / 16**,
+  comme les listes. Mesuré sur 14 écrans : titre à 56 / 16 partout, barre de 69 pour un
+  titre seul, de 129 avec la recherche.
+- **Le compte à côté du titre pour toutes les listes** : Tâches et Historique (qui passent
+  un `regard`) et Emplacements (qui écrit son en-tête) gardaient la ligne de service sous
+  la recherche (« À faire · les plus anciennes d'abord », « 4 sites · 3 pays ») — 157 px
+  d'en-tête contre 129. La règle du 23/09 vaut maintenant pour elles.
+- **15.1, colonne 3 — « Exercices »**, porté (`ExercisesPage`, `/finance/exercices`) : À
+  définir (l'exercice suivant « à projeter », « Reprendre 2026 » — ses lignes, rien de
+  consommé —, « Lire un budget », « ou partir de zéro »), En cours, Clos (« un exercice clos
+  se lit et s'exporte »). « Changer d'exercice » (en-tête du bureau, pastille du héro au
+  téléphone, ⋮) y mène ; toucher un exercice rouvre Finances sur lui (`?annee=`). La boîte
+  « Nouvel exercice » n'est plus qu'un chemin : « Lire un budget ».
+- **Lignes du budget au téléphone : le bouton flottant** (`ListActionFab`, 17.7) remplace la
+  rangée « Ajouter une ligne » du pied de carte ; le vide ne double plus le geste. Au bureau,
+  le pied du tableau garde « Ajouter une ligne ».
+- L'histogramme mensuel reste lisible à 393 : initiales des mois, pic chiffré, légende sur
+  deux lignes.
+
+### Nouvelle ligne, nouvelle dépense, histogramme, fiche Site au téléphone (24/09)
+
+Demande : *« propose une refonte plus convenable pour nouvelle ligne, enregistrer dépense ;
+un peu plus de hauteur aux cartes des histogrammes ; détails site en mobile. »*
+
+- **Nouvelle ligne (15.2)** — la boîte centrée (`Modal`) devient une **feuille**
+  (`BottomSheet` : monte du bas au téléphone, centrée à 560 au-delà). Relevé à 393 : deux
+  champs vides, et le second cran du segmenté « OPEX — frais courant » sortait de l'écran.
+  La feuille porte : le sous-titre *Budget 2026 · N XOF à répartir* ; le nom (refus en
+  ligne si le poste existe déjà) ; **« Déjà connus »**, les postes des autres exercices
+  absents de celui-ci (vraies lignes, montant repris) ; l'enveloppe en chiffres groupés,
+  suffixe devise ; **l'effet avant le geste** (`FormWarn` vert « il restera X à
+  répartir », orange « dépasse l'enveloppe de X : elle passera à Y ») ; la nature en deux
+  `OptionRow` nommées par ce qu'elles désignent. Pied `.sfoot` : Annuler / **Ajouter la
+  ligne**, fermé tant que le nom manque. Renommer et Modifier le montant prennent la même
+  feuille ; le montant refuse de descendre sous le consommé, dans la feuille.
+- **Nouvelle dépense (15.4)** — le réglage « Comment saisir · Lire une facture | Saisir à
+  la main » tombe : **un seul formulaire**, la facture en tête (la lire remplit ce
+  qu'elle dit franchement ; « lu sur la facture » sous le champ acquis), puis *La
+  dépense* (montant + devise, fournisseur, date et n° côte à côte), **Le poste** et
+  *Description*. Le poste n'est plus une liste déroulante de natures : une `OptionRow` par
+  ligne où la dépense **s'impute réellement** (`getBudgetCategoryByExpenseType`, remonté
+  de `FinanceDataContext` vers `lib/financial.ts`), chacune avec *CAPEX · X restants*.
+  L'avertissement d'imputation calculait sur `item.type` — faux dès qu'une ligne portait
+  un autre nom que celui de l'imputation ; il lit désormais la ligne imputée, et dit si
+  elle sera ouverte, dépassée, ou ce qu'il restera. Téléphone : la coche remplace le mot
+  « Enregistrer », qui coupait le titre en « Nouvelle… ».
+  *Écarts assumés* : 15.4 pose les champs en rangées `.xrow` à chevron et un bloc
+  « Justificatifs · N » à plusieurs fichiers ; le produit ne garde qu'un fichier par
+  dépense et ne rattache pas une dépense à un objet (chips Équipement/Lot…) — non portés.
+- **Histogramme mensuel** — zone de tracé 176 → **240** au téléphone, **288** dès 1200
+  (figure mesurée : 316 à 393, 344 à 1440).
+- **Fiche Site au téléphone (10.1)** — la phrase du héro, identique sur tous les sites
+  (« Une adresse : c'est elle qui décide… »), devient un fait : *N locaux · N actifs sans
+  local*. **Les locaux passent avant la Référence** (dont deux rangées sur trois sont le
+  plus souvent vides). Chaque local : sa vignette, son compte, **un ruban de sa part du
+  parc du site**, et un ⋮ « Supprimer le local » — la rangée ouvrait, au toucher, la
+  confirmation de suppression. Toucher ouvre les actifs du site. Une rangée ambre
+  **« Sans local »** dit ce qui n'est rangé nulle part.
+
+Vérifié : tsc, eslint 0, contrôles DS/jetons/cn/encodage, captures 393 et 1440, balayage
+des 4 comptes démo (0 panne).
+
+### Bureau : carte de site, fiche de rôle, 15.2, formulaires et imports (24/09, suite)
+
+- **Carte de site (Emplacements, ≥ 840)** — deux étages : vignette, nom et chevron ; puis
+  un filet et deux cases égales séparées d'un filet (le mot en 12, le nombre en 22, zéro en
+  tertiaire). Les chiffres se serraient à gauche sous le nom (« 8 8 »). Site jamais servi :
+  sablier ambre et « Jamais servi · aucun actif, personne » dans le même étage.
+- **Fiche d'un rôle (11.1, ≥ 1280)** — grille de 12 : héro (7) et **« Qui le porte »**
+  (5, carte neuve, liste bornée qui défile, rangée → fiche de la personne) ; dessous, les
+  deux matrices (7) et refus / héritage / portée / rôle du système (5). « Modifier le
+  rôle », « Enregistrer », « Supprimer » montent dans l'en-tête. Téléphone : même ordre,
+  « Qui le porte » avant les gestes.
+- **15.2 au bureau** — tableau (8) et **carte de l'enveloppe** (4) dès 1 280 : le chiffre
+  en 28, une barre consommé / réparti / libre (orange au-delà), la part CAPEX / OPEX, le
+  refus, « Ajouter une ligne ». Colonnes chiffrées resserrées (100/140/96/132) ; le pied
+  dit « Total · N lignes ».
+- **Renommer le site** — la feuille « Modifier le site » ne portait qu'un nom et promettait
+  « sans effet sur les actifs » : c'était vrai, et c'était le **bug** — `renameLocation`
+  renommait le référentiel seul, actifs et personnes gardaient l'ancien nom et sortaient du
+  site. Le renommage emporte désormais `equipment.site`, `user.site` (et `country`,
+  `local` au niveau concerné) ; la feuille s'appelle « Renommer le site », refuse un nom
+  pris, dit ce qui suit (actifs, personnes, locaux) et la fiche suit le nouveau nom.
+  Vérifié au banc : 8 actifs et 8 personnes suivent.
+- **Formulaires plein écran au bureau — arbitrage contre 00.5.** 00.5 borne le flux à
+  560 « à toutes les largeurs ». La règle vise le champ ; appliquée à la page, elle
+  laissait 880 px vides à 1 440. Dès 1 200 : **deux colonnes de 560** (`MESURE_DOUBLE`,
+  `COLONNES_FORMULAIRE` dans `regimeBureau.ts`, `FullScreenLayout mesure="double"`) ; la
+  barre et le pied suivent la même mesure. Portés : fiche d'équipement, fiche de personne,
+  type, modèle, dépense. Chaque champ garde sa largeur de lecture.
+- **Imports** — contrat et dépôt côte à côte ; après lecture, le fichier (5) et « ce qui
+  sera créé » (7). Le bouton de pied reprend sa taille au bout (plus de barre de 1 136).
+  **« Importer des utilisateurs » passe sur `ReferentialImportTemplate`** : il était seul à
+  garder « Étape 1: Télécharger le fichier CSV », un tableau à six colonnes et des
+  pastilles OK/Erreur. Nouvelle fente `reglages` du gabarit : le rôle des personnes
+  retenues, après lecture. Une adresse en double dans le fichier est refusée avec sa cause.
+
+Vérifié : tsc, eslint 0, contrôles DS/jetons/cn/encodage, captures 1200/1440/393,
+balayage des 4 comptes (0 panne).
+
+### Compte au titre au bureau, en-têtes fixes, menu du compte, modèles d'un type (24/09, soir)
+
+- **Le compte à côté du titre, au bureau aussi.** La règle du 24/09 n'avait été branchée
+  qu'au téléphone. Catalogue (« 13 types · 110 modèles · 243 actifs » + tri) et
+  Emplacements (« 4 sites · 3 pays » / « 14 actifs ») écrivaient encore leur ligne sous la
+  recherche : le compte monte à côté du titre (13 sur 16, retrait de 6 comme `.cnt2`), le
+  tri du Catalogue passe au bout de la ligne d'outils. Rapports (« 4 exports fixes ») et
+  Dépenses (« N écritures », « N écritures sur M » filtré) en reçoivent un ; Dépenses ne
+  l'écrivait que filtré, sous la recherche.
+- **Lignes du budget et Exercices : l'en-tête reste** — `PAGE_BUREAU` / `CORPS_BUREAU` ;
+  le corps de 15.2 défile sur toute la largeur et centre son contenu à 1 280 par ses marges.
+- **Menu du compte (barre latérale)** : aligné sur le ⋮, il faisait 236 px pour 224 de
+  barre et partait à −12, coupé. Il passe en `floating`, et `Menu` borne désormais tout
+  menu flottant à 8 px du bord de la fenêtre.
+- **Modèles d'un type** : en cartes dès 840 (2 de front, 3 dès 1 200) ; sous 1 280 la
+  rangée courait sur 700 px pour un nom et un compte.
+- **Menu du compte, la vraie cause** (24/09, suite) : la barre latérale est `sticky`, donc
+  un contexte d'empilement à elle ; le `z-50` du menu n'y valait que dedans, et le contenu
+  principal le recouvrait — barre repliée, on n'en voyait que les 64 px qui dépassent. La
+  barre passe à `z-30` (au-dessus des en-têtes collants `z-20`, sous les feuilles
+  `z-[100]`). **Toute la rangée de la personne ouvre le menu** (pastille, nom, rôle, glyphe
+  haut/bas) au lieu d'un ⋮ ; `Menu` accepte `rootClassName` pour ce déclencheur pleine
+  rangée. Barre repliée : la pastille gardait un survol clair sous des initiales blanches.
+
+### L'écran d'erreur, sobre (24/09)
+
+Demande : *« repenser la page d'erreur de manière plus sobre mais élégante, bureau comme
+téléphone »*. La forme des états d'écran (pastille de 96, titre centré, boutons empilés,
+heure en note) laisse place à **une colonne de lecture de 480, alignée à gauche** : un
+repère orange de 20, le titre en 28 sur 32, la phrase ; sous un filet, **les deux faits du
+support** — « Survenu le 24 septembre à 08:05:09 », « Page /reports » — et « Copier pour
+le support » (heure, page, message, en un geste) ; puis « Recharger la page » et « Revenir
+à l’accueil », côte à côte dès 600, empilés au téléphone. Le détail technique reste réservé
+au développement, en pied, discret. Vérifié en forçant une erreur de rendu (module de
+Rapports remplacé au banc) à 393 et 1 440.
+
+### Inventaire des formulaires et surfaces au bureau (24/09, nuit)
+
+Demande : *« certains formulaires sont encore présentés sous format mobile »*. Relevé
+systématique à 1 440 : 22 fichiers ouvrent des feuilles, 3 des boîtes, 5 des feuilles
+d'acte, 2 des panneaux latéraux, plus les formulaires en page. Les feuilles (remettre,
+retourner, incident, sortie du parc, filtres, invitation, mot de passe, code PIN,
+signature, ajouter un emplacement, créer) sont des dialogues centrés de 560 (00.5) : laissés.
+Traités :
+
+- **Sous-écrans de Paramètres** — des rangées de téléphone sur 1 008, la valeur à 900 px
+  de son libellé. Dès 1 200 : deux colonnes pour Devise, Amortissement, Sources ; 560
+  centrés pour Périodicité, Taille de fichier, Recadrer.
+- **`/users/add`** — l'écran « Un compte se crée par invitation » et son retour étaient une
+  impasse : l'adresse ouvre la liste Équipe **avec la feuille d'invitation ouverte**
+  (`UsersPage inviter`), la refermer revient à `/users`.
+- **« Nouvel exercice » → « Lire un budget »** — la boîte de 896 (onglets « Import fichier |
+  Saisie manuelle », « Données pré-remplies par IA » en capitales et sa confiance, tableau
+  à en-têtes espacés, **trois lignes d'exemple chiffrées**) devient un formulaire plein écran
+  à double mesure : le fichier (ou « Saisir à la main »), la lecture en cours, puis la
+  lecture et l'exercice (année, enveloppe) à gauche, les postes à droite ; « Créer
+  l'exercice » dans la barre. Une ligne vide au départ.
+- **Aperçu d'un export (Rapports)** — l'acte était écrit trois fois ; le format se choisit
+  en deux crans, le pied porte le seul verbe (« Exporter en PDF »), l'aperçu passe à 896
+  pour que ses sept colonnes tiennent.
+
+### Le parcours de réparation : incident → dépôt → devis → prestataire → facture (24/09)
+
+Demande : *« déclarer un incident diffère de la prise en charge, mais le badge est le même ;
+implémenter les validations USER → IT → Prestataire, le devis à la prise en charge, la
+facture ou le reçu à la récupération, le tout connecté au budget et aux dépenses »*.
+Arbitrages du commanditaire : attestation du porteur au dépôt, bon facultatif côté
+prestataire, dépense créée d'office à la récupération ; **le devis : l'informatique seule
+sous un seuil, la Finance au-delà** (décidé pour lui, seuil réglable, 150 000 par défaut).
+
+- **Modèle** : `Equipment.repair` (`RepairCase`) et `repairHistory` ; étapes `declared →
+  deposited → quote_pending → at_repairer`, clôture à la récupération. Porte unique
+  `advanceRepair` (DataContext), gardée par étape et par rôle (`financeManage` pour le
+  devis). Réglage `repairQuoteThreshold` (Paramètres › L'entreprise › Validation des devis).
+- **Badges distincts** (`presentationEtat`, `reparation.ts`) : « Incident déclaré »,
+  « À prendre en charge », « Devis à valider » (ambre), « En réparation » (orange) — dans la
+  fiche et la liste Actifs. L'état reste `En réparation` pour les compteurs.
+- **Fiche** : un seul geste par étape (Recevoir le dépôt / Prendre en charge / Examiner le
+  devis / Récupérer), carte « Où en est la réparation » (`HandoverTrail`).
+- **Dépôt** (`DepositSheet`) : le porteur atteste ; sur l'appareil de l'informatique il
+  signe (17.4 : jamais le code d'autrui).
+- **Prise en charge** : hors garantie, le prestataire se nomme (il était déduit), le devis
+  (fichier + montant) est requis, le bon d'enlèvement facultatif ; la feuille dit qui valide
+  et ce qu'il restera sur la ligne Maintenance. Le toast « Montant envoyé en validation »
+  n'envoyait rien : c'est maintenant une vraie validation.
+- **Devis** (`QuoteDecisionSheet`) : montant, prestataire, fichier (Ouvrir), impact sur la
+  ligne ; refus motivé, lu par l'informatique (« devis refusé, à reprendre »).
+- **Récupération** : fournisseur, montant payé (pré-rempli du devis), facture ou reçu requis
+  hors garantie → **dépense créée** (Maintenance & Services, justificatif, « Réparation
+  <objet> (<code>) ») ; écart au devis signalé ; l'objet repart chez son porteur par la
+  remise ordinaire.
+- **Tâches** : nature « Réparations » — l'IT reçoit, prend en charge, récupère (en retard →
+  « À faire ») ; la Finance examine ; le porteur voit « à déposer ».
+- Fichiers gardés au magasin local (`financeFileStorage`), comme les justificatifs.
+
+Vérifié au banc à 1 440 et 393 : devis de 200 000 → Finance → validé → facture 210 000 →
+dépense créée, objet en `PENDING_DELIVERY` chez son porteur, dossier archivé ; 4 comptes,
+0 panne. *Non couvert* : l'engagement du devis n'est pas encore réservé sur la ligne avant
+la facture (il est dit, pas retenu) ; le dépôt attesté n'a pas été joué au banc (signature).
+
+### Rythme des cartes, en-têtes secondaires, Finances au téléphone, CAPEX/OPEX (24/09)
+
+- **Un seul rythme vertical** pour Budget, État du parc (accueil) et Garantie et valeur
+  (fiche) : titre → chiffre **20**, chiffre → ruban 16, ruban → phrase 12, **20 · filet · 20**
+  entre deux blocs, **20 · filet** avant le renvoi du pied. Mesuré avant : 12 dans la fiche
+  (les marges du titre et du chiffre fusionnaient, la carte n'étant pas `flex`), 24/13 autour
+  du filet de l'accueil, 38 avant le renvoi de la fiche.
+- **En-têtes secondaires au bureau** : même taille que les listes (24, l'échelle dense du
+  22/09) mais une rangée plus basse ; ils prennent **20 d'air + 52** (`min-h-[72px]`) comme
+  ListTemplate — le titre tombe à 30 comme « Actifs » (fiches, Site, Type, Modèle, personne,
+  rôle, campagne, 15.2, Exercices, sous-écrans de Paramètres).
+- **Finances au téléphone** : « Aller à » monte sous le héro (elle fermait la page, sous
+  l'histogramme) ; la pastille « EXERCICE 2026 · EN COURS › » devient **le fait à gauche**
+  (« Exercice 2026 » + point de statut) **et le geste à droite** (« Changer »).
+- **CAPEX bleu, OPEX ambre** (`NatureBadge`, `NATURE_TEINTE`) : postes de Finances, lignes
+  de 15.2, choix de nature de « Nouvelle ligne », barres « Par nature ».
+
+### Référentiels au téléphone : une rangée à chiffre (24/09)
+
+Demande : *« une refonte UI plus élégante des pages Type, Emplacements, Site, Inventaire,
+Accès, version mobile »*. Chaque page avait inventé sa rangée ; elles partagent désormais
+**`FactRow`** (`components/ui/FactRow.tsx`) : vignette de 40 teintée par la nature, nom et
+fait, **le chiffre à droite avec son unité** (Archivo 17 / 12), chevron.
+
+- **Type** — « Référence » (clé / valeur, clé technique en police machine) devient
+  **« Réglages »** : « Attribuable à une personne » (vert) et « Linéaire sur 3 ans » (bleu)
+  avec leur règle dessous — la note d'amortissement quitte sa carte d'avertissement ; la clé
+  de donnée descend en pied. Modèles : initiale de marque, compte d'actifs en chiffre. Le lien
+  « Voir les 4 actifs » passe dans la tuile du héro.
+- **Emplacements** — actifs en chiffre, personnes et locaux en fait ; site jamais servi
+  éteint, sablier, « Jamais servi » en ambre.
+- **Inventaire** — l'état en sous-ligne avec son point (« jamais vérifié », « en cours ·
+  3/8 », « complet »), les attendus en chiffre, et « Lancer » devient un carré ▶ ambre
+  (libellé accessible complet) au lieu de trois boutons gris empilés.
+- **Accès** — la portée se voit : glyphe et teinte par portée (tout le parc orange, pays
+  bleu, équipe/service vert, soi neutre, sur mesure ambre), porteurs en chiffre ; groupes
+  pareils, membres en chiffre.
+- **Site** — « Référence » en rangées : le fait en titre (« TOG », « à désigner »,
+  « jamais »), ce qu'il est dessous ; « dernier inventaire » ouvre l'inventaire.
+
+### Emplacements au bureau : le globe en pointillés (24/09, essai)
+
+Demande : la grille de cartes laissait le tiers droit vide ; *« un globe 3D pointillé qui
+modélise chaque pays, mis en valeur selon le nombre d'actifs ; en cliquant un pays, sa
+carte s'affiche »*. Dès 1 280 : le globe (7/12, carte sombre) et, à droite (5/12), **Les
+pays** puis **la carte du pays choisi** (ses sites en `FactRow`). Par défaut, le pays qui
+porte le plus d'actifs. Entre 840 et 1 280, la grille de cartes ; au téléphone, la liste.
+
+- **Sans dépendance** (`GlobePointille`) : projection orthographique en canvas 2D ; les
+  terres sont une grille de 2° (5 394 points, `lib/terres.ts`, 2,7 Ko) calculée hors dépôt
+  depuis Natural Earth 1:110 m (`world-atlas`, domaine public) — ni `d3-geo` ni
+  `world-atlas` ne sont des dépendances. 61 images/s au banc.
+- **Nœuds** : taille et halo ∝ √actifs, orange LIVE ; le choisi en jaune, cerné, pulsé.
+  Étiquettes = vrais boutons (nom + « 8 actifs »), masquées au dos du globe ; le canvas est
+  `aria-hidden`, la liste des pays reste le chemin accessible.
+- **Mouvement** : dérive lente sans choix, pivot vers le pays choisi, rotation à la main ;
+  `prefers-reduced-motion` : ni dérive ni animation.
+- **Position des pays** : `lib/paysCoordonnees.ts` (centres approximatifs, Afrique, Europe
+  et principaux autres) par nom sans casse ni accent ; un pays absent n'est pas placé et
+  la note sous le globe le nomme.
+- **Zoom au choix** (demande du 24/09) : choisir un pays fait pivoter **et approcher** le
+  globe (×2,1, même amorti) ; « Vue d'ensemble » dans l'en-tête le ramène entier. La page
+  s'ouvre sur la vue d'ensemble, la carte de droite sur le pays le plus équipé. Approché,
+  le canvas s'efface en cercle (masque radial) au lieu de se couper au carré.
+- **Tous les pays, sans carte autour, sans collision** (24/09, suite) :
+  - `paysCoordonnees.ts` est **généré pour 236 territoires** (Natural Earth 1:50 m) : centre du
+    plus grand territoire, nom français (`Intl.DisplayNames`), anglais, code ISO, variantes
+    d'usage (RDC, Centrafrique, Côte d'Ivoire…). Codes obsolètes écartés (DD, DY, FX, HV,
+    YD, RH…). Un nom non reconnu est dit sous le globe.
+  - **Plus de carte sombre** : la sphère porte le bleu-noir de la marque et flotte sur la
+    page ; « Vue d'ensemble » se pose sur elle.
+  - **Zoom adaptatif** : ×12 / distance au plus proche voisin (en degrés), borné entre ×2,1
+    et ×4 — Togo/Bénin (1,4°) à ×4. Grille de terres de **1°** dès ×1,6 (seuls les points à
+    l'écran se dessinent).
+  - **Étiquettes sans chevauchement** : placées à chaque image (choisi d'abord, puis par
+    poids), à droite, à gauche, dessus, dessous ; sans place libre, l'étiquette s'efface et
+    le point reste, nommé par la liste.
+- **Globe clair, fondu au décor** (24/09, suite : *« pas un globe sombre ; les pointillés oui,
+  mais fondu au décor »*) : plus de corps bleu-noir ni de contour ; terres en pointillés
+  `--st-bleu`, trame d'océan à 6 % d'encre, ombrage de 5 % vers le bord, masque radial à
+  94 %. Étiquettes claires (surface, ombre légère), le choisi en jaune. **Focus allégé** :
+  anneau du pays choisi en filet d'encre de 1 (il faisait 1,5 en jaune), anneau clavier des
+  étiquettes à 1 sans décalage (le `Button` pose 2 + 2).
+
+### Connexion au téléphone : le champ de marque et la feuille (24/09)
+
+Demande : *« une login page mobile plus élégante »*. Le téléphone prolonge la direction B du
+bureau (22/09) : **tout l'écran est le bleu-noir de la marque**, le cartouche LIVE et le bloc
+de marque (filet jaune, « Tracker » en 36/40, la promesse) prennent la hauteur libre et
+posent leur texte en bas ; **le formulaire monte du bas dans une feuille** (`AUTH_PANEL` :
+coins hauts de 20, 20 de recouvrement, ombre vers le haut, marge du bas sur la zone sûre),
+titrée « Connexion » comme la carte du bureau. « Mot de passe oublié ? » passe à droite sous
+le champ, sans soulignement ; les comptes de démonstration ferment la feuille. Avant : un
+bandeau de 200, un formulaire sur le beige, **440 px vides**, puis les comptes collés en bas.
+Même feuille pour la première connexion (`FirstLoginPage`). Tablette et bureau inchangés.
+
+### Le chargement LIVE (24/09)
+
+Demande : *« une superbe animation de chargement personnalisée, sur les symboles de nos valeurs
+LIVE »*. `LiveLoader` (`components/ui/LiveLoader.tsx`) pose les quatre signes dans leur carré
+de la charte — angles emboîtés (vert), losange dans le losange (jaune), triangles en moulin
+(bleu), cercles concentriques (orange) — et les anime **à tour de rôle, dans le sens des
+aiguilles d'une montre**, chacun selon sa nature : les angles se tracent du plus petit au plus
+grand, le losange pivote d'un quart de tour et son cœur bat, le moulin tourne, les cercles
+émettent une onde. Le signe actif est plein, les autres à 28 %. Cycle 2,4 s ; sans mouvement,
+ils s'allument seulement. Animations CSS dans `index.css` (§ « Le chargement LIVE ») ; jetons
+`--tk-color-mark-live-*` (couleurs de marque, pour le motif seul, sur le bleu-noir).
+`LoadingSpinner` le porte : **plein écran** (démarrage, documentation, galerie, chargement des
+données) = le bleu-noir, les signes vifs à 72, « Tracker » et le message ; **dans une page** =
+la version claire aux teintes du produit. Les chargements de page gardent leurs squelettes.
+
+### Campagne au téléphone, bouton flottant de Finances (25/09)
+
+- **Campagne (16.2)** — ce qui s'ouvre au toucher d'un site de l'inventaire :
+  - **« Scanner » devient un bouton flottant étendu** (glyphe QR + mot, ancrage 17.6) au
+    téléphone ; il quitte le héro, où il disparaissait au premier défilement. Au bureau,
+    « Saisir un code » reste dans le héro. Le corps réserve 112 px sous la dernière rangée.
+  - **Rangées `FactRow`** : le **modèle** en titre (on cherche un objet, pas un code), le
+    code et le porteur dessous ; la vignette teintée par l'état (neutre à scanner, vert
+    retrouvé, orange manquant, ambre hors site) ; à droite, seulement ce qui change —
+    l'heure d'un retrouvé, « manquant », « hors site », et le local au bureau. « à scanner »
+    ne se répète plus sur chaque ligne : la puce active le dit.
+- **Finances au téléphone** : bouton flottant « Enregistrer une dépense » (acte unique, il
+  ouvre la saisie directement), offert à qui a le droit d'écrire une dépense.
+
+### L'état vide des listes, centré au téléphone (25/09)
+
+Tâches (et toute liste de `ListTemplate`) : au téléphone, l'état vide restait collé sous la
+recherche (titre à 281 px sur 852) — son conteneur ne prenait la hauteur restante qu'au bureau
+(`expanded:flex-1`). Il la prend à toutes les largeurs : le bloc se centre dans l'espace entre
+la recherche et la barre du bas (titre à 451). Même règle pour l'état hors ligne.
+
+### La navigation de retour, relevée sur toutes les pages (25/09)
+
+Demande : *« certaines pages comme Groupes n'ont pas de bouton retour ; fais un checking complet »*.
+Relevé automatisé de **38 adresses × 2 largeurs** (393, 1 440) : titre, présence d'une flèche
+dans l'en-tête, et **où elle mène** une fois touchée. Règle retenue : au bureau, les
+destinations de la barre latérale n'ont pas de flèche (la barre y mène) ; toute autre page en a
+une, au téléphone comme au bureau.
+
+- **Retour qui ne faisait rien** (téléphone) : Catalogue, Emplacements, Inventaire, Finances —
+  `goBack` renvoyait à la racine de la section, donc à la page elle-même. Depuis une racine, il
+  mène maintenant à l'Accueil, comme Accès, Historique, Rapports et Paramètres.
+- **Sous-pages en liste sans retour au bureau** : Groupes (→ Accès) et Dépenses (→ Finances).
+  `ListTemplate` prend `retourAuBureau` et `backLabel` : la flèche de 20 se pose devant le titre,
+  comme sur les fiches.
+- Vérifiés sans défaut : fiches (actif, personne, type, modèle, rôle, site, demande, campagne),
+  formulaires et imports, Lignes du budget, Exercices, Paramètres (et Mon compte → Paramètres),
+  fenêtres Remettre / Retourner / Nouvelle demande / Inviter (« Fermer »).

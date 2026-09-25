@@ -60,6 +60,12 @@ interface ReferentialImportTemplateProps<T> {
     contractNote?: React.ReactNode;
     /** Ce que la zone de dépôt annonce en second. */
     dropSubLabel?: string;
+    /**
+     * Un réglage qui s'applique aux lignes retenues — le rôle par défaut des personnes
+     * importées (05.3). Il paraît **après la lecture**, sous le fichier : on voit qui
+     * entre avant de décider comment.
+     */
+    reglages?: React.ReactNode;
 }
 
 /**
@@ -104,6 +110,7 @@ function ReferentialImportTemplate<T>({
     rejectionNote,
     contractNote,
     dropSubLabel = 'Séparateur virgule ou point-virgule, encodage UTF-8',
+    reglages,
 }: ReferentialImportTemplateProps<T>) {
     const [file, setFile] = useState<File | null>(null);
     const [candidates, setCandidates] = useState<ImportCandidate<T>[]>([]);
@@ -191,9 +198,12 @@ function ReferentialImportTemplate<T>({
                l'import avant de l'avoir commencé, sinon par la flèche de retour — qui
                est justement la sortie que la planche garde, seule. */
             submitButtonLocation="footer-full"
+            mesure="double"
         >
+            {/* Au bureau, le contrat et le dépôt côte à côte ; après lecture, le fichier
+                et ce qui sera créé (24/09). Une colonne de 560 sous une barre de 1 440. */}
             {!previewMode ? (
-                <div className="flex flex-col gap-4">
+                <div className="large:grid large:grid-cols-2 large:items-stretch flex flex-col gap-4">
                     {/* LE CONTRAT — `.cols` : chaque colonne, ce qu'elle porte, si elle
                         est requise. Avant le dépôt, pas après. */}
                     <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
@@ -246,7 +256,7 @@ function ReferentialImportTemplate<T>({
                             onClick={downloadSample}
                             className="border-outline-variant text-on-surface hover:text-text-secondary text-ts-sub mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium transition-colors"
                         >
-                            <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
+                            <Icon glyph={CaretRight} size={20} className="text-text-secondary" />
                             Télécharger un fichier d'exemple
                         </Button>
                     </section>
@@ -256,14 +266,14 @@ function ReferentialImportTemplate<T>({
                         accept=".csv"
                         label="Déposer le fichier"
                         subLabel={dropSubLabel}
-                        className="p-6"
+                        className="large:h-full p-6"
                     />
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
+                <div className="large:grid large:grid-cols-12 large:items-start flex flex-col gap-4">
                     {/* LE FICHIER LU, ET LES DEUX TOTAUX — `.fread` puis `.tals`.
                         Le décompte se lit **avant** d'écrire. */}
-                    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
+                    <section className="rounded-card bg-surface large:col-span-5 flex flex-col gap-4 p-5">
                         <div className="flex items-center gap-3">
                             <span className="bg-tint-vert text-on-tint-vert flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={FileCsv} size={18} />
@@ -302,7 +312,7 @@ function ReferentialImportTemplate<T>({
                     {/* `.cgroup` — **le décompte avant l'écriture** : le nombre en 28,
                         ce qu'il compte à côté, et la proportion en barre de 6. Deux
                         cases de 24 disaient deux nombres sans dire leur rapport. */}
-                    <section className="rounded-card bg-surface flex flex-col gap-4 p-5">
+                    <section className="rounded-card bg-surface large:col-span-7 large:row-span-2 flex flex-col gap-4 p-5">
                         <div className="flex items-center gap-3">
                             <span className="bg-tint-bleu text-on-tint-bleu flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]">
                                 <Icon glyph={ListChecks} size={18} />
@@ -383,8 +393,14 @@ function ReferentialImportTemplate<T>({
                         )}
                     </section>
 
+                    {reglages && (
+                        <section className="rounded-card bg-surface large:col-span-5 flex flex-col gap-4 p-5">
+                            {reglages}
+                        </section>
+                    )}
+
                     {!canWrite && (
-                        <p className="text-text-secondary px-0.5 text-[0.75rem] leading-[1.0625rem]">
+                        <p className="text-text-secondary large:col-span-5 px-0.5 text-[0.75rem] leading-[1.0625rem]">
                             Aucune ligne ne peut entrer. Corrigez le fichier dans votre tableur,
                             puis déposez-le à nouveau.
                         </p>

@@ -22,8 +22,11 @@ import { AUTH_MEASURE } from './authLayout';
 const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
     <header
         className={cn(
-            'relative w-full overflow-hidden bg-[var(--tk-color-inverse-surface)] px-5 text-white',
-            short ? 'pt-10 pb-7' : 'pt-14 pb-9',
+            /* Au téléphone, le bandeau **prend la hauteur** que la feuille laisse et pose son
+               texte en bas, juste au-dessus d'elle (24/09). */
+            'relative flex w-full flex-1 flex-col justify-end overflow-hidden bg-[var(--tk-color-inverse-surface)] px-5 text-white',
+            short ? 'min-h-[180px] pt-10 pb-12' : 'min-h-[240px] pt-14 pb-14',
+            'medium:block medium:min-h-0 medium:flex-none',
             /* Au-delà de 600, **le bloc de marque du plein champ** : plus de fond (le
                champ le porte), centré au-dessus de la carte, 28 avant elle. */
             'medium:max-w-[440px] medium:overflow-visible medium:bg-transparent medium:px-0 medium:pt-0 medium:pb-7 medium:text-center',
@@ -133,7 +136,7 @@ const BrandBanner: React.FC<{ short?: boolean }> = ({ short = false }) => (
                     'medium:mb-5',
                 )}
             />
-            <h1 className="font-brand text-ts-page leading-ts-page medium:text-[2.75rem] medium:leading-[3rem] mb-2 font-medium tracking-[-0.02em]">
+            <h1 className="font-brand medium:text-[2.75rem] medium:leading-[3rem] mb-2 text-[2.25rem] leading-[2.5rem] font-medium tracking-[-0.02em]">
                 {APP_CONFIG.appName}
             </h1>
             <p className="text-ts-control leading-ts-control medium:max-w-none medium:text-[1rem] medium:leading-6 max-w-[290px] text-[var(--tk-color-text-on-inverse-muted)]">

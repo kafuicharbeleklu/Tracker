@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
 import { Camera, Check, FileText, Info, Package, Scan, Tag } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
@@ -367,9 +368,15 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 onSave={handleSave}
                 saveLabel="Enregistrer"
                 submitButtonLocation="header"
+                mesure="double"
                 className="bg-background"
             >
-                <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+                <div
+                    className={cn(
+                        'large:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
+                        COLONNES_FORMULAIRE,
+                    )}
+                >
                     {/* ── Référence ───────────────────────────────────────────────── */}
                     <FormSection title="Référence">
                         <div>

@@ -184,6 +184,8 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const [isModelModalOpen, setIsModelModalOpen] = useState(false);
 
     const isCompact = useMediaQuery(MEDIA.compact);
+    /* Les types en cartes au-delà de 840 (23/09) — hors sélection groupée, qui garde ses rangées. */
+    const enCartes = useMediaQuery(MEDIA.expandedUp);
 
     /* 17.2 — le catalogue est l'un des quatre écrans qui portent la sélection groupée. */
     const selection = useSelection();
@@ -727,11 +729,21 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             </h1>
                             {/* `.cnt2` du téléphone — le compte à droite du titre : c'est la
                                 ligne de service en moins, 30 px d'en-tête (23/09). */}
-                            {isCompact && !isReferentialEmpty ? (
-                                <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.75rem] leading-4 tabular-nums">
+                            {/* Au bureau aussi (24/09) : la ligne de service sous la
+                                recherche disait « 13 types · 110 modèles · 243 actifs » là où
+                                toutes les listes le disent à côté du titre. */}
+                            {!isReferentialEmpty ? (
+                                <span
+                                    className={cn(
+                                        'text-text-muted min-w-0 flex-1 truncate pt-1.5 leading-4 tabular-nums',
+                                        isCompact ? 'text-[0.75rem]' : 'ml-3 text-[0.8125rem]',
+                                    )}
+                                >
                                     {filteredCategories.length} type
                                     {filteredCategories.length > 1 ? 's' : ''}
                                     {familyFilter !== ALL_FAMILIES && ` · ${familyFilter}`}
+                                    {!isCompact &&
+                                        ` · ${modelCountLabel} · ${equipment.length} actifs`}
                                 </span>
                             ) : (
                                 <span className="flex-1" />
@@ -782,49 +794,30 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                             count={sheetFilterCount}
                                             onClick={() => setIsFilterSheetOpen(true)}
                                         />
+                                        {/* Le tri, au bout de la ligne d'outils (17.11) : il
+                                            vivait dans la ligne de service, retirée. */}
+                                        {!isCompact && (
+                                            <Button
+                                                variant="text"
+                                                onClick={() =>
+                                                    setSortIndex(
+                                                        (prev) => (prev + 1) % SORT_OPTIONS.length,
+                                                    )
+                                                }
+                                                className="text-on-surface ml-auto min-h-10 shrink-0 gap-1.5 px-2 text-[0.8125rem] leading-4 font-medium"
+                                                icon={
+                                                    <Icon
+                                                        glyph={SortAscending}
+                                                        size={18}
+                                                        className="text-on-surface-variant"
+                                                    />
+                                                }
+                                            >
+                                                {SORT_OPTIONS[sortIndex].label}
+                                            </Button>
+                                        )}
                                     </Reading>
                                 </IconGestureSizeContext.Provider>
-
-                                {/*
-                              `.ord` — **le cinquième slot, dans le bloc fixe.** Il vivait
-                              dans le contenu, donc il défilait : *« un filtre posé dans
-                              `.page` disparaît au premier défilement, et la liste devient
-                              un sous-ensemble sans étiquette »* (17.8). C'est aussi ici que
-                              la **famille retenue se nomme**, puisqu'elle n'a plus de
-                              rangée à elle : la ligne de tri porte la partition.
-                            */}
-                                <Reading
-                                    className={cn(
-                                        'text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4',
-                                        (selection.isActive || isCompact) && 'hidden',
-                                    )}
-                                >
-                                    <span className="min-w-0 truncate">
-                                        <b className="text-on-surface font-medium tabular-nums">
-                                            {filteredCategories.length}
-                                        </b>{' '}
-                                        type{filteredCategories.length > 1 ? 's' : ''}
-                                        {familyFilter !== ALL_FAMILIES &&
-                                            ` · ${familyFilter}`} · {modelCountLabel} ·{' '}
-                                        {equipment.length} actifs
-                                    </span>
-                                    <Button
-                                        variant="text"
-                                        onClick={() =>
-                                            setSortIndex((prev) => (prev + 1) % SORT_OPTIONS.length)
-                                        }
-                                        className="text-on-surface -mr-2 min-h-0 shrink-0 gap-1.5 px-2 text-[0.75rem] leading-4 font-medium hover:bg-transparent"
-                                        icon={
-                                            <Icon
-                                                glyph={SortAscending}
-                                                size={18}
-                                                className="text-on-surface-variant"
-                                            />
-                                        }
-                                    >
-                                        {SORT_OPTIONS[sortIndex].label}
-                                    </Button>
-                                </Reading>
                             </>
                         )}
                     </div>
@@ -925,72 +918,172 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                     {items.length} type{items.length > 1 ? 's' : ''}
                                                 </span>
                                             </div>
-                                            <div className="rounded-card bg-surface px-4 py-1">
-                                                {items.map((cat) => {
-                                                    const modelCount =
-                                                        modelCountByType.get(cat.name) ?? 0;
-                                                    const assetCount =
-                                                        assetCountByType.get(cat.name) ?? 0;
-                                                    const unusable = modelCount === 0;
-                                                    const label = getCategoryLabel(cat.name);
-
-                                                    return (
-                                                        <ListRow
-                                                            key={cat.id}
-                                                            vignette={
-                                                                <span
-                                                                    className={
-                                                                        unusable
-                                                                            ? 'text-text-muted'
-                                                                            : undefined
+                                            {enCartes && !selection.isActive ? (
+                                                /*
+                                                  **Au bureau, un type est une carte** (23/09). Les
+                                                  rangées de 64 portaient un nom, un compte de
+                                                  modèles et un compte d'actifs sur 1 008 px. Les
+                                                  types se rangent par trois : le pictogramme de la
+                                                  famille, le nom, puis les deux comptes en chiffres
+                                                  qu'on compare d'une carte à l'autre. Un type sans
+                                                  modèle s'éteint et le dit, en ambre, avec
+                                                  l'horloge de l'attente.
+                                                */
+                                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                                    {items.map((cat) => {
+                                                        const modelCount =
+                                                            modelCountByType.get(cat.name) ?? 0;
+                                                        const assetCount =
+                                                            assetCountByType.get(cat.name) ?? 0;
+                                                        const unusable = modelCount === 0;
+                                                        return (
+                                                            <li key={cat.id}>
+                                                                <Button
+                                                                    variant="text"
+                                                                    onClick={() =>
+                                                                        onCategoryClick?.(cat.id)
                                                                     }
+                                                                    className="rounded-card bg-surface hover:bg-surface-container h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 p-4 text-left font-normal whitespace-normal"
                                                                 >
-                                                                    {renderCategoryIcon(cat, 20)}
-                                                                </span>
-                                                            }
-                                                            title={
-                                                                /* `.lrow.mute .l1 .c` — un type inutilisable
-                                                                   perd l'encre pleine, il ne perd pas son nom. */
-                                                                unusable ? (
-                                                                    <span className="text-text-secondary">
-                                                                        {label}
+                                                                    <span className="flex items-center gap-3">
+                                                                        <span
+                                                                            className={cn(
+                                                                                'bg-surface-container flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
+                                                                                unusable
+                                                                                    ? 'text-text-muted'
+                                                                                    : 'text-on-surface-variant',
+                                                                            )}
+                                                                        >
+                                                                            {renderCategoryIcon(
+                                                                                cat,
+                                                                                20,
+                                                                            )}
+                                                                        </span>
+                                                                        <span
+                                                                            className={cn(
+                                                                                'text-ts-body leading-ts-body min-w-0 flex-1 truncate font-medium',
+                                                                                unusable
+                                                                                    ? 'text-text-secondary'
+                                                                                    : 'text-on-surface',
+                                                                            )}
+                                                                        >
+                                                                            {getCategoryLabel(
+                                                                                cat.name,
+                                                                            )}
+                                                                        </span>
                                                                     </span>
-                                                                ) : (
-                                                                    label
-                                                                )
-                                                            }
-                                                            type={
-                                                                /* `.s` de 09.1 — le décompte de modèles vit
+                                                                    <span className="flex items-end gap-6">
+                                                                        {unusable ? (
+                                                                            <span className="text-ts-sub leading-ts-sub flex items-center gap-1.5 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                                                <Icon
+                                                                                    glyph={Clock}
+                                                                                    size={18}
+                                                                                />
+                                                                                aucun modèle
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span>
+                                                                                <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
+                                                                                    {modelCount}
+                                                                                </span>
+                                                                                <span className="text-on-surface-variant block text-[0.75rem] leading-4">
+                                                                                    modèle
+                                                                                    {modelCount > 1
+                                                                                        ? 's'
+                                                                                        : ''}
+                                                                                </span>
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="ml-auto text-right">
+                                                                            <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
+                                                                                {assetCount}
+                                                                            </span>
+                                                                            <span className="text-on-surface-variant block text-[0.75rem] leading-4">
+                                                                                actif
+                                                                                {assetCount > 1
+                                                                                    ? 's'
+                                                                                    : ''}{' '}
+                                                                                au parc
+                                                                            </span>
+                                                                        </span>
+                                                                    </span>
+                                                                </Button>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            ) : (
+                                                <div className="rounded-card bg-surface px-4 py-1">
+                                                    {items.map((cat) => {
+                                                        const modelCount =
+                                                            modelCountByType.get(cat.name) ?? 0;
+                                                        const assetCount =
+                                                            assetCountByType.get(cat.name) ?? 0;
+                                                        const unusable = modelCount === 0;
+                                                        const label = getCategoryLabel(cat.name);
+
+                                                        return (
+                                                            <ListRow
+                                                                key={cat.id}
+                                                                vignette={
+                                                                    <span
+                                                                        className={
+                                                                            unusable
+                                                                                ? 'text-text-muted'
+                                                                                : undefined
+                                                                        }
+                                                                    >
+                                                                        {renderCategoryIcon(
+                                                                            cat,
+                                                                            20,
+                                                                        )}
+                                                                    </span>
+                                                                }
+                                                                title={
+                                                                    /* `.lrow.mute .l1 .c` — un type inutilisable
+                                                                   perd l'encre pleine, il ne perd pas son nom. */
+                                                                    unusable ? (
+                                                                        <span className="text-text-secondary">
+                                                                            {label}
+                                                                        </span>
+                                                                    ) : (
+                                                                        label
+                                                                    )
+                                                                }
+                                                                type={
+                                                                    /* `.s` de 09.1 — le décompte de modèles vit
                                                                    dans la sous-ligne : **14 sur 20**, encre
                                                                    pleine, chiffres tabulaires. Sans modèle,
                                                                    il retombe en `.ty.q` — 400, encre pâle :
                                                                    ce n'est plus un nombre, c'est un manque. */
-                                                                unusable ? (
-                                                                    <span className="text-text-muted text-ts-sub leading-ts-sub font-normal">
-                                                                        aucun modèle
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-on-surface text-ts-sub leading-ts-sub font-medium tabular-nums">
-                                                                        {modelCount} modèle
-                                                                        {modelCount > 1 ? 's' : ''}
-                                                                    </span>
-                                                                )
-                                                            }
-                                                            muted={unusable}
-                                                            status={
-                                                                /* Le glyphe de l'attente, en ambre — la paire
+                                                                    unusable ? (
+                                                                        <span className="text-text-muted text-ts-sub leading-ts-sub font-normal">
+                                                                            aucun modèle
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-on-surface text-ts-sub leading-ts-sub font-medium tabular-nums">
+                                                                            {modelCount} modèle
+                                                                            {modelCount > 1
+                                                                                ? 's'
+                                                                                : ''}
+                                                                        </span>
+                                                                    )
+                                                                }
+                                                                muted={unusable}
+                                                                status={
+                                                                    /* Le glyphe de l'attente, en ambre — la paire
                                                                    canonique du registre §0.3. Un catalogue
                                                                    incomplet n'est pas une panne : jamais le
                                                                    triangle d'alerte. */
-                                                                unusable
-                                                                    ? {
-                                                                          icon: Clock,
-                                                                          label: 'aucun modèle',
-                                                                          tone: 'pending',
-                                                                      }
-                                                                    : undefined
-                                                            }
-                                                            /*
+                                                                    unusable
+                                                                        ? {
+                                                                              icon: Clock,
+                                                                              label: 'aucun modèle',
+                                                                              tone: 'pending',
+                                                                          }
+                                                                        : undefined
+                                                                }
+                                                                /*
                                                               **Un fait par rangée, et un seul**
                                                               (22/09). La rangée en portait quatre :
                                                               le type, le nombre de modèles, les
@@ -1003,22 +1096,27 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                               « aucun modèle » posée deux
                                                               centimètres plus haut.
                                                             */
-                                                            holder={`${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`}
-                                                            onOpen={() => onCategoryClick?.(cat.id)}
-                                                            /* 09.1 — `.lrow` de 64, gouttière 12. */
-                                                            dense
-                                                            selectionActive={selection.isActive}
-                                                            selected={selection.isSelected(cat.id)}
-                                                            onToggle={() =>
-                                                                selection.toggle(cat.id)
-                                                            }
-                                                            onLongPress={() =>
-                                                                selection.enter(cat.id)
-                                                            }
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
+                                                                holder={`${assetCount} actif${assetCount > 1 ? 's' : ''} dans le parc`}
+                                                                onOpen={() =>
+                                                                    onCategoryClick?.(cat.id)
+                                                                }
+                                                                /* 09.1 — `.lrow` de 64, gouttière 12. */
+                                                                dense
+                                                                selectionActive={selection.isActive}
+                                                                selected={selection.isSelected(
+                                                                    cat.id,
+                                                                )}
+                                                                onToggle={() =>
+                                                                    selection.toggle(cat.id)
+                                                                }
+                                                                onLongPress={() =>
+                                                                    selection.enter(cat.id)
+                                                                }
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </section>
                                     ))}
                                 </div>

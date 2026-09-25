@@ -97,7 +97,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                 className={classes}
             >
                 {summary ?? retenue?.label ?? axis}
-                <Icon glyph={CaretDown} size={18} />
+                <Icon glyph={CaretDown} size={20} />
             </button>
         );
     }
@@ -135,7 +135,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                             {retenue.count}
                         </b>
                     )}
-                    <Icon glyph={CaretDown} size={18} />
+                    <Icon glyph={CaretDown} size={20} />
                 </button>
             }
         />

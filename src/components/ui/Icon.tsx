@@ -2,6 +2,7 @@ import React from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
 import { cn } from '../../lib/utils';
+import { useIconGestureSize } from '../../hooks/useIconGestureSize';
 
 /**
  * Icône — Phosphor, et Phosphor seul (REGLES-TRANSVERSES §0.1, règle I1).
@@ -36,8 +37,15 @@ export type IconEmphasis = 'regular' | 'fill';
 export interface IconProps {
     /** Le glyphe Phosphor lui-même : `import { Package } from '@phosphor-icons/react'`. */
     glyph: PhosphorGlyph;
-    /** 24 par défaut — la taille des deux barres, celle qui n'a pas de classe dans les planches. */
-    size?: IconSize;
+    /**
+     * 24 par défaut — la taille des deux barres, celle qui n'a pas de classe dans les planches.
+     *
+     * **`'geste'`** (23/09) : la taille suit le carré du geste que le gabarit a décidé
+     * (`IconGestureSizeContext`) — **24 dans le carré de 48** d'une barre de téléphone, **20
+     * dans le carré de 40** de l'en-tête du bureau. Le ⋮ d'une fiche est le même bouton aux
+     * deux largeurs ; chaque page lui posait une taille fixe, 24 ici, 20 là.
+     */
+    size?: IconSize | 'geste';
     emphasis?: IconEmphasis;
     className?: string;
 }
@@ -47,16 +55,20 @@ const Icon: React.FC<IconProps> = ({
     size = 24,
     emphasis = 'regular',
     className,
-}) => (
-    <Glyph
-        size={size}
-        weight={emphasis}
-        aria-hidden="true"
-        focusable="false"
-        // `flex-none` : le conteneur d'une icône ne fixe pas sa largeur (§0.2) — un
-        // `flex:0 0 15px` sur un chevron écrase le glyphe.
-        className={cn('flex-none', className)}
-    />
-);
+}) => {
+    const carre = useIconGestureSize();
+    const px = size === 'geste' ? (carre === 40 ? 20 : 24) : size;
+    return (
+        <Glyph
+            size={px}
+            weight={emphasis}
+            aria-hidden="true"
+            focusable="false"
+            // `flex-none` : le conteneur d'une icône ne fixe pas sa largeur (§0.2) — un
+            // `flex:0 0 15px` sur un chevron écrase le glyphe.
+            className={cn('flex-none', className)}
+        />
+    );
+};
 
 export default Icon;

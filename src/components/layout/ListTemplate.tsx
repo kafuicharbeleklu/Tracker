@@ -22,7 +22,7 @@ import { FabContainer } from '../ui/FabContainer';
 import FloatingActionButton from '../ui/FloatingActionButton';
 import { SkeletonList, SkeletonQueue } from '../ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
-import { useData } from '../../context/DataContext';
+import { useOptionalData } from '../../context/DataContext';
 import { OfflineState } from '../ui/ScreenState';
 import SelectionTopBar from '../ui/SelectionTopBar';
 import { useDeclareSelectionRegime } from '../../context/SelectionRegimeContext';
@@ -106,6 +106,15 @@ interface ListTemplateProps {
     /** Le second fait de l'en-tête — « 14 au parc ». Jamais une redite du titre. */
     subtitle?: string;
     onBack?: () => void;
+    /**
+     * **La flèche de retour au bureau aussi** (25/09). Une liste de destination (Actifs,
+     * Catalogue…) n'en a pas au bureau : la barre latérale y mène. Une **sous-page** en
+     * liste — Groupes (sous Accès), Dépenses (sous Finances) — n'est pas dans la barre
+     * latérale et n'avait aucun chemin de retour.
+     */
+    retourAuBureau?: boolean;
+    /** Le libellé de la flèche, quand « Retour » ne dit pas où l'on va. */
+    backLabel?: string;
     /** Gestes de l'en-tête : scanner, filtrer, ajouter. Deux au plus au téléphone. */
     actions?: React.ReactNode;
 
@@ -312,6 +321,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     title,
     subtitle,
     onBack,
+    retourAuBureau = false,
+    backLabel = 'Retour',
     actions,
     search,
     filter,
@@ -357,7 +368,10 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
      * de données : le gabarit la lit lui-même. A5 tient toujours — `useDelayedPending`
      * ne montre rien avant 300 ms.
      */
-    const { derniereLecture, isHydrating } = useData();
+    /* Hors application (la galerie du design system), ni lecture ni hydratation. */
+    const donnees = useOptionalData();
+    const derniereLecture = donnees?.derniereLecture;
+    const isHydrating = donnees?.isHydrating ?? false;
     const showSkeleton = useDelayedPending(loading || isHydrating);
     const enLigne = useOnlineStatus();
     const horsLigne = !enLigne;
@@ -441,7 +455,12 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
      * Ailleurs, le nombre se lit à droite du titre, comme `.cnt2` au bureau, et le tri —
      * le seul geste de cette ligne — monte dans la bande de recherche.
      */
-    const compteAuTitre = isCompact && Boolean(count) && !count?.regard;
+    /* **Au téléphone, le compte monte à côté du titre — pour toutes les listes** (24/09).
+       Les files (Tâches, Historique) y échappaient parce qu'elles passent un `regard`
+       (« À faire · les plus anciennes d'abord ») : il redisait la pastille active et le tri,
+       tous deux visibles juste au-dessus, et gardait une ligne de 28 px que les autres
+       listes ont perdue le 23/09. */
+    const compteAuTitre = isCompact && Boolean(count);
 
     const orderRow =
         count && !selection?.active && !compteAuTitre ? (
@@ -689,7 +708,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             {onBack && (
                                 <button
                                     type="button"
-                                    aria-label="Retour"
+                                    aria-label={backLabel}
                                     onClick={onBack}
                                     className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
                                 >
@@ -705,7 +724,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 à l'ellipse. */}
                             {compteAuTitre && count ? (
                                 <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.75rem] leading-4 tabular-nums">
-                                    {count.total} {count.noun}
+                                    {count.total}{' '}
+                                    {count.regard ? (count.unite ?? count.noun) : count.noun}
                                 </span>
                             ) : (
                                 <span className="flex-1" />
@@ -734,9 +754,22 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     <IconGestureSizeContext.Provider value={40}>
                         <div className="px-page flex flex-col gap-2 pt-5">
                             <div className="flex min-h-[52px] items-center gap-4">
-                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
-                                    {title}
-                                </h1>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    {retourAuBureau && onBack && (
+                                        <Button
+                                            variant="text"
+                                            iconOnly
+                                            aria-label={backLabel}
+                                            onClick={onBack}
+                                            className="text-on-surface-variant hover:text-on-surface -ml-2.5 shrink-0"
+                                        >
+                                            <Icon glyph={ArrowLeft} size={20} />
+                                        </Button>
+                                    )}
+                                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
+                                        {title}
+                                    </h1>
+                                </div>
                                 {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
                                     son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
                                 <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
@@ -772,7 +805,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                                         size={20}
                                                     />
                                                     {pageAction.label}
-                                                    <Icon glyph={CaretDown} size={18} />
+                                                    <Icon glyph={CaretDown} size={20} />
                                                 </Button>
                                             }
                                         />
@@ -846,7 +879,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                                 >
                                                     <Icon
                                                         glyph={SortAscending}
-                                                        size={18}
+                                                        size={20}
                                                         className="text-text-muted"
                                                     />
                                                     {sort.label}
@@ -1091,9 +1124,10 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             (horsLigne ? (
                                 <div
                                     className={cn(
-                                        'flex flex-col justify-center',
+                                        /* `flex-1` à toutes les largeurs (25/09) : au téléphone
+                                           le vide restait à sa hauteur, collé sous la recherche. */
+                                        'flex flex-1 flex-col justify-center',
                                         CADRE_BUREAU,
-                                        'expanded:flex-1',
                                     )}
                                 >
                                     <OfflineState depuis={derniereLecture} />
@@ -1101,9 +1135,10 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             ) : (
                                 <div
                                     className={cn(
-                                        'flex flex-col justify-center',
+                                        /* `flex-1` à toutes les largeurs (25/09) : au téléphone
+                                           le vide restait à sa hauteur, collé sous la recherche. */
+                                        'flex flex-1 flex-col justify-center',
                                         CADRE_BUREAU,
-                                        'expanded:flex-1',
                                     )}
                                 >
                                     {empty}
@@ -1119,7 +1154,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 {origin.clearPresentation === 'more' ? (
                                     <Button
                                         variant="text"
-                                        icon={<Icon glyph={List} size={18} />}
+                                        icon={<Icon glyph={List} size={20} />}
                                         onClick={origin.onClear}
                                         className="border-outline-variant text-on-surface w-full justify-center rounded-none border-t px-0"
                                     >

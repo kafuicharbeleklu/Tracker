@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
+import { cn } from '../../../lib/utils';
 import { Info, LockSimple } from '@phosphor-icons/react';
 import Icon from '../../../components/ui/Icon';
 import { useToast } from '../../../context/ToastContext';
@@ -131,9 +133,10 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
             onSave={handleSave}
             saveLabel={modelToEdit ? 'Enregistrer' : 'Créer'}
             submitButtonLocation="header"
+            mesure="double"
             className="bg-background"
         >
-            <div className="flex flex-col gap-4">
+            <div className={cn('flex flex-col gap-4', COLONNES_FORMULAIRE)}>
                 <FormSection title="Identité">
                     <InputField
                         label="Nom du modèle"

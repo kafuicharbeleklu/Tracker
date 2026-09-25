@@ -42,6 +42,7 @@ export type ViewType =
     | 'finance'
     | 'finance_expenses'
     | 'finance_lines'
+    | 'finance_exercises'
     | 'settings'
     | 'not_found';
 
@@ -51,6 +52,12 @@ export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
 export interface AppSettings {
     // Finances
     currency: string;
+    /**
+     * **Le seuil de validation d'un devis de réparation** (24/09). Sous lui, l'informatique
+     * qui prend en charge valide seule ; au-delà, la Finance tranche avant l'envoi chez le
+     * prestataire. Dans la devise des réglages. Facultatif : absent, la valeur par défaut.
+     */
+    repairQuoteThreshold?: number;
     fiscalYearStart: string;
     defaultDepreciationMethod: 'linear' | 'degressive';
     defaultDepreciationYears: number;
@@ -437,6 +444,15 @@ export interface Equipment {
      */
     incidents?: EquipmentIncident[];
 
+    /**
+     * **La réparation en cours** (24/09) — le dossier qui suit un incident « immobilisé »
+     * jusqu'au retour chez le porteur. Absent : l'objet n'est pas en réparation au sens de
+     * ce parcours (les objets passés « En réparation » avant lui n'en ont pas).
+     */
+    repair?: RepairCase;
+    /** Les réparations closes, la plus récente d'abord. */
+    repairHistory?: RepairCase[];
+
     // Files
     documents?: EquipmentDocument[];
 }
@@ -459,6 +475,82 @@ export interface EquipmentIncident {
     /** « Décrire, si la photo ne suffit pas. » */
     comment?: string;
 }
+
+/**
+ * **Les étapes d'une réparation** (24/09). Le badge « En réparation » les confondait :
+ * un incident à peine déclaré et un objet chez le prestataire portaient le même mot.
+ *
+ * - `declared` — l'incident est déclaré, l'objet est encore chez son porteur ;
+ * - `deposited` — le porteur l'a remis à l'informatique, attestation à l'appui ;
+ * - `quote_pending` — le devis attend la Finance (au-delà du seuil) ;
+ * - `at_repairer` — chez le prestataire (sous garantie, devis validé ou sans coût).
+ *
+ * Au retour du prestataire, la réparation se clôt : l'objet repart chez son porteur par
+ * la remise ordinaire (`PENDING_DELIVERY`), que le porteur confirme.
+ */
+export type RepairStage = 'declared' | 'deposited' | 'quote_pending' | 'at_repairer';
+
+/** Un fichier gardé pour une réparation — devis, bon, facture. */
+export interface RepairFile {
+    /** L'identifiant du fichier dans le magasin local (`financeFileStorage`). */
+    fileId?: string;
+    fileName: string;
+    uploadedAt: string;
+}
+
+export interface RepairCase {
+    id: string;
+    stage: RepairStage;
+    incidentId?: string;
+    openedAt: string;
+    /** Le porteur au moment de l'incident — c'est à lui que l'objet revient. */
+    holderId?: string;
+    holderName?: string;
+    deposit?: { at: string; method: AttestationMethod; byName: string };
+    takenCharge?: {
+        at: string;
+        byName: string;
+        repairer: string;
+        underWarranty: boolean;
+        expectedReturn: string;
+        ticket?: string;
+    };
+    quote?: RepairFile & { amount: number };
+    /** La décision sur le devis : l'informatique sous le seuil, la Finance au-delà. */
+    quoteDecision?: {
+        level: 'it' | 'finance';
+        status: 'pending' | 'approved' | 'rejected';
+        at?: string;
+        byName?: string;
+        reason?: string;
+    };
+    sentAt?: string;
+    /** Le bon d'enlèvement du prestataire, s'il en laisse un. */
+    pickupSlip?: RepairFile;
+    returnedAt?: string;
+    outcome?: 'repaired' | 'diminished' | 'irreparable';
+    invoice?: RepairFile & { amount: number; supplier: string; expenseId?: string };
+    closedAt?: string;
+}
+
+/** Ce que l'on fait avancer dans une réparation — la porte unique `advanceRepair`. */
+export type RepairAction =
+    | { type: 'deposit'; method: AttestationMethod }
+    | {
+          type: 'take_charge';
+          repairer: string;
+          underWarranty: boolean;
+          expectedReturn: string;
+          ticket?: string;
+          quote?: RepairFile & { amount: number };
+          pickupSlip?: RepairFile;
+      }
+    | { type: 'decide_quote'; approve: boolean; reason?: string }
+    | {
+          type: 'receive';
+          outcome: 'repaired' | 'diminished' | 'irreparable';
+          invoice?: RepairFile & { amount: number; supplier: string; expenseId?: string };
+      };
 
 /**
  * Le motif d'une sortie du parc — **le seul champ obligatoire de la feuille** (04.3,

@@ -17,6 +17,11 @@ export const AUTH_MEASURE = 'mx-auto w-full max-w-[560px]';
  */
 export const AUTH_PANEL = cn(
     AUTH_MEASURE,
-    'flex flex-1 flex-col px-5 pt-7 pb-5',
+    /* **Au téléphone, une feuille qui monte du bas** (24/09) : coins hauts arrondis à 20,
+       l'ombre portée vers le haut, 20 de recouvrement sur le champ de marque. La colonne
+       d'avant s'étirait (`flex-1`) et laissait 440 px vides entre le bouton et les
+       comptes de démonstration ; c'est maintenant le champ sombre qui prend la hauteur. */
+    'relative -mt-5 flex flex-none flex-col rounded-t-[1.25rem] bg-surface px-5 pt-7 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(10,25,29,0.18)]',
+    'medium:mt-0',
     'medium:relative medium:max-w-[440px] medium:flex-none medium:rounded-card medium:bg-surface medium:p-8 medium:shadow-dialog',
 );

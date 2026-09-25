@@ -35,8 +35,11 @@ const AuthShell: React.FC<{ children: React.ReactNode; className?: string; field
     <div
         className={cn(
             'bg-background text-on-surface flex min-h-dvh w-full flex-col',
+            /* Au téléphone aussi, le champ est le bleu-noir de la marque (24/09) : la
+               feuille du formulaire y monte du bas (`AUTH_PANEL`). */
+            field && 'bg-[var(--tk-color-inverse-surface)]',
             field &&
-                'medium:relative medium:items-center medium:justify-center medium:overflow-hidden medium:bg-[var(--tk-color-inverse-surface)] medium:px-6 medium:py-16',
+                'medium:relative medium:items-center medium:justify-center medium:overflow-hidden medium:px-6 medium:py-16',
             className,
         )}
     >

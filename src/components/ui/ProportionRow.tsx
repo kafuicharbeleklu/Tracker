@@ -65,12 +65,15 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
 
     return (
         <div className={className}>
-            <p className="mt-3.5 flex items-baseline gap-2.5">
+            {/* **Le rythme des jauges de l'accueil** (23/09) : 16 entre le chiffre et le
+                ruban, 12 entre le ruban et sa phrase, un ruban de 8 — les deux formes de jauge
+                du produit (celle-ci et `Gauge` de 03.1) parlaient à deux rythmes. */}
+            <p className="mt-3 flex items-baseline gap-2.5">
                 {/* Le chiffre est au rang du sujet — 20 px. Il valait 24, qui n'est sur aucune
                     marche de l'échelle (§2.6 : 34 / 28 / 20 / 15 / 13 / 11, et rien d'autre).
                     `.wrow .v` de 04.2 : interligne 1,05 et resserré de 0,015em, comme tout
                     chiffre en Archivo ; il tenait un interligne plein et aucun resserrement. */}
-                <span className="font-brand text-on-surface text-[1.25rem] leading-[1.05] font-semibold tracking-[-0.015em] tabular-nums">
+                <span className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums">
                     {value}
                 </span>
                 {/* `.wrow .n` — 16 sur 24 (passe sobre du 05/09) ; 15 n'est sur aucune marche. */}
@@ -82,7 +85,7 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             <div
                 role="img"
                 aria-label={`${clamped} %`}
-                className="bg-surface-container mt-3.5 h-1.5 overflow-hidden rounded-xs"
+                className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs"
             >
                 <span
                     className={cn('block h-full rounded-xs', TONE_FILL[tone])}
@@ -91,7 +94,7 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             </div>
 
             {note && (
-                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-2">{note}</p>
+                <p className="text-on-surface-variant text-ts-body leading-ts-body mt-3">{note}</p>
             )}
 
             {source && (

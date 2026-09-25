@@ -33,6 +33,9 @@ export interface MenuItem {
     selected?: boolean;
 }
 
+/** La largeur minimale de la surface — `min-w-[236px]` de `widthClassName`. */
+const LARGEUR_MIN = 236;
+
 interface MenuProps {
     /**
      * Le déclencheur. Le menu lui **greffe** `id`, `aria-*`, `onClick` et `onKeyDown` :
@@ -45,6 +48,8 @@ interface MenuProps {
     align?: 'start' | 'end';
     placement?: 'bottom' | 'top';
     widthClassName?: string;
+    /** Classes du conteneur du déclencheur — `flex-1 min-w-0` quand toute une rangée ouvre le menu. */
+    rootClassName?: string;
     /**
      * **Le menu sort du cadre qui défile.** Posé en absolu, il reste prisonnier de son
      * premier ancêtre qui coupe : dans la cellule d'actes d'un tableau (le ⋮ de 18.1 au
@@ -75,6 +80,7 @@ const Menu: React.FC<MenuProps> = ({
      long ni étirer un menu de deux mots.
   */
     widthClassName = 'min-w-[236px] max-w-[calc(100vw-32px)]',
+    rootClassName,
     floating = false,
     className,
 }) => {
@@ -127,9 +133,16 @@ const Menu: React.FC<MenuProps> = ({
                     ...(enHaut
                         ? { bottom: window.innerHeight - rect.top + 4 }
                         : { top: rect.bottom + 4 }),
+                    /* **Jamais hors de la fenêtre** (24/09) : le menu du compte, aligné sur
+                       le ⋮ de la barre latérale, faisait 236 px pour 224 de barre et partait
+                       à −12. La largeur minimale de la surface est la borne. */
                     ...(align === 'end'
-                        ? { right: window.innerWidth - rect.right }
-                        : { left: rect.left }),
+                        ? rect.right - LARGEUR_MIN < 8
+                            ? { left: 8 }
+                            : { right: window.innerWidth - rect.right }
+                        : rect.left + LARGEUR_MIN > window.innerWidth - 8
+                          ? { right: 8 }
+                          : { left: rect.left }),
                 });
             }
             setOpen(true);
@@ -279,7 +292,7 @@ const Menu: React.FC<MenuProps> = ({
     };
 
     return (
-        <div ref={rootRef} className="relative inline-flex">
+        <div ref={rootRef} className={cn('relative inline-flex', rootClassName)}>
             {React.cloneElement(trigger, triggerProps)}
 
             {open && (

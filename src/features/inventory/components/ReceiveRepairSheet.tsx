@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ArrowUUpLeft,
     CheckCircle,
     ClockCounterClockwise,
     SignOut,
     User,
+    Coins,
+    Receipt,
     Warning,
     Wrench,
 } from '@phosphor-icons/react';
@@ -12,6 +14,8 @@ import {
 import BottomSheet from '../../../components/ui/BottomSheet';
 import { motifIncident } from '../incidents';
 import Button from '../../../components/ui/Button';
+import InputField from '../../../components/ui/InputField';
+import RepairFileField from './RepairFileField';
 import { Consequences, FieldLabel, OptionRow, SubjectRow } from '../../../components/ui/FormParts';
 import type { Equipment } from '../../../types';
 
@@ -44,7 +48,16 @@ interface ReceiveRepairSheetProps {
     open: boolean;
     onClose: () => void;
     item: Equipment;
-    onConfirm: (outcome: RepairOutcome) => void;
+    devise: string;
+    formatMontant: (valeur: number) => string;
+    /**
+     * À la récupération, **la facture ou le reçu** (24/09) : il devient la dépense de la
+     * ligne Maintenance, son fichier en justificatif. Absent sous garantie.
+     */
+    onConfirm: (
+        outcome: RepairOutcome,
+        invoice?: { amount: number; supplier: string; file: File },
+    ) => void;
 }
 
 /** « 2 août » — et le premier du mois prend son ordinal. */
@@ -60,9 +73,31 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
     open,
     onClose,
     item,
+    devise,
+    formatMontant,
     onConfirm,
 }) => {
     const [outcome, setOutcome] = useState<RepairOutcome>('repaired');
+    const dossier = item.repair;
+    /* Sous garantie, rien à payer ; hors garantie, la pièce est demandée. Un objet réparé
+       avant le parcours (sans dossier) garde l'ancienne réception, sans facture. */
+    const facturable = Boolean(dossier) && !dossier?.takenCharge?.underWarranty;
+    const [montant, setMontant] = useState(() =>
+        dossier?.quote?.amount ? String(dossier.quote.amount) : '',
+    );
+    const [fournisseur, setFournisseur] = useState(dossier?.takenCharge?.repairer ?? '');
+    const [facture, setFacture] = useState<File | null>(null);
+    /* La feuille reste montée : à chaque ouverture, elle reprend le devis du dossier. */
+    useEffect(() => {
+        if (!open) return;
+        setMontant(dossier?.quote?.amount ? String(dossier.quote.amount) : '');
+        setFournisseur(dossier?.takenCharge?.repairer ?? '');
+        setFacture(null);
+    }, [open, dossier?.quote?.amount, dossier?.takenCharge?.repairer]);
+    const cout = Number(montant.replace(/[\s\u202f\u00a0]/g, '').replace(',', '.'));
+    const coutValide = Number.isFinite(cout) && cout > 0;
+    const ecart = dossier?.quote && coutValide ? cout - dossier.quote.amount : 0;
+    const pret = !facturable || (coutValide && Boolean(facture) && Boolean(fournisseur.trim()));
 
     const porteur = item.repairPreviousUser?.name;
     const parti = enClair(item.repairStartDate);
@@ -144,8 +179,32 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
 
     const fermer = () => {
         setOutcome('repaired');
+        setFacture(null);
         onClose();
     };
+
+    const lignesFacture =
+        facturable && coutValide
+            ? [
+                  {
+                      tint: 'bleu' as const,
+                      glyph: Receipt,
+                      content: `Une dépense de ${formatMontant(cout)} ${devise} sur Maintenance & Services, la facture en justificatif.`,
+                  },
+                  ...(ecart !== 0
+                      ? [
+                            {
+                                tint: ecart > 0 ? ('orange' as const) : ('vert' as const),
+                                glyph: Coins,
+                                content:
+                                    ecart > 0
+                                        ? `${formatMontant(ecart)} ${devise} de plus que le devis.`
+                                        : `${formatMontant(-ecart)} ${devise} de moins que le devis.`,
+                            },
+                        ]
+                      : []),
+              ]
+            : [];
 
     return (
         <BottomSheet open={open} onClose={fermer} title="Réceptionner">
@@ -194,7 +253,45 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                     </div>
                 </div>
 
-                <Consequences label="Ce que cela referme" lines={consequences} />
+                {facturable && (
+                    <>
+                        <div className="flex gap-3">
+                            <div className="min-w-0 flex-1">
+                                <InputField
+                                    label="Fournisseur"
+                                    name="fournisseur"
+                                    value={fournisseur}
+                                    onChange={(event) => setFournisseur(event.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="w-40 shrink-0">
+                                <InputField
+                                    label="Montant payé"
+                                    name="montant-facture"
+                                    inputMode="numeric"
+                                    value={montant}
+                                    onChange={(event) => setMontant(event.target.value)}
+                                    suffix={devise}
+                                    className="tabular-nums"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <RepairFileField
+                            label="Facture ou reçu"
+                            appel="Joindre la facture"
+                            file={facture}
+                            onChange={setFacture}
+                            manquant={coutValide && !facture}
+                        />
+                    </>
+                )}
+
+                <Consequences
+                    label="Ce que cela referme"
+                    lines={[...consequences, ...lignesFacture]}
+                />
 
                 <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={fermer}>
@@ -202,8 +299,14 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                     </Button>
                     <Button
                         variant="filled"
+                        disabled={!pret}
                         onClick={() => {
-                            onConfirm(outcome);
+                            onConfirm(
+                                outcome,
+                                facturable && facture
+                                    ? { amount: cout, supplier: fournisseur.trim(), file: facture }
+                                    : undefined,
+                            );
                             fermer();
                         }}
                     >

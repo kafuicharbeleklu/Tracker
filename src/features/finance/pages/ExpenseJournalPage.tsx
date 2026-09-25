@@ -206,6 +206,9 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                 body="cartes"
                 title="Dépenses"
                 onBack={onBack}
+                /* Le journal est une sous-page de Finances : sa flèche vaut aussi au bureau. */
+                retourAuBureau
+                backLabel="Retour aux finances"
                 search={{
                     value: recherche,
                     onChange: setRecherche,
@@ -218,22 +221,16 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                         onClick={() => setFiltreOuvert(true)}
                     />
                 }
-                /*
-                  **Le compte ne s'écrit que s'il diffère de celui du héro.** 15.3 ne
-                  dessine pas de ligne de service : le héro dit déjà « consommés en 47
-                  écritures ». Dès qu'un filtre ou une recherche restreint la liste, la
-                  ligne revient — et dit alors le rapport, « 6 des 47 ».
-                */
-                count={
-                    affichees.length !== deLExercice.length
-                        ? {
-                              total: affichees.length,
-                              de: deLExercice.length,
-                              noun: 'écritures',
-                              regard: <>Dépenses filtrées · les plus récentes</>,
-                          }
-                        : undefined
-                }
+                /* **Le compte à côté du titre, toujours** (24/09) : il ne s'écrivait que
+                   filtré, sous la recherche, parce que le héro dit déjà le total. Au titre
+                   il ne coûte plus de ligne ; filtré, il dit le rapport. */
+                count={{
+                    total: affichees.length,
+                    noun:
+                        affichees.length !== deLExercice.length
+                            ? `écriture${affichees.length > 1 ? 's' : ''} sur ${deLExercice.length}`
+                            : `écriture${affichees.length > 1 ? 's' : ''}`,
+                }}
                 hero={
                     /* `.hero` de 15.3 — le consommé de l'exercice, que le filtre ne
                        touche pas : ce qu'il annonce est le fait de l'exercice. */

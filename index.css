@@ -875,6 +875,13 @@ body {
     --tk-color-live-bleu: #54a9dc;
     --tk-color-live-ambre: #e9c46a;
     --tk-color-live-orange: #e45329;
+    /* **Les signes LIVE, dans leurs couleurs de marque** (24/09) — pour le seul motif de
+       la marque (l'animation de chargement), sur le bleu-noir où la charte les pose. Les
+       --tk-color-live-* ci-dessus, plus sourds, restent ceux des interfaces claires. */
+    --tk-color-mark-live-vert: var(--ref-live-vert);
+    --tk-color-mark-live-jaune: var(--ref-live-jaune);
+    --tk-color-mark-live-orange: var(--ref-live-orange);
+    --tk-color-mark-live-bleu: var(--ref-live-bleu);
     --tk-color-on-dark-2: #a9c0c4;
     --tk-color-avatar-text: #cbe6f5;
 
@@ -1827,4 +1834,120 @@ body {
     --color-primary-dark: var(--tk-color-brand-dark);
     --text-title-2: 1.375rem;
     --text-caption: 0.75rem;
+}
+
+/* ==========================================================================
+   Le chargement LIVE (24/09) — les quatre signes de la marque s'animent à tour de
+   rôle, dans le sens des aiguilles d'une montre : les angles se tracent, le losange
+   pivote d'un quart de tour, les triangles tournent en moulin, les cercles émettent
+   une onde. Cycle de 2,4 s ; chaque signe tient son quart. Voir `LiveLoader.tsx`.
+   ========================================================================== */
+.live-loader {
+    --live-cycle: 2.4s;
+    /* Le quart du signe dans le cycle, et le pas entre deux traits d'un même signe :
+       chaque élément du SVG pose les siens. */
+    --live-retard: 0s;
+    --live-pas: 0s;
+}
+.live-loader .live-signe {
+    animation: live-allume var(--live-cycle) ease-in-out infinite;
+    animation-delay: var(--live-retard, 0s);
+    opacity: 0.28;
+}
+.live-loader .live-angle {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: live-trace var(--live-cycle) cubic-bezier(0.2, 0, 0, 1) infinite;
+    animation-delay: calc(var(--live-retard, 0s) + var(--live-pas, 0s));
+}
+.live-loader .live-tourne,
+.live-loader .live-moulin {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: live-quart var(--live-cycle) cubic-bezier(0.2, 0, 0, 1) infinite;
+    animation-delay: var(--live-retard, 0s);
+}
+.live-loader .live-coeur {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: live-bat var(--live-cycle) ease-in-out infinite;
+    animation-delay: var(--live-retard, 0s);
+}
+.live-loader .live-onde {
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
+    animation: live-onde var(--live-cycle) ease-out infinite;
+    animation-delay: var(--live-retard, 0s);
+}
+@keyframes live-allume {
+    0%,
+    100% {
+        opacity: 0.28;
+    }
+    6%,
+    26% {
+        opacity: 1;
+    }
+    38% {
+        opacity: 0.28;
+    }
+}
+@keyframes live-trace {
+    0% {
+        stroke-dashoffset: 1;
+    }
+    16%,
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes live-quart {
+    0%,
+    4% {
+        transform: rotate(0deg);
+    }
+    24%,
+    100% {
+        transform: rotate(90deg);
+    }
+}
+@keyframes live-bat {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    12% {
+        transform: scale(0.45);
+    }
+    24% {
+        transform: scale(1);
+    }
+}
+@keyframes live-onde {
+    0% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+    26% {
+        opacity: 0;
+        transform: scale(1.55);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.55);
+    }
+}
+/* Sans mouvement : les signes s'allument tour à tour, rien ne se trace ni ne tourne. */
+@media (prefers-reduced-motion: reduce) {
+    .live-loader .live-angle {
+        animation: none;
+        stroke-dashoffset: 0;
+    }
+    .live-loader .live-tourne,
+    .live-loader .live-moulin,
+    .live-loader .live-coeur,
+    .live-loader .live-onde {
+        animation: none;
+    }
 }

@@ -14,9 +14,9 @@ import {
     FinanceBudget,
     FinanceExpense,
     FinanceExpenseInsertResult,
-    FinanceExpenseType,
 } from '../types';
 import { canManageFinanceByRole } from '../lib/businessRules';
+import { getBudgetCategoryByExpenseType } from '../lib/financial';
 import { deleteExpenseSourceFile } from '../lib/financeFileStorage';
 import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
@@ -50,13 +50,6 @@ const STORAGE_KEYS = {
     financeExpenses: { current: 'tracker_finance_expenses', legacy: 'neemba_finance_expenses' },
     financeBudgets: { current: 'tracker_finance_budgets', legacy: 'neemba_finance_budgets' },
 } as const;
-
-const getBudgetCategoryByExpenseType = (type: FinanceExpenseType): string => {
-    if (type === 'Purchase') return 'Matériel IT';
-    if (type === 'License') return 'Licences Logiciel';
-    if (type === 'Cloud') return 'Cloud Infrastructure';
-    return 'Maintenance & Services';
-};
 
 const normalizeValueForFingerprint = (value: string | undefined): string => {
     return (value || '')

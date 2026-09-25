@@ -5,13 +5,14 @@ import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import { SkeletonDetail } from '../ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
-import { useData } from '../../context/DataContext';
+import { useOptionalData } from '../../context/DataContext';
 import { MEDIA } from '../../constants/breakpoints';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
 import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
 import { cn } from '../../lib/utils';
+import BarreDePage from './BarreDePage';
 
 /**
  * Gabarit **fiche** — planche **04.2**, régime **00.3** / registre §2.43. Il porte
@@ -191,7 +192,8 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
      * de données : le gabarit la lit lui-même. A5 tient toujours — `useDelayedPending`
      * ne montre rien avant 300 ms.
      */
-    const { isHydrating } = useData();
+    /* Hors application (la galerie du design system), il n'y a rien à hydrater. */
+    const isHydrating = useOptionalData()?.isHydrating ?? false;
     const showSkeleton = useDelayedPending(loading || isHydrating);
     /* 17.1, règle 2 : hors ligne, le geste qui écrit **disparaît**. Sur une fiche,
        c'est le bouton flottant — « Remettre », « Déclarer un incident ». Le bandeau
@@ -230,30 +232,8 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                 défilaient avec la page. */}
             <div className="bg-background sticky top-0 z-20">
                 {isCompact ? (
-                    <div className="border-outline-variant bg-surface flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                        {onBack && (
-                            <Button
-                                variant="text"
-                                iconOnly
-                                aria-label="Retour"
-                                onClick={onBack}
-                                className="shrink-0"
-                            >
-                                <Icon glyph={ArrowLeft} />
-                            </Button>
-                        )}
-                        <div className="min-w-0 flex-1 px-1">
-                            {/* `.tid .code` de 17.8 — **17 sur 24**, Archivo 600, `-.01em`,
-                                coupé à l'ellipse. Il valait 15/20, puis 16/20 : 04.2 écrit
-                                bien 16, mais c'est la seule des quatre planches à barre —
-                                05.2, 09.2 et 16.2 écrivent 17/24, et **17.8 le déclare pour
-                                les huit écrans**. */}
-                            <p className="font-brand text-on-surface text-ts-head leading-ts-head truncate font-semibold tracking-[-0.01em]">
-                                {code}
-                            </p>
-                        </div>
-                        {menu}
-                    </div>
+                    /* La barre commune du téléphone (24/09) : titre à 56 / 16, comme les listes. */
+                    <BarreDePage title={code} onBack={onBack} actions={menu} />
                 ) : (
                     /*
                       `.dhead.fiche` — **le nom devient le titre de la page** : 28 sur 32,
@@ -261,7 +241,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                       Pas de filet : le chrome du bureau n'en pose ni sous l'en-tête ni au
                       bord de la barre latérale (17.11).
                     */
-                    <div className="px-page flex min-h-10 items-center gap-2 pt-5">
+                    <div className="px-page flex min-h-[72px] items-center gap-2 pt-5">
                         {onBack && (
                             <Button
                                 variant="text"

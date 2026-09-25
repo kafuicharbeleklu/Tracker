@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import BarreDePage from '../../../components/layout/BarreDePage';
 import {
     ArrowLeft,
     Camera,
@@ -35,7 +36,8 @@ import FilePicker from '../../../components/ui/FilePicker';
 import { formatFileSize, getImportLimitBytes } from '../../../lib/fileImport';
 import { signatureService } from '../../../services/signatureService';
 import { cn } from '../../../lib/utils';
-import { PAGE_BUREAU } from '../../../lib/regimeBureau';
+import { PAGE_BUREAU, COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
+import { seuilDevis } from '../../inventory/reparation';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
@@ -134,6 +136,8 @@ type SettingsView =
     | 'inventory'
     | 'files'
     | 'sources'
+    /** Le seuil de validation d'un devis de réparation (24/09). */
+    | 'repair'
     /** Le recadrage d'une signature importée — 07.1, lot 28 D2. */
     | 'signature';
 
@@ -146,7 +150,11 @@ const VIEW_TITLE: Record<SettingsView, string> = {
     inventory: "Périodicité de l'inventaire",
     files: "Taille maximale d'un fichier",
     sources: 'Sources de collecte',
+    repair: 'Validation des devis',
 };
+
+/** Les seuils proposés pour un devis de réparation ; 0 : tout devis va à la Finance. */
+const SEUILS_DEVIS = [0, 50000, 150000, 500000] as const;
 
 /**
  * Les périodes proposées. Un inventaire physique se tient au trimestre, au semestre,
@@ -321,7 +329,7 @@ const SettingsBar: React.FC<{
         return (
             <IconGestureSizeContext.Provider value={40}>
                 {/* Le titre suit la colonne centrée des réglages (23/09). */}
-                <div className="px-page bg-background large:mx-auto large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex min-h-10 w-full items-center gap-2 pt-5">
+                <div className="px-page bg-background large:mx-auto large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex min-h-[72px] w-full items-center gap-2 pt-5">
                     {onBack && (
                         <Button
                             variant="text"
@@ -342,15 +350,8 @@ const SettingsBar: React.FC<{
     }
 
     if (variant === 'fiche') {
-        /* `.tbar` — l'intérieur `0 8 0 4` place déjà la flèche à 4 du bord. */
-        return (
-            <div className="border-outline-variant bg-surface sticky top-0 z-20 flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                {retour}
-                <h1 className="font-brand text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate px-1 font-semibold tracking-[-0.01em]">
-                    {title}
-                </h1>
-            </div>
-        );
+        /* La barre commune du téléphone (24/09) : le titre à 56 / 16, comme l'index. */
+        return <BarreDePage className="sticky top-0 z-20" title={title} onBack={onBack} />;
     }
 
     /* `.top .tt` — la rangée du titre rentre sa flèche de 12, et le titre tombe à 56 : huit
@@ -384,6 +385,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     onBack,
 }) => {
     const { showToast } = useToast();
+    /*
+      **Au bureau, deux colonnes** (23/09) — les groupes de réglages en colonnes équilibrées,
+      et « Mon compte » en fiche : l'identité à gauche, les actes à droite. Une seule colonne
+      de 1 008 posait des cartes d'une rangée d'un bord à l'autre.
+    */
+    const deuxColonnes = useMediaQuery(MEDIA.twoColumn);
     const { currentUser } = useAuth();
     const {
         settings,
@@ -720,9 +727,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 pris de chaque côté à des rangées qui n'en avaient pas de trop. */}
             <div className="medium:px-page flex-1 overflow-y-auto px-4 pt-4 pb-6">
                 {/* `.page` de 07.1 : 16 d'écart entre le héro et les cartes (10/09 ; il valait 20). */}
-                <Reading desk className="flex flex-col gap-4 pb-16">
+                {/* **Au bureau, un sous-écran n'est plus une colonne de téléphone** (24/09).
+                    Les rangées couraient sur 1 008 px, la valeur ou l'interrupteur à 900 px
+                    de son libellé. Les réglages à deux groupes ou plus se rangent en deux
+                    colonnes (`COLONNES_FORMULAIRE`) ; ceux qui n'en ont qu'un se tiennent à
+                    la mesure d'un formulaire, 560, centrés. */}
+                <Reading
+                    desk
+                    className={cn(
+                        'flex flex-col gap-4 pb-16',
+                        (view === 'currency' || view === 'depreciation' || view === 'sources') &&
+                            COLONNES_FORMULAIRE,
+                        (view === 'inventory' ||
+                            view === 'files' ||
+                            view === 'repair' ||
+                            view === 'signature') &&
+                            'large:mx-auto large:max-w-[560px]',
+                    )}
+                >
                     {view === 'index' && (
-                        <>
+                        <div
+                            className={
+                                deuxColonnes
+                                    ? /* Des colonnes de texte, pas une grille : chaque groupe
+                                         garde sa hauteur, et la seconde colonne commence où la
+                                         première s'arrête — pas de trou sous un groupe court. */
+                                      'columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid'
+                                    : 'contents'
+                            }
+                        >
                             {/* **La liste ne porte plus de note.** Chaque groupe en avait
                                 une, longue, qui expliquait le classement plutôt que les
                                 réglages : trois lignes de gris pour une carte d'une rangée.
@@ -779,6 +812,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     subtitle={`Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`}
                                     value={`${settings.inventoryPeriodMonths} mois`}
                                     onOpen={() => setView('inventory')}
+                                />
+                                <RuleGroup.Row
+                                    title="Validation des devis"
+                                    subtitle="Au-delà, la Finance valide une réparation"
+                                    value={
+                                        seuilDevis(settings) === 0
+                                            ? 'toujours'
+                                            : `${seuilDevis(settings).toLocaleString('fr-FR')} ${settings.currency}`
+                                    }
+                                    onOpen={() => setView('repair')}
                                 />
                                 <RuleGroup.Row
                                     title="Taille maximale d'un fichier"
@@ -879,26 +922,37 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     se lit, elle ne se plaide pas. */}
                                 <RuleGroup.Row title="Thème" value="Clair" />
                             </RuleGroup>
-                        </>
+                        </div>
                     )}
 
                     {view === 'account' && (
-                        <>
-                            {/* `.prof` de 07.1 — **le héro ne porte que l'identité**.
+                        <div
+                            className={
+                                deuxColonnes ? 'grid grid-cols-12 items-start gap-4' : 'contents'
+                            }
+                        >
+                            <div className={deuxColonnes ? 'col-span-5' : 'contents'}>
+                                {/* `.prof` de 07.1 — **le héro ne porte que l'identité**.
                                 *« Un acte n'a qu'une entrée, dans sa carte »* : pas de
                                 geste ici, pas de qualifiant chiffré. */}
-                            <DetailHero
-                                /* Les initiales nues : `DetailHero` pose déjà la fonte de marque,
+                                <DetailHero
+                                    /* Les initiales nues : `DetailHero` pose déjà la fonte de marque,
                                    20 sur 30 et la graisse d'appui, comme 07.1 les dessine. Les
                                    redéclarer ici ajoutait un second style au même texte. */
-                                avatar={initiales(currentUser?.name)}
-                                label={identiteLabel}
-                                subject={currentUser?.name ?? 'Mon compte'}
-                                subtitle={currentUser?.email}
-                            />
+                                    avatar={initiales(currentUser?.name)}
+                                    label={identiteLabel}
+                                    subject={currentUser?.name ?? 'Mon compte'}
+                                    subtitle={currentUser?.email}
+                                />
+                            </div>
 
-                            <ActionCard title="Me connecter">
-                                {/* **La sous-ligne dit l'état, pas la règle** — 07.1 :
+                            <div
+                                className={
+                                    deuxColonnes ? 'col-span-7 flex flex-col gap-4' : 'contents'
+                                }
+                            >
+                                <ActionCard title="Me connecter">
+                                    {/* **La sous-ligne dit l'état, pas la règle** — 07.1 :
                                     *« chaque acte n'a qu'une entrée, l'état se lit en
                                     sous-ligne »*, et la planche y écrit « changé il y a
                                     4 mois ». Elle portait « il ouvre la session, il ne
@@ -908,78 +962,79 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     « jamais changé depuis l'ouverture du compte » se
                                     coupait d'ailleurs à « …du comp » : l'état tient en
                                     deux mots. */}
-                                <ActionCard.Row
-                                    glyph={LockKey}
-                                    title="Changer mon mot de passe"
-                                    subtitle={
-                                        currentUser?.passwordChangedAt
-                                            ? `changé le ${new Date(
-                                                  currentUser.passwordChangedAt,
-                                              ).toLocaleDateString('fr-FR', {
-                                                  day: 'numeric',
-                                                  month: 'long',
-                                              })}`
-                                            : 'jamais changé'
-                                    }
-                                    onOpen={() => setPasswordSheetOpen(true)}
-                                />
-                            </ActionCard>
+                                    <ActionCard.Row
+                                        glyph={LockKey}
+                                        title="Changer mon mot de passe"
+                                        subtitle={
+                                            currentUser?.passwordChangedAt
+                                                ? `changé le ${new Date(
+                                                      currentUser.passwordChangedAt,
+                                                  ).toLocaleDateString('fr-FR', {
+                                                      day: 'numeric',
+                                                      month: 'long',
+                                                  })}`
+                                                : 'jamais changé'
+                                        }
+                                        onOpen={() => setPasswordSheetOpen(true)}
+                                    />
+                                </ActionCard>
 
-                            {/* La carte que 07.1 appelle « Prouver une remise », et qui
+                                {/* La carte que 07.1 appelle « Prouver une remise », et qui
                                 manquait entièrement. `NavigationBar` promettait déjà
                                 *« code PIN à définir »* sur la rangée « Mon compte » de
                                 la feuille « Plus » — la destination ne tenait pas la
                                 promesse : aucune rangée n'y parlait du code. */}
-                            <ActionCard title="Prouver une remise">
-                                <ActionCard.Row
-                                    glyph={Key}
-                                    title={
-                                        currentUser?.pin
-                                            ? 'Remplacer mon code PIN'
-                                            : 'Définir mon code PIN'
-                                    }
-                                    /* **Le même mot que dans Paramètres** — « défini » /
+                                <ActionCard title="Prouver une remise">
+                                    <ActionCard.Row
+                                        glyph={Key}
+                                        title={
+                                            currentUser?.pin
+                                                ? 'Remplacer mon code PIN'
+                                                : 'Définir mon code PIN'
+                                        }
+                                        /* **Le même mot que dans Paramètres** — « défini » /
                                        « à définir » —, les deux écrans étant atteints par
                                        le même menu. Elle portait la conséquence (« sans
                                        lui, chaque remise se trace »), que la feuille du
                                        code énonce déjà au moment de le poser. */
-                                    subtitle={currentUser?.pin ? 'défini' : 'à définir'}
-                                    onOpen={() => setPinSheetOpen(true)}
-                                />
-                                {/* **Ma signature** — 07.1, lot 28. Trois états, un seul
+                                        subtitle={currentUser?.pin ? 'défini' : 'à définir'}
+                                        onOpen={() => setPinSheetOpen(true)}
+                                    />
+                                    {/* **Ma signature** — 07.1, lot 28. Trois états, un seul
                                     fait les sépare : y a-t-il une image enregistrée. Sans
                                     elle, la rangée ouvre le choix de la source ; avec
                                     elle, la feuille qui la montre, la remplace ou la
                                     supprime. Le refus d'un fichier se lit ici même. */}
-                                <ActionCard.Row
-                                    glyph={Signature}
-                                    title="Ma signature"
-                                    tone={refusFichier ? 'refus' : undefined}
-                                    subtitle={
-                                        refusFichier ??
-                                        (signatureSavedAt
-                                            ? `importée le ${new Date(signatureSavedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
-                                            : 'aucune')
-                                    }
-                                    onOpen={() => {
-                                        setRefusFichier(null);
-                                        if (signatureBlob) setSignatureSheetOpen(true);
-                                        else setSourceSheetOpen(true);
-                                    }}
-                                />
-                            </ActionCard>
+                                    <ActionCard.Row
+                                        glyph={Signature}
+                                        title="Ma signature"
+                                        tone={refusFichier ? 'refus' : undefined}
+                                        subtitle={
+                                            refusFichier ??
+                                            (signatureSavedAt
+                                                ? `importée le ${new Date(signatureSavedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                                                : 'aucune')
+                                        }
+                                        onOpen={() => {
+                                            setRefusFichier(null);
+                                            if (signatureBlob) setSignatureSheetOpen(true);
+                                            else setSourceSheetOpen(true);
+                                        }}
+                                    />
+                                </ActionCard>
 
-                            <ActionCard title="Où je suis connecté">
-                                {/* Aucun état à dire : « de cet appareil seulement »
+                                <ActionCard title="Où je suis connecté">
+                                    {/* Aucun état à dire : « de cet appareil seulement »
                                     commentait l'acte, et la carte « Où je suis connecté »
                                     le situe déjà. */}
-                                <ActionCard.Row
-                                    glyph={SignOut}
-                                    title="Se déconnecter"
-                                    onOpen={onLogout}
-                                />
-                            </ActionCard>
-                        </>
+                                    <ActionCard.Row
+                                        glyph={SignOut}
+                                        title="Se déconnecter"
+                                        onOpen={onLogout}
+                                    />
+                                </ActionCard>
+                            </div>
+                        </div>
                     )}
                     {view === 'signature' && imageAImporter && (
                         <SignatureCrop
@@ -1158,6 +1213,49 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     La devise et l'année fiscale sont ailleurs.
                                 </strong>
                             </Notice>
+
+                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
+                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
+                                le pose.
+                            </p>
+                        </>
+                    )}
+
+                    {view === 'repair' && (
+                        <>
+                            <RuleGroup
+                                form="grp"
+                                header="Un devis de réparation va à la Finance"
+                                note="Sous le seuil, l'informatique qui prend en charge valide seule et l'objet part chez le prestataire. Au-delà, la Finance tranche d'abord ; la réparation attend."
+                            >
+                                {SEUILS_DEVIS.map((seuil) => {
+                                    const retenu = seuilDevis(settings) === seuil;
+                                    return (
+                                        <RuleGroup.Row
+                                            key={seuil}
+                                            title={
+                                                seuil === 0
+                                                    ? 'Toujours'
+                                                    : `Au-delà de ${seuil.toLocaleString('fr-FR')} ${settings.currency}`
+                                            }
+                                            subtitle={
+                                                seuil === 0
+                                                    ? 'chaque devis, quel que soit son montant'
+                                                    : undefined
+                                            }
+                                            status={
+                                                retenu
+                                                    ? { icon: CheckCircle, tone: 'positive' }
+                                                    : undefined
+                                            }
+                                            value={retenu ? 'Retenu' : undefined}
+                                            valueTone={retenu ? 'positive' : undefined}
+                                            onOpen={() => apply({ repairQuoteThreshold: seuil })}
+                                            choice
+                                        />
+                                    );
+                                })}
+                            </RuleGroup>
 
                             <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on

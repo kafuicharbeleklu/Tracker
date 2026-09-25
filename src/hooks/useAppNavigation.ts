@@ -38,6 +38,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
     finance: DESTINATIONS.finance.label,
     finance_expenses: 'Journal des dépenses',
     finance_lines: 'Lignes du budget',
+    finance_exercises: 'Exercices',
     settings: DESTINATIONS.settings.label,
     not_found: 'Page introuvable',
 };
@@ -134,6 +135,8 @@ export const useAppNavigation = () => {
             if (action === 'expenses') computedView = 'finance_expenses';
             // 15.2 — les lignes d'un exercice : `/finance/lines/<année>`.
             else if (action === 'lines') computedView = 'finance_lines';
+            // 15.1, colonne 3 — passer d'un exercice à l'autre.
+            else if (action === 'exercices') computedView = 'finance_exercises';
             else computedView = 'finance';
         } else if (section === 'settings') {
             computedView = 'settings';
@@ -186,6 +189,7 @@ export const useAppNavigation = () => {
                 finance: '/finance',
                 finance_expenses: '/finance/expenses',
                 finance_lines: '/finance/lines',
+                finance_exercises: '/finance/exercices',
                 settings: '/settings',
                 assignment_wizard: '/wizards/assignment',
                 return_wizard: '/wizards/return',
@@ -225,16 +229,32 @@ export const useAppNavigation = () => {
         [navigate],
     );
 
+    /**
+     * **Remonter d'un cran** : d'une page de section vers la racine de la section, et de
+     * la racine vers l'Accueil. Le retour renvoyait toujours à la racine de la section —
+     * y compris depuis la racine elle-même : au téléphone, la flèche de Catalogue,
+     * Emplacements, Inventaire et Finances ne faisait rien (relevé du 25/09).
+     */
     const goBack = useCallback(() => {
         const section = routeSegments[0];
-        if (section === 'inventory') navigate('/inventory');
-        else if (section === 'users') navigate('/users');
-        else if (section === 'management') navigate('/management');
-        else if (section === 'audit') navigate('/audit/overview');
-        else if (section === 'tasks' && routeSegments[1] === 'new') navigate('/tasks');
-        else if (section === 'finance') navigate('/finance');
-        else if (section === 'locations') navigate('/locations');
-        else navigate('/');
+        const racine =
+            section === 'inventory'
+                ? '/inventory'
+                : section === 'users'
+                  ? '/users'
+                  : section === 'management'
+                    ? '/management'
+                    : section === 'audit'
+                      ? '/audit/overview'
+                      : section === 'tasks' && routeSegments[1] === 'new'
+                        ? '/tasks'
+                        : section === 'finance'
+                          ? '/finance'
+                          : section === 'locations'
+                            ? '/locations'
+                            : '/';
+        const ici = `/${routeSegments.filter(Boolean).join('/')}`;
+        navigate(racine === ici ? '/' : racine);
     }, [routeSegments, navigate]);
 
     return {

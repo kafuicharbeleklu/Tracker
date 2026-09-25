@@ -28,6 +28,7 @@ import {
     UserRole,
     EquipmentIncident,
     IncidentOutcome,
+    RepairAction,
     RetirementReason,
     RETIREMENT_REASON_LABELS,
     InvitationResolution,
@@ -77,6 +78,7 @@ import {
     BusinessRuleDecision,
     canDeleteEquipmentByBusinessRule,
     canDeleteUserByBusinessRule,
+    canManageFinanceByRole,
     canManageInventoryByRole,
     canManageLocationsByRole,
     canManageSystemByRole,
@@ -221,6 +223,11 @@ interface DataContextType {
             method?: AttestationMethod;
         },
     ) => BusinessRuleDecision;
+    /**
+     * **Faire avancer une réparation** (24/09) — dépôt, prise en charge, décision sur le
+     * devis, récupération. Une seule porte, gardée par étape et par rôle.
+     */
+    advanceRepair: (equipmentId: string, action: RepairAction) => BusinessRuleDecision;
     upsertEquipmentFromAuditScan: (
         payload: AuditScanPayload,
         scope: { country: string; site: string; local?: string; horsLocal?: boolean },
@@ -296,6 +303,7 @@ const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 
 const DEFAULT_SETTINGS: AppSettings = {
     currency: 'XOF',
+    repairQuoteThreshold: 150000,
     fiscalYearStart: '01',
     defaultDepreciationMethod: 'linear',
     defaultDepreciationYears: 3,
@@ -3122,6 +3130,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
 
             if (payload.outcome === 'immobilised') {
+                /* Le dossier de réparation s'ouvre ici (24/09) : l'étape « incident
+                   déclaré » a son badge, distinct de « chez le prestataire ». */
+                updates.repair = {
+                    id: `rep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    stage: 'declared',
+                    incidentId: incident.id,
+                    openedAt: now,
+                    holderId: item.user?.id,
+                    holderName: item.user?.name,
+                };
                 updates.status = 'En réparation';
                 updates.repairStartDate = now;
                 updates.repairEndDate = undefined;
@@ -3149,6 +3167,157 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { allowed: true };
         },
         [equipment, currentUser, applyEquipmentWrite],
+    );
+
+    const advanceRepair = useCallback(
+        (equipmentId: string, action: RepairAction): BusinessRuleDecision => {
+            const item = equipment.find((e) => e.id === equipmentId);
+            if (!item) return { allowed: false, reason: 'Équipement introuvable.' };
+            const dossier = item.repair;
+            if (!dossier) return { allowed: false, reason: 'Aucune réparation en cours.' };
+
+            /* La Finance tranche le devis ; tout le reste est un geste de l'inventaire. */
+            const garde =
+                action.type === 'decide_quote'
+                    ? canManageFinanceByRole(currentUserAccessRef.current)
+                    : canManageInventoryByRole(currentUserAccessRef.current);
+            if (!garde.allowed) return garde;
+
+            const now = new Date().toISOString();
+            const qui = currentUser?.name || 'Système';
+            const refus = (reason: string): BusinessRuleDecision => ({ allowed: false, reason });
+
+            switch (action.type) {
+                case 'deposit': {
+                    if (dossier.stage !== 'declared') return refus('Le dépôt est déjà reçu.');
+                    applyEquipmentWrite(
+                        equipmentId,
+                        {
+                            repair: {
+                                ...dossier,
+                                stage: 'deposited',
+                                deposit: { at: now, method: action.method, byName: qui },
+                            },
+                        },
+                        { source: 'repair', step: 'deposit', method: action.method },
+                    );
+                    return { allowed: true };
+                }
+                case 'take_charge': {
+                    if (dossier.stage !== 'declared' && dossier.stage !== 'deposited')
+                        return refus('La réparation est déjà prise en charge.');
+                    const seuil = settings.repairQuoteThreshold ?? 150000;
+                    const montant = action.quote?.amount ?? 0;
+                    const aLaFinance = !action.underWarranty && montant > seuil;
+                    applyEquipmentWrite(
+                        equipmentId,
+                        {
+                            repair: {
+                                ...dossier,
+                                stage: aLaFinance ? 'quote_pending' : 'at_repairer',
+                                takenCharge: {
+                                    at: now,
+                                    byName: qui,
+                                    repairer: action.repairer,
+                                    underWarranty: action.underWarranty,
+                                    expectedReturn: action.expectedReturn,
+                                    ticket: action.ticket,
+                                },
+                                quote: action.quote,
+                                quoteDecision: action.quote
+                                    ? aLaFinance
+                                        ? { level: 'finance', status: 'pending' }
+                                        : { level: 'it', status: 'approved', at: now, byName: qui }
+                                    : undefined,
+                                sentAt: aLaFinance ? undefined : now,
+                                pickupSlip: action.pickupSlip,
+                            },
+                            /* Les champs d'avant le parcours restent écrits : d'autres écrans
+                               (la fiche, l'export) les lisent encore. */
+                            repairer: action.repairer,
+                            repairExpectedReturn: action.expectedReturn,
+                            repairCost: action.quote?.amount,
+                            repairTicket: action.ticket,
+                        },
+                        {
+                            source: 'repair',
+                            step: aLaFinance ? 'quote_submitted' : 'sent',
+                            repairer: action.repairer,
+                            amount: montant || undefined,
+                        },
+                    );
+                    return { allowed: true };
+                }
+                case 'decide_quote': {
+                    if (dossier.stage !== 'quote_pending')
+                        return refus('Aucun devis n’attend de décision.');
+                    applyEquipmentWrite(
+                        equipmentId,
+                        {
+                            repair: {
+                                ...dossier,
+                                stage: action.approve ? 'at_repairer' : 'deposited',
+                                quoteDecision: {
+                                    level: 'finance',
+                                    status: action.approve ? 'approved' : 'rejected',
+                                    at: now,
+                                    byName: qui,
+                                    reason: action.reason?.trim() || undefined,
+                                },
+                                sentAt: action.approve ? now : undefined,
+                            },
+                        },
+                        {
+                            source: 'repair',
+                            step: action.approve ? 'quote_approved' : 'quote_rejected',
+                            reason: action.reason,
+                        },
+                    );
+                    return { allowed: true };
+                }
+                case 'receive': {
+                    if (dossier.stage !== 'at_repairer')
+                        return refus('L’objet n’est pas chez le prestataire.');
+                    const clos = {
+                        ...dossier,
+                        returnedAt: now,
+                        outcome: action.outcome,
+                        invoice: action.invoice,
+                        closedAt: now,
+                    };
+                    const porteur = item.repairPreviousUser;
+                    const updates: Partial<Equipment> = {
+                        repair: undefined,
+                        repairHistory: [clos, ...(item.repairHistory || [])],
+                        repairEndDate: now,
+                    };
+                    if (action.outcome !== 'irreparable') {
+                        /* Il revient chez son porteur, qui confirme la remise (06.1). */
+                        updates.status = porteur ? 'En attente' : 'Disponible';
+                        updates.user = porteur ?? null;
+                        updates.assignmentStatus = porteur ? 'PENDING_DELIVERY' : 'NONE';
+                        updates.repairPreviousUser = null;
+                        if (action.outcome === 'diminished') {
+                            updates.notes = [
+                                item.notes,
+                                'Réparé, mais diminué — réserve notée à la réception.',
+                            ]
+                                .filter(Boolean)
+                                .join('\n');
+                        }
+                    }
+                    applyEquipmentWrite(equipmentId, updates, {
+                        source: 'repair',
+                        step: 'received',
+                        outcome: action.outcome,
+                        amount: action.invoice?.amount,
+                        expenseId: action.invoice?.expenseId,
+                    });
+                    return { allowed: true };
+                }
+            }
+        },
+        [equipment, currentUser, settings.repairQuoteThreshold, applyEquipmentWrite],
     );
 
     const upsertEquipmentFromAuditScan = useCallback(
@@ -4165,6 +4334,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
                 return newData;
             });
+            /* **Le nom suit ceux qui le portent** (24/09). Actifs et personnes gardent leur
+               lieu par son nom : renommer le site dans le référentiel seul laissait « Bureau
+               Paris » à huit actifs et huit personnes après l'avoir rebaptisé — ils ne
+               tombaient plus dans aucun site. */
+            if (success && oldName !== newName) {
+                if (type === 'country') {
+                    setEquipment((prev) =>
+                        prev.map((item) =>
+                            item.country === oldName ? { ...item, country: newName } : item,
+                        ),
+                    );
+                    setUsers((prev) =>
+                        prev.map((user) =>
+                            user.country === oldName ? { ...user, country: newName } : user,
+                        ),
+                    );
+                } else if (type === 'site') {
+                    setEquipment((prev) =>
+                        prev.map((item) =>
+                            item.site === oldName ? { ...item, site: newName } : item,
+                        ),
+                    );
+                    setUsers((prev) =>
+                        prev.map((user) => (user.site === oldName ? { ...user, site: newName } : user)),
+                    );
+                } else if (type === 'local') {
+                    setEquipment((prev) =>
+                        prev.map((item) =>
+                            item.site === parentId && item.local === oldName
+                                ? { ...item, local: newName }
+                                : item,
+                        ),
+                    );
+                }
+            }
             return success;
         },
         [serviceManagers],
@@ -4288,6 +4492,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updateEquipment,
             deleteEquipment,
             declareIncident,
+            advanceRepair,
             upsertEquipmentFromAuditScan,
             ingestAgentCheckIn,
             promoteDetectedDeviceToInventory,
@@ -4350,6 +4555,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updateEquipment,
             deleteEquipment,
             declareIncident,
+            advanceRepair,
             upsertEquipmentFromAuditScan,
             ingestAgentCheckIn,
             promoteDetectedDeviceToInventory,
@@ -4393,3 +4599,11 @@ export const useData = () => {
     }
     return context;
 };
+
+/**
+ * **La donnée si elle est là** — pour un gabarit qui peut se rendre hors de l'application :
+ * la galerie du design system monte `DetailTemplate` sans `DataProvider`, et le gabarit
+ * n'y lisait que l'état de chargement. `useData` y levait une exception et faisait tomber
+ * toute la galerie.
+ */
+export const useOptionalData = (): DataContextType | undefined => useContext(DataContext);

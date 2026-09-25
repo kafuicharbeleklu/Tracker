@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
+import { cn } from '../../../lib/utils';
 import { useToast } from '../../../context/ToastContext';
 import InputField from '../../../components/ui/InputField';
 import { TextArea } from '../../../components/ui/TextArea';
@@ -115,9 +117,10 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
             onSave={handleSave}
             saveLabel={categoryToEdit ? 'Enregistrer' : 'Créer'}
             submitButtonLocation="header"
+            mesure="double"
             className="bg-background"
         >
-            <div className="flex flex-col gap-4">
+            <div className={cn('flex flex-col gap-4', COLONNES_FORMULAIRE)}>
                 <FormSection title="Identité">
                     <InputField
                         label="Nom du type"

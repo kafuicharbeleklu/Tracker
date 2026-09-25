@@ -1,21 +1,24 @@
 import React, { useMemo, useState } from 'react';
+import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
+import { cn } from '../../../lib/utils';
 import Icon from '../../../components/ui/Icon';
-import { FileText, Keyboard, Warning } from '@phosphor-icons/react';
-import { formatCurrency } from '../../../lib/financial';
+import { Check, CheckCircle, FileText, Keyboard, Warning } from '@phosphor-icons/react';
+import { formatCurrency, getBudgetCategoryByExpenseType } from '../../../lib/financial';
 import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
-import SelectField from '../../../components/ui/SelectField';
 import { TextArea } from '../../../components/ui/TextArea';
 import IconButton from '../../../components/ui/IconButton';
 import { FullScreenLayout } from '../../../components/layout/FullScreenLayout';
 import {
-    FieldLabel,
     FormNote,
     FormSection,
     FormWarn,
+    OptionRow,
     Segmented,
 } from '../../../components/ui/FormParts';
 import { useToast } from '../../../context/ToastContext';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
@@ -32,19 +35,21 @@ interface AddExpenseModalProps {
     onClose: () => void;
 }
 
-type AddExpenseMode = 'scan' | 'manual';
-
-const EXPENSE_TYPE_OPTIONS = [
-    { value: 'Purchase', label: 'Achat (CAPEX)' },
-    { value: 'License', label: 'Licence' },
-    { value: 'Maintenance', label: 'Maintenance' },
-    { value: 'Service', label: 'Service' },
-    { value: 'Cloud', label: 'Cloud' },
-];
-
-const MODE_OPTIONS: ReadonlyArray<{ value: AddExpenseMode; label: string }> = [
-    { value: 'scan', label: 'Lire une facture' },
-    { value: 'manual', label: 'Saisir à la main' },
+/**
+ * **Les postes, dans l'ordre de la facture** — une rangée par ligne du budget où une
+ * dépense peut s'imputer. Le produit impute par nature (`getBudgetCategoryByExpenseType`) :
+ * Maintenance et Service tombent sur la même ligne, la rangée garde donc les deux, et
+ * l'échelle courte les départage une fois la ligne prise.
+ */
+const POSTES: ReadonlyArray<{
+    type: FinanceExpenseType;
+    nature: string;
+    aussi?: FinanceExpenseType;
+}> = [
+    { type: 'Purchase', nature: 'achat de matériel' },
+    { type: 'License', nature: 'licence, abonnement logiciel' },
+    { type: 'Cloud', nature: 'hébergement, services en ligne' },
+    { type: 'Maintenance', nature: 'maintenance, prestation', aussi: 'Service' },
 ];
 
 /** « 6 août 2026 » — la date d'une lecture se lit, elle ne se décode pas. */
@@ -74,10 +79,10 @@ type PreparedSourceFile = {
 
 export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) => {
     const { showToast } = useToast();
+    const isCompact = useMediaQuery(MEDIA.compact);
     const { settings } = useData();
     const { addFinanceExpense, financeBudgets } = useFinanceData();
 
-    const [mode, setMode] = useState<AddExpenseMode>('scan');
     const [isScanning, setIsScanning] = useState(false);
     const [scannedFile, setScannedFile] = useState<File | null>(null);
     const [extractionMeta, setExtractionMeta] = useState<Pick<
@@ -95,8 +100,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         invoiceNumber: '',
     });
 
-    const currencySymbol =
-        settings.currency === 'USD' ? '$' : settings.currency === 'XOF' ? 'XOF' : '€';
     const requiresLowConfidenceReview = Boolean(
         scannedFile && extractionMeta?.confidence === 'low',
     );
@@ -157,19 +160,28 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
      * reste ») : il disait l'état avant l'acte, pas la conséquence de l'acte. C'est
      * pourtant ici, avant d'enregistrer, que le chiffre décide.
      */
+    const exerciceDeLaDate = useMemo(() => {
+        const year = new Date(formData.date || Date.now()).getFullYear();
+        return { year, budget: financeBudgets.find((entry) => entry.year === year) };
+    }, [financeBudgets, formData.date]);
+
+    /** Ce qu'il reste sur la ligne d'un poste, cette année-là — `null` si la ligne n'existe pas. */
+    const resteDe = (type: FinanceExpenseType) => {
+        const line = exerciceDeLaDate.budget?.items.find(
+            (item) => item.category === getBudgetCategoryByExpenseType(type),
+        );
+        return line ? { line, reste: line.allocated - line.spent } : null;
+    };
+
     const budgetImpact = useMemo(() => {
         if (!formData.type) return null;
         const amount = parseAmountString(formData.amount);
         if (amount === null || amount <= 0) return null;
-
-        const year = new Date(formData.date || Date.now()).getFullYear();
-        const budget = financeBudgets.find((entry) => entry.year === year) ?? financeBudgets[0];
-        const line = budget?.items.find((item) => item.type === formData.type);
-        if (!line || line.allocated <= 0) return null;
-
-        const consumed = Math.round((line.spent / line.allocated) * 100);
-        return { category: line.category, consumed, after: line.allocated - line.spent - amount };
-    }, [financeBudgets, formData.amount, formData.date, formData.type]);
+        const category = getBudgetCategoryByExpenseType(formData.type as FinanceExpenseType);
+        const line = exerciceDeLaDate.budget?.items.find((item) => item.category === category);
+        if (!line) return { category, after: null };
+        return { category, after: line.allocated - line.spent - amount };
+    }, [exerciceDeLaDate, formData.amount, formData.type]);
 
     /** Les champs laissés vides parce que la lecture n'était pas franche. */
     const unreadFields = extractionMeta?.fieldConfidence
@@ -187,7 +199,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
     const applyDraftToForm = (file: File, extracted: ExtractedExpenseDraft) => {
         setScannedFile(file);
-        setMode('manual');
         setIsLowConfidenceReviewed(false);
         setFormData({
             type: extracted.type,
@@ -248,7 +259,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
     };
 
     const reset = () => {
-        setMode('scan');
         setIsScanning(false);
         setScannedFile(null);
         setExtractionMeta(null);
@@ -286,7 +296,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             }
         } catch {
             setIsScanning(false);
-            setMode('manual');
             showToast('Impossible d’analyser ce fichier automatiquement.', 'error');
         }
     };
@@ -300,7 +309,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
         }
 
         setIsScanning(true);
-        setMode('scan');
         setScannedFile(null);
         setExtractionMeta(null);
         setIsLowConfidenceReviewed(false);
@@ -421,21 +429,36 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
 
     if (!isOpen) return null;
 
+    const cur = extractionMeta?.currencyCode || settings.currency;
+    const lu = (confidence?: ExtractionConfidence) =>
+        Boolean(scannedFile && extractionMeta && confidence && confidence !== 'low');
+
     /* `.tbar .save` de 15.4 — **le verbe seul, et seulement quand il y a de quoi
-       enregistrer.** Les colonnes « lecture en cours » et « lecture échouée » portent
-       une barre nue : il n'y a rien à valider tant que rien n'est lu ni saisi. */
-    const headerActions =
-        mode === 'manual' ? (
-            <Button
-                variant="text"
-                onClick={() => {
-                    void handleSubmit();
-                }}
-                className="text-on-surface text-ts-body h-12 px-3 font-medium"
-            >
-                Enregistrer
-            </Button>
-        ) : undefined;
+       enregistrer.** La lecture en cours porte une barre nue. */
+    /* Au téléphone, la coche seule — comme « Lignes du budget » : le mot à côté d'un
+       titre de 28 coupait « Nouvelle dépense » en « Nouvelle… » à 393. */
+    const headerActions = isScanning ? undefined : isCompact ? (
+        <Button
+            variant="text"
+            iconOnly
+            aria-label="Enregistrer"
+            onClick={() => {
+                void handleSubmit();
+            }}
+        >
+            <Icon glyph={Check} size={24} />
+        </Button>
+    ) : (
+        <Button
+            variant="text"
+            onClick={() => {
+                void handleSubmit();
+            }}
+            className="text-on-surface text-ts-body h-12 px-3 font-medium"
+        >
+            Enregistrer
+        </Button>
+    );
 
     return (
         <FullScreenLayout
@@ -444,115 +467,21 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
             onClose={handleClose}
             headerActions={headerActions}
             className="bg-background"
+            mesure="double"
         >
-            <div className="flex flex-col gap-4">
-                {/* **Deux chemins, pas un réglage.** 15.3 pose les trois chemins dans le menu
-                du geste d'ajout — photographier, importer, saisir ; le produit n'a qu'un
-                geste, l'échelle courte de 17.4 les tient donc ici, sans bandeau en
-                dégradé ni capitales. */}
-                <FormSection title="Comment saisir">
-                    <Segmented
-                        label="Mode de saisie"
-                        value={mode}
-                        onChange={(value) => setMode(value)}
-                        options={MODE_OPTIONS}
-                    />
-                </FormSection>
-
-                {mode === 'scan' && (
+            {/* **Un formulaire, pas deux chemins** (refonte du 24/09, vers 15.4). L'écran
+                s'ouvrait sur un réglage « Comment saisir — Lire une facture | Saisir à la
+                main » et une zone de dépôt seule : rien du formulaire n'était visible avant
+                d'avoir choisi. 15.4 pose **la facture en tête** — la lire remplit ce
+                qu'elle dit franchement — puis la dépense, le poste et ce qu'il en restera.
+                On saisit à la main en remplissant, simplement ; il n'y a rien à choisir. */}
+            <div className={cn('flex flex-col gap-4', COLONNES_FORMULAIRE)}>
+                {isScanning ? (
                     <>
-                        {!isScanning ? (
-                            <FormSection title="La facture">
-                                <FileDropzone
-                                    onFileSelect={startScan}
-                                    onFilesSelect={startBatchScan}
-                                    multiple
-                                    accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
-                                    label="Déposez vos factures ici"
-                                    subLabel="Une seule ou tout un lot : ce qui est lu franchement arrive rempli."
-                                />
-                            </FormSection>
-                        ) : (
-                            /* **Le transitoire de 15.4** : le fichier est déjà là, les champs
-                           attendent leur valeur, et la sortie est offerte tout de suite —
-                           on peut saisir à la main sans attendre la fin de la lecture.
-                           L'écran tournait un disque de 96 et trois lignes de commentaire
-                           sur ce que la machine faisait ; la planche montre ce qui va être
-                           rempli, pas la machine au travail. */
-                            <FormSection title="Lecture en cours">
-                                {scannedFile && (
-                                    <div className="flex min-h-14 items-center gap-3">
-                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                            <Icon glyph={FileText} size={20} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
-                                                {scannedFile.name}
-                                            </span>
-                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
-                                                {Math.max(1, Math.round(scannedFile.size / 1024))}{' '}
-                                                Ko
-                                            </span>
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* `.pbar` — une piste de 4 sur le creux, et le trait qui la
-                                parcourt : la lecture dure deux à cinq secondes. */}
-                                <div
-                                    className="bg-surface-container h-1 overflow-hidden rounded-full"
-                                    role="progressbar"
-                                    aria-label="Lecture de la facture"
-                                >
-                                    <div className="bg-on-surface h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full" />
-                                </div>
-
-                                {/* `.skrow` — la clé est déjà lisible, la valeur est une barre
-                                en attente : on sait ce qui va arriver, et où. */}
-                                <div className="flex flex-col gap-3">
-                                    {['Fournisseur', 'Montant', 'Date', 'N° de facture'].map(
-                                        (label) => (
-                                            <div key={label} className="flex items-center gap-3">
-                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub w-[110px] shrink-0">
-                                                    {label}
-                                                </span>
-                                                <span className="bg-surface-container h-4 min-w-0 flex-1 rounded-[2px]" />
-                                            </div>
-                                        ),
-                                    )}
-                                </div>
-
-                                <Button
-                                    variant="outlined"
-                                    icon={<Icon glyph={Keyboard} size={20} />}
-                                    onClick={() => setMode('manual')}
-                                    className="w-full"
-                                >
-                                    Saisir à la main
-                                </Button>
-                            </FormSection>
-                        )}
-
-                        {isScanning && (
-                            <FormWarn glyph={FileText}>
-                                Le fichier est déjà gardé comme justificatif.
-                            </FormWarn>
-                        )}
-                    </>
-                )}
-
-                {mode === 'manual' && (
-                    <div className="animate-in slide-in-from-right-8 flex flex-col gap-4 duration-300">
-                        {/* Le fichier lu — `.fread` de 15.1. Une surface neutre : icône, nom,
-                        date de lecture, et de quoi le retirer. Le bandeau teinté « Données
-                        extraites par IA » disait la machine plutôt que le document, et
-                        empilait trois lignes de métadonnées que la planche ne porte pas —
-                        la confiance ne se dit pas, elle décide (voir `keepIfRead`). */}
-                        {scannedFile && (
-                            <FormSection title="La facture">
-                                {/* `.doc` de 15.4 — la vignette, le nom, le poids, et de quoi
-                                le retirer. La carte était cernée et posait le nom en 14 ;
-                                une planche ne cerne pas une section. */}
+                        {/* **Le transitoire de 15.4** : le fichier est déjà là, les champs
+                            attendent leur valeur, et la sortie est offerte tout de suite. */}
+                        <FormSection title="Lecture en cours">
+                            {scannedFile && (
                                 <div className="flex min-h-14 items-center gap-3">
                                     <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
                                         <Icon glyph={FileText} size={20} />
@@ -562,147 +491,131 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                             {scannedFile.name}
                                         </span>
                                         <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
-                                            lue le {formatReadDate(new Date())}
+                                            {Math.max(1, Math.round(scannedFile.size / 1024))} Ko
                                         </span>
                                     </span>
-                                    <IconButton
-                                        icon="close"
-                                        variant="standard"
-                                        aria-label="Retirer le fichier scanné"
-                                        onClick={() => {
-                                            setScannedFile(null);
-                                            setExtractionMeta(null);
-                                            setIsLowConfidenceReviewed(false);
-                                        }}
-                                    />
                                 </div>
-
-                                {extractionMeta?.warnings?.length ? (
-                                    <FormNote>{extractionMeta.warnings[0]}</FormNote>
-                                ) : null}
-                            </FormSection>
-                        )}
-
-                        {/* ── Ce que la machine a lu — `.xrow` de 15.1 ─────────────────────
-                        Le second bloc de la colonne 2, qui n'existait qu'en **lecture**,
-                        dans la feuille de détail — donc à l'endroit où il ne sert plus à
-                        décider. Ce qui a été lu franchement est **acquis** et se relit d'un
-                        coup d'œil ; ce qui ne l'a pas été porte « non lu · à saisir », et
-                        c'est le seul endroit où l'œil doit se poser. */}
-                        {scannedFile && extractionMeta && (
-                            <FormSection title="Ce que la machine a lu">
-                                <div className="divide-outline-variant divide-y">
-                                    {[
-                                        {
-                                            label: 'Fournisseur',
-                                            value: formData.supplier,
-                                            confidence: extractionMeta.fieldConfidence?.supplier,
-                                        },
-                                        {
-                                            label: 'Montant',
-                                            value: formData.amount
-                                                ? `${formData.amount} ${extractionMeta.currencyCode || settings.currency}`
-                                                : '',
-                                            confidence: extractionMeta.fieldConfidence?.amount,
-                                        },
-                                        {
-                                            label: 'Date',
-                                            value: formData.date
-                                                ? formatReadDate(new Date(formData.date))
-                                                : '',
-                                            confidence: extractionMeta.fieldConfidence?.date,
-                                        },
-                                        {
-                                            label: 'N° de facture',
-                                            value: formData.invoiceNumber,
-                                            confidence:
-                                                extractionMeta.fieldConfidence?.invoiceNumber,
-                                        },
-                                    ].map((row) => {
-                                        const unread = !row.value || row.confidence === 'low';
-                                        return (
-                                            <div
-                                                key={row.label}
-                                                /* `.xrow` — 44 de haut, la clé à gauche en
-                                               encre secondaire, la valeur à droite. */
-                                                className="text-ts-sub leading-ts-sub flex min-h-11 items-center gap-2.5"
-                                            >
-                                                <span className="text-on-surface-variant w-[110px] shrink-0">
-                                                    {row.label}
-                                                </span>
-                                                <span
-                                                    className={
-                                                        unread
-                                                            ? 'text-text-muted min-w-0 flex-1 font-normal'
-                                                            : 'text-on-surface min-w-0 flex-1 truncate font-medium tabular-nums'
-                                                    }
-                                                >
-                                                    {unread ? 'non lu' : row.value}
-                                                </span>
-                                                {unread && (
-                                                    <span className="text-text-muted shrink-0 text-[0.75rem] leading-4">
-                                                        à saisir
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <FormNote>
-                                    {unreadFields.length === 0 ? (
-                                        <>Les quatre champs sont acquis. Rien à relire.</>
-                                    ) : (
-                                        <>
-                                            {4 - unreadFields.length} champ
-                                            {4 - unreadFields.length > 1 ? 's' : ''} sur quatre{' '}
-                                            {4 - unreadFields.length > 1
-                                                ? 'sont acquis'
-                                                : 'est acquis'}
-                                            . Le
-                                            {unreadFields.length > 1
-                                                ? 's autres arrivent vides'
-                                                : ' quatrième arrive vide'}{' '}
-                                            : c'est le seul endroit où l'œil doit se poser.
-                                        </>
-                                    )}
-                                </FormNote>
-
-                                {requiresLowConfidenceReview ? (
-                                    <label className="bg-surface-container text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-3 rounded-[4px] px-4 py-3">
-                                        <input
-                                            type="checkbox"
-                                            className="mt-0.5 h-4 w-4"
-                                            checked={isLowConfidenceReviewed}
-                                            onChange={(e) =>
-                                                setIsLowConfidenceReviewed(e.target.checked)
-                                            }
-                                        />
-                                        <span>
-                                            Je confirme avoir relu le fournisseur, le montant, la
-                                            date et le numéro de facture.
+                            )}
+                            <div
+                                className="bg-surface-container h-1 overflow-hidden rounded-full"
+                                role="progressbar"
+                                aria-label="Lecture de la facture"
+                            >
+                                <div className="bg-on-surface h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full" />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                {['Fournisseur', 'Montant', 'Date', 'N° de facture'].map(
+                                    (label) => (
+                                        <div key={label} className="flex items-center gap-3">
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub w-[110px] shrink-0">
+                                                {label}
+                                            </span>
+                                            <span className="bg-surface-container h-4 min-w-0 flex-1 rounded-[2px]" />
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                            <Button
+                                variant="outlined"
+                                icon={<Icon glyph={Keyboard} size={20} />}
+                                onClick={() => setIsScanning(false)}
+                                className="w-full"
+                            >
+                                Saisir à la main
+                            </Button>
+                        </FormSection>
+                        <FormWarn glyph={FileText}>
+                            Le fichier est déjà gardé comme justificatif.
+                        </FormWarn>
+                    </>
+                ) : (
+                    <>
+                        {/* `.fsec` « La facture » — le justificatif, et sa lecture. */}
+                        <FormSection
+                            title="La facture"
+                            caption={scannedFile ? undefined : 'la lire remplit le reste'}
+                        >
+                            {scannedFile ? (
+                                <>
+                                    <div className="flex min-h-14 items-center gap-3">
+                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                            <Icon glyph={FileText} size={20} />
                                         </span>
-                                    </label>
-                                ) : null}
-                            </FormSection>
-                        )}
+                                        <span className="min-w-0 flex-1">
+                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
+                                                {scannedFile.name}
+                                            </span>
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
+                                                {extractionMeta
+                                                    ? unreadFields.length === 0
+                                                        ? `lue le ${formatReadDate(new Date())} · tout est acquis`
+                                                        : `lue le ${formatReadDate(new Date())} · ${unreadFields.length} champ${unreadFields.length > 1 ? 's' : ''} à saisir`
+                                                    : 'gardée comme justificatif'}
+                                            </span>
+                                        </span>
+                                        <IconButton
+                                            icon="close"
+                                            variant="standard"
+                                            aria-label="Retirer la facture"
+                                            onClick={() => {
+                                                setScannedFile(null);
+                                                setExtractionMeta(null);
+                                                setIsLowConfidenceReviewed(false);
+                                            }}
+                                        />
+                                    </div>
+                                    {extractionMeta?.warnings?.length ? (
+                                        <FormNote>{extractionMeta.warnings[0]}</FormNote>
+                                    ) : null}
+                                    {requiresLowConfidenceReview ? (
+                                        <label className="bg-surface-container text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-3 rounded-[4px] px-4 py-3">
+                                            <input
+                                                type="checkbox"
+                                                className="mt-0.5 h-4 w-4"
+                                                checked={isLowConfidenceReviewed}
+                                                onChange={(e) =>
+                                                    setIsLowConfidenceReviewed(e.target.checked)
+                                                }
+                                            />
+                                            <span>
+                                                J'ai relu le fournisseur, le montant, la date et le
+                                                numéro.
+                                            </span>
+                                        </label>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <FileDropzone
+                                    onFileSelect={startScan}
+                                    onFilesSelect={startBatchScan}
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
+                                    label="Déposez vos factures ici"
+                                    subLabel="Une seule ou tout un lot : ce qui est lu franchement arrive rempli."
+                                />
+                            )}
+                        </FormSection>
 
-                        {/* `.fsec` « La dépense » de 15.4 — **ce qui décide, dans l'ordre de
-                        la facture**. Le bloc portait un cadre jaune pâle et « CHAMPS
-                        CRITIQUES » en capitales espacées : les planches n'écrivent pas de
-                        capitales, ne cernent pas une section, et ne posent le jaune que
-                        sur un acte. L'astérisque tombe : `.rq` dit « obligatoire » quand
-                        il le faut, le champ le signale à la validation. */}
+                        {/* `.fsec` « La dépense » — ce que dit la facture. Un champ lu
+                            franchement le dit sous lui ; un champ mal lu arrive vide
+                            (`keepIfRead`), c'est là que l'œil se pose. */}
                         <FormSection title="La dépense">
                             <InputField
                                 label="Montant"
                                 name="amount"
-                                type="number"
+                                inputMode="decimal"
                                 value={formData.amount}
                                 onChange={(e) =>
                                     setFormData({ ...formData, amount: e.target.value })
                                 }
                                 placeholder="0"
-                                supportingText={`en ${currencySymbol}`}
+                                suffix={cur}
+                                supportingText={
+                                    lu(extractionMeta?.fieldConfidence?.amount)
+                                        ? 'lu sur la facture'
+                                        : undefined
+                                }
+                                className="tabular-nums"
                                 required
                             />
                             <InputField
@@ -713,86 +626,154 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                     setFormData({ ...formData, supplier: e.target.value })
                                 }
                                 placeholder="Dell Technologies"
-                                required
-                            />
-                            <InputField
-                                label="Date"
-                                name="date"
-                                type="date"
-                                value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                required
-                            />
-                        </FormSection>
-
-                        {/* `.fsec` « La nature » — le poste sur lequel la dépense s'impute,
-                        le numéro qui l'identifie, et ce qu'elle couvre. */}
-                        <FormSection title="La nature">
-                            <SelectField
-                                label="Poste"
-                                name="expense-type"
-                                options={EXPENSE_TYPE_OPTIONS}
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                placeholder="Sélectionner un poste"
-                                required
-                            />
-                            <InputField
-                                label="N° de facture"
-                                name="invoiceNumber"
-                                value={formData.invoiceNumber}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, invoiceNumber: e.target.value })
+                                supportingText={
+                                    lu(extractionMeta?.fieldConfidence?.supplier)
+                                        ? 'lu sur la facture'
+                                        : undefined
                                 }
-                                placeholder="INV-0412"
-                                supportingText="facultatif"
+                                required
                             />
-                            <div>
-                                <FieldLabel>Description</FieldLabel>
-                                <TextArea
-                                    aria-label="Description"
-                                    name="description"
-                                    value={formData.description}
+                            <div className="grid grid-cols-2 gap-3">
+                                <InputField
+                                    label="Date"
+                                    name="date"
+                                    type="date"
+                                    value={formData.date}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, description: e.target.value })
+                                        setFormData({ ...formData, date: e.target.value })
                                     }
-                                    rows={3}
-                                    placeholder="Deux postes de travail pour l'atelier de Lomé."
+                                    required
+                                />
+                                <InputField
+                                    label="N° de facture"
+                                    name="invoiceNumber"
+                                    value={formData.invoiceNumber}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, invoiceNumber: e.target.value })
+                                    }
+                                    placeholder="INV-0412"
                                 />
                             </div>
                         </FormSection>
 
-                        {/* L'imputation budgétaire — `.warn` de 15.1. **Ce que l'acte laisse
-                        derrière lui**, pas l'état d'avant : le poste, ce qu'il a déjà
-                        consommé, et ce qu'il en restera une fois cette dépense enregistrée.
-                        Un solde qui passe sous zéro se voit ici, pas à la clôture. */}
-                        {budgetImpact && (
-                            <FormWarn glyph={Warning}>
-                                <span>
-                                    <b className="text-on-surface font-medium">
-                                        Cette dépense s'impute sur «&nbsp;{budgetImpact.category}
-                                        &nbsp;»
-                                    </b>
-                                    , qui est consommé à {budgetImpact.consumed}&nbsp;%. Après
-                                    enregistrement, il restera{' '}
-                                    <b
-                                        className={
-                                            budgetImpact.after < 0
-                                                ? 'text-error font-medium'
-                                                : 'text-on-surface font-medium'
-                                        }
-                                    >
-                                        {formatCurrency(
-                                            budgetImpact.after,
-                                            settings.currency,
-                                            settings.compactNotation,
-                                        )}
-                                    </b>{' '}
-                                    sur le poste.
-                                </span>
-                            </FormWarn>
-                        )}
-                    </div>
+                        {/* `.fsec` « Le poste » — `.pick` de 15.4 : chaque ligne dit ce qui lui
+                            reste **avant** qu'on la prenne. Remplace une liste déroulante de
+                            natures (« Achat (CAPEX) », « Service »…) qui ne disait ni sur quelle
+                            ligne la dépense tombait, ni ce qu'il y restait. */}
+                        <FormSection
+                            title="Le poste"
+                            caption={
+                                exerciceDeLaDate.budget
+                                    ? `budget ${exerciceDeLaDate.year}`
+                                    : `pas de budget ${exerciceDeLaDate.year}`
+                            }
+                        >
+                            <div
+                                role="radiogroup"
+                                aria-label="Poste"
+                                className="flex flex-col gap-2"
+                            >
+                                {POSTES.map((poste) => {
+                                    const pris =
+                                        formData.type === poste.type ||
+                                        (poste.aussi !== undefined &&
+                                            formData.type === poste.aussi);
+                                    const r = resteDe(poste.type);
+                                    return (
+                                        <OptionRow
+                                            key={poste.type}
+                                            title={getBudgetCategoryByExpenseType(poste.type)}
+                                            hint={
+                                                r
+                                                    ? `${r.line.capitalization ? `${r.line.capitalization} · ` : ''}${formatCurrency(r.reste, settings.currency, settings.compactNotation)} restants`
+                                                    : poste.nature
+                                            }
+                                            tint="bleu"
+                                            selected={pris}
+                                            onSelect={() =>
+                                                !pris &&
+                                                setFormData({ ...formData, type: poste.type })
+                                            }
+                                        />
+                                    );
+                                })}
+                            </div>
+                            {(formData.type === 'Maintenance' || formData.type === 'Service') && (
+                                <Segmented
+                                    label="Nature"
+                                    value={formData.type}
+                                    onChange={(value) => setFormData({ ...formData, type: value })}
+                                    options={[
+                                        { value: 'Maintenance', label: 'Maintenance' },
+                                        { value: 'Service', label: 'Prestation' },
+                                    ]}
+                                />
+                            )}
+                            {/* `.warn` de 15.4 — **ce que l'acte laisse derrière lui**. */}
+                            {budgetImpact && (
+                                <FormWarn
+                                    glyph={
+                                        budgetImpact.after !== null && budgetImpact.after < 0
+                                            ? Warning
+                                            : CheckCircle
+                                    }
+                                    tint={
+                                        budgetImpact.after === null
+                                            ? undefined
+                                            : budgetImpact.after < 0
+                                              ? 'orange'
+                                              : 'vert'
+                                    }
+                                >
+                                    {budgetImpact.after === null ? (
+                                        <>
+                                            {exerciceDeLaDate.year} n'a pas de ligne «&nbsp;
+                                            {budgetImpact.category}&nbsp;» : elle sera ouverte à ce
+                                            montant.
+                                        </>
+                                    ) : budgetImpact.after < 0 ? (
+                                        <>
+                                            S'impute sur {budgetImpact.category} : la ligne
+                                            dépassera de{' '}
+                                            <b className="font-medium">
+                                                {formatCurrency(
+                                                    -budgetImpact.after,
+                                                    settings.currency,
+                                                    settings.compactNotation,
+                                                )}
+                                            </b>
+                                            .
+                                        </>
+                                    ) : (
+                                        <>
+                                            S'impute sur {budgetImpact.category} : il restera{' '}
+                                            <b className="font-medium">
+                                                {formatCurrency(
+                                                    budgetImpact.after,
+                                                    settings.currency,
+                                                    settings.compactNotation,
+                                                )}
+                                            </b>
+                                            .
+                                        </>
+                                    )}
+                                </FormWarn>
+                            )}
+                        </FormSection>
+
+                        <FormSection title="Description" caption="facultatif">
+                            <TextArea
+                                aria-label="Description"
+                                name="description"
+                                value={formData.description}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, description: e.target.value })
+                                }
+                                rows={3}
+                                placeholder="Deux postes de travail pour l'atelier de Lomé."
+                            />
+                        </FormSection>
+                    </>
                 )}
             </div>
         </FullScreenLayout>

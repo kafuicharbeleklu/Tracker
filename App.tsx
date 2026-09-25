@@ -135,7 +135,7 @@ const App: React.FC = () => {
         <ErrorBoundary
             context="racine"
             title="L'application n'a pas pu démarrer"
-            description="Une erreur inattendue a interrompu le chargement. Rechargez la page ; si le problème persiste, signalez-le au support avec l'heure exacte."
+            description="Rechargez la page. Si cela recommence, signalez-le au support avec l’heure ci-dessous."
         >
             {/* Le cadre du téléphone enveloppe TOUT le produit, connexion comprise :
                 c'est ce qui fait que l'écran de connexion et l'application ont la même

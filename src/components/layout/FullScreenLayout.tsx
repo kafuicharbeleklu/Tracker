@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import CloseButton from '../ui/CloseButton';
 import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MESURE_DOUBLE } from '../../lib/regimeBureau';
 
 interface FullScreenLayoutProps {
     title: string;
@@ -22,6 +23,12 @@ interface FullScreenLayoutProps {
     children: React.ReactNode;
     footerActions?: React.ReactNode;
     className?: string;
+    /**
+     * `flux` — la mesure de 560 à toutes les largeurs (00.5). `double` — deux mesures dès
+     * 1 200, pour un formulaire dont les sections se rangent en colonnes
+     * (`COLONNES_FORMULAIRE`, cf. `regimeBureau.ts`).
+     */
+    mesure?: 'flux' | 'double';
 }
 
 export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
@@ -33,7 +40,9 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
     children,
     footerActions,
     className,
+    mesure = 'flux',
 }) => {
+    const borne = mesure === 'double' ? MESURE_DOUBLE : undefined;
     const isCompactLandscape = useMediaQuery(MEDIA.belowExpandedLandscape);
 
     /*
@@ -81,8 +90,12 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                            d'un formulaire de 560 — les deux gestes de la saisie étaient
                            ailleurs que ce qu'on remplissait. 00.5 le dit du pied ; c'est
                            vrai de la tête. */
-                        'medium:px-page mx-auto flex max-w-[560px] items-center pr-2 pl-1',
-                        isCompactLandscape ? 'min-h-12 py-1' : 'min-h-14',
+                        /* La géométrie de `BarreDePage` (24/09) : intérieur `8 / 16 / 12`,
+                           rangée de 48, retour rentré de 12 — le titre tombe à 56 / 16, comme
+                           sur les listes et les fiches. */
+                        'medium:px-page mx-auto flex max-w-[560px] items-center px-4',
+                        borne,
+                        isCompactLandscape ? 'min-h-12 py-1' : 'min-h-12 pt-2 pb-3',
                     )}
                 >
                     {useSymmetricHeader ? (
@@ -94,12 +107,12 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                         size="sm"
                                         onClick={onBack}
                                         /* `.tb` de 04.3 — 48, rayon 4, le glyphe Phosphor de
-                                           20 (I2) : il portait un glyphe Material de 40, seul
-                                           de sa famille dans le produit (10/09). */
-                                        className="text-on-surface h-12 min-h-12 w-12 min-w-12 rounded-md border-none p-0 shadow-none"
+                                           **24**, comme le retour de toutes les barres de 56
+                                           (23/09 ; il tenait 20, seul de sa taille). */
+                                        className="text-on-surface -ml-3 h-12 min-h-12 w-12 min-w-12 rounded-md border-none p-0 shadow-none"
                                         aria-label="Retour"
                                     >
-                                        <Icon glyph={ArrowLeft} size={20} />
+                                        <Icon glyph={ArrowLeft} size={24} />
                                     </Button>
                                 ) : (
                                     <span className="h-12 w-12" aria-hidden="true" />
@@ -110,7 +123,8 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                 <h1
                                     className={cn(
                                         /* 17 sur 24 en Archivo 600 — `.tbar h2`. */
-                                        'font-brand text-on-surface medium:line-clamp-1 text-ts-head leading-ts-head line-clamp-2 font-semibold tracking-[-0.01em]',
+                                        /* 28 sur 32, comme la barre des listes (23/09) ; une ligne, coupée. */
+                                        'font-brand text-on-surface text-ts-page leading-ts-page line-clamp-1 font-semibold tracking-[-0.02em]',
                                         isCompactLandscape && 'text-ts-control leading-ts-control',
                                     )}
                                 >
@@ -132,18 +146,19 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                                         size="sm"
                                         onClick={onBack}
                                         /* `.tb` de 04.3 — 48, rayon 4, le glyphe Phosphor de
-                                           20 (I2) : il portait un glyphe Material de 40, seul
-                                           de sa famille dans le produit (10/09). */
-                                        className="text-on-surface h-12 min-h-12 w-12 min-w-12 rounded-md border-none p-0 shadow-none"
+                                           **24**, comme le retour de toutes les barres de 56
+                                           (23/09 ; il tenait 20, seul de sa taille). */
+                                        className="text-on-surface -ml-3 h-12 min-h-12 w-12 min-w-12 rounded-md border-none p-0 shadow-none"
                                         aria-label="Retour"
                                     >
-                                        <Icon glyph={ArrowLeft} size={20} />
+                                        <Icon glyph={ArrowLeft} size={24} />
                                     </Button>
                                 )}
-                                <div className="min-w-0 px-1">
+                                <div className="min-w-0">
                                     <h1
                                         className={cn(
-                                            'font-brand text-on-surface medium:line-clamp-1 text-ts-head leading-ts-head line-clamp-2 font-semibold tracking-[-0.01em]',
+                                            /* 28 sur 32, comme la barre des listes (23/09) ; une ligne, coupée. */
+                                            'font-brand text-on-surface text-ts-page leading-ts-page line-clamp-1 font-semibold tracking-[-0.02em]',
                                             isCompactLandscape &&
                                                 'text-ts-control leading-ts-control',
                                         )}
@@ -166,6 +181,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                     <div
                         className={cn(
                             'px-page-sm medium:px-page mx-auto max-w-[560px]',
+                            borne,
                             isCompactLandscape ? 'pb-2' : 'pb-4',
                         )}
                     >
@@ -187,6 +203,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                     className={cn(
                         /* `.fpage` — 16 en haut, 24 en bas (04.3, 09.2) ; le code posait 32. */
                         'px-page-sm medium:px-page mx-auto max-w-[560px]',
+                        borne,
                         isCompactLandscape ? 'py-4' : 'pt-4 pb-6',
                     )}
                 >
@@ -208,7 +225,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                       768 px n'est plus au bout de ce qu'on vient de lire — il est
                       ailleurs.
                     */}
-                    <div className="mx-auto flex max-w-[560px] justify-end gap-3">
+                    <div className={cn('mx-auto flex max-w-[560px] justify-end gap-3', borne)}>
                         {footerActions}
                     </div>
                 </div>

@@ -245,7 +245,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                                     aria-label="Autres actions"
                                     className="text-on-surface hover:bg-surface-container rounded-md transition-colors"
                                 >
-                                    <Icon glyph={DotsThreeVertical} size={20} />
+                                    <Icon glyph={DotsThreeVertical} size="geste" />
                                 </Button>
                             }
                         />
@@ -471,7 +471,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                         onClick={() => setIsEditModalOpen(true)}
                         className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control leading-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
                     >
-                        <Icon glyph={model.specs ? PencilSimple : Plus} size={18} />
+                        <Icon glyph={model.specs ? PencilSimple : Plus} size={20} />
                         {model.specs ? 'Modifier les spécifications' : 'Ajouter des spécifications'}
                     </button>
                 </section>

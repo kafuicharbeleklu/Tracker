@@ -1,5 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { CaretRight, DotsThreeVertical, FolderOpen, Info, Warning } from '@phosphor-icons/react';
+import {
+    ChartLineDown,
+    DotsThreeVertical,
+    FolderOpen,
+    Info,
+    UserCheck,
+    UserMinus,
+    Warning,
+} from '@phosphor-icons/react';
+import FactRow from '../../../components/ui/FactRow';
+import { FormWarn } from '../../../components/ui/FormParts';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
@@ -7,7 +17,8 @@ import DetailHero from '../../../components/ui/DetailHero';
 import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import ListRow from '../../../components/ui/ListRow';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
 import { CATEGORY_LABELS, getCategoryLabel } from '../../../constants/glossary';
 import AddModelPage from './AddModelPage';
 import { useConfirmation } from '../../../context/ConfirmationContext';
@@ -47,6 +58,10 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
         () => (category ? models.filter((m) => m.type === category.name) : []),
         [category, models],
     );
+    /* Les modèles en cartes quand la fiche a ses deux colonnes (≥ 1280, 23/09). */
+    /* Les modèles en cartes dès 840 (24/09) : sous 1 280, la rangée courait sur 700 px
+       pour porter un nom et un compte. */
+    const enGrille = useMediaQuery(MEDIA.expandedUp);
     const categoryEquipment = useMemo(
         () => (category ? equipment.filter((e) => e.type === category.name) : []),
         [equipment, category],
@@ -155,7 +170,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                             aria-label="Actes du type"
                             className="text-on-surface hover:bg-surface-container rounded-md"
                         >
-                            <Icon glyph={DotsThreeVertical} size={20} />
+                            <Icon glyph={DotsThreeVertical} size="geste" />
                         </Button>
                     }
                 />
@@ -196,7 +211,16 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                             value: categoryModels.length,
                             label: categoryModels.length > 1 ? 'modèles' : 'modèle',
                         },
-                        { value: categoryEquipment.length, label: 'actifs au parc' },
+                        {
+                            value: categoryEquipment.length,
+                            label: 'actifs au parc',
+                            /* Le renvoi vers la liste monte dans le héro (24/09) : il
+                               vivait en petit lien au pied de la page. */
+                            onClick:
+                                categoryEquipment.length > 0
+                                    ? () => navigateToView('equipment')
+                                    : undefined,
+                        },
                     ]}
                     metricsStyle="boxes"
                 />
@@ -210,34 +234,45 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
               chaque rangée non plus (R15) ; une clé non relevée se dit dans la valeur, en
               encre tertiaire (relevé du 13/09).
             */}
-            <section className="bg-surface rounded-lg px-4 py-1">
+            {/* **Les réglages du type, en rangées** (24/09). Trois rangées clé / valeur,
+                dont une clé technique en police machine (« Laptop »), et la règle de
+                l'amortissement exilée dans une carte d'avertissement au pied de la page.
+                Chaque réglage dit maintenant ce qu'il fait, sa règle en dessous ; la clé de
+                donnée, utile à l'import seulement, descend en pied de carte. */}
+            <section className="bg-surface rounded-lg px-4 pb-3">
                 <div className="flex min-h-12 items-center pt-2 pb-1">
                     <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
-                        Référence
+                        Réglages
                     </h3>
                 </div>
-                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
-                    <span className="text-text-muted">Clé de la donnée</span>
+                <FactRow
+                    glyph={isAssignable ? UserCheck : UserMinus}
+                    tint={isAssignable ? 'vert' : undefined}
+                    title={isAssignable ? 'Attribuable à une personne' : 'Non attribuable'}
+                    subtitle={
+                        isAssignable
+                            ? 'proposé dans le sélecteur d’attribution'
+                            : 'reste en stock ou dans un lieu'
+                    }
+                />
+                <FactRow
+                    glyph={ChartLineDown}
+                    tint="bleu"
+                    title={`${depreciationMethod} sur ${depreciationYears} ans`}
+                    subtitle={
+                        categoryEquipment.length > 0
+                            ? `ne recalcule pas les ${categoryEquipment.length} actifs existants`
+                            : 'amortissement des prochains actifs'
+                    }
+                />
+                <p className="text-text-muted border-outline-variant border-t pt-3 text-[0.75rem] leading-4">
+                    Clé de donnée ·{' '}
                     {isDataKeyReleve ? (
-                        <span className="text-on-surface text-ts-sub leading-ts-sub font-mono whitespace-nowrap">
-                            {dataKey}
-                        </span>
+                        <span className="text-text-secondary font-mono">{dataKey}</span>
                     ) : (
-                        <span className="text-text-tertiary whitespace-nowrap">à relever</span>
+                        'à relever'
                     )}
-                </div>
-                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
-                    <span className="text-text-muted">Attribuable</span>
-                    <span className="text-on-surface whitespace-nowrap">
-                        {isAssignable ? 'Oui' : 'Non'}
-                    </span>
-                </div>
-                <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
-                    <span className="text-text-muted">Amortissement</span>
-                    <span className="text-on-surface whitespace-nowrap">
-                        {depreciationMethod} · {depreciationYears} ans
-                    </span>
-                </div>
+                </p>
             </section>
 
             {/* Section 2 : Modèles référencés — sous le héro au bureau (23/09). */}
@@ -262,29 +297,73 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                        **l'initiale de la marque** et plus la photo, que l'aperçu de la fiche
                        du modèle ouvre en grand. */
                     <>
-                        <div>
-                            {categoryModels.map((model) => (
-                                <ListRow
-                                    key={model.id}
-                                    /* **L'initiale de la marque, jamais la photo** (23/09) :
-                                       réduite à 40 px, la photo ne distinguait rien ; elle
-                                       s'ouvre en grand par l'aperçu de la fiche du modèle.
-                                       `.vig` — l'initiale en Archivo 600. */
-                                    vignette={
-                                        <span className="text-ts-control font-semibold">
-                                            {(model.brand || model.name)
-                                                .trim()
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                        </span>
-                                    }
-                                    title={model.name}
-                                    type={model.brand || undefined}
-                                    holder={`${model.count} actif${model.count > 1 ? 's' : ''} dans le parc`}
-                                    onOpen={() => onModelClick(model.id)}
-                                />
-                            ))}
-                        </div>
+                        {enGrille ? (
+                            /*
+                              **Au bureau, un modèle est une carte** (23/09), comme un type dans
+                              le catalogue et un local dans la fiche d'un site : l'initiale de la
+                              marque, le nom, la marque, puis ce qu'il compte au parc. Par trois
+                              dans la colonne de la fiche — deux rangées de 72 y faisaient une
+                              liste de 140 px sous un héro de 180.
+                            */
+                            <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                {categoryModels.map((model) => (
+                                    <li key={model.id}>
+                                        <Button
+                                            variant="text"
+                                            onClick={() => onModelClick(model.id)}
+                                            className="bg-surface-container hover:bg-surface-container-high h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 rounded-md p-3 text-left font-normal whitespace-normal"
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <span className="bg-surface text-on-surface-variant text-ts-control flex h-9 w-9 shrink-0 items-center justify-center rounded-md font-semibold">
+                                                    {(model.brand || model.name)
+                                                        .trim()
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
+                                                        {model.name}
+                                                    </span>
+                                                    {model.brand && (
+                                                        <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
+                                                            {model.brand}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </span>
+                                            <span>
+                                                <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
+                                                    {model.count}
+                                                </span>
+                                                <span className="text-on-surface-variant block text-[0.75rem] leading-4">
+                                                    actif{model.count > 1 ? 's' : ''} au parc
+                                                </span>
+                                            </span>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div>
+                                {categoryModels.map((model) => (
+                                    <FactRow
+                                        key={model.id}
+                                        vignetteText={(model.brand || model.name)
+                                            .trim()
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                        tint="bleu"
+                                        title={model.name}
+                                        subtitle={model.brand || undefined}
+                                        figure={{
+                                            value: model.count,
+                                            unit: model.count > 1 ? 'actifs' : 'actif',
+                                        }}
+                                        onOpen={() => onModelClick(model.id)}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </>
                 ) : (
                     /* Un type inutilisable **ne s'excuse pas et ne clignote pas** (09.1,
@@ -353,53 +432,20 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 </section>
             )}
 
-            {/* Section 3 : Note d'amortissement et actions */}
-            <section className="bg-surface flex flex-col gap-3 rounded-lg p-4">
-                <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
-                    <Icon glyph={Info} size={18} className="text-text-secondary mt-0.5 shrink-0" />
+            {/* La règle du sélecteur, seule restante de la carte d'avertissements : celle
+                de l'amortissement vit sous sa rangée, et le renvoi aux actifs dans le héro. */}
+            {!isAssignable && assignedEquipmentCount > 0 && (
+                <FormWarn glyph={Warning} tint="ambre">
                     <span>
-                        Changer l'amortissement <strong>ne recalcule pas le passé</strong> : la
-                        valeur des {categoryEquipment.length} actifs déjà créés suit le paramètre en
-                        vigueur à leur acquisition.
+                        <strong className="font-medium">
+                            Le retrait du sélecteur ne défait pas les attributions faites.
+                        </strong>{' '}
+                        {assignedEquipmentCount === 1
+                            ? 'Un actif de ce type reste attribué.'
+                            : `${assignedEquipmentCount} actifs de ce type restent attribués.`}
                     </span>
-                </div>
-
-                {/* La même règle, sur l'autre paramètre du type — **un paramètre de type ne
-                    réécrit pas le passé** (09.1, colonne 3). Le retrait du sélecteur ne
-                    défait aucune attribution déjà faite ; sans cette phrase, un
-                    gestionnaire qui bascule le type croit avoir repris les objets. */}
-                {!isAssignable && assignedEquipmentCount > 0 && (
-                    <div className="bg-surface-container text-body-small text-text-secondary flex items-start gap-2.5 rounded-md p-3">
-                        <Icon
-                            glyph={Warning}
-                            size={18}
-                            className="mt-0.5 shrink-0 text-[var(--tk-color-st-ambre)]"
-                        />
-                        <span>
-                            <strong className="text-on-surface font-medium">
-                                Le retrait du sélecteur ne défait pas les attributions faites.
-                            </strong>{' '}
-                            {assignedEquipmentCount === 1
-                                ? 'Un actif de ce type reste attribué'
-                                : `${assignedEquipmentCount} actifs de ce type restent attribués`}{' '}
-                            ; seules les{' '}
-                            <strong className="text-on-surface font-medium">prochaines</strong>{' '}
-                            attributions ne le proposeront plus.
-                        </span>
-                    </div>
-                )}
-
-                {categoryEquipment.length > 0 && (
-                    <Button
-                        variant="text"
-                        onClick={() => navigateToView('equipment')}
-                        className="border-outline-variant text-body-medium text-on-surface hover:text-text-secondary flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium transition-colors"
-                    >
-                        <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
-                        <span>Voir les {categoryEquipment.length} actifs dans l'inventaire</span>
-                    </Button>
-                )}
-            </section>
+                </FormWarn>
+            )}
 
             <AddCategoryPage
                 isOpen={isEditOpen}

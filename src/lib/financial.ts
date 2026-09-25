@@ -2,6 +2,8 @@
  * Utility functions for Financial Calculations with Inheritance Support
  */
 
+import type { FinanceExpenseType } from '../types';
+
 // Taux de change fixes pour conversion explicite (pas appliquée automatiquement à l'affichage)
 const EXCHANGE_RATES: Record<string, number> = {
     EUR: 1,
@@ -229,4 +231,16 @@ export const formatNumber = (amount: number, compact = false) => {
         useGrouping: true,
         maximumFractionDigits: 1,
     }).format(amount);
+};
+
+/**
+ * **La ligne du budget sur laquelle une dépense s'impute** — par sa nature, et par elle
+ * seule : le produit ne rattache pas une dépense à une ligne choisie (relevé du 10/09).
+ * La saisie la montre avant « Enregistrer », pour dire ce qu'il restera sur ce poste.
+ */
+export const getBudgetCategoryByExpenseType = (type: FinanceExpenseType): string => {
+    if (type === 'Purchase') return 'Matériel IT';
+    if (type === 'License') return 'Licences Logiciel';
+    if (type === 'Cloud') return 'Cloud Infrastructure';
+    return 'Maintenance & Services';
 };

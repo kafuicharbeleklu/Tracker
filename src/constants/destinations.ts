@@ -184,6 +184,7 @@ export const SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
     finance: 'finance',
     finance_expenses: 'finance',
     finance_lines: 'finance',
+    finance_exercises: 'finance',
 
     management: 'management',
     add_category: 'management',

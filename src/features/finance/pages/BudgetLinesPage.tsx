@@ -9,13 +9,17 @@ import {
 } from '@phosphor-icons/react';
 
 import AmountField from '../../../components/ui/AmountField';
+import NatureBadge, { NATURE_TEINTE } from '../components/NatureBadge';
+import BarreDePage from '../../../components/layout/BarreDePage';
 import Button from '../../../components/ui/Button';
+import ListActionFab from '../../../components/ui/ListActionFab';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
-import Modal from '../../../components/ui/Modal';
-import SegmentedButton from '../../../components/ui/SegmentedButton';
+import BottomSheet from '../../../components/ui/BottomSheet';
+import Chip from '../../../components/ui/Chip';
+import { FieldLabel, FormWarn, OptionRow } from '../../../components/ui/FormParts';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -24,6 +28,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
+import { CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import type { FinanceBudgetItem, FinanceExpenseType } from '../../../types';
 
 /**
@@ -99,6 +104,9 @@ type Dialogue =
 
 const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
     const bureau = useMediaQuery(MEDIA.expandedUp);
+    /* L'enveloppe à côté du tableau dès 1 280 : à 1 200, huit colonnes sur douze
+       coupaient encore le nom des lignes. */
+    const coteACote = useMediaQuery(MEDIA.twoColumn);
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
     const { showToast } = useToast();
@@ -158,6 +166,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
         },
     ];
 
+    /** Ouvrir la saisie d'une ligne neuve — le bouton flottant, le pied du tableau, le vide. */
+    const ajouter = () => {
+        setBrouillon({ nom: '', montant: '', cap: 'OPEX' });
+        setDialogue({ type: 'ajouter' });
+    };
+
     const enregistrer = () => {
         if (refusees.length > 0) {
             showToast(
@@ -182,6 +196,60 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
         showToast(`Lignes du budget ${year} enregistrées.`, 'success');
         onBack();
     };
+
+    /* Ce que la feuille sait de la ligne ouverte, et ce qu'elle peut dire avant le geste. */
+    const ligneOuverte =
+        dialogue && dialogue.type !== 'ajouter'
+            ? lignes.find((l) => l.cle === dialogue.cle)
+            : undefined;
+    const nomPris =
+        dialogue !== null &&
+        dialogue.type !== 'montant' &&
+        lignes.some(
+            (l) =>
+                l.cle !== ligneOuverte?.cle &&
+                l.category.trim().toLowerCase() === brouillon.nom.trim().toLowerCase(),
+        );
+    const sousLeConsomme =
+        dialogue?.type === 'montant' &&
+        (Number(brouillon.montant) || 0) < (ligneOuverte?.spent ?? 0);
+    /** Les postes des autres exercices qui manquent à celui-ci — de vraies lignes, pas des exemples. */
+    const suggestions = (() => {
+        const presents = new Set(lignes.map((l) => l.category.trim().toLowerCase()));
+        const vus = new Map<string, FinanceBudgetItem>();
+        [...financeBudgets]
+            .filter((b) => b.year !== year)
+            .sort((a, b) => b.year - a.year)
+            .forEach((b) =>
+                b.items.forEach((item) => {
+                    const cle = item.category.trim().toLowerCase();
+                    if (!presents.has(cle) && !vus.has(cle)) vus.set(cle, item);
+                }),
+            );
+        return [...vus.values()].slice(0, 6);
+    })();
+    /** L'effet sur l'enveloppe de l'exercice, dit avant « Ajouter ». */
+    const effet = (() => {
+        if (dialogue === null || dialogue.type === 'renommer') return null;
+        const saisi = Number(brouillon.montant) || 0;
+        if (saisi === 0) return null;
+        const avant = dialogue.type === 'montant' ? Number(ligneOuverte?.montant) || 0 : 0;
+        const apres = reparti - avant + saisi;
+        const cur = settings.currency;
+        if (!exercice?.totalAllocated)
+            return { depasse: false, texte: `Le budget ${year} passera à ${n(apres)} ${cur}.` };
+        const reste = exercice.totalAllocated - apres;
+        return reste >= 0
+            ? { depasse: false, texte: `Il restera ${n(reste)} ${cur} à répartir.` }
+            : {
+                  depasse: true,
+                  texte: `Dépasse l'enveloppe de ${n(-reste)} ${cur} : elle passera à ${n(apres)} ${cur}.`,
+              };
+    })();
+    const validable =
+        dialogue?.type === 'montant'
+            ? !sousLeConsomme
+            : brouillon.nom.trim().length > 0 && !nomPris;
 
     const valider = () => {
         if (!dialogue) return;
@@ -216,12 +284,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
         return { montant, restant, part, ko: restant < 0, epuisee: restant === 0 && montant > 0 };
     };
 
-    const etiquette = (ligne: Ligne) =>
-        ligne.capitalization ? (
-            <span className="bg-surface-container text-on-surface-variant inline-flex h-5 items-center rounded-[4px] px-1.5 text-[0.75rem] leading-4 font-medium">
-                {ligne.capitalization}
-            </span>
-        ) : null;
+    const etiquette = (ligne: Ligne) => <NatureBadge nature={ligne.capitalization} />;
 
     const menuDe = (ligne: Ligne) => (
         <Menu
@@ -246,10 +309,14 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
             glyph={Plus}
             title="Aucune ligne pour cet exercice"
             description="Chaque poste porte une enveloppe ; les dépenses s'y imputent ensuite."
+            /* Au téléphone le geste d'ajout est le bouton flottant : le vide ne le double
+               pas (un seul geste d'ajout par écran, 17.7). */
             action={
-                <Button variant="tonal" onClick={() => setDialogue({ type: 'ajouter' })}>
-                    Ajouter une ligne
-                </Button>
+                bureau ? (
+                    <Button variant="tonal" onClick={ajouter}>
+                        Ajouter une ligne
+                    </Button>
+                ) : undefined
             }
         />
     );
@@ -260,10 +327,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
             <table className="w-full table-fixed border-collapse text-left text-[0.875rem] leading-5">
                 <colgroup>
                     <col />
+                    {/* Resserrées le 24/09 : le tableau tient 8 colonnes sur 12 à côté de
+                        l'enveloppe, et 708 px de chiffres ne laissaient que 40 au nom. */}
+                    <col style={{ width: '100px' }} />
                     <col style={{ width: '140px' }} />
-                    <col style={{ width: '170px' }} />
-                    <col style={{ width: '160px' }} />
-                    <col style={{ width: '190px' }} />
+                    <col style={{ width: '96px' }} />
+                    <col style={{ width: '132px' }} />
                     <col style={{ width: '48px' }} />
                 </colgroup>
                 <thead>
@@ -347,18 +416,9 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 </tbody>
                 <tfoot>
                     <tr className="h-12">
-                        <td className="pl-2">
-                            <Button
-                                variant="text"
-                                size="sm"
-                                icon={<Icon glyph={Plus} size={18} />}
-                                onClick={() => {
-                                    setBrouillon({ nom: '', montant: '', cap: 'OPEX' });
-                                    setDialogue({ type: 'ajouter' });
-                                }}
-                            >
-                                Ajouter une ligne
-                            </Button>
+                        {/* Le pied totalise ; l'ajout est au bout de la colonne de droite. */}
+                        <td className="text-on-surface-variant pl-4 text-[0.75rem] leading-4 font-medium">
+                            Total · {lignes.length} ligne{lignes.length > 1 ? 's' : ''}
                         </td>
                         <td className="text-on-surface-variant px-2.5 text-right tabular-nums">
                             {n(consomme)}
@@ -366,9 +426,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                         <td className="text-on-surface px-2.5 text-right font-medium tabular-nums">
                             {n(reparti)}
                         </td>
-                        <td className="text-on-surface-variant px-2.5 text-[0.75rem] leading-4 tabular-nums">
-                            sur {n(enveloppe)}
-                        </td>
+                        <td />
                         <td
                             className={cn(
                                 'px-2.5 text-right tabular-nums',
@@ -382,6 +440,138 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 </tfoot>
             </table>
         </div>
+    );
+
+    /**
+     * **Le côté de l'enveloppe, au bureau** (24/09). Le tableau courait seul sur 1 200 px :
+     * quatre lignes, et l'enveloppe réduite à un sous-titre en 13. La colonne de droite
+     * la pose en chiffre, dit en une barre ce qui est consommé, réparti et libre, la
+     * part de chaque nature, et porte le geste d'ajout.
+     */
+    const parNature = (['CAPEX', 'OPEX'] as const).map((cap) => ({
+        cap,
+        mot: cap === 'CAPEX' ? 'Investissement' : 'Frais courants',
+        somme: lignes
+            .filter((l) => l.capitalization === cap)
+            .reduce((t, l) => t + (Number(l.montant) || 0), 0),
+    }));
+    const base = Math.max(enveloppe, reparti, 1);
+    const segments = [
+        { cle: 'consomme', mot: 'Consommé', v: consomme, teinte: 'bg-on-surface' },
+        {
+            cle: 'reparti',
+            mot: 'Réparti, à consommer',
+            v: Math.max(0, reparti - consomme),
+            teinte: 'bg-[var(--tk-color-st-vert)]',
+        },
+        {
+            cle: 'libre',
+            mot: libre >= 0 ? 'Libre' : 'Au-delà de l’enveloppe',
+            v: Math.abs(libre),
+            teinte: libre >= 0 ? 'bg-surface-container-high' : 'bg-[var(--tk-color-st-orange)]',
+        },
+    ];
+    const cote = (
+        <aside className="rounded-card bg-surface flex flex-col gap-5 p-5">
+            <div>
+                <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                    Enveloppe {year}
+                </p>
+                <p className="mt-1 flex items-baseline gap-2">
+                    <b className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em] tabular-nums">
+                        {n(enveloppe)}
+                    </b>
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
+                        {settings.currency}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <div className="bg-surface-container flex h-2.5 overflow-hidden rounded-full">
+                    {segments.map((seg) => (
+                        <i
+                            key={seg.cle}
+                            className={cn('block h-full', seg.teinte)}
+                            style={{ width: `${(seg.v / base) * 100}%` }}
+                        />
+                    ))}
+                </div>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                    {segments.map((seg) => (
+                        <li
+                            key={seg.cle}
+                            className="text-ts-sub leading-ts-sub flex items-center gap-2.5"
+                        >
+                            <i className={cn('h-2.5 w-2.5 shrink-0 rounded-[2px]', seg.teinte)} />
+                            <span className="text-on-surface-variant min-w-0 flex-1 truncate">
+                                {seg.mot}
+                            </span>
+                            <span
+                                className={cn(
+                                    'tabular-nums',
+                                    seg.cle === 'libre' && libre < 0
+                                        ? 'text-[var(--tk-color-st-orange)]'
+                                        : 'text-on-surface',
+                                )}
+                            >
+                                {n(seg.v)}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <div className="border-outline-variant border-t pt-4">
+                <p className="text-on-surface-variant mb-3 text-[0.75rem] leading-4 font-medium">
+                    Par nature
+                </p>
+                <ul className="flex flex-col gap-3">
+                    {parNature.map((nat) => {
+                        const part = reparti > 0 ? Math.round((nat.somme / reparti) * 100) : 0;
+                        return (
+                            <li key={nat.cap}>
+                                <span className="text-ts-sub leading-ts-sub flex items-baseline gap-2">
+                                    <span className="text-on-surface min-w-0 flex-1 truncate">
+                                        {nat.mot}
+                                        <span className="text-text-tertiary"> · {nat.cap}</span>
+                                    </span>
+                                    <span className="text-on-surface tabular-nums">
+                                        {n(nat.somme)}
+                                    </span>
+                                    <span className="text-text-tertiary w-10 text-right tabular-nums">
+                                        {part} %
+                                    </span>
+                                </span>
+                                <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
+                                    <i
+                                        className={cn('block h-full', NATURE_TEINTE[nat.cap].barre)}
+                                        style={{ width: `${part}%` }}
+                                    />
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+            {refusees.length > 0 && (
+                <p className="bg-tint-ambre text-on-tint-ambre flex gap-2 rounded-md px-3.5 py-2.5 text-[0.8125rem] leading-5">
+                    <Icon glyph={WarningCircle} size={18} className="mt-px shrink-0" />
+                    <span>
+                        <b className="font-medium">
+                            {refusees.length} ligne{refusees.length > 1 ? 's' : ''} à corriger
+                        </b>{' '}
+                        avant d'enregistrer.
+                    </span>
+                </p>
+            )}
+            <Button
+                variant="tonal"
+                icon={<Icon glyph={Plus} size={20} />}
+                onClick={ajouter}
+                className="w-full"
+            >
+                Ajouter une ligne
+            </Button>
+        </aside>
     );
 
     // ---- téléphone -----------------------------------------------------------------
@@ -439,7 +629,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                           return (
                               <div
                                   key={ligne.cle}
-                                  className="border-outline-variant flex flex-col gap-2 border-t py-3 first:border-t-0"
+                                  className="border-outline-variant flex flex-col border-t py-4 first:border-t-0"
                               >
                                   <div className="flex items-center gap-2">
                                       <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate">
@@ -460,7 +650,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                       </span>
                                       <span className="-mr-2 shrink-0">{menuDe(ligne)}</span>
                                   </div>
-                                  <span className="bg-surface-container block h-2 overflow-hidden rounded-xs">
+                                  <span className="bg-surface-container mt-4 block h-2 overflow-hidden rounded-xs">
                                       <i
                                           className={cn(
                                               'block h-full',
@@ -471,7 +661,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                           style={{ width: `${Math.min(part, 100)}%` }}
                                       />
                                   </span>
-                                  <span className="text-on-surface-variant flex items-center gap-2 text-[0.75rem] leading-4">
+                                  <span className="text-on-surface-variant mt-3 flex items-center gap-2 text-[0.75rem] leading-4">
                                       {etiquette(ligne)}
                                       {ko
                                           ? `${n(-restant)} au-delà de l'enveloppe`
@@ -480,7 +670,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                             : `${n(restant)} restants`}
                                   </span>
                                   {ko && (
-                                      <span className="flex items-center gap-1.5 text-[0.75rem] leading-4 text-[var(--tk-color-st-orange)]">
+                                      <span className="mt-2 flex items-center gap-1.5 text-[0.75rem] leading-4 text-[var(--tk-color-st-orange)]">
                                           <Icon glyph={WarningCircle} size={18} />
                                           Pas de baisse sous le consommé.
                                       </span>
@@ -488,30 +678,19 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                               </div>
                           );
                       })}
-                {lignes.length > 0 && (
-                    <Button
-                        variant="text"
-                        icon={<Icon glyph={Plus} size={20} />}
-                        onClick={() => {
-                            setBrouillon({ nom: '', montant: '', cap: 'OPEX' });
-                            setDialogue({ type: 'ajouter' });
-                        }}
-                        className="border-outline-variant text-ts-body min-h-12 w-full justify-start rounded-none border-t px-0 font-medium"
-                    >
-                        Ajouter une ligne
-                    </Button>
-                )}
             </section>
         </>
     );
 
     return (
-        <div className="bg-background flex min-w-0 flex-1 flex-col">
+        /* **L'en-tête reste, le corps défile** (24/09) — le régime des listes au bureau :
+           l'en-tête partait avec le tableau. */
+        <div className={cn('bg-background flex min-w-0 flex-1 flex-col', PAGE_BUREAU)}>
             <IconGestureSizeContext.Provider value={bureau ? 40 : 48}>
                 {bureau ? (
                     /* `.dhead` de 17.11 : retour, titre et sous-titre, puis Annuler et
                        Enregistrer. Le héro du téléphone devient le sous-titre. */
-                    <header className="px-page flex items-center gap-3 pt-5">
+                    <header className="px-page large:mx-auto large:max-w-[calc(80rem+2*var(--tk-space-page))] flex min-h-[72px] w-full items-center gap-3 pt-5">
                         <Button
                             variant="text"
                             iconOnly
@@ -540,56 +719,88 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                         </Button>
                     </header>
                 ) : (
-                    /* `.tbar.stick` — retour, titre, et « Enregistrer » en geste de texte. */
-                    <header className="border-outline-variant bg-surface sticky top-0 z-20 flex min-h-14 items-center gap-1 border-b pr-2 pl-1">
-                        <Button
-                            variant="text"
-                            iconOnly
-                            aria-label="Retour aux finances"
-                            onClick={onBack}
-                        >
-                            <Icon glyph={ArrowLeft} size={24} />
-                        </Button>
-                        <h1 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
-                            Lignes du budget
-                        </h1>
-                        <Button variant="text" onClick={enregistrer} className="font-medium">
-                            Enregistrer
-                        </Button>
-                    </header>
+                    /* La barre commune du téléphone (24/09) ; « Enregistrer » en coche nommée. */
+                    <BarreDePage
+                        className="sticky top-0 z-20"
+                        title="Lignes du budget"
+                        onBack={onBack}
+                        backLabel="Retour aux finances"
+                        actions={
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label="Enregistrer"
+                                onClick={enregistrer}
+                            >
+                                <Icon glyph={Check} size={24} />
+                            </Button>
+                        }
+                    />
                 )}
             </IconGestureSizeContext.Provider>
 
-            <div className="medium:px-page flex flex-col gap-4 px-4 pt-4 pb-6">
+            {/* **Au téléphone, ajouter une ligne est le bouton flottant** (24/09) — le geste
+                d'ajout de toutes les listes (17.7). La rangée « Ajouter une ligne » du pied
+                de la carte se découvrait après avoir défilé tous les postes. */}
+            {!bureau && (
+                <ListActionFab
+                    label="lignes du budget"
+                    actions={[
+                        {
+                            id: 'ajouter-ligne',
+                            label: 'Ajouter une ligne',
+                            icon: 'add',
+                            onSelect: ajouter,
+                        },
+                    ]}
+                />
+            )}
+
+            <div
+                className={cn(
+                    'medium:px-page flex flex-col gap-4 px-4 pt-4',
+                    CORPS_BUREAU,
+                    /* Le corps défile sur toute la largeur — la barre de défilement au bord
+                       de la fenêtre — et centre son contenu à 1 280 par ses marges. */
+                    bureau
+                        ? 'large:px-[max(var(--tk-space-page),calc((100%_-_80rem)/2))] w-full pb-6'
+                        : 'pb-24',
+                )}
+            >
                 {bureau ? (
-                    <>
-                        {lignes.length === 0 ? (
-                            <div className="rounded-card bg-surface flex min-h-80 flex-col">
-                                {vide}
-                            </div>
-                        ) : (
-                            tableau
+                    /* Tableau (8) et enveloppe (4) côte à côte dès 1 280 ; en deçà, l'enveloppe
+                       passe sous le tableau. */
+                    <div
+                        className={cn(
+                            'flex flex-col gap-4',
+                            coteACote && 'grid grid-cols-12 items-start',
                         )}
-                        {refusees.length > 0 && (
-                            <p className="bg-tint-ambre text-on-tint-ambre flex items-center gap-2 self-start rounded-md px-3.5 py-2.5 text-[0.8125rem] leading-5">
-                                <Icon glyph={WarningCircle} size={18} />
-                                <span>
-                                    <b className="font-medium">
-                                        {refusees.length} ligne{refusees.length > 1 ? 's' : ''} à
-                                        corriger
-                                    </b>{' '}
-                                    avant d'enregistrer — c'est la ligne qui bloque, pas la page.
-                                </span>
-                            </p>
-                        )}
-                    </>
+                    >
+                        <div className={cn(coteACote && 'col-span-8')}>
+                            {lignes.length === 0 ? (
+                                <div className="rounded-card bg-surface flex min-h-80 flex-col">
+                                    {vide}
+                                </div>
+                            ) : (
+                                tableau
+                            )}
+                        </div>
+                        <div className={cn(coteACote && 'col-span-4')}>{cote}</div>
+                    </div>
                 ) : (
                     cartes
                 )}
             </div>
 
-            <Modal
-                isOpen={dialogue !== null}
+            {/* **La saisie d'une ligne — une feuille, pas une boîte** (24/09). La boîte
+                centrée ouvrait deux champs vides et un segmenté dont le second cran sortait
+                de l'écran à 393. La feuille dit sur quoi elle porte (l'exercice, ce qui
+                reste libre), propose les postes des autres exercices, nomme les deux
+                natures par ce qu'elles désignent, et dit l'effet sur l'enveloppe avant
+                « Ajouter ». Renommer et modifier le montant prennent la même feuille,
+                réduite à leur champ. */}
+            <BottomSheet
+                open={dialogue !== null}
                 onClose={() => setDialogue(null)}
                 title={
                     dialogue?.type === 'ajouter'
@@ -598,57 +809,126 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                           ? 'Renommer la ligne'
                           : 'Modifier le montant'
                 }
-                footer={
-                    <>
-                        <Button variant="outlined" onClick={() => setDialogue(null)}>
-                            Annuler
-                        </Button>
-                        <Button variant="tonal" onClick={valider}>
-                            {dialogue?.type === 'ajouter' ? 'Ajouter' : 'Valider'}
-                        </Button>
-                    </>
+                subtitle={
+                    dialogue?.type === 'ajouter'
+                        ? `Budget ${year} · ${
+                              exercice?.totalAllocated && libre > 0
+                                  ? `${n(libre)} ${settings.currency} à répartir`
+                                  : `${lignes.length} ligne${lignes.length > 1 ? 's' : ''}`
+                          }`
+                        : ligneOuverte?.category
                 }
             >
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                     {(dialogue?.type === 'ajouter' || dialogue?.type === 'renommer') && (
-                        <InputField
-                            label="Nom du poste"
-                            value={brouillon.nom}
-                            onChange={(event) =>
-                                setBrouillon((b) => ({ ...b, nom: event.target.value }))
-                            }
-                            autoFocus
-                        />
+                        <div className="flex flex-col gap-3">
+                            <InputField
+                                label="Nom du poste"
+                                name="poste"
+                                placeholder="Matériel IT, licences, télécoms…"
+                                value={brouillon.nom}
+                                onChange={(event) =>
+                                    setBrouillon((b) => ({ ...b, nom: event.target.value }))
+                                }
+                                error={nomPris ? 'Ce poste existe déjà dans ce budget.' : undefined}
+                                autoFocus
+                            />
+                            {dialogue?.type === 'ajouter' && suggestions.length > 0 && (
+                                <div className="flex flex-col gap-2">
+                                    <FieldLabel note="· d'autres exercices">Déjà connus</FieldLabel>
+                                    <div className="-mt-2 flex flex-wrap gap-2">
+                                        {suggestions.map((s) => (
+                                            <Chip
+                                                key={s.category}
+                                                variant="suggestion"
+                                                label={s.category}
+                                                selected={brouillon.nom === s.category}
+                                                onClick={() =>
+                                                    setBrouillon({
+                                                        nom: s.category,
+                                                        montant:
+                                                            brouillon.montant ||
+                                                            String(Math.round(s.allocated)),
+                                                        cap: s.capitalization ?? brouillon.cap,
+                                                    })
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                     {(dialogue?.type === 'ajouter' || dialogue?.type === 'montant') && (
-                        <InputField
-                            label={`Enveloppe (${settings.currency})`}
-                            inputMode="numeric"
-                            value={brouillon.montant}
-                            onChange={(event) =>
-                                setBrouillon((b) => ({
-                                    ...b,
-                                    montant: event.target.value.replace(/\D/g, ''),
-                                }))
-                            }
-                            autoFocus={dialogue?.type === 'montant'}
-                        />
+                        <div className="flex flex-col gap-3">
+                            <InputField
+                                label="Enveloppe"
+                                name="enveloppe"
+                                inputMode="numeric"
+                                placeholder="0"
+                                suffix={settings.currency}
+                                value={
+                                    brouillon.montant
+                                        ? Number(brouillon.montant).toLocaleString('fr-FR')
+                                        : ''
+                                }
+                                onChange={(event) =>
+                                    setBrouillon((b) => ({
+                                        ...b,
+                                        montant: event.target.value.replace(/\D/g, ''),
+                                    }))
+                                }
+                                error={
+                                    sousLeConsomme
+                                        ? `Déjà ${n(ligneOuverte?.spent ?? 0)} ${settings.currency} consommés : le montant ne descend pas plus bas.`
+                                        : undefined
+                                }
+                                autoFocus={dialogue?.type === 'montant'}
+                                className="tabular-nums"
+                            />
+                            {effet && !sousLeConsomme && (
+                                <FormWarn
+                                    glyph={effet.depasse ? WarningCircle : CheckCircle}
+                                    tint={effet.depasse ? 'orange' : 'vert'}
+                                >
+                                    {effet.texte}
+                                </FormWarn>
+                            )}
+                        </div>
                     )}
                     {dialogue?.type === 'ajouter' && (
-                        <SegmentedButton
-                            options={[
-                                { value: 'CAPEX', label: 'CAPEX — investissement' },
-                                { value: 'OPEX', label: 'OPEX — frais courant' },
-                            ]}
-                            value={brouillon.cap}
-                            onChange={(value) =>
-                                typeof value === 'string' &&
-                                setBrouillon((b) => ({ ...b, cap: value }))
-                            }
-                        />
+                        <div role="radiogroup" aria-label="Nature" className="flex flex-col gap-2">
+                            <FieldLabel>Nature</FieldLabel>
+                            <div className="-mt-2 flex flex-col gap-2">
+                                <OptionRow
+                                    title="Investissement · CAPEX"
+                                    hint="un bien qui dure : matériel, installation"
+                                    tint={NATURE_TEINTE.CAPEX.option}
+                                    selected={brouillon.cap === 'CAPEX'}
+                                    onSelect={() => setBrouillon((b) => ({ ...b, cap: 'CAPEX' }))}
+                                />
+                                <OptionRow
+                                    title="Frais courants · OPEX"
+                                    hint="ce qui se renouvelle : licences, abonnements"
+                                    tint={NATURE_TEINTE.OPEX.option}
+                                    selected={brouillon.cap === 'OPEX'}
+                                    onSelect={() => setBrouillon((b) => ({ ...b, cap: 'OPEX' }))}
+                                />
+                            </div>
+                        </div>
                     )}
+
+                    {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
+                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <Button variant="ghost" onClick={() => setDialogue(null)}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={valider} disabled={!validable}>
+                            {dialogue?.type === 'ajouter' ? 'Ajouter la ligne' : 'Valider'}
+                        </Button>
+                    </div>
                 </div>
-            </Modal>
+            </BottomSheet>
         </div>
     );
 };

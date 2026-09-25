@@ -95,17 +95,27 @@ const initiales = (nom: string): string =>
         .map((mot) => mot[0]?.toUpperCase() ?? '')
         .join('');
 
-/** La marque ronde de 32 — même icône, même teinte au téléphone et au bureau. */
-const MarqueRonde: React.FC<{ fait: HistoryEvent }> = ({ fait }) => {
+/**
+ * La marque ronde — même icône, même teinte au téléphone et au bureau, mais **pas la même
+ * taille** (23/09) : 32 et un glyphe de 18 dans la colonne de tête du tableau (la vignette
+ * de `DataTable`, comme sur Actifs), **40 et un glyphe de 20** dans une rangée de téléphone,
+ * comme la vignette de toutes les autres listes. Elle tenait 32 partout : au téléphone,
+ * le journal paraissait dessiné plus petit que les listes voisines.
+ */
+const MarqueRonde: React.FC<{ fait: HistoryEvent; taille?: 'tableau' | 'rangee' }> = ({
+    fait,
+    taille = 'tableau',
+}) => {
     const marque = marqueDe(fait);
     return (
         <span
             className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                'flex shrink-0 items-center justify-center rounded-full',
+                taille === 'rangee' ? 'h-10 w-10' : 'h-8 w-8',
                 marque.teinte,
             )}
         >
-            <Icon glyph={marque.glyph} size={18} />
+            <Icon glyph={marque.glyph} size={taille === 'rangee' ? 20 : 18} />
         </span>
     );
 };
@@ -624,7 +634,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                     index > 0 && 'border-outline-variant border-t',
                 )}
             >
-                <MarqueRonde fait={fait} />
+                <MarqueRonde fait={fait} taille="rangee" />
                 <span className="min-w-0 flex-1">
                     {/* `.ev .t` — **le fait**, pas son sujet. */}
                     <span className="text-on-surface text-ts-body leading-ts-body block truncate tabular-nums">

@@ -129,7 +129,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                     className="mt-5 flex flex-1 flex-col"
                     aria-label={`Consommation ${year} par mois, en ${currency}`}
                 >
-                    <div className="flex min-h-44 flex-1 gap-3">
+                    <div className="large:min-h-72 flex min-h-60 flex-1 gap-3">
                         {/* L'axe : trois repères, zéro compris — une barre se lit contre lui. */}
                         <div
                             aria-hidden="true"

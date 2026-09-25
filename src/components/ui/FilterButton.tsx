@@ -60,7 +60,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({
                     className,
                 )}
             >
-                <Icon glyph={Funnel} size={18} />
+                <Icon glyph={Funnel} size={20} />
                 Filtrer
                 {count > 0 && (
                     <span
