@@ -26,6 +26,13 @@ FLOTTE MOBILE_NEEMBA_TOGO_DOTATION 27_03_2026.xlsx
 # Artefact d'origine inconnue (mars 2026), non référencé — ignoré en attendant identification
 projects_data.json
 
+# Réglages personnels de Claude Code (autorisations propres à un poste) — le partage
+# d'équipe, s'il en faut un, va dans .claude/settings.json
+.claude/settings.local.json
+
+# Sorties temporaires des scripts de capture et de régression visuelle
+docs/.tmp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
