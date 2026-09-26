@@ -34,7 +34,14 @@ const AUTH_CHECKPOINTS = [
   // '/dashboard' (not '/') : évite un goto same-URL après login, qui rechargerait la page
   // et perdrait la session démo (état React uniquement, non persisté).
   { id: 'dashboard', label: 'Dashboard', hash: '/dashboard' },
-  { id: 'approvals', label: 'Approvals', hash: '/approvals' },
+  // `/approvals` n'existe plus depuis que la file des demandes est devenue Tâches (03.3) :
+  // la suite photographiait « Cette page n'existe plus ». Remplacée le 26/09 par la file, et
+  // les listes les plus employées rejoignent la suite.
+  { id: 'tasks', label: 'Tâches', hash: '/tasks' },
+  { id: 'inventory', label: 'Actifs', hash: '/inventory' },
+  { id: 'equipment_details', label: 'Fiche d’un actif', hash: '/inventory/1' },
+  { id: 'users', label: 'Équipe', hash: '/users' },
+  { id: 'history', label: 'Historique', hash: '/history' },
   { id: 'locations', label: 'Locations', hash: '/locations' },
   { id: 'management', label: 'Management catalog', hash: '/management' },
   { id: 'reports', label: 'Reports', hash: '/reports' },
