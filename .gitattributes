@@ -1,0 +1,21 @@
+# Fins de ligne : LF pour tout le texte, quel que soit le poste qui l'écrit.
+# Le dossier de travail est aussi édité depuis Windows (partage) : sans cette règle, des
+# fichiers repassaient en CRLF et un commit réécrivait des fichiers entiers pour rien.
+* text=auto eol=lf
+
+# Binaires : jamais convertis, jamais comparés ligne à ligne.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
