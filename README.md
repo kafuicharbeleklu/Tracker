@@ -1,175 +1,146 @@
-# Tracker — maquettes mobiles
+# Tracker
 
-Miroir de travail du design system de l'application **Tracker** (Neemba Togo).
-La source de vérité reste le code : `index.css` pour les valeurs, `DESIGN_SYSTEM.md`
-pour le nommage, `DESIGN_BRIEF.md` pour l'ADN mobile. Ce projet-ci sert à **décider**,
-pas à définir.
+Application interne de **suivi du parc informatique de Neemba** : qui détient quel matériel, les
+demandes d'attribution et de retour, les réparations, les inventaires physiques et les coûts. Une
+seule application pour trois formats — téléphone, tablette et bureau —, en français.
 
-## Règles à ne pas casser
+**Version en ligne :** <https://kafuicharbeleklu.github.io/Tracker/> — les comptes de
+démonstration y sont ouverts.
 
-Elles viennent des « Interdits absolus » du brief. Une maquette qui en casse une ne
-pourra pas être implémentée telle quelle.
+> Première visite sur le projet ? Lisez ensuite [`RECAP.md`](RECAP.md) : il explique l'application,
+> son histoire et quel document ouvrir pour quoi.
 
-1. **Jaune : deux usages par écran maximum.** Jamais en fond d'onglet, de carte ou de
-   badge décoratif. Texte sur jaune : toujours noir.
-2. **Deux graisses de police par écran** : 400 pour le corps, 500 pour titres, valeurs
-   et actions. Rien d'autre.
-3. **Rayons : 2 / 4 / 6 / 8 px, plus la pastille.** Jauges et filets à 2, contrôles à 4,
-   **vignettes et héros d'identité à 6**, cartes à 8. Ce qui est rond parce qu'il est rond —
-   compteur, étiquette de statut — prend `var(--r-pill)`, jamais la moitié de sa hauteur écrite
-   en dur. L'identité voulue est « légèrement adouci, mais qui se lit encore comme un carré ».
-   Pas de 10, 14, 16. *(Le 6 était employé 47 fois sans être admis ; tranché le 07/08 — voir
-   `REGLES-TRANSVERSES.md` §2.49.)*
-4. **Aucune MAJUSCULE** hors codes techniques (`ASSET-20002`).
-5. **Aucun point d'exclamation**, aucun ton administratif. Libellés d'action =
-   verbe + objet.
-6. **Cartes sans bordure ET sans ombre** à la fois.
-7. **Cibles tactiles ≥ 48 px.**
-8. **Pas de bouton désactivé accompagné d'une phrase d'instruction.** Si l'action est
-   impossible, on la masque.
+## Ce que fait l'application
 
-## Palette
-
-| Rôle | Valeur |
+| Espace | À quoi il sert |
 | --- | --- |
-| Fond de page | `#FAF9F7` |
-| Carte | `#FFFFFF` |
-| Texte principal | `#1A1917` |
-| Texte secondaire | `#78746C` |
-| Filet | `#F0EEE9` |
-| Bordure de champ | `#8E877E` |
-| Jaune de marque | `#FDC910` |
-| Danger | `#B3261E` |
-| Succès | `#1B7F4D` |
-| Attention | fond `#FEF3D6`, texte `#7A5A00` |
+| Accueil | Ce qui attend la personne, l'état du parc, le budget |
+| Actifs | Le parc : chaque objet, sa fiche, son parcours ; remettre, restituer, sortir du parc |
+| Tâches | La file de travail : validations, remises, réceptions, retours, réparations, collecte |
+| Équipe | Les personnes, ce qu'elles détiennent, leurs accès |
+| Catalogue | Les types et modèles de matériel |
+| Emplacements | Pays, sites et locaux |
+| Inventaire physique | Les campagnes de vérification du parc sur le terrain |
+| Historique | Le journal de tout ce qui a été fait, par qui et quand |
+| Finances, Rapports | Budget, dépenses, amortissement, exports |
+| Accès, Paramètres | Rôles et permissions, réglages de l'organisation et du compte |
 
-## Cohérence
+Chacun voit ce que son rôle lui ouvre : **super administrateur**, **administrateur**
+(l'informatique), **manager**, **utilisateur**.
 
-**Un acte = une vue.** Deux points d'entrée vers le même acte ouvrent la même vue : seuls
-l'en-tête et le pré-remplissage diffèrent. `AUDIT-UI.md` tient l'inventaire des actes, de
-leurs points d'entrée, des composants partagés et des règles de densité.
+## Démarrer
 
-## Vocabulaire
+Prérequis : **Node.js 22** et npm.
 
-**Un acte = un mot**, dans les planches et dans le code. La liste fait foi : `LEXIQUE.md` à la
-racine, doublée de la planche `screens/lexique-piste.html`. Un mot qui n'y est pas se propose,
-il ne se glisse pas — et un renommage du code y est marqué **à valider**, jamais appliqué en
-silence.
+```bash
+npm ci --legacy-peer-deps
+npm run dev            # http://localhost:3000
+```
 
-## Méthode
+En développement, l'écran de connexion propose les **comptes de démonstration** (un par rôle) en
+plus de la connexion Microsoft.
 
-Chaque écran commence par répondre à trois questions, **avant** le moindre pixel :
+> ⚠️ **Par défaut, l'application se branche sur le projet Firebase de production**
+> (`src/lib/firebase.ts`), qui porte les données réelles du parc. En local, un geste qui écrit —
+> valider, remettre, supprimer — écrit dans cette base. Pour essayer sans risque, pointez les
+> variables `VITE_FIREBASE_*` sur un projet de test (voir ci-dessous).
 
-- à qui il sert ;
-- quelle décision la personne y prend ;
-- ce qu'elle fait juste après.
+### Variables d'environnement
 
-Si on ne sait pas répondre, on ne dessine pas.
+Dans `.env.local` (jamais commité). Toutes sont facultatives.
 
-## Rangement des fichiers
-
-**Une planche = une vue = un fichier = un groupe de cartes.** Nommage :
-`screens/<famille>-<n>-<vue>-piste.html` (familles : `login`, `dashboard`, `equipement`,
-`utilisateur`, `attribution`). Le `<n>` est le numéro de sous-section : c'est lui qui fixe l'ordre
-des cartes à l'intérieur du groupe, qui suit le nom de fichier. Une famille à une seule vue s'en
-passe (`login-piste.html`, `mon-compte-piste.html`, `lexique-piste.html`).
-
-Une planche porte **toutes les variantes de sa vue** — profils (gestionnaire / utilisateur
-final), régimes de volume, états — en colonnes ou en réglages, jamais en fichiers séparés.
-*(La règle inverse valait au début du chantier ; les fichiers `dashboard-piste-admin.html` et
-assimilés sont dans `screens/archive/`.)*
-
-**Le groupe « 01. Référence — l'UI actuelle, avant refonte » est une baseline, pas un chantier.**
-Il porte les quinze répliques de l'état initial du produit et sert **uniquement de point de
-comparaison**. Chaque sujet qui y figure a sa proposition dans la section du même nom :
-Tableau de bord → `03.1`, Détail équipement → `04.2`, Utilisateurs — liste → `05.1`, Détail
-utilisateur → `05.2`, Connexion → `02`. **On n'y ajoute rien**, et aucune décision ne s'y prend.
-
-**Une fonctionnalité = une section parente ; ses variantes sont des sous-sections**, jamais des
-titres de premier niveau supplémentaires. Le numéro parent est sur deux chiffres (`01`, `02`, …)
-pour que l'ordre affiché reste l'ordre réel ; la sous-section porte le numéro du parent (`04.1`,
-`04.2`, …) et fixe l'ordre de lecture à l'intérieur du groupe.
-
-| Section | Sous-sections |
+| Variable | Rôle |
 | --- | --- |
-| `01. Référence — l'UI actuelle, avant refonte` | les quinze répliques |
-| `02. Connexion` | — |
-| `03. Tableau de bord` | `03.1` direction retenue · `03.2` « à traiter » · `03.3` tâches |
-| `04. Équipement` | `04.1` liste · `04.2` détail · `04.3` créer, corriger, sortir |
-| `05. Utilisateur` | `05.1` liste · `05.2` détail · `05.3` créer un compte · `05.4` gérer un compte |
-| `06. Attribuer et restituer` | `06.1` parcours complet · `06.2` la preuve · `06.3` fins de flux · `06.4` demander un équipement |
-| `07. Mon compte` | — |
-| `08. Lexique — un mot par acte` | — |
-| `15. Finances et rapports` | `15.1` Finances et Rapports |
-| `09. Catalogue` | `09.1` le référentiel · `09.2` fiche de modèle et imports |
-| `10. Emplacements` | — |
-| `11. Rôles et permissions` | — |
-| `12. États — quand l'écran n'a rien à montrer` | — |
-| `13. Au-delà du téléphone` | — |
-| `14. Paramètres` | — |
+| `VITE_FIREBASE_API_KEY`, `…_AUTH_DOMAIN`, `…_PROJECT_ID`, `…_STORAGE_BUCKET`, `…_MESSAGING_SENDER_ID`, `…_APP_ID`, `…_MEASUREMENT_ID` | Le projet Firebase (Firestore). À défaut, celui de production |
+| `VITE_ENABLE_DEMO_LOGIN` | `true` ouvre les comptes de démonstration hors développement (c'est le cas de la version en ligne) |
+| `VITE_ENABLE_MOCK_AUTH_BACKEND` | `true` simule le service d'authentification hors développement |
+| `VITE_AUTH_API_BASE_URL` | L'API d'authentification et de check-in (par défaut `http://localhost:8787` en développement) |
+| `VITE_AUTH_ADMIN_API_KEY` | La clé d'administration de cette API |
+| `VITE_ALLOWED_EMAIL_DOMAINS` | Domaines de courriel admis à l'inscription, séparés par des virgules (vide : tous) |
+| `VITE_DEMO_TEMP_PIN`, `VITE_DEMO_TEMP_PASSWORD` | Code et mot de passe provisoires des comptes créés en démonstration |
+| `VITE_DISABLE_DEMO_RESEED` | En développement sans base distante : `true` empêche le jeu de démonstration de se ré-semer (pour tester les listes vides) |
 
-**Numérotation des cartes — tranché le 06/08.** Une carte porte **le numéro de sa section** :
-`09.1 Catalogue`, `10.1 Emplacements`, `11.1 Rôles et permissions`, `12.1 Les états transverses`.
-Les deux cartes qui portaient encore `09.2` et `09.3` dans des sections `10.` et `11.` ont été
-renumérotées.
+## Scripts
 
-Un nouveau sujet rejoint la section parente à laquelle il appartient, avec le sous-numéro
-suivant. On n'ouvre une section parente que pour une fonctionnalité qui n'en a pas encore.
-
-Une piste rejetée est déplacée dans `screens/archive/` le jour même de la décision, et **perd
-sa ligne `@dsCard`** pour disparaître du volet. Rien n'est supprimé.
-
-`_ds_manifest.json` **est régénéré automatiquement** à chaque tour — ne pas l'écrire à la main.
-
-**L'état actuel n'est plus recopié dans chaque planche** (décision du 30/07, pour économiser la
-génération). Les captures vivent une seule fois dans `screens/actuel/` — `<ecran>.png` pour un
-écran, `<flux>-<n>-<etape>.png` pour un flux modal — et la planche les **nomme** en une ligne au
-lieu de les afficher. Les défauts relevés sont écrits dans `PASSATION.md`. Les répliques
-`-actuel.html` de Login et Dashboard restent comme référence, sans `@dsCard` ; on n'en crée plus.
-
-## Ce qui est passé au produit — au 06/08
-
-Une planche livrée n'est pas une planche implémentée. Cette table dit où en est le portage ;
-elle se lit avec le tableau « État » ci-dessous, qui parle du dessin.
-
-| Planche | Dans le produit |
+| Commande | Ce qu'elle fait |
 | --- | --- |
-| `03.3` Tâches | **vue créée** — file, tri par ancienneté, filtres par nature, état vide ; l'onglet de la barre du bas, du rail et de la barre latérale l'ouvre. Deux natures de la planche manquent : *code PIN à définir* et *réparations*, dont la donnée n'existe pas |
-| `06.4` Demander un équipement | **appliquée** — titre, urgence à deux crans, message des vingt caractères, types non attribuables retirés, émoji supprimé |
-| `12.1` États transverses | **partielle** — squelette de chargement, page introuvable, accès refusé, et la règle d'erreur sur deux wizards. Restent : les refus engagés depuis une rangée, et le hors-ligne |
-| `09.1` Catalogue | **partielle** — l'attribut `assignable` et la source unique de libellés |
-| Toutes les autres | **non portées** |
+| `npm run dev` | Serveur de développement (port 3000) |
+| `npm run build` / `npm run preview` | Construit la version de production (`dist/`, servie sous `/Tracker/`) / la sert en local |
+| `npm run lint` | ESLint, zéro avertissement toléré |
+| `npm run ds:check` | Conformité au système de design : couleurs brutes, contrôles natifs hors des primitives, `title=` porteurs d'information… |
+| `npm run check:cn-merge` | Sonde `cn()` / tailwind-merge : aucune classe du système ne doit en écraser une autre |
+| `npm run check:tokens` | Invariants de la couche de jetons `--tk-*` (`DESIGN_SYSTEM.md`) |
+| `npm run check:encoding` | Texte doublement encodé (« MatÃ©riel ») dans les sources |
+| `npm run lint:ds` | `lint`, `ds:check`, `check:encoding`, `check:cn-merge` et `check:tokens`, d'affilée |
+| `npm run format` | Prettier sur `src/` |
+| `npm run qa:visual:auto`, `qa:devices:auto`, `qa:a11y:auto` | Régression visuelle, audit multi-appareils, accessibilité (Playwright) |
+| `npm run backend:agent` | L'API de check-in des postes et d'authentification (voir [`backend/README.md`](backend/README.md)) |
+| `npm run import:inventory` | Import de l'inventaire depuis un classeur Excel |
 
-## État
+### Avant de pousser
 
-| Écran | Statut |
-| --- | --- |
-| Connexion | piste B retenue, **validée** |
-| Tableau de bord | **validé** — « héro inversé vivant », admin + utilisateur |
-| Détail équipement | **validé** (29/07) — 4 états + utilisateur final |
-| Liste équipements | **validée** (29/07) — 3 volumes + scanner adaptatif |
-| Liste utilisateurs | **validée** (30/07) — 3 volumes + sélecteur de destinataire |
-| Attribuer / restituer | piste livrée (30/07) — **partielle**, complétée par le workflow |
-| Workflow d'attribution | **piste livrée** (30/07) — chaîne à 5 maillons, 3 origines, preuve de remise |
-| Détail utilisateur | **piste livrée** (30/07) — 3 états de compte + « Mon profil » |
-| Créer un compte utilisateur | **piste livrée** (30/07) — inviter / importer + compte en attente |
-| Gérer un compte utilisateur | **piste livrée** (31/07) — suspendre, supprimer, réinitialiser PIN / mot de passe |
-| « À traiter » : ligne, bouton, seuil | **piste livrée** (31/07) — matrice + 3 régimes de volume |
-| Lexique — un mot par acte | **livré** (31/07) — `LEXIQUE.md` + planche 13 |
-| La preuve — méthode et saisie | **piste livrée** (31/07) — règle de choix, champ PIN masqué, nouveau code |
-| Fins de flux — les clôtures | **piste livrée** (31/07) — trois formes, écart, suspension, suppression |
-| Page « Tâches » | **piste livrée** (31/07) — file, filtres, pré-filtrage, 999, état vide |
-| Mon compte (mot de passe, 2FA) | **piste livrée** (31/07) — vue de référence unique + renvoi Paramètres |
-| Déclarer un incident | **livré** — la déclaration en 04.3, et sa suite en **04.4** (02/08) : prise en charge, remplacement, retour |
-| Sélecteur d'objets à l'échelle | **livré** (30/07) — groupé par modèle, unité désignée |
-| Catalogue | **piste livrée** (05/08) — familles → types, fiche de type, attribut `assignable` |
-| Emplacements | **piste livrée** (05/08) — pays → site → local, fiche de site, site qui n'a jamais servi |
-| Rôles (RBAC) | **piste livrée** (05/08) — huit rôles rangés par effet, permissions appliquées contre déclarées |
-| Finances, Rapports | à faire |
-| Demander un équipement | **piste livrée** (05/08) — la feuille, le choix du type, la demande pour un autre, l'état « une demande est déjà en cours » |
-| Les états transverses | **piste livrée** (06/08) — chargement, geste en cours, acte qui échoue, hors ligne, introuvable, accès refusé |
-| Les trois régimes (au-delà de 393 px) | **piste livrée** (06/08) — rail, barre latérale, largeur de lecture unique, colonnes déduites du contenu, feuille → dialogue |
-| Paramètres | **piste livrée** (06/08) — trois propriétaires, le réglage qui s'applique au geste, la conséquence dite, ce qui tombe |
-| Fiche de modèle et imports du référentiel | **piste livrée** (07/08) — 09.2 : la fiche de modèle, créer un modèle, importer des modèles, importer des emplacements |
-| Approbations | **ne pas y toucher** — jugé déjà bon |
-| Audit | déjà basculé dans le code, sert de référence |
+```bash
+npx tsc --noEmit -p .
+npm run lint:ds
+npm run build
+```
+
+## Organisation du code
+
+```text
+index.tsx, App.tsx       point d'entrée, coque de l'application
+index.css                jetons du système de design (couleurs, type, espaces, mouvement)
+tailwind.config.js       classes de fenêtre : compact < 600, medium, expanded ≥ 840, deux ≥ 1000, large…
+src/
+  components/layout/     gabarits (ListTemplate, DetailTemplate…), barre latérale, rail, barre du bas
+  components/ui/         les primitives du système de design (Button, FacetChip, ActSheet, Onglets…)
+  features/<domaine>/    une page par écran : pages/, components/, hooks/, lib/
+  context/               données (DataContext, FinanceDataContext), authentification, notifications
+  hooks/, lib/           logique partagée ; lib/businessRules.ts porte les règles métier
+  constants/, types/     libellés, seuils, types partagés
+  data/                  jeu de démonstration
+scripts/                 contrôles de conformité, audits Playwright, imports
+backend/                 API Node de check-in des postes et d'authentification
+deployment/              scripts PowerShell de l'agent de collecte (GPO) et d'import
+docs/                    journal du portage, audits, captures de régression
+```
+
+Le routage est fait maison, dans l'adresse (`#/inventory`, `#/tasks?ouvert=…`) :
+`src/hooks/useAppNavigation.ts`. L'authentification passe par Microsoft (Azure AD, MSAL) ou par les
+comptes de démonstration ; les données vivent dans Firestore.
+
+## Design : où est la référence
+
+- **Les planches** — un écran par planche — vivent dans le projet Claude Design « TRACKER », hors de
+  ce dépôt. Le code fait foi pour ce qui existe déjà.
+- [`REGLES-TRANSVERSES.md`](REGLES-TRANSVERSES.md) — le registre normatif : icônes, hiérarchie,
+  mesures, arbitrages.
+- [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — jetons et primitives ; toute évolution s'inscrit dans
+  [`DESIGN_SYSTEM_CHANGELOG.md`](DESIGN_SYSTEM_CHANGELOG.md).
+- [`DESIGN_BRIEF.md`](DESIGN_BRIEF.md) — l'ADN mobile ; ses interdits sont bloquants.
+- [`LEXIQUE.md`](LEXIQUE.md) — un mot par acte, dans les planches et dans le code.
+- [`docs/design/PORTAGE-PLANCHES.md`](docs/design/PORTAGE-PLANCHES.md) — le journal du portage :
+  chaque passe, ce qu'elle a changé, et **les arbitrages pris contre une planche**.
+
+L'interface ne nomme jamais un pays : Neemba est présent dans plusieurs.
+
+## Intégration continue et déploiement
+
+| Flux | Quand | Ce qu'il fait |
+| --- | --- | --- |
+| MD3 Compliance | chaque push sur `main`, chaque PR | `ds:check`, encodage, construction ; régression visuelle sur les PR |
+| Deploy GitHub Pages | chaque push sur `main` | construit et **met en ligne** la version publique |
+
+Tout ce qui arrive sur `main` est donc publié dans les minutes qui suivent.
+
+## Contribuer
+
+- **Une branche par travail**, puis une PR vers `main`. L'historique de `main` reste **linéaire** :
+  on fusionne en avance rapide (`git merge --ff-only`).
+- **Messages de commit** en français, préfixés du type et de la portée :
+  `feat(taches): …`, `fix(bureau): …`, `docs(portage): …`, `chore(depot): …`.
+- **Fins de ligne LF**, imposées par [`.gitattributes`](.gitattributes) — le dossier est parfois
+  édité depuis Windows. Pour que `git blame` ignore la normalisation :
+  `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+- Ne jamais commiter `.env.local`, `.claude/settings.local.json`, ni les fichiers d'import
+  (classeurs, clé de compte de service) que liste `.gitignore`.

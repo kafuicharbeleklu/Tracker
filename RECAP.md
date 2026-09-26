@@ -19,9 +19,10 @@ Il ne remplace pas les documents de référence — il te dit lequel ouvrir et q
 | `DESIGN_SYSTEM_CHANGELOG.md` | journal obligatoire de toute évolution de composant ou de token | à chaque modification |
 | `docs/passation-design-mobile.md` | passation détaillée du chantier design en cours | pour reprendre le chantier |
 | `AUDIT_MOBILE.md` | les 20 constats de l'audit mobile initial | contexte historique |
-| `README.md` / `AGENTS.md` | docs historiques, **partiellement périmées** | avec prudence |
+| `README.md` | présentation du dépôt : démarrage, variables, scripts, CI, conventions (réécrit le 26/09) | pour lancer ou livrer |
+| `AGENTS.md` | doc historique, **partiellement périmée** | avec prudence |
 
-⚠️ `README.md` et `AGENTS.md` mentionnent React Router et omettent `FinanceDataContext`.
+⚠️ `AGENTS.md` mentionne React Router et omet `FinanceDataContext`.
 **Le code fait foi.**
 
 ---
