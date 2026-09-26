@@ -11,8 +11,12 @@ import {
     ClockCountdown,
     DotsThreeVertical,
     Export,
+    Hourglass,
     Info,
+    Funnel,
     LockSimple,
+    MapPin,
+    Package,
     PlusCircle,
     QrCode,
     Question,
@@ -26,7 +30,10 @@ import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
 import FacetChip from '../../../components/ui/FacetChip';
-import { EmptyState } from '../../../components/ui/EmptyState';
+import FilterButton from '../../../components/ui/FilterButton';
+import SearchField from '../../../components/ui/SearchField';
+import BottomSheet from '../../../components/ui/BottomSheet';
+import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
@@ -46,6 +53,7 @@ import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../..
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU } from '../../../lib/regimeBureau';
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
 
 interface AuditDetailsPageProps {
     onBack: () => void;
@@ -244,6 +252,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * au parc — pas à la vue globale.
      */
     const [vueEcarts, setVueEcarts] = useState(false);
+    /**
+     * **La bande de recherche de toutes les listes** (25/09) : un terme qui borne les
+     * rangées de la puce retenue — modèle, code, porteur. Ce n'est pas « Saisir un code »,
+     * qui enregistre un scan : la recherche ne fait que chercher.
+     */
+    const [recherche, setRecherche] = useState('');
+    const [filtreOuvert, setFiltreOuvert] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
     /**
@@ -912,25 +927,29 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * opposées apprenait quelque chose de faux trois fois sur quatre.
      */
     const renderEmptyList = (scope: AuditTab | 'exceptions') => {
+        /* **Des vides de carte** (25/09) : ils vivent dans la carte des rangées, et la forme
+           héritée (`EmptyState`, carré de 56 et titre de 16 en 700) n'était plus celle
+           d'aucun autre écran. Le vert dit ce qui est en ordre. */
         if (scope === 'todo') {
             if (auditFinalized) {
                 return (
-                    <EmptyState
-                        icon="lock"
+                    <CardEmptyState
+                        glyph={LockSimple}
                         title="La campagne est clôturée"
                         description="Il n'y a plus rien à scanner : les actifs jamais vus sont passés en manquants."
                     />
                 );
             }
             return sessionTotal === 0 ? (
-                <EmptyState
-                    icon="inventory_2"
+                <CardEmptyState
+                    glyph={Package}
                     title="Ce lieu n'attend aucun actif"
-                    description="Il n'y a rien à compter ici : aucun actif du parc n'est situé dans ce périmètre."
+                    description="Aucun actif du parc n'est situé dans ce périmètre."
                 />
             ) : (
-                <EmptyState
-                    icon="task_alt"
+                <CardEmptyState
+                    glyph={CheckCircle}
+                    tone="positive"
                     title="Tout est retrouvé"
                     description={`Les ${sessionFound} actifs attendus ont été scannés. La campagne peut être clôturée.`}
                 />
@@ -939,8 +958,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
         if (scope === 'scanned') {
             return (
-                <EmptyState
-                    icon="qr_code_scanner"
+                <CardEmptyState
+                    glyph={QrCode}
                     title="Aucun scan pour l'instant"
                     description="Les actifs retrouvés apparaîtront ici, du plus récent au plus ancien."
                 />
@@ -949,26 +968,39 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
         if (scope === 'missing') {
             return auditFinalized ? (
-                <EmptyState
-                    icon="task_alt"
+                <CardEmptyState
+                    glyph={CheckCircle}
+                    tone="positive"
                     title="Aucun manquant"
                     description="La campagne s'est clôturée sans perte : tout ce que le lieu attendait a été retrouvé."
                 />
             ) : (
-                <EmptyState
-                    icon="hourglass_empty"
-                    title="Les manquants n'existent qu'après la clôture"
-                    description="Un actif n'est manquant que si la campagne se termine sans lui. Tant qu'elle tourne, il est simplement à scanner."
+                <CardEmptyState
+                    glyph={Hourglass}
+                    title="Les manquants viennent à la clôture"
+                    description="Tant que la campagne tourne, un actif non vu est simplement à scanner."
                 />
             );
         }
 
         return (
-            <EmptyState
-                icon="check_circle"
+            <CardEmptyState
+                glyph={CheckCircle}
+                tone="positive"
                 title="Aucun écart"
                 description="Tout ce qui a été scanné était attendu dans ce lieu. Rien à trancher."
             />
+        );
+    };
+
+    /** Les rangées que la recherche retient — modèle, code, série, porteur. */
+    const parRecherche = (liste: Equipment[]) => {
+        const terme = recherche.trim().toLowerCase();
+        if (!terme) return liste;
+        return liste.filter((item) =>
+            [item.name, item.model, item.assetId, item.serialNumber, item.hostname, item.user?.name]
+                .filter(Boolean)
+                .some((valeur) => String(valeur).toLowerCase().includes(terme)),
         );
     };
 
@@ -987,10 +1019,24 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * l'audit est en train de vérifier.
      */
     const renderEquipmentRows = (
-        rows: Equipment[],
+        toutes: Equipment[],
         mode: 'todo' | 'scanned' | 'missing' | 'horsSite',
     ) => {
-        if (rows.length === 0) return renderEmptyList(mode);
+        if (toutes.length === 0) return renderEmptyList(mode);
+        const rows = parRecherche(toutes);
+        if (rows.length === 0)
+            return (
+                <CardEmptyState
+                    glyph={Funnel}
+                    title={`Aucun actif pour « ${recherche.trim()} »`}
+                    description="Cherchez un modèle, un code ou un porteur."
+                    action={
+                        <Button variant="outlined" onClick={() => setRecherche('')}>
+                            Effacer la recherche
+                        </Button>
+                    }
+                />
+            );
 
         /* **Le modèle en titre, la teinte dit l'état** (25/09). La rangée ouvrait sur le
            code (« ASSET-10001 ») et coupait ce qu'on cherche vraiment dans un local — le
@@ -1065,7 +1111,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * lue dans deux sens n'a pas le même emploi, et le dire évite de compter les
      * rangées pour savoir où l'on est.
      */
-    const listCaption = () => {
+    const legendeDeLaPuce = () => {
         if (activeTab === 'todo') {
             return {
                 title: `Les ${todoItems.length} qui restent à trouver`,
@@ -1084,6 +1130,22 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 : 'Les manquants, après la clôture',
             count: `${missingItems.length} sur ${sessionTotal}`,
         };
+    };
+
+    const listCaption = () => {
+        const legende = legendeDeLaPuce();
+        /* Une recherche posée : le compte dit combien elle retient sur la puce, comme
+           « 6 des 17 » sur les autres listes. */
+        if (!recherche.trim()) return legende;
+        const liste =
+            activeTab === 'todo'
+                ? todoItems
+                : activeTab === 'scanned'
+                  ? scannedItems
+                  : activeTab === 'horsSite'
+                    ? horsSiteItems
+                    : missingItems;
+        return { ...legende, count: `${parRecherche(liste).length} des ${liste.length}` };
     };
 
     /**
@@ -1182,42 +1244,46 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * « Manquants » reste visible pendant la campagne, à zéro : c'est le même fait,
      * montré au bon moment (C1).
      */
-    const parcChips = (
-        <div className="-mr-page-sm medium:-mr-page pr-page-sm medium:pr-page flex [scrollbar-width:none] gap-2 overflow-x-auto">
-            {(
-                [
-                    ...(auditFinalized
-                        ? []
-                        : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
-                    ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
-                    ['missing', 'Manquants', missingItems.length, Question],
-                    /* La quatrième puce n'a de sujet qu'après la clôture, et seulement
-                       s'il y a eu une absence justifiée à mettre à part. */
-                    ...(auditFinalized && horsSiteItems.length > 0
-                        ? [
-                              [
-                                  'horsSite',
-                                  'Hors site, justifié',
-                                  horsSiteItems.length,
-                                  Wrench,
-                              ] as const,
-                          ]
-                        : []),
-                ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
-            ).map(([id, label, count]) => (
-                /* `.chip` de 16.2 — **36 de haut, 14 sur 20, sur fond de surface, sans
-                   pictogramme**. Les trois pastilles tenaient 434 px pour 361 de page : la
-                   troisième, « Manquants », sortait de l'écran. Le pictogramme doublait un
-                   mot qui se suffit — « À scanner » n'a pas besoin d'un cercle pointillé
-                   pour se comprendre —, et la planche n'en met pas. */
+    const partitions = (
+        [
+            ...(auditFinalized
+                ? []
+                : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
+            ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
+            ['missing', 'Manquants', missingItems.length, Question],
+            /* La quatrième puce n'a de sujet qu'après la clôture, et seulement
+               s'il y a eu une absence justifiée à mettre à part. */
+            ...(auditFinalized && horsSiteItems.length > 0
+                ? [['horsSite', 'Hors site, justifié', horsSiteItems.length, Wrench] as const]
+                : []),
+        ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
+    ).map(([id, label, count]) => ({ id, label, count }));
+
+    /** La puce d'arrivée : « À scanner » tant que la campagne tourne, « Manquants » après. */
+    const partitionParDefaut: AuditTab = auditFinalized ? 'missing' : 'todo';
+
+    /**
+     * **Les puces vivent dans la bande fixe, plus sous le héro** (25/09, contre 16.2 qui
+     * les pose dans le corps). La règle de toutes les listes — 17.8 : *« un filtre posé
+     * dans la page disparaît au premier défilement, et la liste devient un sous-ensemble
+     * sans étiquette »* — et R11 : au bureau elles montent sur la ligne d'outils, à côté
+     * de la recherche ; au téléphone elles sont dans la feuille de filtre, et la ligne
+     * de compte, fixe elle aussi, dit ce qu'on regarde. Même ordre, même geste que
+     * Tâches.
+     *
+     * `.chip` de 16.2 — **36 de haut, 14 sur 20, sans pictogramme** : « À scanner » n'a
+     * pas besoin d'un cercle pointillé pour se comprendre.
+     */
+    const pucesDuBureau = (
+        <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
+            {partitions.map((partition) => (
                 <FacetChip
-                    key={id}
-                    label={label}
-                    count={count}
-                    compact
-                    onCanvas
-                    selected={activeTab === id}
-                    onClick={() => setActiveTab(id)}
+                    key={partition.id}
+                    dense
+                    label={partition.label}
+                    count={partition.count}
+                    selected={activeTab === partition.id}
+                    onClick={() => setActiveTab(partition.id)}
                 />
             ))}
         </div>
@@ -1311,7 +1377,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     d'état : elle mesure une avancée, elle ne qualifie rien. Le vert
                     disait « tout va bien » à 12 % de relevé. */}
                 <span
-                    className="bg-inverse-on-surface block h-full"
+                    className="bg-inverse-on-surface mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]"
                     style={{ width: `${progressPercentage}%` }}
                 />
             </span>
@@ -1485,63 +1551,84 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                   fil dessous, l'export en acte nommé et le ⋮ pour le reste. Sans filet :
                   le chrome du bureau n'en pose pas sous l'en-tête.
                 */
-                <div className="px-page flex min-h-[72px] items-center gap-2 pt-5">
-                    <Button
-                        variant="text"
-                        iconOnly
-                        onClick={onBack}
-                        aria-label="Retour"
-                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
-                    >
-                        <Icon glyph={ArrowLeft} size={20} />
-                    </Button>
-                    <div className="min-w-0 flex-1">
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
-                            {selectedSite || 'Campagne'}
-                        </h1>
-                        <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-4">
-                            Inventaire physique ›{' '}
-                            {lieuDansLeSite ? `${lieuDansLeSite.toLowerCase()} · ` : ''}
-                            {heroStatus.label}
-                        </span>
-                    </div>
-                    {sessionStarted && (
-                        /* `.hbtn.g` — l'export est un acte nommé au bureau ; il quitte
-                           donc le ⋮, où il ferait doublon. */
+                <div className="px-page flex flex-col gap-2 pt-5">
+                    <div className="flex min-h-[52px] items-center gap-2">
                         <Button
-                            variant="outlined"
-                            onClick={exportRelevé}
-                            icon={<Icon glyph={Export} size={20} />}
-                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
+                            variant="text"
+                            iconOnly
+                            onClick={onBack}
+                            aria-label="Retour"
+                            className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
                         >
-                            Exporter
+                            <Icon glyph={ArrowLeft} size={20} />
                         </Button>
-                    )}
-                    {overflowAffiche.length > 0 && (
-                        <Menu
-                            align="end"
-                            items={overflowAffiche}
-                            trigger={
-                                <Button
-                                    variant="text"
-                                    iconOnly
-                                    aria-label="Autres actes"
-                                    className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
-                                >
-                                    <Icon glyph={DotsThreeVertical} size={20} />
-                                </Button>
-                            }
-                        />
+                        <div className="min-w-0 flex-1">
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
+                                {selectedSite || 'Campagne'}
+                            </h1>
+                            <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-4">
+                                Inventaire physique ›{' '}
+                                {lieuDansLeSite ? `${lieuDansLeSite.toLowerCase()} · ` : ''}
+                                {heroStatus.label}
+                            </span>
+                        </div>
+                        {sessionStarted && (
+                            /* `.hbtn.g` — l'export est un acte nommé au bureau ; il quitte
+                               donc le ⋮, où il ferait doublon. */
+                            <Button
+                                variant="outlined"
+                                onClick={exportRelevé}
+                                icon={<Icon glyph={Export} size={20} />}
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
+                            >
+                                Exporter
+                            </Button>
+                        )}
+                        {overflowAffiche.length > 0 && (
+                            <Menu
+                                align="end"
+                                items={overflowAffiche}
+                                trigger={
+                                    <Button
+                                        variant="text"
+                                        iconOnly
+                                        aria-label="Autres actes"
+                                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                                    >
+                                        <Icon glyph={DotsThreeVertical} size={20} />
+                                    </Button>
+                                }
+                            />
+                        )}
+                    </div>
+                    {/* `.tools` de 17.11 — la recherche à 320, puis les puces (25/09). */}
+                    {scopeIsReady && (
+                        <div className="flex flex-wrap items-center gap-3 pb-1">
+                            <SearchField
+                                dense
+                                value={recherche}
+                                onChange={setRecherche}
+                                placeholder="Modèle, code, porteur"
+                                className="w-[320px] max-w-full"
+                            />
+                            {pucesDuBureau}
+                        </div>
                     )}
                 </div>
             ) : (
-                <div className="bg-surface border-outline-variant border-b">
+                /* **Fixe, comme l'en-tête de toute liste** (17.8, 25/09) : il porte
+                   désormais la recherche, l'entonnoir et la ligne de compte, qui ne
+                   partent pas au premier défilement. */
+                <div className="bg-surface border-outline-variant sticky top-0 z-20 border-b">
                     {/* La barre commune du téléphone (24/09), dans la mesure de lecture. */}
                     <Reading>
                         <BarreDePage
                             className="border-b-0"
                             title={vueEcarts ? 'Écarts' : 'Campagne'}
                             onBack={vueEcarts ? () => setVueEcarts(false) : onBack}
+                            /* `.srch` puis `.ord` — la bande de toutes les listes (25/09) : la
+                               recherche et l'entonnoir, puis ce qu'on regarde et combien. Les
+                               puces sont dans la feuille (R11). */
                             actions={
                                 <>
                                     {auditFinalized ? (
@@ -1576,7 +1663,33 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     )}
                                 </>
                             }
-                        />
+                        >
+                            {scopeIsReady && !vueEcarts && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <SearchField
+                                            value={recherche}
+                                            onChange={setRecherche}
+                                            placeholder="Modèle, code, porteur"
+                                            className="flex-1"
+                                        />
+                                        <FilterButton
+                                            label="Choisir ce qu'on regarde"
+                                            count={activeTab !== partitionParDefaut ? 1 : 0}
+                                            onClick={() => setFiltreOuvert(true)}
+                                        />
+                                    </div>
+                                    <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
+                                        <span className="min-w-0 truncate">
+                                            {listCaption().title}
+                                        </span>
+                                        <span className="shrink-0 tabular-nums">
+                                            {listCaption().count}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
+                        </BarreDePage>
                     </Reading>
                 </div>
             )}
@@ -1615,11 +1728,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         /* **Une campagne sans service n'est pas une campagne.** L'écran
                        n'ouvre plus trois sélecteurs pour s'en composer une : il renvoie
                        à la liste qui les porte déjà, avec ses statuts et ses comptes. */
-                        <EmptyState
-                            icon="pin_drop"
+                        /* L'écran entier est l'état : la forme d'écran (17.1), et une porte qui
+                           mène ailleurs — ce n'est pas un doublon. */
+                        <ScreenState
+                            icon={MapPin}
                             title="Aucune campagne ouverte"
                             description="Une campagne porte sur un lieu : la vue globale le désigne, et sa rangée lance le relevé."
-                            action={
+                            actions={
                                 <Button variant="filled" onClick={backToOverview}>
                                     Choisir un lieu à compter
                                 </Button>
@@ -1645,17 +1760,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         décor. */}
                                     {!enDeuxNiveaux && carteDeTension}
 
-                                    {parcChips}
-
-                                    {/* La légende de liste : le sujet à gauche, le compte à droite. */}
-                                    {/* `.ord` — rentrée de **4**, comme la ligne de compte
-                                        de toutes les listes ; elle l'était de 2. */}
-                                    <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
-                                        <p className="text-text-secondary">{listCaption().title}</p>
-                                        <p className="text-text-muted shrink-0 tabular-nums">
-                                            {listCaption().count}
-                                        </p>
-                                    </div>
+                                    {/* La légende de liste : le sujet à gauche, le compte à
+                                        droite — au bureau, en tête de colonne, comme « Écarts »
+                                        en face. Au téléphone elle est dans la bande fixe. */}
+                                    {enDeuxNiveaux && (
+                                        <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
+                                            <p className="text-text-secondary">
+                                                {listCaption().title}
+                                            </p>
+                                            <p className="text-text-muted shrink-0 tabular-nums">
+                                                {listCaption().count}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* `.card` de 16.2 — surface, rayon 8, **4 / 16**, et
                                         pas d'ombre : aucune planche n'en déclare sur une
@@ -1830,7 +1947,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                 <section
                                                     key={entry.id}
                                                     /* `.ec` de 16.2 — **16 / 20**, sans ombre. */
-                                                    className="rounded-card bg-surface px-5 py-4"
+                                                    className="rounded-card bg-surface px-4 py-4"
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         {/* La pastille de nature à gauche, comme le « pin » de la
@@ -1854,7 +1971,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                             />
                                                         </span>
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="font-brand text-on-surface text-ts-body truncate font-semibold tracking-[-0.01em]">
+                                                            <p
+                                                                title={infobulle(code)}
+                                                                className={cn(
+                                                                    'font-brand text-on-surface text-ts-body font-semibold tracking-[-0.01em]',
+                                                                    NOM_SUR_UNE_LIGNE,
+                                                                )}
+                                                            >
                                                                 {code}
                                                             </p>
                                                             <p className="text-body-small text-text-secondary truncate">
@@ -2141,6 +2264,51 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     />
                 </div>
             )}
+
+            {/* La feuille de filtre — les partitions en puces, jamais en onglets (R11). */}
+            <BottomSheet
+                open={filtreOuvert}
+                onClose={() => setFiltreOuvert(false)}
+                title="Filtrer"
+                emploi="filtre"
+            >
+                <div className="flex flex-col pb-0">
+                    <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
+                        Ce qu'on regarde
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {partitions.map((partition) => (
+                            <FacetChip
+                                compact
+                                key={partition.id}
+                                label={partition.label}
+                                count={partition.count}
+                                selected={activeTab === partition.id}
+                                onClick={() => setActiveTab(partition.id)}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        data-pied
+                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                    >
+                        <Button
+                            variant="tonal"
+                            className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                            onClick={() => setActiveTab(partitionParDefaut)}
+                        >
+                            Tout effacer
+                        </Button>
+                        <Button
+                            variant="filled"
+                            className="justify-center"
+                            onClick={() => setFiltreOuvert(false)}
+                        >
+                            Voir les {partitions.find((p) => p.id === activeTab)?.count ?? 0}
+                        </Button>
+                    </div>
+                </div>
+            </BottomSheet>
 
             <SideSheet
                 open={manualOpen}

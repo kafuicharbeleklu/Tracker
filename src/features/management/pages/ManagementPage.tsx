@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ArrowLeft,
     Books,
+    CaretDown,
     CaretRight,
     Clock,
     Cube,
@@ -23,14 +24,16 @@ import Button from '../../../components/ui/Button';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
+import Menu from '../../../components/ui/Menu';
 import Icon from '../../../components/ui/Icon';
 import ListRow from '../../../components/ui/ListRow';
 import SelectionTopBar from '../../../components/ui/SelectionTopBar';
 import BulkActionBar from '../../../components/ui/BulkActionBar';
+import SelectionBarBureau from '../../../components/ui/SelectionBarBureau';
 import { useSelection } from '../../../hooks/useSelection';
 import { useDeclareSelectionRegime } from '../../../context/SelectionRegimeContext';
 import { buildCsvLine } from '../../../lib/csv';
-import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import SearchField from '../../../components/ui/SearchField';
 import { MEDIA } from '../../../constants/breakpoints';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -511,6 +514,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 open={isFilterSheetOpen}
                 onClose={() => setIsFilterSheetOpen(false)}
                 title="Filtrer"
+                emploi="filtre"
             >
                 <div className="flex flex-col px-0 pb-0">
                     {/* **La famille est ici, pas dans une rangée de l'en-tête.** 17.8 a
@@ -565,7 +569,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         ))}
                     </div>
 
-                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div
+                        data-pied
+                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                    >
                         <Button
                             variant="tonal"
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
@@ -748,77 +755,143 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             ) : (
                                 <span className="flex-1" />
                             )}
+                            {/* **Au bureau, le geste d'ajout monte dans l'en-tête** (25/09).
+                                Le catalogue n'en avait aucun au-delà du téléphone : le bouton
+                                flottant y est réservé, et rien ne le remplaçait. Les trois
+                                chemins de la feuille, en menu ancré (17.11), comme Actifs. */}
+                            {!isCompact && !selection.isActive && (
+                                <Menu
+                                    align="end"
+                                    title="Ajouter au catalogue"
+                                    items={[
+                                        {
+                                            id: 'type',
+                                            label: 'Un type',
+                                            glyph: Tag,
+                                            onSelect: openAddCategory,
+                                        },
+                                        {
+                                            id: 'modele',
+                                            label: 'Un modèle',
+                                            glyph: Laptop,
+                                            onSelect: openAddModel,
+                                        },
+                                        {
+                                            id: 'importer',
+                                            label: 'Importer des modèles',
+                                            glyph: FileCsv,
+                                            onSelect: () => onViewChange?.('import_models'),
+                                        },
+                                    ]}
+                                    trigger={
+                                        <Button
+                                            variant="filled"
+                                            className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                        >
+                                            <Icon glyph={Plus} size={20} />
+                                            Ajouter
+                                            <Icon glyph={CaretDown} size={20} />
+                                        </Button>
+                                    }
+                                />
+                            )}
                         </div>
 
                         {/* La bande disparaît avec le référentiel vide : un outil qui trie ce
                         qui n'existe pas apprend que l'écran est cassé. */}
-                        {!isReferentialEmpty && (
-                            <>
-                                {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
+                        {!isCompact && selection.isActive ? (
+                            /* **La sélection au bureau** (26/09) : le titre reste, la barre
+                               prend la place de la ligne d'outils et porte l'export. */
+                            <Reading className="pb-1">
+                                <SelectionBarBureau
+                                    count={selection.count}
+                                    total={filteredCategories.length}
+                                    onExit={selection.exit}
+                                    onSelectAll={() =>
+                                        selection.selectAll(
+                                            filteredCategories.map((category) => category.id),
+                                        )
+                                    }
+                                    onClearAll={selection.clear}
+                                    actions={
+                                        <Button variant="filled" onClick={exporterSelection}>
+                                            Exporter{' '}
+                                            {selection.count > 1 ? `les ${selection.count}` : ''}
+                                        </Button>
+                                    }
+                                />
+                            </Reading>
+                        ) : (
+                            !isReferentialEmpty && (
+                                <>
+                                    {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
                                 champ cerné de 320 × 40, et le filtre à 40 comme lui. */}
-                                <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
-                                    <Reading
-                                        className={cn(
-                                            'flex items-center',
-                                            isCompact ? 'gap-2' : 'gap-3',
-                                        )}
-                                    >
-                                        <SearchField
-                                            dense={!isCompact}
-                                            value={searchQuery}
-                                            onChange={setSearchQuery}
-                                            placeholder="Type, modèle, marque"
-                                            className={
-                                                isCompact ? 'flex-1' : 'w-[320px] max-w-full'
-                                            }
-                                        />
-                                        {/* Le tri monte dans la bande au téléphone : c'était
+                                    <IconGestureSizeContext.Provider value={isCompact ? 48 : 40}>
+                                        <Reading
+                                            className={cn(
+                                                'flex items-center',
+                                                isCompact ? 'gap-2' : 'gap-3',
+                                            )}
+                                        >
+                                            <SearchField
+                                                dense={!isCompact}
+                                                value={searchQuery}
+                                                onChange={setSearchQuery}
+                                                placeholder="Type, modèle, marque"
+                                                className={
+                                                    isCompact ? 'flex-1' : 'w-[320px] max-w-full'
+                                                }
+                                            />
+                                            {/* Le tri monte dans la bande au téléphone : c'était
                                             le seul geste de la ligne de service (23/09). */}
-                                        {isCompact && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setSortIndex(
-                                                        (prev) => (prev + 1) % SORT_OPTIONS.length,
-                                                    )
-                                                }
-                                                aria-label={`Trier — ${SORT_OPTIONS[sortIndex].label}`}
-                                                title={SORT_OPTIONS[sortIndex].label}
-                                                className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
-                                            >
-                                                <Icon glyph={SortAscending} size={20} />
-                                            </button>
-                                        )}
-                                        <FilterButton
-                                            label="Filtrer le catalogue"
-                                            count={sheetFilterCount}
-                                            onClick={() => setIsFilterSheetOpen(true)}
-                                        />
-                                        {/* Le tri, au bout de la ligne d'outils (17.11) : il
+                                            {isCompact && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSortIndex(
+                                                            (prev) =>
+                                                                (prev + 1) % SORT_OPTIONS.length,
+                                                        )
+                                                    }
+                                                    aria-label={`Trier — ${SORT_OPTIONS[sortIndex].label}`}
+                                                    title={SORT_OPTIONS[sortIndex].label}
+                                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+                                                >
+                                                    <Icon glyph={SortAscending} size={20} />
+                                                </button>
+                                            )}
+                                            <FilterButton
+                                                label="Filtrer le catalogue"
+                                                count={sheetFilterCount}
+                                                onClick={() => setIsFilterSheetOpen(true)}
+                                            />
+                                            {/* Le tri, au bout de la ligne d'outils (17.11) : il
                                             vivait dans la ligne de service, retirée. */}
-                                        {!isCompact && (
-                                            <Button
-                                                variant="text"
-                                                onClick={() =>
-                                                    setSortIndex(
-                                                        (prev) => (prev + 1) % SORT_OPTIONS.length,
-                                                    )
-                                                }
-                                                className="text-on-surface ml-auto min-h-10 shrink-0 gap-1.5 px-2 text-[0.8125rem] leading-4 font-medium"
-                                                icon={
-                                                    <Icon
-                                                        glyph={SortAscending}
-                                                        size={18}
-                                                        className="text-on-surface-variant"
-                                                    />
-                                                }
-                                            >
-                                                {SORT_OPTIONS[sortIndex].label}
-                                            </Button>
-                                        )}
-                                    </Reading>
-                                </IconGestureSizeContext.Provider>
-                            </>
+                                            {!isCompact && (
+                                                <Button
+                                                    variant="text"
+                                                    onClick={() =>
+                                                        setSortIndex(
+                                                            (prev) =>
+                                                                (prev + 1) % SORT_OPTIONS.length,
+                                                        )
+                                                    }
+                                                    className="text-on-surface doigt:min-h-12 ml-auto min-h-10 shrink-0 gap-1.5 px-2 text-[0.8125rem] leading-4 font-medium"
+                                                    icon={
+                                                        <Icon
+                                                            glyph={SortAscending}
+                                                            size={18}
+                                                            className="text-on-surface-variant"
+                                                        />
+                                                    }
+                                                >
+                                                    {SORT_OPTIONS[sortIndex].label}
+                                                </Button>
+                                            )}
+                                        </Reading>
+                                    </IconGestureSizeContext.Provider>
+                                </>
+                            )
                         )}
                     </div>
                 )}
@@ -846,15 +919,12 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                        zéro : il dit la conséquence, puis met le seul geste utile à
                        portée. Au bureau il se centre dans la fenêtre plutôt que de se
                        coller sous la recherche. */
-                    <div
-                        className={cn(
-                            'flex flex-col',
-                            CADRE_BUREAU,
-                            'expanded:flex-1 expanded:justify-center',
-                        )}
+                    /* Dans sa carte depuis le 25/09, comme tout vide de liste. */
+                    <Reading
+                        className={cn('bg-surface flex flex-1 flex-col rounded-xl', CADRE_BUREAU)}
                     >
-                        <ScreenState
-                            icon={Books}
+                        <CardEmptyState
+                            glyph={Books}
                             title="Le catalogue est vide"
                             description={
                                 <>
@@ -870,14 +940,14 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                            commencer »*. Le bouton posé ici doublait le geste flottant, et
                            la note expliquait l'import à qui n'a pas encore de type. */
                         />
-                    </div>
+                    </Reading>
                 ) : (
                     <Reading
                         className={cn(
                             'flex flex-col',
                             filteredCategories.length > 0
                                 ? CORPS_BUREAU
-                                : cn(CADRE_BUREAU, 'expanded:flex-1 expanded:justify-center'),
+                                : cn('flex-1', CADRE_BUREAU),
                         )}
                     >
                         {filteredCategories.length > 0 ? (
@@ -1124,7 +1194,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 {/* `.note` — le signal « catalogue à nettoyer » vit ici, pas
                                     sur le tableau de bord, parce que c'est ici qu'il se répare. */}
                                 {unfiledTypes.length > 0 && (
-                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[0.75rem] leading-[1.0625rem]">
+                                    <p className="text-text-secondary text-ts-sub leading-ts-sub mt-[7px] px-0.5">
                                         <b className="text-on-surface font-medium">
                                             {unfiledTypes.length > 1
                                                 ? `${unfiledTypes.length} types n'ont pas de famille`
@@ -1137,7 +1207,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 )}
 
                                 {unusableTypes.length > 0 && (
-                                    <p className="text-text-secondary mt-[7px] px-0.5 text-[0.75rem] leading-[1.0625rem]">
+                                    <p className="text-text-secondary text-ts-sub leading-ts-sub mt-[7px] px-0.5">
                                         <b className="text-on-surface font-medium">
                                             {unusableTypes.length > 1
                                                 ? `${unusableTypes.length} types n'ont aucun modèle`
@@ -1154,18 +1224,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             /* Une liste vide **avec** un filtre posé est un filtre trop
                                serré, pas un référentiel vide : les deux ne se disent pas
                                de la même façon, et seul le premier propose d'élargir. */
-                            <ScreenState
-                                icon={Funnel}
-                                title="Aucun type ne correspond"
-                                description="Élargissez la recherche, ou revenez à la totalité du référentiel."
-                                actions={
-                                    isFiltered ? (
-                                        <Button variant="filled" onClick={clearAllFilters}>
-                                            Voir les {categories.length} types
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                            <div className="bg-surface flex flex-1 flex-col rounded-xl">
+                                <CardEmptyState
+                                    glyph={Funnel}
+                                    title="Aucun type ne correspond"
+                                    description="Élargissez la recherche, ou revenez à la totalité du référentiel."
+                                    action={
+                                        isFiltered ? (
+                                            <Button variant="outlined" onClick={clearAllFilters}>
+                                                Voir les {categories.length} types
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            </div>
                         )}
                     </Reading>
                 )}
@@ -1179,7 +1251,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 regarde pas si le type est employé, et supprimer d'un geste dix types
                 qui portent des actifs les laisserait sans catégorie. C'est un garde à
                 écrire avant l'acte, pas un bouton à poser. */}
-            {selection.isActive && (
+            {selection.isActive && isCompact && (
                 <BulkActionBar count={selection.count}>
                     <Button variant="filled" onClick={exporterSelection}>
                         Exporter {selection.count > 1 ? `les ${selection.count}` : ''}

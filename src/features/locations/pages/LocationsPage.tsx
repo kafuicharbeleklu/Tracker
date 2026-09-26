@@ -5,6 +5,7 @@ import {
     Hourglass,
     DoorOpen,
     FileCsv,
+    Funnel,
     GlobeHemisphereWest,
     MapPin,
     Plus,
@@ -20,7 +21,7 @@ import InputField from '../../../components/ui/InputField';
 import FactRow from '../../../components/ui/FactRow';
 import GlobePointille from '../components/GlobePointille';
 import { positionDuPays } from '../lib/paysCoordonnees';
-import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import SearchField from '../../../components/ui/SearchField';
 import SelectField from '../../../components/ui/SelectField';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -342,36 +343,44 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 onViewChange?.('import_locations');
                             },
                         },
-                    ].map((option) => (
-                        <Button
-                            key={option.key}
-                            variant="text"
-                            className="flex min-h-16 w-full items-center justify-start gap-3 rounded-none px-0 py-2 text-left font-normal"
-                            onClick={option.onSelect}
-                        >
-                            <span
-                                className={cn(
-                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
-                                    option.tint,
-                                )}
+                    ]
+                        /* Sans pays, le site et le local n'ont nulle part où aller : le pays
+                           passe en tête. */
+                        .sort((a, b) =>
+                            locationData.countries.length === 0
+                                ? Number(b.key === 'country') - Number(a.key === 'country')
+                                : 0,
+                        )
+                        .map((option) => (
+                            <Button
+                                key={option.key}
+                                variant="text"
+                                className="flex min-h-16 w-full items-center justify-start gap-3 rounded-none px-0 py-2 text-left font-normal"
+                                onClick={option.onSelect}
                             >
-                                <Icon glyph={option.glyph} size={20} />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                    {option.title}
+                                <span
+                                    className={cn(
+                                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
+                                        option.tint,
+                                    )}
+                                >
+                                    <Icon glyph={option.glyph} size={20} />
                                 </span>
-                                <span className="text-text-secondary text-ts-sub leading-ts-sub block truncate">
-                                    {option.sub}
+                                <span className="min-w-0 flex-1">
+                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                        {option.title}
+                                    </span>
+                                    <span className="text-text-secondary text-ts-sub leading-ts-sub block truncate">
+                                        {option.sub}
+                                    </span>
                                 </span>
-                            </span>
-                            <Icon
-                                glyph={CaretRight}
-                                size={20}
-                                className="text-text-tertiary shrink-0"
-                            />
-                        </Button>
-                    ))}
+                                <Icon
+                                    glyph={CaretRight}
+                                    size={20}
+                                    className="text-text-tertiary shrink-0"
+                                />
+                            </Button>
+                        ))}
                 </div>
             </BottomSheet>
             {/* **Le chemin choisi ouvre une feuille, pas une fenêtre.** 16.1 pose les
@@ -463,7 +472,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             variant="outlined"
                             icon={<Icon glyph={UploadSimple} size={20} />}
                             onClick={() => onViewChange?.('import_locations')}
-                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
+                            className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
                         >
                             Importer
                         </Button>
@@ -471,7 +480,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             variant="filled"
                             icon={<Icon glyph={Plus} size={20} />}
                             onClick={() => setIsAddSheetOpen(true)}
-                            className="h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
+                            className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium"
                         >
                             Ajouter un emplacement
                         </Button>
@@ -487,40 +496,29 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                        rangée et son compte se retrouvent aux deux bouts de l'écran. */
                     'large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto w-full',
                     'medium:px-page flex flex-1 flex-col px-4 pt-4 pb-6',
-                    isCompact && !isReferentialEmpty && 'pb-24',
+                    isCompact && 'pb-24',
                     CADRE_BUREAU,
                 )}
             >
                 {isReferentialEmpty ? (
-                    <div
-                        className={cn(
-                            'flex flex-col',
-                            CADRE_BUREAU,
-                            'expanded:flex-1 expanded:justify-center',
-                        )}
+                    /* **Le référentiel vide, dans sa carte et sans bouton** (25/09) : « Créer
+                       le premier pays » doublait le geste d'ajout de la page, qui reste
+                       flottant au téléphone et dans l'en-tête au bureau — sa feuille met le
+                       pays en tête tant qu'il n'y en a aucun. */
+                    <Reading
+                        className={cn('bg-surface flex flex-1 flex-col rounded-xl', CADRE_BUREAU)}
                     >
-                        <ScreenState
-                            icon={GlobeHemisphereWest}
+                        <CardEmptyState
+                            glyph={GlobeHemisphereWest}
                             title="Aucun emplacement"
-                            description="Sans pays ni site, aucun actif ne peut être localisé."
-                            actions={
-                                <Button
-                                    variant="filled"
-                                    icon={<Icon glyph={Plus} size={18} />}
-                                    onClick={() => openCreate('country')}
-                                >
-                                    Créer le premier pays
-                                </Button>
-                            }
+                            description="Sans pays ni site, aucun actif ne peut être localisé. Commencez par un pays."
                         />
-                    </div>
+                    </Reading>
                 ) : (
                     <Reading
                         className={cn(
                             'flex flex-col gap-4',
-                            visibleSites.length > 0
-                                ? CORPS_BUREAU
-                                : cn(CADRE_BUREAU, 'expanded:flex-1 expanded:justify-center'),
+                            visibleSites.length > 0 ? CORPS_BUREAU : cn('flex-1', CADRE_BUREAU),
                         )}
                     >
                         {visibleSites.length > 0 && avecGlobe && paysAffiche ? (
@@ -837,23 +835,34 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 </section>
                             ))
                         ) : (
-                            <ScreenState
-                                icon={MapPin}
-                                title="Aucun site ne correspond"
-                                description="Élargissez la recherche, ou revenez à la totalité du référentiel."
-                                actions={
-                                    isFiltered ? (
-                                        <Button variant="filled" onClick={() => setSearchQuery('')}>
-                                            Voir les {sites.length} sites
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                            <div className="bg-surface flex flex-1 flex-col rounded-xl">
+                                {isFiltered ? (
+                                    <CardEmptyState
+                                        glyph={Funnel}
+                                        title="Aucun site ne correspond"
+                                        description="Élargissez la recherche, ou revenez à la totalité du référentiel."
+                                        action={
+                                            <Button
+                                                variant="outlined"
+                                                onClick={() => setSearchQuery('')}
+                                            >
+                                                Voir les {sites.length} sites
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <CardEmptyState
+                                        glyph={MapPin}
+                                        title="Aucun site"
+                                        description="Les pays sont créés : un site y porte une adresse, et ses locaux."
+                                    />
+                                )}
+                            </div>
                         )}
                     </Reading>
                 )}
             </div>
-            {isCompact && !isReferentialEmpty && (
+            {isCompact && (
                 <FabContainer
                     description="Ajouter un emplacement"
                     /* `.fab` : 16 à droite, 80 en bas — la mesure de la planche, posée

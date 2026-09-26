@@ -46,6 +46,9 @@ export interface ListViewState {
 export const useListView = (listId: string): ListViewState => {
     const large = useMediaQuery(MEDIA.twoColumn);
     const expanded = useMediaQuery(MEDIA.expandedUp);
+    /* Le tableau est la forme par défaut **à la souris** seulement (25/09) : au doigt, sur une
+       tablette en paysage, la liste s'ouvre en cartes ; le tableau reste au choix. */
+    const survol = useMediaQuery(MEDIA.hoverCapable);
     const [choix, setChoix] = useState<ListView | null>(() => lire(listId));
 
     /* Changer de liste change de mémoire : chaque liste a la sienne. */
@@ -65,7 +68,7 @@ export const useListView = (listId: string): ListViewState => {
         [listId],
     );
 
-    const defaut: ListView = large ? 'tableau' : 'cartes';
+    const defaut: ListView = large && survol ? 'tableau' : 'cartes';
     const view: ListView = !expanded ? 'cartes' : (choix ?? defaut);
 
     return { view, setView, canChoose: expanded };

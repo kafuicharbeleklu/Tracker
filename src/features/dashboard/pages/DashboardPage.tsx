@@ -20,6 +20,7 @@ import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useHistory } from '../../../hooks/useHistory';
 import { usePendingTasks, daysSince, type PendingTask } from '../../../hooks/usePendingTasks';
+import { NATURE_MOT } from '../../tasks/lib/file';
 import { useCurrentCampaign, type CurrentCampaign } from '../../../hooks/useCurrentCampaign';
 import { useAccountMenu } from '../../../hooks/useAccountMenu';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -37,6 +38,9 @@ import { rememberAuditScope } from '../../../lib/auditScope';
 import { ACTIVE_APPROVAL_STATUSES, getHistoryEventSentence } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
 import heroImage from '../../../assets/dashboard-hero.webp';
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
+import { useEntree } from '../../../hooks/useEntree';
+import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 
 /**
  * Tableau de bord — **porté sur la planche 03.1, passe sobre du 02/09**.
@@ -245,18 +249,33 @@ const formatAge = (days: number | null): string | null => {
  * sur le jeton, parce qu'aucune valeur brute ne vit hors du fichier de jetons — et le
  * garde-fou `ds:check` lit aussi les commentaires, donc elle ne s'y cite pas non plus.
  */
-const TASK_VIGNETTE: Record<PendingTask['kind'], React.CSSProperties> = {
-    validation: {
-        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-bleu) 28%, transparent)',
-        color: 'color-mix(in srgb, var(--tk-color-live-bleu) 30%, white)',
-    },
-    receipt: {
-        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-vert) 28%, transparent)',
-        color: 'color-mix(in srgb, var(--tk-color-live-vert) 26%, white)',
-    },
-    return: {
-        backgroundColor: 'color-mix(in srgb, var(--tk-color-live-orange) 30%, transparent)',
-        color: 'color-mix(in srgb, var(--tk-color-live-orange) 22%, white)',
+const BLEU: React.CSSProperties = {
+    backgroundColor: 'color-mix(in srgb, var(--tk-color-live-bleu) 28%, transparent)',
+    color: 'color-mix(in srgb, var(--tk-color-live-bleu) 30%, white)',
+};
+const VERT: React.CSSProperties = {
+    backgroundColor: 'color-mix(in srgb, var(--tk-color-live-vert) 28%, transparent)',
+    color: 'color-mix(in srgb, var(--tk-color-live-vert) 26%, white)',
+};
+const ORANGE: React.CSSProperties = {
+    backgroundColor: 'color-mix(in srgb, var(--tk-color-live-orange) 30%, transparent)',
+    color: 'color-mix(in srgb, var(--tk-color-live-orange) 22%, white)',
+};
+/* La remise prend l'ambre de la file (26/09) : l'accueil lit désormais la file entière, et
+   une remise n'est ni une validation ni une réception. */
+const AMBRE: React.CSSProperties = {
+    backgroundColor: 'color-mix(in srgb, var(--tk-color-live-ambre) 28%, transparent)',
+    color: 'color-mix(in srgb, var(--tk-color-live-ambre) 30%, white)',
+};
+const TASK_VIGNETTE: Record<PendingTask['nature'], React.CSSProperties> = {
+    validation: BLEU,
+    reception: VERT,
+    retour: ORANGE,
+    reparation: ORANGE,
+    remise: AMBRE,
+    collecte: {
+        backgroundColor: 'color-mix(in srgb, white 12%, transparent)',
+        color: 'var(--tk-color-on-dark-2)',
     },
 };
 
@@ -386,8 +405,10 @@ const DashboardMoreAction: React.FC<{
                 /* `.more` mesure **48**, sauf dans les cartes de la mosaïque au bureau, où
                    03.1 la resserre à 40 : le geste y est au curseur. Dans le héro sombre, au
                    téléphone comme au bureau, elle garde ses 48. */
-                'text-ts-body min-h-12 w-full justify-start gap-2.5 border-t px-0 font-normal hover:bg-transparent',
-                !isInverse && 'large:min-h-10',
+                /* L'interligne suit la taille : sans lui, `cn()` retire celui du bouton et le
+                   lien héritait de 1,5 (14/21 au bureau, relevé du 26/09). */
+                'text-ts-body leading-ts-body min-h-12 w-full justify-start gap-2.5 border-t px-0 font-normal hover:bg-transparent',
+                !isInverse && 'large:min-h-10 doigt:min-h-12',
                 isInverse
                     ? 'text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary border-white/[0.14]'
                     : /* Au pied de la carte : `mt-auto` dans la grille du bureau (la case
@@ -399,7 +420,7 @@ const DashboardMoreAction: React.FC<{
             <span className="shrink-0">{label}</span>
             <span
                 className={cn(
-                    'ml-auto min-w-0 flex-1 truncate text-right text-[0.75rem] leading-[1.125rem] font-normal',
+                    'ml-auto min-w-0 flex-1 truncate text-right text-[0.75rem] leading-4 font-normal',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant',
                 )}
             >
@@ -466,7 +487,11 @@ const Gauge: React.FC<{
                 className="bg-surface-container relative mt-4 h-2 rounded-xs"
             >
                 <span
-                    className={cn('block h-full rounded-xs', fill)}
+                    className={cn(
+                        'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                        'block h-full rounded-xs',
+                        fill,
+                    )}
                     style={{ width: `${clamped}%` }}
                 />
                 {marker !== undefined && (
@@ -486,6 +511,8 @@ const Gauge: React.FC<{
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate }) => {
+    /* L'accueil s'assemble à son arrivée : ses cartes entrent en cascade (26/09). */
+    const entree = useEntree();
     const { equipment: allEquipment, users, approvals } = useData();
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
@@ -930,8 +957,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     /* Régime `saturee` — `.bigc` 44 / 48 / -.03em, puis `.tri` : les
                        natures d'action, chacune un renvoi vers la file. */
                     <>
-                        <div className="font-brand mt-2 text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
-                            {todo.length}
+                        <div className="font-brand mt-2 text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
+                            <ChiffreAnime valeur={todo.length} />
                         </div>
                         <div className="mt-1 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                             demandes en attente
@@ -970,12 +997,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             /* La nature, en un mot : « validation », « réception »,
                                « retour » — la sous-ligne d'une file dit la personne
                                et la nature, rien d'autre (R15). */
-                            const nature =
-                                entry.kind === 'receipt'
-                                    ? 'réception'
-                                    : entry.kind === 'return'
-                                      ? 'retour'
-                                      : 'validation';
+                            const nature = NATURE_MOT[entry.nature].toLowerCase();
                             /*
                               **Une rangée ne vous nomme pas à vous.** La colonne
                               du porteur l'écrit sans détour : sa réception se lit
@@ -1016,12 +1038,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         dit la nature. */}
                                     <span
                                         className="rounded-vignette font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold"
-                                        style={TASK_VIGNETTE[entry.kind]}
+                                        style={TASK_VIGNETTE[entry.nature]}
                                     >
                                         {initials ? initials : <Icon glyph={Package} size={20} />}
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                        <span className="text-ts-head leading-ts-head block truncate tracking-[-0.01em]">
+                                        <span
+                                            title={infobulle(entry.what)}
+                                            className={cn(
+                                                'text-ts-head leading-ts-head tracking-[-0.01em]',
+                                                NOM_SUR_UNE_LIGNE,
+                                            )}
+                                        >
                                             {entry.what}
                                         </span>
                                         <span className="text-ts-sub leading-ts-sub mt-0.5 block text-[var(--tk-color-on-dark-2)]">
@@ -1042,7 +1070,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         {rest > 0 && (
                             <DashboardMoreAction
                                 label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
-                                destination="Tâches, par ancienneté"
+                                destination="Tâches, ce qui presse d’abord"
                                 onClick={() => openTasks()}
                                 tone="inverse"
                             />
@@ -1087,7 +1115,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             return width > 0 ? (
                                 <span
                                     key={state.key}
-                                    className="block h-full"
+                                    className="mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]"
                                     style={{
                                         width: `${width}%`,
                                         backgroundColor: state.color,
@@ -1195,7 +1223,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                                 >
                                     <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
-                                    <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
+                                    <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate">
                                         {entry.label}
                                     </span>
                                     <span className="text-on-surface-variant shrink-0 text-[0.75rem] leading-4 tabular-nums">
@@ -1205,7 +1233,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ))}
                         </div>
                         {tension.calm > 0 && (
-                            <p className="text-on-surface-variant mt-3 text-[0.75rem] leading-4">
+                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-3">
                                 {tension.calm === 1
                                     ? 'L’autre type a au moins une unité.'
                                     : `Les ${tension.calm} autres types ont au moins une unité.`}
@@ -1378,12 +1406,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             key={item.type}
                             className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                         >
-                            <span className="text-on-surface text-ts-body min-w-0 flex-1 truncate">
+                            <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate">
                                 {item.type}
                             </span>
                             <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
                                 <span
-                                    className="bg-on-surface block h-full rounded-xs"
+                                    className="bg-on-surface mvt-jauge duration-medium2 ease-emphasized block h-full rounded-xs transition-[width]"
                                     style={{ width: `${item.percent}%` }}
                                 />
                             </span>
@@ -1461,11 +1489,25 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         key={event.id}
                                         className="border-outline-variant flex min-h-14 items-center gap-3 border-t py-3 first-of-type:border-t-0"
                                     >
-                                        <span className="bg-surface-container text-on-surface-variant font-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[0.8125rem] font-semibold">
+                                        {/* La vignette de 40 d'une rangée : initiales au geste
+                                            (15, 14 au bureau), comme `ListRow` — elles tenaient
+                                            13 ici, un cran sous toutes les autres (26/09). */}
+                                        <span className="bg-surface-container text-on-surface-variant font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-semibold">
                                             {initials || <Icon glyph={glyph} size={20} />}
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-on-surface text-ts-body leading-ts-body">
+                                            {/* Une ligne, coupée (25/09) : un événement qui nomme un
+                                                objet au nom long s'étalait sur quatre lignes. */}
+                                            <p
+                                                title={getHistoryEventSentence({
+                                                    event,
+                                                    perspectiveActorId: currentUser?.id,
+                                                })}
+                                                className={cn(
+                                                    'text-on-surface text-ts-body leading-ts-body',
+                                                    NOM_SUR_UNE_LIGNE,
+                                                )}
+                                            >
                                                 {getHistoryEventSentence({
                                                     event,
                                                     perspectiveActorId: currentUser?.id,
@@ -1524,7 +1566,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
      * chiffre qui se lit.
      */
     const bande = (
-        <section className="rounded-card bg-surface flex px-5 py-3.5">
+        <section className="rounded-card bg-surface flex px-4 py-3.5">
             {[
                 { cle: 'total', valeur: counts.total, mot: 'actifs', statut: '' },
                 {
@@ -1552,7 +1594,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             ].map((entree, index) => {
                 const chiffre = (
                     <>
-                        <span className="font-brand text-on-surface text-ts-sheet flex items-center gap-2 leading-[1.625rem] font-semibold tabular-nums">
+                        <span className="font-brand text-on-surface text-ts-sheet leading-ts-sheet flex items-center gap-2 font-semibold tabular-nums">
                             {entree.pastille && (
                                 <span
                                     aria-hidden="true"
@@ -1560,7 +1602,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     style={{ backgroundColor: entree.pastille }}
                                 />
                             )}
-                            {entree.valeur}
+                            <ChiffreAnime valeur={entree.valeur} />
                         </span>
                         {/* 400, pas 500 : `Button` pose sa graisse à tout ce qu'il
                             contient, et `.bande .k` n'en déclare aucune. Et une boîte de
@@ -1622,7 +1664,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 <>
                     <Button
                         variant="text"
-                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[0.875rem] font-medium !shadow-none"
+                        className="border-outline-variant bg-surface text-on-surface hover:bg-surface-container doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] border px-3 text-[0.875rem] font-medium !shadow-none"
                         icon={<Icon glyph={ArrowUUpLeft} size={20} />}
                         onClick={() => onViewChange('return_wizard')}
                     >
@@ -1630,7 +1672,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     </Button>
                     <Button
                         variant="filled"
-                        className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                        className="bg-primary hover:bg-primary-hover doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                         icon={<Icon glyph={ArrowCircleRight} size={20} />}
                         onClick={() => onViewChange('assignment_wizard')}
                     >
@@ -1641,7 +1683,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             {!isManager && (
                 <Button
                     variant="filled"
-                    className="bg-primary hover:bg-primary-hover h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
+                    className="bg-primary hover:bg-primary-hover doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 !rounded-[4px] px-3 text-[0.875rem] font-medium text-[var(--tk-color-brand-text)] !shadow-none"
                     icon={<Icon glyph={Plus} size={20} />}
                     onClick={() => onViewChange('new_request')}
                 >
@@ -1695,7 +1737,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         <div className="bg-background flex min-w-0 flex-1 flex-col">
             {/* `.page` — gouttière de 16, intérieur 16 / 16 / 24 ; 24 au-delà du rail. */}
             <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
-                <Reading className="flex flex-col gap-4">
+                <Reading className={cn('flex flex-col gap-4', entree && 'mvt-cascade-cartes')}>
                     {/* L'en-tête change de forme, jamais de contenu : le prénom, la
                         charge, les gestes. Au téléphone ils sont sous le titre et pleine
                         largeur ; au bureau ils tiennent sur sa ligne. */}
@@ -1719,7 +1761,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                           la gouttière entre la file et les événements soit **la même
                           ligne** que celle des cartes du dessous.
                         */
-                        <div className="grid auto-rows-[20rem] grid-cols-12 grid-rows-[28rem] gap-4">
+                        <div
+                            className={cn(
+                                'grid auto-rows-[20rem] grid-cols-12 grid-rows-[28rem] gap-4',
+                                entree && 'mvt-cascade-cartes',
+                            )}
+                        >
                             <div className={cn(CASE_GRILLE, 'col-span-8')}>{aTraiter}</div>
                             <div className={cn(CASE_GRILLE, 'col-span-4')}>{evenements}</div>
                             {mosaique.map((carte) => (

@@ -177,6 +177,19 @@ const ScanView: React.FC<ScanViewProps> = ({
         vibrate(latest.kind === 'exception' ? [40, 60, 40] : 30);
     }, [latest]);
 
+    /* Échap (P3, 25/09) : il referme la saisie manuelle si elle est ouverte, sinon le viseur —
+       sauf si une feuille est posée par-dessus, qui le traite elle-même. */
+    useEffect(() => {
+        const surTouche = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || document.querySelector('[aria-modal="true"]')) return;
+            event.preventDefault();
+            if (manualOpen) setManualOpen(false);
+            else onClose();
+        };
+        document.addEventListener('keydown', surTouche);
+        return () => document.removeEventListener('keydown', surTouche);
+    }, [manualOpen, onClose]);
+
     const exceptions = hits.filter((h) => h.kind === 'exception').length;
     const defaultTip =
         mode === 'batch'

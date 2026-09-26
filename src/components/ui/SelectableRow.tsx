@@ -18,13 +18,14 @@ export const SelectionBox: React.FC<{ selected: boolean }> = ({ selected }) => (
     <span className="flex h-10 w-10 shrink-0 items-center justify-center">
         <span
             className={cn(
-                'flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px]',
+                'duration-short3 flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] transition-[background-color,box-shadow]',
                 selected
                     ? 'bg-inverse-surface text-surface'
                     : 'shadow-[inset_0_0_0_1.5px_var(--tk-color-border-strong)]',
             )}
         >
-            {selected && <Icon glyph={Check} size={18} />}
+            {/* La coche arrive avec un léger rebond (26/09). */}
+            {selected && <Icon glyph={Check} size={18} className="mvt-pop" />}
         </span>
     </span>
 );
@@ -50,6 +51,8 @@ interface SelectableRowProps {
     /** Entrer en sélection sur cette rangée. */
     onLongPress: () => void;
     className?: string;
+    /** L'ancre de la rangée — une file qui avance au clavier la fait venir à l'écran. */
+    id?: string;
     children: React.ReactNode;
 }
 
@@ -60,6 +63,7 @@ const SelectableRow: React.FC<SelectableRowProps> = ({
     onToggle,
     onLongPress,
     className,
+    id,
     children,
 }) => {
     const appuiLong = useLongPress(selectionActive ? undefined : onLongPress);
@@ -68,6 +72,8 @@ const SelectableRow: React.FC<SelectableRowProps> = ({
 
     return (
         <div
+            id={id}
+            data-rangee
             role={selectionActive ? 'checkbox' : 'button'}
             aria-checked={selectionActive ? selected : undefined}
             tabIndex={0}

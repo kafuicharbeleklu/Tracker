@@ -31,7 +31,7 @@ interface FullScreenFormLayoutProps {
      * blanche ne se voit pas.
      */
     className?: string;
-    /** Passe à la coque : `double` range les sections en deux colonnes dès 1 200. */
+    /** Passe à la coque : `double` range les sections en deux colonnes dès 1 000. */
     mesure?: 'flux' | 'double';
 }
 
@@ -95,7 +95,7 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
         ) : submitButtonLocation === 'footer-full' ? (
             /* Pleine largeur dans la mesure de 560 ; en mesure double, le bouton
                reprend sa taille au bout du pied — une barre de 1 136 n'est pas un bouton. */
-            <SaveButton className="large:w-auto large:min-w-60 w-full" />
+            <SaveButton className="deux:w-auto deux:min-w-60 w-full" />
         ) : null;
 
     /*

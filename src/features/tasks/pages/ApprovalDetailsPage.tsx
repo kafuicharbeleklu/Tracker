@@ -23,10 +23,14 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { formatDate } from '../../../lib/financial';
 import type { Approval, ApprovalStatus, Equipment } from '../../../types';
+import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
+import { cn } from '../../../lib/utils';
+import { parcoursDeLaDemande } from '../lib/parcours';
 
 /**
  * **Arbitrer une demande** — planche **06.5**, passe sobre du 03/09.
@@ -114,6 +118,8 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
 
     /** L'acte engagé depuis le héro : il s'atteste dans la feuille de 17.4. */
     const [acte, setActe] = useState<'valider' | 'refuser' | 'annuler' | null>(null);
+    /* La feuille garde son acte le temps de redescendre (26/09). */
+    const acteAffiche = useDerniereValeur(acte);
     const [motif, setMotif] = useState('');
     const [refus, setRefus] = useState<string | null>(null);
 
@@ -169,60 +175,16 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
     const badge = ETAT_BADGE[demande.status];
     const attenteDepuis = joursDepuis(demande.updatedAt || demande.createdAt);
 
-    /**
-     * Le fil des trois étapes. La première est **acquise sans attente** quand le
-     * demandeur est lui-même le manager du bénéficiaire : son dépôt vaut validation.
-     */
-    const etapes: TrailStep[] = (() => {
-        const validationAcquise = demande.status !== 'WAITING_MANAGER_APPROVAL';
-        const refusee = demande.status === 'Rejected';
-        const annulee = demande.status === 'Cancelled';
-        const remise = ['PENDING_DELIVERY', 'Completed'].includes(demande.status);
-        const confirmee = demande.status === 'Completed';
-        const arretee = refusee || annulee;
-
-        const premiere: TrailStep = arretee
-            ? {
-                  state: 'fail',
-                  title: refusee ? 'Refusée' : 'Retirée par le demandeur',
-                  detail: demande.decisionNote
-                      ? `${demande.decisionNote.actorName} · ${formatDate(demande.decisionNote.at)}`
-                      : undefined,
-              }
-            : validationAcquise
-              ? {
-                    state: 'done',
-                    title: demande.isDelegated ? 'Validation acquise' : 'Validée',
-                    detail: demande.isDelegated
-                        ? 'le demandeur est le manager · dépôt signé'
-                        : `déposée le ${formatDate(demande.createdAt)}`,
-                }
-              : {
-                    state: 'late',
-                    title: estLeManager ? 'Vous validez' : 'Le manager valide',
-                    detail: `déposée le ${formatDate(demande.createdAt)}`,
-                };
-
-        return [
-            premiere,
-            {
-                state: arretee ? 'wait' : remise ? 'done' : 'late',
-                glyph: Handshake,
-                title: 'L’informatique remet',
-                detail: arretee
-                    ? 'n’a pas eu lieu'
-                    : remise
-                      ? demande.assignedEquipmentName
-                      : `choisit ${getCategoryLabel(demande.equipmentCategory).toLowerCase()}`,
-            },
-            {
-                state: arretee ? 'wait' : confirmee ? 'done' : 'wait',
-                glyph: UserIcon,
-                title: `${estLeBeneficiaire ? 'Vous confirmez' : `${demande.beneficiaryName.split(' ')[0]} confirme`} la réception`,
-                detail: arretee ? 'n’a pas eu lieu' : undefined,
-            },
-        ];
-    })();
+    /* Le fil des trois étapes — partagé avec le panneau de décision de la file (26/09). */
+    const manager = beneficiaire?.managerId
+        ? users.find((person) => person.id === beneficiaire.managerId)
+        : undefined;
+    const etapes: TrailStep[] = parcoursDeLaDemande({
+        demande,
+        estLeManager,
+        estLeBeneficiaire,
+        nomDuManager: manager?.name,
+    });
 
     const etapeCourante = etapes.findIndex((etape) => etape.state === 'late');
 
@@ -332,7 +294,13 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                 <Icon glyph={getCategoryGlyph(item.type)} size={20} />
             </span>
             <span className="min-w-0 flex-1">
-                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                <span
+                    title={item.name}
+                    className={cn(
+                        'text-on-surface text-ts-body leading-ts-body',
+                        NOM_SUR_UNE_LIGNE,
+                    )}
+                >
                     {item.name}
                 </span>
                 <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
@@ -482,24 +450,24 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
             </DetailTemplate>
 
             {/* Chaque décision passe par la feuille d'acte, et garde son motif (17.4). */}
-            {acte && (
+            {acteAffiche && (
                 <ActSheet
-                    open
+                    open={acte !== null}
                     onClose={() => {
                         setActe(null);
                         setRefus(null);
                     }}
                     title={
-                        acte === 'valider'
+                        acteAffiche === 'valider'
                             ? 'Valider la demande'
-                            : acte === 'refuser'
+                            : acteAffiche === 'refuser'
                               ? 'Refuser la demande'
                               : 'Annuler la demande'
                     }
                     subtitle={
-                        acte === 'valider'
+                        acteAffiche === 'valider'
                             ? 'Elle part à l’informatique, qui remettra.'
-                            : acte === 'refuser'
+                            : acteAffiche === 'refuser'
                               ? `${demande.beneficiaryName.split(' ')[0]} lira votre motif. Il pourra redéposer.`
                               : 'Rien n’est perdu : vous pourrez redemander.'
                     }
@@ -511,11 +479,11 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                         subtitle: `demandé par ${demande.requesterName} · ${enJours(joursDepuis(demande.createdAt))}`,
                     }}
                     question={
-                        acte === 'valider'
+                        acteAffiche === 'valider'
                             ? undefined
                             : {
                                   label:
-                                      acte === 'refuser'
+                                      acteAffiche === 'refuser'
                                           ? 'Motif — lu par le demandeur'
                                           : 'Motif — facultatif',
                                   children: (
@@ -525,7 +493,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                                           rows={3}
                                           aria-label="Motif"
                                           placeholder={
-                                              acte === 'refuser'
+                                              acteAffiche === 'refuser'
                                                   ? 'Ce que le demandeur doit savoir.'
                                                   : 'Plus besoin, j’ai trouvé autrement…'
                                           }
@@ -539,7 +507,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                         id: currentUser?.id,
                     }}
                     consequence={
-                        acte === 'valider'
+                        acteAffiche === 'valider'
                             ? {
                                   tone: 'bleu',
                                   glyph: Handshake,
@@ -576,24 +544,24 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                               }
                     }
                     confirmLabel={
-                        acte === 'valider'
+                        acteAffiche === 'valider'
                             ? 'Valider'
-                            : acte === 'refuser'
+                            : acteAffiche === 'refuser'
                               ? 'Refuser'
                               : 'Annuler la demande'
                     }
                     /* Rien d'irréversible : le sombre, pas le rouge (17.2, C3). */
-                    confirmVariant={acte === 'valider' ? 'filled' : 'tonal'}
-                    cancelLabel={acte === 'annuler' ? 'Garder la demande' : 'Annuler'}
+                    confirmVariant={acteAffiche === 'valider' ? 'filled' : 'tonal'}
+                    cancelLabel={acteAffiche === 'annuler' ? 'Garder la demande' : 'Annuler'}
                     onConfirm={(method) =>
                         trancher(
-                            acte === 'valider'
+                            acteAffiche === 'valider'
                                 ? 'WAITING_IT_PROCESSING'
-                                : acte === 'refuser'
+                                : acteAffiche === 'refuser'
                                   ? 'Rejected'
                                   : 'Cancelled',
                             method,
-                            acte === 'valider' ? undefined : motif.trim() || undefined,
+                            acteAffiche === 'valider' ? undefined : motif.trim() || undefined,
                         )
                     }
                     error={refus}

@@ -9,7 +9,9 @@ import Attestation, { type AttestationMethod } from './Attestation';
 import { signatureService } from '../../services/signatureService';
 import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { usePresence } from '../../hooks/usePresence';
 import { MEDIA } from '../../constants/breakpoints';
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
 
 /**
  * **La feuille d'acte** — composant partagé **17.4**, neuf actes.
@@ -176,6 +178,8 @@ const ActSheet: React.FC<ActSheetProps> = ({
         mesure de 560, sans poignée, avec l'ombre du dialogue (00.5). Elle s'étirait
         sur les 1 280 px du bureau (13/09). */
     const compact = useMediaQuery(MEDIA.compact);
+    /* La feuille reste le temps de redescendre (26/09) : elle disparaissait d'un coup. */
+    const { monte, sortant, finDeSortie } = usePresence(open);
     const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
         method: signer.pin ? 'pin' : 'signature',
         done: false,
@@ -217,8 +221,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
      * « Il confirme » était actif avant que quiconque ait signé.
      */
     useEffect(() => {
+        /* À l'ouverture, pas à la fermeture : la feuille qui redescend garde ce qu'elle
+           montrait (26/09) — remise au récapitulatif, elle sautait d'étape en partant. */
+        if (!open) return;
         setAttestation({ method: signer.pin ? 'pin' : 'signature', done: false });
         setEtape('recap');
+        setRecherche('');
     }, [open, signer.name, signer.pin]);
 
     /* Revenir au récapitulatif rend l'attestation : on n'atteste pas ce qu'on a quitté. */
@@ -253,7 +261,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
         );
     }, [picker, recherche]);
 
-    if (!open) return null;
+    if (!monte) return null;
 
     const vignetteBox = (party: { vignette?: React.ReactNode; vignetteTone?: ConsequenceTone }) => (
         <span
@@ -278,8 +286,10 @@ const ActSheet: React.FC<ActSheetProps> = ({
             {party.vignette && vignetteBox(party)}
             <span className="min-w-0 flex-1">
                 <span
+                    title={infobulle(party.title)}
                     className={cn(
-                        'text-ts-body leading-ts-body block truncate',
+                        'text-ts-body leading-ts-body',
+                        NOM_SUR_UNE_LIGNE,
                         filled && 'font-medium',
                     )}
                 >
@@ -299,10 +309,14 @@ const ActSheet: React.FC<ActSheetProps> = ({
             className={cn(
                 'fixed inset-0 z-[100] flex justify-center',
                 compact ? 'items-end' : 'items-center p-4',
+                sortant && 'pointer-events-none',
             )}
         >
             <div
-                className="bg-scrim/[0.42] absolute inset-0"
+                className={cn(
+                    'bg-scrim/[0.42] absolute inset-0',
+                    sortant ? 'mvt-voile-sortie' : 'mvt-voile-entree',
+                )}
                 onClick={onClose}
                 aria-hidden="true"
             />
@@ -311,19 +325,41 @@ const ActSheet: React.FC<ActSheetProps> = ({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
+                onAnimationEnd={finDeSortie}
                 className={cn(
-                    'bg-surface animate-in relative flex w-full flex-col pb-3 duration-300',
+                    'bg-surface relative flex w-full flex-col pb-3',
                     /* **Une feuille laisse voir la page d'où elle vient.** Elle montait à 97 % :
                        à cette hauteur, ce n'était plus une feuille mais une page sans ses
                        atouts. Le choix d'un bloc — une liste qu'on cherche — prend **75 %,
                        fixes** quand la liste est longue, pour ne pas sauter de hauteur à
                        chaque lettre tapée ; plafonnés à 75 % quand elle est courte (les
                        quatre objets que la planche dessine). L'acte lui-même suit son
-                       contenu, jusqu'à 90 % — le plafond de `BottomSheet`. */
-                    picker ? (picker.items.length > 6 ? 'h-[75%]' : 'max-h-[75%]') : 'max-h-[90%]',
+                       contenu, jusqu'à 90 %.
+                       **Au-delà du téléphone, 640 au plus** (25/09) — la feuille de formulaire
+                       d'Apple : sur un iPad debout, 90 % faisaient 920 px, une page qui ne
+                       laissait plus voir celle d'où elle venait. */
                     compact
-                        ? 'rounded-t-card shadow-sheet slide-in-from-bottom-4'
-                        : 'rounded-card shadow-dialog fade-in max-w-[560px]',
+                        ? picker
+                            ? picker.items.length > 6
+                                ? 'h-[75%]'
+                                : 'max-h-[75%]'
+                            : 'max-h-[90%]'
+                        : picker
+                          ? picker.items.length > 6
+                              ? 'h-[min(640px,75%)]'
+                              : 'max-h-[min(640px,75%)]'
+                          : 'max-h-[min(640px,90%)]',
+                    compact
+                        ? 'rounded-t-card shadow-sheet'
+                        : 'rounded-card shadow-dialog max-w-[560px]',
+                    /* Du bord bas au téléphone, posée au centre au-delà (26/09). */
+                    compact
+                        ? sortant
+                            ? 'mvt-feuille-sortie'
+                            : 'mvt-feuille-entree'
+                        : sortant
+                          ? 'mvt-dialogue-sortie'
+                          : 'mvt-dialogue-entree',
                 )}
             >
                 {compact && (
@@ -394,7 +430,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             </span>
                         </p>
 
-                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto px-5">
+                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
                             {resultats.length === 0 ? (
                                 <p className="text-on-surface-variant text-ts-sub leading-ts-sub py-2">
                                     {picker.emptyLabel}
@@ -423,7 +459,13 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                                 vignetteTone: item.highlighted ? 'bleu' : undefined,
                                             })}
                                         <span className="min-w-0 flex-1">
-                                            <span className="text-ts-body leading-ts-body block truncate">
+                                            <span
+                                                title={infobulle(item.title)}
+                                                className={cn(
+                                                    'text-ts-body leading-ts-body',
+                                                    NOM_SUR_UNE_LIGNE,
+                                                )}
+                                            >
                                                 {item.title}
                                             </span>
                                             {item.subtitle && (
@@ -439,7 +481,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     </div>
                 ) : etape === 'recap' ? (
                     <>
-                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
                             {preamble}
 
                             {/* 1 · l'objet */}
@@ -503,7 +545,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     </>
                 ) : (
                     <>
-                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
                             {/* 4 · l'attestation — le compte décide de la méthode. Le bloc
                                 entier repart à chaque signataire : le pavé du précédent ne
                                 doit pas rester à l'écran. */}

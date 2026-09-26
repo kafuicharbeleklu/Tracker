@@ -25,6 +25,14 @@ interface BottomSheetProps {
     /** Classes du titre — permet à un écran d'imposer sa graisse (l'ADN mobile n'en
         admet que deux par écran, DESIGN_BRIEF.md §8.5, et `.section-title` porte 700). */
     titleClassName?: string;
+    /**
+     * **L'emploi de la feuille** (25/09, format tablette). `acte` (par défaut) : en bas au
+     * téléphone, centrée au-delà, **bornée à 640 de haut** — la feuille de formulaire d'Apple.
+     * `filtre` : en bas au téléphone ; **en bas encore de 600 à 839**, 640 de large au plus
+     * (M3) ; **en panneau à droite dès 840**, sur un voile léger, pour que la liste filtrée
+     * reste visible et se mette à jour à chaque pastille.
+     */
+    emploi?: 'acte' | 'filtre';
     /** Custom class */
     className?: string;
 }
@@ -57,6 +65,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     title,
     subtitle,
     titleClassName,
+    emploi = 'acte',
     className,
 }) => {
     const sheetRef = useRef<HTMLDivElement>(null);
@@ -69,12 +78,26 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     const [closing, setClosing] = useState(false);
     const titleId = useId();
     /** Sous 600 px, la feuille monte du bas ; au-delà, elle se centre (00.5). */
-    const compact = useMediaQuery(MEDIA.compact);
+    const telephone = useMediaQuery(MEDIA.compact);
+    const deuxPanneaux = useMediaQuery(MEDIA.expandedUp);
+    /* La forme : `bas` (monte du bas), `centre` (dialogue), `cote` (panneau à droite). Un
+       filtre reste en bas jusqu'à 839 et passe sur le côté dès 840 ; un acte se centre dès
+       600. */
+    const forme: 'bas' | 'centre' | 'cote' = telephone
+        ? 'bas'
+        : emploi === 'filtre'
+          ? deuxPanneaux
+              ? 'cote'
+              : 'bas'
+          : 'centre';
+    /** La feuille qui monte du bas — pleine largeur au téléphone, 640 au plus au-delà. */
+    const compact = forme === 'bas';
 
     useEffect(() => {
         if (open) {
             setVisible(true);
             setClosing(false);
+            setDragOffset(0);
         } else if (visible) {
             setClosing(true);
         }
@@ -89,7 +112,9 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         );
     }, []);
 
-    const handleAnimationEnd = () => {
+    const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+        /* La sortie de la feuille elle-même, pas celle d'un enfant (un indicateur, un menu). */
+        if (event.target !== event.currentTarget) return;
         if (closing) {
             setVisible(false);
             setClosing(false);
@@ -122,10 +147,16 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     const handlePointerUp = () => {
         if (!isDragging) return;
         const shouldClose = dragOffset > 120;
-        resetDrag();
         if (shouldClose) {
+            /* La feuille repart de là où le doigt l'a laissée : l'offset reste posé, la sortie
+               (`mvt-feuille-sortie`, sans image de départ) part de lui. Le remettre à zéro la
+               faisait remonter d'un coup avant de redescendre. */
+            dragStartYRef.current = null;
+            setIsDragging(false);
             onClose();
+            return;
         }
+        resetDrag();
     };
 
     useEffect(() => {
@@ -190,18 +221,23 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     return (
         <div
             className={cn(
-                'fixed inset-0 z-[100] flex justify-center',
-                compact ? 'items-end' : 'items-center p-4',
+                'fixed inset-0 z-[100] flex',
+                /* Pendant sa sortie, la feuille ne retient plus le doigt : la page dessous
+                   répond déjà. */
+                closing && 'pointer-events-none',
+                forme === 'bas' && 'items-end justify-center',
+                forme === 'centre' && 'items-center justify-center p-4',
+                forme === 'cote' && 'items-stretch justify-end',
             )}
         >
             {/* Scrim */}
             <div
                 className={cn(
-                    /* `.scrim` — le sombre du produit à 42 %, pas un noir à 32 %. */
-                    'bg-scrim/[0.42] absolute inset-0',
-                    closing
-                        ? 'animate-out fade-out duration-200'
-                        : 'animate-in fade-in duration-200',
+                    /* `.scrim` — le sombre du produit à 42 %, pas un noir à 32 %. Le panneau de
+                       filtre n'en garde que 12 : la liste qu'il filtre doit rester lisible. */
+                    'absolute inset-0',
+                    forme === 'cote' ? 'bg-scrim/[0.12]' : 'bg-scrim/[0.42]',
+                    closing ? 'mvt-voile-sortie' : 'mvt-voile-entree',
                 )}
                 onClick={onClose}
                 aria-hidden="true"
@@ -220,24 +256,29 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                     /* **Aucun filet autour de la feuille** : sa surface blanche sur le voile
                        suffit à la détacher. Elle portait un cerné et l'élévation MD3 la plus
                        haute (13/09, 44 écrans). */
-                    'bg-surface relative flex max-h-[90vh] w-full flex-col',
+                    'bg-surface relative flex w-full flex-col',
                     /* La mesure du contenu d'un flux — 560, et elle ne dépend pas de
                        l'écran. Un champ de 680 px pour un numéro de série est plus
                        difficile à viser, à relire, et il fait mentir la hiérarchie.
                        La feuille qui monte porte son ombre vers le haut ; le dialogue
                        centré, l'ombre descendante de `.dial`. */
-                    compact
-                        ? 'shadow-sheet rounded-t-xl'
-                        : 'shadow-dialog max-w-[560px] rounded-xl',
-                    closing
-                        ? 'animate-out fade-out duration-200'
-                        : 'animate-in fade-in duration-200',
-                    compact &&
-                        (closing
-                            ? 'slide-out-to-bottom-4 duration-300'
-                            : 'slide-in-from-bottom-4 duration-300'),
-                    !compact && (closing ? 'zoom-out-95' : 'zoom-in-95'),
-                    !isDragging && 'duration-short4 ease-emphasized transition-transform',
+                    forme === 'bas' &&
+                        (telephone
+                            ? 'shadow-sheet max-h-[90vh] rounded-t-xl'
+                            : 'shadow-sheet max-h-[80vh] max-w-[640px] rounded-t-xl'),
+                    /* 640 de haut au plus — la feuille de formulaire d'Apple ; le corps défile
+                       dedans. « Déclarer un incident » montait à 824 sur 1 024 (25/09). */
+                    forme === 'centre' &&
+                        'shadow-dialog max-h-[min(640px,calc(100dvh-2rem))] max-w-[560px] rounded-xl',
+                    forme === 'cote' && 'shadow-dialog h-full max-w-[360px] rounded-l-xl',
+                    /* Le mouvement dit d'où vient la feuille (26/09) : du bord bas, du centre,
+                       du bord droit — et elle y retourne. */
+                    forme === 'bas' && (closing ? 'mvt-feuille-sortie' : 'mvt-feuille-entree'),
+                    forme === 'centre' && (closing ? 'mvt-dialogue-sortie' : 'mvt-dialogue-entree'),
+                    forme === 'cote' && (closing ? 'mvt-panneau-sortie' : 'mvt-panneau-entree'),
+                    !isDragging &&
+                        !closing &&
+                        'duration-short4 ease-emphasized transition-transform',
                     className,
                 )}
                 style={dragOffset > 0 ? { transform: `translateY(${dragOffset}px)` } : undefined}
@@ -297,7 +338,18 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                     4 px trop bas, et dix phrases de tête le rattrapaient d'une marge négative
                     qui dépassait de 3 (relevé du 13/09). Le pied `.sfoot` d'une feuille court
                     d'un bord à l'autre : il reprend les 20 de côté par une marge négative. */}
-                <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-3">{children}</div>
+                <div
+                    className={cn(
+                        'custom-scrollbar flex-1 overflow-y-auto overscroll-contain px-5 py-3',
+                        /* Le panneau de filtre court sur toute la hauteur : son pied (`data-pied`,
+                           « Tout effacer · Voir les N ») descend au bas du panneau et y reste
+                           quand les pastilles défilent — il flottait à mi-hauteur. */
+                        forme === 'cote' &&
+                            '[&_[data-pied]]:bg-surface [&_[data-pied]]:sticky [&_[data-pied]]:bottom-0 [&_[data-pied]]:mt-auto [&>*]:flex [&>*]:min-h-full [&>*]:flex-col',
+                    )}
+                >
+                    {children}
+                </div>
             </div>
         </div>
     );

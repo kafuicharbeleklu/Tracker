@@ -138,7 +138,8 @@ const RuleGroup: React.FC<RuleGroupProps> & { Row: typeof RuleGroupRow } = ({
             {note && (
                 <p
                     className={cn(
-                        'border-outline-variant text-on-surface-variant border-t px-4 text-[0.75rem] leading-4',
+                        /* La note d'un groupe est une phrase : le secondaire, pas la légende (26/09). */
+                        'border-outline-variant text-on-surface-variant text-ts-sub leading-ts-sub border-t px-4',
                         /* `.gnote` de 14.1 — sur le creux, `10 16 14`. */
                         form === 'grp' ? 'bg-surface-container pt-2.5 pb-3.5' : '-mx-4 py-2.5',
                     )}
@@ -257,13 +258,15 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                     (`.grp .row .s` de 14.1, 2 px sous le titre), 14 sur 20 dans une carte
                     (`.row .s` de 05.2). Les deux étaient rendues en 14 sur 20 — la sous-ligne
                     d'un réglage y prenait la place de la valeur (relevé du 16/09). */}
+                {/* **Une sous-ligne est une phrase, pas une légende** (26/09) : elle prend le
+                    secondaire (14, 13 au bureau) dans les deux formes — Material écrit son texte
+                    d'appoint en 14, Apple ses notes en 13 au plus petit. Elle était en 12 dans la
+                    forme `grp` (14.1) ; elle passe à la ligne plutôt que de serrer la valeur. */}
                 {subtitle && (
                     <span
                         className={cn(
-                            'text-on-surface-variant block',
-                            form === 'grp'
-                                ? 'mt-0.5 text-[0.75rem] leading-4'
-                                : 'text-ts-sub leading-ts-sub',
+                            'text-on-surface-variant text-ts-sub leading-ts-sub block',
+                            form === 'grp' && 'mt-0.5',
                         )}
                     >
                         {subtitle}

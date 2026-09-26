@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
     ChartLineDown,
+    Cube,
     DotsThreeVertical,
     FolderOpen,
     Info,
@@ -9,12 +10,14 @@ import {
     Warning,
 } from '@phosphor-icons/react';
 import FactRow from '../../../components/ui/FactRow';
+import ListeBornee from '../../../components/ui/ListeBornee';
 import { FormWarn } from '../../../components/ui/FormParts';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import DetailHero from '../../../components/ui/DetailHero';
 import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -26,6 +29,8 @@ import { useToast } from '../../../context/ToastContext';
 import AddCategoryPage from './AddCategoryPage';
 import Menu from '../../../components/ui/Menu';
 import ListActionFab from '../../../components/ui/ListActionFab';
+import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
+import { cn } from '../../../lib/utils';
 
 /**
  * « on ne peut pas créer **de serveur** », « **d'écran** » — la conséquence se dit
@@ -54,8 +59,15 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
 
     const category = categories.find((c) => c.id === categoryId);
 
+    /* Du plus utilisé au moins utilisé (25/09) : la liste est bornée, les premiers visibles
+       sont ceux qui comptent. */
     const categoryModels = useMemo(
-        () => (category ? models.filter((m) => m.type === category.name) : []),
+        () =>
+            category
+                ? models
+                      .filter((m) => m.type === category.name)
+                      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'fr'))
+                : [],
         [category, models],
     );
     /* Les modèles en cartes quand la fiche a ses deux colonnes (≥ 1280, 23/09). */
@@ -305,46 +317,66 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                               dans la colonne de la fiche — deux rangées de 72 y faisaient une
                               liste de 140 px sous un héro de 180.
                             */
-                            <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
-                                {categoryModels.map((model) => (
-                                    <li key={model.id}>
-                                        <Button
-                                            variant="text"
-                                            onClick={() => onModelClick(model.id)}
-                                            className="bg-surface-container hover:bg-surface-container-high h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 rounded-md p-3 text-left font-normal whitespace-normal"
-                                        >
-                                            <span className="flex items-center gap-3">
-                                                <span className="bg-surface text-on-surface-variant text-ts-control flex h-9 w-9 shrink-0 items-center justify-center rounded-md font-semibold">
-                                                    {(model.brand || model.name)
-                                                        .trim()
-                                                        .charAt(0)
-                                                        .toUpperCase()}
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
-                                                        {model.name}
+                            /* **Bornée** (25/09) : trois rangées de tuiles et demie (une de plus à la
+                               demande), la suite défile dans la carte — elle grandissait avec
+                               chaque modèle. */
+                            <ListeBornee
+                                hauteur={25.75}
+                                pleineLargeur
+                                label={`Les ${categoryModels.length} modèles`}
+                            >
+                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                    {categoryModels.map((model) => (
+                                        <li key={model.id}>
+                                            <Button
+                                                variant="text"
+                                                onClick={() => onModelClick(model.id)}
+                                                className="bg-surface-container hover:bg-surface-container-high h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 rounded-md p-3 text-left font-normal whitespace-normal"
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <span className="bg-surface text-on-surface-variant text-ts-control flex h-9 w-9 shrink-0 items-center justify-center rounded-md font-semibold">
+                                                        {(model.brand || model.name)
+                                                            .trim()
+                                                            .charAt(0)
+                                                            .toUpperCase()}
                                                     </span>
-                                                    {model.brand && (
-                                                        <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
-                                                            {model.brand}
+                                                    <span className="min-w-0 flex-1">
+                                                        <span
+                                                            title={model.name}
+                                                            className={cn(
+                                                                'text-on-surface text-ts-body leading-ts-body font-medium',
+                                                                NOM_SUR_UNE_LIGNE,
+                                                            )}
+                                                        >
+                                                            {model.name}
                                                         </span>
-                                                    )}
+                                                        {model.brand && (
+                                                            <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
+                                                                {model.brand}
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                            <span>
-                                                <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
-                                                    {model.count}
+                                                <span>
+                                                    <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
+                                                        {model.count}
+                                                    </span>
+                                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
+                                                        actif{model.count > 1 ? 's' : ''} au parc
+                                                    </span>
                                                 </span>
-                                                <span className="text-on-surface-variant block text-[0.75rem] leading-4">
-                                                    actif{model.count > 1 ? 's' : ''} au parc
-                                                </span>
-                                            </span>
-                                        </Button>
-                                    </li>
-                                ))}
-                            </ul>
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </ListeBornee>
                         ) : (
-                            <div>
+                            /* Bornée à six rangées et demie au téléphone (25/09, une de plus à la demande). */
+                            <ListeBornee
+                                hauteur={26}
+                                pleineLargeur
+                                label={`Les ${categoryModels.length} modèles`}
+                            >
                                 {categoryModels.map((model) => (
                                     <FactRow
                                         key={model.id}
@@ -362,31 +394,20 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                         onOpen={() => onModelClick(model.id)}
                                     />
                                 ))}
-                            </div>
+                            </ListeBornee>
                         )}
                     </>
                 ) : (
                     /* Un type inutilisable **ne s'excuse pas et ne clignote pas** (09.1,
-                       colonne 3) : il dit la conséquence exacte, nommée sur ce type-ci,
-                       et met à portée le geste qui la lève. L'avertissement seul laissait
-                       la situation entière au lecteur. */
-                    <div className="flex flex-col gap-3">
-                        <div className="bg-surface-container text-body-small text-on-surface flex items-start gap-2.5 rounded-md p-3">
-                            <Icon
-                                glyph={Warning}
-                                size={18}
-                                className="mt-0.5 shrink-0 text-[var(--tk-color-st-ambre)]"
-                            />
-                            <span>
-                                <strong>Aucun modèle.</strong> Tant qu'il n'y en a pas un, ce type
-                                n'apparaît pas dans la création d'équipement : on ne peut pas créer{' '}
-                                {indefiniteArticle(typeLabel)}.
-                            </span>
-                        </div>
-                        <Button variant="filled" onClick={() => setIsAddModelOpen(true)}>
-                            Ajouter le premier modèle
-                        </Button>
-                    </div>
+                       colonne 3) : il dit la conséquence exacte, nommée sur ce type-ci.
+                       **Dans la forme des vides de carte, et sans bouton** (25/09) : « Ajouter
+                       le premier modèle » doublait le geste d'ajout de la page, flottant au
+                       téléphone et dans l'en-tête au bureau. */
+                    <CardEmptyState
+                        glyph={Cube}
+                        title="Aucun modèle"
+                        description={`Tant qu'il n'y en a pas un, on ne peut pas créer ${indefiniteArticle(typeLabel)}.`}
+                    />
                 )}
             </section>
 

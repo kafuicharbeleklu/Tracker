@@ -7,13 +7,16 @@ import {
     Clock,
     HandPointing,
     ImageSquare,
+    Info,
     Key,
     LockKey,
+    MagicWand,
     ShieldWarning,
     Signature,
     SignOut,
     Trash,
     Warning,
+    X,
     type Icon as PhosphorGlyph,
 } from '@phosphor-icons/react';
 
@@ -32,6 +35,12 @@ import PinConfirmation, {
 import PinField from '../../../components/ui/PinField';
 import { PIN_MAX_ATTEMPTS } from '../../../lib/security';
 import Slider from '../../../components/ui/Slider';
+import Stepper from '../../../components/ui/Stepper';
+import ListeBornee from '../../../components/ui/ListeBornee';
+import { echeancierAmortissement } from '../../../lib/financial';
+import { getCategoryGlyph } from '../../../constants/categoryIcons';
+import { getCategoryLabel } from '../../../constants/glossary';
+import { useRouter } from '../../../hooks/useRouter';
 import FilePicker from '../../../components/ui/FilePicker';
 import { formatFileSize, getImportLimitBytes } from '../../../lib/fileImport';
 import { signatureService } from '../../../services/signatureService';
@@ -55,6 +64,7 @@ import { parseAgentBatchContent } from '../../../lib/agentCheckin';
 import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
 import { APP_CONFIG } from '../../../config';
 import type { BusinessRuleDecision } from '../../../lib/businessRules';
+import { useEntree } from '../../../hooks/useEntree';
 import type {
     AgentCheckInPayload,
     AppSettings,
@@ -329,7 +339,7 @@ const SettingsBar: React.FC<{
         return (
             <IconGestureSizeContext.Provider value={40}>
                 {/* Le titre suit la colonne centrée des réglages (23/09). */}
-                <div className="px-page bg-background large:mx-auto large:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex min-h-[72px] w-full items-center gap-2 pt-5">
+                <div className="px-page bg-background deux:mx-auto deux:max-w-[calc(63rem+2*var(--tk-space-page))] sticky top-0 z-20 flex min-h-[72px] w-full items-center gap-2 pt-5">
                     {onBack && (
                         <Button
                             variant="text"
@@ -384,7 +394,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     initialSection,
     onBack,
 }) => {
+    /* Les groupes de réglages entrent en cascade à l'arrivée (26/09). */
+    const entree = useEntree();
     const { showToast } = useToast();
+    const { navigate } = useRouter();
     /*
       **Au bureau, deux colonnes** (23/09) — les groupes de réglages en colonnes équilibrées,
       et « Mon compte » en fiche : l'identité à gauche, les actes à droite. Une seule colonne
@@ -559,6 +572,32 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     const typesWithOwnPlan = useMemo(
         () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
         [categories],
+    );
+
+    /** Les types qui prennent le défaut d'abord — ceux que la page règle —, puis par nom. */
+    const typesParPlan = useMemo(
+        () =>
+            [...categories].sort(
+                (a, b) =>
+                    Number(Boolean(a.defaultDepreciation?.years)) -
+                        Number(Boolean(b.defaultDepreciation?.years)) ||
+                    getCategoryLabel(a.name).localeCompare(getCategoryLabel(b.name), 'fr'),
+            ),
+        [categories],
+    );
+
+    const echeancierParDefaut = useMemo(
+        () =>
+            echeancierAmortissement(
+                settings.defaultDepreciationMethod,
+                settings.defaultDepreciationYears,
+                settings.salvageValuePercent,
+            ),
+        [
+            settings.defaultDepreciationMethod,
+            settings.defaultDepreciationYears,
+            settings.salvageValuePercent,
+        ],
     );
 
     /**
@@ -736,25 +775,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     desk
                     className={cn(
                         'flex flex-col gap-4 pb-16',
-                        (view === 'currency' || view === 'depreciation' || view === 'sources') &&
-                            COLONNES_FORMULAIRE,
+                        (view === 'currency' || view === 'sources') && COLONNES_FORMULAIRE,
                         (view === 'inventory' ||
                             view === 'files' ||
                             view === 'repair' ||
                             view === 'signature') &&
-                            'large:mx-auto large:max-w-[560px]',
+                            'deux:mx-auto deux:max-w-[560px]',
                     )}
                 >
                     {view === 'index' && (
                         <div
-                            className={
+                            className={cn(
                                 deuxColonnes
                                     ? /* Des colonnes de texte, pas une grille : chaque groupe
                                          garde sa hauteur, et la seconde colonne commence où la
                                          première s'arrête — pas de trou sous un groupe court. */
                                       'columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid'
-                                    : 'contents'
-                            }
+                                    : 'contents',
+                                entree && 'mvt-cascade-cartes',
+                            )}
                         >
                             {/* **La liste ne porte plus de note.** Chaque groupe en avait
                                 une, longue, qui expliquait le classement plutôt que les
@@ -1044,6 +1083,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 setView('account');
                                 setSourceSheetOpen(true);
                             }}
+                            onAnnuler={() => {
+                                setImageAImporter(null);
+                                setView('account');
+                            }}
                             onEnregistrer={enregistrerLaSignature}
                         />
                     )}
@@ -1090,7 +1133,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
+                            <p className="text-text-muted text-ts-sub leading-ts-sub">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1098,127 +1141,165 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     )}
 
                     {view === 'depreciation' && (
-                        <>
-                            <RuleGroup
-                                form="grp"
-                                header="Par défaut"
-                                /* **Une note dit une chose** (23/09) : le plan de secours,
-                                   et ce qu'il décide aujourd'hui. Le reste — l'ordre fiche,
-                                   type, défaut, et le passé qui ne bouge pas — se lisait en
-                                   cinq lignes sous un titre de deux mots. */
-                                note={
-                                    governedAssets > 0
-                                        ? `Il ne vaut que pour les types sans plan à eux — ${governedAssets} actif${governedAssets > 1 ? 's' : ''} aujourd'hui.`
-                                        : 'Il ne vaut que pour les types sans plan à eux.'
-                                }
-                            >
-                                {DEPRECIATION_METHODS.map((method) => (
-                                    <RuleGroup.Row
-                                        key={method.value}
-                                        title={method.label}
-                                        subtitle={
-                                            method.value === 'linear'
-                                                ? 'La valeur se répartit également sur la durée'
-                                                : 'La valeur tombe plus vite les premières années'
-                                        }
-                                        status={
-                                            settings.defaultDepreciationMethod === method.value
-                                                ? { icon: CheckCircle, tone: 'positive' }
-                                                : undefined
-                                        }
-                                        value={
-                                            settings.defaultDepreciationMethod === method.value
-                                                ? 'Retenue'
-                                                : undefined
-                                        }
-                                        valueTone={
-                                            settings.defaultDepreciationMethod === method.value
-                                                ? 'positive'
-                                                : undefined
-                                        }
-                                        onOpen={() =>
-                                            apply({ defaultDepreciationMethod: method.value })
-                                        }
-                                        choice
+                        /*
+                          **Amortissement, refondu** (25/09). C'était une page de réglages comme
+                          les autres : deux rangées « Retenue », deux cases numériques de 96 px
+                          sans unité, quinze types sous leur clé technique (« Laptop »,
+                          « DockingStation ») et un renvoi vers la devise. Rien ne montrait ce que
+                          le plan fait à la valeur d'un objet — c'est pourtant ce qu'on règle.
+                          L'aperçu le dessine, la méthode se choisit sur sa courbe, la durée et le
+                          résiduel se règlent d'un cran, et chaque type ouvre sa fiche.
+                        */
+                        <div className="deux:grid deux:grid-cols-2 deux:items-start flex flex-col gap-4">
+                            <div className="flex flex-col gap-4">
+                                <section className="rounded-card bg-surface px-4 pt-4 pb-4">
+                                    <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                                        Ce que devient un objet, en part de son prix
+                                    </p>
+                                    <p className="text-on-surface text-ts-body leading-ts-body mt-1 text-pretty">
+                                        {phraseDuPlan(
+                                            settings.defaultDepreciationMethod,
+                                            echeancierParDefaut,
+                                        )}
+                                    </p>
+                                    <CourbeDeValeur
+                                        valeurs={echeancierParDefaut}
+                                        className="mt-4"
                                     />
-                                ))}
-                            </RuleGroup>
+                                    {settings.defaultDepreciationMethod === 'degressive' && (
+                                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-3 flex items-start gap-2">
+                                            <Icon
+                                                glyph={Info}
+                                                size={18}
+                                                className="text-text-tertiary mt-px shrink-0"
+                                            />
+                                            Les valeurs du parc se calculent encore en linéaire.
+                                        </p>
+                                    )}
+                                </section>
 
-                            <RuleGroup form="grp" header="Durée et fin de vie">
-                                <RuleGroup.Row
-                                    title="Durée"
-                                    subtitle="Au bout de laquelle un objet ne vaut plus rien au bilan"
-                                    trailing={
-                                        <InputField
-                                            mesure="courte"
-                                            type="number"
-                                            aria-label="Durée en années"
-                                            value={String(settings.defaultDepreciationYears)}
-                                            onChange={(event) =>
-                                                apply({
-                                                    defaultDepreciationYears: Number(
-                                                        event.target.value,
-                                                    ),
-                                                })
-                                            }
-                                            className="w-24"
-                                        />
+                                <RuleGroup
+                                    form="grp"
+                                    header="Méthode"
+                                    note={
+                                        governedAssets > 0
+                                            ? `Elle vaut pour les types sans plan à eux — ${governedAssets} actif${governedAssets > 1 ? 's' : ''} aujourd'hui.`
+                                            : 'Elle vaut pour les types sans plan à eux.'
                                     }
-                                />
-                                <RuleGroup.Row
-                                    title="Valeur résiduelle"
-                                    subtitle="Ce qu'il vaut encore à la fin, en pourcentage"
-                                    trailing={
-                                        <InputField
-                                            mesure="courte"
-                                            type="number"
-                                            aria-label="Valeur résiduelle en pourcentage"
-                                            value={String(settings.salvageValuePercent)}
-                                            onChange={(event) =>
-                                                apply({
-                                                    salvageValuePercent: Number(event.target.value),
-                                                })
-                                            }
-                                            className="w-24"
-                                        />
-                                    }
-                                />
-                            </RuleGroup>
+                                >
+                                    <div className="grid grid-cols-2 gap-3 px-4 pt-1 pb-4">
+                                        {DEPRECIATION_METHODS.map((method) => (
+                                            <CarteMethode
+                                                key={method.value}
+                                                titre={method.label}
+                                                phrase={
+                                                    method.value === 'linear'
+                                                        ? 'La même part chaque année'
+                                                        : 'Plus forte les premières années'
+                                                }
+                                                valeurs={echeancierAmortissement(
+                                                    method.value,
+                                                    settings.defaultDepreciationYears,
+                                                    settings.salvageValuePercent,
+                                                )}
+                                                choisie={
+                                                    settings.defaultDepreciationMethod ===
+                                                    method.value
+                                                }
+                                                onChoisir={() =>
+                                                    apply({
+                                                        defaultDepreciationMethod: method.value,
+                                                    })
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </RuleGroup>
 
-                            <RuleGroup
-                                form="grp"
-                                header="Ce que porte chaque type"
-                                headerTrailing={`${typesWithOwnPlan} sur ${categories.length}`}
-                            >
-                                {categories.map((category) => (
+                                <RuleGroup form="grp" header="Durée et fin de vie">
                                     <RuleGroup.Row
-                                        key={category.id}
-                                        title={category.name}
-                                        value={
-                                            category.defaultDepreciation?.years
-                                                ? `${category.defaultDepreciation.years} ans`
-                                                : 'Prend le défaut'
-                                        }
-                                        valueTone={
-                                            category.defaultDepreciation?.years
-                                                ? undefined
-                                                : 'muted'
+                                        title="Durée"
+                                        subtitle="Jusqu'à ce qu'il ne vaille plus que son résiduel"
+                                        trailing={
+                                            <Stepper
+                                                label="Durée"
+                                                value={settings.defaultDepreciationYears}
+                                                min={1}
+                                                max={20}
+                                                format={(annees) =>
+                                                    `${annees} an${annees > 1 ? 's' : ''}`
+                                                }
+                                                onChange={(annees) =>
+                                                    apply({ defaultDepreciationYears: annees })
+                                                }
+                                            />
                                         }
                                     />
-                                ))}
-                            </RuleGroup>
+                                    <RuleGroup.Row
+                                        title="Valeur résiduelle"
+                                        subtitle="Ce qu'il vaut encore à la fin"
+                                        trailing={
+                                            <Stepper
+                                                label="Valeur résiduelle"
+                                                value={settings.salvageValuePercent}
+                                                min={0}
+                                                max={50}
+                                                step={5}
+                                                format={(part) => `${part} %`}
+                                                onChange={(part) =>
+                                                    apply({ salvageValuePercent: part })
+                                                }
+                                            />
+                                        }
+                                    />
+                                </RuleGroup>
+                            </div>
 
-                            <Notice>
-                                <strong className="text-on-surface font-medium">
-                                    La devise et l'année fiscale sont ailleurs.
-                                </strong>
-                            </Notice>
+                            <div className="flex flex-col gap-4">
+                                <RuleGroup
+                                    form="grp"
+                                    header="Ce que porte chaque type"
+                                    headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
+                                >
+                                    {/* Ceux qui prennent le défaut d'abord : ce sont eux que la
+                                        page règle. Chaque type ouvre sa fiche, où son plan se
+                                        modifie. */}
+                                    <ListeBornee hauteur={30} label="Les types et leur plan">
+                                        {typesParPlan.map((category) => {
+                                            const plan = category.defaultDepreciation;
+                                            return (
+                                                <RuleGroup.Row
+                                                    key={category.id}
+                                                    glyph={getCategoryGlyph(category.name)}
+                                                    title={getCategoryLabel(category.name)}
+                                                    subtitle={
+                                                        plan?.years
+                                                            ? `${plan.method === 'degressive' ? 'Dégressif' : 'Linéaire'}${plan.salvageValuePercent ? ` · ${plan.salvageValuePercent} % résiduel` : ''}`
+                                                            : 'Prend le réglage par défaut'
+                                                    }
+                                                    value={
+                                                        plan?.years
+                                                            ? `${plan.years} an${plan.years > 1 ? 's' : ''}`
+                                                            : 'défaut'
+                                                    }
+                                                    valueTone={plan?.years ? undefined : 'muted'}
+                                                    onOpen={() =>
+                                                        navigate(
+                                                            `/management/categories/${category.id}`,
+                                                        )
+                                                    }
+                                                />
+                                            );
+                                        })}
+                                    </ListeBornee>
+                                </RuleGroup>
 
-                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
-                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
-                                le pose.
-                            </p>
-                        </>
+                                <p className="text-text-muted text-ts-sub leading-ts-sub">
+                                    Aucun bouton d'enregistrement : chaque réglage s'applique quand
+                                    on le pose.
+                                </p>
+                            </div>
+                        </div>
                     )}
 
                     {view === 'repair' && (
@@ -1257,7 +1338,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 })}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
+                            <p className="text-text-muted text-ts-sub leading-ts-sub">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1318,7 +1399,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
+                            <p className="text-text-muted text-ts-sub leading-ts-sub">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1354,7 +1435,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 ))}
                             </RuleGroup>
 
-                            <p className="text-text-muted text-[0.75rem] leading-[1.0625rem]">
+                            <p className="text-text-muted text-ts-sub leading-ts-sub">
                                 Aucun bouton d'enregistrement : chaque réglage s'applique quand on
                                 le pose.
                             </p>
@@ -1487,7 +1568,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     }))
                                 }
                             />
-                            <p className="text-text-secondary text-[0.75rem] leading-[1.0625rem]">
+                            <p className="text-text-secondary text-ts-sub leading-ts-sub">
                                 En dessous de 15 minutes, l'agent parle plus qu'il n'observe.
                             </p>
                             <InputField
@@ -1587,7 +1668,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     </Notice>
 
                     {sourceError && (
-                        <p className="text-error flex gap-2 text-[0.75rem] leading-[1.0625rem]">
+                        <p className="text-error text-ts-sub leading-ts-sub flex gap-2">
                             <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                             <span>{sourceError}</span>
                         </p>
@@ -1818,168 +1899,680 @@ const SignatureApercu: React.FC<{ image: Blob; nom: string; depuis?: string | nu
     );
 };
 
+/** « 33,3 » — une part d'un chiffre après la virgule, à la française. */
+const part = (valeur: number) =>
+    Number.isInteger(Math.round(valeur * 10) / 10)
+        ? String(Math.round(valeur))
+        : (Math.round(valeur * 10) / 10).toFixed(1).replace('.', ',');
+
+/** Ce que le plan fait à un objet, en une phrase — celle de l'aperçu. */
+const phraseDuPlan = (methode: 'linear' | 'degressive', valeurs: number[]) => {
+    const duree = valeurs.length - 1;
+    const residuel = valeurs[duree];
+    const fin =
+        residuel > 0
+            ? `il vaut ${part(residuel)} % de son prix au bout de ${duree} an${duree > 1 ? 's' : ''}`
+            : `il ne vaut plus rien au bout de ${duree} an${duree > 1 ? 's' : ''}`;
+    return methode === 'linear'
+        ? `Il perd ${part(100 - valeurs[1])} % de son prix chaque année ; ${fin}.`
+        : `Il perd ${part(100 - valeurs[1])} % la première année, puis moins chaque année ; ${fin}.`;
+};
+
 /**
- * **Recadrer** — 07.1, lot 28 D2. *« Un `<canvas>` (zone 320 de haut, fond `--inset-2`),
- * l'image glissée au pointeur, pincer ou curseur pour le zoom, cadre fixe à quatre
- * poignées. »*
- *
- * **Aucune librairie.** `SignaturePad` avait déjà prouvé que le Canvas natif suffit à
- * dessiner ; il suffit aussi à recadrer — une image, une échelle, deux décalages. Ce
- * qu'on voit dans le cadre *est* ce qui sera enregistré : le PNG sort du canvas
- * lui-même, à sa définition, et pas d'un calcul parallèle qui pourrait en diverger.
- *
- * Le cadre a le **rapport de la case d'attestation** (3:1) : recadrer dans une forme et
- * apposer dans une autre ferait mentir l'aperçu.
- *
- * Ni rotation ni seuil de contraste : ils étaient **suggérés, non confirmés** (le prompt
- * des lots 28-32, §2), et une commande qu'on ajoute « au cas où » ne s'enlève plus.
+ * **La courbe de valeur** — de l'achat (100 %) à la fin de la durée, une année par point.
+ * `mini` : la même, sans axes ni libellés, pour la carte d'une méthode.
  */
+const CourbeDeValeur: React.FC<{ valeurs: number[]; mini?: boolean; className?: string }> = ({
+    valeurs,
+    mini = false,
+    className,
+}) => {
+    const largeur = 320;
+    const hauteur = mini ? 44 : 132;
+    const haut = mini ? 4 : 18;
+    const bas = mini ? 4 : 22;
+    const duree = Math.max(1, valeurs.length - 1);
+    const x = (annee: number) => 6 + (annee / duree) * (largeur - 12);
+    const y = (valeur: number) => haut + (1 - valeur / 100) * (hauteur - haut - bas);
+    const points = valeurs.map((valeur, annee) => `${x(annee)},${y(valeur)}`).join(' ');
+    const pas = duree > 10 ? 5 : duree > 5 ? 2 : 1;
+    return (
+        <svg
+            viewBox={`0 0 ${largeur} ${hauteur}`}
+            className={cn('block w-full overflow-visible', className)}
+            role={mini ? undefined : 'img'}
+            aria-hidden={mini ? true : undefined}
+            aria-label={
+                mini
+                    ? undefined
+                    : `De 100 % à l'achat à ${part(valeurs[duree])} % au bout de ${duree} ans`
+            }
+        >
+            {!mini &&
+                [100, 50, 0].map((niveau) => (
+                    <line
+                        key={niveau}
+                        x1={0}
+                        x2={largeur}
+                        y1={y(niveau)}
+                        y2={y(niveau)}
+                        stroke="var(--tk-color-outline-variant)"
+                        strokeWidth={1}
+                        strokeDasharray={niveau === 0 ? undefined : '3 4'}
+                    />
+                ))}
+            <polygon
+                points={`${x(0)},${y(0)} ${points} ${x(duree)},${y(0)}`}
+                fill="var(--tk-color-live-bleu)"
+                fillOpacity={0.12}
+            />
+            <polyline
+                points={points}
+                fill="none"
+                stroke="var(--tk-color-live-bleu)"
+                strokeWidth={mini ? 2 : 2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+            />
+            {!mini && (
+                <>
+                    {valeurs.map((valeur, annee) => (
+                        <circle
+                            key={annee}
+                            cx={x(annee)}
+                            cy={y(valeur)}
+                            r={3}
+                            fill="var(--tk-color-surface)"
+                            stroke="var(--tk-color-live-bleu)"
+                            strokeWidth={2}
+                        />
+                    ))}
+                    {valeurs.map((_, annee) =>
+                        annee === 0 || annee === duree || annee % pas === 0 ? (
+                            <text
+                                key={annee}
+                                x={x(annee)}
+                                y={hauteur - 4}
+                                textAnchor={
+                                    annee === 0 ? 'start' : annee === duree ? 'end' : 'middle'
+                                }
+                                fontSize={11}
+                                fill="var(--tk-color-text-tertiary)"
+                            >
+                                {annee === 0 ? 'achat' : `an ${annee}`}
+                            </text>
+                        ) : null,
+                    )}
+                    <text
+                        x={x(0) + 6}
+                        y={y(100) - 6}
+                        fontSize={11}
+                        fill="var(--tk-color-on-surface-variant)"
+                    >
+                        100 %
+                    </text>
+                    <text
+                        x={x(duree)}
+                        y={y(valeurs[duree]) - 8}
+                        textAnchor="end"
+                        fontSize={11}
+                        fill="var(--tk-color-on-surface-variant)"
+                    >
+                        {part(valeurs[duree])} %
+                    </text>
+                </>
+            )}
+        </svg>
+    );
+};
+
+/** Une méthode, sur sa courbe : on choisit ce qu'on voit, pas un mot. */
+const CarteMethode: React.FC<{
+    titre: string;
+    phrase: string;
+    valeurs: number[];
+    choisie: boolean;
+    onChoisir: () => void;
+}> = ({ titre, phrase, valeurs, choisie, onChoisir }) => (
+    <Button
+        variant="text"
+        layout="card"
+        aria-pressed={choisie}
+        onClick={onChoisir}
+        className={cn(
+            'flex h-full w-full flex-col items-stretch justify-start gap-2 rounded-lg border p-3 text-left font-normal whitespace-normal',
+            choisie
+                ? 'border-on-surface bg-surface-container'
+                : 'border-outline-variant hover:bg-surface-container',
+        )}
+    >
+        <CourbeDeValeur valeurs={valeurs} mini />
+        <span className="flex items-center gap-2">
+            <span className="text-on-surface text-ts-body leading-ts-body font-medium">
+                {titre}
+            </span>
+            {choisie && (
+                <Icon
+                    glyph={CheckCircle}
+                    size={18}
+                    className="ml-auto shrink-0 text-[var(--tk-color-st-vert)]"
+                />
+            )}
+        </span>
+        <span className="text-on-surface-variant text-ts-sub leading-ts-sub">{phrase}</span>
+    </Button>
+);
+
+/**
+ * **Recadrer** — 07.1, lot 28 D2, **refondu le 25/09** pour le téléphone.
+ *
+ * Le cadre au format de la case d'attestation (3:1) ne mesurait que 330 × 110 au
+ * téléphone, l'image arrivait « couvrant » ce cadre — donc au hasard de sa composition, la
+ * signature souvent coupée ou minuscule —, rien ne se voyait autour du cadre, et « pincez
+ * pour zoomer » était écrit sans que le pincement soit programmé. Recadrer prenait une
+ * minute de tâtonnements pour un geste qui devrait en prendre zéro.
+ *
+ * - **Le cadrage est automatique.** L'image est lue une fois : le fond (le papier) est la
+ *   luminance la plus fréquente parmi les clairs, l'encre ce qui s'en écarte nettement. Le
+ *   cadre se pose sur le tracé, avec sa marge. Toucher deux fois, ou « Recadrer
+ *   automatiquement », y revient.
+ * - **Le fond est effacé.** Une signature photographiée arrivait sur un papier beige et son
+ *   ombre, qui faisaient un rectangle sur la case verte de l'attestation. Le PNG ne garde
+ *   que le tracé ; le cadre le montre sur blanc.
+ * - **On voit autour du cadre** : l'image entière, voilée hors du cadre. On sait ce qu'on
+ *   coupe.
+ * - **Les gestes du téléphone** : glisser, pincer (deux doigts, autour de leur milieu), et
+ *   la molette au bureau. Le curseur reste pour qui préfère le cran.
+ *
+ * Ce qu'on voit dans le cadre *est* ce qui sera enregistré : le PNG sort d'un canevas de
+ * 900 × 300 dessiné avec les mêmes nombres. Aucune librairie : le Canvas natif suffit.
+ */
+const LARGEUR_CADRE = 900;
+const HAUTEUR_CADRE = 300;
+
+interface ImageLue {
+    /** L'image, ramenée à 1 600 px au plus sur son grand côté. */
+    original: HTMLCanvasElement;
+    /** La même, fond effacé : l'encre seule. */
+    detouree: HTMLCanvasElement;
+    /** Le rectangle du tracé, en pixels de l'image lue — absent si rien ne s'est distingué. */
+    encre: { x: number; y: number; l: number; h: number } | null;
+}
+
+/** Lit l'image : le fond, l'encre, et le rectangle qui la contient. */
+const lireLImage = (image: HTMLImageElement): ImageLue => {
+    const echelle = Math.min(1, 1600 / Math.max(image.width, image.height));
+    const l = Math.max(1, Math.round(image.width * echelle));
+    const h = Math.max(1, Math.round(image.height * echelle));
+    const original = document.createElement('canvas');
+    original.width = l;
+    original.height = h;
+    const contexte = original.getContext('2d', { willReadFrequently: true });
+    const detouree = document.createElement('canvas');
+    detouree.width = l;
+    detouree.height = h;
+    if (!contexte) return { original, detouree, encre: null };
+    contexte.drawImage(image, 0, 0, l, h);
+    const pixels = contexte.getImageData(0, 0, l, h);
+    const d = pixels.data;
+
+    /* La luminance de chaque pixel, posé sur blanc (un PNG transparent a un fond blanc). */
+    const luminance = new Float32Array(l * h);
+    const histogramme = new Uint32Array(256);
+    for (let i = 0; i < l * h; i += 1) {
+        const a = d[i * 4 + 3] / 255;
+        const lum = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+        const valeur = a * lum + (1 - a) * 255;
+        luminance[i] = valeur;
+        histogramme[Math.min(255, Math.round(valeur))] += 1;
+    }
+    /* Le fond : le 80ᵉ centile — le papier occupe l'essentiel de l'image. */
+    let cumul = 0;
+    let fond = 255;
+    for (let niveau = 0; niveau < 256; niveau += 1) {
+        cumul += histogramme[niveau];
+        if (cumul >= l * h * 0.8) {
+            fond = niveau;
+            break;
+        }
+    }
+    const clair = fond - 28;
+    const fonce = Math.max(0, fond - 110);
+
+    const sortie = contexte.createImageData(l, h);
+    const s = sortie.data;
+    const colonnes = new Uint32Array(l);
+    const rangees = new Uint32Array(h);
+    let total = 0;
+    for (let i = 0; i < l * h; i += 1) {
+        const alpha = Math.min(1, Math.max(0, (clair - luminance[i]) / (clair - fonce)));
+        s[i * 4] = d[i * 4];
+        s[i * 4 + 1] = d[i * 4 + 1];
+        s[i * 4 + 2] = d[i * 4 + 2];
+        s[i * 4 + 3] = Math.round(alpha * 255);
+        if (alpha > 0.5) {
+            colonnes[i % l] += 1;
+            rangees[Math.floor(i / l)] += 1;
+            total += 1;
+        }
+    }
+    detouree.getContext('2d')?.putImageData(sortie, 0, 0);
+
+    /* Le rectangle de l'encre, sans ses poussières : du 0,5ᵉ au 99,5ᵉ centile. */
+    const bornes = (comptes: Uint32Array) => {
+        let vus = 0;
+        let debut = 0;
+        let fin = comptes.length - 1;
+        for (let k = 0; k < comptes.length; k += 1) {
+            vus += comptes[k];
+            if (vus > total * 0.005) {
+                debut = k;
+                break;
+            }
+        }
+        vus = 0;
+        for (let k = comptes.length - 1; k >= 0; k -= 1) {
+            vus += comptes[k];
+            if (vus > total * 0.005) {
+                fin = k;
+                break;
+            }
+        }
+        return [debut, fin] as const;
+    };
+    /* Moins d'un pixel sur deux mille : rien d'assez net pour cadrer dessus. */
+    if (total < (l * h) / 2000) return { original, detouree, encre: null };
+    const [x0, x1] = bornes(colonnes);
+    const [y0, y1] = bornes(rangees);
+    return {
+        original,
+        detouree,
+        encre: { x: x0, y: y0, l: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) },
+    };
+};
+
+/** Où l'image se pose : son échelle, et le point de l'image qui tombe au centre du cadre. */
+interface Pose {
+    echelle: number;
+    cx: number;
+    cy: number;
+}
+
+const poseAutomatique = (lue: ImageLue): Pose => {
+    const { original, encre } = lue;
+    if (!encre) {
+        return {
+            echelle: Math.max(LARGEUR_CADRE / original.width, HAUTEUR_CADRE / original.height),
+            cx: original.width / 2,
+            cy: original.height / 2,
+        };
+    }
+    /* Le tracé tient dans le cadre avec un cinquième de marge. */
+    return {
+        echelle: Math.min(LARGEUR_CADRE / (encre.l * 1.2), HAUTEUR_CADRE / (encre.h * 1.25)),
+        cx: encre.x + encre.l / 2,
+        cy: encre.y + encre.h / 2,
+    };
+};
+
+/** Dessine le tracé posé dans un cadre de 900 × 300, sans fond : ce qui sera enregistré. */
+const dessinerLeCadre = (contexte: CanvasRenderingContext2D, lue: ImageLue, pose: Pose) => {
+    contexte.drawImage(
+        lue.detouree,
+        LARGEUR_CADRE / 2 - pose.cx * pose.echelle,
+        HAUTEUR_CADRE / 2 - pose.cy * pose.echelle,
+        lue.original.width * pose.echelle,
+        lue.original.height * pose.echelle,
+    );
+};
+
 const SignatureCrop: React.FC<{
     fichier: File;
     onAutreImage: () => void;
+    onAnnuler: () => void;
     onEnregistrer: (image: Blob) => void;
-}> = ({ fichier, onAutreImage, onEnregistrer }) => {
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
-    const [image, setImage] = useState<HTMLImageElement | null>(null);
-    const [zoom, setZoom] = useState(1);
-    const [decalage, setDecalage] = useState({ x: 0, y: 0 });
-    const glisse = React.useRef<{ x: number; y: number } | null>(null);
-
-    /* La définition du PNG produit — 3:1, la forme de la case d'attestation. */
-    const LARGEUR = 900;
-    const HAUTEUR = 300;
+}> = ({ fichier, onAutreImage, onAnnuler, onEnregistrer }) => {
+    /*
+      **Au téléphone, le recadrage prend tout l'écran** (25/09, « la zone de cadrage est trop
+      petite ») : dans le flux des réglages, la scène tenait 254 px de haut et le cadre
+      330 × 110. Plein écran, sur fond sombre comme un éditeur de photo, l'image a toute la
+      hauteur du téléphone pour se glisser et se pincer, et le cadre toute sa largeur ; les
+      réglages se rangent dans un pied. Au-delà du téléphone, la scène reste dans la page.
+    */
+    const pleinEcran = useMediaQuery(MEDIA.compact);
+    const scene = React.useRef<HTMLCanvasElement>(null);
+    const boite = React.useRef<HTMLDivElement>(null);
+    const [lue, setLue] = useState<ImageLue | null>(null);
+    const [pose, setPose] = useState<Pose | null>(null);
+    const [dimensions, setDimensions] = useState({ l: 0, h: 0 });
+    const pointeurs = React.useRef(new Map<number, { x: number; y: number }>());
+    const pincement = React.useRef<{
+        distance: number;
+        pose: Pose;
+        milieu: { x: number; y: number };
+    } | null>(null);
 
     useEffect(() => {
         const url = URL.createObjectURL(fichier);
         const element = new Image();
-        element.onload = () => setImage(element);
+        element.onload = () => {
+            const resultat = lireLImage(element);
+            setLue(resultat);
+            setPose(poseAutomatique(resultat));
+        };
         element.src = url;
         return () => URL.revokeObjectURL(url);
     }, [fichier]);
 
-    /* À l'ouverture, l'image **couvre** le cadre : on recadre ce qui déborde, on ne
-       cherche pas d'abord à faire tenir un timbre au milieu d'un vide. */
-    const echelleDeBase = useMemo(() => {
-        if (!image) return 1;
-        return Math.max(LARGEUR / image.width, HAUTEUR / image.height);
-    }, [image]);
+    useEffect(() => {
+        const el = boite.current;
+        if (!el) return;
+        const mesurer = () => setDimensions({ l: el.clientWidth, h: el.clientHeight });
+        mesurer();
+        const observateur = new ResizeObserver(mesurer);
+        observateur.observe(el);
+        return () => observateur.disconnect();
+    }, [pleinEcran]);
+
+    /* Le plein écran se ferme aussi par la touche Échap, et bloque le défilement dessous. */
+    useEffect(() => {
+        if (!pleinEcran) return;
+        const surTouche = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onAnnuler();
+        };
+        const debordement = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', surTouche);
+        return () => {
+            document.body.style.overflow = debordement;
+            window.removeEventListener('keydown', surTouche);
+        };
+    }, [pleinEcran, onAnnuler]);
+
+    /* La géométrie : le cadre 3:1 le plus large possible, centré. Dans la page, la scène
+       mesure le cadre plus 72 d'image au-dessus et au-dessous ; plein écran, elle prend la
+       hauteur qui reste, et le cadre ne s'arrête qu'à 12 des bords. */
+    const margeX = pleinEcran ? 12 : 16;
+    const largeurDuCadre = Math.max(
+        0,
+        Math.min(
+            dimensions.l - 2 * margeX,
+            pleinEcran && dimensions.h > 0 ? (dimensions.h - 48) * 3 : Infinity,
+        ),
+    );
+    const k = largeurDuCadre / LARGEUR_CADRE;
+    const hauteurDuCadre = HAUTEUR_CADRE * k;
+    const hauteurScene = pleinEcran ? dimensions.h : Math.round(hauteurDuCadre + 144);
+    const gaucheDuCadre = (dimensions.l - largeurDuCadre) / 2;
+    const hautDuCadre = (hauteurScene - hauteurDuCadre) / 2;
+
+    const echelleDeBase = lue
+        ? Math.max(LARGEUR_CADRE / lue.original.width, HAUTEUR_CADRE / lue.original.height)
+        : 1;
+    const zoomAuto = lue ? poseAutomatique(lue).echelle / echelleDeBase : 1;
+    const zoomMax = Math.max(4, zoomAuto * 2);
+    const zoomMin = 0.25;
 
     useEffect(() => {
-        const canvas = canvasRef.current;
+        const canvas = scene.current;
+        const el = boite.current;
         const contexte = canvas?.getContext('2d');
-        if (!canvas || !contexte || !image) return;
-        contexte.clearRect(0, 0, LARGEUR, HAUTEUR);
-        const echelle = echelleDeBase * zoom;
-        const largeur = image.width * echelle;
-        const hauteur = image.height * echelle;
-        contexte.drawImage(
-            image,
-            (LARGEUR - largeur) / 2 + decalage.x,
-            (HAUTEUR - hauteur) / 2 + decalage.y,
-            largeur,
-            hauteur,
-        );
-    }, [image, zoom, decalage, echelleDeBase]);
+        if (
+            !canvas ||
+            !el ||
+            !contexte ||
+            !lue ||
+            !pose ||
+            dimensions.l === 0 ||
+            hauteurScene === 0
+        )
+            return;
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(dimensions.l * ratio);
+        canvas.height = Math.round(hauteurScene * ratio);
+        contexte.setTransform(ratio, 0, 0, ratio, 0, 0);
+        /* Les couleurs de la scène sont celles de sa boîte : creux clair dans la page,
+           fond sombre en plein écran. */
+        const styleDeBoite = getComputedStyle(el);
+        const fondDeScene = styleDeBoite.backgroundColor;
+        const encreDuCadre = styleDeBoite.color;
 
-    const pointeur = (event: React.PointerEvent<HTMLCanvasElement>) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { x: 0, y: 0 };
-        const boite = canvas.getBoundingClientRect();
+        contexte.clearRect(0, 0, dimensions.l, hauteurScene);
+        contexte.fillStyle = fondDeScene;
+        contexte.fillRect(0, 0, dimensions.l, hauteurScene);
+
+        /* L'image entière, à sa place, puis voilée hors du cadre. */
+        contexte.drawImage(
+            lue.original,
+            gaucheDuCadre + (LARGEUR_CADRE / 2 - pose.cx * pose.echelle) * k,
+            hautDuCadre + (HAUTEUR_CADRE / 2 - pose.cy * pose.echelle) * k,
+            lue.original.width * pose.echelle * k,
+            lue.original.height * pose.echelle * k,
+        );
+        contexte.globalAlpha = pleinEcran ? 0.55 : 0.66;
+        contexte.fillStyle = fondDeScene;
+        contexte.fillRect(0, 0, dimensions.l, hauteurScene);
+        contexte.globalAlpha = 1;
+
+        /* Le cadre : le tracé seul, sur blanc — ce qui sera apposé. */
+        contexte.save();
+        contexte.translate(gaucheDuCadre, hautDuCadre);
+        contexte.scale(k, k);
+        contexte.beginPath();
+        contexte.rect(0, 0, LARGEUR_CADRE, HAUTEUR_CADRE);
+        contexte.clip();
+        contexte.fillStyle = 'white';
+        contexte.fillRect(0, 0, LARGEUR_CADRE, HAUTEUR_CADRE);
+        dessinerLeCadre(contexte, lue, pose);
+        contexte.restore();
+
+        /* Le filet et les quatre coins. */
+        contexte.strokeStyle = encreDuCadre;
+        contexte.lineWidth = 1;
+        contexte.strokeRect(
+            gaucheDuCadre + 0.5,
+            hautDuCadre + 0.5,
+            largeurDuCadre - 1,
+            hauteurDuCadre - 1,
+        );
+        contexte.lineWidth = 3;
+        const coin = 20;
+        const x0 = gaucheDuCadre;
+        const y0 = hautDuCadre;
+        const x1 = gaucheDuCadre + largeurDuCadre;
+        const y1 = hautDuCadre + hauteurDuCadre;
+        contexte.beginPath();
+        [
+            [x0, y0 + coin, x0, y0, x0 + coin, y0],
+            [x1 - coin, y0, x1, y0, x1, y0 + coin],
+            [x0, y1 - coin, x0, y1, x0 + coin, y1],
+            [x1 - coin, y1, x1, y1, x1, y1 - coin],
+        ].forEach(([ax, ay, bx, by, cx, cy]) => {
+            contexte.moveTo(ax, ay);
+            contexte.lineTo(bx, by);
+            contexte.lineTo(cx, cy);
+        });
+        contexte.stroke();
+    }, [
+        lue,
+        pose,
+        dimensions.l,
+        hauteurScene,
+        gaucheDuCadre,
+        hautDuCadre,
+        hauteurDuCadre,
+        largeurDuCadre,
+        k,
+        pleinEcran,
+    ]);
+
+    /** Le point du pointeur, en unités du cadre (900 × 300), depuis le coin du cadre. */
+    const dansLeCadre = (clientX: number, clientY: number) => {
+        const rect = scene.current?.getBoundingClientRect();
+        if (!rect || k === 0) return { x: 0, y: 0 };
         return {
-            x: ((event.clientX - boite.left) / boite.width) * LARGEUR,
-            y: ((event.clientY - boite.top) / boite.height) * HAUTEUR,
+            x: (clientX - rect.left - gaucheDuCadre) / k,
+            y: (clientY - rect.top - hautDuCadre) / k,
         };
     };
 
-    return (
-        <div className="flex flex-col gap-4">
-            {/* La zone de 320 porte le cadre **au format de la case d'attestation** : les
-                poignées épousent le canevas, pas la boîte — sinon elles promettent un
-                recadrage que l'enregistrement ne fait pas. Rayon 8 : c'est une surface de
-                la page, pas un champ. */}
-            <div className="bg-surface-muted-strong rounded-card flex h-[320px] items-center justify-center overflow-hidden">
-                <div className="relative aspect-[3/1] w-full">
-                    <canvas
-                        ref={canvasRef}
-                        width={LARGEUR}
-                        height={HAUTEUR}
-                        onPointerDown={(event) => {
-                            glisse.current = pointeur(event);
-                            event.currentTarget.setPointerCapture(event.pointerId);
-                        }}
-                        onPointerMove={(event) => {
-                            if (!glisse.current) return;
-                            const point = pointeur(event);
-                            const depart = glisse.current;
-                            glisse.current = point;
-                            setDecalage((precedent) => ({
-                                x: precedent.x + (point.x - depart.x),
-                                y: precedent.y + (point.y - depart.y),
-                            }));
-                        }}
-                        onPointerUp={() => {
-                            glisse.current = null;
-                        }}
-                        onPointerCancel={() => {
-                            glisse.current = null;
-                        }}
-                        className="absolute inset-0 h-full w-full cursor-grab touch-none"
-                    />
-                    {/* Les quatre poignées du cadre — elles disent où l'image sera coupée ;
-                    elles ne se saisissent pas : c'est l'image qui bouge, pas le cadre. */}
-                    {[
-                        'top-0 left-0 border-t-2 border-l-2',
-                        'top-0 right-0 border-t-2 border-r-2',
-                        'bottom-0 left-0 border-b-2 border-l-2',
-                        'bottom-0 right-0 border-b-2 border-r-2',
-                    ].map((coin) => (
-                        <span
-                            key={coin}
-                            aria-hidden="true"
-                            className={cn(
-                                'border-on-surface pointer-events-none absolute h-6 w-6',
-                                coin,
-                            )}
-                        />
-                    ))}
-                </div>
-            </div>
+    const borner = (echelle: number) =>
+        Math.min(zoomMax * echelleDeBase, Math.max(zoomMin * echelleDeBase, echelle));
 
-            {/* `.zoom` — **le moins et le plus encadrent la piste** (07.1). Le curseur
-                seul demande un geste fin pour un réglage grossier ; les deux glyphes
-                donnent le cran, et disent au passage dans quel sens la piste travaille. */}
+    /** Change d'échelle en gardant fixe le point de l'image sous `ancre` (unités du cadre). */
+    const zoomerAutour = (depart: Pose, echelle: number, ancre: { x: number; y: number }): Pose => {
+        const suivante = borner(echelle);
+        const px = depart.cx + (ancre.x - LARGEUR_CADRE / 2) / depart.echelle;
+        const py = depart.cy + (ancre.y - HAUTEUR_CADRE / 2) / depart.echelle;
+        return {
+            echelle: suivante,
+            cx: px - (ancre.x - LARGEUR_CADRE / 2) / suivante,
+            cy: py - (ancre.y - HAUTEUR_CADRE / 2) / suivante,
+        };
+    };
+
+    const recadrerAutomatiquement = () => {
+        if (lue) setPose(poseAutomatique(lue));
+    };
+
+    /** Le PNG : le tracé seul, sans fond — il se pose sur la case teintée de l'attestation. */
+    const enregistrer = () => {
+        if (!lue || !pose) return;
+        const sortie = document.createElement('canvas');
+        sortie.width = LARGEUR_CADRE;
+        sortie.height = HAUTEUR_CADRE;
+        const contexte = sortie.getContext('2d');
+        if (!contexte) return;
+        dessinerLeCadre(contexte, lue, pose);
+        sortie.toBlob((image) => {
+            if (image) onEnregistrer(image);
+        }, 'image/png');
+    };
+
+    const canevas = (
+        <canvas
+            ref={scene}
+            style={{ height: hauteurScene || 240 }}
+            aria-label="L'image de la signature, et le cadre qui sera enregistré"
+            role="img"
+            onPointerDown={(event) => {
+                pointeurs.current.set(event.pointerId, dansLeCadre(event.clientX, event.clientY));
+                try {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                } catch {
+                    /* Un pointeur déjà relâché ne se capture pas : le geste continue. */
+                }
+                pincement.current = null;
+            }}
+            onPointerMove={(event) => {
+                const precedent = pointeurs.current.get(event.pointerId);
+                if (!precedent || !pose) return;
+                const point = dansLeCadre(event.clientX, event.clientY);
+                pointeurs.current.set(event.pointerId, point);
+                const actifs = [...pointeurs.current.values()];
+                if (actifs.length >= 2) {
+                    /* Deux doigts : l'échelle suit leur écart, autour de leur milieu, et le
+                       milieu qui se déplace fait glisser l'image. */
+                    const [a, b] = actifs;
+                    const distance = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+                    const milieu = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                    if (!pincement.current) {
+                        pincement.current = { distance, pose, milieu };
+                        return;
+                    }
+                    const depart = pincement.current;
+                    const zoomee = zoomerAutour(
+                        depart.pose,
+                        depart.pose.echelle * (distance / depart.distance),
+                        depart.milieu,
+                    );
+                    setPose({
+                        ...zoomee,
+                        cx: zoomee.cx - (milieu.x - depart.milieu.x) / zoomee.echelle,
+                        cy: zoomee.cy - (milieu.y - depart.milieu.y) / zoomee.echelle,
+                    });
+                    return;
+                }
+                setPose({
+                    ...pose,
+                    cx: pose.cx - (point.x - precedent.x) / pose.echelle,
+                    cy: pose.cy - (point.y - precedent.y) / pose.echelle,
+                });
+            }}
+            onPointerUp={(event) => {
+                pointeurs.current.delete(event.pointerId);
+                pincement.current = null;
+            }}
+            onPointerCancel={(event) => {
+                pointeurs.current.delete(event.pointerId);
+                pincement.current = null;
+            }}
+            onWheel={(event) => {
+                if (!pose) return;
+                setPose(
+                    zoomerAutour(
+                        pose,
+                        pose.echelle * Math.exp(-event.deltaY * 0.0015),
+                        dansLeCadre(event.clientX, event.clientY),
+                    ),
+                );
+            }}
+            onDoubleClick={recadrerAutomatiquement}
+            className="block w-full cursor-grab touch-none active:cursor-grabbing"
+        />
+    );
+
+    const reglages = (
+        <>
             <Slider
                 label="Taille de la signature"
-                min={0.5}
-                max={4}
+                min={zoomMin}
+                max={zoomMax}
                 step={0.05}
                 stepperStep={0.25}
                 steppers
-                value={zoom}
-                onChange={setZoom}
-                valueText={`${zoom.toFixed(1).replace('.', ',')}×`}
+                value={pose ? pose.echelle / echelleDeBase : 1}
+                onChange={(zoom) =>
+                    pose &&
+                    setPose(
+                        zoomerAutour(pose, zoom * echelleDeBase, {
+                            x: LARGEUR_CADRE / 2,
+                            y: HAUTEUR_CADRE / 2,
+                        }),
+                    )
+                }
+                valueText={`${(pose ? pose.echelle / echelleDeBase : 1).toFixed(1).replace('.', ',')}×`}
             />
 
-            {/* `.alt` — **sous le réglage, pas avant le cadre.** Elle ne dit plus quoi
-                faire (le cadre le montre) mais ce que le geste garantit : ce qu'on voit
-                est ce qui sera enregistré. C'est la phrase qui dispense de vérifier. */}
-            <p className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2">
-                <Icon
-                    glyph={HandPointing}
-                    size={18}
-                    className="text-text-tertiary mt-px shrink-0"
-                />
-                <span>
-                    Glissez l'image, pincez pour zoomer.{' '}
-                    <b className="text-on-surface font-medium">Le cadre garde ce qu'il contient.</b>
-                </span>
-            </p>
+            {/* La consigne pleine largeur, le geste dessous au téléphone ; côte à côte au-delà. */}
+            <div className="medium:flex-row medium:items-center medium:justify-between flex flex-col items-start gap-x-4 gap-y-1">
+                <p className="text-on-surface-variant text-ts-sub leading-ts-sub flex min-w-0 items-start gap-2">
+                    <Icon
+                        glyph={HandPointing}
+                        size={18}
+                        className="text-text-tertiary mt-px shrink-0"
+                    />
+                    <span>
+                        {lue && !lue.encre
+                            ? 'Aucun tracé reconnu : cadrez à la main.'
+                            : 'Glissez, pincez, ou touchez deux fois pour recadrer.'}{' '}
+                        <b className="text-on-surface font-medium">
+                            Le cadre garde le tracé, sans le fond.
+                        </b>
+                    </span>
+                </p>
+                <Button
+                    variant="text"
+                    icon={<Icon glyph={MagicWand} size={18} />}
+                    onClick={recadrerAutomatiquement}
+                    disabled={!lue?.encre}
+                    className="text-on-surface -ml-2 shrink-0 px-2"
+                >
+                    Recadrer automatiquement
+                </Button>
+            </div>
 
-            {/* `.pfoot` — deux gestes, le second enregistre, détachés par un filet.
-                07.1 les **colle au bas de l'écran** sur sa coque pleine page ; le
-                recadrage vit ici dans le flux des réglages, et une barre de surface
-                pleine largeur y flotterait au milieu du vide dès que la page est courte.
-                Le filet fait le même travail sans mentir sur la structure. */}
+            {/* `.pfoot` — deux gestes, le second enregistre, détachés par un filet. */}
             <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
                 <Button
                     variant="tonal"
@@ -1991,15 +2584,59 @@ const SignatureCrop: React.FC<{
                 <Button
                     variant="filled"
                     className="justify-center"
-                    onClick={() =>
-                        canvasRef.current?.toBlob((image) => {
-                            if (image) onEnregistrer(image);
-                        }, 'image/png')
-                    }
+                    disabled={!lue}
+                    onClick={enregistrer}
                 >
                     Enregistrer
                 </Button>
             </div>
+        </>
+    );
+
+    if (pleinEcran) {
+        return (
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Recadrer la signature"
+                className="bg-inverse-surface text-inverse-on-surface fixed inset-0 z-[80] flex flex-col"
+            >
+                <div className="flex h-14 shrink-0 items-center gap-1 px-1 pt-[env(safe-area-inset-top,0px)]">
+                    <Button
+                        variant="text"
+                        iconOnly
+                        aria-label="Fermer sans enregistrer"
+                        onClick={onAnnuler}
+                        className="text-inverse-on-surface hover:bg-white/10"
+                    >
+                        <Icon glyph={X} size={24} />
+                    </Button>
+                    <h2 className="font-brand text-ts-head leading-ts-head min-w-0 flex-1 truncate font-semibold">
+                        Recadrer la signature
+                    </h2>
+                </div>
+                <div
+                    ref={boite}
+                    className="bg-inverse-surface text-inverse-on-surface relative min-h-0 flex-1 overflow-hidden"
+                >
+                    {canevas}
+                </div>
+                <div className="bg-surface text-on-surface flex shrink-0 flex-col gap-3 rounded-t-xl px-5 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+                    {reglages}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div
+                ref={boite}
+                className="rounded-card bg-surface-container text-on-surface overflow-hidden"
+            >
+                {canevas}
+            </div>
+            {reglages}
         </div>
     );
 };

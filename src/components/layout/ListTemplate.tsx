@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
     CaretDown,
     ArrowBendDownLeft,
+    Checks,
     ArrowLeft,
     Funnel,
     List,
@@ -25,6 +26,8 @@ import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useOptionalData } from '../../context/DataContext';
 import { OfflineState } from '../ui/ScreenState';
 import SelectionTopBar from '../ui/SelectionTopBar';
+import SelectionBarBureau from '../ui/SelectionBarBureau';
+import CardEmptyState from '../ui/CardEmptyState';
 import { useDeclareSelectionRegime } from '../../context/SelectionRegimeContext';
 import BulkActionBar from '../ui/BulkActionBar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -32,6 +35,8 @@ import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { MEDIA } from '../../constants/breakpoints';
 import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
 import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
+import { useEchap } from '../../hooks/useEchap';
+import { useEntree } from '../../hooks/useEntree';
 import { cn } from '../../lib/utils';
 /* Le régime du bureau : la fenêtre, les étages qui rétrécissent, le corps qui défile. */
 import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../lib/regimeBureau';
@@ -103,6 +108,19 @@ export interface ListFacet {
 
 interface ListTemplateProps {
     title: string;
+    /**
+     * **Ce qui suit le titre au bureau, à la place de la ligne de compte** (26/09) — les
+     * onglets segmentés de Tâches (« À faire 8 · À suivre 9 · Historique »). Le téléphone
+     * garde sa ligne de compte.
+     */
+    titreAnnexe?: React.ReactNode;
+    /**
+     * **La ligne d'outils du bureau, posée par la page** (26/09) — quand elle suit sa propre
+     * maquette (Tâches : un champ de 300, trois puces de ce qui presse, l'ordre à droite).
+     * Elle remplace la ligne composée à partir de `search`, `facets`, `filter` et `sort`,
+     * qui restent ceux du téléphone.
+     */
+    outilsBureau?: React.ReactNode;
     /** Le second fait de l'en-tête — « 14 au parc ». Jamais une redite du titre. */
     subtitle?: string;
     onBack?: () => void;
@@ -122,6 +140,11 @@ interface ListTemplateProps {
         value: string;
         onChange: (value: string) => void;
         placeholder: string;
+        /**
+         * **Un champ de 280 au bureau** (26/09) — pour une ligne d'outils chargée : celle de
+         * Tâches porte trois partitions, la nature, deux filtres rapides et l'ordre.
+         */
+        etroit?: boolean;
     };
     /** Le bouton de filtre et sa feuille — l'appelant les fournit, le gabarit les place. */
     filter?: React.ReactNode;
@@ -213,12 +236,25 @@ interface ListTemplateProps {
      * (5 ou 4/12) »*. Le téléphone empile les niveaux, un par écran ; le bureau les pose
      * côte à côte, et cliquer une rangée **sélectionne** au lieu de naviguer.
      *
-     * Il n'apparaît qu'à partir de **1280**. En deçà, le second niveau reste ce qu'il est
-     * au téléphone. Absent : la page n'a qu'un niveau.
+     * Il n'apparaît qu'à partir de **1 000** (`MEDIA.twoColumn`, 1 280 avant le 25/09). En
+     * deçà, le second niveau reste ce qu'il est au téléphone. Absent : la page n'a qu'un
+     * niveau.
      */
     panel?: React.ReactNode;
     /** La part du second niveau — 5 douzièmes par défaut, 4 quand la liste porte un tableau (16.1). */
     panelRatio?: 4 | 5;
+    /**
+     * **La liste et la fiche** (P2a, 25/09) — le patron liste-détail de Material et d'Apple :
+     * dès **840**, la liste fixe de **360 px** à gauche, la fiche dans tout le reste. Il
+     * remplace les douzièmes pour les listes d'objets (Actifs, Équipe, Historique, Tâches
+     * sur tablette) : une liste se parcourt à largeur de rangée, c'est la fiche qui lit.
+     */
+    listeEtFiche?: boolean;
+    /**
+     * **Une file à 400** (26/09) — la liste de Tâches passe de 360 à 400 dès 1 200 : sa
+     * rangée porte la nature écrite et l'urgence, et le panneau de décision prend le reste.
+     */
+    listeLarge?: boolean;
 
     /** Mode sélection (17.2). Absent : l'écran ne sélectionne pas. */
     selection?: {
@@ -259,7 +295,11 @@ interface ListTemplateProps {
      * l'arrivée de la donnée — ce que le squelette est précisément là pour éviter.
      */
     skeleton?: 'liste' | 'file';
-    /** Ce que l'écran montre quand il n'y a rien — un `ScreenState` (17.1). */
+    /**
+     * Ce que la liste montre quand il n'y a rien — un `CardEmptyState`, que le gabarit
+     * pose dans la carte des rangées (25/09). Il ne redouble pas le geste d'ajout de la
+     * page : au plus une sortie de filtre, qui nomme sa destination.
+     */
     empty?: React.ReactNode;
     /** Le pied de liste : ce que la liste compte, ou ce qu'elle attend. */
     footer?: React.ReactNode;
@@ -319,6 +359,8 @@ const Reading: React.FC<{ children: React.ReactNode; className?: string }> = ({
 
 const ListTemplate: React.FC<ListTemplateProps> = ({
     title,
+    titreAnnexe,
+    outilsBureau,
     subtitle,
     onBack,
     retourAuBureau = false,
@@ -338,6 +380,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     view,
     body = 'lecture',
     panel,
+    listeEtFiche = false,
+    listeLarge = false,
     panelRatio = 5,
     selection,
     hero,
@@ -353,13 +397,20 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     className,
 }) => {
     const isCompact = useMediaQuery(MEDIA.compact);
-    /* 1280 — le seuil des neuf écrans de bureau : 1280 moins les 240 de la barre
-       latérale laissent 1 016 px, dont 4 douzièmes font encore 330 px de panneau. */
+    /* 1 000 — le seuil des écrans à deux niveaux (25/09) : sur tablette la barre latérale est
+       un rail (80), et 1 000 − 80 laissent 920 px, ce que Material demande à deux volets ;
+       l'iPad de 1 024 en paysage y entre. */
     const largeurDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
+    const largeurListeEtFiche = useMediaQuery(MEDIA.expandedUp);
 
     /* La coque doit savoir qu'on est en sélection : c'est elle qui porte la barre du
        bas, à qui le pied d'actes prend la place (17.2). */
     useDeclareSelectionRegime(Boolean(selection?.active));
+    /* Échap quitte la sélection groupée (P3) — le geste de la croix de la barre de sélection. */
+    /* La page s'assemble à son arrivée (26/09) : ses rangées entrent en cascade. */
+    const entree = useEntree();
+    const sortirDeLaSelection = selection?.onExit;
+    useEchap(Boolean(selection?.active && sortirDeLaSelection), () => sortirDeLaSelection?.());
     /*
      * **Le squelette se déclenche à l'hydratation, pas sur demande de la page.**
      * 17.3 pose trois formes pour vingt-huit écrans ; elles étaient définies et
@@ -517,7 +568,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     aria-label={cran.mot}
                                     title={cran.mot}
                                     className={cn(
-                                        'flex h-7 w-7 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent',
+                                        'duration-short3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[3px] border-0 bg-transparent transition-[background-color,color,box-shadow]',
                                         view.value === cran.id
                                             ? 'bg-surface text-on-surface shadow-[0_1px_2px_rgba(10,25,29,0.10)]'
                                             : 'text-text-muted hover:text-on-surface',
@@ -558,9 +609,11 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     */
     const enTableauLarge = !isCompact && (view?.value === 'tableau' || body === 'tableau');
 
-    /* En sélection groupée, le panneau se retire : la page ne traite plus un sujet, elle
-       en désigne plusieurs (17.2). */
-    const deuxNiveaux = largeurDeuxNiveaux && Boolean(panel) && !selection?.active;
+    /* **En sélection groupée, le panneau reste et résume la sélection** (26/09). 17.2 le
+       retirait — la page ne traite plus un sujet, elle en désigne plusieurs —, mais au bureau
+       la liste sautait alors de 400 à 1 008 px et changeait d'alignement sous le curseur. Le
+       panneau garde sa place et dit ce qui est désigné. */
+    const deuxNiveaux = (listeEtFiche ? largeurListeEtFiche : largeurDeuxNiveaux) && Boolean(panel);
 
     /* La ligne d'outils du bureau porte quatre sortes d'objets ; sans aucun, elle
        n'existe pas — un écran sans recherche ni tri n'a pas de bande vide sous son
@@ -577,6 +630,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 <Reading className="flex items-center gap-2">
                     {search && (
                         <SearchField
+                            raccourci
                             value={search.value}
                             onChange={search.onChange}
                             placeholder={search.placeholder}
@@ -640,6 +694,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
         <div
             className={cn(
                 'relative flex min-h-0 w-full min-w-0 flex-1 flex-col',
+                entree && 'mvt-cascade',
                 PAGE_BUREAU,
                 /* **La mesure du bureau** — `.main.read` de 17.11, 1008. Une liste en cartes
                    est une colonne de rangées : étirée sur 1200, le nom d'une rangée et son
@@ -660,7 +715,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 04.1 le redit de la recherche, et 01.1 au bureau de l'en-tête. Il défilait
                 avec la page, au téléphone comme au bureau. */}
             <div className="bg-background sticky top-0 z-20">
-                {selection?.active ? (
+                {selection?.active && isCompact ? (
                     <SelectionTopBar
                         count={selection.count}
                         total={selection.total}
@@ -770,11 +825,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         {title}
                                     </h1>
                                 </div>
-                                {/* Le compte s'aligne sur la **première ligne** du titre, pas sur
-                                    son milieu : 6 px de retrait, comme `.cnt2` de la planche. */}
-                                <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
-                                    {ligneDeCompte}
-                                </span>
+                                {titreAnnexe && !selection?.active ? (
+                                    <div className="flex min-w-0 flex-1 items-center">
+                                        {titreAnnexe}
+                                    </div>
+                                ) : (
+                                    /* Le compte s'aligne sur la **première ligne** du titre, pas sur
+                                       son milieu : 6 px de retrait, comme `.cnt2` de la planche. */
+                                    <span className="text-text-muted doigt:text-ts-sub doigt:leading-ts-sub min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">
+                                        {ligneDeCompte}
+                                    </span>
+                                )}
                                 {actions}
                                 {/* Le geste d'ajout passé par `fab` monte ici au bureau : il n'y
                                     flotte pas (17.11). */}
@@ -798,7 +859,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                                    chevron de 18** : il dit qu'un choix suit. */
                                                 <Button
                                                     variant="filled"
-                                                    className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                                    className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
                                                 >
                                                     <Icon
                                                         glyph={pageAction.glyph ?? Plus}
@@ -816,7 +877,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                             /* `min-h-10` et pas seulement `h-10` : la taille `md`
                                                de `Button` pose `min-h-12`, et une hauteur fixe ne
                                                bat pas un minimum — le bouton restait à 48. */
-                                            className="h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
+                                            className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium shadow-none"
                                         >
                                             <Icon glyph={pageAction.glyph ?? Plus} size={20} />
                                             {pageAction.label}
@@ -824,107 +885,137 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     ))}
                             </div>
 
-                            {hasDeskTools && (
-                                /* Elle se replie plutôt qu'elle ne déborde : au rail (600–839) il
+                            {selection?.active ? (
+                                /* **La sélection au bureau** (26/09) : le titre reste, la
+                                   barre prend la place de la ligne d'outils et porte les
+                                   gestes. Plus de pied pleine largeur sous la barre latérale. */
+                                <div className="pb-1">
+                                    <SelectionBarBureau
+                                        count={selection.count}
+                                        total={selection.total}
+                                        onExit={selection.onExit}
+                                        onSelectAll={selection.onSelectAll}
+                                        onClearAll={selection.onClearAll}
+                                        actions={selection.actions}
+                                        overflow={selection.bulkOverflow}
+                                    />
+                                </div>
+                            ) : outilsBureau ? (
+                                outilsBureau
+                            ) : (
+                                hasDeskTools && (
+                                    /* Elle se replie plutôt qu'elle ne déborde : au rail (600–839) il
                                    reste 680 px, et le champ, l'entonnoir, les pastilles, le tri
                                    et le sélecteur n'y tiennent pas d'une seule ligne. */
-                                <div className="flex flex-wrap items-center gap-3 pb-1">
-                                    {search && (
-                                        <SearchField
-                                            dense
-                                            value={search.value}
-                                            onChange={search.onChange}
-                                            placeholder={search.placeholder}
-                                            className="w-[320px] max-w-full"
-                                        />
-                                    )}
-                                    {/* Les pastilles d'abord, **puis** le menu de filtre : 03.3 pose
+                                    <div className="flex flex-wrap items-center gap-3 pb-1">
+                                        {search && (
+                                            <SearchField
+                                                dense
+                                                raccourci
+                                                value={search.value}
+                                                onChange={search.onChange}
+                                                placeholder={search.placeholder}
+                                                className={cn(
+                                                    'max-w-full',
+                                                    search.etroit ? 'w-[280px]' : 'w-[320px]',
+                                                )}
+                                            />
+                                        )}
+                                        {/* Les pastilles d'abord, **puis** le menu de filtre : 03.3 pose
                                        « À faire · À suivre · Historique » avant « Toutes les natures ⌄ ».
                                        Le menu passait devant. Seule la file porte les deux. */}
-                                    {facets && facets.length > 0 && (
-                                        /* `.tools .fchip` — des voisines de la ligne, à **12** comme le
+                                        {facets && facets.length > 0 && (
+                                            /* `.tools .fchip` — des voisines de la ligne, à **12** comme le
                                            reste des outils ; le groupe ne s'étire plus (`flex-1`),
                                            sinon le menu qui suit partait au bout de la ligne. */
-                                        <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
-                                            {facets.map((facet) => (
-                                                <FacetChip
-                                                    key={facet.id}
-                                                    dense
-                                                    label={facet.label}
-                                                    count={facet.count}
-                                                    icon={facet.icon}
-                                                    tone={facet.tone}
-                                                    selected={facet.id === activeFacetId}
-                                                    onClick={() => onFacetSelect?.(facet.id)}
-                                                    onClear={
-                                                        facet.id === activeFacetId
-                                                            ? onActiveFacetClear
-                                                            : undefined
-                                                    }
-                                                    clearLabel={activeFacetClearLabel}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                    {filter}
-                                    {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
-                                        deux réglages de la vue, quand ce qui précède la filtre. */}
-                                    {(sort || view) && (
-                                        <span className="ml-auto flex shrink-0 items-center gap-3">
-                                            {sort && (
-                                                <button
-                                                    type="button"
-                                                    onClick={sort.onClick}
-                                                    className="text-on-surface flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[0.8125rem] leading-[1.125rem] font-medium"
-                                                >
-                                                    <Icon
-                                                        glyph={SortAscending}
-                                                        size={20}
-                                                        className="text-text-muted"
+                                            <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
+                                                {facets.map((facet) => (
+                                                    <FacetChip
+                                                        key={facet.id}
+                                                        dense
+                                                        label={facet.label}
+                                                        count={facet.count}
+                                                        icon={facet.icon}
+                                                        tone={facet.tone}
+                                                        selected={facet.id === activeFacetId}
+                                                        onClick={() => onFacetSelect?.(facet.id)}
+                                                        onClear={
+                                                            facet.id === activeFacetId
+                                                                ? onActiveFacetClear
+                                                                : undefined
+                                                        }
+                                                        clearLabel={activeFacetClearLabel}
                                                     />
-                                                    {sort.label}
-                                                </button>
-                                            )}
-                                            {view && (
-                                                /* `.seg` — deux crans de 40 sur 38 dans un cerné
+                                                ))}
+                                            </div>
+                                        )}
+                                        {filter}
+                                        {/* `.sort` et `.seg` — poussés à droite ensemble : ce sont les
+                                        deux réglages de la vue, quand ce qui précède la filtre. */}
+                                        {(sort || view) && (
+                                            <span className="ml-auto flex shrink-0 items-center gap-3">
+                                                {sort && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={sort.onClick}
+                                                        className="text-on-surface doigt:min-h-12 doigt:text-ts-sub doigt:leading-ts-sub flex min-h-10 cursor-pointer items-center gap-1 border-0 bg-transparent text-[0.8125rem] leading-[1.125rem] font-medium"
+                                                    >
+                                                        <Icon
+                                                            glyph={SortAscending}
+                                                            size={20}
+                                                            className="text-text-muted"
+                                                        />
+                                                        {sort.label}
+                                                    </button>
+                                                )}
+                                                {view && (
+                                                    /* `.seg` — deux crans de 40 sur 38 dans un cerné
                                                    de rayon 4, le cran retenu en `--inset-2`. Au
                                                    téléphone le même sélecteur vit dans la ligne
                                                    de service, en creux et sans filet : ici il
                                                    s'aligne sur les autres objets de la ligne. */
-                                                <span className="border-outline-variant bg-surface flex shrink-0 items-center overflow-hidden rounded-md border">
-                                                    {[
-                                                        {
-                                                            id: 'cartes' as const,
-                                                            glyph: Rows,
-                                                            mot: 'Cartes',
-                                                        },
-                                                        {
-                                                            id: 'tableau' as const,
-                                                            glyph: Table,
-                                                            mot: 'Tableau',
-                                                        },
-                                                    ].map((cran) => (
-                                                        <button
-                                                            key={cran.id}
-                                                            type="button"
-                                                            onClick={() => view.onChange(cran.id)}
-                                                            aria-pressed={view.value === cran.id}
-                                                            aria-label={cran.mot}
-                                                            className={cn(
-                                                                'flex h-[38px] w-10 cursor-pointer items-center justify-center border-0 bg-transparent',
-                                                                view.value === cran.id
-                                                                    ? 'bg-surface-muted-strong text-on-surface'
-                                                                    : 'text-text-muted hover:text-on-surface',
-                                                            )}
-                                                        >
-                                                            <Icon glyph={cran.glyph} size={20} />
-                                                        </button>
-                                                    ))}
-                                                </span>
-                                            )}
-                                        </span>
-                                    )}
-                                </div>
+                                                    <span className="border-outline-variant bg-surface flex shrink-0 items-center overflow-hidden rounded-md border">
+                                                        {[
+                                                            {
+                                                                id: 'cartes' as const,
+                                                                glyph: Rows,
+                                                                mot: 'Cartes',
+                                                            },
+                                                            {
+                                                                id: 'tableau' as const,
+                                                                glyph: Table,
+                                                                mot: 'Tableau',
+                                                            },
+                                                        ].map((cran) => (
+                                                            <button
+                                                                key={cran.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    view.onChange(cran.id)
+                                                                }
+                                                                aria-pressed={
+                                                                    view.value === cran.id
+                                                                }
+                                                                aria-label={cran.mot}
+                                                                className={cn(
+                                                                    'doigt:h-[46px] doigt:w-12 duration-short3 flex h-[38px] w-10 cursor-pointer items-center justify-center border-0 bg-transparent transition-colors',
+                                                                    view.value === cran.id
+                                                                        ? 'bg-surface-muted-strong text-on-surface'
+                                                                        : 'text-text-muted hover:text-on-surface',
+                                                                )}
+                                                            >
+                                                                <Icon
+                                                                    glyph={cran.glyph}
+                                                                    size={20}
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                )
                             )}
                         </div>
                     </IconGestureSizeContext.Provider>
@@ -963,8 +1054,15 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     <div
                         className={cn(
                             'flex min-w-0 flex-col gap-4',
-                            deuxNiveaux ? 'shrink grow-[8] basis-0' : 'flex-1',
-                            deuxNiveaux && panelRatio === 5 && 'grow-[7]',
+                            deuxNiveaux
+                                ? listeEtFiche
+                                    ? cn(
+                                          'w-[360px] shrink-0 grow-0',
+                                          listeLarge && 'large:w-[400px]',
+                                      )
+                                    : 'shrink grow-[8] basis-0'
+                                : 'flex-1',
+                            deuxNiveaux && !listeEtFiche && panelRatio === 5 && 'grow-[7]',
                             CADRE_BUREAU,
                         )}
                     >
@@ -1141,8 +1239,26 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                         CADRE_BUREAU,
                                     )}
                                 >
-                                    {empty}
-                                    {children}
+                                    {/* **Le vide reste dans la carte de la liste** (25/09) : il
+                                        flottait sur le canevas, en forme d'écran (rond de 96,
+                                        titre de 22), sous un héro qui, lui, est une carte. La
+                                        carte garde la place et la mesure des rangées absentes ;
+                                        la page y pose un `CardEmptyState`.
+                                        Les enfants n'y suivent plus : sans rangée, ils ne
+                                        portaient que l'en-tête d'un tableau vide ou les
+                                        intitulés de colonne, posés sous le vide. */}
+                                    {empty ? (
+                                        <div
+                                            className={cn(
+                                                'bg-surface flex w-full flex-1 flex-col rounded-xl',
+                                                !deuxNiveaux && 'large:max-w-none max-w-[960px]',
+                                            )}
+                                        >
+                                            {empty}
+                                        </div>
+                                    ) : (
+                                        children
+                                    )}
                                 </div>
                             ))
                         )}
@@ -1182,17 +1298,28 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <aside
                             className={cn(
                                 'sticky top-4 min-w-0 shrink basis-0',
-                                panelRatio === 4 ? 'grow-[4]' : 'grow-[5]',
-                                'expanded:static expanded:min-h-0 expanded:self-stretch expanded:overflow-y-auto',
+                                listeEtFiche ? 'grow' : panelRatio === 4 ? 'grow-[4]' : 'grow-[5]',
+                                'expanded:static expanded:min-h-0 expanded:self-stretch expanded:overflow-y-auto expanded:overscroll-contain',
                             )}
                         >
-                            {panel}
+                            {selection?.active ? (
+                                /* Le panneau résume ce qui est désigné (26/09). */
+                                <div className="bg-surface flex h-full flex-col rounded-xl">
+                                    <CardEmptyState
+                                        glyph={Checks}
+                                        title={`${selection.count} dans la sélection`}
+                                        description="Les gestes de la barre s’appliquent à chacun. Échap pour en sortir."
+                                    />
+                                </div>
+                            ) : (
+                                panel
+                            )}
                         </aside>
                     )}
                 </div>
             </div>
 
-            {selection?.active ? (
+            {selection?.active && isCompact ? (
                 <BulkActionBar count={selection.count} overflow={selection.bulkOverflow}>
                     {selection.actions}
                 </BulkActionBar>

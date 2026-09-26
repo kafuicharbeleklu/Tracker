@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Package, User, Warning, Wrench, XCircle } from '@phosphor-icons/react';
+import React, { useEffect, useState } from 'react';
+import { Package, User, Warning, Wrench, XCircle } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Attestation, { type AttestationMethod } from '../../../components/ui/Attestation';
 import { signatureService } from '../../../services/signatureService';
 import Button from '../../../components/ui/Button';
-import FilePicker from '../../../components/ui/FilePicker';
+import PhotosJointes, { usePhotosJointes } from '../../../components/ui/PhotosJointes';
 import Icon from '../../../components/ui/Icon';
 import { TextArea } from '../../../components/ui/TextArea';
 import { cn } from '../../../lib/utils';
@@ -15,7 +15,6 @@ import {
     Consequences,
     FieldLabel,
     OptionRow,
-    ShotBox,
     SubjectRow,
     type Tint,
 } from '../../../components/ui/FormParts';
@@ -91,7 +90,12 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     onDeclare,
 }) => {
     const [outcome, setOutcome] = useState<IncidentOutcome>('immobilised');
-    const [photos, setPhotos] = useState<string[]>([]);
+    const {
+        photos,
+        ajouter: ajouterPhotos,
+        retirer: retirerPhoto,
+        vider: viderPhotos,
+    } = usePhotosJointes();
     /** Ce que la borne de 5 Mo a écarté — lu sous le champ des photos. */
     const [refusPhoto, setRefusPhoto] = useState<string | null>(null);
     const [comment, setComment] = useState('');
@@ -119,7 +123,6 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
             vivant = false;
         };
     }, [open, declarer?.pin, declarer?.id]);
-    const photoInput = useRef<HTMLInputElement>(null);
 
     const chosen = OUTCOMES.find((entry) => entry.value === outcome)!;
     const holderName = item.user?.name;
@@ -180,7 +183,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
 
     const close = () => {
         setOutcome('immobilised');
-        setPhotos([]);
+        viderPhotos();
         setComment('');
         setEtape('recap');
         onClose();
@@ -213,41 +216,18 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
 
                     <div>
                         <FieldLabel>Ce qu'on voit</FieldLabel>
-                        {/* `.shots` — des carrés de 56, la case d'une photo. */}
-                        <div className="flex flex-wrap gap-2">
-                            {photos.map((name, index) => (
-                                <ShotBox
-                                    key={`${name}-${index}`}
-                                    glyph={Camera}
-                                    filled
-                                    title={name}
-                                    aria-label={`Photo jointe : ${name} — retirer`}
-                                    onClick={() =>
-                                        setPhotos((prev) =>
-                                            prev.filter((_, position) => position !== index),
-                                        )
-                                    }
-                                />
-                            ))}
-                            <ShotBox
-                                glyph={Camera}
-                                label="ajouter"
-                                aria-label="Ajouter une photo de l'incident"
-                                onClick={() => photoInput.current?.click()}
-                            />
-                            <FilePicker
-                                ref={photoInput}
-                                accept="image/*"
-                                multiple
-                                onFiles={(names) => {
-                                    setRefusPhoto(null);
-                                    setPhotos((prev) =>
-                                        names.length > 0 ? [...prev, ...names] : prev,
-                                    );
-                                }}
-                                onReject={setRefusPhoto}
-                            />
-                        </div>
+                        {/* `.shots` — des carrés de 56 : la miniature de chaque photo, qui
+                            s'ouvre en grand ; la croix du coin la retire (25/09). */}
+                        <PhotosJointes
+                            photos={photos}
+                            labelAjout="Ajouter une photo de l'incident"
+                            onAjouter={(fichiers) => {
+                                setRefusPhoto(null);
+                                ajouterPhotos(fichiers);
+                            }}
+                            onRetirer={retirerPhoto}
+                            onRefus={setRefusPhoto}
+                        />
                         {/* La borne de 17.10 : le refus se lit **au champ**, là où la photo
                         a été choisie, et nomme le fichier et sa taille (17.5). */}
                         {refusPhoto && (
@@ -318,7 +298,12 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                             icon={<Icon glyph={Warning} size={18} />}
                             disabled={!attestation.done}
                             onClick={() => {
-                                onDeclare({ outcome, photos, comment, method: attestation.method });
+                                onDeclare({
+                                    outcome,
+                                    photos: photos.map((photo) => photo.nom),
+                                    comment,
+                                    method: attestation.method,
+                                });
                                 close();
                             }}
                             className={cn(chosen.value === 'serves' && 'bg-primary')}

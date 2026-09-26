@@ -92,7 +92,7 @@ const ListActionFab: React.FC<ListActionFabProps> = ({ label, sheetTitle, action
                 <Button
                     variant="filled"
                     className={cn(
-                        'h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium',
+                        'doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-3 pl-2.5 text-[0.875rem] font-medium',
                         className,
                     )}
                     aria-controls={soleAction ? undefined : sheetId}

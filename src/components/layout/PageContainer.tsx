@@ -29,7 +29,8 @@ export const PageContainer: React.FC<PageContainerProps> = ({
                 // MD3 page margins: 16dp compact, 24dp medium+
                 padding === 'page' && 'p-page-sm medium:p-page pb-10',
                 'space-y-5',
-                'animate-in fade-in slide-in-from-bottom-4 duration-500',
+                /* Plus d'entrée propre (26/09) : la coque anime le passage d'une page à
+                   l'autre (`useTransitionDePage`) ; celle-ci s'y ajoutait, sur 500 ms. */
                 'mx-auto w-full max-w-[1600px] min-w-0',
                 className,
             )}

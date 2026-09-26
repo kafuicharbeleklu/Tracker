@@ -38,6 +38,8 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({ count, children, overflow
         <div
             className={cn(
                 'border-outline-variant bg-surface fixed right-0 bottom-0 left-0 z-50 grid gap-3 border-t px-4 pt-3 pb-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
+                /* Elle monte du bas en entrant en sélection (26/09). */
+                'mvt-barre',
                 overflow ? 'grid-cols-[1fr_48px]' : 'grid-cols-1',
                 className,
             )}

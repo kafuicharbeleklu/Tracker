@@ -1,10 +1,18 @@
-import React, { useEffect } from 'react';
-import { CaretLeft, CaretUpDown, SidebarSimple } from '@phosphor-icons/react';
+import React, { useEffect, useMemo } from 'react';
+import {
+    CaretLeft,
+    CaretUpDown,
+    List,
+    SidebarSimple,
+    type Icon as PhosphorGlyph,
+} from '@phosphor-icons/react';
 
 import { cn } from '../../lib/utils';
 import { ViewType } from '../../types';
 import { DESTINATIONS, sectionOfView, type DestinationId } from '../../constants/destinations';
 import { useNavigationDestinations } from '../../hooks/useNavigationDestinations';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
 import { useAccountMenu } from '../../hooks/useAccountMenu';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
 import { APP_CONFIG } from '../../config';
@@ -52,6 +60,16 @@ import Button from '../ui/Button';
  * 11. Replier ne fabrique donc pas une troisième forme de navigation — cela ramène la
  * barre latérale au régime qui la précède. Le raccourci est `[`, et l'état est retenu.
  *
+ * ## Sur tablette, le rail porte ses mots
+ *
+ * Sous 1 280 la barre ne se déploie pas (25/09). Repliée, elle n'était que des glyphes de
+ * 20 dans 64 px, et leurs noms des infobulles — qu'un doigt ne fait jamais paraître : sur
+ * tablette, on naviguait à la forme d'une icône. Le rail y reprend donc la forme de Material
+ * (80 px, le glyphe dans un creux de 56 × 32, **son mot dessous**) et en garde la borne :
+ * **sept cases au plus**. Au-delà, six destinations et « Plus », qui ouvre le reste à droite
+ * du rail, par groupes. Le bureau replié (≥ 1 280, à la souris) garde les glyphes seuls et
+ * leurs infobulles.
+ *
  * ## Le pied porte la personne
  *
  * Avatar, nom, rôle, ⋮ — le motif « profil épinglé en bas » des outils d'équipe, retenu
@@ -65,13 +83,84 @@ interface SidebarProps {
     isCollapsed: boolean;
     onToggleCollapse: () => void;
     /**
-     * Le régime autorise-t-il le déploiement ? À `medium` (600–839), non : 00.3 y tient
-     * **le rail**, et déployer 264 px sur 768 ne laisserait pas ses 360 px à une
-     * colonne. Le geste de repli et son raccourci n'existent donc pas là.
+     * Le régime autorise-t-il le déploiement ? **Sous 1280, non** (25/09 ; c'était sous 840) :
+     * sur tablette la barre est le **rail à mots** — déployée, elle prenait 240 px d'un écran
+     * de 1024 ou 1180. Le geste de repli et son raccourci n'existent donc pas là.
      */
     canExpand?: boolean;
     className?: string;
 }
+
+/** Le rail compte sept cases au plus — Material en admet trois à sept. */
+const RAIL_MAX = 7;
+
+/**
+ * **Ce qui monte au rail quand tout n'y tient pas**, après les quatre principales : la
+ * campagne et les finances, que l'on ouvre chaque semaine ; le reste attend dans « Plus »
+ * (proposition « format tablette », lot P1a, 25/09).
+ */
+const RAIL_PROMUES: DestinationId[] = [
+    'audit',
+    'finance',
+    'locations',
+    'management',
+    'history',
+    'reports',
+    'rbac',
+];
+
+/**
+ * **Une case du rail** — 56 de haut au moins, le glyphe de 24 dans un creux de 56 × 32,
+ * le mot en 12 sur 16 dessous, sur deux lignes au plus. Elle transmet ce qu'on lui passe :
+ * « Plus » la reçoit du menu qui s'y greffe.
+ */
+const RailCase: React.FC<
+    React.ButtonHTMLAttributes<HTMLButtonElement> & {
+        glyph: PhosphorGlyph;
+        label: string;
+        active: boolean;
+        count?: number;
+    }
+> = ({ glyph, label, active, count, className, ...rest }) => (
+    <Button
+        variant="text"
+        layout="card"
+        {...rest}
+        aria-current={active && !rest['aria-haspopup'] ? 'page' : undefined}
+        className={cn(
+            /* Le bouton du DS, défait de sa boîte : la case est une colonne, le creux est
+               sur le glyphe, et l'anneau de focus aussi. */
+            'group flex h-auto min-h-14 w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none px-0 pt-1 pb-1.5 text-center text-[0.75rem] leading-4 whitespace-normal shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0',
+            active
+                ? 'text-on-surface font-medium'
+                : 'text-on-surface-variant hover:text-on-surface font-normal',
+            className,
+        )}
+    >
+        <span
+            className={cn(
+                'group-focus-visible:ring-focus-ring relative flex h-8 w-14 shrink-0 items-center justify-center rounded-md transition-colors group-focus-visible:ring-2',
+                /* Le creux de la destination choisie se déploie depuis son centre (26/09). */
+                active
+                    ? 'bg-surface-muted-strong mvt-indicateur'
+                    : 'group-hover:bg-surface-container',
+            )}
+        >
+            <Icon glyph={glyph} size={24} emphasis={active ? 'fill' : 'regular'} />
+            {count !== undefined && count > 0 && (
+                <span
+                    className={cn(
+                        'text-on-surface absolute -top-1 -right-1 rounded-xs px-[5px] text-[0.6875rem] leading-4 font-normal tabular-nums',
+                        active ? 'bg-surface' : 'bg-surface-muted-strong',
+                    )}
+                >
+                    {count}
+                </span>
+            )}
+        </span>
+        <span className="line-clamp-2 w-full px-0.5">{label}</span>
+    </Button>
+);
 
 /** `.side>a` — 48 de haut, gouttière 12, rayon 8, 14 px ; en creux quand on y est. */
 const SideRow: React.FC<{
@@ -116,7 +205,7 @@ const SideRow: React.FC<{
                     : /* `.side>a` — **40 de haut, 13 sur 18, gouttière 10, rayon 4.**
                          J'avais posé 48 / 14 / 12 / rayon 8 en lisant 00.3 ; 17.11
                          consolide le chrome des neuf écrans et c'est elle qui fait foi. */
-                      'flex min-h-10 w-full items-center gap-2.5 px-2.5 text-left text-[0.8125rem] leading-[1.125rem]',
+                      'doigt:min-h-12 doigt:text-ts-sub doigt:leading-ts-sub flex min-h-10 w-full items-center gap-2.5 px-2.5 text-left text-[0.8125rem] leading-[1.125rem]',
                 /* La courante prend `--inset-2`, la survolée `--inset` : deux creux, pas un. */
                 /* `Button` pose `font-medium` pour tout le monde : la rangée au repos
                    la reprend à 400, comme `.side>a`. Seule la courante appuie. */
@@ -178,6 +267,44 @@ const Sidebar: React.FC<SidebarProps> = ({
     const { count: pendingCount } = usePendingTasks();
     const compte = useAccountMenu();
     const section = sectionOfView(currentView);
+    const souris = useMediaQuery(MEDIA.hoverCapable);
+    /** Le rail à mots : sous 1 280, et repliée **au doigt** au-delà — une infobulle ne
+        paraît jamais sous le doigt, la densité suit le pointeur (P2c, 25/09). Repliée à la
+        souris, la barre garde ses glyphes seuls et leurs infobulles. */
+    const rail = !canExpand || (isCollapsed && !souris);
+
+    /* Les cases du rail, et ce que « Plus » range. Sept destinations ou moins : toutes au
+       rail, sans « Plus ». Au-delà : les principales, puis `RAIL_PROMUES`, jusqu'à six. */
+    const { auRail, menuPlus, plusCourant } = useMemo(() => {
+        const toutes = [...principales, ...groupes.flatMap((groupe) => groupe.ids)];
+        const cases =
+            toutes.length <= RAIL_MAX
+                ? toutes
+                : [...principales, ...RAIL_PROMUES.filter((id) => toutes.includes(id))].slice(
+                      0,
+                      RAIL_MAX - 1,
+                  );
+        const items = groupes.flatMap((groupe) =>
+            groupe.ids
+                .filter((id) => !cases.includes(id))
+                .map((id, index) => ({
+                    id,
+                    label: libelles[id] ?? DESTINATIONS[id].label,
+                    glyph: DESTINATIONS[id].glyph,
+                    selected: section === id,
+                    /* Les groupes de « Plus » se séparent d'un filet : le menu ne porte pas
+                       de titre de section. */
+                    dividerBefore: index === 0,
+                    onSelect: () => onViewChange(id),
+                })),
+        );
+        if (items.length > 0) items[0] = { ...items[0], dividerBefore: false };
+        return {
+            auRail: cases,
+            menuPlus: items,
+            plusCourant: items.some((item) => item.selected),
+        };
+    }, [groupes, libelles, onViewChange, principales, section]);
 
     /*
       `[` replie et déplie — le raccourci de Linear, retenu par la recherche du 08/09.
@@ -233,8 +360,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                   et dialogues (`z-[100]`).
                 */
                 'bg-surface sticky top-0 z-30 flex h-screen shrink-0 flex-col py-4',
-                /* Repliée : 64, les carrés de 40 et 12 de chaque côté. */
-                isCollapsed ? 'w-16 px-3' : 'w-[240px] px-3',
+                /* Le rail de tablette : 80, ses cases d'un bord à l'autre. Repliée au
+                   bureau : 64, les carrés de 40 et 12 de chaque côté. */
+                rail ? 'w-20 px-0' : isCollapsed ? 'w-16 px-3' : 'w-[240px] px-3',
+                /* Replier et déplier glissent (26/09) : la barre sautait de 240 à 64 et la
+                   page d'un bond. */
+                'duration-medium1 ease-emphasized transition-[width]',
                 className,
             )}
         >
@@ -244,7 +375,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     /* `.brand` — 40 de haut, `0 0 0 10` d'intérieur, 8 dessous (17.11).
                        Elle prenait 16 dessous et 8 à gauche : le nom ne s'alignait pas
                        sur le glyphe des rangées, qui commence à 10. */
-                    'flex min-h-10 items-center gap-2.5 pb-2',
+                    'doigt:min-h-12 flex min-h-10 items-center gap-2.5 pb-2',
                     isCollapsed ? 'justify-center' : 'pl-2.5',
                 )}
             >
@@ -261,7 +392,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         aria-label={
                             isCollapsed ? 'Déployer la navigation ([)' : 'Replier la navigation ([)'
                         }
-                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface h-10 w-10 shrink-0 rounded-md shadow-none"
+                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:w-12 h-10 w-10 shrink-0 rounded-md shadow-none"
                     >
                         <Icon glyph={isCollapsed ? SidebarSimple : CaretLeft} size={20} />
                     </Button>
@@ -274,29 +405,68 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </div>
 
-            <nav
-                aria-label="Destinations"
-                className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1"
-            >
-                {principales.map(rangee)}
+            {rail ? (
+                <nav
+                    aria-label="Destinations"
+                    className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pt-1"
+                >
+                    {auRail.map((id) => (
+                        <RailCase
+                            key={id}
+                            glyph={DESTINATIONS[id].glyph}
+                            label={
+                                libelles[id] ??
+                                DESTINATIONS[id].shortLabel ??
+                                DESTINATIONS[id].label
+                            }
+                            active={section === id}
+                            count={id === 'tasks' ? pendingCount : undefined}
+                            onClick={() => onViewChange(id)}
+                        />
+                    ))}
+                    {menuPlus.length > 0 && (
+                        <Menu
+                            align="start"
+                            placement="right"
+                            floating
+                            rootClassName="w-full"
+                            items={menuPlus}
+                            trigger={
+                                <RailCase
+                                    glyph={List}
+                                    label="Plus"
+                                    active={plusCourant}
+                                    aria-label="Plus — autres destinations"
+                                />
+                            }
+                        />
+                    )}
+                </nav>
+            ) : (
+                <nav
+                    aria-label="Destinations"
+                    className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1"
+                >
+                    {principales.map(rangee)}
 
-                {groupes.map((groupe) => (
-                    <React.Fragment key={groupe.label}>
-                        {isCollapsed ? (
-                            /* Replié, le nom du groupe n'a pas la place, et le chrome du
+                    {groupes.map((groupe) => (
+                        <React.Fragment key={groupe.label}>
+                            {isCollapsed ? (
+                                /* Replié, le nom du groupe n'a pas la place, et le chrome du
                                bureau ne pose pas de filet. **Un blanc de 12** en tient lieu :
                                sans les mots, treize glyphes à la suite ne se regroupent plus
                                d'eux-mêmes. */
-                            <span aria-hidden="true" className="h-3 shrink-0" />
-                        ) : (
-                            <p className="text-text-tertiary px-2.5 pt-3 pb-1 text-[0.6875rem] leading-4 font-normal tracking-[0.06em] uppercase">
-                                {groupe.label}
-                            </p>
-                        )}
-                        {groupe.ids.map(rangee)}
-                    </React.Fragment>
-                ))}
-            </nav>
+                                <span aria-hidden="true" className="h-3 shrink-0" />
+                            ) : (
+                                <p className="text-text-tertiary px-2.5 pt-3 pb-1 text-[0.6875rem] leading-4 font-normal tracking-[0.06em] uppercase">
+                                    {groupe.label}
+                                </p>
+                            )}
+                            {groupe.ids.map(rangee)}
+                        </React.Fragment>
+                    ))}
+                </nav>
+            )}
 
             {/* `.sfoot` — la personne, épinglée en bas. */}
             <div
@@ -316,7 +486,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     */
                     <Menu
                         align="start"
-                        placement="top"
+                        /* À droite du rail, plutôt que par-dessus lui. */
+                        placement="right"
                         floating
                         title={compte.legende}
                         items={compte.items}

@@ -6,6 +6,7 @@ import useLongPress from '../../hooks/useLongPress';
 import Icon from './Icon';
 import { SelectionBox } from './SelectableRow';
 import { cn } from '../../lib/utils';
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
 
 /**
  * Rangée de liste — planches **04.1** (contenu) et **00.4** (régime), registre §2.43.
@@ -137,6 +138,11 @@ interface ListRowProps {
     /** Entrer en sélection par l'appui long — la seule entrée de S2. */
     onLongPress?: () => void;
     /**
+     * **La rangée dont la fiche est ouverte à côté** (P2a) — le creux `--inset-2`, comme la
+     * rangée d'une tâche ouverte dans son panneau (`.trow.on`) : on voit ce qu'on lit.
+     */
+    ouverte?: boolean;
+    /**
      * La rangée du **catalogue** (09.1) : 64 et non 68, gouttière 12 et non 16. Elle
      * porte deux faits courts — des modèles, des actifs — là où la rangée d'un actif en
      * porte quatre ; la planche lui donne donc un cran de moins.
@@ -167,6 +173,7 @@ const ListRow: React.FC<ListRowProps> = ({
     selected = false,
     onToggle,
     onLongPress,
+    ouverte = false,
     dense = false,
     muted = false,
     className,
@@ -209,8 +216,12 @@ const ListRow: React.FC<ListRowProps> = ({
                         disparaissait entièrement dès qu'un code prenait toute la largeur,
                         et une rangée sans type ne dit plus ce qu'est l'objet. */}
                     <span
+                        title={infobulle(title)}
                         className={cn(
-                            'min-w-0 truncate',
+                            /* Une ligne, coupée à l'ellipse (25/09) : toutes les rangées
+                               ont la même hauteur ; le nom entier est en infobulle. */
+                            'min-w-0',
+                            NOM_SUR_UNE_LIGNE,
                             muted ? 'text-on-surface-variant' : 'text-on-surface',
                             /* L'interligne suit le corps : `tailwind-merge` retire un
                                `leading-*` posé *avant* une taille, puisque la taille en
@@ -257,7 +268,10 @@ const ListRow: React.FC<ListRowProps> = ({
                                    catalogue qui le pose avec la chasse. Posé ici, il espaçait aussi
                                    le numéro de série des rangées d'inventaire, en Inter — un style
                                    qu'aucune planche ne dessine. */
-                                'ml-auto shrink-0 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums',
+                                /* **Il se coupe aussi** (25/09) : un identifiant de trente
+                                   signes était `shrink-0` — il écrasait l'état et sortait de
+                                   la carte. Borné à la moitié de la ligne, il cède. */
+                                'ml-auto max-w-[50%] min-w-0 shrink-[2] truncate text-[0.75rem] leading-4 whitespace-nowrap tabular-nums',
                                 referenceClassName || 'text-text-tertiary',
                             )}
                         >
@@ -303,10 +317,17 @@ const ListRow: React.FC<ListRowProps> = ({
             : 'min-h-[72px] gap-4 py-3 medium:min-h-[68px]',
         (onOpen || selectionActive) &&
             'outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+        /* **Sous le doigt, la rangée s'éclaire** (26/09) — jusqu'aux bords de sa carte, comme
+           la rangée cochée : on voit ce qu'on touche avant que la fiche s'ouvre. */
+        (onOpen || selectionActive) &&
+            'duration-short3 transition-[background-color,box-shadow] active:bg-surface-container active:shadow-[-16px_0_0_var(--tk-color-surface-container),16px_0_0_var(--tk-color-surface-container)]',
         // Le fond de la rangée cochée déborde la gouttière de la carte (16 px) :
         // sinon la surbrillance s'arrête au texte et la rangée paraît coupée.
         selected &&
             'bg-surface-container shadow-[-16px_0_0_var(--tk-color-surface-container),16px_0_0_var(--tk-color-surface-container)]',
+        ouverte &&
+            !selected &&
+            'bg-surface-muted-strong shadow-[-16px_0_0_var(--tk-color-surface-muted-strong),16px_0_0_var(--tk-color-surface-muted-strong)]',
         className,
     );
 
@@ -323,6 +344,7 @@ const ListRow: React.FC<ListRowProps> = ({
                         onToggle?.();
                     }
                 }}
+                data-rangee
                 className={cn(shell, 'cursor-pointer')}
             >
                 {content}
@@ -331,11 +353,22 @@ const ListRow: React.FC<ListRowProps> = ({
     }
 
     if (!onOpen) {
-        return <div className={shell}>{content}</div>;
+        return (
+            <div data-rangee className={shell}>
+                {content}
+            </div>
+        );
     }
 
     return (
-        <button type="button" onClick={onOpen} {...longPress} className={shell}>
+        <button
+            type="button"
+            onClick={onOpen}
+            {...longPress}
+            aria-current={ouverte ? 'true' : undefined}
+            data-rangee
+            className={shell}
+        >
             {content}
         </button>
     );

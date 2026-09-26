@@ -121,7 +121,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
                 className={cn(
                     'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md whitespace-nowrap',
                     dense
-                        ? 'text-[0.8125rem] leading-[1.125rem] font-medium'
+                        ? 'doigt:text-ts-control doigt:leading-ts-control text-[0.8125rem] leading-[1.125rem] font-medium'
                         : 'text-ts-control leading-ts-control',
                     className,
                 )}
@@ -159,10 +159,14 @@ const FacetChip: React.FC<FacetChipProps> = ({
             onClick={onClick}
             aria-pressed={selected}
             className={cn(
-                'flex shrink-0 items-center rounded-md whitespace-nowrap',
+                /* `touch-target` : au doigt, 48 de frappe autour d'une pastille de 36 ou 40 —
+                   Material pose la puce à 32 et sa cible à 48. Dense (la bande du bureau), elle
+                   prend aussi les 48 visibles des autres commandes de la bande (P2c). */
+                'touch-target duration-short3 flex shrink-0 items-center rounded-md whitespace-nowrap transition-colors',
                 compact ? 'min-h-9' : 'min-h-10',
+                dense && 'doigt:min-h-12',
                 dense
-                    ? 'gap-1.5 border px-3 text-[0.8125rem] leading-[1.125rem] font-medium'
+                    ? 'doigt:text-ts-control doigt:leading-ts-control gap-1.5 border px-3 text-[0.8125rem] leading-[1.125rem] font-medium'
                     : compact
                       ? 'text-ts-sub leading-ts-sub gap-1.5 px-3'
                       : /* `.chip` de 18.1 — 40, `0 14`, 15 sur 20, **6 entre le glyphe et le

@@ -79,7 +79,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
     const retenus = selectedIds ?? [value];
 
     const classes = cn(
-        'flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
+        'group duration-short3 transition-colors doigt:min-h-12 flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 doigt:text-ts-control doigt:leading-ts-control text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
         'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         pose
             ? 'bg-inverse-surface border-inverse-surface text-inverse-on-surface'
@@ -97,7 +97,11 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                 className={classes}
             >
                 {summary ?? retenue?.label ?? axis}
-                <Icon glyph={CaretDown} size={20} />
+                <Icon
+                    glyph={CaretDown}
+                    size={20}
+                    className="duration-short4 ease-emphasized transition-transform group-aria-expanded:rotate-180"
+                />
             </button>
         );
     }
@@ -135,7 +139,11 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                             {retenue.count}
                         </b>
                     )}
-                    <Icon glyph={CaretDown} size={20} />
+                    <Icon
+                        glyph={CaretDown}
+                        size={20}
+                        className="duration-short4 ease-emphasized transition-transform group-aria-expanded:rotate-180"
+                    />
                 </button>
             }
         />

@@ -2,6 +2,8 @@ import React from 'react';
 
 import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
+import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import { useEntree } from '../../../hooks/useEntree';
 
 /**
  * **Les quatre chiffres de l'exercice, chacun sa tuile** — la bande sombre de 15.1
@@ -61,6 +63,7 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
     plusEntame,
     className,
 }) => {
+    const entree = useEntree();
     const n = (v: number) => formatNumber(v, compactNotation);
     /* Arrondis à l'unité : une moyenne « 1 937,8 » prétend à une précision que neuf
        mois de factures n'ont pas. */
@@ -134,9 +137,15 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
     ];
 
     return (
-        <div className={cn('large:grid-cols-4 grid grid-cols-2 gap-4', className)}>
+        <div
+            className={cn(
+                'deux:grid-cols-4 grid grid-cols-2 gap-4',
+                entree && 'mvt-cascade-cartes',
+                className,
+            )}
+        >
             {tuiles.map((tuile) => (
-                <section key={tuile.cle} className="rounded-card bg-surface flex flex-col p-5">
+                <section key={tuile.cle} className="rounded-card bg-surface flex flex-col p-4">
                     <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                         {tuile.titre}
                     </h3>
@@ -149,7 +158,7 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
                                     : 'text-on-surface',
                             )}
                         >
-                            {tuile.valeur}
+                            <ChiffreAnime valeur={tuile.valeur} />
                         </span>
                         {tuile.unite && (
                             <span className="text-on-surface-variant text-[0.8125rem] leading-4">
@@ -166,6 +175,7 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
                         <div className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs">
                             <i
                                 className={cn(
+                                    'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
                                     'block h-full',
                                     tuile.jauge >= 100
                                         ? 'bg-[var(--tk-color-st-orange)]'

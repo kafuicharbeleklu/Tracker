@@ -17,6 +17,7 @@ import {
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import FactRow from '../../../components/ui/FactRow';
+import ListeBornee from '../../../components/ui/ListeBornee';
 import { Consequences, FormNote } from '../../../components/ui/FormParts';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -28,6 +29,7 @@ import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
 import { ViewType } from '../../../types';
 import { countryCodeOf } from '../lib/siteCode';
+import { remplacerAdresseCourante } from '../../../lib/cheminParcouru';
 import Menu from '../../../components/ui/Menu';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -170,6 +172,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
         showToast(`Site renommé « ${next} ».`, 'success');
         setIsRenameOpen(false);
         /* La fiche suit le nouveau nom : l'adresse portait l'ancien. */
+        remplacerAdresseCourante(`/locations/site/${encodeURIComponent(next)}`);
         onNavigate(`/locations/site/${encodeURIComponent(next)}`);
     };
 
@@ -533,66 +536,84 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     */
                     <section data-colonne="gauche" className="rounded-card bg-surface px-4 pb-4">
                         {cardHeader('Locaux', locals.length)}
-                        <ul className="mt-1 grid grid-cols-3 gap-3">
-                            {locals.map((local) => {
-                                const localAssets = siteEquipment.filter(
-                                    (item) => item.local === local,
-                                ).length;
-                                return (
-                                    <li
-                                        key={local}
-                                        className="bg-surface-container relative flex min-h-24 flex-col justify-between rounded-md p-3"
+                        {/* **Bornée** (25/09) : trois rangées de tuiles et demie (une de plus à la
+                            demande), la suite défile dans la carte ; la tuile d'ajout passe en
+                            tête pour rester visible. */}
+                        <ListeBornee
+                            hauteur={23.25}
+                            pleineLargeur
+                            label={`Les ${locals.length} locaux`}
+                            className="mt-1"
+                        >
+                            <ul className="grid grid-cols-3 gap-3">
+                                <li>
+                                    <Button
+                                        variant="text"
+                                        onClick={() => setIsAddLocalOpen(true)}
+                                        className="border-outline-variant text-on-surface text-ts-control h-full min-h-24 w-full flex-col gap-1.5 rounded-md border border-dashed font-medium"
                                     >
-                                        <span className="flex items-start gap-2 pr-8">
-                                            <Icon
-                                                glyph={DoorOpen}
-                                                size={20}
-                                                className="text-on-surface-variant mt-0.5 shrink-0"
-                                            />
-                                            <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
-                                                {local}
+                                        <Icon
+                                            glyph={Plus}
+                                            size={20}
+                                            className="text-text-secondary"
+                                        />
+                                        Ajouter un local
+                                    </Button>
+                                </li>
+                                {locals.map((local) => {
+                                    const localAssets = siteEquipment.filter(
+                                        (item) => item.local === local,
+                                    ).length;
+                                    return (
+                                        <li
+                                            key={local}
+                                            className="bg-surface-container relative flex min-h-24 flex-col justify-between rounded-md p-3"
+                                        >
+                                            <span className="flex items-start gap-2 pr-8">
+                                                <Icon
+                                                    glyph={DoorOpen}
+                                                    size={20}
+                                                    className="text-on-surface-variant mt-0.5 shrink-0"
+                                                />
+                                                <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
+                                                    {local}
+                                                </span>
                                             </span>
-                                        </span>
-                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
-                                            {localAssets} actif{localAssets > 1 ? 's' : ''}
-                                        </span>
-                                        <span className="absolute top-1.5 right-1.5">
-                                            <Menu
-                                                align="end"
-                                                title={local}
-                                                items={[
-                                                    {
-                                                        id: 'supprimer',
-                                                        label: 'Supprimer le local',
-                                                        onSelect: () => supprimerLocal(local),
-                                                    },
-                                                ]}
-                                                trigger={
-                                                    <Button
-                                                        variant="text"
-                                                        iconOnly
-                                                        size="sm"
-                                                        aria-label={`Actes sur ${local}`}
-                                                    >
-                                                        <Icon glyph={DotsThreeVertical} size={20} />
-                                                    </Button>
-                                                }
-                                            />
-                                        </span>
-                                    </li>
-                                );
-                            })}
-                            <li>
-                                <Button
-                                    variant="text"
-                                    onClick={() => setIsAddLocalOpen(true)}
-                                    className="border-outline-variant text-on-surface text-ts-control h-full min-h-24 w-full flex-col gap-1.5 rounded-md border border-dashed font-medium"
-                                >
-                                    <Icon glyph={Plus} size={20} className="text-text-secondary" />
-                                    Ajouter un local
-                                </Button>
-                            </li>
-                        </ul>
+                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
+                                                {localAssets} actif{localAssets > 1 ? 's' : ''}
+                                            </span>
+                                            <span className="absolute top-1.5 right-1.5">
+                                                <Menu
+                                                    align="end"
+                                                    floating
+                                                    title={local}
+                                                    items={[
+                                                        {
+                                                            id: 'supprimer',
+                                                            label: 'Supprimer le local',
+                                                            onSelect: () => supprimerLocal(local),
+                                                        },
+                                                    ]}
+                                                    trigger={
+                                                        <Button
+                                                            variant="text"
+                                                            iconOnly
+                                                            size="sm"
+                                                            aria-label={`Actes sur ${local}`}
+                                                        >
+                                                            <Icon
+                                                                glyph={DotsThreeVertical}
+                                                                size={20}
+                                                            />
+                                                        </Button>
+                                                    }
+                                                />
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </ListeBornee>
                     </section>
                 ) : (
                     (!neverServed || locals.length > 0) && (
@@ -609,110 +630,124 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                                    ⋮, nommé. Un ruban dit la part du parc que porte le local, et
                                    une dernière rangée ce qui n'est rangé nulle part. `item.local`
                                    est le champ que 16.1 compte (`item.service` n'existe pas). */
-                                <ul className="border-outline-variant border-t">
-                                    {[
-                                        ...locals.map((local) => ({
-                                            local,
-                                            count: siteEquipment.filter(
-                                                (item) => item.local === local,
-                                            ).length,
-                                        })),
-                                        ...(sansLocal > 0
-                                            ? [{ local: null, count: sansLocal }]
-                                            : []),
-                                    ].map(({ local, count }) => {
-                                        const part =
-                                            siteEquipment.length > 0
-                                                ? Math.round((count / siteEquipment.length) * 100)
-                                                : 0;
-                                        return (
-                                            <li
-                                                key={local ?? '—'}
-                                                className="border-outline-variant flex items-center gap-1 border-t first:border-t-0"
-                                            >
-                                                <Button
-                                                    variant="text"
-                                                    layout="card"
-                                                    onClick={() =>
-                                                        onNavigate(
-                                                            `/inventory/site/${encodeURIComponent(siteName)}`,
-                                                        )
-                                                    }
-                                                    className="-ml-4 flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-none py-3 pl-4 text-left font-normal"
+                                <ListeBornee
+                                    hauteur={26}
+                                    pleineLargeur
+                                    label={`Les ${locals.length} locaux`}
+                                >
+                                    <ul className="border-outline-variant border-t">
+                                        {[
+                                            ...locals.map((local) => ({
+                                                local,
+                                                count: siteEquipment.filter(
+                                                    (item) => item.local === local,
+                                                ).length,
+                                            })),
+                                            ...(sansLocal > 0
+                                                ? [{ local: null, count: sansLocal }]
+                                                : []),
+                                        ].map(({ local, count }) => {
+                                            const part =
+                                                siteEquipment.length > 0
+                                                    ? Math.round(
+                                                          (count / siteEquipment.length) * 100,
+                                                      )
+                                                    : 0;
+                                            return (
+                                                <li
+                                                    key={local ?? '—'}
+                                                    className="border-outline-variant flex items-center gap-1 border-t first:border-t-0"
                                                 >
-                                                    <span
-                                                        className={cn(
-                                                            'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
-                                                            local
-                                                                ? 'bg-surface-container text-on-surface-variant'
-                                                                : 'bg-tint-ambre text-on-tint-ambre',
-                                                        )}
+                                                    <Button
+                                                        variant="text"
+                                                        layout="card"
+                                                        onClick={() =>
+                                                            onNavigate(
+                                                                `/inventory/site/${encodeURIComponent(siteName)}`,
+                                                            )
+                                                        }
+                                                        className="-ml-4 flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-none py-3 pl-4 text-left font-normal"
                                                     >
-                                                        <Icon
-                                                            glyph={local ? DoorOpen : Hourglass}
-                                                            size={20}
-                                                        />
-                                                    </span>
-                                                    <span className="min-w-0 flex-1">
-                                                        <span className="flex items-baseline justify-between gap-3">
-                                                            <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
-                                                                {local ?? 'Sans local'}
-                                                            </span>
-                                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
-                                                                {count} actif{count > 1 ? 's' : ''}
-                                                            </span>
-                                                        </span>
-                                                        <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
-                                                            <span
-                                                                className={cn(
-                                                                    'block h-full rounded-full',
-                                                                    local
-                                                                        ? 'bg-on-surface-variant'
-                                                                        : 'bg-[var(--tk-color-st-ambre)]',
-                                                                )}
-                                                                style={{ width: `${part}%` }}
+                                                        <span
+                                                            className={cn(
+                                                                'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
+                                                                local
+                                                                    ? 'bg-surface-container text-on-surface-variant'
+                                                                    : 'bg-tint-ambre text-on-tint-ambre',
+                                                            )}
+                                                        >
+                                                            <Icon
+                                                                glyph={local ? DoorOpen : Hourglass}
+                                                                size={20}
                                                             />
                                                         </span>
-                                                    </span>
-                                                </Button>
-                                                {local ? (
-                                                    <Menu
-                                                        align="end"
-                                                        title={local}
-                                                        items={[
-                                                            {
-                                                                id: 'supprimer',
-                                                                label: 'Supprimer le local',
-                                                                description:
-                                                                    count > 0
-                                                                        ? 'ses actifs restent sur le site'
-                                                                        : undefined,
-                                                                destructive: true,
-                                                                onSelect: () =>
-                                                                    supprimerLocal(local),
-                                                            },
-                                                        ]}
-                                                        trigger={
-                                                            <Button
-                                                                variant="text"
-                                                                iconOnly
-                                                                aria-label={`Actes sur ${local}`}
-                                                                className="-mr-3 shrink-0"
-                                                            >
-                                                                <Icon
-                                                                    glyph={DotsThreeVertical}
-                                                                    size={20}
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="flex items-baseline justify-between gap-3">
+                                                                <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
+                                                                    {local ?? 'Sans local'}
+                                                                </span>
+                                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                                                                    {count} actif
+                                                                    {count > 1 ? 's' : ''}
+                                                                </span>
+                                                            </span>
+                                                            <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
+                                                                <span
+                                                                    className={cn(
+                                                                        'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                                                                        'block h-full rounded-full',
+                                                                        local
+                                                                            ? 'bg-on-surface-variant'
+                                                                            : 'bg-[var(--tk-color-st-ambre)]',
+                                                                    )}
+                                                                    style={{ width: `${part}%` }}
                                                                 />
-                                                            </Button>
-                                                        }
-                                                    />
-                                                ) : (
-                                                    <span className="w-9 shrink-0" aria-hidden />
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
+                                                            </span>
+                                                        </span>
+                                                    </Button>
+                                                    {local ? (
+                                                        <Menu
+                                                            align="end"
+                                                            floating
+                                                            title={local}
+                                                            items={[
+                                                                {
+                                                                    id: 'supprimer',
+                                                                    label: 'Supprimer le local',
+                                                                    description:
+                                                                        count > 0
+                                                                            ? 'ses actifs restent sur le site'
+                                                                            : undefined,
+                                                                    destructive: true,
+                                                                    onSelect: () =>
+                                                                        supprimerLocal(local),
+                                                                },
+                                                            ]}
+                                                            trigger={
+                                                                <Button
+                                                                    variant="text"
+                                                                    iconOnly
+                                                                    aria-label={`Actes sur ${local}`}
+                                                                    className="-mr-3 shrink-0"
+                                                                >
+                                                                    <Icon
+                                                                        glyph={DotsThreeVertical}
+                                                                        size={20}
+                                                                    />
+                                                                </Button>
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <span
+                                                            className="w-9 shrink-0"
+                                                            aria-hidden
+                                                        />
+                                                    )}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </ListeBornee>
                             )}
                             {/* `.more` — 48 px, un filet au-dessus, centré. */}
                             <Button

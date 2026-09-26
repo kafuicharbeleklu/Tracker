@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useCallback, useState, useId } from 'react';
 import { cn } from '../../lib/utils';
 import CloseButton from './CloseButton';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
 
 interface ModalProps {
     isOpen: boolean;
@@ -50,6 +52,10 @@ const Modal: React.FC<ModalProps> = ({
     const resolvedDescriptionId = ariaDescribedBy ?? internalDescriptionId;
     const [visible, setVisible] = useState(false);
     const [closing, setClosing] = useState(false);
+    /* Plein écran au téléphone : la boîte monte du bord ; au-delà, elle se pose au centre.
+       `slide-in-from-bottom` et `medium:zoom-in-95` n'existaient pas (26/09) : rien ne
+       bougeait au téléphone. */
+    const pleinEcran = useMediaQuery(MEDIA.compact);
 
     const maxWidthClasses = {
         'max-w-md': 'medium:max-w-md',
@@ -92,7 +98,9 @@ const Modal: React.FC<ModalProps> = ({
         return () => window.clearTimeout(timeout);
     }, [closing, finalizeClose]);
 
-    const handleAnimationEnd = () => {
+    const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+        /* Le voile, qui sort le dernier — pas la boîte, dont la fin remonte jusqu'ici. */
+        if (event.target !== event.currentTarget) return;
         if (closing) {
             finalizeClose();
         }
@@ -181,9 +189,7 @@ const Modal: React.FC<ModalProps> = ({
         <div
             className={cn(
                 'medium:items-center medium:justify-center medium:p-4 bg-scrim/[0.42] fixed inset-0 z-[100] flex items-end',
-                closing
-                    ? 'animate-out fade-out duration-150'
-                    : 'animate-in fade-in duration-medium2',
+                closing ? 'mvt-voile-sortie pointer-events-none' : 'mvt-voile-entree',
             )}
             onClick={(e) => {
                 if (e.target === e.currentTarget) handleClose();
@@ -203,9 +209,13 @@ const Modal: React.FC<ModalProps> = ({
                     'h-full rounded-none',
                     // Medium+: centered modal dialog
                     'medium:min-w-[280px] medium:h-auto medium:max-h-[90vh] medium:rounded-xl medium:shadow-dialog',
-                    closing
-                        ? 'animate-out zoom-out-95 fade-out duration-150'
-                        : 'animate-in slide-in-from-bottom medium:animate-in medium:zoom-in-95 duration-medium2',
+                    pleinEcran
+                        ? closing
+                            ? 'mvt-feuille-sortie'
+                            : 'mvt-feuille-entree'
+                        : closing
+                          ? 'mvt-dialogue-sortie'
+                          : 'mvt-dialogue-entree',
                     maxWidthClasses[maxWidth],
                 )}
             >

@@ -392,6 +392,69 @@ export const canUserActOnApproval = ({
     return false;
 };
 
+/**
+ * **Ce qui attend le geste de quelqu'un — et non ce qu'il peut forcer** (26/09).
+ *
+ * `canUserActOnApproval` répond « peut-il agir ? », et le super administrateur peut tout :
+ * la file de 03.3 lui mettait donc « à faire » les validations de chaque manager et les
+ * réceptions de chaque bénéficiaire (17 tâches, dont 9 attendaient quelqu'un d'autre),
+ * pendant que la barre latérale en comptait 9 par une autre règle. Cette règle-ci répond
+ * « est-ce à lui ? » : le manager du bénéficiaire pour une validation, l'informatique pour
+ * une remise, le bénéficiaire pour une réception. Le super administrateur est l'informatique,
+ * et le manager des personnes qu'il encadre ; le reste, il le suit — et peut le forcer.
+ */
+export const approvalAttendLActeur = ({
+    approval,
+    actorRole,
+    actorId,
+    users,
+}: ApprovalActionContext): boolean => {
+    if (!actorRole || !actorId || !isApprovalActiveStatus(approval.status)) return false;
+
+    if (MANAGER_GATES.includes(approval.status)) {
+        return (
+            (actorRole === 'Manager' || actorRole === 'SuperAdmin') &&
+            isManagerOfRequest(approval, actorId, users)
+        );
+    }
+
+    if (IT_GATES.includes(approval.status)) {
+        return actorRole === 'Admin' || actorRole === 'SuperAdmin';
+    }
+
+    if (USER_CONFIRMATION_GATES.includes(approval.status)) {
+        return approval.beneficiaryId === actorId;
+    }
+
+    return false;
+};
+
+/**
+ * **Qui a la main sur une demande en cours** — ce que « À suivre » écrit à la place d'un
+ * état : *« chez Jane Manager »*. `null` quand la demande n'attend plus personne.
+ */
+export const quiALaMainSurLaDemande = (
+    approval: Approval,
+    users: User[],
+): { nom: string; personneId?: string } | null => {
+    if (MANAGER_GATES.includes(approval.status)) {
+        const beneficiaire = findUserByApprovalRef(
+            users,
+            approval.beneficiaryId,
+            approval.beneficiaryName,
+        );
+        const manager = beneficiaire?.managerId
+            ? users.find((user) => user.id === beneficiaire.managerId)
+            : undefined;
+        return manager ? { nom: manager.name, personneId: manager.id } : { nom: 'son manager' };
+    }
+    if (IT_GATES.includes(approval.status)) return { nom: 'l’informatique' };
+    if (USER_CONFIRMATION_GATES.includes(approval.status)) {
+        return { nom: approval.beneficiaryName, personneId: approval.beneficiaryId };
+    }
+    return null;
+};
+
 export interface ApprovalPrimaryAction {
     kind: 'transition' | 'assign';
     nextStatus?: ApprovalStatus;

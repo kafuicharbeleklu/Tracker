@@ -30,6 +30,7 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { avecObjetOuvert } from '../../../hooks/useObjetOuvert';
 import type { AppUser, Equipment, HistoryEvent, ViewType } from '../../../types';
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
@@ -52,6 +53,8 @@ import {
 } from '../../../lib/businessRules';
 import { authService } from '../../../services/authService';
 import { DEMO_RESEED_NOTICE, isDemoSeedUser } from '../../../lib/demoSeed';
+import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
+import { cn } from '../../../lib/utils';
 
 /**
  * Fiche utilisateur — planche 05.2, **passe sobre du 03/09**.
@@ -323,7 +326,8 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     }
 
     const go = (hash: string) => {
-        window.location.hash = hash;
+        /* Un acte ouvert depuis la fiche d'un panneau garde la personne ouverte (P3). */
+        window.location.hash = avecObjetOuvert(hash);
     };
 
     const isSelf = currentUser?.id === user.id;
@@ -1048,7 +1052,13 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                                 occupait une colonne pour un fait qui
                                                 se dit dans la phrase. */}
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-on-surface text-ts-body leading-ts-body truncate tabular-nums">
+                                                <p
+                                                    title={item.name || item.assetId}
+                                                    className={cn(
+                                                        'text-on-surface text-ts-body leading-ts-body tabular-nums',
+                                                        NOM_SUR_UNE_LIGNE,
+                                                    )}
+                                                >
                                                     {item.name || item.assetId}
                                                 </p>
                                                 <p className="text-on-surface-variant text-ts-sub leading-ts-sub truncate">
@@ -1078,11 +1088,13 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 })}
                             </div>
                         ) : (
-                            /* `.emp` — 14 sur 20 sur l'encre secondaire, et il nomme
-                               la personne : « Aucun mouvement au nom de Marc ». */
-                            <p className="border-outline-variant text-on-surface-variant text-ts-sub leading-ts-sub border-t pt-1 pb-3">
-                                Aucun équipement au nom de {firstName}.
-                            </p>
+                            /* Un vide de carte, comme « Aucun mouvement » à côté (25/09) ; il
+                               nomme toujours la personne. */
+                            <CardEmptyState
+                                glyph={Package}
+                                title="Aucun équipement"
+                                description={`Rien n'est attribué à ${firstName} en ce moment.`}
+                            />
                         )}
                         {userApprovals.map((a) => (
                             <button
@@ -1453,7 +1465,13 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                         <Icon glyph={EqIcon} size={20} />
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-label-large text-on-surface truncate font-medium">
+                                        <p
+                                            title={item.assetId || item.name}
+                                            className={cn(
+                                                'text-label-large text-on-surface font-medium',
+                                                NOM_SUR_UNE_LIGNE,
+                                            )}
+                                        >
                                             {item.assetId || item.name}
                                         </p>
                                         <p className="text-body-small text-text-secondary mt-px truncate">

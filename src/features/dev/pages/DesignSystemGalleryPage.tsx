@@ -28,7 +28,7 @@ import CloseButton from '../../../components/ui/CloseButton';
 import ConfirmationSheet from '../../../components/ui/ConfirmationSheet';
 import DemoBadge from '../../../components/ui/DemoBadge';
 import Divider from '../../../components/ui/Divider';
-import { EmptyState } from '../../../components/ui/EmptyState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { EntityRow } from '../../../components/ui/EntityRow';
 import ErrorBoundary from '../../../components/ui/ErrorBoundary';
 import { FabContainer } from '../../../components/ui/FabContainer';
@@ -1977,26 +1977,28 @@ const DesignSystemGalleryPage: React.FC = () => {
                         </p>
                     </Specimen>
 
-                    <Specimen name="EmptyState" note="déprécié → ScreenState (12 appels à porter)">
+                    <Specimen
+                        name="CardEmptyState"
+                        note="le vide d'une liste ou d'une carte — sans le geste d'ajout de la page"
+                    >
                         <div className="medium:grid-cols-2 grid gap-4">
-                            <EmptyState
-                                icon="inventory_2"
-                                title="Aucun équipement"
-                                description="Aucun équipement ne correspond à ces filtres."
-                            />
-                            <EmptyState
-                                icon="search_off"
-                                title="Aucun résultat"
-                                description="Élargissez la recherche ou réinitialisez les filtres."
-                                action={
-                                    <Button
-                                        variant="outlined"
-                                        icon={<MaterialIcon name="restart_alt" size={18} />}
-                                    >
-                                        Réinitialiser les filtres
-                                    </Button>
-                                }
-                            />
+                            <div className="bg-surface flex rounded-xl">
+                                <CardEmptyState
+                                    glyph={Package}
+                                    title="Aucun équipement ici"
+                                    description="Ce périmètre n’a encore aucun actif rattaché."
+                                />
+                            </div>
+                            <div className="bg-surface flex rounded-xl">
+                                <CardEmptyState
+                                    glyph={MagnifyingGlass}
+                                    title="Aucun équipement ne correspond"
+                                    description="Élargissez la recherche, ou revenez à la totalité du parc."
+                                    action={
+                                        <Button variant="outlined">Voir les 14 équipements</Button>
+                                    }
+                                />
+                            </div>
                         </div>
                     </Specimen>
 

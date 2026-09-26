@@ -180,7 +180,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         /* Le carré de 48 devient 40 dans le chrome du bureau ; `sm` et `lg` sont des
            choix de l'appelant, que le gabarit ne reprend pas. */
         const iconBox =
-            size === 'md' && gestureSize === 40 ? ICON_ONLY_STYLES.sm : ICON_ONLY_STYLES[size];
+            size === 'md' && gestureSize === 40
+                ? /* Au doigt, le carré du bureau reprend les 48 du téléphone (P2c). */
+                  cn(ICON_ONLY_STYLES.sm, 'doigt:h-12 doigt:w-12')
+                : ICON_ONLY_STYLES[size];
 
         const baseStyles = cn(
             // `touch-target` : hit-box ≥ 48px sur tactile (pointer:coarse), rendu visuel inchangé — voir index.css.

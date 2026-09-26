@@ -1,12 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-    CaretRight,
-    DoorOpen,
-    Info,
-    MagnifyingGlassMinus,
-    MapPin,
-    Play,
-} from '@phosphor-icons/react';
+import { CaretRight, DoorOpen, Funnel, Info, MapPin, Play } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -28,6 +21,8 @@ import {
 import { useData } from '../../../context/DataContext';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
+import { useEntree } from '../../../hooks/useEntree';
+import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 
 /**
  * **Le périmètre d'un comptage est un lieu et un état** — 16.1 : *« Pays, puis le
@@ -134,7 +129,7 @@ const HeroTile: React.FC<{ value: React.ReactNode; label: string; tone?: 'ecart'
  * de gestes primaires qu'il y a de lieux à compter.
  */
 const ROW_ACTION_CLASS =
-    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 shrink-0 rounded-sm px-3.5 text-ts-control font-medium';
+    'bg-surface-container text-on-surface hover:bg-surface-container-high h-10 min-h-10 doigt:h-12 doigt:min-h-12 shrink-0 rounded-sm px-3.5 text-ts-control font-medium';
 
 export const AuditOverview: React.FC<AuditOverviewProps> = ({
     rows,
@@ -157,6 +152,8 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     totalRowCount,
     onLeave,
 }) => {
+    /* Les tuiles de la campagne entrent en cascade à l'arrivée (26/09). */
+    const entree = useEntree();
     const [filtersOpen, setFiltersOpen] = useState(false);
     const { settings } = useData();
     /**
@@ -234,12 +231,16 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
             {/* `.big` — **un seul nombre**, et c'est l'écart dès qu'il en existe un.
                 Avant le premier scan, il n'y a rien à comparer : ce sont les attendus. */}
             <div className="mt-2 flex items-baseline gap-2.5">
-                <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
-                    {hasPendingDecisions
-                        ? totals.missing
-                        : isCampaignClean
-                          ? totals.found
-                          : totals.expected}
+                <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
+                    <ChiffreAnime
+                        valeur={
+                            hasPendingDecisions
+                                ? totals.missing
+                                : isCampaignClean
+                                  ? totals.found
+                                  : totals.expected
+                        }
+                    />
                 </b>
                 <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                     {hasPendingDecisions
@@ -282,7 +283,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 <>
                     <div className="mt-5 flex h-1.5 overflow-hidden rounded-sm bg-white/[0.12]">
                         <i
-                            className="block h-full bg-[var(--tk-color-live-vert)]"
+                            className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-live-vert)] transition-[width]"
                             style={{ width: `${totals.coverage}%` }}
                         />
                     </div>
@@ -568,7 +569,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     {row.status === 'En cours' && (
                         <span className="bg-outline-variant mt-1.5 flex h-1 max-w-[200px] overflow-hidden rounded-xs">
                             <i
-                                className="block h-full bg-[var(--tk-color-live-vert)]"
+                                className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-live-vert)] transition-[width]"
                                 style={{ width: `${row.progress}%` }}
                             />
                         </span>
@@ -592,7 +593,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                             event.stopPropagation();
                             onStartPlace(row);
                         }}
-                        className="bg-tint-ambre text-on-tint-ambre h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-md hover:opacity-90"
+                        className="bg-tint-ambre text-on-tint-ambre doigt:h-12 doigt:min-h-12 doigt:w-12 doigt:min-w-12 h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-md hover:opacity-90"
                     >
                         <Icon glyph={Play} size={20} emphasis="fill" />
                     </Button>
@@ -666,7 +667,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * 28 pour le chiffre, 14 pour ce qu'il veut dire.
      */
     const tuile = (titre: string, valeur: React.ReactNode, sens: React.ReactNode, cle: string) => (
-        <section key={cle} className="bg-surface col-span-2 flex flex-col rounded-lg p-5">
+        <section key={cle} className="bg-surface col-span-2 flex flex-col rounded-lg p-4">
             <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                 {titre}
             </h3>
@@ -678,12 +679,14 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     );
 
     const bande = (
-        <div className="grid grid-cols-12 items-stretch gap-4">
+        <div
+            className={cn('grid grid-cols-12 items-stretch gap-4', entree && 'mvt-cascade-cartes')}
+        >
             {/* **Le même gabarit que les autres tuiles** (23/09) : ce qu'on lit en 12, le
                 chiffre en 28, ce qu'il veut dire en 14, puis le ruban de **8** à 16 de sa
                 phrase — celui des jauges de l'accueil et de Finances. Le diagramme tenait
                 un en-tête à deux bouts et un ruban de 12 : il ne ressemblait à rien d'autre. */}
-            <section className="bg-surface col-span-6 flex flex-col rounded-lg p-5">
+            <section className="bg-surface col-span-6 flex flex-col rounded-lg p-4">
                 <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                     Couverture de l'inventaire
                 </h3>
@@ -707,7 +710,11 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                             couverture.parts[part.cle].actifs > 0 ? (
                                 <i
                                     key={part.cle}
-                                    className={cn('block h-full', part.teinte)}
+                                    className={cn(
+                                        'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                                        'block h-full',
+                                        part.teinte,
+                                    )}
                                     style={{
                                         width: `${(couverture.parts[part.cle].actifs / couverture.total) * 100}%`,
                                     }}
@@ -827,7 +834,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      */
     const panneau = (
         <div className="flex h-full min-h-0 flex-col gap-4">
-            <section className="bg-surface shrink-0 rounded-xl px-5 pt-5 pb-4">
+            <section className="bg-surface shrink-0 rounded-xl px-4 pt-4 pb-4">
                 <span className="text-on-surface-variant block text-[0.75rem] leading-4">
                     {openedSite ? `${openedSite.country} · site` : 'Site'}
                 </span>
@@ -870,7 +877,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     /* En campagne, le ruban de 8 des autres jauges, à 16 des chiffres. */
                     <div className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs">
                         <i
-                            className="block h-full bg-[var(--tk-color-st-vert)]"
+                            className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
                             style={{ width: `${totals.coverage}%` }}
                         />
                     </div>
@@ -878,7 +885,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
             </section>
 
             <section className="bg-surface flex min-h-0 flex-1 flex-col rounded-xl">
-                <header className="flex shrink-0 items-center gap-1 px-5 pt-3">
+                <header className="flex shrink-0 items-center gap-1 px-4 pt-3">
                     <h3 className="text-on-surface-variant min-w-0 flex-1 text-[0.75rem] leading-4 font-medium">
                         {/* Le compte des locaux, celui de la carte du site : la rangée « hors local »
                             n'en est pas un. */}
@@ -896,7 +903,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         description="Ses locaux s'affichent ici, avec ce qu'il reste à compter dans chacun."
                     />
                 ) : rows.length > 0 ? (
-                    <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-2">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
                         {rows.map((row, index) => rangeeDeLieu(row, index, 'local'))}
                     </div>
                 ) : (
@@ -911,27 +918,23 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     );
 
     /** Le vide nomme la contradiction — `.vide` de la colonne 4. */
+    /* Dans la carte de la liste, comme tout vide de liste (25/09) : c'était une copie
+       écrite à la main de la forme d'écran. */
     const empty = (
-        <div className="flex flex-col items-center gap-4 px-4 pt-6 pb-16 text-center">
-            <span className="bg-surface-container text-text-muted flex h-24 w-24 items-center justify-center rounded-full">
-                <Icon glyph={MagnifyingGlassMinus} size={32} />
-            </span>
-            <div>
-                <p className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
-                    Aucun lieu ne correspond
-                </p>
-                <p className="text-on-surface-variant text-ts-body leading-ts-body mx-auto mt-1 max-w-[280px]">
-                    {emptyCause}
-                </p>
-            </div>
-            {activeConstraints.length > 0 && (
-                <Button variant="tonal" className="justify-center" onClick={onResetFilters}>
-                    {activeConstraints.length > 1
-                        ? `Effacer les ${activeConstraints.length} filtres`
-                        : 'Effacer le filtre'}
-                </Button>
-            )}
-        </div>
+        <CardEmptyState
+            glyph={Funnel}
+            title="Aucun lieu ne correspond"
+            description={emptyCause}
+            action={
+                activeConstraints.length > 0 ? (
+                    <Button variant="outlined" onClick={onResetFilters}>
+                        {activeConstraints.length > 1
+                            ? `Effacer les ${activeConstraints.length} filtres`
+                            : 'Effacer le filtre'}
+                    </Button>
+                ) : undefined
+            }
+        />
     );
 
     return (
@@ -1030,6 +1033,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 open={filtersOpen}
                 onClose={() => setFiltersOpen(false)}
                 title="Périmètre"
+                emploi="filtre"
             >
                 <div className="flex flex-col pb-0">
                     {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key, index) => (
@@ -1058,7 +1062,10 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     ))}
 
                     {/* `.sfoot` — le pied dit le résultat **avant** de le montrer. */}
-                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div
+                        data-pied
+                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                    >
                         <Button
                             variant="tonal"
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"

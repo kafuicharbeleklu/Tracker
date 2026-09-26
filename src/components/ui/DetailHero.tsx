@@ -4,6 +4,10 @@ import { CaretRight } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import { estUnSujetLong, infobulle } from '../../lib/nomLong';
+import { MEDIA } from '../../constants/breakpoints';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useFicheEnPanneau } from '../../hooks/useFicheEnPanneau';
 
 /**
  * Héro de fiche — registre **§0.4 (R3)**, planche **04.2**.
@@ -178,6 +182,19 @@ interface DetailHeroProps {
     className?: string;
 }
 
+/**
+ * **Le sujet, à sa taille** (25/09) — 28 sur 32, et un palier plus bas (22 sur 28) pour un
+ * nom long : en 28, soixante signes prenaient quatre lignes du héro. Il reste entier, et se
+ * coupe aux tirets ou n'importe où quand c'est un code sans espace (`lib/nomLong`).
+ */
+const classeDuSujet = (subject: React.ReactNode) =>
+    cn(
+        /* Deux lignes au plus (25/09, soir) : un nom de soixante signes en prenait trois ou
+           quatre ; l'entier reste en infobulle et dans « Référence ». */
+        'font-brand text-inverse-on-surface mt-1 line-clamp-2 font-semibold tracking-[-0.02em] text-pretty [overflow-wrap:anywhere]',
+        estUnSujetLong(subject) ? 'text-ts-sheet leading-ts-sheet' : 'text-ts-page leading-ts-page',
+    );
+
 const DetailHero: React.FC<DetailHeroProps> = ({
     label,
     subject,
@@ -197,73 +214,83 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     corner,
     actionsInline = false,
     className,
-}) => (
-    <section
-        className={cn(
-            /* `.hero` — intérieur `22 / 20 / 20`. Il valait `20 / 16 / 16` : la carte
+}) => {
+    /*
+      **Le héro bas** (P2b, 25/09) — de 600 à 999 et dans le panneau d'une liste, les
+      chiffres passent **en ligne**, sous un filet, au lieu de tuiles de 70 px : sur une
+      tablette debout, le héro montait à 440 px avant la première carte. Le téléphone garde
+      ses tuiles, le bureau à deux colonnes aussi.
+    */
+    const panneauTenu = useMediaQuery(MEDIA.panneauTenu);
+    const enPanneau = useFicheEnPanneau() !== null;
+    const style = (panneauTenu || enPanneau) && metricsStyle !== 'inline' ? 'inline' : metricsStyle;
+    return (
+        <section
+            className={cn(
+                /* `.hero` — intérieur `22 / 20 / 20`. Il valait `20 / 16 / 16` : la carte
                était plus étroite que les cartes qu'elle surmonte. */
-            'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-5 pt-[22px] pb-5',
-            /* La grille du bureau : tout ce qui identifie reste en colonne 1, le geste
+                'bg-inverse-surface text-inverse-on-surface relative isolate overflow-hidden rounded-xl px-5 pt-[22px] pb-5',
+                /* La grille du bureau : tout ce qui identifie reste en colonne 1, le geste
                monte en colonne 2 sur la première rangée, et les mesures traversent. */
-            actionsInline &&
-                'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 [&>*]:col-start-1',
-            className,
-        )}
-    >
-        {corner && <div className="absolute top-4 right-4 z-10">{corner}</div>}
-        {/* **Plus de photo en fond** (23/09) : étirée en `object-cover` sous un voile à
+                actionsInline &&
+                    'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 [&>*]:col-start-1',
+                className,
+            )}
+        >
+            {corner && <div className="absolute top-4 right-4 z-10">{corner}</div>}
+            {/* **Plus de photo en fond** (23/09) : étirée en `object-cover` sous un voile à
             80 %, elle était floue et gênait le texte. Elle s'ouvre à part, par l'aperçu
             de la fiche (`ImagePreview`). */}
 
-        {avatar ? (
-            /* La pastille se pose **au-dessus** du sujet, pas à côté : la passe sobre
+            {avatar ? (
+                /* La pastille se pose **au-dessus** du sujet, pas à côté : la passe sobre
                du 03/09 rend la ligne du nom pleine largeur (planche 05.2, `.idh`
                suivi de `.ty` puis `.nm`). À côté, un nom long se coupait en deux. */
-            <div className="min-w-0">
-                <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[1.25rem] font-semibold tracking-normal text-[var(--tk-color-avatar-text)]">
-                    {avatar}
-                </span>
-                {label && (
-                    <p className="text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
-                        {label}
+                <div className="min-w-0">
+                    <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[1.25rem] font-semibold tracking-normal text-[var(--tk-color-avatar-text)]">
+                        {avatar}
+                    </span>
+                    {label && (
+                        <p className="text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
+                            {label}
+                        </p>
+                    )}
+                    <p className={classeDuSujet(subject)} title={infobulle(subject)}>
+                        {subject}
                     </p>
-                )}
-                <p className="font-brand text-inverse-on-surface text-ts-page leading-ts-page mt-1 font-semibold tracking-[-0.02em] text-pretty">
-                    {subject}
-                </p>
-                {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
+                    {/* `.md` de 07.1 — **la ligne sous le nom**, 14 sur 20. Elle n'était
                     rendue que dans la variante sans avatar : un appelant qui passait
                     les deux perdait sa sous-ligne en silence, et « Mon compte » n'a
                     pas d'autre endroit où écrire l'adresse. Les deux variantes la
                     posent désormais à la même mesure. */}
-                {subtitle && (
-                    <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
-                        {subtitle}
-                    </p>
-                )}
-            </div>
-        ) : (
-            <>
-                {status && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
-                            <Icon
-                                glyph={status.icon}
-                                size={18}
-                                className={status.tone ? STATUS_TONE[status.tone] : undefined}
-                            />
-                            {status.label}
-                        </span>
-                        {statusDetail && (
-                            <span className="text-on-nav-surface-variant text-[0.75rem]">
-                                {statusDetail}
+                    {subtitle && (
+                        <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
+                            {subtitle}
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <>
+                    {status && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
+                                <Icon
+                                    glyph={status.icon}
+                                    size={18}
+                                    className={status.tone ? STATUS_TONE[status.tone] : undefined}
+                                />
+                                {status.label}
                             </span>
-                        )}
-                    </div>
-                )}
+                            {statusDetail && (
+                                <span className="text-on-nav-surface-variant text-[0.75rem] leading-4">
+                                    {statusDetail}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
-                {label && (
-                    /* `.ty` — **12 sur 16**, interlettrage `.07em`, capitales. Il tenait
+                    {label && (
+                        /* `.ty` — **12 sur 16**, interlettrage `.07em`, capitales. Il tenait
                        `text-label-small`, c'est-à-dire 11 : une marche sous la plus petite
                        que R15 déclare.
 
@@ -272,195 +299,224 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                        campagne de 16.2, la fiche d'un modèle, celle d'une catégorie), le
                        surtitre tombait à 38 du haut du héro au lieu des 22 de `.hero`, et
                        le héro paraissait lesté d'une bande vide. Relevé le 11/09. */
-                    <p
-                        className={cn(
-                            status && 'mt-4',
-                            'text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase',
-                        )}
-                    >
-                        {label}
+                        <p
+                            className={cn(
+                                status && 'mt-4',
+                                'text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase',
+                            )}
+                        >
+                            {label}
+                        </p>
+                    )}
+
+                    <p className={classeDuSujet(subject)} title={infobulle(subject)}>
+                        {subject}
                     </p>
-                )}
 
-                <p className="font-brand text-inverse-on-surface text-ts-page leading-ts-page mt-1 font-semibold tracking-[-0.02em] text-pretty">
-                    {subject}
-                </p>
-
-                {subtitle && (
-                    /* `.md` — **14 sur 20, à 2 du sujet** (16.2). Elle tenait 13 sur 19,
+                    {subtitle && (
+                        /* `.md` — **14 sur 20, à 2 du sujet** (16.2). Elle tenait 13 sur 19,
                        c'est-à-dire l'ancien `body-medium` : une marche que R15 ne déclare
                        pas — l'échelle est 28 · 22 · 17 · 16 · 14 · 12 — et le seul endroit
                        du héro où un 13 subsistait. */
-                    <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
-                        {subtitle}
-                    </p>
-                )}
-            </>
-        )}
+                        <p className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-0.5">
+                            {subtitle}
+                        </p>
+                    )}
+                </>
+            )}
 
-        {avatar && status && (
-            /* `statusDetail` se pose ici aussi :
+            {avatar && status && (
+                /* `statusDetail` se pose ici aussi :
                sur une fiche de personne (05.2) c'est la ligne « Départ le … », et un héro
                à avatar l'avalait en silence. Lot 2. */
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-inverse-on-surface inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
-                    <Icon
-                        glyph={status.icon}
-                        size={18}
-                        className={status.tone ? STATUS_TONE[status.tone] : undefined}
-                    />
-                    {status.label}
-                </span>
-                {statusDetail && (
-                    <span className="text-on-nav-surface-variant text-[0.75rem]">
-                        {statusDetail}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <span className="text-inverse-on-surface inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
+                        <Icon
+                            glyph={status.icon}
+                            size={18}
+                            className={status.tone ? STATUS_TONE[status.tone] : undefined}
+                        />
+                        {status.label}
                     </span>
-                )}
-            </div>
-        )}
+                    {statusDetail && (
+                        <span className="text-on-nav-surface-variant text-[0.75rem] leading-4">
+                            {statusDetail}
+                        </span>
+                    )}
+                </div>
+            )}
 
-        {meter && <div className="mt-5">{meter}</div>}
+            {meter && <div className="mt-5">{meter}</div>}
 
-        {metrics && metricsStyle === 'boxes' && (
-            /* `.hrow` / `.hk` — 09.1 : des cases de 12 sur 14, valeur en 22 sur 28. */
-            <div
-                className={cn('flex gap-3', meter ? 'mt-3' : 'mt-5', actionsInline && 'col-end-3')}
-            >
-                {metrics.map((metric, index) => (
-                    <div
-                        key={index}
-                        className={cn(
-                            /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
+            {metrics && style === 'boxes' && (
+                /* `.hrow` / `.hk` — 09.1 : des cases de 12 sur 14, valeur en 22 sur 28. */
+                <div
+                    className={cn(
+                        'flex gap-3',
+                        meter ? 'mt-3' : 'mt-5',
+                        actionsInline && 'col-end-3',
+                    )}
+                >
+                    {metrics.map((metric, index) => (
+                        <div
+                            key={index}
+                            className={cn(
+                                /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
                                retombe à `12px 10px`** : à trois de front sur 393 px,
                                14 d'intérieur laissent « réparation » se couper. */
-                            'min-w-0 flex-1 rounded-[4px] bg-white/[0.08] py-3',
-                            metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
-                        )}
-                    >
-                        <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
-                            {metric.value}
-                        </span>
-                        <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
-                            {metric.label}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        )}
-
-        {metrics && metricsStyle === 'inline' && (
-            <div className="mt-3.5 flex gap-[18px] border-t border-white/[0.14] pt-3">
-                {metrics.map((metric, index) => (
-                    <div key={index} className="min-w-0 flex-1">
-                        {/* `.hk .v` — 22 sur 28, comme les tuiles ; `.hk .k` en 12 sur 16 (11.1). */}
-                        <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
-                            {metric.value}
-                        </span>
-                        <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
-                            {metric.label}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        )}
-
-        {gauge && <div className={cn('mt-4', actionsInline && 'col-end-3')}>{gauge}</div>}
-
-        {facts && facts.length > 0 && (
-            <div className="mt-3 flex flex-col gap-[7px] border-t border-white/[0.14] pt-3">
-                {facts.map((fact, index) => (
-                    <p
-                        key={index}
-                        className="text-body-medium text-on-nav-surface-variant flex items-center gap-2.5"
-                    >
-                        <Icon glyph={fact.icon} size={18} className="shrink-0" />
-                        <span>{fact.children}</span>
-                    </p>
-                ))}
-            </div>
-        )}
-
-        {relation && <RelationRow {...relation} />}
-
-        {metrics && metricsStyle === 'qual' && (
-            /* `.qual` — grille `1fr 1fr`, gouttière 12, 20 au-dessus. Les tuiles sont
-               posées sur le voile blanc à 8 % : **pas de teinte**, le chiffre et son
-               libellé suffisent (04.2, passe du 05/09). */
-            <div
-                className={cn(
-                    'mt-5 grid grid-cols-2 gap-3',
-                    metricsDeskColumns === 3 && 'large:grid-cols-3',
-                )}
-            >
-                {metrics.map((metric, index) => {
-                    const contenu = (
-                        <>
-                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                                'min-w-0 flex-1 rounded-[4px] bg-white/[0.08] py-3',
+                                metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
+                            )}
+                        >
+                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
                                 {metric.value}
                             </span>
-                            <span
-                                className={cn(
-                                    'text-on-nav-surface-variant block truncate text-[0.75rem] leading-4',
-                                    metric.wide
-                                        ? metricsDeskColumns === 3 && 'large:mt-0.5'
-                                        : 'mt-0.5',
-                                )}
-                            >
+                            <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
                                 {metric.label}
                             </span>
-                        </>
-                    );
-                    const forme = cn(
-                        'flex min-w-0 rounded-[4px] bg-white/[0.08] text-left',
-                        metric.wide
-                            ? cn(
-                                  'col-span-2 items-baseline justify-between gap-3 px-3.5 py-3',
-                                  metricsDeskColumns === 3 &&
-                                      'large:col-span-1 large:flex-col large:items-stretch large:gap-0 large:px-2.5',
-                              )
-                            : 'flex-col px-2.5 py-3',
-                    );
-                    return metric.onClick ? (
-                        <button
-                            key={index}
-                            type="button"
-                            onClick={metric.onClick}
-                            className={cn(forme, 'cursor-pointer hover:bg-white/[0.14]')}
-                        >
-                            {contenu}
-                        </button>
-                    ) : (
-                        <div key={index} className={forme}>
-                            {contenu}
                         </div>
-                    );
-                })}
-            </div>
-        )}
+                    ))}
+                </div>
+            )}
 
-        {actions && (
-            /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
+            {metrics && style === 'inline' && (
+                /* Les chiffres en ligne passent à la ligne plutôt que de déborder : dans un panneau
+               de 330 px, trois valeurs de 22 px ne tiennent pas toujours de front. */
+                <div
+                    className={cn(
+                        'mt-3.5 flex flex-wrap gap-x-[18px] gap-y-3 border-t border-white/[0.14] pt-3',
+                        meter && 'mt-3',
+                    )}
+                >
+                    {metrics.map((metric, index) => {
+                        const contenu = (
+                            <>
+                                {/* `.hk .v` — 22 sur 28, comme les tuiles ; `.hk .k` en 12 sur 16 (11.1). */}
+                                <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                                    {metric.value}
+                                </span>
+                                <span className="text-on-nav-surface-variant mt-0.5 block truncate text-[0.75rem] leading-4">
+                                    {metric.label}
+                                </span>
+                            </>
+                        );
+                        return metric.onClick ? (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={metric.onClick}
+                                className="-mx-1.5 min-w-0 flex-1 cursor-pointer rounded-[4px] px-1.5 text-left hover:bg-white/[0.08]"
+                            >
+                                {contenu}
+                            </button>
+                        ) : (
+                            <div key={index} className="min-w-0 flex-1">
+                                {contenu}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {gauge && <div className={cn('mt-4', actionsInline && 'col-end-3')}>{gauge}</div>}
+
+            {facts && facts.length > 0 && (
+                <div className="mt-3 flex flex-col gap-[7px] border-t border-white/[0.14] pt-3">
+                    {facts.map((fact, index) => (
+                        <p
+                            key={index}
+                            className="text-body-medium text-on-nav-surface-variant flex items-center gap-2.5"
+                        >
+                            <Icon glyph={fact.icon} size={18} className="shrink-0" />
+                            <span>{fact.children}</span>
+                        </p>
+                    ))}
+                </div>
+            )}
+
+            {relation && <RelationRow {...relation} />}
+
+            {metrics && style === 'qual' && (
+                /* `.qual` — grille `1fr 1fr`, gouttière 12, 20 au-dessus. Les tuiles sont
+               posées sur le voile blanc à 8 % : **pas de teinte**, le chiffre et son
+               libellé suffisent (04.2, passe du 05/09). */
+                <div
+                    className={cn(
+                        'mt-5 grid grid-cols-2 gap-3',
+                        metricsDeskColumns === 3 && 'large:grid-cols-3',
+                    )}
+                >
+                    {metrics.map((metric, index) => {
+                        const contenu = (
+                            <>
+                                <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
+                                    {metric.value}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'text-on-nav-surface-variant block truncate text-[0.75rem] leading-4',
+                                        metric.wide
+                                            ? metricsDeskColumns === 3 && 'large:mt-0.5'
+                                            : 'mt-0.5',
+                                    )}
+                                >
+                                    {metric.label}
+                                </span>
+                            </>
+                        );
+                        const forme = cn(
+                            'flex min-w-0 rounded-[4px] bg-white/[0.08] text-left',
+                            metric.wide
+                                ? cn(
+                                      'col-span-2 items-baseline justify-between gap-3 px-3.5 py-3',
+                                      metricsDeskColumns === 3 &&
+                                          'large:col-span-1 large:flex-col large:items-stretch large:gap-0 large:px-2.5',
+                                  )
+                                : 'flex-col px-2.5 py-3',
+                        );
+                        return metric.onClick ? (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={metric.onClick}
+                                className={cn(forme, 'cursor-pointer hover:bg-white/[0.14]')}
+                            >
+                                {contenu}
+                            </button>
+                        ) : (
+                            <div key={index} className={forme}>
+                                {contenu}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {actions && (
+                /* Pas de filet au-dessus du geste : la passe sobre lui donne de l'air, pas
                une règle de plus. Le seul filet du héro sépare la rangée de relation
                (planche 04.2 : `.hrow` porte une bordure, `.hact` n'a qu'une marge). */
-            <div
-                className={cn(
-                    'flex gap-3',
-                    actionsInline
-                        ? 'col-start-2! row-start-1 flex-wrap items-center'
-                        : 'mt-5 flex-col [&>*]:w-full',
-                )}
-            >
-                {actions}
-            </div>
-        )}
+                <div
+                    className={cn(
+                        'flex gap-3',
+                        actionsInline
+                            ? 'col-start-2! row-start-1 flex-wrap items-center'
+                            : 'mt-5 flex-col [&>*]:w-full',
+                    )}
+                >
+                    {actions}
+                </div>
+            )}
 
-        {note && (
-            <div className="text-on-nav-surface-variant mt-2.5 border-t border-white/[0.14] pt-2.5 text-[0.75rem] leading-[1.0625rem]">
-                {note}
-            </div>
-        )}
-    </section>
-);
+            {note && (
+                /* La note du héro est une phrase : le secondaire (26/09). */
+                <div className="text-on-nav-surface-variant text-ts-sub leading-ts-sub mt-2.5 border-t border-white/[0.14] pt-2.5">
+                    {note}
+                </div>
+            )}
+        </section>
+    );
+};
 
 const RelationRow: React.FC<NonNullable<DetailHeroProps['relation']>> = ({
     vignette,

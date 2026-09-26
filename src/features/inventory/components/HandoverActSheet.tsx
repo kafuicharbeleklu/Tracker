@@ -347,12 +347,13 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
         onClose();
     };
 
-    if (!open) return null;
+    /* Pas de retour anticipé à la fermeture (26/09) : la feuille reçoit `open` et
+       redescend d'elle-même (`usePresence`). Démontée ici, elle disparaissait d'un coup. */
 
     if (phase === 'presence' && objet && destinataire) {
         return (
             <ActSheet
-                open
+                open={open}
                 onClose={onClose}
                 title={`${prenom(destinataire.name)} confirme-t-il maintenant ?`}
                 subtitle="S’il est là, tendez-lui l’appareil. Sinon, la tâche l’attend."
@@ -419,7 +420,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 />
             )}
             <ActSheet
-                open
+                open={open}
                 onClose={onClose}
                 title="Remettre l’équipement"
                 subtitle={

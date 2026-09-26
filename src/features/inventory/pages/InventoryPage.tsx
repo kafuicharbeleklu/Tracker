@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     ArrowCircleRight,
@@ -6,6 +6,7 @@ import {
     Clock,
     DotsThreeVertical,
     FileCsv,
+    Funnel,
     Keyboard,
     Package,
     Scan,
@@ -28,10 +29,12 @@ import FacetChip from '../../../components/ui/FacetChip';
 import ListRow, { TONE_CLASS } from '../../../components/ui/ListRow';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
+import { passerALaPage, useListeEtFiche } from '../../../hooks/useListeEtFiche';
+import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { MEDIA } from '../../../constants/breakpoints';
-import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -247,6 +250,11 @@ interface InventoryPageProps {
     initialStatus?: string | null;
     /** Le site reçu d'un autre écran — la fiche d'un site renvoie ici, filtrée (10.1, C2). */
     initialSite?: string | null;
+    /**
+     * **La fiche d'un actif, pour le panneau** (P2a) — dès 840 et en cartes, toucher une
+     * rangée l'ouvre à côté de la liste. La coque la fournit : c'est la page de l'objet.
+     */
+    renderFiche?: (id: string, fermer: () => void) => React.ReactNode;
 }
 
 const InventoryPage: React.FC<InventoryPageProps> = ({
@@ -254,6 +262,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     onEquipmentClick,
     initialStatus,
     initialSite,
+    renderFiche,
 }) => {
     const { equipment, users, deleteEquipment } = useData();
     const { currentUser } = useAuth();
@@ -487,6 +496,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     });
     const enTableau = isManager && vue.view === 'tableau';
 
+    /*
+      **La liste et la fiche côte à côte, dès 840** (P2a, 25/09) — en cartes : toucher une
+      rangée ouvre la fiche à droite et la liste reste. L'actif ouvert est dans l'adresse
+      (`?ouvert=`) ; sous 840, il passe la main à sa page. Au tableau, la rangée ouvre la
+      page, comme au bureau.
+    */
+    const versLaPage = useCallback(
+        (id: string) => passerALaPage(`/inventory/${encodeURIComponent(id)}`),
+        [],
+    );
+    const listeEtFiche = useListeEtFiche(Boolean(renderFiche) && !enTableau, versLaPage);
+    const ouvrirFiche = (id: string) =>
+        listeEtFiche.actif ? listeEtFiche.ouvrir(id) : onEquipmentClick?.(id);
+
     /**
      * **Les six colonnes de 04.1 au bureau**, dans l'ordre tranché le 08/09 : Code,
      * Modèle, Porteur, Site / local, Statut, Dernier mouvement. *« Type et garantie
@@ -577,7 +600,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                   mouvement » ne se coupent jamais — « En réparation » et « 13 septembre »
                   tiennent en entier —, et le code prend le plus gros de ce qui reste.
                 */
-                width: '25%',
+                /* **Le modèle reprend de la largeur** (25/09) — à 11 %, « Lenovo ThinkPad X1
+                   Carbon » tombait à « Lenovo Thin… » ; les colonnes à vocabulaire fixe cèdent
+                   ce qu'elles avaient de trop. Code et modèle tiennent **une ligne**, coupée :
+                   les rangées du tableau gardent toutes la même hauteur. */
+                width: '24%',
                 sorted: colonneTriee === 'code' ? sensTri : undefined,
                 title: (item) => item.name,
                 cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
@@ -585,7 +612,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'modele',
                 header: 'Modèle',
-                width: '11%',
+                width: '19%',
                 sorted: colonneTriee === 'modele' ? sensTri : undefined,
                 title: (item) => item.model || undefined,
                 cell: (item) => item.model || '—',
@@ -593,7 +620,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'porteur',
                 header: 'Porteur',
-                width: '15%',
+                width: '14%',
                 title: (item) => item.user?.name || undefined,
                 cell: (item) =>
                     item.user?.name || <span className="text-text-tertiary">non attribué</span>,
@@ -603,7 +630,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* `.tbl th` de 04.1 écrit **« Site · local »** : le point médian sépare
                    deux faits de même rang, la barre oblique dirait « ou ». */
                 header: 'Site · local',
-                width: '17%',
+                width: '15%',
                 title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
                 cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
             },
@@ -612,7 +639,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* 04.1 nomme la colonne **« État »**, comme la ligne du décompte et le
                    premier groupe du filtre. « Statut » n'est écrit nulle part. */
                 header: 'État',
-                width: '16%',
+                width: '14%',
                 sorted: colonneTriee === 'statut' ? sensTri : undefined,
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
@@ -644,7 +671,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 sorted: colonneTriee === 'mouvement' ? sensTri : undefined,
                 /* Son plafond tient son en-tête (120) : « Dernier mouvement » ne se
                    tronque jamais, et ses dates tiennent en 91. */
-                width: '16%',
+                width: '14%',
                 cell: (item) => {
                     const quand = dernierMouvement(item);
                     return quand ? (
@@ -929,9 +956,39 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     ) : undefined,
                 }}
                 hasRows={filteredEquipment.length > 0}
+                listeEtFiche={listeEtFiche.actif}
+                /* Liste vide, pas de panneau : rien à ouvrir. */
+                panel={
+                    listeEtFiche.actif && (filteredEquipment.length > 0 || listeEtFiche.ouvert) ? (
+                        <PanneauDeFiche
+                            cle={listeEtFiche.ouvert}
+                            onPleinePage={
+                                listeEtFiche.ouvert
+                                    ? () => onEquipmentClick?.(listeEtFiche.ouvert as string)
+                                    : undefined
+                            }
+                            vide={{
+                                glyph: Package,
+                                title: 'Aucun actif ouvert',
+                                description:
+                                    'Choisissez un actif dans la liste pour le voir sans la quitter.',
+                            }}
+                        >
+                            {listeEtFiche.ouvert && renderFiche ? (
+                                <React.Fragment key={listeEtFiche.ouvert}>
+                                    {renderFiche(listeEtFiche.ouvert, listeEtFiche.fermer)}
+                                </React.Fragment>
+                            ) : null}
+                        </PanneauDeFiche>
+                    ) : undefined
+                }
+                /* **Le vide ne redouble pas « Ajouter »** (25/09) : il ouvrait la même
+                   feuille que le bouton de la page (arbitrage du 06/09), qui reste à sa
+                   place — flottant au téléphone, dans l'en-tête au bureau. Deux portes
+                   vers la même feuille, dont une au milieu de l'écran, c'est une de trop. */
                 empty={
-                    <ScreenState
-                        icon={Package}
+                    <CardEmptyState
+                        glyph={isFiltered ? Funnel : Package}
                         title={
                             isFiltered ? 'Aucun équipement ne correspond' : 'Aucun équipement ici'
                         }
@@ -940,20 +997,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                 ? 'Élargissez la recherche, ou revenez à la totalité du parc.'
                                 : 'Ce périmètre n’a encore aucun actif rattaché.'
                         }
-                        actions={
+                        action={
                             isFiltered ? (
-                                <Button variant="filled" onClick={clearAllListFilters}>
+                                <Button variant="outlined" onClick={clearAllListFilters}>
                                     {`Voir les ${accessibleEquipment.length} équipements`}
-                                </Button>
-                            ) : isManager ? (
-                                /* **Le vide ouvre la même feuille que le bouton
-                                   flottant**, jamais un chemin direct (17.1 et 17.6,
-                                   arbitré le 06/09). Il menait droit à la saisie, si
-                                   bien qu'une liste vide n'offrait ni le scan ni
-                                   l'import — les deux autres façons de peupler un parc,
-                                   et les plus utiles quand il n'y a rien. */
-                                <Button variant="filled" onClick={() => setIsAddSheetOpen(true)}>
-                                    Ajouter un équipement
                                 </Button>
                             ) : undefined
                         }
@@ -1112,7 +1159,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                         status={userStatus}
                                         holder=""
                                         reference=""
-                                        onOpen={() => onEquipmentClick?.(item.id)}
+                                        onOpen={() => ouvrirFiche(item.id)}
+                                        ouverte={listeEtFiche.ouvert === item.id}
                                     />
                                 );
                             }
@@ -1165,7 +1213,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     status={status}
                                     holder={holderText}
                                     reference={isCompact ? undefined : item.assetId}
-                                    onOpen={() => onEquipmentClick?.(item.id)}
+                                    onOpen={() => ouvrirFiche(item.id)}
+                                    ouverte={listeEtFiche.ouvert === item.id}
                                     selectionActive={selection.isActive}
                                     selected={selection.isSelected(item.id)}
                                     onToggle={() => selection.toggle(item.id)}
@@ -1185,6 +1234,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     open={isFilterSheetOpen}
                     onClose={() => setIsFilterSheetOpen(false)}
                     title="Filtrer"
+                    emploi="filtre"
                 >
                     <div className="flex flex-col gap-4">
                         {/* **Le premier groupe du filtre, et il porte les comptes.**
@@ -1288,7 +1338,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             « voir » nomme son nombre ; il ne dit pas « appliquer ». Il
                             court d'un bord à l'autre de la feuille, 16 sous les pastilles
                             et 4 au pied (relevé du 13/09). */}
-                        <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <div
+                            data-pied
+                            className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                        >
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer
                             </Button>

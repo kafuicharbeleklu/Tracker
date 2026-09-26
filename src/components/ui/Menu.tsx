@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
+import { usePresence } from '../../hooks/usePresence';
 import MaterialIcon from './MaterialIcon';
 import Icon from './Icon';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
@@ -46,7 +47,12 @@ interface MenuProps {
     items: MenuItem[];
     title?: string;
     align?: 'start' | 'end';
-    placement?: 'bottom' | 'top';
+    /**
+     * `right` — **à droite du déclencheur**, flottant seulement : le menu sort du rail au
+     * lieu de le couvrir (« Plus » et le compte du rail de tablette, 25/09). Il s'aligne
+     * sur le haut du déclencheur et remonte s'il manque de place en bas.
+     */
+    placement?: 'bottom' | 'top' | 'right';
     widthClassName?: string;
     /** Classes du conteneur du déclencheur — `flex-1 min-w-0` quand toute une rangée ouvre le menu. */
     rootClassName?: string;
@@ -85,6 +91,8 @@ const Menu: React.FC<MenuProps> = ({
     className,
 }) => {
     const [open, setOpen] = useState(false);
+    /* Le menu se replie en s'effaçant (26/09) au lieu de disparaître d'un coup. */
+    const presence = usePresence(open);
     /** La place du menu flottant, relevée sur le déclencheur à l'ouverture. */
     const [coords, setCoords] = useState<React.CSSProperties | null>(null);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -124,8 +132,23 @@ const Menu: React.FC<MenuProps> = ({
         (parLeClavier = false) => {
             if (floating && triggerRef.current) {
                 const rect = triggerRef.current.getBoundingClientRect();
-                /* 48 par entrée, 8 d'intérieur de chaque côté, la légende s'il y en a une. */
-                const hauteur = items.length * 48 + 16 + (title ? 30 : 0);
+                /* 48 par entrée, 8 d'intérieur de chaque côté, la légende s'il y en a une,
+                   17 par séparateur. */
+                const hauteur =
+                    items.length * 48 +
+                    16 +
+                    (title ? 30 : 0) +
+                    items.filter((item) => item.dividerBefore).length * 17;
+                if (placement === 'right') {
+                    setCoords({
+                        position: 'fixed',
+                        left: rect.right + 8,
+                        top: Math.max(8, Math.min(rect.top, window.innerHeight - 8 - hauteur)),
+                    });
+                    setOpen(true);
+                    setHighlightedIndex(parLeClavier ? firstEnabled : -1);
+                    return;
+                }
                 const enHaut =
                     placement === 'top' || rect.bottom + 4 + hauteur > window.innerHeight - 8;
                 setCoords({
@@ -148,7 +171,7 @@ const Menu: React.FC<MenuProps> = ({
             setOpen(true);
             setHighlightedIndex(parLeClavier ? firstEnabled : -1);
         },
-        [align, firstEnabled, floating, items.length, placement, title],
+        [align, firstEnabled, floating, items, placement, title],
     );
 
     /* Flottant, le menu ne suit pas sa rangée quand la page défile : il se referme. */
@@ -295,13 +318,14 @@ const Menu: React.FC<MenuProps> = ({
         <div ref={rootRef} className={cn('relative inline-flex', rootClassName)}>
             {React.cloneElement(trigger, triggerProps)}
 
-            {open && (
+            {presence.monte && (
                 <div
                     id={menuId}
                     role="menu"
                     aria-orientation="vertical"
                     aria-labelledby={triggerId}
                     onKeyDown={onMenuKeyDown}
+                    onAnimationEnd={presence.finDeSortie}
                     style={floating && coords ? coords : undefined}
                     className={cn(
                         /* `.menu` de `menus.css` — **la surface, pas le creux**, rayon 8,
@@ -310,7 +334,11 @@ const Menu: React.FC<MenuProps> = ({
                            bord de l'ombre. Intérieur `8 0` : les rangées vont d'un bord à
                            l'autre, c'est leur propre padding qui les rentre. */
                         'bg-surface absolute z-50 overflow-hidden rounded-lg py-2 shadow-[0_8px_24px_rgba(10,25,29,0.2)]',
-                        'animate-in fade-in zoom-in-95 duration-short4',
+                        /* Il se déplie depuis son ancre (`origin-*` ci-dessous) et s'efface en
+                           sortant, sans retenir le doigt. */
+                        presence.sortant
+                            ? 'mvt-menu-sortie pointer-events-none'
+                            : 'mvt-menu-entree',
                         /* `.menu.tr{top:52px}` — **la liste s'ouvre sous la barre**,
                            pas dessus. Sans `top-full`, une boîte absolue sans `top`
                            prend sa position statique : dans un conteneur `flex` aligné
@@ -319,9 +347,11 @@ const Menu: React.FC<MenuProps> = ({
                         !floating && (placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-1'),
                         widthClassName,
                         floating
-                            ? align === 'end'
-                                ? 'origin-top-right'
-                                : 'origin-top-left'
+                            ? placement === 'right'
+                                ? 'origin-left'
+                                : align === 'end'
+                                  ? 'origin-top-right'
+                                  : 'origin-top-left'
                             : align === 'end'
                               ? placement === 'top'
                                   ? 'right-0 origin-bottom-right'

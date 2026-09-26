@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DotsThreeVertical, ListBullets } from '@phosphor-icons/react';
+import { DotsThreeVertical, Funnel, Receipt } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -8,7 +8,7 @@ import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
-import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
@@ -22,6 +22,7 @@ import ExpenseDetailSheet from '../components/ExpenseDetailSheet';
 import { useBudgetExercise } from '../hooks/useBudgetExercise';
 import { useExpenseActions } from '../hooks/useExpenseActions';
 import { EXPENSE_TYPE_LABELS, getExpenseStatusLabel } from '../lib/expensePresentation';
+import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 
 interface ExpenseJournalPageProps {
     onBack: () => void;
@@ -239,8 +240,10 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                             Consommé à ce jour
                         </span>
                         <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
-                            <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
-                                {formatNumber(consomme, settings.compactNotation)}
+                            <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
+                                <ChiffreAnime
+                                    valeur={formatNumber(consomme, settings.compactNotation)}
+                                />
                             </b>
                             <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                                 {settings.currency}
@@ -258,9 +261,12 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                     onClick: () => setIsAddExpenseModalOpen(true),
                 }}
                 hasRows={parMois.length > 0}
+                /* **Le vide ne redouble pas « Enregistrer »** (25/09) : le geste est déjà
+                   dans l'en-tête au bureau, et flottant au téléphone. Filtré, il garde sa
+                   sortie. */
                 empty={
-                    <ScreenState
-                        icon={ListBullets}
+                    <CardEmptyState
+                        glyph={filtresPoses > 0 || recherchee ? Funnel : Receipt}
                         title={
                             filtresPoses > 0 || recherchee
                                 ? 'Aucune écriture ne correspond'
@@ -269,12 +275,12 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                         description={
                             filtresPoses > 0 || recherchee
                                 ? 'Élargissez la période, ou changez de nature.'
-                                : "Le journal se remplit à mesure que des factures sont enregistrées : chacune consomme l'enveloppe d'un poste."
+                                : "Chaque facture enregistrée consomme l'enveloppe d'un poste."
                         }
-                        actions={
+                        action={
                             filtresPoses > 0 || recherchee ? (
                                 <Button
-                                    variant="tonal"
+                                    variant="outlined"
                                     onClick={() => {
                                         setNaturesActives([]);
                                         setPeriode('exercice');
@@ -283,14 +289,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                 >
                                     Voir tout le journal
                                 </Button>
-                            ) : (
-                                <Button
-                                    variant="filled"
-                                    onClick={() => setIsAddExpenseModalOpen(true)}
-                                >
-                                    Enregistrer une dépense
-                                </Button>
-                            )
+                            ) : undefined
                         }
                     />
                 }
@@ -418,7 +417,12 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
 
             {/* La feuille de filtre — les axes en chips, jamais en onglets (R11). Pastilles de
                 17.8 : 14 sur 20, 36 de haut. */}
-            <BottomSheet open={filtreOuvert} onClose={() => setFiltreOuvert(false)} title="Filtrer">
+            <BottomSheet
+                open={filtreOuvert}
+                onClose={() => setFiltreOuvert(false)}
+                title="Filtrer"
+                emploi="filtre"
+            >
                 <div className="flex flex-col pb-0">
                     {/* `.sbody` et `.sfoot` — la feuille pose déjà 20 de chaque côté : libellés et
                         chips n'en rajoutent pas (ils tombaient à 40), et le pied reprend toute
@@ -467,7 +471,10 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                         ))}
                     </div>
 
-                    <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div
+                        data-pied
+                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                    >
                         <Button
                             variant="tonal"
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"

@@ -235,12 +235,12 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
         onClose();
     };
 
-    if (!open) return null;
+    /* Pas de retour anticipé (26/09) : la feuille reçoit `open` et redescend d'elle-même. */
 
     /* La feuille de choix : **des chemins, pas de pied**. On en sort en choisissant. */
     if (vue === 'type') {
         return (
-            <BottomSheet open onClose={() => setVue('demande')} title="Ce que je demande">
+            <BottomSheet open={open} onClose={() => setVue('demande')} title="Ce que je demande">
                 <div className="flex flex-col gap-4">
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                         Un type ; le modèle, c’est l’informatique qui le choisit.
@@ -307,7 +307,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
     }
 
     return (
-        <BottomSheet open onClose={onClose} title="Demander un équipement">
+        <BottomSheet open={open} onClose={onClose} title="Demander un équipement">
             <div className="flex flex-col gap-4">
                 <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     {pourUnAutre

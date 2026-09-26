@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CaretRight,
     EnvelopeSimple,
     FileCsv,
+    Funnel,
     Prohibit,
     SignOut,
     UsersThree,
@@ -20,7 +21,9 @@ import ListTemplate from '../../../components/layout/ListTemplate';
 import ListRow, { TONE_CLASS, type ListRowStatus } from '../../../components/ui/ListRow';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
-import ScreenState from '../../../components/ui/ScreenState';
+import { passerALaPage, useListeEtFiche } from '../../../hooks/useListeEtFiche';
+import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -162,6 +165,8 @@ interface UsersPageProps {
     inviter?: boolean;
     /** Ce que fait la fermeture de la feuille quand on est arrivé par `/users/add`. */
     onInviteClose?: () => void;
+    /** La fiche d'une personne, pour le panneau de la liste (P2a) — la page elle-même. */
+    renderFiche?: (id: string, fermer: () => void) => React.ReactNode;
 }
 
 const UsersPage: React.FC<UsersPageProps> = ({
@@ -170,6 +175,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
     initialSite,
     inviter = false,
     onInviteClose,
+    renderFiche,
 }) => {
     const { users: allUsers, equipment, deleteUser, locationData } = useData();
     const { user: currentUser, filterUsers, permissions } = useAccessControl();
@@ -316,6 +322,16 @@ const UsersPage: React.FC<UsersPageProps> = ({
      */
     const vue = useListView('users');
     const enTableau = vue.view === 'tableau';
+
+    /* **La liste et la fiche côte à côte, dès 840** (P2a, 25/09) — comme Actifs : en cartes,
+       la personne touchée s'ouvre à droite ; son identifiant est dans l'adresse. */
+    const versLaPage = useCallback(
+        (id: string) => passerALaPage(`/users/${encodeURIComponent(id)}`),
+        [],
+    );
+    const listeEtFiche = useListeEtFiche(Boolean(renderFiche) && !enTableau, versLaPage);
+    const ouvrirFiche = (id: string) =>
+        listeEtFiche.actif ? listeEtFiche.ouvrir(id) : onUserClick?.(id);
 
     const colonnes = useMemo<DataColumn<User>[]>(
         () => [
@@ -591,19 +607,45 @@ const UsersPage: React.FC<UsersPageProps> = ({
                     ) : undefined,
                 }}
                 hasRows={filteredUsers.length > 0}
+                listeEtFiche={listeEtFiche.actif}
+                panel={
+                    listeEtFiche.actif && (filteredUsers.length > 0 || listeEtFiche.ouvert) ? (
+                        <PanneauDeFiche
+                            cle={listeEtFiche.ouvert}
+                            onPleinePage={
+                                listeEtFiche.ouvert
+                                    ? () => onUserClick?.(listeEtFiche.ouvert as string)
+                                    : undefined
+                            }
+                            vide={{
+                                glyph: UsersThree,
+                                title: 'Aucune personne ouverte',
+                                description:
+                                    'Choisissez une personne dans la liste pour la voir sans la quitter.',
+                            }}
+                        >
+                            {listeEtFiche.ouvert && renderFiche ? (
+                                <React.Fragment key={listeEtFiche.ouvert}>
+                                    {renderFiche(listeEtFiche.ouvert, listeEtFiche.fermer)}
+                                </React.Fragment>
+                            ) : null}
+                        </PanneauDeFiche>
+                    ) : undefined
+                }
+                /* Le vide ne redouble pas « Ajouter » (25/09) — voir la liste des actifs. */
                 empty={
-                    <ScreenState
-                        icon={UsersThree}
+                    <CardEmptyState
+                        glyph={isFiltered ? Funnel : UsersThree}
                         title={isFiltered ? 'Personne ne correspond' : 'Aucune personne ici'}
                         description={
                             isFiltered
                                 ? 'Élargissez la recherche, ou revenez à toute l’équipe.'
                                 : 'Ce périmètre n’a encore aucun compte rattaché.'
                         }
-                        actions={
+                        action={
                             isFiltered ? (
                                 <Button
-                                    variant="filled"
+                                    variant="outlined"
                                     onClick={() => {
                                         setSearchQuery('');
                                         setRoleFilter('');
@@ -613,15 +655,6 @@ const UsersPage: React.FC<UsersPageProps> = ({
                                     }}
                                 >
                                     {`Voir les ${users.length} personnes`}
-                                </Button>
-                            ) : permissions.canManageUsers ? (
-                                /* **Le vide ouvre la même feuille que le bouton
-                                   flottant** (17.1 et 17.6). Il allait droit à
-                                   l'invitation : une équipe vide ne se voyait donc
-                                   jamais proposer l'import d'un annuaire, qui est
-                                   pourtant le geste de ce moment-là. */
-                                <Button variant="filled" onClick={() => setIsAddSheetOpen(true)}>
-                                    Ajouter une personne
                                 </Button>
                             ) : undefined
                         }
@@ -729,7 +762,8 @@ const UsersPage: React.FC<UsersPageProps> = ({
                                             : place
                                     }
                                     mark={accountMark(user)}
-                                    onOpen={() => onUserClick?.(user.id)}
+                                    onOpen={() => ouvrirFiche(user.id)}
+                                    ouverte={listeEtFiche.ouvert === user.id}
                                     selectionActive={selection.isActive}
                                     selected={selection.isSelected(user.id)}
                                     onToggle={() => selection.toggle(user.id)}
@@ -749,6 +783,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
                 open={isFilterSheetOpen}
                 onClose={() => setIsFilterSheetOpen(false)}
                 title="Filtrer"
+                emploi="filtre"
             >
                 <div className="space-y-5 px-1 pb-2">
                     {/* **Les axes se déplient au-delà de six valeurs** (22/09) : la
@@ -797,7 +832,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
                     {/* Le pied de la feuille : deux boutons de même largeur, sans filet
                         (`.sfoot`, grille 1fr 1fr). L'effacement porte maintenant le rôle
                         aussi, sinon « Tout effacer » mentirait sur un axe. */}
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div data-pied className="grid grid-cols-2 gap-3 pt-1">
                         <button
                             type="button"
                             onClick={() => {

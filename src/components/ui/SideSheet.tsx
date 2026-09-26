@@ -95,7 +95,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
         );
     }, []);
 
-    const handleAnimationEnd = () => {
+    const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+        if (event.target !== event.currentTarget) return;
         if (closing) {
             setVisible(false);
             setClosing(false);
@@ -173,28 +174,28 @@ const SideSheet: React.FC<SideSheetProps> = ({
           ? 'right-0 border-l border-outline-variant rounded-none'
           : 'left-0 border-r border-outline-variant rounded-none';
 
+    /* Le panneau glisse de son bord et y retourne (26/09) ; en feuille, il monte du bas.
+       `slide-in-from-left-4` n'existait pas : le panneau de gauche ne bougeait pas. */
     const animationClass = renderAsBottomSheet
         ? closing
-            ? 'animate-out slide-out-to-bottom-4 fade-out duration-200'
-            : 'animate-in slide-in-from-bottom-4 fade-in duration-medium2'
-        : closing
-          ? side === 'right'
-              ? 'animate-out slide-out-to-right-4 fade-out duration-200'
-              : 'animate-out slide-out-to-left-4 fade-out duration-200'
-          : side === 'right'
-            ? 'animate-in slide-in-from-right-4 fade-in duration-medium2'
-            : 'animate-in slide-in-from-left-4 fade-in duration-medium2';
+            ? 'mvt-feuille-sortie'
+            : 'mvt-feuille-entree'
+        : side === 'right'
+          ? closing
+              ? 'mvt-panneau-sortie'
+              : 'mvt-panneau-entree'
+          : closing
+            ? 'mvt-panneau-gauche-sortie'
+            : 'mvt-panneau-gauche-entree';
 
     return (
-        <div className="fixed inset-0 z-[100]">
+        <div className={cn('fixed inset-0 z-[100]', closing && 'pointer-events-none')}>
             {modal && (
                 <div
                     aria-hidden="true"
                     className={cn(
                         'bg-scrim/[0.42] absolute inset-0',
-                        closing
-                            ? 'animate-out fade-out duration-200'
-                            : 'animate-in fade-in duration-medium2',
+                        closing ? 'mvt-voile-sortie' : 'mvt-voile-entree',
                     )}
                     onClick={handleClose}
                 />
@@ -239,7 +240,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
 
                 <div
                     className={cn(
-                        'custom-scrollbar flex-1 overflow-y-auto px-5 py-4',
+                        'custom-scrollbar flex-1 overflow-y-auto overscroll-contain px-5 py-4',
                         contentClassName,
                     )}
                 >

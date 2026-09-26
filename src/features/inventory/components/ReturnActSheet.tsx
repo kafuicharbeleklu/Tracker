@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, CheckCircle, Hourglass, Laptop, Wrench, XCircle } from '@phosphor-icons/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle, Hourglass, Laptop, Wrench, XCircle } from '@phosphor-icons/react';
 
 import ActSheet, { type ActChoice, type ConsequenceTone } from '../../../components/ui/ActSheet';
 import ActScanOverlay from './ActScanOverlay';
-import FilePicker from '../../../components/ui/FilePicker';
+import PhotosJointes, { usePhotosJointes } from '../../../components/ui/PhotosJointes';
 import Icon from '../../../components/ui/Icon';
 import { TextArea } from '../../../components/ui/TextArea';
-import { FieldLabel, OptionRow, ShotBox, type Tint } from '../../../components/ui/FormParts';
+import { FieldLabel, OptionRow, type Tint } from '../../../components/ui/FormParts';
 import type { AttestationMethod } from '../../../components/ui/Attestation';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -139,12 +139,16 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
 
     const [objetId, setObjetId] = useState<string | null>(null);
     const [cran, setCran] = useState<ReturnInspectionCondition>('Bon');
-    const [photos, setPhotos] = useState<string[]>([]);
+    const {
+        photos,
+        ajouter: ajouterPhotos,
+        retirer: retirerPhoto,
+        vider: viderPhotos,
+    } = usePhotosJointes();
     const [refusPhoto, setRefusPhoto] = useState<string | null>(null);
     const [commentaire, setCommentaire] = useState('');
     const [refus, setRefus] = useState<string | null>(null);
     const [scanOuvert, setScanOuvert] = useState(false);
-    const photoInput = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!open) return;
@@ -156,12 +160,12 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
 
         setObjetId(initialEquipmentId || params?.get('equipmentId') || null);
         setCran('Bon');
-        setPhotos([]);
+        viderPhotos();
         setRefusPhoto(null);
         setCommentaire('');
         setRefus(null);
         setScanOuvert(false);
-    }, [open, initialEquipmentId]);
+    }, [open, initialEquipmentId, viderPhotos]);
 
     const objet = useMemo<Equipment | null>(
         () => equipment.find((item) => item.id === objetId) ?? null,
@@ -269,7 +273,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
             },
             {
                 condition: cran,
-                photos: photos.join(', ') || undefined,
+                photos: photos.map((photo) => photo.nom).join(', ') || undefined,
                 comment: commentaire.trim() || undefined,
                 previousUser: objet.user?.name || null,
                 source: 'return_act_sheet',
@@ -292,7 +296,8 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
         else restituer();
     };
 
-    if (!open) return null;
+    /* Pas de retour anticipé à la fermeture (26/09) : la feuille reçoit `open` et
+       redescend d'elle-même (`usePresence`). Démontée ici, elle disparaissait d'un coup. */
 
     return (
         <>
@@ -306,7 +311,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                 />
             )}
             <ActSheet
-                open
+                open={open}
                 onClose={onClose}
                 title={reception ? 'Réceptionner le retour' : 'Restituer l’équipement'}
                 subtitle={
@@ -361,46 +366,19 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                               children: (
                                   <div className="flex flex-col gap-4">
                                       <div>
-                                          {/* Des carrés de 56 : la case d'une photo. */}
-                                          <div className="flex flex-wrap gap-2">
-                                              {photos.map((nom, index) => (
-                                                  <ShotBox
-                                                      key={`${nom}-${index}`}
-                                                      glyph={Camera}
-                                                      filled
-                                                      title={nom}
-                                                      aria-label={`Photo jointe : ${nom} — retirer`}
-                                                      onClick={() =>
-                                                          setPhotos((prev) =>
-                                                              prev.filter(
-                                                                  (_, position) =>
-                                                                      position !== index,
-                                                              ),
-                                                          )
-                                                      }
-                                                  />
-                                              ))}
-                                              <ShotBox
-                                                  glyph={Camera}
-                                                  label="ajouter"
-                                                  aria-label="Ajouter une photo du retour"
-                                                  onClick={() => photoInput.current?.click()}
-                                              />
-                                              <FilePicker
-                                                  ref={photoInput}
-                                                  accept="image/*"
-                                                  multiple
-                                                  onFiles={(noms) => {
-                                                      setRefusPhoto(null);
-                                                      setPhotos((prev) =>
-                                                          noms.length > 0
-                                                              ? [...prev, ...noms]
-                                                              : prev,
-                                                      );
-                                                  }}
-                                                  onReject={setRefusPhoto}
-                                              />
-                                          </div>
+                                          {/* Des carrés de 56 : la miniature de chaque photo,
+                                              qui s'ouvre en grand ; la croix du coin la
+                                              retire (25/09). */}
+                                          <PhotosJointes
+                                              photos={photos}
+                                              labelAjout="Ajouter une photo du retour"
+                                              onAjouter={(fichiers) => {
+                                                  setRefusPhoto(null);
+                                                  ajouterPhotos(fichiers);
+                                              }}
+                                              onRetirer={retirerPhoto}
+                                              onRefus={setRefusPhoto}
+                                          />
                                           {/* Le refus se lit au champ, là où la photo a été
                                           choisie, et nomme le fichier et sa taille. */}
                                           {refusPhoto && (

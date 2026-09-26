@@ -88,7 +88,11 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
                 className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs"
             >
                 <span
-                    className={cn('block h-full rounded-xs', TONE_FILL[tone])}
+                    className={cn(
+                        'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                        'block h-full rounded-xs',
+                        TONE_FILL[tone],
+                    )}
                     style={{ width: `${clamped}%` }}
                 />
             </div>

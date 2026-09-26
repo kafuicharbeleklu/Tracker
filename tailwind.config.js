@@ -37,6 +37,7 @@ module.exports = {
                   'compact': { raw: 'all' },
                   'medium': JAMAIS,
                   'expanded': JAMAIS,
+                  'deux': JAMAIS,
                   'large': JAMAIS,
                   'extra-large': JAMAIS,
               }
@@ -44,6 +45,9 @@ module.exports = {
                   'compact': { 'max': '599px' },
                   'medium': '600px',
                   'expanded': '840px',
+                  // **Les deux colonnes** (25/09) — fiches, réglages, Finances et formulaires
+                  // à deux colonnes dès 1 000, pour l'iPad de 1 024 : `MEDIA.twoColumn`.
+                  'deux': '1000px',
                   'large': '1200px',
                   'extra-large': '1600px',
               },

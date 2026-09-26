@@ -55,15 +55,17 @@ export const CORPS_BUREAU =
  * Appliquée à la page, elle laissait à 1 440 une colonne de 560 au milieu de 880 px vides,
  * et une fiche de cinq sections à faire défiler sur trois hauteurs d'écran.
  *
- * Dès 1 200, la page prend donc **deux mesures de 560** (1 136 avec la gouttière) : les
- * sections se rangent en colonnes, chacune garde sa largeur de lecture, et la barre et le
- * pied s'alignent sur les bords du formulaire. En deçà, rien ne change.
+ * Dès 1 000 (`deux:`, le seuil des fiches à deux colonnes), la page prend donc **deux
+ * mesures**, 560 au plus chacune (1 136 avec la gouttière) : les sections se rangent en
+ * colonnes, chacune garde sa largeur de lecture, et la barre et le pied s'alignent sur les
+ * bords du formulaire. En deçà, rien ne change. Le seuil était 1 200 jusqu'au 25/09 : un
+ * iPad de 1 024 gardait un formulaire d'une colonne de 560 au milieu de 944 px.
  *
  * - `MESURE_DOUBLE` — la borne de la barre, du corps et du pied (`FullScreenLayout`,
  *   `mesure="double"`) ;
  * - `COLONNES_FORMULAIRE` — le conteneur des sections : il passe de la colonne `flex` à
  *   deux colonnes CSS, et une section ne se coupe jamais entre elles.
  */
-export const MESURE_DOUBLE = 'large:max-w-[71rem]';
+export const MESURE_DOUBLE = 'deux:max-w-[71rem]';
 export const COLONNES_FORMULAIRE =
-    'large:block large:columns-2 large:gap-4 large:[&>*]:mb-4 large:[&>*]:break-inside-avoid';
+    'deux:block deux:columns-2 deux:gap-4 deux:[&>*]:mb-4 deux:[&>*]:break-inside-avoid';

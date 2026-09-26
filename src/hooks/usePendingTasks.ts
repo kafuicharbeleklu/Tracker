@@ -1,45 +1,27 @@
 import { useMemo } from 'react';
 
-import { useData } from '../context/DataContext';
-import { useAccessControl } from './useAccessControl';
-import { canUserActOnApproval } from '../lib/businessRules';
-import { getCategoryLabel } from '../constants/glossary';
-import type { Approval } from '../types';
+import { useFileDeTaches } from '../features/tasks/hooks/useFileDeTaches';
+import type { TaskNature } from '../features/tasks/lib/file';
 
 /**
  * **Ce qui attend le geste de la personne connectée** — la file de 03.3, telle que
- * l'accueil (03.1) la résume et que la barre du bas (17.7) la compte.
+ * l'accueil (03.1) la résume et que les barres (17.7) la comptent.
  *
- * *Une décision pour N surfaces.* Trois endroits énonçaient ce nombre, et de trois
- * façons : l'accueil croisait les trois natures d'attente en passant par la règle
- * métier ; la barre latérale comptait les demandes d'un rôle en comparant des **noms**
- * de personnes ; la barre du bas n'affichait rien du tout. Le même écran pouvait donc
- * annoncer « 17 choses vous attendent » en haut et ne rien porter en bas.
- *
- * La règle retenue est celle qui était déjà arbitrée : `canUserActOnApproval`. Une
- * tâche est ici **parce qu'elle attend un geste de vous**, pas parce qu'elle est
- * ouverte quelque part.
+ * *Une décision pour N surfaces.* Ce nombre était calculé ici par une règle, et par une
+ * autre dans la page : la barre latérale d'un super administrateur disait 9 quand l'onglet
+ * « À faire » en listait 17, et 8 seulement lui revenaient (26/09). Il est désormais **lu
+ * dans la file elle-même** — la partition « À faire » de `useFileDeTaches`, dans l'ordre
+ * où la page la présente : ce qui presse d'abord.
  */
 
-export type PendingTaskKind = 'validation' | 'receipt' | 'return';
-
-export type PendingTask =
-    | {
-          id: string;
-          status: Approval['status'];
-          who: string;
-          what: string;
-          kind: 'validation' | 'receipt';
-          /** ISO de l'ouverture de l'attente — la source de `.age`. */
-          since?: string;
-      }
-    | {
-          id: string;
-          who: string;
-          what: string;
-          kind: 'return';
-          since?: string;
-      };
+export interface PendingTask {
+    id: string;
+    who: string;
+    what: string;
+    nature: TaskNature;
+    /** ISO de l'ouverture de l'attente — la source de `.age`. */
+    since?: string;
+}
 
 const DAY_MS = 86_400_000;
 
@@ -51,101 +33,35 @@ export const daysSince = (iso?: string): number | null => {
     return Math.max(0, Math.floor((Date.now() - at) / DAY_MS));
 };
 
+/** Les natures d'attente, dans l'ordre où l'accueil les énumère. */
+const RESUME: { nature: TaskNature; label: string }[] = [
+    { nature: 'validation', label: 'validations' },
+    { nature: 'remise', label: 'remises' },
+    { nature: 'reception', label: 'réceptions à confirmer' },
+    { nature: 'retour', label: 'retours à réceptionner' },
+    { nature: 'reparation', label: 'réparations' },
+    { nature: 'collecte', label: 'machines collectées à examiner' },
+];
+
 export const usePendingTasks = () => {
-    const { equipment: allEquipment, users, approvals } = useData();
-    const { filterEquipment, user: currentUser } = useAccessControl();
+    const file = useFileDeTaches();
 
-    const equipment = useMemo(
-        () => filterEquipment(allEquipment, users),
-        [allEquipment, users, filterEquipment],
-    );
-    const equipmentById = useMemo(
-        () => new Map(allEquipment.map((item) => [item.id, item])),
-        [allEquipment],
-    );
-
-    /** Le nom de l'objet d'une demande, quelle que soit l'étape où elle en est. */
-    const labelOf = useMemo(
-        () => (approval: Approval) =>
-            approval.assignedEquipmentName ||
-            (approval.assignedEquipmentId
-                ? equipmentById.get(approval.assignedEquipmentId)?.name
-                : undefined) ||
-            approval.equipmentName ||
-            approval.equipmentCategory ||
-            '',
-        [equipmentById],
-    );
-
-    const validations = useMemo<PendingTask[]>(() => {
-        if (!currentUser) return [];
-        return approvals
-            .filter(
-                (approval) =>
-                    (approval.status === 'WAITING_MANAGER_APPROVAL' ||
-                        approval.status === 'WAITING_DOTATION_APPROVAL') &&
-                    canUserActOnApproval({
-                        approval,
-                        actorRole: currentUser.role,
-                        actorId: currentUser.id,
-                        users,
-                    }),
-            )
-            .map((approval) => ({
-                id: approval.id,
-                status: approval.status,
-                who: approval.beneficiaryName || '',
-                what: labelOf(approval),
-                kind: 'validation' as const,
-                since: approval.createdAt,
-            }));
-    }, [approvals, currentUser, labelOf, users]);
-
-    const receipts = useMemo<PendingTask[]>(() => {
-        if (!currentUser) return [];
-        return approvals
-            .filter(
-                (approval) =>
-                    approval.status === 'PENDING_DELIVERY' &&
-                    canUserActOnApproval({
-                        approval,
-                        actorRole: currentUser.role,
-                        actorId: currentUser.id,
-                        users,
-                    }),
-            )
-            .map((approval) => ({
-                id: approval.id,
-                status: approval.status,
-                who: approval.beneficiaryName || '',
-                what: labelOf(approval),
-                kind: 'receipt' as const,
-                since: approval.createdAt,
-            }));
-    }, [approvals, currentUser, labelOf, users]);
-
-    const returns = useMemo<PendingTask[]>(
+    const tasks = useMemo<PendingTask[]>(
         () =>
-            equipment
-                .filter((item) => item.assignmentStatus === 'PENDING_RETURN')
-                .map((item) => ({
-                    id: `return-${item.id}`,
-                    who: item.user?.name || '',
-                    what: item.name || `${getCategoryLabel(item.type)} (${item.assetId})`,
-                    kind: 'return' as const,
-                    since: item.returnRequestedAt,
+            file
+                .filter((task) => task.scope === 'todo')
+                .map((task) => ({
+                    id: task.id,
+                    who: task.who ?? '',
+                    what: task.title,
+                    nature: task.nature,
+                    since: task.since ?? undefined,
                 })),
-        [equipment],
-    );
-
-    const tasks = useMemo(
-        () => [...validations, ...receipts, ...returns],
-        [validations, receipts, returns],
+        [file],
     );
 
     /**
-     * « La plus ancienne depuis 14 jours » — `.bigl` du régime saturé de 03.1. La
-     * donnée vit dans `Approval.createdAt` et `Equipment.returnRequestedAt`.
+     * « La plus ancienne depuis 14 jours » — `.bigl` du régime saturé de 03.1.
      */
     const oldestWaitDays = useMemo(() => {
         const ages = tasks
@@ -157,13 +73,12 @@ export const usePendingTasks = () => {
     /** Les natures d'attente, chacune un renvoi vers la file — régime saturé de 03.1. */
     const breakdown = useMemo(
         () =>
-            [
-                { label: 'validations', count: validations.length },
-                { label: 'réceptions à confirmer', count: receipts.length },
-                { label: 'retours à réceptionner', count: returns.length },
-            ].filter((item) => item.count > 0),
-        [validations.length, receipts.length, returns.length],
+            RESUME.map(({ nature, label }) => ({
+                label,
+                count: tasks.filter((task) => task.nature === nature).length,
+            })).filter((item) => item.count > 0),
+        [tasks],
     );
 
-    return { tasks, count: tasks.length, validations, receipts, returns, oldestWaitDays, breakdown };
+    return { tasks, count: tasks.length, oldestWaitDays, breakdown };
 };

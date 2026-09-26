@@ -6,6 +6,7 @@ import Button from './Button';
 import Icon from './Icon';
 import LoadingSpinner from './LoadingSpinner';
 import { cn } from '../../lib/utils';
+import { usePresence } from '../../hooks/usePresence';
 
 /**
  * **L'aperçu de la photo d'un objet** — 23/09, à la demande : *« on retire la photo en
@@ -42,6 +43,9 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, subject }) => {
     const [taille, setTaille] = useState<{ w: number; h: number; reduite: boolean } | null>(null);
     const declencheur = useRef<HTMLButtonElement>(null);
     const fermer = useRef<HTMLButtonElement>(null);
+    /* L'aperçu s'assombrit en s'ouvrant et s'éclaircit en partant ; la photo se pose une
+       fois chargée (26/09). */
+    const presence = usePresence(ouvert);
 
     const clore = useCallback(() => {
         setOuvert(false);
@@ -80,13 +84,19 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, subject }) => {
                 <Icon glyph={Eye} size={20} />
             </Button>
 
-            {ouvert &&
+            {presence.monte &&
                 createPortal(
                     <div
                         role="dialog"
                         aria-modal="true"
                         aria-label={`Photo de ${subject}`}
-                        className="bg-scrim/[0.94] fixed inset-0 z-[120] flex flex-col"
+                        onAnimationEnd={presence.finDeSortie}
+                        className={cn(
+                            'bg-scrim/[0.94] fixed inset-0 z-[120] flex flex-col',
+                            presence.sortant
+                                ? 'mvt-voile-sortie pointer-events-none'
+                                : 'mvt-voile-entree',
+                        )}
                         onClick={(event) => {
                             if (event.target === event.currentTarget) clore();
                         }}
@@ -146,7 +156,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, subject }) => {
                                     onError={() => setEtat('echec')}
                                     className={cn(
                                         'block h-auto max-h-full w-auto max-w-full object-contain',
-                                        etat !== 'prete' && 'invisible',
+                                        etat !== 'prete' ? 'invisible' : 'mvt-dialogue-entree',
                                     )}
                                 />
                             )}

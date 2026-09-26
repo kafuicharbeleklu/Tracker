@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
     ArrowLeft,
+    Calculator,
     Check,
     CheckCircle,
     DotsThreeVertical,
@@ -30,6 +31,7 @@ import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import { CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import type { FinanceBudgetItem, FinanceExpenseType } from '../../../types';
+import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 
 /**
  * **15.2 — Lignes du budget : ajuster les enveloppes.**
@@ -305,19 +307,13 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
     }`;
 
     const vide = (
+        /* Le vide ne double pas le geste d'ajout — un seul par écran (17.7) : le bouton
+           flottant au téléphone, « Ajouter une ligne » sous la synthèse au bureau (25/09).
+           Son rond dit l'objet, pas le geste : le « + » s'y lisait comme un bouton. */
         <CardEmptyState
-            glyph={Plus}
+            glyph={Calculator}
             title="Aucune ligne pour cet exercice"
             description="Chaque poste porte une enveloppe ; les dépenses s'y imputent ensuite."
-            /* Au téléphone le geste d'ajout est le bouton flottant : le vide ne le double
-               pas (un seul geste d'ajout par écran, 17.7). */
-            action={
-                bureau ? (
-                    <Button variant="tonal" onClick={ajouter}>
-                        Ajouter une ligne
-                    </Button>
-                ) : undefined
-            }
         />
     );
 
@@ -336,7 +332,10 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     <col style={{ width: '48px' }} />
                 </colgroup>
                 <thead>
-                    <tr className="border-outline-variant text-on-surface-variant h-10 border-b text-[0.75rem] leading-4 font-medium">
+                    {/* La graisse se pose sur les cellules : un `th` natif est gras et n'hérite pas
+                        du `font-medium` de sa rangée — les en-têtes sortaient en 700, hors des deux
+                        graisses du système (relevé du 26/09). */}
+                    <tr className="border-outline-variant text-on-surface-variant h-10 border-b text-[0.75rem] leading-4 [&>th]:font-medium">
                         <th className="px-2.5 pl-4">Ligne</th>
                         <th className="px-2.5 text-right">Consommé</th>
                         <th className="px-2.5 text-right">Enveloppe</th>
@@ -380,6 +379,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                     <span className="bg-surface-container block h-2 overflow-hidden rounded-xs">
                                         <i
                                             className={cn(
+                                                'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
                                                 'block h-full',
                                                 ko || part >= 100
                                                     ? 'bg-[var(--tk-color-st-orange)]'
@@ -472,14 +472,14 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
         },
     ];
     const cote = (
-        <aside className="rounded-card bg-surface flex flex-col gap-5 p-5">
+        <aside className="rounded-card bg-surface flex flex-col gap-5 p-4">
             <div>
                 <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                     Enveloppe {year}
                 </p>
                 <p className="mt-1 flex items-baseline gap-2">
                     <b className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em] tabular-nums">
-                        {n(enveloppe)}
+                        <ChiffreAnime valeur={n(enveloppe)} />
                     </b>
                     <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
                         {settings.currency}
@@ -491,7 +491,11 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     {segments.map((seg) => (
                         <i
                             key={seg.cle}
-                            className={cn('block h-full', seg.teinte)}
+                            className={cn(
+                                'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                                'block h-full',
+                                seg.teinte,
+                            )}
                             style={{ width: `${(seg.v / base) * 100}%` }}
                         />
                     ))}
@@ -543,7 +547,11 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                 </span>
                                 <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
                                     <i
-                                        className={cn('block h-full', NATURE_TEINTE[nat.cap].barre)}
+                                        className={cn(
+                                            'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
+                                            'block h-full',
+                                            NATURE_TEINTE[nat.cap].barre,
+                                        )}
                                         style={{ width: `${part}%` }}
                                     />
                                 </span>
@@ -582,8 +590,8 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     Exercice {year} · lignes du budget
                 </span>
                 <div className="mt-2 flex items-baseline gap-2.5">
-                    <b className="font-brand text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
-                        {n(enveloppe)}
+                    <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
+                        <ChiffreAnime valeur={n(enveloppe)} />
                     </b>
                     <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                         {settings.currency}
@@ -653,6 +661,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                   <span className="bg-surface-container mt-4 block h-2 overflow-hidden rounded-xs">
                                       <i
                                           className={cn(
+                                              'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
                                               'block h-full',
                                               ko || part >= 100
                                                   ? 'bg-[var(--tk-color-st-orange)]'

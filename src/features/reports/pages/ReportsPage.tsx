@@ -28,6 +28,7 @@ import autoTable from 'jspdf-autotable';
 import { APP_CONFIG } from '../../../config';
 import { buildCsvLine } from '../../../lib/csv';
 import { formatDate } from '../../../lib/financial';
+import { useEntree } from '../../../hooks/useEntree';
 import {
     buildAgingReportRows,
     buildInventoryReportRows,
@@ -70,6 +71,7 @@ interface ReportsPageProps {
 }
 
 const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
+    const entree = useEntree();
     const isCompact = useMediaQuery(MEDIA.compact);
     const { showToast } = useToast();
     const { equipment, users, events } = useData();
@@ -400,11 +402,16 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                 passent en grille de deux : ce qu'il contient, en une ligne, son compte, puis **les
                 deux gestes de 15.1 à parts égales**, CSV et PDF, qui ouvrent l'aperçu sur le format
                 demandé. Celui qui n'a rien à exporter s'éteint et le dit à la place des gestes. */}
-                <ul className="medium:grid-cols-2 grid grid-cols-1 gap-4">
+                <ul
+                    className={cn(
+                        'medium:grid-cols-2 grid grid-cols-1 gap-4',
+                        entree && 'mvt-cascade-cartes',
+                    )}
+                >
                     {rapports.map((rapport) => (
                         <li
                             key={rapport.id}
-                            className="rounded-card bg-surface flex min-h-44 flex-col gap-4 p-5"
+                            className="rounded-card bg-surface flex min-h-44 flex-col gap-4 p-4"
                         >
                             <div className="flex items-start gap-3">
                                 <span

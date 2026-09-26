@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import ChiffreAnime from './ChiffreAnime';
 
 export type FigureTone = 'bleu' | 'vert' | 'orange' | 'ambre' | 'danger';
 
@@ -47,7 +48,8 @@ const Figure: React.FC<FigureProps> = ({
 }) => {
     const number = (
         <span className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] whitespace-nowrap tabular-nums">
-            {value}
+            {/* Le chiffre compte jusqu'à sa valeur (26/09). */}
+            <ChiffreAnime valeur={value} />
         </span>
     );
     const caption =
@@ -71,8 +73,10 @@ const Figure: React.FC<FigureProps> = ({
         'min-w-0 text-left',
         layout === 'inline' ? 'inline-flex items-baseline' : 'flex flex-col',
         card && 'rounded-card bg-surface p-4',
+        /* Au doigt, la couronne de 48 (`touch-target`) : « 14 actifs » ne faisait que 65 × 28
+           de cible à côté du titre de la carte (relevé du 25/09, P3). */
         onClick &&
-            'focus-visible:ring-focus-ring cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            'touch-target focus-visible:ring-focus-ring cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         className,
     );
 

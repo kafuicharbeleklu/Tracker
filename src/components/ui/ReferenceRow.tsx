@@ -3,6 +3,7 @@ import { Copy } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import { infobulle } from '../../lib/nomLong';
 
 /**
  * Rangée de référence — registre **§2.11**, planche **04.2**.
@@ -79,20 +80,35 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                     /* `.cp` — 44 de haut, 8 d'intérieur, en 16 tabulaire, sans graisse **et
                        sans interlettrage** : le numéro portait 0,4 px d'espacement, que la
                        planche ne donne à aucune valeur de référence. */
-                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring text-ts-body leading-ts-body -mr-2 flex min-h-11 items-center gap-2 rounded-md px-2 font-normal outline-none focus-visible:ring-2"
+                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring text-ts-body leading-ts-body -mr-2 flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 font-normal outline-none focus-visible:ring-2"
                 >
-                    <span className="tabular-nums">{value}</span>
+                    {/* Un numéro long se coupe sur une ligne (25/09) : la rangée garde sa
+                        hauteur ; le bouton copie la valeur entière, l'infobulle la montre. */}
+                    <span
+                        title={infobulle(value)}
+                        className="min-w-0 truncate text-right tabular-nums"
+                    >
+                        {value}
+                    </span>
                     <Icon glyph={Copy} size={20} className="text-on-surface-variant" />
                     <span className="sr-only">{copied ? 'Copié' : 'Copier'}</span>
                 </button>
             ) : (
                 <span
                     className={cn(
-                        'min-w-0 text-right break-words',
+                        'min-w-0 text-right [overflow-wrap:anywhere]',
                         quiet ? 'text-text-tertiary' : 'text-on-surface',
                     )}
                 >
-                    {value}
+                    {/* Un nom ou un code — une chaîne — tient sur une ligne, coupé (25/09) ;
+                        une valeur composée garde sa mise en forme. */}
+                    {typeof value === 'string' ? (
+                        <span title={value} className="block truncate">
+                            {value}
+                        </span>
+                    ) : (
+                        value
+                    )}
                     {/* Une phrase, pas une étiquette : 12 sur 16 **sans** interlettrage.
                         `text-label-small` en porte `.075em`, fait pour les capitales — sur
                         une phrase en minuscules, il l'étire lettre à lettre. */}

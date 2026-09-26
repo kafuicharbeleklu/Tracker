@@ -411,7 +411,7 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                                     matchingBudgetItem.allocated - matchingBudgetItem.spent;
 
                                 return (
-                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant flex gap-2.5 rounded-md border p-[11px_12px] text-[0.75rem] leading-[1.0625rem]">
+                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant text-ts-sub leading-ts-sub flex gap-2.5 rounded-md border p-[11px_12px]">
                                         <Icon
                                             glyph={Warning}
                                             size={18}

@@ -11,6 +11,8 @@ export const BREAKPOINTS = {
     mediumMin: 600,
     mediumMax: 839,
     expandedMin: 840,
+    /** Les deux colonnes — l'écran `deux:` de Tailwind (25/09). */
+    deuxColonnesMin: 1000,
     largeMin: 1200,
     extraLargeMin: 1600,
 } as const;
@@ -36,8 +38,27 @@ export const MEDIA = {
      * fenêtre de bureau elle répondait « oui » et le gabarit posait deux colonnes **dans
      * le cadre de 393 px**. Le héro sortait du cadre à droite et la colonne des cartes
      * tombait entièrement hors champ : les trois fiches paraissaient vides sous leur héro.
+     *
+     * **1 000, et plus 1 280** (25/09). 1 280 supposait la barre latérale déployée : 1 280 −
+     * 240 laissaient 1 040 px aux colonnes. Sur tablette la barre n'existe qu'en rail (80) : un
+     * iPad en paysage (1 024 à 1 194) a presque autant de place qu'un bureau de 1 280, et ses
+     * fiches restaient sur une colonne étirée. Un premier pas à 1 100 laissait encore l'iPad
+     * de 1 024 sur une colonne ; à 1 000, 1 000 − 80 donnent 920 — une liste de 360 et un
+     * détail de 536, les deux volets de Material dès 840. Les classes `deux:` (Tailwind)
+     * suivent le même seuil : Finances, Paramètres et formulaires attendaient 1 200.
      */
-    twoColumn: '(min-width: 1280px)',
+    twoColumn: `(min-width: ${BREAKPOINTS.deuxColonnesMin}px)`,
+    /**
+     * **Le bureau** — la barre latérale s'y déploie (≥ 1280). En deçà, sur tablette, elle
+     * n'existe que repliée (25/09).
+     */
+    bureau: '(min-width: 1280px)',
+    /**
+     * **Un panneau tenu** (P2b, 25/09) — de 600 à 999 : la tablette debout, l'iPad partagé,
+     * et le paysage sous le seuil des deux colonnes. Une fiche y est un seul panneau : le
+     * héro y met ses chiffres en ligne au lieu de tuiles, et les cartes vont par deux.
+     */
+    panneauTenu: `(min-width: ${BREAKPOINTS.mediumMin}px) and (max-width: ${BREAKPOINTS.deuxColonnesMin - 1}px)`,
 } as const;
 
 /**
@@ -88,6 +109,8 @@ export const MOBILE_ONLY_ANSWERS: Partial<Record<string, boolean>> = {
     [MEDIA.landscape]: false,
     [MEDIA.belowExpandedLandscape]: false,
     [MEDIA.twoColumn]: false,
+    [MEDIA.bureau]: false,
+    [MEDIA.panneauTenu]: false,
 };
 
 export type MediaKey = keyof typeof MEDIA;

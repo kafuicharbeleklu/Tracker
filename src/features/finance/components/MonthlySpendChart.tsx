@@ -104,7 +104,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
     const n = (v: number) => formatNumber(v, compactNotation);
 
     return (
-        <section className={cn('rounded-card bg-surface large:p-5 flex flex-col p-4', className)}>
+        <section className={cn('rounded-card bg-surface flex flex-col p-4', className)}>
             {/* Au téléphone, le pic passe sous le titre : côte à côte sur 330 px, le
                 titre se coupait en deux lignes et le montant du pic en points de suite. */}
             <header className="medium:flex-row medium:items-baseline medium:justify-between flex min-h-6 flex-col gap-x-3 gap-y-0.5">
@@ -129,7 +129,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                     className="mt-5 flex flex-1 flex-col"
                     aria-label={`Consommation ${year} par mois, en ${currency}`}
                 >
-                    <div className="large:min-h-72 flex min-h-60 flex-1 gap-3">
+                    <div className="deux:min-h-72 flex min-h-60 flex-1 gap-3">
                         {/* L'axe : trois repères, zéro compris — une barre se lit contre lui. */}
                         <div
                             aria-hidden="true"
@@ -166,7 +166,8 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                 />
                             )}
 
-                            <ol className="medium:gap-3 absolute inset-0 grid grid-cols-12 items-end gap-1.5">
+                            {/* Les barres montent de leur base, mois après mois (26/09). */}
+                            <ol className="medium:gap-3 mvt-colonnes absolute inset-0 grid grid-cols-12 items-end gap-1.5">
                                 {parMois.map((valeur, mois) => {
                                     const avenir = mois >= moisVecus;
                                     const auDela = part > 0 && valeur > part;
@@ -183,7 +184,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                             {mois === pic && valeur > 0 && (
                                                 <span
                                                     aria-hidden="true"
-                                                    className="text-on-surface absolute inset-x-[-1rem] text-center text-[0.6875rem] leading-4 font-medium tabular-nums"
+                                                    className="text-on-surface mvt-contenu absolute inset-x-[-1rem] text-center text-[0.6875rem] leading-4 font-medium tabular-nums"
                                                     style={{
                                                         bottom: `calc(${(valeur / plafond) * 100}% + 4px)`,
                                                     }}
@@ -194,7 +195,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                             {!avenir && valeur > 0 && (
                                                 <span
                                                     className={cn(
-                                                        'block min-h-0.5 rounded-t-[3px]',
+                                                        'mvt-colonne duration-medium2 ease-emphasized block min-h-0.5 rounded-t-[3px] transition-[height]',
                                                         auDela
                                                             ? 'bg-[var(--tk-color-st-orange)]'
                                                             : 'bg-[var(--tk-color-st-vert)]',

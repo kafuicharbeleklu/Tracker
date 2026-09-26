@@ -3,6 +3,9 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import { RACCOURCI_RECHERCHE } from '../../lib/clavier';
+import { MEDIA } from '../../constants/breakpoints';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * Champ de recherche d'une liste — planches **04.1** et **00.4**.
@@ -40,6 +43,11 @@ interface SearchFieldProps {
     label?: string;
     /** Le régime du bureau (17.11) : 40 de haut, cerné sur `--surface`, texte 14. */
     dense?: boolean;
+    /**
+     * **La recherche de la page** (P3, 25/09) : ⌘K (Ctrl+K) y porte le curseur
+     * (`useRaccourciRecherche`). Au bureau, à la souris, le champ vide le rappelle à droite.
+     */
+    raccourci?: boolean;
     className?: string;
 }
 
@@ -49,9 +57,11 @@ const SearchField: React.FC<SearchFieldProps> = ({
     placeholder,
     label = 'Rechercher',
     dense = false,
+    raccourci = false,
     className,
 }) => {
     const id = useId();
+    const souris = useMediaQuery(MEDIA.hoverCapable);
 
     return (
         <div
@@ -64,7 +74,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
                    bande du haut, que la passe sobre veut calme. */
                 'flex min-w-0 items-center gap-2.5 rounded-[4px] px-3.5',
                 dense
-                    ? 'bg-surface border-outline-variant h-10 border'
+                    ? 'bg-surface border-outline-variant doigt:h-12 h-10 border'
                     : 'bg-surface-container h-12',
                 'focus-within:ring-focus-ring focus-within:ring-2',
                 className,
@@ -83,15 +93,36 @@ const SearchField: React.FC<SearchFieldProps> = ({
                 type="search"
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
+                /* Échap vide le champ (le navigateur le fait pour une recherche) ; sur un champ
+                   déjà vide, il rend la main à la page. */
+                onKeyDown={(event) => {
+                    if (event.key === 'Escape' && !value) event.currentTarget.blur();
+                }}
                 placeholder={placeholder}
+                data-recherche-de-page={raccourci || undefined}
+                aria-keyshortcuts={raccourci ? 'Meta+K Control+K' : undefined}
                 className={cn(
-                    'text-on-surface min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tk-color-text-tertiary)]',
+                    'peer text-on-surface min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--tk-color-text-tertiary)]',
                     /* Dense, c'est le champ de la ligne d'outils du bureau : il est déjà
                        à la taille du corps de bureau (14), qu'il garde. Au téléphone, 16 —
                        sous 16, iOS agrandit la page au focus d'un champ. */
-                    dense ? 'text-[0.875rem] leading-5' : 'text-ts-body leading-ts-body',
+                    /* Au doigt, 16 : la taille du texte du téléphone, et celle sous laquelle
+                       Safari agrandit la page quand un champ prend le curseur (26/09). */
+                    dense
+                        ? 'doigt:text-ts-body doigt:leading-ts-body text-[0.875rem] leading-5'
+                        : 'text-ts-body leading-ts-body',
                 )}
             />
+            {raccourci && dense && souris && !value && (
+                /* La marque du raccourci — encre tertiaire, 12, dans un cerné de rayon 2 :
+                   elle se lit quand on la cherche et s'efface dès que le champ a le curseur. */
+                <kbd
+                    aria-hidden="true"
+                    className="border-outline-variant text-text-tertiary shrink-0 rounded-xs border px-1.5 font-sans text-[0.75rem] leading-[1.125rem] peer-focus:hidden"
+                >
+                    {RACCOURCI_RECHERCHE}
+                </kbd>
+            )}
         </div>
     );
 };

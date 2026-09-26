@@ -22,6 +22,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { avecObjetOuvert } from '../../../hooks/useObjetOuvert';
 
 import {
     RETIREMENT_REASON_LABELS,
@@ -141,7 +142,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     } = useData();
     const { showToast } = useToast();
     const { permissions, user: currentUser } = useAccessControl();
-    const { navigate } = useAppNavigation();
+    const { navigate: allerA } = useAppNavigation();
+    /* Un acte ouvert depuis la fiche d'un panneau garde l'objet ouvert (P3). */
+    const navigate = (adresse: string) => allerA(avecObjetOuvert(adresse));
     const { requestConfirmation } = useConfirmation();
     const { financeBudgets, addFinanceExpense } = useFinanceData();
 
@@ -1067,7 +1070,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                         />
                                                     </span>
                                                     <span className="min-w-0 flex-1">
-                                                        <span className="text-on-surface text-ts-body leading-ts-body block">
+                                                        <span
+                                                            title={event.title}
+                                                            className="text-on-surface text-ts-body leading-ts-body block truncate"
+                                                        >
                                                             {event.title}
                                                         </span>
                                                         <span className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 block tabular-nums">
@@ -1321,59 +1327,57 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
               lui-même : les blocs 2 et 3 sont vides (17.4 les note « — »), il ne reste
               que l'objet, l'attestation et la conséquence.
             */}
-            {confirmationOuverte && (
-                <ActSheet
-                    open
-                    onClose={() => setConfirmationOuverte(false)}
-                    title="Confirmer la réception"
-                    subtitle="Vous attestez avoir reçu cet équipement."
-                    subject={{
-                        vignette: <Icon glyph={Package} size={20} />,
-                        title: item.name,
-                        subtitle: [item.model || item.type, item.site].filter(Boolean).join(' · '),
-                    }}
-                    signer={{
-                        name: currentUser?.name ?? '',
-                        pin: currentUser?.pin,
-                        id: currentUser?.id,
-                    }}
-                    consequence={{
-                        /* La conséquence se dit par un pictogramme, une teinte et un
-                           mot — la feuille d'acte les exige tous les trois (I3). */
+            <ActSheet
+                open={confirmationOuverte}
+                onClose={() => setConfirmationOuverte(false)}
+                title="Confirmer la réception"
+                subtitle="Vous attestez avoir reçu cet équipement."
+                subject={{
+                    vignette: <Icon glyph={Package} size={20} />,
+                    title: item.name,
+                    subtitle: [item.model || item.type, item.site].filter(Boolean).join(' · '),
+                }}
+                signer={{
+                    name: currentUser?.name ?? '',
+                    pin: currentUser?.pin,
+                    id: currentUser?.id,
+                }}
+                consequence={{
+                    /* La conséquence se dit par un pictogramme, une teinte et un
+                       mot — la feuille d'acte les exige tous les trois (I3). */
+                    tone: 'vert',
+                    glyph: CheckCircle,
+                    text: (
+                        <>
+                            L’objet passe <strong>à votre nom</strong>, et l’attente se ferme.
+                        </>
+                    ),
+                }}
+                confirmLabel="Je confirme"
+                onConfirm={() => {
+                    const decision = confirmEquipmentReception(item.id);
+                    if (!decision.allowed) {
+                        showToast(decision.reason || 'Confirmation refusée.', 'error');
+                        return;
+                    }
+                    setConfirmationOuverte(false);
+                    /*
+                     * **06.3, forme 1 — l'écran a changé.** « En attente » devient
+                     * « Attribué », le geste devient Restituer, l'attestation passe
+                     * en tête de l'historique : tout se met à jour sous les yeux. Le
+                     * bandeau n'a qu'à nommer ce qui vient de se produire, puis il
+                     * s'efface. Un snackbar par-dessus dirait la même chose deux fois.
+                     */
+                    setCloture({
+                        /* I3 : un état se dit par un pictogramme **et** un mot. Le
+                           bandeau les exige tous les deux ; ils manquaient. */
                         tone: 'vert',
                         glyph: CheckCircle,
-                        text: (
-                            <>
-                                L’objet passe <strong>à votre nom</strong>, et l’attente se ferme.
-                            </>
-                        ),
-                    }}
-                    confirmLabel="Je confirme"
-                    onConfirm={() => {
-                        const decision = confirmEquipmentReception(item.id);
-                        if (!decision.allowed) {
-                            showToast(decision.reason || 'Confirmation refusée.', 'error');
-                            return;
-                        }
-                        setConfirmationOuverte(false);
-                        /*
-                         * **06.3, forme 1 — l'écran a changé.** « En attente » devient
-                         * « Attribué », le geste devient Restituer, l'attestation passe
-                         * en tête de l'historique : tout se met à jour sous les yeux. Le
-                         * bandeau n'a qu'à nommer ce qui vient de se produire, puis il
-                         * s'efface. Un snackbar par-dessus dirait la même chose deux fois.
-                         */
-                        setCloture({
-                            /* I3 : un état se dit par un pictogramme **et** un mot. Le
-                               bandeau les exige tous les deux ; ils manquaient. */
-                            tone: 'vert',
-                            glyph: CheckCircle,
-                            title: 'Réception confirmée',
-                            detail: `À votre nom depuis ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
-                        });
-                    }}
-                />
-            )}
+                        title: 'Réception confirmée',
+                        detail: `À votre nom depuis ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`,
+                    });
+                }}
+            />
 
             {/* Les deux feuilles d'acte de 04.3. Elles se montent **hors du gabarit** :
             une feuille est une couche de l'écran, pas une section de la fiche. */}

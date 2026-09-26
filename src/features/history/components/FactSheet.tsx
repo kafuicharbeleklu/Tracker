@@ -147,6 +147,11 @@ interface FactSheetProps {
     /** Ouvre la fiche d'une personne — absent pour qui ne peut pas la lire. */
     canOpenUser: (id: string) => boolean;
     onOpenUser?: (id: string) => void;
+    /**
+     * **Le fait ouvert à côté du journal** (P2a, 25/09) — dès 840, en cartes : le même
+     * contenu, dans une carte du panneau et non dans une feuille. Rien ne voile le journal.
+     */
+    enPanneau?: boolean;
 }
 
 /**
@@ -166,6 +171,7 @@ const FactSheet: React.FC<FactSheetProps> = ({
     onOpenEquipment,
     canOpenUser,
     onOpenUser,
+    enPanneau = false,
 }) => {
     const fil = useMemo(
         () => (fait ? filDe(fait, journal, registres) : []),
@@ -208,61 +214,81 @@ const FactSheet: React.FC<FactSheetProps> = ({
         geste();
     };
 
+    const sousTitre = [capitale(quandDe(fait.timestamp)), lieu].filter(Boolean).join(' · ');
+
+    const corps = (
+        <div className="flex flex-col gap-4">
+            <HandoverTrail
+                steps={fil.map((preuve, index) => ({
+                    title: preuve.titre,
+                    detail:
+                        index === fil.findIndex((p) => p.evenement.id === fait.id) &&
+                        !preuve.attente &&
+                        pourquoi
+                            ? `${preuve.detail} · « ${pourquoi} »`
+                            : preuve.detail,
+                    state: preuve.attente ? 'wait' : 'done',
+                }))}
+            />
+
+            <SignatureApposee key={fait.id} fait={fait} />
+
+            {(objet || personne) && (
+                <div>
+                    {objet && onOpenEquipment && (
+                        <Renvoi
+                            premier
+                            vignette={<Icon glyph={Laptop} size={20} />}
+                            titre={objet.assetId || objet.name}
+                            code
+                            sousTitre={[objet.name, objet.status?.toLowerCase()]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            onOpen={() => ouvrir(() => onOpenEquipment(objet.id))}
+                        />
+                    )}
+                    {personne && onOpenUser && canOpenUser(personne.id) && (
+                        <Renvoi
+                            premier={!(objet && onOpenEquipment)}
+                            vignette={initiales(personne.name)}
+                            teinte="bg-tint-bleu text-on-tint-bleu"
+                            titre={personne.name}
+                            sousTitre={[
+                                personne.department,
+                                `${detenus} objet${detenus > 1 ? 's' : ''} détenu${detenus > 1 ? 's' : ''}`,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            onOpen={() => ouvrir(() => onOpenUser(personne.id))}
+                        />
+                    )}
+                </div>
+            )}
+        </div>
+    );
+
+    if (enPanneau)
+        return (
+            /* La carte du panneau reprend la tête de la feuille — titre de feuille, date et
+               lieu dessous — et son corps tel quel. */
+            <section className="bg-surface flex flex-col gap-4 rounded-xl px-5 pt-4 pb-5">
+                <header>
+                    <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">
+                        {titre}
+                    </h2>
+                    {sousTitre && (
+                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-1">
+                            {sousTitre}
+                        </p>
+                    )}
+                </header>
+                {corps}
+            </section>
+        );
+
     return (
-        <BottomSheet
-            open
-            onClose={onClose}
-            title={titre}
-            subtitle={[capitale(quandDe(fait.timestamp)), lieu].filter(Boolean).join(' · ')}
-        >
-            <div className="flex flex-col gap-4">
-                <HandoverTrail
-                    steps={fil.map((preuve, index) => ({
-                        title: preuve.titre,
-                        detail:
-                            index === fil.findIndex((p) => p.evenement.id === fait.id) &&
-                            !preuve.attente &&
-                            pourquoi
-                                ? `${preuve.detail} · « ${pourquoi} »`
-                                : preuve.detail,
-                        state: preuve.attente ? 'wait' : 'done',
-                    }))}
-                />
-
-                <SignatureApposee key={fait.id} fait={fait} />
-
-                {(objet || personne) && (
-                    <div>
-                        {objet && onOpenEquipment && (
-                            <Renvoi
-                                premier
-                                vignette={<Icon glyph={Laptop} size={20} />}
-                                titre={objet.assetId || objet.name}
-                                code
-                                sousTitre={[objet.name, objet.status?.toLowerCase()]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                                onOpen={() => ouvrir(() => onOpenEquipment(objet.id))}
-                            />
-                        )}
-                        {personne && onOpenUser && canOpenUser(personne.id) && (
-                            <Renvoi
-                                premier={!(objet && onOpenEquipment)}
-                                vignette={initiales(personne.name)}
-                                teinte="bg-tint-bleu text-on-tint-bleu"
-                                titre={personne.name}
-                                sousTitre={[
-                                    personne.department,
-                                    `${detenus} objet${detenus > 1 ? 's' : ''} détenu${detenus > 1 ? 's' : ''}`,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                                onOpen={() => ouvrir(() => onOpenUser(personne.id))}
-                            />
-                        )}
-                    </div>
-                )}
-            </div>
+        <BottomSheet open onClose={onClose} title={titre} subtitle={sousTitre}>
+            {corps}
         </BottomSheet>
     );
 };

@@ -1,7 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { ClockCounterClockwise, DotsThreeVertical, Export, Laptop } from '@phosphor-icons/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    ClockCounterClockwise,
+    DotsThreeVertical,
+    Export,
+    Funnel,
+    Laptop,
+} from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
+import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
+import { useListeEtFiche } from '../../../hooks/useListeEtFiche';
 import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import FilterMenuChip from '../../../components/ui/FilterMenuChip';
 import BottomSheet from '../../../components/ui/BottomSheet';
@@ -11,7 +19,7 @@ import FacetChip from '../../../components/ui/FacetChip';
 import { PickRow } from '../../../components/ui/FormParts';
 import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
-import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useDebounce } from '../../../hooks/useDebounce';
@@ -180,7 +188,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     const rechercheRetardee = useDebounce(recherche, 250);
     /* 1280 — le seuil des neuf écrans de bureau (17.11), et celui où cinq colonnes tiennent
        sans troncature. En dessous, le journal garde ses cartes par jour. */
-    const enTableau = useMediaQuery(MEDIA.twoColumn);
+    /* Le tableau suppose une souris (P2c) : au doigt, le journal garde ses cartes et ouvre
+       le fait à côté (P2a). */
+    const largeurDuTableau = useMediaQuery(MEDIA.twoColumn);
+    const survol = useMediaQuery(MEDIA.hoverCapable);
+    const enTableau = largeurDuTableau && survol;
 
     const registres: Registres = useMemo(
         () => ({
@@ -202,6 +214,33 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 : filterEvents(events),
         [events, filterEvents, mien, registres],
     );
+
+    /* **Le fait ouvert à côté du journal, dès 840** (P2a, 25/09) — en cartes : toucher un
+       fait l'ouvre dans le panneau de droite, et son identifiant tient dans l'adresse. Sous
+       840, il redevient la feuille. */
+    const versLaFeuille = useCallback(
+        (id: string, fermer: () => void) => {
+            const fait = perimetre.find((e) => e.id === id);
+            if (fait) setOuvert(fait);
+            fermer();
+        },
+        [perimetre],
+    );
+    const {
+        actif: ficheACote,
+        ouvert: idACote,
+        ouvrir: ouvrirACote,
+    } = useListeEtFiche(!enTableau, versLaFeuille);
+    /* Une feuille ouverte sous 840 passe dans le panneau quand la place vient. */
+    useEffect(() => {
+        if (ficheACote && ouvert) {
+            ouvrirACote(ouvert.id);
+            setOuvert(null);
+        }
+    }, [ficheACote, ouvert, ouvrirACote]);
+    const faitACote = idACote ? (perimetre.find((e) => e.id === idACote) ?? null) : null;
+    const ouvrirFait = (fait: HistoryEvent) =>
+        ficheACote ? ouvrirACote(fait.id) : setOuvert(fait);
 
     const dansLaPeriode = useMemo(() => {
         const debut = debutDe(periode, settings.fiscalYearStart);
@@ -628,10 +667,17 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         return (
             <div
                 key={fait.id}
-                {...activer(() => setOuvert(fait))}
+                data-rangee
+                {...activer(() => ouvrirFait(fait))}
+                aria-current={idACote === fait.id ? 'true' : undefined}
                 className={cn(
                     'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
                     index > 0 && 'border-outline-variant border-t',
+                    /* Les faits qu'on déplie (« Voir les N autres ») arrivent en fondu (26/09). */
+                    index >= PAR_JOUR && 'mvt-contenu',
+                    /* Le fait ouvert à côté garde le creux, jusqu'aux bords de sa carte. */
+                    idACote === fait.id &&
+                        'bg-surface-muted-strong shadow-[-16px_0_0_var(--tk-color-surface-muted-strong),16px_0_0_var(--tk-color-surface-muted-strong)]',
                 )}
             >
                 <MarqueRonde fait={fait} taille="rangee" />
@@ -727,7 +773,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 </>
             )}
 
-            <div className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+            <div
+                data-pied
+                className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+            >
                 <Button
                     variant="tonal"
                     className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
@@ -772,7 +821,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                                 variant="outlined"
                                 onClick={exporterLeJournal}
                                 icon={<Icon glyph={Export} size={20} />}
-                                className="h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
                             >
                                 Exporter
                             </Button>
@@ -875,19 +924,49 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                     unite: `fait${affiches.length > 1 ? 's' : ''}`,
                 }}
                 hasRows={parGroupe.length > 0}
+                listeEtFiche={ficheACote}
+                panel={
+                    ficheACote && (parGroupe.length > 0 || faitACote) ? (
+                        <PanneauDeFiche
+                            cle={idACote}
+                            vide={{
+                                glyph: ClockCounterClockwise,
+                                title: 'Aucun fait ouvert',
+                                description:
+                                    'Choisissez un fait dans le journal pour lire sa preuve sans le quitter.',
+                            }}
+                        >
+                            {faitACote ? (
+                                <FactSheet
+                                    key={faitACote.id}
+                                    enPanneau
+                                    fait={faitACote}
+                                    journal={perimetre}
+                                    registres={registres}
+                                    users={users}
+                                    equipment={equipment}
+                                    onClose={() => undefined}
+                                    onOpenEquipment={onOpenEquipment}
+                                    canOpenUser={peutOuvrirLaPersonne}
+                                    onOpenUser={onOpenUser}
+                                />
+                            ) : null}
+                        </PanneauDeFiche>
+                    ) : undefined
+                }
                 empty={
                     vide && (
-                        <ScreenState
-                            icon={ClockCounterClockwise}
+                        <CardEmptyState
+                            glyph={
+                                filtresPoses > 0 || rechercheRetardee.trim()
+                                    ? Funnel
+                                    : ClockCounterClockwise
+                            }
                             title={vide.titre}
                             description={vide.description}
-                            actions={
+                            action={
                                 vide.geste ? (
-                                    <Button
-                                        variant="tonal"
-                                        className="bg-surface-container text-on-surface hover:bg-surface-container-high"
-                                        onClick={vide.geste.onClick}
-                                    >
+                                    <Button variant="outlined" onClick={vide.geste.onClick}>
                                         {vide.geste.label}
                                     </Button>
                                 ) : undefined
@@ -979,6 +1058,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 open={feuille !== null}
                 onClose={() => setFeuille(null)}
                 title={feuille === 'choix' ? 'Personne ou objet' : 'Filtrer'}
+                emploi={feuille === 'choix' ? 'acte' : 'filtre'}
                 subtitle={
                     feuille === 'choix' ? 'Les faits qui la concernent, et eux seuls.' : undefined
                 }
@@ -991,7 +1071,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
             </BottomSheet>
 
             <FactSheet
-                fait={ouvert}
+                fait={ficheACote ? null : ouvert}
                 journal={perimetre}
                 registres={registres}
                 users={users}

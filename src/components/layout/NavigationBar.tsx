@@ -14,6 +14,7 @@ import { useAccessControl } from '../../hooks/useAccessControl';
 import { useAuth } from '../../context/AuthContext';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
 import { useRouter } from '../../hooks/useRouter';
+import { usePresence } from '../../hooks/usePresence';
 import { LIBELLE_MON_HISTORIQUE } from '../../hooks/useNavigationDestinations';
 import Icon from '../ui/Icon';
 import {
@@ -196,6 +197,9 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     const { navigate } = useRouter();
     const { count: pendingCount } = usePendingTasks();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    /* La feuille monte de derrière la barre et y redescend (26/09) : sa classe
+       `slide-in-from-bottom` n'existait pas, elle apparaissait sans bouger. */
+    const plus = usePresence(isMenuOpen);
 
     /**
      * Le code de remise n'est pas défini : la feuille le dit sur « Mon compte », et
@@ -439,22 +443,31 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
               Rétabli le 06/09 à la demande du commanditaire, après un essai qui posait
               la feuille au bord de l'écran par-dessus la barre.
             */}
-            {isMenuOpen && (
+            {plus.monte && (
                 <div
-                    className="animate-in fade-in fixed inset-x-0 top-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-40 bg-[rgba(10,25,29,0.42)] duration-150"
+                    className={cn(
+                        'fixed inset-x-0 top-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-40 bg-[rgba(10,25,29,0.42)]',
+                        plus.sortant ? 'mvt-voile-sortie pointer-events-none' : 'mvt-voile-entree',
+                    )}
                     onClick={() => setIsMenuOpen(false)}
                     aria-hidden="true"
                 />
             )}
 
             {/* LA FEUILLE DE CHOIX — §2.9 : montante, pleine largeur, sans pied. */}
-            {isMenuOpen && (
+            {plus.monte && (
                 <div
                     ref={menuRef}
+                    onAnimationEnd={plus.finDeSortie}
                     role="menu"
                     aria-orientation="vertical"
                     aria-label="Autres sections"
-                    className="animate-in slide-in-from-bottom bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-50 flex max-h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] flex-col overflow-y-auto rounded-t-lg pb-3 shadow-[0_-10px_30px_rgba(10,25,29,0.20)] duration-200"
+                    className={cn(
+                        'bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-50 flex max-h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] flex-col overflow-y-auto overscroll-contain rounded-t-lg pb-3 shadow-[0_-10px_30px_rgba(10,25,29,0.20)]',
+                        plus.sortant
+                            ? 'mvt-feuille-sortie pointer-events-none'
+                            : 'mvt-feuille-entree',
+                    )}
                 >
                     <span
                         aria-hidden="true"
@@ -545,7 +558,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                 weight={item.active ? 'fill' : 'regular'}
                                 aria-hidden="true"
                                 focusable="false"
-                                className="flex-none"
+                                /* L'icône choisie rebondit en se remplissant (26/09). */
+                                className={cn('flex-none', item.active && 'mvt-pop')}
                             />
                             <span>{item.label}</span>
                             {/* `.bd` — le chiffre rouge, 16 px de haut, calé sur le coin

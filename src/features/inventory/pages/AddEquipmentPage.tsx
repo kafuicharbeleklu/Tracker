@@ -373,7 +373,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             >
                 <div
                     className={cn(
-                        'large:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
+                        'deux:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
                         COLONNES_FORMULAIRE,
                     )}
                 >
@@ -488,7 +488,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         resolvedId || '—'
                                     )}
                                 </span>
-                                <span className="mt-0.5 block text-[0.75rem] leading-4 opacity-85">
+                                <span className="text-ts-sub leading-ts-sub mt-0.5 block opacity-85">
                                     {countryPrefix
                                         ? "Pays de l'emplacement + numéro de série"
                                         : formData.country

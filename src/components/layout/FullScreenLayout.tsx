@@ -1,5 +1,5 @@
 import { MEDIA } from '../../constants/breakpoints';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
@@ -25,7 +25,7 @@ interface FullScreenLayoutProps {
     className?: string;
     /**
      * `flux` — la mesure de 560 à toutes les largeurs (00.5). `double` — deux mesures dès
-     * 1 200, pour un formulaire dont les sections se rangent en colonnes
+     * 1 000, pour un formulaire dont les sections se rangent en colonnes
      * (`COLONNES_FORMULAIRE`, cf. `regimeBureau.ts`).
      */
     mesure?: 'flux' | 'double';
@@ -44,6 +44,21 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
 }) => {
     const borne = mesure === 'double' ? MESURE_DOUBLE : undefined;
     const isCompactLandscape = useMediaQuery(MEDIA.belowExpandedLandscape);
+    const pleinEcranDuTelephone = useMediaQuery(MEDIA.compact);
+    const surface = useRef<HTMLDivElement>(null);
+
+    /* Arrivé pendant le passage d'une page (une page chargée à la demande), il termine
+       l'animation de ses ancêtres : transformés, ils le cadreraient au lieu de la fenêtre. */
+    useEffect(() => {
+        const element = surface.current;
+        if (!element || typeof document.getAnimations !== 'function') return;
+        for (const animation of document.getAnimations()) {
+            const cible = (animation.effect as KeyframeEffect | null)?.target;
+            if (cible instanceof Element && cible !== element && cible.contains(element)) {
+                animation.finish();
+            }
+        }
+    }, []);
 
     /*
      * **Échap referme, comme sur une feuille ou un dialogue.** La surface couvre tout
@@ -63,6 +78,11 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
 
     return (
         <div
+            /* La coque ne fait pas glisser la page quand elle s'ouvre sur un écran plein : il
+               est fixé à la fenêtre, et une enveloppe animée le cadrerait le temps de la
+               transition (`useTransitionDePage`). Il a sa propre entrée. */
+            data-plein-ecran
+            ref={surface}
             className={cn(
                 /* **Un écran plein couvre le chrome, sinon il n'est pas plein.** Il
                    tenait `z-50`, la mesure de la barre du bas : montée au-dessus d'une
@@ -70,7 +90,10 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                    geste d'ajout traversaient la surface. `z-[100]` est l'étage des
                    surfaces qui couvrent, celui des feuilles et des dialogues ; le
                    retour transitoire reste au-dessus, à 110. */
-                'bg-surface animate-in fade-in slide-in-from-bottom-4 duration-medium2 fixed inset-0 z-[100] flex h-full flex-col',
+                'bg-surface fixed inset-0 z-[100] flex h-full flex-col',
+                /* Au téléphone, il monte du bord comme un dialogue plein écran de Material ;
+                   au-delà, il se pose en fondu (26/09). */
+                pleinEcranDuTelephone ? 'mvt-feuille-entree' : 'mvt-contenu',
                 className,
             )}
         >

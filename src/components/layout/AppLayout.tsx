@@ -7,6 +7,7 @@ import TopAppBar from './TopAppBar';
 import { ViewType } from '../../types';
 import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
+import { cheminPrecedent } from '../../lib/cheminParcouru';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { scrollAppToTop } from '../../lib/appScroll';
 import { APP_SCROLLER_ID } from './MobileFrame';
@@ -16,6 +17,8 @@ import { ErrorBoundary } from '../ui/ErrorBoundary';
 import ScreenState from '../ui/ScreenState';
 import { MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
+import { useTransitionDePage } from '../../hooks/useTransitionDePage';
+import { champDeRecherche, useRaccourciRecherche } from '../../hooks/useRaccourciRecherche';
 import { SkeletonList } from '../ui/Skeleton';
 import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
 import RequestSheet from '../../features/tasks/components/RequestSheet';
@@ -79,11 +82,11 @@ const PageLoadingFallback: React.FC = () => (
 );
 
 /** L'objet que l'adresse d'un acte désigne — `?equipmentId=` dans le hash. */
-const lireObjetDeLAdresse = (): string | null => {
+const lireObjetDeLAdresse = (parametre = 'equipmentId'): string | null => {
     const hash = window.location.hash;
     const query = hash.includes('?') ? hash.split('?')[1] : '';
     if (!query) return null;
-    return new URLSearchParams(query).get('equipmentId');
+    return new URLSearchParams(query).get(parametre);
 };
 
 /** L'exercice que désigne `/finance/lines/<année>` — l'année en cours à défaut. */
@@ -123,6 +126,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const isLandscape = useMediaQuery(MEDIA.landscape);
     const isMedium = useMediaQuery(MEDIA.medium);
     const isExpandedUp = useMediaQuery(MEDIA.expandedUp);
+    /* **Sur tablette, la barre latérale est un rail** (25/09) : sous 1280, déployée, elle
+       prenait 240 px d'un écran de 1024 ou 1180 et serrait chaque page dans le reste. Elle y
+       devient le rail de 80 à mots (`Sidebar`, sept cases et « Plus ») et ne se déploie
+       qu'au bureau. */
+    const barreDeployable = useMediaQuery(MEDIA.bureau);
     const isCompactLandscape = isCompact && isLandscape;
     const useRailNavigation = isMedium || isCompactLandscape;
 
@@ -165,6 +173,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
      */
     const acteEnCours = acteDemande && permissions.canManageInventory ? acteDemande : null;
     const objetDeLActe = acteEnCours ? lireObjetDeLAdresse() : null;
+    /* L'acte vient de la fiche ouverte à côté d'une liste (P3) : la liste reste dessous. */
+    const acteDuPanneau = acteEnCours ? lireObjetDeLAdresse('ouvert') !== null : false;
 
     /*
      * **La page que la feuille couvre.** Quand l'adresse nomme un objet, c'est sa fiche
@@ -172,18 +182,25 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
      * *« la page où l'on est »* : l'écran précédent, retenu ici, et non l'inventaire,
      * qui ferait changer d'écran un geste qui n'en change pas.
      */
-    const ecranPrecedent = useRef<{ view: ViewType; id: string | null }>({
+    const ecranPrecedent = useRef<{ view: ViewType; id: string | null; adresse: string | null }>({
         view: 'dashboard',
         id: null,
+        adresse: null,
     });
     useEffect(() => {
+        /* L'adresse se lit dans la barre, pas dans l'état du routeur : entre le geste qui
+           ouvre un acte et l'événement qui le fait lire, un rendu voit déjà l'adresse de
+           l'acte — elle serait retenue comme l'écran d'où l'on vient, et refermer l'acte y
+           ramènerait. */
+        const adresse = window.location.hash.replace(/^#/, '') || '/';
+        if (/^\/(wizards\/|tasks\/new)/.test(adresse)) return;
         if (!acteDemande && vueDemandee !== 'new_request') {
-            ecranPrecedent.current = { view: vueDemandee, id: selectedIdRoute };
+            ecranPrecedent.current = { view: vueDemandee, id: selectedIdRoute, adresse };
         }
-    }, [acteDemande, vueDemandee, selectedIdRoute]);
+    });
 
     const currentView: ViewType = acteEnCours
-        ? objetDeLActe
+        ? objetDeLActe && !acteDuPanneau
             ? 'equipment_details'
             : ecranPrecedent.current.view
         : demandeEnCours
@@ -191,8 +208,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
           : vueDemandee;
     const selectedItemId =
         acteEnCours || demandeEnCours
-            ? (acteEnCours ? objetDeLActe : null) || ecranPrecedent.current.id
+            ? (acteEnCours && !acteDuPanneau ? objetDeLActe : null) || ecranPrecedent.current.id
             : selectedIdRoute;
+
+    /* **Le passage d'une page à l'autre** (26/09) : fondu d'une destination à l'autre, de
+       la droite en descendant, de la gauche en remontant. L'invitation d'une personne est
+       une feuille sur la liste : la page, elle, ne change pas. */
+    const contenuRef = useRef<HTMLDivElement>(null);
+    useTransitionDePage(
+        contenuRef,
+        `${currentView === 'add_user' ? 'users' : currentView}:${selectedItemId ?? ''}`,
+    );
 
     /**
      * **La clôture d'un acte engagé depuis une feuille** — 06.3, forme 2 : *« rien de
@@ -222,7 +248,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     const fermerLActe = () => {
-        if (objetDeLActe) navigateToItem('equipment_details', objetDeLActe);
+        /* Engagé depuis le panneau d'une liste : on revient à la liste, la fiche ouverte. */
+        if (acteDuPanneau && ecranPrecedent.current.adresse)
+            navigate(ecranPrecedent.current.adresse);
+        else if (objetDeLActe) navigateToItem('equipment_details', objetDeLActe);
         else if (ecranPrecedent.current.id) {
             navigateToItem(ecranPrecedent.current.view, ecranPrecedent.current.id);
         } else handleViewChange(ecranPrecedent.current.view);
@@ -240,6 +269,47 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         if (view === 'equipment') setInventoryFilter(null);
         if (view === 'equipment' || view === 'users') setScopedSite(null);
         navigateToView(view);
+        scrollAppToTop();
+    };
+
+    /* **⌘K (Ctrl+K) pour chercher** (P3, 25/09) : la recherche de la page, ou celle de la
+       feuille ouverte ; sur une page sans recherche, Actifs s'ouvre, le curseur dans son
+       champ — c'est la recherche du parc qu'on vient chercher. */
+    const versLaRechercheDuParc = permissions.canViewInventory
+        ? () => {
+              handleViewChange('equipment');
+              const debut = performance.now();
+              const attendre = () => {
+                  const champ = champDeRecherche();
+                  if (champ) champ.focus();
+                  else if (performance.now() - debut < 3000) requestAnimationFrame(attendre);
+              };
+              requestAnimationFrame(attendre);
+          }
+        : undefined;
+    useRaccourciRecherche(versLaRechercheDuParc);
+
+    /**
+     * **La flèche suit le chemin parcouru** (25/09) : elle revient à l'écran d'où l'on vient
+     * — une fiche de personne ouverte depuis un rôle ramène au rôle. La vue passée en argument
+     * n'est que le repli d'une page ouverte sans chemin (lien direct, rechargement).
+     */
+    const retourVers = (view: ViewType) => {
+        const precedent = cheminPrecedent();
+        if (!precedent) {
+            handleViewChange(view);
+            return;
+        }
+        navigate(precedent);
+        scrollAppToTop();
+    };
+    const retourVersObjet = (view: ViewType, id: string) => {
+        const precedent = cheminPrecedent();
+        if (!precedent) {
+            handleItemClick(view, id);
+            return;
+        }
+        navigate(precedent);
         scrollAppToTop();
     };
 
@@ -556,13 +626,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onUserClick={(id) => handleItemClick('user_details', id)}
                         initialStatus={inventoryFilter}
                         initialSite={scopedSite}
+                        /* P2a — dès 840, la fiche s'ouvre à côté de la liste : la page elle-même. */
+                        renderFiche={(id, fermer) => (
+                            <EquipmentDetailsPage equipmentId={id} onBack={fermer} />
+                        )}
                     />
                 );
             case 'equipment_details':
                 return selectedItemId ? (
                     <EquipmentDetailsPage
                         equipmentId={selectedItemId}
-                        onBack={() => handleViewChange('equipment')}
+                        onBack={() => retourVers('equipment')}
                     />
                 ) : (
                     <InventoryPage onViewChange={handleViewChange} />
@@ -573,7 +647,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return selectedItemId ? (
                     <AddEquipmentPage
                         equipmentId={selectedItemId}
-                        onCancel={() => handleItemClick('equipment_details', selectedItemId)}
+                        onCancel={() => retourVersObjet('equipment_details', selectedItemId)}
                         onSave={() => handleItemClick('equipment_details', selectedItemId)}
                     />
                 ) : (
@@ -586,7 +660,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                    emplacements) étaient, eux, montés correctement. */
                 return (
                     <ImportEquipmentPage
-                        onCancel={() => handleViewChange('equipment')}
+                        onCancel={() => retourVers('equipment')}
                         onSave={() => handleViewChange('equipment')}
                     />
                 );
@@ -597,13 +671,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onViewChange={handleViewChange}
                         onUserClick={(id) => handleItemClick('user_details', id)}
                         initialSite={scopedSite}
+                        /* P2a — la fiche d'une personne à côté de la liste, dès 840. */
+                        renderFiche={(id, fermer) => (
+                            <UserDetailsPage
+                                userId={id}
+                                onBack={fermer}
+                                onViewChange={handleViewChange}
+                                onEquipmentClick={(equipementId) =>
+                                    handleItemClick('equipment_details', equipementId)
+                                }
+                                onEditUser={(personneId) =>
+                                    handleItemClick('edit_user', personneId)
+                                }
+                            />
+                        )}
                     />
                 );
             case 'user_details':
                 return selectedItemId ? (
                     <UserDetailsPage
                         userId={selectedItemId}
-                        onBack={() => handleViewChange('users')}
+                        onBack={() => retourVers('users')}
                         onViewChange={handleViewChange}
                         onEquipmentClick={(id) => handleItemClick('equipment_details', id)}
                         onEditUser={(id) => handleItemClick('edit_user', id)}
@@ -629,7 +717,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return selectedItemId ? (
                     <AddUserPage
                         userId={selectedItemId}
-                        onCancel={() => handleItemClick('user_details', selectedItemId)}
+                        onCancel={() => retourVersObjet('user_details', selectedItemId)}
                         onSave={() => handleItemClick('user_details', selectedItemId)}
                     />
                 ) : (
@@ -641,7 +729,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'import_users':
                 return (
                     <ImportUsersPage
-                        onCancel={() => handleViewChange('users')}
+                        onCancel={() => retourVers('users')}
                         onSave={() => handleViewChange('users')}
                     />
                 );
@@ -649,16 +737,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'finance':
                 return <FinanceManagementPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'finance_expenses':
-                return <ExpenseJournalPage onBack={() => handleViewChange('finance')} />;
+                return <ExpenseJournalPage onBack={() => retourVers('finance')} />;
             case 'finance_exercises':
-                return <ExercisesPage onBack={() => handleViewChange('finance')} />;
+                return <ExercisesPage onBack={() => retourVers('finance')} />;
             case 'finance_lines':
                 return (
                     <BudgetLinesPage
                         /* L'exercice est dans l'adresse : `/finance/lines/<année>`. */
                         key={lireAnneeDeLAdresse()}
                         year={lireAnneeDeLAdresse()}
-                        onBack={() => handleViewChange('finance')}
+                        onBack={() => retourVers('finance')}
                     />
                 );
 
@@ -685,7 +773,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return selectedItemId ? (
                     <CategoryDetailsPage
                         categoryId={selectedItemId}
-                        onBack={() => handleViewChange('management')}
+                        onBack={() => retourVers('management')}
                         onModelClick={(id) => handleItemClick('model_details', id)}
                     />
                 ) : (
@@ -695,7 +783,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return selectedItemId ? (
                     <ModelDetailsPage
                         modelId={selectedItemId}
-                        onBack={() => handleViewChange('management')}
+                        onBack={() => retourVers('management')}
                     />
                 ) : (
                     <ManagementPage onViewChange={handleViewChange} />
@@ -715,7 +803,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return selectedItemId ? (
                     <SiteDetailsPage
                         siteName={selectedItemId}
-                        onBack={() => handleViewChange('locations')}
+                        onBack={() => retourVers('locations')}
                         onViewChange={handleViewChange}
                         onNavigate={handleNavigate}
                     />
@@ -733,7 +821,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'audit_details':
                 return (
                     <AuditDetailsPage
-                        onBack={() => handleViewChange('audit')}
+                        onBack={() => retourVers('audit')}
                         onViewChange={handleViewChange}
                     />
                 );
@@ -765,7 +853,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return (
                     <ApprovalDetailsPage
                         approvalId={selectedItemId || undefined}
-                        onBack={() => handleViewChange('tasks')}
+                        onBack={() => retourVers('tasks')}
                     />
                 );
 
@@ -876,9 +964,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         <Sidebar
                             currentView={currentView}
                             onViewChange={handleViewChange}
-                            isCollapsed={isSidebarCollapsed || !isExpandedUp}
+                            isCollapsed={isSidebarCollapsed || !barreDeployable}
                             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                            canExpand={isExpandedUp}
+                            canExpand={barreDeployable}
                         />
                     )}
 
@@ -919,7 +1007,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                               de l'écran. Le canevas continue de chaque côté ; rien ne
                               change sous 840.
                             */}
-                            <div className="expanded:mx-auto expanded:max-w-[80rem] expanded:min-h-0 flex w-full min-w-0 flex-1 flex-col">
+                            <div
+                                ref={contenuRef}
+                                className="expanded:mx-auto expanded:max-w-[80rem] expanded:min-h-0 flex w-full min-w-0 flex-1 flex-col"
+                            >
                                 <Suspense fallback={<PageLoadingFallback />}>
                                     {renderContent()}
                                 </Suspense>
@@ -948,8 +1039,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     }
                 />
 
-                {/* Les deux actes de l'inventaire — la feuille, jamais l'assistant. */}
-                {acteEnCours && (
+                {/* Les deux actes de l'inventaire — la feuille, jamais l'assistant. Montées pour
+                    qui peut agir, et ouvertes par l'adresse : démontées avec l'acte, elles
+                    disparaissaient au lieu de redescendre (26/09). */}
+                {permissions.canManageInventory && (
                     <>
                         <HandoverActSheet
                             open={acteEnCours === 'remise'}

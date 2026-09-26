@@ -1,6 +1,14 @@
 @config './tailwind.config.js';
 @import 'tailwindcss';
 
+/* **Le bureau au doigt** (P2c, 25/09) — le chrome du bureau (600 et plus : le rail, puis la
+   barre) tenu sans souris : l'iPad debout ou couché, l'iPad 13", les Galaxy. La densité suit
+   le pointeur, pas la largeur : les gestes du chrome, 40 à la souris, y reprennent les 48 du
+   doigt (`doigt:h-12`). Posée d'abord à 840, elle laissait au rail (600–839) ses boutons
+   « Filtrer » et de tri à 40 (relevé du P3). Sous 600, la variante ne vaut rien : le
+   téléphone garde ses mesures. */
+@custom-variant doigt (@media (min-width: 600px) and (pointer: coarse));
+
 /* ============================================================
    NEEMBA TRACKER — TRACKER DS, couche de tokens
    ------------------------------------------------------------
@@ -565,6 +573,271 @@ body {
     animation-fill-mode: forwards;
 }
 
+/* ============================================================
+   LE MOUVEMENT DU PRODUIT — sept rôles (26/09)
+   ------------------------------------------------------------
+   Une surface dit d'où elle vient en entrant, et y retourne en sortant. Les classes
+   `animate-in` · `slide-in-from-bottom-4` ci-dessus ne déplaçaient une feuille que de
+   16 px : elle apparaissait en fondu au lieu de monter du bord, et trois classes employées
+   n'existaient pas (`slide-in-from-bottom`, `slide-in-from-left-4`, `medium:zoom-in-95`).
+   Les durées et les courbes sont celles de Material 3 : **entrer** décélère sur 250 à
+   400 ms (`emphasized-decelerate`), **sortir** accélère sur 150 à 200 ms
+   (`emphasized-accelerate`) — on regarde arriver, on ne regarde pas partir.
+
+   - `mvt-feuille-*`   la feuille du bas monte du bord de l'écran et y redescend ;
+   - `mvt-dialogue-*`  le dialogue centré se pose (fondu, 97 %, 8 px) et s'efface ;
+   - `mvt-panneau-*`   le panneau latéral glisse du bord droit (`-gauche` du gauche) ;
+   - `mvt-voile-*`     le voile suit la surface qu'il porte ;
+   - `mvt-menu-*`      le menu se déplie depuis son ancre (`transform-origin` du menu) ;
+   - `mvt-contenu`     un contenu qui remplace un autre à la même place (la fiche d'un
+                       panneau, la tâche ouverte) : fondu et 6 px ;
+   - `mvt-barre`       une barre qui monte du bas (la sélection groupée).
+
+   Les pages, elles, s'animent en JavaScript (`useTransitionDePage`) : sans remonter
+   l'arbre, donc sans perdre ce qu'une page tient en mémoire.
+
+   « Réduire les animations » : la règle globale plus bas ramène toute animation à 1 ms —
+   rien ne bouge, et la fin de sortie, qui démonte la surface, arrive quand même.
+   ============================================================ */
+
+@keyframes tk-monte {
+    from {
+        transform: translate3d(0, 100%, 0);
+    }
+}
+@keyframes tk-descend {
+    to {
+        transform: translate3d(0, 100%, 0);
+    }
+}
+@keyframes tk-pose {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0) scale(0.97);
+    }
+}
+@keyframes tk-efface {
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+@keyframes tk-glisse-de-droite {
+    from {
+        transform: translate3d(100%, 0, 0);
+    }
+}
+@keyframes tk-glisse-a-droite {
+    to {
+        transform: translate3d(100%, 0, 0);
+    }
+}
+@keyframes tk-glisse-de-gauche {
+    from {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+@keyframes tk-glisse-a-gauche {
+    to {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+@keyframes tk-fondu-entree {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes tk-fondu-sortie {
+    to {
+        opacity: 0;
+    }
+}
+@keyframes tk-deplie {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+}
+@keyframes tk-contenu {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 6px, 0);
+    }
+}
+
+.mvt-feuille-entree {
+    animation: tk-monte var(--tk-motion-duration-medium4) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+.mvt-feuille-sortie {
+    animation: tk-descend var(--tk-motion-duration-short4)
+        var(--tk-motion-easing-emphasized-accelerate) forwards;
+}
+.mvt-dialogue-entree {
+    animation: tk-pose var(--tk-motion-duration-medium1) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+.mvt-dialogue-sortie {
+    animation: tk-efface var(--tk-motion-duration-short3) var(--tk-motion-easing-emphasized-accelerate)
+        forwards;
+}
+.mvt-panneau-entree {
+    animation: tk-glisse-de-droite var(--tk-motion-duration-medium4)
+        var(--tk-motion-easing-emphasized-decelerate) backwards;
+}
+.mvt-panneau-sortie {
+    animation: tk-glisse-a-droite var(--tk-motion-duration-short4)
+        var(--tk-motion-easing-emphasized-accelerate) forwards;
+}
+.mvt-panneau-gauche-entree {
+    animation: tk-glisse-de-gauche var(--tk-motion-duration-medium4)
+        var(--tk-motion-easing-emphasized-decelerate) backwards;
+}
+.mvt-panneau-gauche-sortie {
+    animation: tk-glisse-a-gauche var(--tk-motion-duration-short4)
+        var(--tk-motion-easing-emphasized-accelerate) forwards;
+}
+.mvt-voile-entree {
+    animation: tk-fondu-entree var(--tk-motion-duration-medium1) var(--tk-motion-easing-standard)
+        backwards;
+}
+.mvt-voile-sortie {
+    animation: tk-fondu-sortie var(--tk-motion-duration-short4) var(--tk-motion-easing-standard)
+        forwards;
+}
+.mvt-menu-entree {
+    animation: tk-deplie var(--tk-motion-duration-short4) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+.mvt-menu-sortie {
+    animation: tk-fondu-sortie var(--tk-motion-duration-short2)
+        var(--tk-motion-easing-standard-accelerate) forwards;
+}
+.mvt-contenu {
+    animation: tk-contenu var(--tk-motion-duration-short4) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+.mvt-barre {
+    animation: tk-monte var(--tk-motion-duration-medium1) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+
+/* ---- Seconde vague (26/09) : la page s'assemble, les mesures se remplissent ----
+   - `mvt-cascade` (sur une page, ~900 ms après son arrivée) : ses rangées `[data-rangee]`
+     entrent l'une après l'autre, 25 ms d'écart, les douze premières ; `mvt-cascade-cartes` fait
+     de même pour les cartes d'une fiche ou d'un tableau de bord. La classe tombe ensuite : une
+     rangée montée au défilement n'entre pas en cascade.
+   - `mvt-jauge` : une jauge se remplit depuis la gauche (500 ms) ; `mvt-colonne` : une barre
+     d'histogramme monte depuis sa base, mois après mois (`mvt-colonnes` sur la liste).
+   - `mvt-pop` : un léger rebond — l'icône de la destination qu'on choisit, la coche d'une case.
+   - `mvt-indicateur` : le creux de la destination active se déploie depuis son centre. */
+@keyframes tk-remplit {
+    from {
+        transform: scaleX(0);
+    }
+}
+@keyframes tk-monte-colonne {
+    from {
+        transform: scaleY(0);
+    }
+}
+@keyframes tk-pop {
+    0% {
+        transform: scale(0.7);
+    }
+    60% {
+        transform: scale(1.08);
+    }
+}
+@keyframes tk-indicateur {
+    from {
+        opacity: 0;
+        transform: scaleX(0.4);
+    }
+}
+
+.mvt-cascade [data-rangee],
+.mvt-cascade-cartes > * {
+    animation: tk-contenu var(--tk-motion-duration-medium1) var(--tk-motion-easing-emphasized-decelerate)
+        backwards;
+}
+.mvt-cascade [data-rangee]:nth-child(2),
+.mvt-cascade-cartes > :nth-child(2),
+.mvt-colonnes > :nth-child(2) .mvt-colonne {
+    animation-delay: 25ms;
+}
+.mvt-cascade [data-rangee]:nth-child(3),
+.mvt-cascade-cartes > :nth-child(3),
+.mvt-colonnes > :nth-child(3) .mvt-colonne {
+    animation-delay: 50ms;
+}
+.mvt-cascade [data-rangee]:nth-child(4),
+.mvt-cascade-cartes > :nth-child(4),
+.mvt-colonnes > :nth-child(4) .mvt-colonne {
+    animation-delay: 75ms;
+}
+.mvt-cascade [data-rangee]:nth-child(5),
+.mvt-cascade-cartes > :nth-child(5),
+.mvt-colonnes > :nth-child(5) .mvt-colonne {
+    animation-delay: 100ms;
+}
+.mvt-cascade [data-rangee]:nth-child(6),
+.mvt-cascade-cartes > :nth-child(6),
+.mvt-colonnes > :nth-child(6) .mvt-colonne {
+    animation-delay: 125ms;
+}
+.mvt-cascade [data-rangee]:nth-child(7),
+.mvt-cascade-cartes > :nth-child(7),
+.mvt-colonnes > :nth-child(7) .mvt-colonne {
+    animation-delay: 150ms;
+}
+.mvt-cascade [data-rangee]:nth-child(8),
+.mvt-cascade-cartes > :nth-child(8),
+.mvt-colonnes > :nth-child(8) .mvt-colonne {
+    animation-delay: 175ms;
+}
+.mvt-cascade [data-rangee]:nth-child(9),
+.mvt-cascade-cartes > :nth-child(9),
+.mvt-colonnes > :nth-child(9) .mvt-colonne {
+    animation-delay: 200ms;
+}
+.mvt-cascade [data-rangee]:nth-child(10),
+.mvt-cascade-cartes > :nth-child(10),
+.mvt-colonnes > :nth-child(10) .mvt-colonne {
+    animation-delay: 225ms;
+}
+.mvt-cascade [data-rangee]:nth-child(11),
+.mvt-cascade-cartes > :nth-child(11),
+.mvt-colonnes > :nth-child(11) .mvt-colonne {
+    animation-delay: 250ms;
+}
+.mvt-cascade [data-rangee]:nth-child(12),
+.mvt-cascade-cartes > :nth-child(12),
+.mvt-colonnes > :nth-child(12) .mvt-colonne {
+    animation-delay: 275ms;
+}
+.mvt-cascade [data-rangee]:nth-child(n + 13),
+.mvt-cascade-cartes > :nth-child(n + 13) {
+    animation-delay: 300ms;
+}
+.mvt-jauge {
+    transform-origin: left center;
+    animation: tk-remplit var(--tk-motion-duration-long2) var(--tk-motion-easing-emphasized-decelerate)
+        120ms backwards;
+}
+.mvt-colonne {
+    transform-origin: center bottom;
+    animation: tk-monte-colonne var(--tk-motion-duration-long1)
+        var(--tk-motion-easing-emphasized-decelerate) backwards;
+}
+.mvt-pop {
+    animation: tk-pop var(--tk-motion-duration-medium1) var(--tk-motion-easing-emphasized-decelerate);
+}
+.mvt-indicateur {
+    animation: tk-indicateur var(--tk-motion-duration-short4)
+        var(--tk-motion-easing-emphasized-decelerate) backwards;
+}
+
 /* Linear indeterminate progress animation */
 @keyframes linear-indeterminate {
     0% {
@@ -1024,7 +1297,9 @@ body {
        changent pas. `text-ts-*` ne pose que la taille, `leading-ts-*` que l'interligne :
        une taille sans interligne hérite du sien, comme `text-[1rem]` le faisait. */
     --tk-ts-page-size: 1.75rem;
-    --tk-ts-page-line: 2rem;
+    /* 28/34 et non 28/32 (26/09) : le sujet d'un héro va jusqu'à deux lignes, et 1,14
+       les serrait — Apple pose 28/34, Material 28/36. Le bureau garde 24/32. */
+    --tk-ts-page-line: 2.125rem;
     --tk-ts-sheet-size: 1.375rem;
     --tk-ts-sheet-line: 1.75rem;
     --tk-ts-head-size: 1.0625rem;
@@ -1038,6 +1313,7 @@ body {
     /* Le bureau. Un jeton n'est déclaré qu'une fois (garde des jetons) : la bascule vit
        dans les règles, comme celle de l'échelle compacte (`Responsive Typography`). */
     --tk-ts-page-size-bureau: 1.5rem;
+    --tk-ts-page-line-bureau: 2rem;
     --tk-ts-sheet-size-bureau: 1.25rem;
     --tk-ts-head-size-bureau: 0.9375rem;
     --tk-ts-head-line-bureau: 1.375rem;
@@ -1209,6 +1485,9 @@ body {
 }
 @utility leading-ts-page {
     line-height: var(--tk-ts-page-line);
+    @media (min-width: 840px) and (pointer: fine) {
+        line-height: var(--tk-ts-page-line-bureau);
+    }
 }
 @utility leading-ts-sheet {
     line-height: var(--tk-ts-sheet-line);
@@ -1501,7 +1780,7 @@ body {
     font-family: var(--tk-type-font-brand);
     font-size: var(--tk-type-page-title-size);
     font-weight: 600;
-    line-height: 2rem;
+    line-height: var(--tk-ts-page-line);
     letter-spacing: -0.02em;
 }
 
@@ -1591,6 +1870,10 @@ body {
     .text-display-small,
     .text-headline-large {
         font-size: var(--tk-ts-page-size-bureau);
+    }
+
+    .page-title {
+        line-height: var(--tk-ts-page-line-bureau);
     }
 
     .section-title,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsOut } from '@phosphor-icons/react';
 
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
@@ -11,6 +11,8 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useDelayedPending } from '../../hooks/useDelayedPending';
 import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
 import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
+import { useFicheEnPanneau } from '../../hooks/useFicheEnPanneau';
+import { useEntree } from '../../hooks/useEntree';
 import { cn } from '../../lib/utils';
 import BarreDePage from './BarreDePage';
 
@@ -202,7 +204,14 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     const horsLigne = !useOnlineStatus();
     /* La colonne de gauche n'existe que si quelque chose la remplit. Vide, elle
        laissait 440 px de blanc à côté des cartes au-delà de 1280. */
-    const twoColumn = twoColumnCapable && Boolean(hero || error || aside || banner);
+    /* Dans le panneau d'une liste (P2a), la fiche tient **une** colonne : le panneau fait
+       330 à 800 px, quelle que soit la fenêtre. */
+    const panneau = useFicheEnPanneau();
+    /* La fiche s'assemble à son arrivée (26/09) : héro puis cartes, en cascade. Pas dans le
+       panneau d'une liste, où la fiche arrive déjà en fondu (`PanneauDeFiche`). */
+    const entree = useEntree();
+    const cascade = entree && !panneau && 'mvt-cascade-cartes';
+    const twoColumn = !panneau && twoColumnCapable && Boolean(hero || error || aside || banner);
 
     const cartes = React.Children.toArray(children);
     const aGauche = twoColumn
@@ -234,6 +243,46 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                 {isCompact ? (
                     /* La barre commune du téléphone (24/09) : titre à 56 / 16, comme les listes. */
                     <BarreDePage title={code} onBack={onBack} actions={menu} />
+                ) : panneau ? (
+                    /*
+                      **L'en-tête d'une fiche en panneau** (P2a) — pas de retour : la liste est à
+                      gauche, c'est elle qu'on touche pour changer d'objet. Le nom au titre de
+                      feuille (22), les actes, puis la pleine page et le ⋮. Un `h2` : le titre
+                      de la page reste celui de la liste.
+                    */
+                    <div className="flex min-h-12 items-center gap-2 pb-1">
+                        <div className="min-w-0 flex-1">
+                            <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet truncate font-semibold tracking-[-0.015em]">
+                                {code}
+                            </h2>
+                            {crumb && (
+                                <span className="text-text-muted block truncate text-[0.8125rem] leading-4">
+                                    {crumb}
+                                </span>
+                            )}
+                        </div>
+                        <IconGestureSizeContext.Provider value={40}>
+                            {actions}
+                            {!horsLigne && fab && (
+                                <AddGesturePlacementContext.Provider value="header">
+                                    {fab}
+                                </AddGesturePlacementContext.Provider>
+                            )}
+                            {panneau.onPleinePage && (
+                                <Button
+                                    variant="text"
+                                    iconOnly
+                                    aria-label="Ouvrir en pleine page"
+                                    title="Ouvrir en pleine page"
+                                    onClick={panneau.onPleinePage}
+                                    className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface shrink-0 rounded-md"
+                                >
+                                    <Icon glyph={ArrowsOut} size={20} />
+                                </Button>
+                            )}
+                            {menu}
+                        </IconGestureSizeContext.Provider>
+                    </div>
                 ) : (
                     /*
                       `.dhead.fiche` — **le nom devient le titre de la page** : 28 sur 32,
@@ -248,7 +297,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                 iconOnly
                                 aria-label="Retour"
                                 onClick={onBack}
-                                className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                                className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
                             >
                                 <Icon glyph={ArrowLeft} size={20} />
                             </Button>
@@ -284,13 +333,20 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                 /* `.page` des fiches (04.2, 05.2, 09.2) : 16 d'écart, 16 de côté, 24 en
                    bas — remesuré le 10/09, le code portait 20 partout. Au bureau les
                    colonnes gardent le même 16 (`.zones{gap:16}`). */
-                <div className="medium:px-page flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
+                <div
+                    className={cn(
+                        'flex flex-1 flex-col gap-4 pb-6',
+                        panneau ? 'pt-2' : 'medium:px-page px-4 pt-4',
+                    )}
+                >
                     <div
                         className={cn(
                             'mx-auto flex w-full gap-4',
                             twoColumn
                                 ? 'max-w-[1280px] items-start'
-                                : 'large:max-w-none max-w-[960px] flex-col',
+                                : panneau
+                                  ? 'flex-col'
+                                  : 'large:max-w-none max-w-[960px] flex-col',
                         )}
                     >
                         {/* Le sujet, et tout ce qui appelle un geste — **7 douzièmes**
@@ -302,6 +358,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                                 className={cn(
                                     'flex flex-col gap-4',
                                     twoColumn && 'min-w-0 shrink grow-[7] basis-0',
+                                    cascade,
                                 )}
                             >
                                 {banner}
@@ -314,15 +371,49 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                         )}
 
                         {/* La référence — bornée, jamais parcourue : **5 douzièmes**. */}
-                        <div
-                            className={cn(
-                                'flex min-w-0 flex-col gap-4',
-                                twoColumn ? 'shrink grow-[5] basis-0' : 'flex-1',
-                            )}
-                        >
-                            {aDroite}
-                            {!twoColumn && asideTail}
-                        </div>
+                        {twoColumn ? (
+                            <div
+                                className={cn(
+                                    'flex min-w-0 shrink grow-[5] basis-0 flex-col gap-4',
+                                    cascade,
+                                )}
+                            >
+                                {aDroite}
+                            </div>
+                        ) : (
+                            /*
+                              **Les cartes par deux** (P2b, 25/09) — dès que la colonne fait
+                              680 px, soit deux cartes de 330 : la mesure où une rangée
+                              « étiquette · valeur » tient encore sur une ligne (à 312, le
+                              numéro de série se coupait). La tablette debout dès 820, le
+                              paysage sous 1 000, un panneau large. Référence à côté de
+                              Garantie, Réglages à côté de Modèles ; la fin de page
+                              (`asideTail`, l'historique) garde toute la largeur, comme une
+                              carte marquée `data-largeur="pleine"`. Une requête de
+                              **conteneur**, pas de fenêtre : c'est la place de la colonne qui
+                              décide, et le téléphone comme le panneau étroit restent sur une
+                              colonne. Les cartes s'alignent en haut ; une carte courte laisse
+                              du blanc sous elle plutôt que de s'étirer.
+                            */
+                            <div className="@container min-w-0 flex-1">
+                                <div
+                                    className={cn(
+                                        'grid grid-cols-1 items-start gap-4 @min-[680px]:grid-cols-2 @min-[680px]:[&>[data-largeur=pleine]]:col-span-2',
+                                        cascade,
+                                    )}
+                                >
+                                    {aDroite}
+                                    {asideTail && (
+                                        <div
+                                            data-largeur="pleine"
+                                            className="flex min-w-0 flex-col gap-4"
+                                        >
+                                            {asideTail}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

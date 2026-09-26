@@ -1,22 +1,18 @@
-import { getCategoryGlyph } from '../../../constants/categoryIcons';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ArrowCounterClockwise,
-    ArrowSquareOut,
     BellRinging,
     Check,
     ClipboardText,
-    Laptop,
+    Funnel,
     Package,
+    Pause,
     Prohibit,
+    SortAscending,
     X,
-    type Icon as PhosphorGlyph,
-    Wrench,
 } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
-import FilterMenuChip from '../../../components/ui/FilterMenuChip';
-import ScreenState from '../../../components/ui/ScreenState';
 import Button from '../../../components/ui/Button';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import FilterButton from '../../../components/ui/FilterButton';
@@ -28,146 +24,51 @@ import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import CloseButton from '../../../components/ui/CloseButton';
 import ActSheet from '../../../components/ui/ActSheet';
+import Modal from '../../../components/ui/Modal';
+import Onglets from '../../../components/ui/Onglets';
+import SearchField from '../../../components/ui/SearchField';
+import Touche from '../../../components/ui/Touche';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useEchap } from '../../../hooks/useEchap';
+import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
+import { avecObjetOuvert, useObjetOuvert } from '../../../hooks/useObjetOuvert';
 import { MEDIA } from '../../../constants/breakpoints';
-import {
-    canUserActOnApproval,
-    getApprovalRejectTarget,
-    getAvailableApprovalActions,
-    isApprovalActiveStatus,
-    isApprovalHistoryStatus,
-} from '../../../lib/businessRules';
-import { getCategoryLabel } from '../../../constants/glossary';
+import { RACCOURCI_RECHERCHE, toucheSimplePourLaPage } from '../../../lib/clavier';
 import { ApprovalStatus, ViewType } from '../../../types';
 import { cn } from '../../../lib/utils';
-
-/** La boîte de travail unique de la planche 08.1. */
-export type TaskNature =
-    'validation' | 'collecte' | 'reception' | 'retour' | 'remise' | 'reparation';
-type TaskScope = 'todo' | 'following' | 'history';
-type TaskOrder = 'oldest' | 'newest';
-
-interface Task {
-    id: string;
-    nature: TaskNature;
-    scope: TaskScope;
-    /**
-     * **L'objet, et lui seul** — `.tt .t` de la planche. Il portait « Kossi Adjovi —
-     * Dell Latitude 7420 » : deux faits cousus dans une ligne qui n'en tient qu'un au
-     * téléphone. La personne descend d'une ligne, à sa place.
-     */
-    title: string;
-    /** Qui, ou quelle référence — la première moitié de la sous-ligne (`.tt .s`). */
-    who?: string;
-    /** L'état **en un mot** — la seconde moitié de la sous-ligne. */
-    context: string;
-    /** La teinte de la vignette. Par défaut la nature ; l'historique met son issue. */
-    tone?: TaskTone;
-    /**
-     * Le motif d'un refus, cité tel quel sous la sous-ligne (`.tt .q`, en italique) :
-     * c'est le seul texte que le demandeur a reçu, l'historique ne le reformule pas.
-     */
-    quote?: string;
-    /** Qui a décidé — la seconde ligne du bloc de droite (`.rt .by`). */
-    decidedBy?: string;
-    /** Depuis quand, quand la donnée le dit. */
-    since: string | null;
-    /** Le verbe n'apparaît que si la transition est réellement disponible ici. */
-    action?: string;
-    /**
-     * Ce que la rangée ouvre. **Facultatif** : une tâche dont l'objet n'existe pas
-     * encore — une demande sans équipement affecté — n'ouvre rien, elle porte son
-     * geste sur place. Elle valait obligatoirement `'approvals'`, ce qui envoyait
-     * vers un **second inventaire de la même file** (17.7 : « deux portes vers la
-     * même file »). Corrigé le 20/08.
-     */
-    target?: ViewType;
-    targetId?: string;
-    /**
-     * La machine remontée par la collecte. Elle **s'examine ici** : la planche 14.1
-     * a sorti sa file de Paramètres — « Paramètres règle les sources ; il ne garde
-     * pas leur produit » — et un geste qui renvoyait à l'écran de réglages faisait
-     * traverser trois onglets pour dire oui ou non.
-     */
-    deviceId?: string;
-    initials?: string;
-    icon?: PhosphorGlyph;
-    transition?: { approvalId: string; nextStatus: ApprovalStatus };
-    /**
-     * Une demande arrivée chez l'informatique n'a pas de transition : son geste est
-     * de **remettre**, et cela ouvre l'assistant avec la demande. Sans cette clé, la
-     * rangée n'avait ni verbe ni destination (planche 03.3).
-     */
-    assign?: { approvalId: string };
-    /**
-     * Le non, avec sa cible : `Rejected`, ou renvoi à l'IT pour une dotation. Il
-     * n'existe **que là où un oui existe** — même acteur, même gate. Les règles du
-     * refus étaient écrites depuis longtemps ; aucune UI ne les déclenchait
-     * (zone d'ombre n° 8). Planches 03.3 et 06.5 — lot 5.
-     */
-    refusal?: { approvalId: string; nextStatus: ApprovalStatus; requesterName: string };
-    /**
-     * Ma propre demande, **encore en amont de la remise** : je peux la retirer. Une
-     * fois l'objet remis (`PENDING_DELIVERY`), on refuse la réception — on n'annule
-     * plus. Planche 03.3, onglet « À suivre » — lot 6.
-     */
-    cancel?: { approvalId: string };
-    /**
-     * Ma demande, que j'attends de quelqu'un d'autre depuis trop longtemps : je peux
-     * la relancer. **Le seul acte de « À suivre »** (planche 03.3), et seulement
-     * au-delà du délai — une relance qui s'offre au premier jour n'est pas une relance.
-     */
-    remind?: { approvalId: string; remindedAt?: string };
-    /** « demandé par Kossi Adjovi » — la sous-ligne de l'en-tête de la feuille. */
-    askedBy?: string;
-    /** Le motif écrit par le demandeur — cité tel quel dans la feuille (planche 03.3). */
-    reason?: string;
-    /** Ce qui situe la demande sans l'ouvrir : ce qu'il détient, l'urgence. */
-    detail?: string;
-    /**
-     * Une réception à confirmer sans demande derrière (attribution directe). Elle
-     * s'écrit **depuis la rangée**, par la même porte que toutes les autres :
-     * `confirmEquipmentReception`. Lot 7, S3.
-     */
-    reception?: { equipmentId: string };
-}
-
-const NATURE_LABEL: Record<TaskNature, string> = {
-    /* « Validations » et non « Demandes » : sous « Nature », le mot doit nommer ce
-       qui attend un geste, pas l'objet administratif. C'est le libellé de la feuille
-       de filtre de la planche. */
-    validation: 'Validations',
-    collecte: 'Collecte',
-    remise: 'Remises',
-    reception: 'Réceptions',
-    retour: 'Retours',
-    reparation: 'Réparations',
-};
-
-/**
- * L'issue d'une tâche close — ce que l'historique montre à la place de sa nature.
- * La planche en dessine trois : validée (`.vig.ok`), refusée (`.vig.no`), annulée.
- */
-type TaskOutcome = 'ok' | 'no' | 'undone';
-
-/** Ce que la vignette peut porter comme couleur : une nature, ou une issue. */
-type TaskTone = TaskNature | TaskOutcome;
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
+import PanneauDeTache, { type EtatDuRefus } from '../components/PanneauDeTache';
+import BandeauAnnuler from '../components/BandeauAnnuler';
+import { useDecisionDifferee } from '../hooks/useDecisionDifferee';
+import { useFileDeTaches } from '../hooks/useFileDeTaches';
+import {
+    GROUPE_LABEL,
+    NATURE_LABEL,
+    NATURE_MOT,
+    SCOPE_LABEL,
+    ageLabel,
+    dateLabel,
+    daysSince,
+    groupeDe,
+    ordonnerLaFile,
+    palierDe,
+    type GroupeDeFile,
+    type Palier,
+    type Task,
+    type TaskNature,
+    type TaskOrder,
+    type TaskScope,
+    type TaskTone,
+} from '../lib/file';
+import { unitesARemettre } from '../lib/unites';
 
 /**
  * **La couleur de la vignette dit la nature** — `.vig.val`, `.rem`, `.rec`, `.ret`,
- * `.ok`, `.no` de la planche 03.3, passe sobre du 02/09.
- *
- * Avant cette passe, la nature se lisait à une pastille de mots posée sous le titre.
- * La planche la supprime : la rangée n'a plus qu'un titre, une sous-ligne et un âge,
- * et c'est le carré de 40 px à gauche — celui qui portait déjà les initiales ou le
- * glyphe de catégorie — qui prend la teinte. Un fait de moins à lire, une couleur de
- * plus à reconnaître.
- *
- * Une paire = un fond et l'encre qui tient dessus ; le socle les déclare ensemble
- * pour qu'aucune ne dérive sans l'autre.
+ * `.ok`, `.no` de la planche 03.3, passe sobre du 02/09. Une paire = un fond et l'encre
+ * qui tient dessus ; le socle les déclare ensemble pour qu'aucune ne dérive sans l'autre.
  */
 const VIG_TINT: Record<TaskTone, string> = {
     validation: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
@@ -182,156 +83,44 @@ const VIG_TINT: Record<TaskTone, string> = {
 };
 
 /**
- * `.rbtn` — le geste d'une rangée, déclaré **une seule fois**. Métrique de la planche
- * 03.3 après la passe sobre : **40 px** de haut, 14 de remplissage latéral, rayon 4,
- * **15 px / 500**, gouttière de 6 avant un glyphe.
- *
- * Le remplissage suit la **surface**, jamais l'écran (§2.7) : ces rangées sont sur une
- * carte claire, donc `--inset` et l'encre. Le tableau de bord emploie le même rôle sur
- * son héro inversé, où c'est le voile blanc qui s'applique — deux surfaces, deux
- * remplissages, un seul rôle.
- *
- * **Le verbe a quitté la rangée** (planche du 02/09, portée le 04/09) : la rangée est
- * un pur sujet, et les deux décisions vivent dans la feuille de la tâche. Ce rôle
- * n'habille donc plus qu'un bouton de feuille.
+ * **L'âge dit ce qui presse** (26/09) : gris le jour même, ambre dans la semaine, rouge
+ * au-delà de sept jours — et le groupe « En retard » le redit en toutes lettres.
  */
+const AGE_TON: Record<Palier, string> = {
+    frais: 'text-text-tertiary',
+    ambre: 'text-[var(--tk-color-st-ambre)] font-medium',
+    rouge: 'text-[var(--tk-color-st-rouge)] font-semibold',
+};
+
 /**
  * L'intitulé d'un groupe de la feuille de filtre prend **`.lab`** — 12 sur 16 en 500,
  * encre secondaire, sans capitales (arbitré le 13/09 contre `.fh`).
  */
 const FILTER_HEADING = 'text-text-muted text-[0.75rem] leading-4 font-medium';
 
-/* Les puces de la feuille sont `FacetChip` — `.chip` de 18.1, 40, `0 14`, 15 sur 20. Elles
-   en étaient une copie locale, écrite sur `Button` : même mesure, mais lue par tout le
-   produit comme un bouton (15 en 400, quand un bouton porte 500). */
+const ORDRE_LABEL: Record<TaskOrder, string> = {
+    urgence: 'Ce qui presse d’abord',
+    oldest: 'Les plus anciennes',
+    newest: 'Les plus récentes',
+};
 
-const SCOPE_LABEL: Record<TaskScope, string> = {
-    todo: 'À faire',
-    following: 'À suivre',
-    history: 'Historique',
+/** L'ordre suivant, au clic sur le tri du bureau — trois crans, dans cet ordre. */
+const ORDRE_SUIVANT: Record<TaskOrder, TaskOrder> = {
+    urgence: 'oldest',
+    oldest: 'newest',
+    newest: 'urgence',
+};
+
+/** « Toutes », « Urgentes », « En retard » — les puces de la ligne d'outils (26/09). */
+type Presse = 'toutes' | 'urgentes' | 'retard';
+
+const PRESSE_LABEL: Record<Presse, string> = {
+    toutes: 'Toutes',
+    urgentes: 'Urgentes',
+    retard: 'En retard',
 };
 
 const TASKS_PAGE_SIZE = 30;
-
-/** Jours écoulés, en entier — une file se lit en jours, pas en minutes. */
-const daysSince = (iso: string | null): number | null => {
-    if (!iso) return null;
-    const then = new Date(iso).getTime();
-    if (Number.isNaN(then)) return null;
-    return Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
-};
-
-const ageLabel = (iso: string | null): string => {
-    const days = daysSince(iso);
-    if (days === null || days === 0) return "aujourd'hui";
-    if (days === 1) return '1 j';
-    return `${days} j`;
-};
-
-/**
- * Dans l'historique, la droite porte la **date** de la décision, pas son âge : une
- * décision du 14 août ne se lit pas « 21 j ». Planche 03.3, `.rt .age`.
- */
-const dateLabel = (iso: string | null): string =>
-    iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '—';
-
-/**
- * Le sujet en toutes lettres — « Kossi Adjovi — Dell Latitude 7420 ». La rangée l'a
- * scindé en deux lignes, mais un `aria-label` et le libellé que signe le code personnel
- * ont besoin de la phrase entière : hors de la rangée, l'objet seul ne dit plus de qui
- * il s'agit.
- */
-const extractInitials = (name?: string): string | undefined => {
-    if (!name) return undefined;
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return parts[0]?.slice(0, 2).toUpperCase();
-};
-
-/**
- * Ce qu'ouvre une rangée d'approbation : **l'équipement dont elle parle**, comme une
- * rangée d'équipement ouvre le sien. Tant qu'aucun objet n'est affecté — une demande
- * encore à arbitrer — il n'y a rien à ouvrir : la rangée porte son geste sur place et
- * ne navigue pas. C'est ce qui remplace le renvoi vers l'ancienne liste des demandes.
- */
-const approvalTarget = (approval: { assignedEquipmentId?: string }) =>
-    approval.assignedEquipmentId
-        ? { target: 'equipment_details' as ViewType, targetId: approval.assignedEquipmentId }
-        : {};
-
-/**
- * La sous-ligne de la planche dit **l'état en un mot**, jamais une phrase : « validation »,
- * « réception », « chez sa manager », « refusée ». Un même statut se lit donc de trois
- * façons, une par partition — ce qui attend mon geste, ce que j'attends d'un autre, ce
- * qui est décidé. C'était une seule phrase pour les trois, et elle disait « Validation
- * du manager » là où la vignette dit déjà « validation » par sa couleur.
- */
-const todoState = (status: ApprovalStatus): string => {
-    switch (status) {
-        case 'WAITING_MANAGER_APPROVAL':
-            return 'validation';
-        case 'WAITING_IT_PROCESSING':
-            return 'unité à choisir';
-        case 'WAITING_DOTATION_APPROVAL':
-            return 'validation de la dotation';
-        case 'PENDING_DELIVERY':
-            return 'réception';
-        default:
-            return 'demande';
-    }
-};
-
-/** Ce que j'attends, et de qui : « À suivre » nomme la porte, pas l'acte. */
-const followingState = (status: ApprovalStatus, mine: boolean): string => {
-    switch (status) {
-        case 'WAITING_MANAGER_APPROVAL':
-            return mine ? 'chez ma manager' : 'chez sa manager';
-        case 'WAITING_IT_PROCESSING':
-            return 'chez l’informatique';
-        case 'WAITING_DOTATION_APPROVAL':
-            return 'chez la dotation';
-        case 'PENDING_DELIVERY':
-            return 'réception';
-        default:
-            return 'en cours';
-    }
-};
-
-/** L'issue au participe passé, et la teinte que la vignette prend avec elle. */
-const historyOutcome = (
-    status: ApprovalStatus,
-): { word: string; tone: TaskOutcome; glyph: PhosphorGlyph } => {
-    switch (status) {
-        case 'Rejected':
-            return { word: 'refusée', tone: 'no', glyph: X };
-        case 'Cancelled':
-            return { word: 'annulée', tone: 'undone', glyph: ArrowCounterClockwise };
-        default:
-            return { word: 'validée', tone: 'ok', glyph: Check };
-    }
-};
-
-/**
- * Au-delà de combien de jours une demande se relance. La planche montre la cloche sur
- * une rangée de 9 jours et pas sur celles de 1 à 3 : **sept jours est une convention
- * lue sur le dessin**, pas une mesure. Elle vaut ce que vaut l'usage.
- */
-const RELANCE_APRES_JOURS = 7;
-
-const getApprovalActionLabel = (status: ApprovalStatus): string | undefined => {
-    switch (status) {
-        // Court : le verbe s'écrit dans la feuille de la tâche, à côté du refus, et
-        // deux boutons de même largeur n'ont pas la place d'une phrase (planche 03.3).
-        case 'WAITING_MANAGER_APPROVAL':
-            return 'Valider';
-        case 'WAITING_DOTATION_APPROVAL':
-            return 'Valider la dotation';
-        case 'PENDING_DELIVERY':
-            return 'Confirmer la réception';
-        default:
-            return undefined;
-    }
-};
 
 const getTransitionSuccessMessage = (status: ApprovalStatus): string => {
     switch (status) {
@@ -346,38 +135,71 @@ const getTransitionSuccessMessage = (status: ApprovalStatus): string => {
     }
 };
 
+/**
+ * Ce que le bandeau « Annuler » dit d'une décision prise dans le panneau — la forme de la
+ * maquette : *« Remis à Ethan Employé · LPT-HQ-07 »*, le verbe, la personne, l'objet.
+ */
+const messageDeLaDecision = (task: Task, statut: ApprovalStatus): string => {
+    const verbe =
+        statut === 'WAITING_IT_PROCESSING' && task.refusal?.nextStatus !== statut
+            ? 'Validée'
+            : statut === 'PENDING_DELIVERY'
+              ? 'Dotation validée'
+              : statut === 'Completed'
+                ? 'Réception confirmée'
+                : statut === 'Rejected'
+                  ? 'Refusée'
+                  : 'Renvoyée à l’informatique';
+    const pour =
+        task.who && task.who !== 'ma demande' && !verbe.startsWith('Renvoyée')
+            ? ` pour ${task.who}`
+            : '';
+    return `${verbe}${pour} · ${task.title}${task.force ? ` — à la place de ${task.force}` : ''}`;
+};
+
+/** Les touches de la file, telles que l'aide les liste (« ? »). */
+const TOUCHES: [string[], string][] = [
+    [['J', 'K'], 'Tâche suivante, tâche précédente'],
+    [['A'], 'L’acte principal — valider, remettre, confirmer'],
+    [['R'], 'Refuser, avec son motif'],
+    [['Entrée'], 'Le détail de la demande'],
+    [['X'], 'Sélectionner la tâche'],
+    [['Z'], 'Annuler la dernière décision, pendant cinq secondes'],
+    [['Échap'], 'Refermer le motif, puis la tâche'],
+    [[RACCOURCI_RECHERCHE], 'Chercher dans la file'],
+    [['?'], 'Cette aide'],
+];
+
 interface TasksPageProps {
     onNavigate: (view: ViewType) => void;
     onItemClick: (view: ViewType, id: string) => void;
 }
 
 /**
- * Tâches — la boîte de travail unique, planche 03.3, **passe sobre du 02/09**.
+ * Tâches — la boîte de travail unique, planche 03.3, **passe sobre du 02/09**, et sa
+ * **refonte du bureau du 26/09**.
  *
  * *Une recherche, un filtre, une rangée.*
  *
- * Ce que la passe change, et pourquoi la planche le veut :
+ * Au téléphone : la bande du haut porte le titre, la recherche et l'entonnoir ; une ligne
+ * nomme ce qu'on regarde (`.ord`) ; la rangée est un sujet — l'objet en titre, la personne
+ * et l'état en sous-ligne, l'âge à droite ; son tap ouvre la feuille de la tâche, ou
+ * l'écran de la demande (06.5).
  *
- * · **La bande du haut se tait.** Elle portait le titre, un sous-titre, une recherche,
- *   un entonnoir, cinq puces de nature et un ⋮ de partition — six commandes au-dessus
- *   de ce qu'on vient lire. Il reste le titre, la recherche et l'entonnoir. Les trois
- *   partitions et les cinq natures descendent dans la feuille de filtre.
- * · **Une ligne nomme ce qu'on regarde** (`.ord`), posée au-dessus de la liste :
- *   « À faire · les plus anciennes d'abord », et le compte à sa droite. C'est elle qui
- *   remplace le sous-titre, le bandeau de filtre actif et le bouton de tri.
- * · **La rangée est un sujet.** L'objet en titre à 17, la personne et l'état en
- *   sous-ligne à 14, l'âge à 12 aligné en haut. La pastille de mots qui nommait la
- *   nature disparaît : c'est la **couleur de la vignette** qui la porte.
- * · **L'historique montre l'issue et qui l'a prise**, empilées à droite, et cite le
- *   motif d'un refus tel quel, en italique.
- * · **Aucune note dans l'écran** (R15) : le panneau « Ce qui arrivera ici » tombe.
+ * **Au bureau (dès 840), la file se traite sans la quitter** (26/09) :
  *
- * **Ce que la planche demande et qui n'est pas fait ici.** Son arbitrage du 02/09 retire
- * aussi le verbe et le ⋮ de la rangée, et confie les deux décisions à une *feuille de la
- * tâche* ouverte au tap. Ce déplacement traverse `refusal`, `cancel`, `reception`, le
- * `SecurityGate` et les deux feuilles de motif — les lots 5, 6 et 7 : il se fait avec
- * eux, pas dans une passe de forme. La rangée garde donc son geste, à la métrique de
- * la planche.
+ * · **« À faire » est ce que vous pouvez faire**, et le badge de la barre compte la même
+ *   chose — la file est construite une fois (`useFileDeTaches`) ;
+ * · **la file dit ce qui presse** : groupes « En retard · Cette semaine · Aujourd'hui »,
+ *   l'âge coloré, la marque « Urgent », la nature écrite ; 400 px, la tâche prend le reste ;
+ * · **le panneau de décision** montre les faits, l'unité à remettre et le parcours, et
+ *   un seul acte appuyé ;
+ * · **la file s'enchaîne** : après une décision, la tâche suivante s'ouvre ; valider et
+ *   refuser se défont pendant cinq secondes au lieu d'être confirmés avant ;
+ * · **le clavier** (J/K, A, R, Entrée, X, Z, ?) et **la validation en lot**.
+ *
+ * La tâche ouverte vit dans l'adresse (`?ouvert=`) : un rechargement la retrouve, et la
+ * feuille de remise ouverte depuis le panneau laisse la file dessous.
  */
 const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const {
@@ -391,424 +213,64 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         promoteDetectedDeviceToInventory,
         markDetectedDeviceAsIgnored,
     } = useData();
-    const { user: currentUser, role, permissions } = useAccessControl();
+    const { user: currentUser } = useAccessControl();
     const { showToast } = useToast();
 
     const [nature, setNature] = useState<TaskNature | 'toutes'>('toutes');
     const [scope, setScope] = useState<TaskScope>('todo');
-    /* La recherche que `.srch` dessine sur la planche — « Personne, objet, code » —
-       et que la bande n'avait pas, alors que les cinq autres listes la portent. */
+    /* La recherche que `.srch` dessine sur la planche — « Personne, objet, code ». */
     const [query, setQuery] = useState('');
-    const [order, setOrder] = useState<TaskOrder>('oldest');
+    const [order, setOrder] = useState<TaskOrder>('urgence');
+    const [presse, setPresse] = useState<Presse>('toutes');
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [reviewDeviceId, setReviewDeviceId] = useState<string | null>(null);
-    // Feuille de motif du refus : la tâche visée, et le texte que le demandeur lira.
+    // Feuille de motif du refus (téléphone) : la tâche visée, et le texte que le demandeur lira.
     const [refusing, setRefusing] = useState<Task | null>(null);
+    /* Les feuilles gardent leur tâche le temps de redescendre (26/09). */
+    const refusAffiche = useDerniereValeur(refusing);
     const [refusalReason, setRefusalReason] = useState('');
     const [cancelling, setCancelling] = useState<Task | null>(null);
     /**
-     * La tâche ouverte. **Arbitrage du 02/09 (planche 03.3)** : la rangée ne porte ni
-     * verbe ni ⋮ — elle est le sujet, et son tap ouvre cette feuille, qui porte le
-     * contexte et les décisions. Les lots 5 à 7 avaient posé le verbe et le ⋮ sur la
-     * rangée ; à 393 px les trois colonnes ne tenaient pas et le nom de l'objet se
-     * réduisait à « Dell L… ». Les mécanismes ne changent pas, seul leur logement.
-     */
-    /**
-     * L'acte engagé depuis une tâche — planche **17.4**. Le pavé partagé
-     * (`SecurityGate`, un code administrateur unique) est remplacé par la feuille
-     * d'acte : *« l'attestation est le bloc 4, jamais un écran »*, et c'est **le code
-     * personnel** de celui qui agit qui prouve, pas un secret d'équipe.
+     * L'acte engagé depuis une tâche — planche **17.4**. Au bureau, il ne reste que les
+     * réceptions : on atteste avoir reçu. Valider et refuser se défont désormais au lieu de
+     * s'attester (26/09) ; la remise s'atteste dans sa propre feuille.
      */
     const [acte, setActe] = useState<Task | null>(null);
+    const acteAffiche = useDerniereValeur(acte);
     /* 17.2 — la file est l'un des quatre écrans qui portent la sélection groupée. */
     const selection = useSelection();
-    const [openedTask, setOpenedTask] = useState<Task | null>(null);
+    /** Au téléphone, la tâche ouverte en feuille. Au bureau, elle vit dans l'adresse. */
+    const [feuille, setFeuille] = useState<Task | null>(null);
+    const [aideOuverte, setAideOuverte] = useState(false);
+    const [refus, setRefus] = useState<EtatDuRefus>({ ouvert: false, motif: '' });
+    const [unite, setUnite] = useState<string | null>(null);
+
     /**
-     * **La file et la tâche choisie côte à côte, à partir de 1280** — 03.3, colonne
-     * bureau : *« une boîte de travail se traite sans quitter la page ; cliquer une
-     * rangée la sélectionne, le panneau change »*.
+     * **La file et la tâche choisie côte à côte, dès 840** — 03.3, colonne bureau : *« une
+     * boîte de travail se traite sans quitter la page »*. 360 px sous 1 200, 400 au-delà.
      */
-    const enPanneau = useMediaQuery(MEDIA.twoColumn);
+    const enPanneau = useMediaQuery(MEDIA.expandedUp);
+    /* Les marques des touches et la case au survol : sous un pointeur fin seulement. */
+    const souris = useMediaQuery(MEDIA.hoverCapable);
+    const { ouvert: ouverteId, ouvrir: ouvrirId, fermer: fermerId } = useObjetOuvert();
     const [visibleCount, setVisibleCount] = useState(TASKS_PAGE_SIZE);
 
-    const tasks = useMemo<Task[]>(() => {
-        if (!currentUser) return [];
+    const { enSuspens, decider, annuler } = useDecisionDifferee((motif) =>
+        showToast(motif, 'error'),
+    );
+    const masques = useMemo(() => new Set(enSuspens?.tachesIds ?? []), [enSuspens]);
 
-        const out: Task[] = [];
-        const teamUserIds = new Set(
-            role === 'Manager'
-                ? users.filter((user) => user.managerId === currentUser.id).map((user) => user.id)
-                : [],
-        );
-        /**
-         * La ligne de contexte de la feuille — *« Kossi détient 3 objets · aucun
-         * portable · urgence normale »* (planche 03.3). Trois faits, et trois
-         * seulement : ce qu'il a, s'il a déjà ce qu'il demande, et l'urgence. Elle
-         * évite d'ouvrir la fiche pour trancher.
-         */
-        const requestContext = (approval: (typeof approvals)[number]): string => {
-            const held = equipment.filter(
-                (item) =>
-                    item.user?.id === approval.beneficiaryId ||
-                    item.user?.name === approval.beneficiaryName,
-            );
-            const wanted = getCategoryLabel(approval.equipmentCategory).toLowerCase();
-            const hasSame = held.some(
-                (item) => getCategoryLabel(item.type).toLowerCase() === wanted,
-            );
-            const urgency =
-                approval.urgency === 'high'
-                    ? 'urgence signalée'
-                    : approval.urgency === 'low'
-                      ? 'sans urgence'
-                      : 'urgence normale';
-            return [
-                held.length > 0
-                    ? `détient ${held.length} objet${held.length > 1 ? 's' : ''}`
-                    : 'ne détient rien',
-                hasSame ? `déjà un ${wanted}` : `aucun ${wanted}`,
-                urgency,
-            ].join(' · ');
-        };
+    const tasks = useFileDeTaches();
 
-        const isRelatedApproval = (approval: (typeof approvals)[number]) => {
-            if (role === 'Admin' || role === 'SuperAdmin') return true;
-            if (role === 'Manager') {
-                return (
-                    approval.requesterId === currentUser.id ||
-                    approval.beneficiaryId === currentUser.id ||
-                    teamUserIds.has(approval.requesterId) ||
-                    teamUserIds.has(approval.beneficiaryId)
-                );
-            }
-            return (
-                approval.requesterId === currentUser.id || approval.beneficiaryId === currentUser.id
-            );
-        };
-
-        approvals.forEach((approval) => {
-            const equipmentLabel =
-                approval.assignedEquipmentName ||
-                approval.equipmentName ||
-                getCategoryLabel(approval.equipmentCategory || '');
-            const beneficiary = approval.beneficiaryName || approval.requesterName;
-            /* L'objet seul en titre ; la personne descend en sous-ligne (planche 03.3). */
-            const subject = equipmentLabel || 'Demande d’équipement';
-            const mine = approval.requesterId === currentUser.id;
-            const isActionable = canUserActOnApproval({
-                approval,
-                actorRole: role,
-                actorId: currentUser.id,
-                users,
-            });
-
-            if (isApprovalHistoryStatus(approval.status)) {
-                if (isRelatedApproval(approval)) {
-                    /* L'issue, qui l'a prise, et — pour un refus — le motif cité tel
-                       quel. La planche empile la date et le nom à droite (`.rt`, `.by`)
-                       au lieu de les coudre au contexte, et met l'issue dans la
-                       vignette : un glyphe teinté, pas des initiales. */
-                    const outcome = historyOutcome(approval.status);
-                    out.push({
-                        id: `history-${approval.id}`,
-                        nature: 'validation',
-                        scope: 'history',
-                        title: subject,
-                        who: beneficiary,
-                        context: outcome.word,
-                        tone: outcome.tone,
-                        quote: approval.decisionNote?.reason,
-                        decidedBy: approval.decisionNote?.actorName,
-                        since: approval.updatedAt || approval.createdAt,
-                        ...approvalTarget(approval),
-                        icon: outcome.glyph,
-                    });
-                }
-                return;
-            }
-
-            if (!isApprovalActiveStatus(approval.status)) return;
-
-            if (isActionable) {
-                const primary = getAvailableApprovalActions({
-                    approval,
-                    actorRole: role,
-                    actorId: currentUser.id,
-                    users,
-                }).primary;
-                const transition =
-                    primary?.kind === 'transition' && primary.nextStatus
-                        ? { approvalId: approval.id, nextStatus: primary.nextStatus }
-                        : undefined;
-                const assign = primary?.kind === 'assign' ? { approvalId: approval.id } : undefined;
-                const refusal =
-                    primary && (primary.kind === 'transition' || primary.kind === 'assign')
-                        ? {
-                              approvalId: approval.id,
-                              nextStatus: getApprovalRejectTarget(approval.status),
-                              requesterName:
-                                  approval.beneficiaryName ||
-                                  approval.requesterName ||
-                                  'le demandeur',
-                          }
-                        : undefined;
-
-                out.push({
-                    id: `approval-${approval.id}`,
-                    nature: approval.status === 'PENDING_DELIVERY' ? 'reception' : 'validation',
-                    scope: 'todo',
-                    title: subject,
-                    who: beneficiary,
-                    context: todoState(approval.status),
-                    since: approval.createdAt ?? null,
-                    action: transition
-                        ? getApprovalActionLabel(approval.status)
-                        : assign
-                          ? 'Remettre'
-                          : undefined,
-                    transition,
-                    assign,
-                    refusal,
-                    reason: approval.reason,
-                    detail: requestContext(approval),
-                    askedBy: approval.isDelegated
-                        ? `demandé par ${approval.requesterName} pour ${approval.beneficiaryName}`
-                        : `demandé par ${approval.beneficiaryName || approval.requesterName}`,
-                    ...approvalTarget(approval),
-                    initials: extractInitials(beneficiary),
-                    icon: ClipboardText,
-                });
-            } else if (isRelatedApproval(approval)) {
-                const { cancel: cancelAction } = getAvailableApprovalActions({
-                    approval,
-                    actorRole: role,
-                    actorId: currentUser.id,
-                    users,
-                });
-                const cancel =
-                    cancelAction && approval.status !== 'PENDING_DELIVERY'
-                        ? { approvalId: approval.id }
-                        : undefined;
-                out.push({
-                    id: `following-${approval.id}`,
-                    nature: approval.status === 'PENDING_DELIVERY' ? 'reception' : 'validation',
-                    scope: 'following',
-                    title: subject,
-                    who: mine ? 'ma demande' : beneficiary,
-                    context: followingState(approval.status, mine),
-                    since: approval.createdAt ?? null,
-                    ...approvalTarget(approval),
-                    cancel,
-                    reason: approval.reason,
-                    // Seule ma demande se relance, et seulement passé le délai.
-                    remind:
-                        mine && (daysSince(approval.createdAt ?? null) ?? 0) >= RELANCE_APRES_JOURS
-                            ? { approvalId: approval.id, remindedAt: approval.remindedAt }
-                            : undefined,
-                    initials: extractInitials(beneficiary),
-                    icon: ClipboardText,
-                });
-            }
-        });
-
-        const approvalEquipmentIds = new Set(
-            approvals.flatMap((approval) =>
-                approval.assignedEquipmentId ? [approval.assignedEquipmentId] : [],
-            ),
-        );
-
-        equipment.forEach((item) => {
-            /* Le code ne reste pas entre parenthèses dans le titre : la planche descend
-               la référence en sous-ligne — « Écran Dell U2722 / ASSET-30117 · réception ».
-               Quand un porteur est connu, c'est lui qui prend cette moitié : elle dit à
-               qui la remise est due. Sur ses propres tâches, personne — c'est moi. */
-            const title = item.name;
-            const isHolder = item.user?.email?.toLowerCase() === currentUser.email?.toLowerCase();
-            const who = item.user?.name || item.assetId;
-
-            if (item.assignmentStatus === 'PENDING_DELIVERY') {
-                if (role !== 'User') {
-                    out.push({
-                        id: `handover-${item.id}`,
-                        nature: 'remise',
-                        scope: 'todo',
-                        title,
-                        who,
-                        context: 'remise',
-                        since: item.assignedAt ?? null,
-                        action: 'Remettre',
-                        target: 'assignment_wizard',
-                        targetId: item.id,
-                        icon: getCategoryGlyph(item.type),
-                    });
-                } else if (isHolder && !approvalEquipmentIds.has(item.id)) {
-                    out.push({
-                        id: `delivery-${item.id}`,
-                        nature: 'reception',
-                        scope: 'todo',
-                        title,
-                        context: 'réception',
-                        since: item.assignedAt ?? null,
-                        action: 'Confirmer',
-                        target: 'equipment_details',
-                        targetId: item.id,
-                        reception: { equipmentId: item.id },
-                        icon: getCategoryGlyph(item.type),
-                    });
-                }
-            }
-
-            /* **Le parcours de réparation dans la file** (24/09) : chaque étape est la
-               tâche de qui la tient. Ce qu'on attend d'un autre passe à « À suivre ». */
-            const dossier = item.repair;
-            if (dossier) {
-                const base = {
-                    nature: 'reparation' as const,
-                    title,
-                    who: dossier.holderName || item.assetId,
-                    target: 'equipment_details' as ViewType,
-                    targetId: item.id,
-                    icon: Wrench,
-                };
-                const gere = permissions.canManageInventory;
-                if (dossier.stage === 'declared') {
-                    if (gere)
-                        out.push({
-                            ...base,
-                            id: `rep-depot-${item.id}`,
-                            scope: 'todo',
-                            context: 'dépôt à recevoir',
-                            since: dossier.openedAt,
-                            action: 'Recevoir',
-                        });
-                    else if (dossier.holderId === currentUser.id)
-                        out.push({
-                            ...base,
-                            id: `rep-deposer-${item.id}`,
-                            scope: 'todo',
-                            context: 'à déposer à l’informatique',
-                            since: dossier.openedAt,
-                        });
-                } else if (dossier.stage === 'deposited' && gere) {
-                    out.push({
-                        ...base,
-                        id: `rep-charge-${item.id}`,
-                        scope: 'todo',
-                        context:
-                            dossier.quoteDecision?.status === 'rejected'
-                                ? 'devis refusé, à reprendre'
-                                : 'à prendre en charge',
-                        quote:
-                            dossier.quoteDecision?.status === 'rejected'
-                                ? dossier.quoteDecision.reason
-                                : undefined,
-                        since: dossier.deposit?.at ?? dossier.openedAt,
-                        action: 'Prendre en charge',
-                    });
-                } else if (dossier.stage === 'quote_pending') {
-                    if (permissions.canManageFinance)
-                        out.push({
-                            ...base,
-                            id: `rep-devis-${item.id}`,
-                            scope: 'todo',
-                            context: `devis · ${(dossier.quote?.amount ?? 0).toLocaleString('fr-FR')}`,
-                            since: dossier.takenCharge?.at ?? null,
-                            action: 'Examiner',
-                        });
-                    else if (gere)
-                        out.push({
-                            ...base,
-                            id: `rep-devis-${item.id}`,
-                            scope: 'following',
-                            context: 'devis chez la Finance',
-                            since: dossier.takenCharge?.at ?? null,
-                        });
-                } else if (dossier.stage === 'at_repairer' && gere) {
-                    const attendu = dossier.takenCharge?.expectedReturn;
-                    const enRetard = attendu ? new Date(attendu).getTime() < Date.now() : false;
-                    out.push({
-                        ...base,
-                        id: `rep-retour-${item.id}`,
-                        scope: enRetard ? 'todo' : 'following',
-                        context: `chez ${dossier.takenCharge?.repairer ?? 'le prestataire'}${enRetard ? ' · retour en retard' : ''}`,
-                        since: dossier.sentAt ?? null,
-                        action: enRetard ? 'Récupérer' : undefined,
-                    });
-                }
-            }
-
-            if (item.assignmentStatus === 'PENDING_RETURN') {
-                if (role !== 'User') {
-                    out.push({
-                        id: `return-${item.id}`,
-                        nature: 'retour',
-                        scope: 'todo',
-                        title,
-                        who,
-                        context: 'retour à réceptionner',
-                        since: item.returnRequestedAt || item.assignedAt || null,
-                        action: 'Réceptionner',
-                        target: 'return_wizard',
-                        targetId: item.id,
-                        icon: getCategoryGlyph(item.type),
-                    });
-                } else if (isHolder) {
-                    out.push({
-                        id: `return-user-${item.id}`,
-                        nature: 'retour',
-                        scope: 'todo',
-                        title,
-                        context: 'restitution demandée',
-                        since: item.returnRequestedAt || item.assignedAt || null,
-                        action: 'Restituer',
-                        target: 'return_wizard',
-                        targetId: item.id,
-                        icon: getCategoryGlyph(item.type),
-                    });
-                }
-            }
-        });
-
-        if (permissions.canManageInventory) {
-            detectedDevices
-                .filter((device) => ['pending_review', 'ambiguous_match'].includes(device.status))
-                .forEach((device) => {
-                    out.push({
-                        id: `collection-${device.id}`,
-                        nature: 'collecte',
-                        scope: 'todo',
-                        title: device.machineName || device.hostname || 'Machine détectée',
-                        who: device.assetId || device.hostname || undefined,
-                        context:
-                            device.status === 'ambiguous_match'
-                                ? 'correspondance à confirmer'
-                                : 'collecte à valider',
-                        since: device.firstSeenAt || device.lastSeenAt || null,
-                        action: 'Examiner',
-                        target: 'tasks',
-                        deviceId: device.id,
-                        icon: Laptop,
-                    });
-                });
-        }
-
-        return out.sort((left, right) => {
-            if (!left.since) return 1;
-            if (!right.since) return -1;
-            return new Date(left.since).getTime() - new Date(right.since).getTime();
-        });
-    }, [
-        approvals,
-        equipment,
-        users,
-        detectedDevices,
-        currentUser,
-        role,
-        permissions.canManageInventory,
-        permissions.canManageFinance,
-    ]);
-
-    const scopeTasks = useMemo(() => tasks.filter((task) => task.scope === scope), [scope, tasks]);
+    /* Une décision qui attend son écriture a déjà quitté la file : les comptes le disent. */
+    const presentes = useMemo(
+        () => (masques.size > 0 ? tasks.filter((task) => !masques.has(task.id)) : tasks),
+        [masques, tasks],
+    );
+    const scopeTasks = useMemo(
+        () => presentes.filter((task) => task.scope === scope),
+        [presentes, scope],
+    );
     const counts = useMemo(() => {
         const next: Record<TaskNature, number> = {
             validation: 0,
@@ -826,58 +288,151 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     const scopeCounts = useMemo(
         () => ({
-            todo: tasks.filter((task) => task.scope === 'todo').length,
-            following: tasks.filter((task) => task.scope === 'following').length,
-            history: tasks.filter((task) => task.scope === 'history').length,
+            todo: presentes.filter((task) => task.scope === 'todo').length,
+            following: presentes.filter((task) => task.scope === 'following').length,
+            history: presentes.filter((task) => task.scope === 'history').length,
         }),
-        [tasks],
+        [presentes],
     );
+
+    const presseCounts = useMemo(
+        () => ({
+            urgentes: scopeTasks.filter((task) => task.urgent).length,
+            retard: scopeTasks.filter((task) => groupeDe(task) === 'retard').length,
+        }),
+        [scopeTasks],
+    );
+
+    /* L'historique n'a pas d'urgence : « ce qui presse » y lit la décision la plus récente. */
+    const ordre: TaskOrder = scope === 'history' && order === 'urgence' ? 'newest' : order;
+    const enGroupes = order === 'urgence' && scope !== 'history';
 
     const filteredTasks = useMemo(() => {
         const byNature =
             nature === 'toutes' ? scopeTasks : scopeTasks.filter((task) => task.nature === nature);
+        const byPresse =
+            presse === 'urgentes'
+                ? byNature.filter((task) => task.urgent)
+                : presse === 'retard'
+                  ? byNature.filter((task) => groupeDe(task) === 'retard')
+                  : byNature;
         // La recherche porte sur ce que la rangée montre : l'objet, la personne, l'état.
         const needle = query.trim().toLowerCase();
         const selected = needle
-            ? byNature.filter((task) =>
-                  [task.title, task.who, task.context]
+            ? byPresse.filter((task) =>
+                  [task.title, task.who, task.context, task.reason, NATURE_MOT[task.nature]]
                       .filter(Boolean)
                       .some((field) => (field as string).toLowerCase().includes(needle)),
               )
-            : byNature;
-        return [...selected].sort((left, right) => {
-            const leftDate = left.since ? new Date(left.since).getTime() : Number.POSITIVE_INFINITY;
-            const rightDate = right.since
-                ? new Date(right.since).getTime()
-                : Number.POSITIVE_INFINITY;
-            return order === 'oldest' ? leftDate - rightDate : rightDate - leftDate;
-        });
-    }, [nature, order, query, scopeTasks]);
+            : byPresse;
+        return ordonnerLaFile(selected, ordre);
+    }, [nature, ordre, presse, query, scopeTasks]);
 
     useEffect(() => {
         setVisibleCount(TASKS_PAGE_SIZE);
-    }, [nature, order, query, scope]);
+    }, [nature, order, presse, query, scope]);
+
+    /* Au bureau, la nature n'a plus de menu (elle se lit sur la rangée et se cherche par son
+       nom) : un filtre posé au téléphone ne doit pas y rester invisible. */
+    useEffect(() => {
+        if (enPanneau) setNature('toutes');
+    }, [enPanneau]);
 
     const visibleTasks = useMemo(
         () => filteredTasks.slice(0, visibleCount),
         [filteredTasks, visibleCount],
     );
 
-    const activeFilterCount =
-        Number(nature !== 'toutes') + Number(order !== 'oldest') + Number(scope !== 'todo');
+    const groupCounts = useMemo(() => {
+        const next: Record<GroupeDeFile, number> = { retard: 0, semaine: 0, aujourdhui: 0 };
+        filteredTasks.forEach((task) => {
+            next[groupeDe(task)] += 1;
+        });
+        return next;
+    }, [filteredTasks]);
+
+    /**
+     * **La tâche ouverte, au bureau.** Elle est lue dans l'adresse, et **dans la file
+     * affichée** : une tâche d'un autre onglet, filtrée ou décidée n'est plus ouverte.
+     */
+    const openedTask = enPanneau
+        ? (filteredTasks.find((task) => task.id === ouverteId) ?? null)
+        : feuille;
 
     /*
-      `.ord` — LA LIGNE QUI NOMME CE QU'ON REGARDE, posée au-dessus de la liste.
-      C'est elle qui rend la bande du haut silencieuse : la partition, la nature et
-      l'ordre n'ont plus besoin d'être des commandes visibles en permanence, ils se
-      règlent dans la feuille de filtre et se **lisent** ici. Le sous-titre de l'en-tête
-      disparaît avec elle — il disait la même chose une ligne plus haut.
-      Quand une nature est posée, le compte devient relatif : « 6 des 17 ».
+      **La file s'enchaîne** (26/09). Quand la tâche ouverte quitte la file — décidée,
+      filtrée, passée dans un autre onglet —, celle qui prend sa place s'ouvre ; en
+      arrivant, la première. Seul Échap laisse le panneau vide, jusqu'au prochain choix.
+      Changer d'onglet, de filtre ou d'ordre repart du haut de la file.
+    */
+    const derniere = useRef<number | null>(null);
+    const fermeeExpres = useRef(false);
+    useEffect(() => {
+        derniere.current = null;
+        fermeeExpres.current = false;
+    }, [scope, nature, presse, query, order]);
+    useEffect(() => {
+        if (!enPanneau) {
+            if (ouverteId) fermerId();
+            return;
+        }
+        if (selection.isActive) return;
+        if (ouverteId) {
+            const index = filteredTasks.findIndex((task) => task.id === ouverteId);
+            if (index >= 0) {
+                derniere.current = index;
+                return;
+            }
+        } else if (fermeeExpres.current) return;
+        const suivante =
+            filteredTasks[Math.min(derniere.current ?? 0, Math.max(0, filteredTasks.length - 1))];
+        if (suivante) {
+            if (suivante.id !== ouverteId) ouvrirId(suivante.id);
+        } else if (ouverteId) fermerId();
+    }, [enPanneau, fermerId, filteredTasks, ouverteId, ouvrirId, selection.isActive]);
+
+    /* Une autre tâche : le motif en cours et l'unité choisie ne la suivent pas. */
+    useEffect(() => {
+        setRefus({ ouvert: false, motif: '' });
+        setUnite(null);
+    }, [openedTask?.id]);
+
+    /** L'unité que la remise emportera : celle qu'on a choisie, sinon la mieux placée. */
+    const uniteRetenue = useMemo(() => {
+        if (!openedTask?.assign) return null;
+        if (unite) return unite;
+        const demande = approvals.find((item) => item.id === openedTask.approvalId);
+        if (!demande) return null;
+        const site = users.find((person) => person.id === demande.beneficiaryId)?.site;
+        return unitesARemettre(equipment, demande, site)[0]?.id ?? null;
+    }, [approvals, equipment, openedTask, unite, users]);
+
+    const ouvrir = useCallback(
+        (task: Task) => {
+            fermeeExpres.current = false;
+            ouvrirId(task.id);
+            window.requestAnimationFrame(() =>
+                document.getElementById(`tache-${task.id}`)?.scrollIntoView({ block: 'nearest' }),
+            );
+        },
+        [ouvrirId],
+    );
+
+    const activeFilterCount =
+        Number(nature !== 'toutes') +
+        Number(order !== 'urgence') +
+        Number(scope !== 'todo') +
+        Number(presse !== 'toutes');
+
+    /*
+      `.ord` — LA LIGNE QUI NOMME CE QU'ON REGARDE, posée au-dessus de la liste. Quand une
+      nature est posée, le compte devient relatif : « 6 des 17 ».
     */
     const ordLabel = [
         SCOPE_LABEL[scope],
         nature !== 'toutes' ? NATURE_LABEL[nature].toLowerCase() : null,
-        order === 'oldest' ? 'les plus anciennes d’abord' : 'les plus récentes d’abord',
+        presse === 'urgentes' ? 'urgentes' : presse === 'retard' ? 'en retard' : null,
+        `${ORDRE_LABEL[ordre].toLowerCase()}${ordre === 'urgence' ? '' : ' d’abord'}`,
     ]
         .filter(Boolean)
         .join(' · ');
@@ -897,8 +452,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     /**
      * La relance ne prévient personne — il n'y a pas de courrier ici. Elle **date
-     * l'insistance**, la rangée l'affiche ensuite, et le journal la garde. Le message
-     * dit exactement cela, sans promettre une notification qui n'existe pas.
+     * l'insistance**, la rangée l'affiche ensuite, et le journal la garde.
      */
     const remindTask = (task: Task) => {
         if (!task.remind) return;
@@ -911,18 +465,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     };
 
     /**
-     * **Toute rangée ouvre la feuille** — la planche ne fait pas d'exception : *« son
-     * tap ouvre la feuille de la tâche »*. Une rangée sans décision y trouve son
-     * contexte et une porte vers l'objet ; ouvrir la feuille pour les unes et partir
-     * ailleurs pour les autres ferait deux comportements pour un même geste.
-     *
-     * La seule exception est la machine remontée par la collecte : elle s'examine dans
-     * sa propre feuille (14.1), qui n'est pas celle-ci.
-     */
-    /**
-     * **Exporter la sélection** — le seul acte que la file sait poser sur plusieurs
-     * tâches à la fois. Il ne change rien : c'est pourquoi il peut être groupé sans
-     * qu'on ait à trancher la question de l'attestation.
+     * **Exporter la sélection** — il ne change rien : c'est pourquoi il peut être groupé
+     * sans qu'on ait à trancher la question de l'attestation.
      */
     const exporterSelection = () => {
         const choisies = filteredTasks.filter((task) => selection.isSelected(task.id));
@@ -958,24 +502,186 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         selection.exit();
     };
 
-    /** L'identifiant de la demande derrière une rangée, quelle que soit sa nature. */
-    const demandeDe = (task: Task): string | undefined =>
-        task.transition?.approvalId ??
-        task.refusal?.approvalId ??
-        task.cancel?.approvalId ??
-        task.remind?.approvalId;
+    /**
+     * **Valider en lot** (26/09) — plusieurs validations **de même nature**, d'un geste,
+     * et défaisables comme une seule. Les remises n'en sont pas : chacune s'atteste.
+     */
+    const validationsChoisies = filteredTasks.filter((task) => selection.isSelected(task.id));
+    const enLot =
+        enPanneau &&
+        validationsChoisies.length > 0 &&
+        validationsChoisies.every(
+            (task) =>
+                task.scope === 'todo' &&
+                task.nature === 'validation' &&
+                task.transition &&
+                !task.force,
+        ) &&
+        new Set(validationsChoisies.map((task) => task.transition?.nextStatus)).size === 1;
+
+    const validerEnLot = () => {
+        const lot = validationsChoisies;
+        const n = lot.length;
+        decider({
+            message: `${n} demande${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}`,
+            tachesIds: lot.map((task) => task.id),
+            ecrire: () => {
+                const refusees = lot
+                    .map((task) =>
+                        task.transition
+                            ? updateApproval(task.transition.approvalId, task.transition.nextStatus)
+                            : { allowed: true },
+                    )
+                    .filter((decision) => !decision.allowed);
+                return refusees.length > 0
+                    ? `${refusees.length} validation${refusees.length > 1 ? 's' : ''} refusée${refusees.length > 1 ? 's' : ''} par la règle. ${refusees[0].reason ?? ''}`.trim()
+                    : null;
+            },
+        });
+        selection.exit();
+    };
+
+    /** Valider — ou confirmer à la place du bénéficiaire —, défaisable cinq secondes. */
+    const validerDiffere = (task: Task) => {
+        if (!task.transition) return;
+        const { approvalId, nextStatus } = task.transition;
+        decider({
+            message: messageDeLaDecision(task, nextStatus),
+            tachesIds: [task.id],
+            ecrire: () => {
+                const decision = updateApproval(approvalId, nextStatus);
+                return decision.allowed ? null : decision.reason || 'Action non autorisée.';
+            },
+            surAnnulation: () => ouvrir(task),
+        });
+    };
+
+    /** Refuser, ou renvoyer une dotation — le motif écrit dans le pied du panneau. */
+    const refuserDiffere = (task: Task, motif: string) => {
+        if (!task.refusal) return;
+        const { approvalId, nextStatus } = task.refusal;
+        decider({
+            message: messageDeLaDecision(task, nextStatus),
+            tachesIds: [task.id],
+            ecrire: () => {
+                const decision = updateApproval(approvalId, nextStatus, { reason: motif.trim() });
+                return decision.allowed ? null : decision.reason || 'Refus impossible.';
+            },
+            surAnnulation: () => ouvrir(task),
+        });
+    };
 
     /**
-     * **Le contenu d'une tâche ouverte — un seul, deux logements.** Au téléphone c'est
-     * la feuille de 03.3 (colonne 2) ; au bureau c'est le panneau de droite (17.11,
-     * patron « deux niveaux ») : *« la feuille devient un panneau : le contexte, les
-     * deux décisions, puis les portes »*. Le contenu ne change pas — ce qui change est
-     * ce qui l'entoure, et la croix, qui n'a pas de sens dans une colonne.
+     * **Remettre depuis le panneau** : la feuille de remise (17.4) s'ouvre avec la demande,
+     * la personne **et l'unité choisie** — il ne reste qu'à attester. `ouvert=` suit
+     * l'adresse de la feuille : la file reste dessous, et y revient en la refermant.
      */
-    const contenuDeLaTache = (tache: Task, dansPanneau: boolean) => (
-        <div className={cn(!dansPanneau && '-mx-1 -my-2')}>
+    const remettre = (task: Task) => {
+        if (!task.assign) return;
+        const parametres = new URLSearchParams({
+            approvalId: task.assign.approvalId,
+            userId: task.assign.beneficiaryId,
+            category: task.assign.category,
+        });
+        if (uniteRetenue) parametres.set('equipmentId', uniteRetenue);
+        window.location.hash = avecObjetOuvert(`/wizards/assignment?${parametres.toString()}`);
+    };
+
+    /** L'acte principal de la tâche ouverte — le bouton appuyé du pied, et la touche A. */
+    const faireLePrincipal = (task: Task) => {
+        if (task.deviceId) setReviewDeviceId(task.deviceId);
+        else if (task.nature === 'reception' && !task.force && (task.transition || task.reception))
+            setActe(task);
+        else if (task.transition) validerDiffere(task);
+        else if (task.assign) remettre(task);
+        else if (
+            (task.target === 'assignment_wizard' || task.target === 'return_wizard') &&
+            task.targetId
+        ) {
+            /* La remise et le retour d'un objet : leur feuille s'ouvre sur la file. */
+            const assistant = task.target === 'assignment_wizard' ? 'assignment' : 'return';
+            window.location.hash = avecObjetOuvert(
+                `/wizards/${assistant}?equipmentId=${encodeURIComponent(task.targetId)}`,
+            );
+        } else navigateToTask(task);
+    };
+
+    const ouvrirLaDemande = (task: Task) => {
+        if (task.approvalId) onItemClick('approval_details', task.approvalId);
+    };
+
+    /*
+      **Le clavier de la file** (26/09) — J/K pour passer d'une tâche à l'autre, A pour
+      l'acte, R pour refuser, Entrée pour la demande, X pour cocher, Z pour se reprendre,
+      « ? » pour l'aide. Au bureau, et jamais dans un champ ni sous un calque.
+    */
+    const surTouche = useRef<(event: KeyboardEvent) => void>(() => undefined);
+    surTouche.current = (event: KeyboardEvent) => {
+        if (!toucheSimplePourLaPage(event)) return;
+        const touche = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+        const agir = (geste: () => void) => {
+            event.preventDefault();
+            geste();
+        };
+
+        if (touche === '?') return agir(() => setAideOuverte(true));
+        if (touche === 'z' && enSuspens) return agir(annuler);
+        if (touche === 'x' && openedTask && openedTask.scope !== 'history') {
+            return agir(() =>
+                selection.isActive
+                    ? selection.toggle(openedTask.id)
+                    : selection.enter(openedTask.id),
+            );
+        }
+        if (selection.isActive) return;
+
+        if (touche === 'j' || touche === 'k') {
+            const index = openedTask
+                ? filteredTasks.findIndex((task) => task.id === openedTask.id)
+                : -1;
+            const cible = touche === 'j' ? index + 1 : Math.max(0, index - 1);
+            const task = filteredTasks[Math.min(cible, filteredTasks.length - 1)];
+            if (!task) return;
+            return agir(() => {
+                if (cible >= visibleCount) setVisibleCount((count) => count + TASKS_PAGE_SIZE);
+                ouvrir(task);
+            });
+        }
+        if (!openedTask || refus.ouvert) return;
+        if (touche === 'a') return agir(() => faireLePrincipal(openedTask));
+        if (touche === 'r' && openedTask.refusal)
+            return agir(() => setRefus({ ouvert: true, motif: '' }));
+        if (touche === 'Enter' && openedTask.approvalId)
+            return agir(() => ouvrirLaDemande(openedTask));
+    };
+    useEffect(() => {
+        if (!enPanneau) return;
+        const ecouter = (event: KeyboardEvent) => surTouche.current(event);
+        document.addEventListener('keydown', ecouter);
+        return () => document.removeEventListener('keydown', ecouter);
+    }, [enPanneau]);
+
+    /* Échap referme d'abord le motif, puis la tâche ; le panneau reste vide jusqu'au
+       prochain choix (P3). Sous 840, c'est la feuille qui répond. */
+    const surEchap = useCallback(() => {
+        if (refus.ouvert) {
+            setRefus({ ouvert: false, motif: '' });
+            return;
+        }
+        fermeeExpres.current = true;
+        fermerId();
+    }, [fermerId, refus.ouvert]);
+    useEchap(enPanneau && !selection.isActive && (refus.ouvert || Boolean(openedTask)), surEchap);
+
+    /**
+     * **Le contenu d'une tâche ouverte, au téléphone** — la feuille de 03.3 (colonne 2) :
+     * l'en-tête, le contexte, deux décisions de même largeur. Au bureau, c'est le panneau
+     * de décision (`PanneauDeTache`).
+     */
+    const contenuDeLaTache = (tache: Task) => (
+        <div className="-mx-1 -my-2">
             {/* `.sttl` — la vignette reprend la teinte de la nature, comme
-                            dans la rangée : on retrouve la tâche qu'on vient de taper. */}
+                dans la rangée : on retrouve la tâche qu'on vient de taper. */}
             <div className="flex items-start gap-3 pb-3">
                 <span
                     className={cn(
@@ -992,7 +698,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     <p className="text-text-secondary text-ts-sub leading-ts-sub mt-0.5">
                         {tache.askedBy ?? tache.context}
                         {/* Une décision se date, elle ne se compte pas en jours :
-                                        « le 14 août », pas « il y a 21 j » (planche 03.3). */}
+                            « le 14 août », pas « il y a 21 j » (planche 03.3). */}
                         {tache.since
                             ? tache.scope === 'history'
                                 ? ` · le ${dateLabel(tache.since)}`
@@ -1000,10 +706,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             : ''}
                     </p>
                 </div>
-                {/* Dans le panneau, il n'y a rien à refermer : la colonne
-                                montre la tâche choisie, et choisir la suivante la
-                                remplace. */}
-                {!dansPanneau && <CloseButton onClick={() => setOpenedTask(null)} />}
+                <CloseButton onClick={() => setFeuille(null)} />
             </div>
 
             {(tache.reason || tache.detail) && (
@@ -1023,7 +726,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             )}
 
             {/* `.sfoot` — deux décisions de même largeur. Le non est sombre,
-                            le oui porte le seul jaune de la feuille. */}
+                le oui porte le seul jaune de la feuille. */}
             <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t pt-4">
                 {tache.refusal ? (
                     <Button
@@ -1033,7 +736,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         onClick={() => {
                             setRefusalReason('');
                             setRefusing(tache);
-                            setOpenedTask(null);
+                            setFeuille(null);
                         }}
                     >
                         {tache.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'}
@@ -1046,26 +749,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         onClick={() => {
                             setRefusalReason('');
                             setCancelling(tache);
-                            setOpenedTask(null);
+                            setFeuille(null);
                         }}
                     >
                         Annuler
                     </Button>
                 ) : (
-                    <Button variant="outlined" onClick={() => setOpenedTask(null)}>
+                    <Button variant="outlined" onClick={() => setFeuille(null)}>
                         Fermer
                     </Button>
                 )}
 
                 {tache.transition || tache.reception ? (
-                    /* Le verbe ouvre la feuille d'acte (17.4) ; il ne
-                                   déclenche plus rien tout seul. */
+                    /* Le verbe ouvre la feuille d'acte (17.4) ; il ne déclenche plus rien
+                       tout seul. */
                     <Button
                         variant="filled"
                         icon={<Icon glyph={Check} size={20} />}
                         onClick={() => {
                             const task = tache;
-                            setOpenedTask(null);
+                            setFeuille(null);
                             setActe(task);
                         }}
                     >
@@ -1077,7 +780,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         icon={<Icon glyph={Check} size={20} />}
                         onClick={() => {
                             const task = tache;
-                            setOpenedTask(null);
+                            setFeuille(null);
                             navigateToTask(task);
                         }}
                     >
@@ -1100,34 +803,23 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             setReviewDeviceId(task.deviceId);
             return;
         }
-
-        /*
-         * **06.5 — une rangée de demande ouvre son détail.** *« La rangée de 03.3 suffit
-         * pour un oui ; un non, un renvoi ou un abandon se prennent ici, devant ce qu'on
-         * décide. »* La feuille de détail ne montrait ni ce que la personne détient déjà,
-         * ni ce qui est disponible, ni où en est le parcours : on tranchait sans la
-         * donnée qui fait le oui ou le non.
-         */
-        /*
-          **Au bureau, la rangée sélectionne — elle ne quitte pas la page.** 03.3 pose la
-          tâche choisie en panneau, contexte et décisions compris, y compris pour une
-          demande. 06.5 garde tout son sens : son écran porte le parcours et ce que la
-          personne détient, et le panneau y mène par une porte nommée. Au téléphone,
-          rien ne change : la rangée d'une demande ouvre son détail.
-        */
-        const demande = demandeDe(task);
-        if (demande && !enPanneau) {
-            onItemClick?.('approval_details', demande);
+        /* Au bureau, la rangée sélectionne — elle ne quitte pas la page. */
+        if (enPanneau) {
+            ouvrir(task);
             return;
         }
-
-        setOpenedTask(task);
+        /* **06.5 — au téléphone, une rangée de demande ouvre son détail** : le parcours et
+           ce que la personne détient y sont, et un non se prend devant eux. */
+        if (task.approvalId && task.scope !== 'history') {
+            onItemClick?.('approval_details', task.approvalId);
+            return;
+        }
+        setFeuille(task);
     };
 
     /**
-     * Le refus se prend en deux temps : un motif, puis le code personnel. Le motif
-     * n'est pas décoratif — `updateApproval` le refuse absent, l'UI n'est donc pas
-     * la seule barrière. Lot 5, T3.
+     * Le refus se prend en deux temps au téléphone : un motif, puis le code personnel.
+     * `updateApproval` refuse un motif absent : l'UI n'est pas la seule barrière.
      */
     const refuseApprovalTask = (task: Task) => {
         if (!task.refusal) return;
@@ -1148,9 +840,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     };
 
     /**
-     * Une annulation n'engage personne d'autre que moi : pas de `SecurityGate`, et le
-     * motif est facultatif. Le step-up signe des décisions sur autrui, pas sur soi.
-     * Lot 6, A3.
+     * Une annulation n'engage personne d'autre que moi : pas d'attestation, et le motif
+     * est facultatif. Lot 6, A3.
      */
     const cancelApprovalTask = (task: Task) => {
         if (!task.cancel) return;
@@ -1195,151 +886,147 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const clearFilters = () => {
         setNature('toutes');
         setScope('todo');
-        setOrder('oldest');
+        setOrder('urgence');
+        setPresse('toutes');
     };
+
+    const panneau = !enPanneau ? undefined : openedTask ? (
+        <PanneauDeTache
+            tache={openedTask}
+            touches={souris}
+            unite={uniteRetenue}
+            onUnite={setUnite}
+            refus={refus}
+            onRefus={setRefus}
+            onPrincipal={() => faireLePrincipal(openedTask)}
+            onRefuser={() => refuserDiffere(openedTask, refus.motif)}
+            onDetail={
+                openedTask.approvalId && openedTask.scope !== 'history'
+                    ? () => ouvrirLaDemande(openedTask)
+                    : undefined
+            }
+            onAnnulerDemande={
+                openedTask.cancel
+                    ? () => {
+                          setRefusalReason('');
+                          setCancelling(openedTask);
+                      }
+                    : undefined
+            }
+            onRelancer={openedTask.remind ? () => remindTask(openedTask) : undefined}
+        />
+    ) : visibleTasks.length > 0 ? (
+        /* **Le panneau vide tient la colonne** (23/09) : il n'arrive plus qu'après Échap. */
+        <div className="bg-surface flex h-full flex-col rounded-xl">
+            <CardEmptyState
+                glyph={ClipboardText}
+                title="Aucune tâche ouverte"
+                description={
+                    souris
+                        ? 'Choisissez une tâche dans la file, ou appuyez sur J.'
+                        : 'Choisissez une tâche dans la file pour la traiter sans la quitter.'
+                }
+            />
+        </div>
+    ) : undefined;
+
+    let groupePrecedent: GroupeDeFile | null = null;
 
     return (
         <ListTemplate
-            /* 03.3 est une **file** : ses rangées font 56 et portent une marque ronde.
-               Le squelette doit annoncer cette forme-là, pas celle d'une liste. */
+            /* 03.3 est une **file** : ses rangées font 56 et portent une marque ronde. */
             skeleton="file"
             title="Tâches"
             /*
-              **Les trois partitions montent sur la ligne d'outils au bureau** — 03.3 :
-              *« les trois partitions et les natures montent en pastilles, avec leur
-              compte »*. Au téléphone elles restent dans la feuille de filtre (R11) :
-              une couche de commandes permanente au-dessus de la file mangerait la file,
-              et c'est elle qu'on vient lire.
+              **Les trois partitions en onglets, à côté du titre** (26/09, maquette de la
+              refonte) : « À faire 8 · À suivre 9 · Historique ». Au téléphone elles restent
+              dans la feuille de filtre (R11).
             */
-            facets={
-                enPanneau
-                    ? (Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => ({
-                          id: taskScope,
-                          label: SCOPE_LABEL[taskScope],
-                          /* L'historique ne se compte pas : il n'attend aucun geste. */
-                          count: taskScope === 'history' ? undefined : scopeCounts[taskScope],
-                      }))
-                    : undefined
-            }
-            activeFacetId={enPanneau ? scope : undefined}
-            onFacetSelect={(id) => setScope(id as TaskScope)}
-            /* Les trois partitions ne se recouvrent pas : aucune n'est le tout des
-               autres, et le bandeau « n des m » n'a rien à y rapporter. */
-            disjointFacets
-            /*
-              **Le second niveau, à droite** — 03.3 au bureau : la feuille de la tâche
-              devient un panneau, et la file reste sous les yeux. Tant qu'aucune tâche
-              n'est choisie, il porte une invitation : la planche montre toujours une
-              tâche sélectionnée, mais un panneau qui apparaîtrait au premier clic ferait
-              sauter la largeur de la file sous le curseur.
-            */
-            /* File vide, pas de panneau : « Vous êtes à jour » n'a pas besoin d'une
-               colonne qui invite à choisir ce qui n'existe pas. */
-            panel={
-                enPanneau && (openedTask || visibleTasks.length > 0) ? (
-                    openedTask ? (
-                        <div className="bg-surface flex flex-col gap-4 rounded-xl px-5 pt-4 pb-5">
-                            {contenuDeLaTache(openedTask, true)}
-                            {/* La porte vers le détail de la demande — 06.5 : *« un non,
-                                un renvoi ou un abandon se prennent devant ce qu'on
-                                décide »*. Le panneau tranche le oui ; l'écran garde le
-                                parcours, ce que la personne détient et le reste. */}
-                            {demandeDe(openedTask) && (
-                                <Button
-                                    variant="text"
-                                    onClick={() => {
-                                        const demande = demandeDe(openedTask);
-                                        if (demande) onItemClick?.('approval_details', demande);
-                                    }}
-                                    icon={<Icon glyph={ArrowSquareOut} size={18} />}
-                                    className="border-outline-variant text-on-surface min-h-12 w-full justify-start rounded-none border-t px-0"
-                                >
-                                    Ouvrir le détail de la demande
-                                </Button>
-                            )}
-                        </div>
-                    ) : (
-                        /* **Le panneau vide tient la colonne** (23/09) : à côté d'une file
-                           qui prend la fenêtre, une vignette de 110 px se lisait comme un
-                           oubli. */
-                        <div className="bg-surface flex h-full flex-col rounded-xl">
-                            <CardEmptyState
-                                glyph={ClipboardText}
-                                title="Aucune tâche ouverte"
-                                description="Choisissez une tâche dans la file pour la traiter sans la quitter."
-                            />
-                        </div>
-                    )
+            titreAnnexe={
+                enPanneau ? (
+                    <Onglets
+                        label="Partition de la file"
+                        items={(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => ({
+                            id: taskScope,
+                            label: SCOPE_LABEL[taskScope],
+                            /* L'historique ne se compte pas : il n'attend aucun geste. */
+                            count: taskScope === 'history' ? undefined : scopeCounts[taskScope],
+                        }))}
+                        active={scope}
+                        onSelect={(id) => setScope(id as TaskScope)}
+                    />
                 ) : undefined
             }
             /*
-              LA BANDE DU HAUT NE PORTE PLUS QUE TROIS CHOSES — le titre, la recherche
-              et l'entonnoir (planche 03.3, `.top` + `.frow`). Les trois partitions et
-              les cinq natures descendent dans la feuille de filtre : c'était une couche
-              de commandes permanente au-dessus de la file, et la file est ce qu'on vient
-              lire. Le ⋮ de l'en-tête part avec elles.
+              **La ligne d'outils de la maquette** : un champ de 300, les trois puces de ce qui
+              presse — « Toutes », « Urgentes », « En retard », avec leur compte — et l'ordre à
+              droite. La nature se lit sur la rangée et se cherche par son nom.
             */
-            /*
-              **Au bureau, la nature devient une pastille à menu et l'ordre monte à
-              droite** — 03.3 : *« les partitions et les natures montent en pastilles, avec
-              leur compte ; l'ordre à droite »*. L'entonnoir n'a alors plus rien à porter :
-              ses trois groupes sont sur la ligne. Au téléphone il reste, avec sa feuille.
-            */
-            filter={
+            outilsBureau={
                 enPanneau ? (
-                    <FilterMenuChip
-                        axis="Nature"
-                        neutralId="toutes"
-                        value={nature}
-                        onChange={(id) => setNature(id as TaskNature | 'toutes')}
-                        options={[
-                            { id: 'toutes', label: 'Toutes les natures', count: scopeTasks.length },
-                            ...(Object.keys(NATURE_LABEL) as TaskNature[]).map((taskNature) => ({
-                                id: taskNature,
-                                label: NATURE_LABEL[taskNature],
-                                count: counts[taskNature],
-                            })),
-                        ]}
-                    />
-                ) : (
-                    /* **Le bouton de filtre partagé**, et non une copie : écrit à la main, il
-                       restait à 48 dans le chrome de 768 et du bureau, où `FilterButton` lit
-                       la mesure du gabarit (40, 17.11 — arbitré le 13/09). */
-                    <FilterButton
-                        label="Filtrer les tâches"
-                        count={activeFilterCount}
-                        onClick={() => setIsFilterSheetOpen(true)}
-                    />
-                )
+                    <div className="flex flex-wrap items-center gap-2 pb-1">
+                        <SearchField
+                            dense
+                            raccourci
+                            value={query}
+                            onChange={setQuery}
+                            placeholder="Personne, objet, code"
+                            className="h-9 w-[300px] max-w-full gap-2 px-2.5"
+                        />
+                        {scope !== 'history' &&
+                            (['toutes', 'urgentes', 'retard'] as const).map((filtre) => (
+                                <FacetChip
+                                    key={filtre}
+                                    dense
+                                    label={PRESSE_LABEL[filtre]}
+                                    count={
+                                        filtre === 'toutes'
+                                            ? scopeTasks.length
+                                            : presseCounts[filtre]
+                                    }
+                                    selected={presse === filtre}
+                                    onClick={() => setPresse(filtre)}
+                                    className="min-h-8 px-[11px]"
+                                />
+                            ))}
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => setOrder(ORDRE_SUIVANT[order])}
+                            aria-label={`Ordre : ${ORDRE_LABEL[ordre]} — changer`}
+                            className="text-on-surface ml-auto h-8 min-h-8 gap-1 px-1 text-[0.8125rem] leading-[1.125rem] font-medium hover:bg-transparent"
+                        >
+                            <Icon glyph={SortAscending} size={18} className="text-text-muted" />
+                            {ORDRE_LABEL[ordre]}
+                        </Button>
+                    </div>
+                ) : undefined
             }
-            /* L'ordre d'une file se bascule, il ne se choisit pas dans une liste : il n'a
-               que deux valeurs, et la ligne d'outils les porte à droite. */
-            sort={
-                enPanneau
-                    ? {
-                          label: order === 'oldest' ? 'Les plus anciennes' : 'Les plus récentes',
-                          onClick: () => setOrder(order === 'oldest' ? 'newest' : 'oldest'),
-                      }
-                    : undefined
+            /* **La file à 400, la tâche le reste** (26/09) — dès 840, à toutes les largeurs
+               du bureau : les douzièmes de 03.3 donnaient 700 px à une file de rangées. */
+            listeEtFiche={enPanneau}
+            listeLarge
+            panel={panneau}
+            /* Au téléphone, l'entonnoir et sa feuille. */
+            filter={
+                <FilterButton
+                    label="Filtrer les tâches"
+                    count={activeFilterCount}
+                    onClick={() => setIsFilterSheetOpen(true)}
+                />
             }
             search={{
                 value: query,
                 onChange: setQuery,
                 placeholder: 'Personne, objet, code',
             }}
-            /* La ligne `.ord` passe par le décompte du gabarit : c'est le seul rôle
-               qu'il pose sur le sol de la page, au-dessus de la carte. Il n'y a plus de
-               bouton de tri à sa droite — l'ordre se règle dans la feuille et se lit
-               ici, dans la phrase. */
             count={{
                 total: filteredTasks.length,
                 noun:
                     nature === 'toutes'
                         ? `· ${ordLabel}`
                         : `des ${scopeTasks.length} · ${ordLabel}`,
-                /* Au téléphone, la planche met la partition en tête, en 500, et le
-                   compte à droite — « **À faire** · les plus anciennes d'abord · 17 »,
-                   « 6 des 17 » quand une nature est posée (10/09). */
+                /* Au téléphone, la partition en tête, en 500, et le compte à droite. */
                 regard: (
                     <>
                         <b className="text-on-surface font-medium">{SCOPE_LABEL[scope]}</b>
@@ -1347,15 +1034,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </>
                 ),
                 de: scopeTasks.length,
-                /* Le mot du compte à côté du titre, au téléphone (24/09). */
                 unite: `tâche${filteredTasks.length > 1 ? 's' : ''}`,
             }}
             /*
-              17.2 — la sélection groupée. Le pied ne porte que ce que la file sait
-              faire sur plusieurs tâches à la fois : **exporter**. Valider, réaffecter
-              et refuser en lot restent ouverts — 17.2 les dessine dans une feuille de
-              confirmation sans attestation, 17.4 les déclare actes attestés, et
-              trancher entre les deux n'appartient pas à ce portage.
+              17.2 — la sélection groupée. Le pied porte ce que la file sait faire sur
+              plusieurs tâches : **exporter**, et au bureau **valider** des validations de
+              même nature (26/09) — défaisable cinq secondes comme une seule.
             */
             selection={{
                 active: selection.isActive,
@@ -1365,177 +1049,319 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 onSelectAll: () => selection.selectAll(filteredTasks.map((task) => task.id)),
                 onClearAll: selection.clear,
                 actions: (
-                    <Button variant="filled" onClick={exporterSelection}>
-                        Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
-                    </Button>
+                    <>
+                        {enLot && (
+                            <Button
+                                variant="filled"
+                                icon={<Icon glyph={Check} size={20} />}
+                                onClick={validerEnLot}
+                            >
+                                {selection.count > 1 ? `Valider les ${selection.count}` : 'Valider'}
+                            </Button>
+                        )}
+                        <Button variant={enLot ? 'outlined' : 'filled'} onClick={exporterSelection}>
+                            Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
+                        </Button>
+                    </>
                 ),
             }}
             hasRows={visibleTasks.length > 0}
             empty={
-                /*
-                  LE VIDE EST LE BON ÉTAT, ET IL ARRIVE SOUVENT — la planche ne dit pas
-                  « rien », elle dit « à jour ». D'où la pastille **verte de 96**, la
-                  teinte de ce qui est en ordre, et non le rond neutre de 112 que
-                  l'écran introuvable emploie.
-                  Le panneau « Ce qui arrivera ici » tombe : trois lignes qui
-                  expliquaient le produit à qui n'a rien à faire. R15 ne veut aucune
-                  note dans l'écran, et la planche du 02/09 ne le dessine plus.
-                */
-                <ScreenState
-                    icon={Check}
-                    className="[&>span]:h-24 [&>span]:w-24 [&>span]:bg-[var(--tk-color-tint-vert)] [&>span]:text-[var(--tk-color-on-tint-vert)]"
-                    title={
-                        scope === 'todo'
-                            ? 'Vous êtes à jour'
-                            : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
-                    }
-                    description={
-                        <span className="text-ts-body leading-ts-body">
-                            {scope === 'todo'
+                /* **Une recherche sans résultat n'est pas « à jour »** (25/09). */
+                query.trim() || nature !== 'toutes' || presse !== 'toutes' ? (
+                    <CardEmptyState
+                        glyph={Funnel}
+                        title="Aucune tâche ne correspond"
+                        description="Élargissez la recherche, ou revenez à toutes les tâches."
+                        action={
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    setQuery('');
+                                    setNature('toutes');
+                                    setPresse('toutes');
+                                }}
+                            >
+                                {scopeCounts[scope] > 1
+                                    ? `Voir les ${scopeCounts[scope]} tâches`
+                                    : scopeCounts[scope] === 1
+                                      ? 'Voir la tâche'
+                                      : 'Effacer la recherche'}
+                            </Button>
+                        }
+                    />
+                ) : (
+                    /* LE VIDE EST LE BON ÉTAT, ET IL ARRIVE SOUVENT — « à jour », en vert. */
+                    <CardEmptyState
+                        glyph={scope === 'todo' ? Check : ClipboardText}
+                        tone={scope === 'todo' ? 'positive' : 'neutral'}
+                        title={
+                            scope === 'todo'
+                                ? 'Vous êtes à jour'
+                                : `Aucune tâche ${SCOPE_LABEL[scope].toLowerCase()}`
+                        }
+                        description={
+                            scope === 'todo'
                                 ? 'Rien n’attend votre geste. La file se remplira d’elle-même.'
-                                : 'Changez de vue ou de nature.'}
-                        </span>
-                    }
-                />
+                                : 'Changez de vue ou de nature.'
+                        }
+                    />
+                )
             }
         >
             {visibleTasks.map((task) => {
                 const IconGlyph = task.icon || Package;
-                /* Faute d'issue, c'est la nature qui donne sa couleur à la vignette. */
+                /* Faute d'issue, c'est la nature qui donne sa couleur à la vignette. Au
+                   bureau, la nature est écrite : la remise y garde le bleu de la maquette. */
                 const tone: TaskTone = task.tone ?? task.nature;
+                const teinte: TaskTone = enPanneau && tone === 'remise' ? 'validation' : tone;
+                /* **Les groupes de ce qui presse** (26/09) : un intitulé à chaque changement. */
+                const groupe = enGroupes ? groupeDe(task) : null;
+                const entete = groupe !== null && groupe !== groupePrecedent ? groupe : null;
+                groupePrecedent = groupe;
+                /* En sélection, le panneau se retire : aucune rangée n'est « ouverte ». */
+                const ouverte = !selection.isActive && openedTask?.id === task.id;
+                const jours = daysSince(task.since);
 
                 return (
-                    /*
-                      `.trow` de la planche 03.3, passe sobre du 02/09 : rangée à plat
-                      séparée par un filet, **56 px au minimum, 8 de remplissage vertical,
-                      12 de gouttière** — remesurée le 10/09 : le code portait 68 / 12 / 16,
-                      qui sont les mesures de la rangée d'actifs (04.1, `.lrow`), pas de la
-                      file. Le creux du survol déborde de 16 — la mesure du remplissage de
-                      la carte, pas 8 : un creux qui s'arrête avant le bord se lit comme une
-                      seconde carte.
-                      Une rangée qui cite un motif s'aligne en haut : la vignette n'a pas
-                      à se centrer sur trois lignes.
-                    */
-                    <SelectableRow
-                        key={task.id}
-                        onOpen={() => openTask(task)}
-                        selectionActive={selection.isActive}
-                        selected={selection.isSelected(task.id)}
-                        onToggle={() => selection.toggle(task.id)}
-                        onLongPress={() => selection.enter(task.id)}
-                        className={cn(
-                            'border-outline-variant hover:bg-surface-container/50 -mx-4 flex min-h-14 cursor-pointer gap-3 rounded-md border-t px-4 py-2 transition-colors first:border-t-0',
-                            task.quote ? 'items-start' : 'items-center',
-                            /* `.trow.on` — la rangée tapée reste marquée sous la feuille :
-                               en revenant, on retrouve où l'on était. */
-                            openedTask?.id === task.id &&
-                                (enPanneau ? 'bg-surface-muted-strong' : 'bg-surface-container'),
-                            selection.isSelected(task.id) && 'bg-surface-container',
-                        )}
-                    >
-                        {/*
-                          LA COULEUR DE LA VIGNETTE DIT LA NATURE. La rangée portait une
-                          pastille de mots sous son titre — « Validation », « Remise » —
-                          qui redisait en gris ce que le carré de gauche pouvait porter en
-                          couleur. La planche la supprime : le carré prend la teinte, et
-                          la sous-ligne récupère la place pour dire **qui**.
-                        */}
-                        {/* La case prend la place de la vignette, au pixel près (17.2). */}
-                        {selection.isActive ? (
-                            <SelectionBox selected={selection.isSelected(task.id)} />
-                        ) : (
-                            <div
+                    <React.Fragment key={task.id}>
+                        {entete && (
+                            <h3
                                 className={cn(
-                                    'font-brand text-ts-control leading-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-md font-semibold',
-                                    VIG_TINT[tone],
-                                    task.quote && 'mt-0.5',
+                                    '-mx-4 flex items-baseline justify-between gap-3 px-4 pt-3 pb-1.5 text-[0.75rem] leading-4 font-medium',
+                                    entete === 'retard'
+                                        ? 'text-[var(--tk-color-st-rouge)]'
+                                        : 'text-text-secondary',
                                 )}
                             >
-                                {task.initials ? (
-                                    <span>{task.initials}</span>
+                                <span>{GROUPE_LABEL[entete]}</span>
+                                <span className="tabular-nums">{groupCounts[entete]}</span>
+                            </h3>
+                        )}
+                        {/*
+                          `.trow` de la planche 03.3 au téléphone : 56 px au minimum, 8 de
+                          remplissage vertical, 12 de gouttière. Au bureau, `.rg` de la maquette
+                          de la refonte : vignette de 36, 10 de remplissage, alignée en haut ; la
+                          rangée ouverte prend le creux et un filet court à gauche, et porte au
+                          survol la case qui la coche (17.2).
+                        */}
+                        <SelectableRow
+                            id={`tache-${task.id}`}
+                            onOpen={() => openTask(task)}
+                            selectionActive={selection.isActive}
+                            selected={selection.isSelected(task.id)}
+                            onToggle={() => selection.toggle(task.id)}
+                            onLongPress={() => selection.enter(task.id)}
+                            className={cn(
+                                'group/rangee border-outline-variant hover:bg-surface-container/50 relative -mx-4 flex cursor-pointer gap-3 border-t px-4 transition-colors first:border-t-0',
+                                enPanneau
+                                    ? 'items-start py-2.5'
+                                    : cn(
+                                          'min-h-14 rounded-md py-2',
+                                          task.quote ? 'items-start' : 'items-center',
+                                      ),
+                                entete && 'border-t-0',
+                                ouverte &&
+                                    (enPanneau
+                                        ? "bg-surface-muted-strong hover:bg-surface-muted-strong before:bg-inverse-surface before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-r-[2px] before:content-['']"
+                                        : 'bg-surface-container'),
+                                selection.isSelected(task.id) && 'bg-surface-container',
+                            )}
+                        >
+                            {selection.isActive ? (
+                                <SelectionBox selected={selection.isSelected(task.id)} />
+                            ) : (
+                                <span className="relative shrink-0">
+                                    <span
+                                        className={cn(
+                                            'font-brand flex items-center justify-center rounded-md font-semibold',
+                                            enPanneau
+                                                ? 'h-9 w-9 text-[0.75rem] leading-4'
+                                                : 'text-ts-control leading-ts-control h-10 w-10',
+                                            VIG_TINT[teinte],
+                                            !enPanneau && task.quote && 'mt-0.5',
+                                        )}
+                                    >
+                                        {task.initials ? (
+                                            <span>{task.initials}</span>
+                                        ) : (
+                                            <Icon glyph={IconGlyph} size={enPanneau ? 18 : 20} />
+                                        )}
+                                    </span>
+                                    {/* La case au survol — cocher sans appui long, au bureau. */}
+                                    {enPanneau && souris && task.scope !== 'history' && (
+                                        <button
+                                            type="button"
+                                            aria-label={`Sélectionner — ${task.title}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                selection.enter(task.id);
+                                            }}
+                                            className="bg-surface absolute inset-0 hidden items-center justify-center rounded-md group-hover/rangee:flex"
+                                        >
+                                            <span className="h-5 w-5 rounded-[4px] shadow-[inset_0_0_0_1.5px_var(--tk-color-border-strong)]" />
+                                        </button>
+                                    )}
+                                </span>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <span
+                                        title={infobulle(task.title)}
+                                        className={cn(
+                                            'text-on-surface',
+                                            enPanneau
+                                                ? 'text-ts-body leading-ts-body font-medium'
+                                                : 'text-ts-head leading-ts-head tracking-[-0.01em]',
+                                            NOM_SUR_UNE_LIGNE,
+                                        )}
+                                    >
+                                        {task.title}
+                                    </span>
+                                    {/* La nature écrite, au bureau : la couleur seule ne se
+                                        lit pas d'une rangée à l'autre (26/09). */}
+                                    {enPanneau && task.scope !== 'history' && (
+                                        <span className="bg-surface-container text-text-secondary shrink-0 rounded-[4px] px-1.5 py-px text-[0.75rem] leading-4 font-medium">
+                                            {NATURE_MOT[task.nature]}
+                                        </span>
+                                    )}
+                                </span>
+                                {enPanneau ? (
+                                    /* La sous-ligne de la maquette, sur une ligne : qui et
+                                       pourquoi ; « , par … » quand un autre a déposé ; dans
+                                       « À suivre », qui a la main et depuis quand. */
+                                    <p className="text-text-secondary text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1">
+                                        {task.scope === 'following' && task.aLaMain ? (
+                                            <>
+                                                <Icon
+                                                    glyph={Pause}
+                                                    size={18}
+                                                    className="text-text-tertiary -my-px shrink-0"
+                                                />
+                                                <span className="truncate">
+                                                    chez {task.aLaMain}
+                                                    {jours !== null && ` depuis ${jours} j`}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="truncate">
+                                                {task.who && task.deposePar
+                                                    ? `${task.who}, par ${task.deposePar}`
+                                                    : [
+                                                          task.who,
+                                                          task.approvalId && task.reason
+                                                              ? task.reason
+                                                              : task.context,
+                                                      ]
+                                                          .filter(Boolean)
+                                                          .join(' · ')}
+                                            </span>
+                                        )}
+                                    </p>
                                 ) : (
-                                    <Icon glyph={IconGlyph} size={20} />
+                                    /* La sous-ligne : qui, puis l'état en un mot. Deux lignes
+                                       au plus — au-delà, une rangée n'est plus une rangée. */
+                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 line-clamp-2">
+                                        {task.who ? (
+                                            <>
+                                                <b className="text-on-surface font-medium">
+                                                    {task.who}
+                                                </b>{' '}
+                                                · {task.context}
+                                            </>
+                                        ) : (
+                                            task.context
+                                        )}
+                                    </p>
+                                )}
+                                {/* Le motif d'un refus, cité tel quel et en italique (`.tt .q`). */}
+                                {task.quote && (
+                                    <p className="text-on-surface text-ts-sub leading-ts-sub mt-1.5 italic">
+                                        «&nbsp;{task.quote}&nbsp;»
+                                    </p>
                                 )}
                             </div>
-                        )}
 
-                        <div className="min-w-0 flex-1">
-                            <p className="text-on-surface text-ts-head leading-ts-head truncate tracking-[-0.01em]">
-                                {task.title}
-                            </p>
-                            {/* La sous-ligne : qui, puis l'état en un mot. Deux lignes au
-                                plus — au-delà, une rangée n'est plus une rangée. */}
-                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 line-clamp-2">
-                                {task.who ? (
-                                    <>
-                                        <b className="text-on-surface font-medium">{task.who}</b> ·{' '}
-                                        {task.context}
-                                    </>
-                                ) : (
-                                    task.context
-                                )}
-                            </p>
-                            {/* Le motif d'un refus, cité tel quel et en italique : c'est le
-                                seul texte que le demandeur a reçu, l'historique ne le
-                                reformule pas (`.tt .q`). */}
-                            {task.quote && (
-                                <p className="text-on-surface text-ts-sub leading-ts-sub mt-1.5 italic">
-                                    «&nbsp;{task.quote}&nbsp;»
-                                </p>
-                            )}
-                        </div>
-
-                        {/*
-                          À droite, ce que la partition demande. « À faire » et « À suivre »
-                          n'ont que l'âge — 12 px, aligné en **haut** de la rangée, parce
-                          qu'une file se traite par le haut et que l'âge est le critère de
-                          tri. L'historique empile la date de la décision et qui l'a prise
-                          (`.rt`, `.by`) : la date, pas l'âge — une décision du 14 août ne
-                          se lit pas « 21 j ».
-                        */}
-                        {task.scope === 'history' ? (
-                            <span className="flex shrink-0 flex-col items-end gap-0.5 self-start">
-                                <span className="text-on-surface-variant mt-1 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums">
-                                    {dateLabel(task.since)}
-                                </span>
-                                {task.decidedBy && (
-                                    <span className="text-text-secondary text-[0.75rem] leading-4 whitespace-nowrap">
-                                        {task.decidedBy}
+                            {/*
+                              À droite, ce que la partition demande. « À faire » et « À suivre »
+                              portent l'âge, coloré par ce qui presse, et la marque « Urgent » ;
+                              au bureau, une demande à relancer dit « Relancer » à sa place.
+                              L'historique empile la date de la décision et qui l'a prise.
+                            */}
+                            {task.scope === 'history' ? (
+                                <span className="flex shrink-0 flex-col items-end gap-0.5 self-start">
+                                    <span className="text-on-surface-variant mt-1 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums">
+                                        {dateLabel(task.since)}
                                     </span>
-                                )}
-                            </span>
-                        ) : task.remind ? (
-                            /* `.rt.bell` — l'âge et la cloche, centrés ensemble. C'est le
-                               seul acte de « À suivre », et il n'apparaît qu'au-delà du
-                               délai (planche 03.3). */
-                            <span
-                                className="flex shrink-0 items-center gap-1 self-center"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <span className="text-on-surface-variant text-right text-[0.75rem] leading-4 tabular-nums">
-                                    {ageLabel(task.since)}
+                                    {task.decidedBy && (
+                                        <span className="text-text-secondary text-[0.75rem] leading-4 whitespace-nowrap">
+                                            {task.decidedBy}
+                                        </span>
+                                    )}
                                 </span>
+                            ) : enPanneau && task.remind ? (
                                 <Button
                                     variant="text"
-                                    iconOnly
                                     size="sm"
                                     aria-label={`Relancer — ${task.title}`}
-                                    onClick={() => remindTask(task)}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        remindTask(task);
+                                    }}
+                                    className="h-auto min-h-0 shrink-0 self-start p-0 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-st-ambre)] hover:bg-transparent hover:underline"
                                 >
-                                    <Icon glyph={BellRinging} size={20} />
+                                    Relancer
                                 </Button>
-                            </span>
-                        ) : (
-                            <span className="text-on-surface-variant mt-1 min-w-8 shrink-0 self-start text-right text-[0.75rem] leading-4 tabular-nums">
-                                {ageLabel(task.since)}
-                            </span>
-                        )}
-
-                        {/* Pas de chevron : la planche n'en dessine aucun. Toute la
-                            rangée ouvre déjà — `SelectableRow` porte le rôle, la
-                            tabulation et la touche Entrée — et un chevron par rangée
-                            faisait vingt glyphes de plus pour ne rien ajouter. */}
-                    </SelectableRow>
+                            ) : (
+                                <span
+                                    className={cn(
+                                        'flex shrink-0 items-center gap-1',
+                                        task.remind ? 'self-center' : 'self-start',
+                                        !enPanneau && !task.remind && 'mt-1',
+                                    )}
+                                    onClick={task.remind ? (e) => e.stopPropagation() : undefined}
+                                >
+                                    <span className="flex min-w-8 flex-col items-end gap-1">
+                                        <span
+                                            className={cn(
+                                                'text-right text-[0.75rem] leading-4 whitespace-nowrap tabular-nums',
+                                                AGE_TON[palierDe(task.since)],
+                                            )}
+                                        >
+                                            {enPanneau
+                                                ? jours !== null
+                                                    ? `${jours} j`
+                                                    : ''
+                                                : ageLabel(task.since)}
+                                        </span>
+                                        {task.urgent && task.scope === 'todo' && (
+                                            <span className="flex items-center gap-1 text-[0.6875rem] leading-4 font-semibold whitespace-nowrap text-[var(--tk-color-st-rouge)]">
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="h-1.5 w-1.5 rounded-full bg-[var(--tk-color-st-rouge)]"
+                                                />
+                                                Urgent
+                                            </span>
+                                        )}
+                                    </span>
+                                    {/* `.rt.bell` — la relance au téléphone, seul acte de
+                                        « À suivre », au-delà du délai (planche 03.3). */}
+                                    {task.remind && (
+                                        <Button
+                                            variant="text"
+                                            iconOnly
+                                            size="sm"
+                                            aria-label={`Relancer — ${task.title}`}
+                                            onClick={() => remindTask(task)}
+                                        >
+                                            <Icon glyph={BellRinging} size={20} />
+                                        </Button>
+                                    )}
+                                </span>
+                            )}
+                        </SelectableRow>
+                    </React.Fragment>
                 );
             })}
 
@@ -1545,12 +1371,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     onClick={() => setVisibleCount((count) => count + TASKS_PAGE_SIZE)}
                     className="border-outline-variant text-on-surface text-ts-control leading-ts-control min-h-12 w-full justify-between rounded-none border-t px-0 font-medium"
                 >
-                    {/*
-                      `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3).
-                      Le geste et le repère ne sont pas au même rang : « Voir les 11
-                      suivantes » se vise à 15 px, « 6 sur 17 » se lit à 12. La planche
-                      les met aux deux bouts de la ligne, pas côte à côte au centre.
-                    */}
+                    {/* `.pag` — la file **pagine, elle ne synthétise pas** (règle de 03.3). */}
                     <span>
                         Voir les{' '}
                         {Math.min(TASKS_PAGE_SIZE, filteredTasks.length - visibleTasks.length)}{' '}
@@ -1562,8 +1383,40 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 </Button>
             )}
 
-            {/* La machine remontée s'examine où elle attend — 14.1 a sorti la file de
-                Paramètres, et un geste ne traverse pas l'application pour dire oui. */}
+            {enSuspens && (
+                <BandeauAnnuler
+                    message={enSuspens.message}
+                    cle={enSuspens.cle}
+                    onAnnuler={annuler}
+                    touches={enPanneau && souris}
+                />
+            )}
+
+            {/* L'aide des touches — « ? », au bureau. */}
+            <Modal
+                isOpen={aideOuverte}
+                onClose={() => setAideOuverte(false)}
+                title="Les touches de la file"
+                maxWidth="max-w-md"
+            >
+                <dl className="flex flex-col">
+                    {TOUCHES.map(([touches, sens]) => (
+                        <div
+                            key={sens}
+                            className="border-outline-variant text-ts-body leading-ts-body flex min-h-11 items-center justify-between gap-4 border-t py-2 first:border-t-0"
+                        >
+                            <dt className="text-on-surface">{sens}</dt>
+                            <dd className="flex shrink-0 gap-1">
+                                {touches.map((touche) => (
+                                    <Touche key={touche}>{touche}</Touche>
+                                ))}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            </Modal>
+
+            {/* La machine remontée s'examine où elle attend (14.1). */}
             <BottomSheet
                 open={reviewDevice !== null}
                 onClose={() => setReviewDeviceId(null)}
@@ -1642,17 +1495,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 open={isFilterSheetOpen}
                 onClose={() => setIsFilterSheetOpen(false)}
                 title="Filtrer"
+                emploi="filtre"
             >
                 {/*
-                  LA FEUILLE PORTE LES TROIS RÉGLAGES, DANS L'ORDRE DE LA PLANCHE :
-                  **Où** — les trois partitions, qui étaient au ⋮ de l'en-tête —, **Nature**
-                  — les cinq puces, qui étaient dans la bande — et **Ordre**. C'est ce qui
-                  vide la bande du haut, et c'est le seul endroit où ces trois réglages se
-                  posent : la file, elle, se lit.
-                  « Historique » ne porte pas de décompte : on n'y vient pas pour compter,
-                  on y vient pour retrouver.
-                  Le remplissage latéral vient de la feuille elle-même — l'écrire encore
-                  ici le doublait à 40.
+                  LA FEUILLE PORTE LES RÉGLAGES, DANS L'ORDRE DE LA PLANCHE : **Où** — les trois
+                  partitions —, **Nature**, **Ce qui presse** (26/09) et **Ordre**. « Historique »
+                  ne porte pas de décompte : on y vient pour retrouver, pas pour compter.
                 */}
                 <div className="flex flex-col gap-6">
                     <div>
@@ -1693,28 +1541,48 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </div>
                     </div>
 
+                    {scope !== 'history' && (
+                        <div>
+                            <p className={FILTER_HEADING}>Ce qui presse</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {(
+                                    [
+                                        ['toutes', 'Tout', undefined],
+                                        ['urgentes', 'Urgentes', presseCounts.urgentes],
+                                        ['retard', 'En retard', presseCounts.retard],
+                                    ] as const
+                                ).map(([valeur, label, compte]) => (
+                                    <FacetChip
+                                        key={valeur}
+                                        label={label}
+                                        count={compte}
+                                        selected={presse === valeur}
+                                        onClick={() => setPresse(valeur)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <p className={FILTER_HEADING}>Ordre</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            {(
-                                [
-                                    ['oldest', 'Les plus anciennes'],
-                                    ['newest', 'Les plus récentes'],
-                                ] as const
-                            ).map(([value, label]) => (
+                            {(Object.keys(ORDRE_LABEL) as TaskOrder[]).map((valeur) => (
                                 <FacetChip
-                                    key={value}
-                                    label={label}
-                                    selected={order === value}
-                                    onClick={() => setOrder(value)}
+                                    key={valeur}
+                                    label={ORDRE_LABEL[valeur]}
+                                    selected={order === valeur}
+                                    onClick={() => setOrder(valeur)}
                                 />
                             ))}
                         </div>
                     </div>
 
-                    {/* `.sfoot` — deux gestes de même largeur, pas un ghost serré contre
-                        un bouton étiré : ils se valent, la grille le dit. */}
-                    <div className="border-outline-variant grid grid-cols-2 gap-3 border-t pt-4">
+                    {/* `.sfoot` — deux gestes de même largeur : ils se valent, la grille le dit. */}
+                    <div
+                        data-pied
+                        className="border-outline-variant grid grid-cols-2 gap-3 border-t pt-4"
+                    >
                         <Button variant="ghost" onClick={clearFilters} className="h-12">
                             Tout effacer
                         </Button>
@@ -1730,42 +1598,37 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             </BottomSheet>
 
             {/*
-              **La feuille d'une tâche** — planche 03.3, colonne « État — la feuille d'une
-              demande ». Un tap sur la rangée l'ouvre, et elle tient en trois temps :
-              l'en-tête dit le sujet et qui l'a demandé, le contexte donne les trois faits
-              qui évitent d'ouvrir la fiche, et les deux décisions ont la même largeur.
-              Le oui ne décide pas seul : il **conduit à l'attestation** (06.2), la feuille
-              ne l'embarque pas.
+              **La feuille d'une tâche** — au téléphone, planche 03.3, colonne « État — la
+              feuille d'une demande ». Le oui ne décide pas seul : il **conduit à
+              l'attestation** (06.2).
             */}
-            <BottomSheet open={!enPanneau && !!openedTask} onClose={() => setOpenedTask(null)}>
-                {openedTask && contenuDeLaTache(openedTask, false)}
+            <BottomSheet open={!enPanneau && !!feuille} onClose={() => setFeuille(null)}>
+                {feuille && contenuDeLaTache(feuille)}
             </BottomSheet>
 
-            {/* Feuille — refuser, ou renvoyer à l'IT. Le motif est obligatoire : le
-                demandeur le lira tel quel, et la règle le refuse absent. Lot 5, T3. */}
             {/*
-              LE REFUS — un des neuf actes de 17.4, et sa question est le motif. Il
-              passait par une feuille ordinaire close par le pavé administrateur ; il
-              prend la feuille d'acte, où le motif est le bloc 3 et l'attestation le
-              bloc 4, avec le code personnel de celui qui refuse.
+              LE REFUS AU TÉLÉPHONE — un des neuf actes de 17.4 : le motif est le bloc 3,
+              l'attestation le bloc 4, avec le code personnel de celui qui refuse.
             */}
-            {refusing?.refusal && (
+            {refusAffiche?.refusal && (
                 <ActSheet
-                    open
+                    open={Boolean(refusing?.refusal)}
                     onClose={() => setRefusing(null)}
                     title={
-                        refusing.refusal.nextStatus === 'Rejected'
+                        refusAffiche.refusal.nextStatus === 'Rejected'
                             ? 'Refuser la demande'
                             : 'Renvoyer à l’IT'
                     }
                     subtitle={
-                        refusing.refusal.nextStatus === 'Rejected'
-                            ? `Définitif. ${refusing.refusal.requesterName} lira votre motif, tel quel.`
+                        refusAffiche.refusal.nextStatus === 'Rejected'
+                            ? `Définitif. ${refusAffiche.refusal.requesterName} lira votre motif, tel quel.`
                             : 'La demande repart au traitement, avec votre motif.'
                     }
-                    subject={{ title: refusing.title, subtitle: refusing.context }}
+                    subject={{ title: refusAffiche.title, subtitle: refusAffiche.context }}
                     counterparty={
-                        refusing.who ? { label: 'Concerne', title: refusing.who } : undefined
+                        refusAffiche.who
+                            ? { label: 'Concerne', title: refusAffiche.who }
+                            : undefined
                     }
                     question={{
                         label: 'Motif obligatoire',
@@ -1795,9 +1658,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         ),
                     }}
                     confirmLabel={
-                        refusing.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'
+                        refusAffiche.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'
                     }
-                    onConfirm={() => refuseApprovalTask(refusing)}
+                    onConfirm={() => refuseApprovalTask(refusAffiche)}
                 />
             )}
 
@@ -1846,30 +1709,30 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             </BottomSheet>
 
             {/*
-              LA FEUILLE D'ACTE — 17.4, six blocs. L'objet, l'autre partie quand l'acte
-              en a une, la question propre à l'acte, l'attestation, la conséquence, le
-              verbe. Ici les blocs 1 et 2 sont connus — on vient d'une tâche — et il n'y
-              a pas de question : reste à attester.
+              LA FEUILLE D'ACTE — 17.4, six blocs. Ici les blocs 1 et 2 sont connus — on
+              vient d'une tâche — et il n'y a pas de question : reste à attester.
             */}
-            {acte && (
+            {acteAffiche && (
                 <ActSheet
-                    open
+                    open={acte !== null}
                     onClose={() => setActe(null)}
-                    title={acte.action ?? 'Confirmer'}
+                    title={acteAffiche.action ?? 'Confirmer'}
                     subtitle={
-                        acte.reception
+                        acteAffiche.nature === 'reception'
                             ? 'Vous attestez avoir reçu cet équipement.'
                             : 'Vous attestez votre décision.'
                     }
-                    subject={{ title: acte.title, subtitle: acte.context }}
-                    counterparty={acte.who ? { label: 'Concerne', title: acte.who } : undefined}
+                    subject={{ title: acteAffiche.title, subtitle: acteAffiche.context }}
+                    counterparty={
+                        acteAffiche.who ? { label: 'Concerne', title: acteAffiche.who } : undefined
+                    }
                     signer={{
                         name: currentUser?.name ?? '',
                         pin: currentUser?.pin,
                         id: currentUser?.id,
                     }}
                     consequence={
-                        acte.reception
+                        acteAffiche.nature === 'reception'
                             ? {
                                   tone: 'bleu',
                                   glyph: Check,
@@ -1885,15 +1748,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                   text: <>La demande avance à l'étape suivante.</>,
                               }
                     }
-                    /* 17.4 — le verbe de l'acte n'est pas celui de la rangée : la
-                       rangée dit « Confirmer », la feuille dit « Je confirme », comme
-                       elle dit « Je rends ». C'est la personne qui parle. */
-                    confirmLabel={acte.reception ? 'Je confirme' : (acte.action ?? 'Confirmer')}
+                    /* 17.4 — la feuille dit « Je confirme » : c'est la personne qui parle. */
+                    confirmLabel={
+                        acteAffiche.nature === 'reception'
+                            ? 'Je confirme'
+                            : (acteAffiche.action ?? 'Confirmer')
+                    }
                     cancelLabel="Plus tard"
                     onConfirm={() => {
-                        const abouti = acte.reception
-                            ? confirmReceptionTask(acte)
-                            : completeApprovalTask(acte);
+                        const abouti = acteAffiche.reception
+                            ? confirmReceptionTask(acteAffiche)
+                            : completeApprovalTask(acteAffiche);
                         if (abouti) setActe(null);
                     }}
                 />

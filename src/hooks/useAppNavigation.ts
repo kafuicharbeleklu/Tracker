@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useCallback } from 'react';
+import { cheminPrecedent } from '../lib/cheminParcouru';
 import { useRouter } from './useRouter';
 import { ViewType } from '../types';
 import { DESTINATIONS } from '../constants/destinations';
@@ -254,8 +255,13 @@ export const useAppNavigation = () => {
                             ? '/locations'
                             : '/';
         const ici = `/${routeSegments.filter(Boolean).join('/')}`;
-        navigate(racine === ici ? '/' : racine);
+        /* **Le chemin parcouru d'abord** (25/09) : on revient d'où l'on vient ; l'arborescence
+           n'est que le repli d'une page ouverte sans chemin. */
+        navigate(cheminPrecedent() ?? (racine === ici ? '/' : racine));
     }, [routeSegments, navigate]);
+
+    /** Revenir d'où l'on vient, ou à défaut vers `repli`. */
+    const retour = useCallback((repli: string) => navigate(cheminPrecedent() ?? repli), [navigate]);
 
     return {
         currentView,
@@ -266,5 +272,6 @@ export const useAppNavigation = () => {
         navigateToView,
         navigateToItem,
         goBack,
+        retour,
     };
 };

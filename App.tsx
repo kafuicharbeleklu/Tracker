@@ -14,8 +14,12 @@ import FirstLoginPage from './src/features/auth/pages/FirstLoginPage';
 import LoadingSpinner from './src/components/ui/LoadingSpinner';
 import { ErrorBoundary } from './src/components/ui/ErrorBoundary';
 import { useRouter } from './src/hooks/useRouter';
+import { installerCheminParcouru } from './src/lib/cheminParcouru';
 
 import MobileFrame from './src/components/layout/MobileFrame';
+
+/* Le chemin parcouru, écouté une fois pour toute la session : la flèche de retour le suit. */
+installerCheminParcouru();
 
 const AppLayout = lazy(() => import('./src/components/layout/AppLayout'));
 

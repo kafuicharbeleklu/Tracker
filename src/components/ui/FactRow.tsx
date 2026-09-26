@@ -5,6 +5,7 @@ import Button from './Button';
 import Icon from './Icon';
 import { TINT_CLASS, type Tint } from './FormParts';
 import { cn } from '../../lib/utils';
+import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
 
 /**
  * **La rangée à chiffre** (24/09) — une langue unique pour les référentiels au téléphone
@@ -67,8 +68,11 @@ const FactRow: React.FC<FactRowProps> = ({
             </span>
             <span className="min-w-0 flex-1">
                 <span
+                    title={infobulle(title)}
                     className={cn(
-                        'text-ts-body leading-ts-body block truncate',
+                        'text-ts-body leading-ts-body',
+                        /* Une ligne, coupée à l'ellipse (25/09). */
+                        NOM_SUR_UNE_LIGNE,
                         muted ? 'text-text-secondary' : 'text-on-surface',
                     )}
                 >

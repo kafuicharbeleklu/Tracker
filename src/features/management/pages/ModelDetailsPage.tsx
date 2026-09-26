@@ -20,6 +20,7 @@ import { renderCategoryIcon } from '../../../constants/categoryIcons';
 import Menu from '../../../components/ui/Menu';
 import ImagePreview from '../../../components/ui/ImagePreview';
 import ScreenState from '../../../components/ui/ScreenState';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import AddModelPage from './AddModelPage';
 import { buildCsvLine } from '../../../lib/csv';
 
@@ -280,19 +281,19 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                                 <span className="flex h-2 gap-0.5 overflow-hidden rounded-[4px]">
                                     {availablePercent > 0 && (
                                         <i
-                                            className="block h-full bg-[var(--tk-color-st-vert)]"
+                                            className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
                                             style={{ width: `${availablePercent}%` }}
                                         />
                                     )}
                                     {assignedPercent > 0 && (
                                         <i
-                                            className="block h-full bg-[var(--tk-color-st-bleu)]"
+                                            className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-bleu)] transition-[width]"
                                             style={{ width: `${assignedPercent}%` }}
                                         />
                                     )}
                                     {repairPercent > 0 && (
                                         <i
-                                            className="block h-full bg-[var(--tk-color-st-orange)]"
+                                            className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-orange)] transition-[width]"
                                             style={{ width: `${repairPercent}%` }}
                                         />
                                     )}
@@ -367,7 +368,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                   rangées tenaient 56, sans vignette, le numéro en Archivo 14, et le lien
                   portait un chevron à gauche (relevé du 13/09).
                 */}
-                <section data-colonne="gauche" className="bg-surface rounded-lg px-5 py-2">
+                <section data-colonne="gauche" className="bg-surface rounded-lg px-4 py-2">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                             Unités
@@ -412,11 +413,16 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                             </div>
                         ))
                     ) : (
-                        <p className="border-outline-variant text-text-muted text-ts-sub leading-ts-sub border-t py-3">
-                            Aucune unité enregistrée pour ce modèle.
-                        </p>
+                        /* Un vide de carte, jamais une ligne sous le titre (22/09). */
+                        <CardEmptyState
+                            glyph={Package}
+                            title="Aucune unité"
+                            description="Aucun équipement du parc ne porte ce modèle."
+                        />
                     )}
-                    {totalUnits > 0 && (
+                    {/* Le pied ne paraît que s'il reste des unités à voir : sous une liste
+                        complète, « Voir les 1 unités » ne menait à rien de plus (25/09). */}
+                    {totalUnits > firstThreeUnits.length && (
                         <button
                             type="button"
                             onClick={() => navigateToView('equipment')}
@@ -434,7 +440,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                   « Spécifications » posait un paragraphe en 13 et un bouton tonal pleine
                   largeur.
                 */}
-                <section className="bg-surface rounded-lg px-5 py-2">
+                <section className="bg-surface rounded-lg px-4 py-2">
                     <div className="flex min-h-12 items-center pt-2 pb-1">
                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                             Référence

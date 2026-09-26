@@ -5,6 +5,7 @@ import Icon from './Icon';
 import Button from './Button';
 import InlineError from './InlineError';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { usePresence } from '../../hooks/usePresence';
 import { MEDIA } from '../../constants/breakpoints';
 import { cn } from '../../lib/utils';
 
@@ -144,6 +145,8 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
     const previousFocus = useRef<HTMLElement | null>(null);
     const titleId = useId();
     const asDialog = useMediaQuery(MEDIA.expandedUp);
+    /* La confirmation reste le temps de partir (26/09) : elle s'effaçait d'un coup. */
+    const { monte, sortant, finDeSortie } = usePresence(isOpen);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -198,7 +201,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         };
     }, [isOpen, onClose]);
 
-    if (!isOpen) return null;
+    if (!monte) return null;
 
     /* C4 — la réversibilité, première chose lue sous le titre. */
     const reversibility = irreversible ? 'Irréversible.' : reversibleNote;
@@ -213,10 +216,14 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
             className={cn(
                 'fixed inset-0 z-[100] flex justify-center',
                 asDialog ? 'items-center' : 'items-end',
+                sortant && 'pointer-events-none',
             )}
         >
             <div
-                className="bg-scrim/[0.42] absolute inset-0"
+                className={cn(
+                    'bg-scrim/[0.42] absolute inset-0',
+                    sortant ? 'mvt-voile-sortie' : 'mvt-voile-entree',
+                )}
                 onClick={onClose}
                 aria-hidden="true"
             />
@@ -226,13 +233,19 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
+                onAnimationEnd={finDeSortie}
                 className={cn(
                     'bg-surface relative flex max-h-[97%] flex-col pb-3.5',
                     asDialog
                         ? 'rounded-card shadow-dialog w-[440px]'
                         : 'rounded-t-card shadow-sheet w-full',
-                    'animate-in fade-in duration-200',
-                    !asDialog && 'slide-in-from-bottom-4 duration-300',
+                    asDialog
+                        ? sortant
+                            ? 'mvt-dialogue-sortie'
+                            : 'mvt-dialogue-entree'
+                        : sortant
+                          ? 'mvt-feuille-sortie'
+                          : 'mvt-feuille-entree',
                 )}
             >
                 {/* La poignée dit qu'on peut refermer d'un geste — un dialogue, lui, n'en a pas. */}
@@ -263,7 +276,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                     )}
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
                     {/* `.fixed` — l'objet, nommé. Une rangée, pas « cet élément ». */}
                     {subject && (
                         <div className="flex items-center gap-3 py-2">

@@ -26,7 +26,7 @@ interface NoticeProps {
 const Notice: React.FC<NoticeProps> = ({ glyph = Info, children, className }) => (
     <div
         className={cn(
-            'bg-surface-container text-text-secondary flex gap-2.5 rounded-md px-3 py-2.5 text-[0.75rem] leading-[1.0625rem]',
+            'bg-surface-container text-text-secondary text-ts-sub leading-ts-sub flex gap-2.5 rounded-md px-3 py-2.5',
             className,
         )}
     >

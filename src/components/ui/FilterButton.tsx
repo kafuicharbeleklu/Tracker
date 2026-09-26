@@ -56,7 +56,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({
                         : label
                 }
                 className={cn(
-                    'border-outline-variant bg-surface text-on-surface hover:bg-surface-container focus-visible:ring-primary text-ts-sub leading-ts-sub flex h-10 min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 font-medium transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
+                    'border-outline-variant bg-surface text-on-surface hover:bg-surface-container focus-visible:ring-primary text-ts-sub leading-ts-sub doigt:h-12 doigt:min-h-12 flex h-10 min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 font-medium transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
                     className,
                 )}
             >

@@ -107,6 +107,42 @@ export function calculateLinearDepreciation(
 }
 
 /**
+ * **L'échéancier d'un plan d'amortissement**, en pourcentage du prix d'achat, de l'achat
+ * (année 0) à la fin de la durée — pour l'aperçu des Paramètres (25/09).
+ *
+ * Linéaire : la même part chaque année. Dégressif, selon la règle fiscale : le taux
+ * linéaire majoré (×1,25 jusqu'à 4 ans, ×1,75 jusqu'à 6, ×2,25 au-delà) appliqué à ce qui
+ * reste à amortir, jusqu'à ce que le linéaire sur les années restantes le rattrape.
+ *
+ * **Ce n'est pas le calcul du parc** : `calculateLinearDepreciation` reste linéaire quelle
+ * que soit la méthode retenue — l'aperçu le dit quand on choisit le dégressif.
+ */
+export function echeancierAmortissement(
+    method: 'linear' | 'degressive',
+    years: number,
+    salvagePercent: number,
+): number[] {
+    const duree = Math.max(1, Math.round(years));
+    const residuel = Math.min(100, Math.max(0, salvagePercent));
+    const valeurs = [100];
+    if (method === 'linear') {
+        for (let annee = 1; annee <= duree; annee += 1) {
+            valeurs.push(100 - ((100 - residuel) * annee) / duree);
+        }
+        return valeurs;
+    }
+    const taux = (duree <= 4 ? 1.25 : duree <= 6 ? 1.75 : 2.25) / duree;
+    let valeur = 100;
+    for (let annee = 1; annee <= duree; annee += 1) {
+        const restant = valeur - residuel;
+        const dotation = Math.max(restant * taux, restant / (duree - annee + 1));
+        valeur = Math.max(residuel, valeur - dotation);
+        valeurs.push(valeur);
+    }
+    return valeurs;
+}
+
+/**
  * Helper : différence en mois entre deux dates
  */
 function getMonthsDifference(startDate: Date, endDate: Date): number {

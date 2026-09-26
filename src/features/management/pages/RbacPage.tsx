@@ -5,15 +5,18 @@ import {
     Briefcase,
     Check,
     Crosshair,
+    DotsThreeVertical,
     Eye,
     Flag,
+    Funnel,
     GlobeHemisphereWest,
     Lightning,
-    LockSimpleOpen,
     PencilSimple,
     Prohibit,
     ShieldPlus,
+    Trash,
     User as UserGlyph,
+    UserPlus,
     Users,
     UsersThree,
     Warning,
@@ -25,13 +28,19 @@ import { cn } from '../../../lib/utils';
 import Button from '../../../components/ui/Button';
 import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
-import { FormWarn, type Tint } from '../../../components/ui/FormParts';
+import { type Tint } from '../../../components/ui/FormParts';
+import FacetChip from '../../../components/ui/FacetChip';
+import ListeBornee from '../../../components/ui/ListeBornee';
+import Menu, { type MenuItem } from '../../../components/ui/Menu';
+import SearchField from '../../../components/ui/SearchField';
+import { SelectionBox } from '../../../components/ui/SelectableRow';
 import FactRow from '../../../components/ui/FactRow';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
-import ScreenState from '../../../components/ui/ScreenState';
 import ListTemplate from '../../../components/layout/ListTemplate';
 import BarreDePage from '../../../components/layout/BarreDePage';
+import { cheminPrecedent, remplacerAdresseCourante } from '../../../lib/cheminParcouru';
+import { useDeclareSelectionRegime } from '../../../context/SelectionRegimeContext';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import InputField from '../../../components/ui/InputField';
@@ -45,7 +54,8 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { DESTINATIONS } from '../../../constants/destinations';
-import { RBAC_PERMISSIONS, SYSTEM_ROLE_ID_BY_USER_ROLE } from '../../../config/rbacDefaults';
+import { RBAC_PERMISSIONS, buildRbacAssignmentFromUser } from '../../../config/rbacDefaults';
+import type { User } from '../../../types';
 import type {
     AppViewKey,
     PermissionAccessLevel,
@@ -179,6 +189,40 @@ const VIEW_LABEL: Record<AppViewKey, string> = {
     users: DESTINATIONS.users.label,
 };
 
+/** Le glyphe d'une vue — celui de sa destination, pour que la pastille se reconnaisse. */
+const VIEW_GLYPH: Record<AppViewKey, PhosphorGlyph> = {
+    dashboard: DESTINATIONS.dashboard.glyph,
+    inventory: DESTINATIONS.equipment.glyph,
+    finance: DESTINATIONS.finance.glyph,
+    approvals: DESTINATIONS.tasks.glyph,
+    audit: DESTINATIONS.audit.glyph,
+    reports: DESTINATIONS.reports.glyph,
+    management: DESTINATIONS.management.glyph,
+    locations: DESTINATIONS.locations.glyph,
+    settings: DESTINATIONS.settings.glyph,
+    users: DESTINATIONS.users.glyph,
+};
+
+const capitale = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
+
+/** « Jane Manager » → « JM ». */
+const initiales = (nom: string) =>
+    nom
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((mot) => mot.charAt(0))
+        .join('')
+        .toUpperCase();
+
+/** L'en-tête d'une carte de fiche : son glyphe, puis ce qu'elle dit. */
+const titreDeCarte = (glyph: PhosphorGlyph, texte: string) => (
+    <span className="flex items-center gap-2">
+        <Icon glyph={glyph} size={20} />
+        {texte}
+    </span>
+);
+
 /** Les actions portent le verbe de la planche — un acte se nomme, il ne s'abrège pas. */
 const ACTION_LABEL: Record<string, string> = {
     'action.inventory.manage': 'Gérer le parc',
@@ -275,6 +319,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         users,
         rbacRoles,
         rbacGroups,
+        rbacAssignments,
         upsertRbacRole,
         deleteRbacRole,
         upsertRbacGroup,
@@ -284,21 +329,32 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
     const view: RbacView = routeSegments[1] === 'groups' ? 'groups' : 'roles';
     const openRoleId = routeSegments[1] === 'roles' ? routeSegments[2] : undefined;
+    /* Un groupe a son adresse, comme un rôle (25/09) : `/rbac/groups/<id>`. */
+    const openGroupId = routeSegments[1] === 'groups' ? routeSegments[2] : undefined;
 
     const [query, setQuery] = useState('');
     const [roleSheetOpen, setRoleSheetOpen] = useState(false);
     const [groupSheetOpen, setGroupSheetOpen] = useState(false);
     const [assignmentSheetOpen, setAssignmentSheetOpen] = useState(false);
-    const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+    const [membresOuvert, setMembresOuvert] = useState(false);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState<PermissionRule[] | null>(null);
 
     useEffect(() => {
         if (routeSegments[0] !== 'rbac') return;
-        if (!routeSegments[1]) navigate('/rbac/roles');
+        /* Une redirection **remplace** l'adresse dans le chemin parcouru : sinon la flèche de
+           la liste des rôles renverrait sur `/rbac`, qui redirige ici — une boucle. */
+        if (!routeSegments[1]) {
+            remplacerAdresseCourante('/rbac/roles');
+            navigate('/rbac/roles');
+        }
     }, [navigate, routeSegments]);
 
     const rolesById = useMemo(() => new Map(rbacRoles.map((role) => [role.id, role])), [rbacRoles]);
+
+    /* **Modifier un rôle change le régime de l'écran** (17.2) : au téléphone, le pied
+       « Annuler · Enregistrer » prend la place de la barre du bas au lieu de passer dessous. */
+    useDeclareSelectionRegime(isCompact && editing && Boolean(openRoleId));
 
     const openRole = openRoleId ? rolesById.get(openRoleId) : undefined;
     const openGroup = useMemo(
@@ -331,39 +387,47 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
     }, [query, rbacGroups]);
 
     /**
-     * **Qui porte chaque rôle** — le chiffre que 11.1 met à droite de la rangée, sous
-     * l'en-tête « porteurs ». L'écran affichait à la place le nombre de *permissions*
-     * du rôle, et sa ligne d'ordre annonçait « 0 affectations ».
-     *
-     * Le zéro était faux. Un compte porte son rôle de **deux** façons : la liste
-     * `rbacRoleIds`, et le champ historique `role` que `SYSTEM_ROLE_ID_BY_USER_ROLE`
-     * rattache à un rôle du système. Ne compter que la première donnait zéro sur un
-     * parc où **les 59 comptes** passent par la seconde.
+     * **L'affectation de chaque personne** (25/09) — celle qu'on a enregistrée, sinon celle
+     * que son compte déduit (rôle historique, modèle par adresse, `rbacRoleIds`,
+     * `rbacGroupIds`). Les porteurs et les membres se comptaient sur les seuls champs du
+     * compte : une personne ajoutée à un groupe depuis l'écran n'y apparaissait jamais,
+     * puisque l'ajout écrit l'affectation, pas le compte.
+     */
+    const affectations = useMemo(() => {
+        const enregistrees = new Map(rbacAssignments.map((entry) => [entry.userId, entry]));
+        const table = new Map<string, { roleIds: string[]; groupIds: string[] }>();
+        users.forEach((user) => {
+            const affectation = enregistrees.get(user.id) ?? buildRbacAssignmentFromUser(user);
+            table.set(user.id, {
+                roleIds: affectation.roleIds ?? [],
+                groupIds: affectation.groupIds ?? [],
+            });
+        });
+        return table;
+    }, [rbacAssignments, users]);
+
+    /**
+     * **Qui porte chaque rôle** — le chiffre que 11.1 met à droite de la rangée. Un compte
+     * porte son rôle par `rbacRoleIds` **ou** par le champ historique `role` : ne compter
+     * que le premier donnait zéro sur un parc où les 59 comptes passent par le second.
+     * L'affectation réunit les deux.
      */
     const porteursParRole = useMemo(() => {
         const table = new Map<string, number>();
-        users.forEach((user) => {
-            const ids = new Set<string>(user.rbacRoleIds ?? []);
-            const herite = SYSTEM_ROLE_ID_BY_USER_ROLE[user.role];
-            if (herite) ids.add(herite);
-            ids.forEach((id) => table.set(id, (table.get(id) ?? 0) + 1));
-        });
+        affectations.forEach(({ roleIds }) =>
+            roleIds.forEach((id) => table.set(id, (table.get(id) ?? 0) + 1)),
+        );
         return table;
-    }, [users]);
+    }, [affectations]);
 
-    /**
-     * **Les membres d'un groupe se comptent depuis les personnes.** `RbacGroup` ne
-     * porte pas de liste de membres : l'appartenance vit dans `User.rbacGroupIds`.
-     * Compter du côté du groupe donnait zéro partout — la même erreur que « 0
-     * affectations », et pour la même raison : le lien n'est pas là où on le cherche.
-     */
+    /** Les membres de chaque groupe — `RbacGroup` ne porte pas de liste de membres. */
     const membresParGroupe = useMemo(() => {
         const table = new Map<string, number>();
-        users.forEach((user) => {
-            (user.rbacGroupIds ?? []).forEach((id) => table.set(id, (table.get(id) ?? 0) + 1));
-        });
+        affectations.forEach(({ groupIds }) =>
+            groupIds.forEach((id) => table.set(id, (table.get(id) ?? 0) + 1)),
+        );
         return table;
-    }, [users]);
+    }, [affectations]);
 
     /** Le second fait de la ligne d'ordre de « Groupes » — 11.1 : « 5 groupes · 10 membres ». */
     const membresTotal = useMemo(
@@ -372,6 +436,8 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
     );
 
     const goToRole = (roleId: string) => navigate(`/rbac/roles/${roleId}`);
+    /** La flèche d'un rôle ou des groupes : d'où l'on vient, à défaut la liste des rôles. */
+    const retourAuxRoles = () => navigate(cheminPrecedent() ?? '/rbac/roles');
 
     const removeRole = (role: RbacRole) => {
         requestConfirmation({
@@ -415,7 +481,264 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         });
     };
 
+    // ── La fiche d'un groupe ──────────────────────────────────────────────────
+    /*
+     * **Un groupe a sa page** (25/09). Il n'avait qu'une feuille de deux rangées — le rôle
+     * porté, la portée — et un bouton de suppression : on ne voyait ni **qui** en était, ni
+     * **où** il s'appliquait en toutes lettres, et on ne pouvait y ajouter personne. La
+     * page dit les trois, comme la fiche d'un rôle, et se gère d'ici.
+     */
+    if (openGroup) {
+        const membres = users.filter((user) =>
+            affectations.get(user.id)?.groupIds.includes(openGroup.id),
+        );
+        const rolesPortes = openGroup.roleIds
+            .map((id) => rolesById.get(id))
+            .filter((role): role is RbacRole => Boolean(role));
+        const portee = openGroup.dataScopes?.[0];
+        const lieux = portee
+            ? [...(portee.countries ?? []), ...(portee.services ?? []), ...(portee.sites ?? [])]
+            : [];
+        const droitsAjoutes = openGroup.permissions ?? [];
+
+        const supprimerLeGroupe = () =>
+            requestConfirmation({
+                title: `Supprimer « ${openGroup.name} » ?`,
+                message:
+                    'Les personnes du groupe perdent le rôle qu’il portait. Leur rôle propre ne change pas.',
+                confirmText: 'Supprimer le groupe',
+                tone: 'destructive',
+                irreversible: true,
+                onConfirm: () => {
+                    const decision = deleteRbacGroup(openGroup.id);
+                    showToast(
+                        decision.allowed
+                            ? `« ${openGroup.name} » supprimé.`
+                            : decision.reason || 'Suppression refusée.',
+                        decision.allowed ? 'success' : 'error',
+                    );
+                    if (decision.allowed) navigate('/rbac/groups');
+                },
+            });
+
+        const hero = (
+            <DetailHero
+                label="Groupe · ajoute un rôle à ses membres"
+                subject={openGroup.name}
+                status={
+                    portee
+                        ? {
+                              icon: SCOPE_ICON[portee.level],
+                              label: `${capitale(SCOPE_LABEL[portee.level])}${lieux.length ? ` : ${lieux.join(', ')}` : ''}`,
+                              tone: 'info',
+                          }
+                        : { icon: Crosshair, label: 'Sans portée' }
+                }
+                metrics={[
+                    {
+                        value: membres.length,
+                        label: membres.length > 1 ? 'membres' : 'membre',
+                    },
+                    {
+                        value: rolesPortes.length,
+                        label: rolesPortes.length > 1 ? 'rôles portés' : 'rôle porté',
+                    },
+                    {
+                        value: droitsAjoutes.length,
+                        label: droitsAjoutes.length > 1 ? 'droits en plus' : 'droit en plus',
+                    },
+                ]}
+                note="Un groupe ajoute un droit à ses membres, jamais un lien hiérarchique."
+            />
+        );
+
+        const carteMembres = (
+            <RuleGroup
+                header={titreDeCarte(UsersThree, 'Ses membres')}
+                headerTrailing={`${membres.length} personne${membres.length > 1 ? 's' : ''}`}
+            >
+                {membres.length === 0 ? (
+                    <CardEmptyState
+                        glyph={UsersThree}
+                        title="Personne dans ce groupe"
+                        description="Ajoutez-y les personnes qui doivent porter son rôle."
+                    />
+                ) : (
+                    <ListeBornee hauteur={20} pleineLargeur label={`Les ${membres.length} membres`}>
+                        {membres.map((user) => (
+                            <FactRow
+                                key={user.id}
+                                vignetteText={initiales(user.name)}
+                                title={user.name}
+                                subtitle={[user.site, user.department].filter(Boolean).join(' · ')}
+                                onOpen={() => navigate(`/users/${user.id}`)}
+                            />
+                        ))}
+                    </ListeBornee>
+                )}
+                <RuleGroup.Row
+                    glyph={UserPlus}
+                    className="gap-3"
+                    title="Ajouter ou retirer des membres"
+                    onOpen={() => setMembresOuvert(true)}
+                />
+            </RuleGroup>
+        );
+
+        const carteAjout = (
+            <RuleGroup header={titreDeCarte(ShieldPlus, 'Ce qu’il ajoute')}>
+                {rolesPortes.map((role) => {
+                    const niveau = declaredScope(role);
+                    return (
+                        <FactRow
+                            key={role.id}
+                            glyph={SCOPE_ICON[niveau]}
+                            tint={SCOPE_TINT[niveau]}
+                            title={`Le rôle ${role.name}`}
+                            subtitle={SCOPE_PHRASE[niveau]}
+                            onOpen={() => goToRole(role.id)}
+                            className="-mx-4 w-[calc(100%+2rem)] px-4"
+                        />
+                    );
+                })}
+                {droitsAjoutes.map((rule) => (
+                    <RuleGroup.Row
+                        key={rule.key}
+                        title={permissionLabel(rule.key)}
+                        subtitle="Droit ajouté par le groupe"
+                        value={ACCESS_LABEL[rule.access ?? 'read']}
+                    />
+                ))}
+                {rolesPortes.length === 0 && droitsAjoutes.length === 0 && (
+                    <CardEmptyState
+                        glyph={ShieldPlus}
+                        title="Il n’ajoute rien"
+                        description="Ni rôle ni droit : ses membres gardent leur accès propre."
+                    />
+                )}
+            </RuleGroup>
+        );
+
+        const cartePortee = (
+            <RuleGroup
+                header={titreDeCarte(Crosshair, 'Où il s’applique')}
+                note={
+                    portee
+                        ? 'Déclarée ; le filtrage des données ne l’applique pas encore.'
+                        : undefined
+                }
+            >
+                <RuleGroup.Row
+                    glyph={portee ? SCOPE_ICON[portee.level] : Crosshair}
+                    className="gap-3"
+                    title={
+                        portee
+                            ? lieux.length
+                                ? lieux.join(', ')
+                                : capitale(SCOPE_PHRASE[portee.level])
+                            : 'Partout où le rôle s’applique'
+                    }
+                    subtitle={
+                        portee ? `Portée ${SCOPE_LABEL[portee.level]}` : 'Aucune portée propre'
+                    }
+                    value={portee ? 'non appliquée' : undefined}
+                    valueTone={portee ? 'refused' : undefined}
+                    status={portee ? { icon: Warning, tone: 'pending' } : undefined}
+                />
+            </RuleGroup>
+        );
+
+        return (
+            <div className="flex min-h-0 w-full flex-1 flex-col">
+                <EnTeteDeFiche
+                    compact={isCompact}
+                    titre={openGroup.name}
+                    fil="Groupe"
+                    retourLabel="Retour aux groupes"
+                    onRetour={() => navigate(cheminPrecedent() ?? '/rbac/groups')}
+                    gestesDuBureau={
+                        <Button variant="text" onClick={supprimerLeGroupe} className="text-error">
+                            Supprimer
+                        </Button>
+                    }
+                    menu={[
+                        {
+                            id: 'membres',
+                            label: 'Ajouter ou retirer des membres',
+                            glyph: UserPlus,
+                            onSelect: () => setMembresOuvert(true),
+                        },
+                        {
+                            id: 'supprimer',
+                            label: 'Supprimer le groupe',
+                            glyph: Trash,
+                            destructive: true,
+                            dividerBefore: true,
+                            onSelect: supprimerLeGroupe,
+                        },
+                    ]}
+                />
+
+                <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
+                    <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-4 pb-16">
+                        {enColonnes ? (
+                            <div className="grid grid-cols-12 items-start gap-4">
+                                <div className="col-span-7 flex flex-col gap-4">
+                                    {hero}
+                                    {carteAjout}
+                                    {cartePortee}
+                                </div>
+                                <div className="col-span-5 flex flex-col gap-4">{carteMembres}</div>
+                            </div>
+                        ) : (
+                            <>
+                                {hero}
+                                {carteMembres}
+                                {carteAjout}
+                                {cartePortee}
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <MembresSheet
+                    open={membresOuvert}
+                    onClose={() => setMembresOuvert(false)}
+                    groupe={openGroup}
+                    users={users}
+                    membresInitiaux={membres.map((user) => user.id)}
+                    onSave={(changements) => {
+                        let refus: string | undefined;
+                        changements.forEach(({ userId, entre }) => {
+                            const actuels = affectations.get(userId)?.groupIds ?? [];
+                            const decision = upsertUserRbacAssignment(userId, {
+                                groupIds: entre
+                                    ? [...actuels, openGroup.id]
+                                    : actuels.filter((id) => id !== openGroup.id),
+                            });
+                            if (!decision.allowed) refus = decision.reason;
+                        });
+                        showToast(
+                            refus ??
+                                `${changements.length} changement${changements.length > 1 ? 's' : ''} dans « ${openGroup.name} ».`,
+                            refus ? 'error' : 'success',
+                        );
+                        setMembresOuvert(false);
+                    }}
+                />
+            </div>
+        );
+    }
+
     // ── La fiche d'un rôle ────────────────────────────────────────────────────
+    /*
+     * **La fiche refondue** (25/09). Elle tenait 2 200 px au téléphone : sept rangées
+     * « lecture » pour dire quelles pages s'ouvrent, une carte « ce que rôle du système ne
+     * veut pas dire » qui affichait du code (`kind === 'system'`), et une note ambre de
+     * 250 signes. Elle dit maintenant dans l'ordre de ce qu'on vient y chercher : qui le
+     * porte, ce qu'il ouvre (en pastilles), ce qu'il permet et refuse (une seule carte), où
+     * il s'applique. « Ne se supprime pas » monte dans le surtitre du héro.
+     */
     if (openRole) {
         const rules = draft ?? openRole.permissions;
         const allowed = rules.filter((rule) => rule.effect === 'allow');
@@ -427,427 +750,339 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         const methods = openRole.authPolicy.requiredMethods
             .map((method) => AUTH_METHOD_LABEL[method] ?? method)
             .join(' et ');
+        const supprimable = openRole.kind === 'custom';
 
-        /** Ceux qui portent le rôle — par `rbacRoleIds` ou par le rôle historique. */
-        const titulaires = users.filter(
-            (user) =>
-                (user.rbacRoleIds ?? []).includes(openRole.id) ||
-                SYSTEM_ROLE_ID_BY_USER_ROLE[user.role] === openRole.id,
+        /** Ceux qui portent le rôle — d'après leur affectation (voir `affectations`). */
+        const titulaires = users.filter((user) =>
+            affectations.get(user.id)?.roleIds.includes(openRole.id),
         );
+
+        const quitterLEdition = () => {
+            setEditing(false);
+            setDraft(null);
+        };
 
         const hero = (
             <DetailHero
-                label={`${openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'} · portée ${SCOPE_LABEL[scope]}`}
+                label={
+                    openRole.kind === 'system'
+                        ? 'Rôle du système · ne se supprime pas'
+                        : inheritance
+                          ? `Rôle personnalisé · hérite de ${inheritance.baseName}`
+                          : 'Rôle personnalisé'
+                }
                 subject={openRole.name}
                 status={
                     denied.length > 0
                         ? {
                               icon: Prohibit,
-                              label: `Refuse ${denied.length} action${denied.length > 1 ? 's' : ''} explicitement`,
+                              label: `Refuse ${denied.length} action${denied.length > 1 ? 's' : ''}`,
                               tone: 'attention',
                           }
                         : {
                               icon: SCOPE_ICON[scope],
-                              label: `Portée déclarée : ${SCOPE_LABEL[scope]}`,
+                              label: `Voit ${SCOPE_PHRASE[scope]}`,
                               tone: 'info',
                           }
                 }
                 metrics={[
-                    { value: openViews.length, label: 'vues ouvertes' },
-                    { value: openActions.length, label: 'actions permises' },
                     {
-                        value: sessionLabel(openRole.authPolicy.sessionMaxMinutes),
-                        label: 'session maximale',
+                        value: titulaires.length,
+                        label: titulaires.length > 1 ? 'porteurs' : 'porteur',
+                    },
+                    { value: `${openViews.length}/${VIEW_KEYS.length}`, label: 'vues ouvertes' },
+                    {
+                        value: `${openActions.length}/${ACTION_KEYS.length}`,
+                        label: 'actions permises',
                     },
                 ]}
                 note={
                     <>
-                        Connexion par <strong className="font-medium">{methods}</strong>.{' '}
-                        {openRole.authPolicy.requireStepUpForSensitiveActions
-                            ? 'Une élévation est demandée sur les actes sensibles.'
-                            : 'Aucun renforcement demandé sur les actes sensibles.'}
+                        Connexion par <strong className="font-medium">{methods}</strong>, session de{' '}
+                        {sessionLabel(openRole.authPolicy.sessionMaxMinutes)} au plus.
+                        {openRole.authPolicy.requireStepUpForSensitiveActions &&
+                            ' Élévation demandée sur les actes sensibles.'}
                     </>
                 }
             />
         );
 
-        const matrices = (
-            <>
-                {/* `.card` de 11.1 — **8 sur 20** : la gouttière de cette page, quand le gabarit
-                en pose 16 pour 04.1 et 05.2. */}
-                <RuleGroup
-                    className="px-5"
-                    header={
-                        <span className="flex items-center gap-2">
-                            <Icon glyph={Eye} size={20} />
-                            Ce que le rôle peut ouvrir
-                        </span>
-                    }
-                    headerTrailing={`${openViews.length} vue${openViews.length > 1 ? 's' : ''}`}
-                    note="Seules les vues ouvertes sont listées."
-                >
-                    {VIEW_KEYS.filter((key) =>
-                        editing ? true : allowed.some((rule) => rule.key === key),
-                    ).map((key) => {
-                        /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
-                       technique y tenait la sous-ligne : elle nommait le code plutôt
-                       que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
-                        const rule = allowed.find((entry) => entry.key === key);
-                        return (
-                            <RuleGroup.Row
-                                key={key}
-                                title={permissionLabel(key)}
-                                value={ACCESS_LABEL[rule?.access ?? 'none']}
-                                valueTone={rule ? undefined : 'muted'}
-                                off={!rule}
-                                trailing={
-                                    editing ? (
-                                        <Toggle
-                                            checked={Boolean(rule)}
-                                            onChange={(next) => toggleRule(key, next, 'read')}
-                                        />
-                                    ) : undefined
-                                }
-                            />
-                        );
-                    })}
-                </RuleGroup>
-
-                <RuleGroup
-                    className="px-5"
-                    header={
-                        <span className="flex items-center gap-2">
-                            <Icon glyph={Lightning} size={20} />
-                            Ce que le rôle peut faire
-                        </span>
-                    }
-                    headerTrailing={`${openActions.length} action${openActions.length > 1 ? 's' : ''}`}
-                >
-                    {ACTION_KEYS.filter(
-                        (key) =>
-                            (editing || allowed.some((rule) => rule.key === key)) &&
-                            !denied.some((rule) => rule.key === key),
-                    ).map((key) => {
-                        /* `.row` de 11.1 — **le nom de la page, et rien dessous**. La clé
-                       technique y tenait la sous-ligne : elle nommait le code plutôt
-                       que la page, et la rangée passait de 60 à 65 (relevé du 16/09). */
-                        const rule = allowed.find((entry) => entry.key === key);
-                        return (
-                            <RuleGroup.Row
-                                key={key}
-                                title={permissionLabel(key)}
-                                value={ACCESS_LABEL[rule?.access ?? 'none']}
-                                valueTone={rule ? undefined : 'muted'}
-                                off={!rule}
-                                trailing={
-                                    editing ? (
-                                        <Toggle
-                                            checked={Boolean(rule)}
-                                            onChange={(next) => toggleRule(key, next, 'write')}
-                                        />
-                                    ) : undefined
-                                }
-                            />
-                        );
-                    })}
-                </RuleGroup>
-            </>
-        );
-
-        const nuances = (
-            <>
-                {denied.length > 0 && (
-                    <RuleGroup
-                        className="px-5"
-                        header={
-                            <span className="flex items-center gap-2">
-                                <Icon glyph={Prohibit} size={20} />
-                                Ce que le rôle refuse
-                            </span>
-                        }
-                        headerTrailing={`${denied.length} action${denied.length > 1 ? 's' : ''}`}
-                        note="Un refus ne se bascule pas : il se retire."
-                    >
-                        {denied.map((rule) => (
-                            <RuleGroup.Row
-                                key={rule.key}
-                                title={permissionLabel(rule.key)}
-                                value="refusé"
-                                valueTone="refused"
-                                status={{ icon: Prohibit, tone: 'refused' }}
-                            />
-                        ))}
-                    </RuleGroup>
-                )}
-
-                {inheritance && (
-                    <RuleGroup
-                        className="px-5"
-                        header={
-                            <span className="flex items-center gap-2">
-                                <Icon glyph={ArrowElbowDownRight} size={20} />
-                                Ce que l'héritage change
-                            </span>
-                        }
-                        note={
-                            inheritance.addsNothing
-                                ? `Toutes ses règles sont déjà dans celles de ${inheritance.baseName} : ajout net, aucun. Ce rôle ne diffère de sa base que par ses réglages de connexion.`
-                                : `Il reprend les permissions de ${inheritance.baseName}, puis ajoute ou refuse les siennes. Son décompte ne dit donc pas ce qu'il porte.`
-                        }
-                    >
-                        <RuleGroup.Row
-                            title={`Part de ${inheritance.baseName}`}
-                            subtitle={openRole.baseRoleId}
-                            value={`${rolesById.get(openRole.baseRoleId as string)?.permissions.length ?? 0} règles héritées`}
-                            onOpen={() => goToRole(openRole.baseRoleId as string)}
-                        />
-                    </RuleGroup>
-                )}
-
-                <RuleGroup
-                    className="px-5"
-                    header={
-                        <span className="flex items-center gap-2">
-                            <Icon glyph={Crosshair} size={20} />
-                            La portée déclarée
-                        </span>
-                    }
-                    note="La portée est déclarée, pas encore appliquée."
-                >
-                    <RuleGroup.Row
-                        title={`Portée ${SCOPE_LABEL[scope]}`}
-                        subtitle={openRole.dataScopes?.[0]?.expression}
-                        value="non appliquée"
-                        valueTone="refused"
-                        status={{ icon: Warning, tone: 'pending' }}
-                    />
-                </RuleGroup>
-
-                <RuleGroup
-                    className="px-5"
-                    header={
-                        <span className="flex items-center gap-2">
-                            <Icon glyph={LockSimpleOpen} size={20} />
-                            Ce que « rôle du système » ne veut pas dire
-                        </span>
-                    }
-                    note="Les quatre rôles du système sont protégés."
-                >
-                    <RuleGroup.Row
-                        title="Déclaré immuable"
-                        subtitle="immutable"
-                        value={openRole.immutable ? 'oui' : 'non'}
-                        valueTone={openRole.immutable ? undefined : 'muted'}
-                    />
-                    <RuleGroup.Row
-                        title="Protégé par l'écran"
-                        subtitle="kind === 'system'"
-                        value={openRole.kind === 'system' ? 'oui' : 'non'}
-                        valueTone={openRole.kind === 'system' ? undefined : 'muted'}
-                    />
-                </RuleGroup>
-
-                {/* `.warn` de 11.1 — **l'ambre, en 14 sur 20**, et le fait en 500. Il tenait
-                le rappel neutre de 02.2 (12 sur 17, sur le creux), qui dit une
-                précision ; ici la planche dit une conséquence. */}
-                <FormWarn glyph={Warning} tint="ambre">
-                    <strong className="font-medium">
-                        Valider une demande n'est pas dans cette matrice.
-                    </strong>{' '}
-                    Cette autorité est <strong className="font-medium">relationnelle</strong> — être
-                    le manager de, être le bénéficiaire de — et vit dans les gardes métier. La case
-                    est nommée ici parce que c'est là qu'on la chercherait.
-                </FormWarn>
-            </>
-        );
-
-        /* **Qui le porte** — la carte que la fiche n'avait pas : on lisait ce qu'un rôle
-           permet sans savoir à qui. Hauteur bornée au bureau, la liste défile dedans. */
+        /* **Qui le porte** — ce qu'on vient d'abord chercher : à qui ce rôle s'applique. */
         const porteurs = (
             <RuleGroup
-                className="flex min-h-0 flex-1 flex-col px-5"
-                header={
-                    <span className="flex items-center gap-2">
-                        <Icon glyph={UsersThree} size={20} />
-                        Qui le porte
-                    </span>
-                }
+                header={titreDeCarte(UsersThree, 'Qui le porte')}
                 headerTrailing={`${titulaires.length} personne${titulaires.length > 1 ? 's' : ''}`}
             >
                 {titulaires.length === 0 ? (
                     <CardEmptyState
                         glyph={UsersThree}
                         title="Personne ne le porte"
-                        description="Affectez-le depuis la liste des accès."
+                        description="Affectez-le depuis la liste des accès, ou par un groupe."
                     />
                 ) : (
-                    <div className={cn(enColonnes && 'max-h-[16.5rem] overflow-y-auto')}>
+                    <ListeBornee
+                        hauteur={20}
+                        pleineLargeur
+                        label={`Les ${titulaires.length} porteurs`}
+                    >
                         {titulaires.map((user) => (
-                            <RuleGroup.Row
+                            <FactRow
                                 key={user.id}
+                                vignetteText={initiales(user.name)}
                                 title={user.name}
                                 subtitle={[user.site, user.department].filter(Boolean).join(' · ')}
-                                onOpen={() => {
-                                    window.location.hash = `/users/${user.id}`;
-                                }}
+                                onOpen={() => navigate(`/users/${user.id}`)}
                             />
                         ))}
+                    </ListeBornee>
+                )}
+            </RuleGroup>
+        );
+
+        /* **Les vues en pastilles** : dix rangées « lecture » disaient la même chose dix
+           fois — une vue s'ouvre ou ne s'ouvre pas. En modification, toutes les vues
+           paraissent, et la pastille se coche. */
+        const vues = (
+            <RuleGroup
+                header={titreDeCarte(Eye, 'Ce qu’il ouvre')}
+                headerTrailing={`${openViews.length} vue${openViews.length > 1 ? 's' : ''} sur ${VIEW_KEYS.length}`}
+            >
+                {!editing && openViews.length === 0 ? (
+                    <CardEmptyState
+                        glyph={Eye}
+                        title="Aucune vue ouverte"
+                        description="Ce rôle n’ouvre aucune page à lui seul."
+                    />
+                ) : (
+                    <div className="flex flex-wrap gap-2 pt-1 pb-4">
+                        {VIEW_KEYS.filter(
+                            (key) => editing || allowed.some((rule) => rule.key === key),
+                        ).map((key) => {
+                            const ouverte = allowed.some((rule) => rule.key === key);
+                            return editing ? (
+                                <FacetChip
+                                    key={key}
+                                    compact
+                                    label={permissionLabel(key)}
+                                    selected={ouverte}
+                                    onClick={() => toggleRule(key, !ouverte, 'read')}
+                                />
+                            ) : (
+                                <span
+                                    key={key}
+                                    className="bg-surface-container text-on-surface text-ts-sub leading-ts-sub inline-flex h-9 items-center gap-2 rounded-md px-3"
+                                >
+                                    <Icon
+                                        glyph={VIEW_GLYPH[key.slice('view.'.length) as AppViewKey]}
+                                        size={18}
+                                        className="text-on-surface-variant"
+                                    />
+                                    {permissionLabel(key)}
+                                </span>
+                            );
+                        })}
                     </div>
                 )}
             </RuleGroup>
         );
 
-        const gestes = (
-            <div className="flex flex-col gap-3">
-                {editing ? (
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="text"
-                            onClick={() => {
-                                setEditing(false);
-                                setDraft(null);
-                            }}
-                        >
+        /* **Ce qu'il permet et ce qu'il refuse, dans une carte** : le refus est un troisième
+           état du même droit, pas un autre sujet. Un refus ne se bascule pas : il se retire. */
+        const actions = (
+            <RuleGroup
+                header={titreDeCarte(Lightning, 'Ce qu’il permet')}
+                headerTrailing={`${openActions.length} sur ${ACTION_KEYS.length}`}
+                note="Valider une demande dépend du lien — manager, bénéficiaire —, pas du rôle."
+            >
+                {ACTION_KEYS.filter(
+                    (key) =>
+                        (editing || allowed.some((rule) => rule.key === key)) &&
+                        !denied.some((rule) => rule.key === key),
+                ).map((key) => {
+                    const rule = allowed.find((entry) => entry.key === key);
+                    return (
+                        <RuleGroup.Row
+                            key={key}
+                            title={permissionLabel(key)}
+                            value={ACCESS_LABEL[rule?.access ?? 'none']}
+                            valueTone={rule ? undefined : 'muted'}
+                            off={!rule}
+                            trailing={
+                                editing ? (
+                                    <Toggle
+                                        checked={Boolean(rule)}
+                                        onChange={(next) => toggleRule(key, next, 'write')}
+                                    />
+                                ) : undefined
+                            }
+                        />
+                    );
+                })}
+                {denied.map((rule) => (
+                    <RuleGroup.Row
+                        key={rule.key}
+                        title={permissionLabel(rule.key)}
+                        value="refusé"
+                        valueTone="refused"
+                        status={{ icon: Prohibit, tone: 'refused' }}
+                    />
+                ))}
+                {!editing && openActions.length === 0 && denied.length === 0 && (
+                    <CardEmptyState
+                        glyph={Lightning}
+                        title="Aucune action permise"
+                        description="Il ouvre des pages, sans y rien changer."
+                    />
+                )}
+            </RuleGroup>
+        );
+
+        /* **Où il s'applique**, et d'où il vient — deux rangées, une carte. */
+        const portee = (
+            <RuleGroup
+                header={titreDeCarte(Crosshair, 'Où il s’applique')}
+                note="Déclarée ; le filtrage des données ne l’applique pas encore."
+            >
+                <RuleGroup.Row
+                    glyph={SCOPE_ICON[scope]}
+                    className="gap-3"
+                    title={capitale(SCOPE_PHRASE[scope])}
+                    subtitle={
+                        openRole.dataScopes?.[0]?.expression ?? `Portée ${SCOPE_LABEL[scope]}`
+                    }
+                    value="non appliquée"
+                    valueTone="refused"
+                    status={{ icon: Warning, tone: 'pending' }}
+                />
+                {inheritance && (
+                    <RuleGroup.Row
+                        glyph={ArrowElbowDownRight}
+                        className="gap-3"
+                        title={`Hérite de ${inheritance.baseName}`}
+                        subtitle={
+                            inheritance.addsNothing
+                                ? 'N’ajoute aucun droit à sa base'
+                                : 'Reprend ses droits, puis ajoute ou refuse les siens'
+                        }
+                        onOpen={() => goToRole(openRole.baseRoleId as string)}
+                    />
+                )}
+            </RuleGroup>
+        );
+
+        return (
+            <div className="flex min-h-0 w-full flex-1 flex-col">
+                <EnTeteDeFiche
+                    compact={isCompact}
+                    titre={openRole.name}
+                    fil={openRole.kind === 'system' ? 'Rôle du système' : 'Rôle personnalisé'}
+                    retourLabel="Retour aux rôles"
+                    onRetour={() => retourAuxRoles()}
+                    gestesDuBureau={
+                        editing ? (
+                            <>
+                                <Button variant="outlined" onClick={quitterLEdition}>
+                                    Annuler
+                                </Button>
+                                <Button
+                                    variant="filled"
+                                    icon={<Icon glyph={Check} size={20} />}
+                                    onClick={saveDraft}
+                                >
+                                    Enregistrer le rôle
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                {supprimable && (
+                                    <Button
+                                        variant="text"
+                                        onClick={() => removeRole(openRole)}
+                                        className="text-error"
+                                    >
+                                        Supprimer
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="outlined"
+                                    icon={<Icon glyph={PencilSimple} size={20} />}
+                                    onClick={() => setEditing(true)}
+                                >
+                                    Modifier le rôle
+                                </Button>
+                            </>
+                        )
+                    }
+                    menu={
+                        editing
+                            ? undefined
+                            : [
+                                  {
+                                      id: 'modifier',
+                                      label: 'Modifier le rôle',
+                                      glyph: PencilSimple,
+                                      onSelect: () => setEditing(true),
+                                  },
+                                  ...(supprimable
+                                      ? [
+                                            {
+                                                id: 'supprimer',
+                                                label: 'Supprimer le rôle',
+                                                glyph: Trash,
+                                                destructive: true,
+                                                dividerBefore: true,
+                                                onSelect: () => removeRole(openRole),
+                                            },
+                                        ]
+                                      : []),
+                              ]
+                    }
+                />
+
+                <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
+                    <div
+                        className={cn(
+                            'large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-4',
+                            isCompact && editing ? 'pb-28' : 'pb-16',
+                        )}
+                    >
+                        {enColonnes ? (
+                            /* **Au bureau, deux colonnes indépendantes** : ce que le rôle permet
+                               à gauche (7), à qui et où il s'applique à droite (5). */
+                            <div className="grid grid-cols-12 items-start gap-4">
+                                <div className="col-span-7 flex flex-col gap-4">
+                                    {hero}
+                                    {vues}
+                                    {actions}
+                                </div>
+                                <div className="col-span-5 flex flex-col gap-4">
+                                    {porteurs}
+                                    {portee}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {hero}
+                                {!editing && porteurs}
+                                {vues}
+                                {actions}
+                                {!editing && portee}
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* En modification au téléphone, le pied d'acte reste sous le pouce. */}
+                {isCompact && editing && (
+                    <div className="border-outline-variant bg-surface fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+                        <Button variant="text" onClick={quitterLEdition}>
                             Annuler
                         </Button>
                         <Button variant="filled" onClick={saveDraft} className="flex-1">
                             Enregistrer le rôle
                         </Button>
                     </div>
-                ) : (
-                    <Button variant="outlined" onClick={() => setEditing(true)}>
-                        Modifier le rôle
-                    </Button>
                 )}
-
-                {openRole.kind === 'custom' && !editing && (
-                    <Button
-                        variant="text"
-                        onClick={() => removeRole(openRole)}
-                        className="text-error"
-                    >
-                        Supprimer le rôle
-                    </Button>
-                )}
-            </div>
-        );
-
-        return (
-            <div className="flex min-h-0 w-full flex-1 flex-col">
-                {isCompact ? (
-                    /* `.tbar` de 11.1 — `0 8 0 4`, le retour, **le nom du rôle sur une ligne**
-                       en 17 sur 24, puis ⋮. La barre portait le nom en 16 sur 20 resserré et,
-                       dessous, la clé technique (`role.system.superadmin`) : R16 ne veut pas
-                       de sous-titre dans une barre, et la clé nomme le code, pas le rôle. */
-                    <BarreDePage
-                        title={openRole.name}
-                        onBack={() => navigate('/rbac/roles')}
-                        backLabel="Retour aux rôles"
-                    />
-                ) : (
-                    /* `.dhead.fiche` au bureau (17.11) — le nom du rôle en titre de page,
-                       le retour en carré de 40, l'identifiant dessous en fil. */
-                    <IconGestureSizeContext.Provider value={40}>
-                        <div className="px-page flex min-h-[72px] items-center gap-2 pt-5">
-                            <Button
-                                variant="text"
-                                iconOnly
-                                aria-label="Retour aux rôles"
-                                onClick={() => navigate('/rbac/roles')}
-                                className="text-on-surface-variant hover:text-on-surface -ml-2.5 shrink-0"
-                            >
-                                <Icon glyph={ArrowLeft} size={20} />
-                            </Button>
-                            <div className="min-w-0 flex-1">
-                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
-                                    {openRole.name}
-                                </h1>
-                                <span className="text-text-muted block truncate text-[0.8125rem] leading-4 tabular-nums">
-                                    {openRole.id}
-                                </span>
-                            </div>
-                            {/* Les gestes de la fiche, dans l'en-tête dès que la fiche a
-                                ses colonnes : ils fermaient la page, sous le pli. */}
-                            {enColonnes && (
-                                <div className="flex shrink-0 items-center gap-2">
-                                    {editing ? (
-                                        <>
-                                            <Button
-                                                variant="outlined"
-                                                onClick={() => {
-                                                    setEditing(false);
-                                                    setDraft(null);
-                                                }}
-                                            >
-                                                Annuler
-                                            </Button>
-                                            <Button
-                                                variant="filled"
-                                                icon={<Icon glyph={Check} size={20} />}
-                                                onClick={saveDraft}
-                                            >
-                                                Enregistrer le rôle
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {openRole.kind === 'custom' && (
-                                                <Button
-                                                    variant="text"
-                                                    onClick={() => removeRole(openRole)}
-                                                    className="text-error"
-                                                >
-                                                    Supprimer
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="outlined"
-                                                icon={<Icon glyph={PencilSimple} size={20} />}
-                                                onClick={() => setEditing(true)}
-                                            >
-                                                Modifier le rôle
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </IconGestureSizeContext.Provider>
-                )}
-
-                {/* `.page` de 11.1 — **16 de gouttière**, pas 20 : la carte de cette page en porte 20
-                    (`.card{padding:8px 20px}`), et les deux ensemble posaient le titre d'une
-                    permission à 40 au lieu de 36. */}
-                <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
-                    <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-5 pb-16">
-                        {enColonnes ? (
-                            /* **Au bureau, la fiche en grille** (24/09). Elle courait sur une
-                               colonne de 1 008 : le héro, puis dix rangées de 60 pour les vues,
-                               puis tout le reste sous le pli. La première rangée pose le héro
-                               (7) à côté de ceux qui portent le rôle (5) ; dessous, les deux
-                               matrices à gauche, et ce qui les nuance — refus, héritage,
-                               portée — à droite. Les gestes sont montés dans l'en-tête. */
-                            <div className="grid grid-cols-12 items-start gap-4">
-                                <div className="col-span-7 flex flex-col gap-4 self-stretch">
-                                    {hero}
-                                </div>
-                                <div className="col-span-5 flex flex-col self-stretch">
-                                    {porteurs}
-                                </div>
-                                <div className="col-span-7 flex flex-col gap-4">{matrices}</div>
-                                <div className="col-span-5 flex flex-col gap-4">{nuances}</div>
-                            </div>
-                        ) : (
-                            <>
-                                {hero}
-                                {matrices}
-                                {nuances}
-                                {porteurs}
-                                {gestes}
-                            </>
-                        )}
-                    </div>
-                </div>
             </div>
         );
     }
@@ -865,7 +1100,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                  * liste** — « Accès » puis « Groupes » — chacun avec son en-tête.
                  */
                 title={view === 'groups' ? 'Groupes' : 'Accès'}
-                onBack={view === 'groups' ? () => navigate('/rbac/roles') : onBack}
+                onBack={view === 'groups' ? retourAuxRoles : onBack}
                 /* Groupes est une sous-page d'Accès : sa flèche vaut aussi au bureau. */
                 retourAuBureau={view === 'groups'}
                 backLabel={view === 'groups' ? 'Retour aux accès' : 'Retour'}
@@ -925,18 +1160,36 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         }
                     />
                 }
+                /* Le vide dans la carte (25/09) ; filtré, il nomme sa sortie. */
                 empty={
-                    view === 'groups' ? (
-                        <ScreenState
-                            icon={Users}
+                    query.trim() ? (
+                        <CardEmptyState
+                            glyph={Funnel}
+                            title={
+                                view === 'groups'
+                                    ? 'Aucun groupe ne correspond'
+                                    : 'Aucun rôle ne correspond'
+                            }
+                            description="Changez de mot, ou revenez à la liste entière."
+                            action={
+                                <Button variant="outlined" onClick={() => setQuery('')}>
+                                    {view === 'groups'
+                                        ? `Voir les ${rbacGroups.length} groupes`
+                                        : `Voir les ${rbacRoles.length} rôles`}
+                                </Button>
+                            }
+                        />
+                    ) : view === 'groups' ? (
+                        <CardEmptyState
+                            glyph={Users}
                             title="Aucun groupe"
-                            description="Un groupe donne un rôle à plusieurs personnes d'un coup, et borne où il s'applique — un pays, un service."
+                            description="Un groupe donne un rôle à plusieurs personnes d'un coup, dans un pays ou un service."
                         />
                     ) : (
-                        <ScreenState
-                            icon={ShieldPlus}
+                        <CardEmptyState
+                            glyph={ShieldPlus}
                             title="Aucun rôle"
-                            description="Les rôles du système sont livrés avec le produit. S'il n'en reste aucun, c'est que le filtre en cache."
+                            description="Les rôles du système sont livrés avec le produit."
                         />
                     )
                 }
@@ -966,7 +1219,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                          * c'est qui est concerné.
                          */}
                         <RuleGroup
-                            className={cn('px-5', enColonnes && 'col-span-8')}
+                            className={cn(enColonnes && 'col-span-8')}
                             header="Les rôles"
                             headerTrailing="porteurs"
                             note="Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée."
@@ -1001,7 +1254,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                             unit: porteurs > 1 ? 'porteurs' : 'porteur',
                                         }}
                                         onOpen={() => goToRole(role.id)}
-                                        className="-mx-5 w-[calc(100%+2.5rem)] px-5"
+                                        className="-mx-4 w-[calc(100%+2rem)] px-4"
                                     />
                                 );
                             })}
@@ -1011,7 +1264,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             renvoi) : les premiers et leurs membres — cinq au bureau, trois au
                             téléphone —, puis le renvoi vers la page des groupes. */}
                         <RuleGroup
-                            className={cn('px-5', enColonnes && 'col-span-4')}
+                            className={cn(enColonnes && 'col-span-4')}
                             header="Les groupes"
                             headerTrailing="membres"
                         >
@@ -1027,8 +1280,8 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                             value: membres,
                                             unit: membres > 1 ? 'membres' : 'membre',
                                         }}
-                                        onOpen={() => navigate('/rbac/groups')}
-                                        className="-mx-5 w-[calc(100%+2.5rem)] px-5"
+                                        onOpen={() => navigate(`/rbac/groups/${group.id}`)}
+                                        className="-mx-4 w-[calc(100%+2rem)] px-4"
                                     />
                                 );
                             })}
@@ -1047,7 +1300,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     </div>
                 ) : (
                     <RuleGroup
-                        className="px-5"
                         header="Ce qu'ils ajoutent"
                         headerTrailing="membres"
                         note="Un groupe ajoute un droit, jamais la hiérarchie. Sa portée est déclarée, pas encore appliquée."
@@ -1059,97 +1311,12 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 subtitle={groupSummary(group, rolesById)}
                                 value={membresParGroupe.get(group.id) ?? 0}
                                 quiet
-                                onOpen={() => setOpenGroupId(group.id)}
+                                onOpen={() => navigate(`/rbac/groups/${group.id}`)}
                             />
                         ))}
                     </RuleGroup>
                 )}
             </ListTemplate>
-
-            {/* Un groupe n'a pas de fiche : ce qu'il porte tient en trois lignes, et le
-                seul acte qu'on y prend est destructeur. Une feuille suffit. */}
-            <BottomSheet
-                open={openGroup !== null}
-                onClose={() => setOpenGroupId(null)}
-                title={openGroup?.name}
-            >
-                {openGroup && (
-                    <div className="flex flex-col gap-3">
-                        <RuleGroup className="px-5">
-                            <RuleGroup.Row
-                                title="Rôle porté"
-                                value={
-                                    openGroup.roleIds
-                                        .map((id) => rolesById.get(id)?.name)
-                                        .filter(Boolean)
-                                        .join(', ') || '—'
-                                }
-                            />
-                            <RuleGroup.Row
-                                title="Portée déclarée"
-                                subtitle={
-                                    openGroup.dataScopes?.length
-                                        ? undefined
-                                        : 'Le groupe n’en déclare aucune'
-                                }
-                                value={
-                                    openGroup.dataScopes?.length
-                                        ? SCOPE_LABEL[openGroup.dataScopes[0].level]
-                                        : 'aucune'
-                                }
-                                valueTone={openGroup.dataScopes?.length ? 'refused' : 'muted'}
-                            />
-                            {openGroup.permissions?.map((rule) => (
-                                <RuleGroup.Row
-                                    key={rule.key}
-                                    title={permissionLabel(rule.key)}
-                                    subtitle="Droit ajouté par le groupe — celui-ci s'applique"
-                                    value={ACCESS_LABEL[rule.access ?? 'read']}
-                                />
-                            ))}
-                        </RuleGroup>
-
-                        <FormWarn glyph={Warning} tint="ambre">
-                            La portée d'un groupe est{' '}
-                            <strong className="font-medium">déclarée puis ignorée</strong> : un
-                            membre d'un groupe borné à un pays voit tout de même le parc entier. Le
-                            droit ajouté par le groupe, lui, s'applique.
-                        </FormWarn>
-
-                        <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
-                            <Button variant="text" onClick={() => setOpenGroupId(null)}>
-                                Fermer
-                            </Button>
-                            <Button
-                                variant="text"
-                                className="text-error"
-                                onClick={() =>
-                                    requestConfirmation({
-                                        title: `Supprimer « ${openGroup.name} » ?`,
-                                        message:
-                                            'Les personnes du groupe perdent le rôle qu’il portait. Leur rôle propre ne change pas.',
-                                        confirmText: 'Supprimer le groupe',
-                                        tone: 'destructive',
-                                        irreversible: true,
-                                        onConfirm: () => {
-                                            const decision = deleteRbacGroup(openGroup.id);
-                                            showToast(
-                                                decision.allowed
-                                                    ? `« ${openGroup.name} » supprimé.`
-                                                    : decision.reason || 'Suppression refusée.',
-                                                decision.allowed ? 'success' : 'error',
-                                            );
-                                            if (decision.allowed) setOpenGroupId(null);
-                                        },
-                                    })
-                                }
-                            >
-                                Supprimer le groupe
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </BottomSheet>
 
             <CreateRoleSheet
                 open={roleSheetOpen}
@@ -1433,6 +1600,164 @@ const AssignmentSheet: React.FC<{
                         }
                     >
                         Enregistrer l'affectation
+                    </Button>
+                </div>
+            </div>
+        </BottomSheet>
+    );
+};
+
+/**
+ * **L'en-tête d'une fiche d'accès** — rôle ou groupe. Au téléphone, la barre commune et un
+ * ⋮ qui porte les actes ; au bureau, le nom en titre de page, son fil dessous, et les actes
+ * nommés à droite (17.11).
+ */
+const EnTeteDeFiche: React.FC<{
+    compact: boolean;
+    titre: string;
+    fil: string;
+    retourLabel: string;
+    onRetour: () => void;
+    gestesDuBureau?: React.ReactNode;
+    menu?: MenuItem[];
+}> = ({ compact, titre, fil, retourLabel, onRetour, gestesDuBureau, menu }) =>
+    compact ? (
+        <BarreDePage
+            title={titre}
+            onBack={onRetour}
+            backLabel={retourLabel}
+            actions={
+                menu && menu.length > 0 ? (
+                    <Menu
+                        align="end"
+                        items={menu}
+                        trigger={
+                            <Button variant="text" iconOnly aria-label="Autres actes">
+                                <Icon glyph={DotsThreeVertical} size="geste" />
+                            </Button>
+                        }
+                    />
+                ) : undefined
+            }
+        />
+    ) : (
+        <IconGestureSizeContext.Provider value={40}>
+            <div className="px-page flex min-h-[72px] items-center gap-2 pt-5">
+                <Button
+                    variant="text"
+                    iconOnly
+                    aria-label={retourLabel}
+                    onClick={onRetour}
+                    className="text-on-surface-variant hover:text-on-surface -ml-2.5 shrink-0"
+                >
+                    <Icon glyph={ArrowLeft} size={20} />
+                </Button>
+                <div className="min-w-0 flex-1">
+                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
+                        {titre}
+                    </h1>
+                    <span className="text-text-muted block truncate text-[0.8125rem] leading-4">
+                        {fil}
+                    </span>
+                </div>
+                {gestesDuBureau && (
+                    <div className="flex shrink-0 items-center gap-2">{gestesDuBureau}</div>
+                )}
+            </div>
+        </IconGestureSizeContext.Provider>
+    );
+
+/**
+ * **Ajouter ou retirer des membres** — une liste à cocher, les membres d'abord. Un seul
+ * enregistrement pour plusieurs changements, et le pied dit combien il en porte.
+ */
+const MembresSheet: React.FC<{
+    open: boolean;
+    onClose: () => void;
+    groupe: RbacGroup;
+    users: User[];
+    membresInitiaux: string[];
+    onSave: (changements: Array<{ userId: string; entre: boolean }>) => void;
+}> = ({ open, onClose, groupe, users, membresInitiaux, onSave }) => {
+    const cle = membresInitiaux.join('|');
+    const [choisis, setChoisis] = useState<Set<string>>(() => new Set(membresInitiaux));
+    const [recherche, setRecherche] = useState('');
+
+    useEffect(() => {
+        if (open) {
+            setChoisis(new Set(cle ? cle.split('|') : []));
+            setRecherche('');
+        }
+    }, [open, cle]);
+
+    const initiaux = useMemo(() => new Set(cle ? cle.split('|') : []), [cle]);
+    const terme = recherche.trim().toLowerCase();
+    const visibles = users
+        .filter((user) => !terme || user.name.toLowerCase().includes(terme))
+        .sort(
+            (a, b) =>
+                Number(initiaux.has(b.id)) - Number(initiaux.has(a.id)) ||
+                a.name.localeCompare(b.name, 'fr'),
+        );
+    const changements = users
+        .filter((user) => choisis.has(user.id) !== initiaux.has(user.id))
+        .map((user) => ({ userId: user.id, entre: choisis.has(user.id) }));
+
+    const basculer = (id: string) =>
+        setChoisis((actuels) => {
+            const suivants = new Set(actuels);
+            if (suivants.has(id)) suivants.delete(id);
+            else suivants.add(id);
+            return suivants;
+        });
+
+    return (
+        <BottomSheet open={open} onClose={onClose} title={`Membres de « ${groupe.name} »`}>
+            <div className="flex flex-col gap-3">
+                <SearchField
+                    value={recherche}
+                    onChange={setRecherche}
+                    placeholder="Nom d’une personne"
+                />
+                <div className="-mx-5 max-h-[50vh] overflow-y-auto px-5">
+                    {visibles.map((user) => (
+                        <Button
+                            key={user.id}
+                            variant="text"
+                            layout="card"
+                            onClick={() => basculer(user.id)}
+                            aria-pressed={choisis.has(user.id)}
+                            className="border-outline-variant flex min-h-14 w-full items-center justify-start gap-3 rounded-none border-t px-0 py-2 text-left font-normal first:border-t-0"
+                        >
+                            <SelectionBox selected={choisis.has(user.id)} />
+                            <span className="min-w-0 flex-1">
+                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                    {user.name}
+                                </span>
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                    {[user.site, user.department].filter(Boolean).join(' · ')}
+                                </span>
+                            </span>
+                        </Button>
+                    ))}
+                </div>
+                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <Button
+                        variant="tonal"
+                        className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
+                        onClick={onClose}
+                    >
+                        Annuler
+                    </Button>
+                    <Button
+                        variant="filled"
+                        className="justify-center"
+                        disabled={changements.length === 0}
+                        onClick={() => onSave(changements)}
+                    >
+                        {changements.length > 0
+                            ? `Enregistrer ${changements.length} changement${changements.length > 1 ? 's' : ''}`
+                            : 'Enregistrer'}
                     </Button>
                 </div>
             </div>

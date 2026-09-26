@@ -316,7 +316,7 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
         >
             <div
                 className={cn(
-                    'large:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
+                    'deux:max-w-none mx-auto flex w-full max-w-[720px] flex-col gap-4',
                     COLONNES_FORMULAIRE,
                 )}
             >

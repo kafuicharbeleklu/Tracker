@@ -5,6 +5,8 @@ import { cn } from '../../lib/utils';
 import Icon from './Icon';
 import { SelectionBox } from './SelectableRow';
 import { VIRTUAL_SPACER, useVirtualWindow } from '../../hooks/useVirtualWindow';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MEDIA } from '../../constants/breakpoints';
 
 /**
  * **Le tableau dense** — la seconde forme d'une liste au bureau, arbitrée par la
@@ -131,6 +133,10 @@ function DataTable<T>({
     maxHeight,
     className,
 }: DataTableProps<T>) {
+    /* **Sans souris, rien ne se révèle au survol** (25/09) : sur une tablette tactile, la case
+       de sélection et les actes de rangée restaient invisibles, puisque le survol n'existe
+       pas. Ils y sont affichés en permanence. */
+    const survol = useMediaQuery(MEDIA.hoverCapable);
     /*
       **Le tableau ne monte que ce qui se voit** (23/09) — la fenêtre virtuelle de
       `useVirtualWindow`. Les rangées de séparation du journal sont des éléments comme les
@@ -325,6 +331,7 @@ function DataTable<T>({
                         return (
                             <tr
                                 key={id}
+                                data-rangee
                                 aria-rowindex={index + 2}
                                 /* Le fond vit sur la rangée : les cellules figées en
                                    héritent (`bg-[inherit]`), donc elles se repeignent
@@ -388,7 +395,7 @@ function DataTable<T>({
                                                                (04.1), ronde pour une personne
                                                                (05.1). */
                                                         'pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity',
-                                                        selection?.isActive || selected
+                                                        selection?.isActive || selected || !survol
                                                             ? 'opacity-0'
                                                             : 'group-focus-within:opacity-0 group-hover:opacity-0',
                                                     )}
@@ -410,7 +417,7 @@ function DataTable<T>({
                                                 }}
                                                 className={cn(
                                                     'focus-visible:ring-focus-ring touch-target flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-2',
-                                                    selection?.isActive || selected
+                                                    selection?.isActive || selected || !survol
                                                         ? 'opacity-100'
                                                         : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus:opacity-100',
                                                 )}
@@ -480,7 +487,14 @@ function DataTable<T>({
                                         className="px-1 align-middle"
                                         onClick={(event) => event.stopPropagation()}
                                     >
-                                        <span className="flex justify-end opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                                        <span
+                                            className={cn(
+                                                'flex justify-end transition-opacity',
+                                                survol
+                                                    ? 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'
+                                                    : 'opacity-100',
+                                            )}
+                                        >
                                             {rowActions(row)}
                                         </span>
                                     </td>
