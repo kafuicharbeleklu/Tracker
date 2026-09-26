@@ -5117,3 +5117,608 @@ une, au téléphone comme au bureau.
 - Vérifiés sans défaut : fiches (actif, personne, type, modèle, rôle, site, demande, campagne),
   formulaires et imports, Lignes du budget, Exercices, Paramètres (et Mon compte → Paramètres),
   fenêtres Remettre / Retourner / Nouvelle demande / Inviter (« Fermer »).
+- **La flèche suit le chemin parcouru** (25/09, décidé pour le commanditaire) : elle revient à
+  l'écran d'où l'on vient — une fiche de personne ouverte depuis un rôle ramène au rôle, une
+  fiche d'actif ouverte depuis l'Accueil ramène à l'Accueil — et ne remonte l'arborescence
+  qu'à défaut de chemin (lien direct, rechargement). `lib/cheminParcouru.ts` : une pile
+  d'adresses tenue par un seul écouteur (`installerCheminParcouru`, App.tsx), gardée pour la
+  session de l'onglet ; revenir sur une adresse déjà visitée tronque la pile (après
+  « Enregistrer », la flèche de la fiche ne rouvre pas le formulaire) ; la connexion la vide ;
+  une redirection (`/rbac` → `/rbac/roles`) et un renommage de site **remplacent** l'adresse
+  (`remplacerAdresseCourante`) au lieu d'en laisser une qui boucle ou ne mène plus nulle part.
+  Branchée dans `goBack`, dans les flèches et « Annuler » d'`AppLayout` (`retourVers`, repli
+  sur l'ancienne cible) et dans Accès (`retourAuxRoles`). Vérifié par 5 scénarios × 2 largeurs
+  et 6 cas unitaires du module.
+
+### Listes bornées : les modèles d'un type, les locaux d'un site (25/09)
+
+Demande : *« la liste Modèles a beaucoup trop de lignes ; la carte Locaux ne doit pas grandir
+indéfiniment »*. Nouveau `components/ui/ListeBornee` — la règle des cartes à hauteur fixe
+(22/09) pour les listes d'une fiche sans plafond naturel : la liste se borne et **défile dans la
+carte** (pas de « Voir plus », arbitrage du 23/09), la borne coupe une rangée en deux pour que
+la suite se voie, un fondu au pied s'éteint en fin de liste, `overscroll-contain`, zone
+atteignable au clavier ; `pleineLargeur` garde les rangées débordantes et les anneaux de focus
+sans défilement horizontal. Menus de rangée dedans : `floating`.
+
+- **Type › Modèles** : 5 rangées et demie au téléphone (22 rem), 2 rangées de tuiles et demie au
+  bureau (18 rem) ; **triés du plus utilisé au moins utilisé**. Mesuré avec 22 modèles : carte
+  416 px au téléphone (liste de 1 513), 352 au bureau (984).
+- **Site › Locaux** : 22 rem au téléphone (« Ajouter un local » reste en pied de carte), 16,5 rem
+  au bureau avec la tuile « Ajouter un local » **en tête** pour rester visible. Mesuré avec 15
+  locaux : 456 px au téléphone, 332 au bureau.
+- **Une rangée de plus, à la demande** (*« affiche une ligne supplémentaire pour la liste
+  modèle »*, puis *« fais de même pour locaux »*) : 26 rem au téléphone pour les deux listes
+  (6 rangées et demie), 25,75 rem au bureau pour les modèles et 23,25 pour les locaux (3 rangées
+  de tuiles et demie). Remesuré : zone de 416 px au téléphone pour les deux ; au bureau 412
+  (modèles) et 372 (locaux) ; aucun débordement horizontal, fondu éteint en fin de liste.
+
+### Les vides dans leur carte, les filtres à leur place (25/09)
+
+Demande : *« revue de l'état par défaut vide de plusieurs pages, ils ne sont pas dans le
+dynamisme de notre design system, exemple la page Dépenses — pas besoin de ce bouton
+Enregistrer une dépense au centre ; vérifie que toutes les pages sont alignées avec nos
+conventions ; la position du filtre de la page Campagne ne les respecte pas »*. Relevé au banc
+(listes vidées, réensemencement coupé par `VITE_DISABLE_DEMO_RESEED`), 393 et 1440.
+
+**Quatre règles, désormais celles de tout vide :**
+
+- **V1 — Le vide d'une liste reste dans sa carte.** Il flottait sur le canevas en forme
+  d'écran (rond de 96, titre de 22), sous un héro qui, lui, est une carte. `ListTemplate`
+  pose maintenant la carte des rangées autour de `empty` (même mesure, pleine hauteur) et les
+  pages y mettent un `CardEmptyState` : Actifs, Équipe, Tâches, Historique, Dépenses, Groupes,
+  Accès, Inventaire physique ; Catalogue et Emplacements (en-têtes écrits à la main) font de
+  même. `ScreenState` reste aux écrans qui *sont* l'état : introuvable, refusé, hors ligne,
+  fiche absente, « Aucune campagne ouverte ». Les enfants ne suivent plus sous le vide (ils
+  n'y portaient que l'en-tête d'un tableau vide).
+- **V2 — Le vide ne redouble pas le geste de la page.** Retirés : « Enregistrer une
+  dépense », « Ajouter un équipement », « Ajouter une personne », « Créer le premier pays »,
+  « Ajouter le premier modèle » (fiche d'un type), « Ajouter une ligne » (Lignes du budget
+  au bureau). Le geste reste à sa place — flottant au téléphone, dans l'en-tête au bureau.
+  **Contre l'arbitrage du 06/09** (17.1 / 17.6 : « le vide ouvre la même feuille ») et 09.1
+  colonne 3. Emplacements garde son bouton flottant sur un référentiel vide (il disparaissait,
+  le vide portait seul le geste) et sa feuille met « Un pays » en tête tant qu'il n'y en a
+  aucun.
+- **V3 — Filtré, le vide le dit** : entonnoir, « … ne correspond », une seule sortie en
+  bouton cerné qui nomme ce qu'elle rend (« Voir les 14 équipements »). Tâches affichait
+  « Vous êtes à jour » sous une recherche sans résultat : corrigé.
+- **V4 — Un vide de carte est un `CardEmptyState`, jamais une ligne sous le titre** (règle du
+  22/09, restée non appliquée à quatre endroits) : Finances › Les postes, Modèle › Unités,
+  fiche d'une personne › Équipements détenus, Type › Modèles. Le pied « Voir les N unités »
+  d'un modèle ne paraît plus que s'il reste des unités à voir (il disait « Voir les 1 unités »).
+
+L'ancienne forme `EmptyState` (carré de 56, titre en 700) n'avait plus que les huit vides de
+la campagne : portés en `CardEmptyState` (vert pour « Tout est retrouvé », « Aucun manquant »,
+« Aucun écart »), composant supprimé, spécimen de la galerie remplacé.
+
+**Au passage, un écart de convention** : le Catalogue n'avait **aucun geste d'ajout au-delà du
+téléphone** (le bouton flottant y est réservé). Il a son « Ajouter ⌄ » d'en-tête, les trois
+chemins de la feuille en menu ancré, comme Actifs.
+
+**La campagne — les puces montent dans la bande fixe** (contre 16.2, qui les pose sous le
+héro, dans ce qui défile). La règle de toutes les listes (17.8 : un filtre posé ne part pas au
+premier défilement ; R11) : au bureau, la ligne d'outils sous le titre porte la recherche à 320
+et les puces ; au téléphone, la bande porte la recherche et l'entonnoir, la feuille « Filtrer »
+porte « Ce qu'on regarde », et la ligne de compte (« Les 8 qui restent à trouver · 8 sur 8 »)
+est fixe elle aussi. L'en-tête du téléphone est devenu `sticky` (il défilait). **Nouveau** : la
+recherche « Modèle, code, porteur » — elle ne fait que chercher, elle n'enregistre pas de scan
+(« Saisir un code » reste dans le héro) ; posée, le compte dit « 1 des 8 ».
+
+Mesuré : bande de recherche à 80 px avant et après 400 px de défilement (téléphone), 90 au
+bureau ; vides filtrés relevés sur dix listes aux deux largeurs ; balayage 4 comptes × 22 pages
+× 2 largeurs : 0 panne.
+
+### Les noms longs, au téléphone d'abord (25/09)
+
+Demande : *« j'avais signalé que certaines listes comme Équipements ont des noms d'équipement
+trop longs — version mobile »* (le 24/09, « les lignes de Modèles sont trop longues » avait été
+lu comme une largeur de rangée, pas comme une longueur de nom). Relevé au banc avec des noms du
+parc réel (`Togo-AP55C-A400474CC7A47E7-NEW-BAT`, « HP EliteBook 840 G8 Notebook PC … — Direction
+financière ») : coupés au bout d'**une** ligne, ils perdaient leur fin — le numéro ou le service
+qui les distingue de leurs voisins. Au bureau, la colonne Modèle (11 %) coupait tout
+(« Lenovo Thin… »), et le héro d'un modèle prenait quatre lignes en 28.
+
+**Règle (`lib/nomLong`)** : le titre d'une rangée, d'une tuile ou d'une cellule prend **deux
+lignes avant l'ellipse**, se coupe aux tirets et au besoin n'importe où (`overflow-wrap:
+anywhere`, un code n'a pas d'espace), et garde le nom entier en infobulle ; la sous-ligne reste
+sur une ligne. `whitespace-normal` est dans la règle : un titre posé dans un `Button` héritait
+de son `nowrap`. Appliquée à `ListRow` (Actifs, campagne, Équipe, choix d'un modèle),
+`FactRow`, `ActSheet` (parties et choix d'un objet), aux tuiles de modèles d'un type, aux
+rangées « Équipements détenus » d'une fiche, au titre d'une tâche, à la file « À traiter » de
+l'accueil, au code d'une carte d'écart, à la rangée d'une demande.
+
+- **Tableau** : `DataColumn.wrap` — Code et Modèle des Actifs sur deux lignes ; Modèle passe
+  de 11 à 19 %, pris aux colonnes à vocabulaire fixe (Code 24, Porteur 14, Site · local 15,
+  État 14, Dernier mouvement 14). Le fait de l'Historique aussi.
+- **Héro** : un sujet de plus de 28 signes descend d'un palier (28 → 22), toujours entier.
+- **Référence** : un numéro de série long passe à la ligne au lieu de sortir de la rangée.
+
+Mesuré à 393 : rangée de 92 px pour un nom sur deux lignes, 72 pour un code court, aucun
+débordement horizontal sur dix écrans ; balayage 4 comptes × 22 pages × 2 largeurs : 0 panne.
+
+### Amortissement, fiche d'un rôle, page d'un groupe, recadrage de signature (25/09)
+
+Demande : *« refonte des pages amortissement, détails rôle et détail groupe, recadrage de
+signature importée plus efficace version mobile »*, puis *« la zone de cadrage est trop petite,
+c'était là mon véritable problème »*. Relevé avant/après au banc, 393 et 1440.
+
+**Recadrage de signature (07.1)** — au téléphone le cadre 3:1 tenait 330 × 110 dans une boîte
+de 320, l'image n'était visible que dans le cadre, arrivait au hasard de sa composition, et
+« pincez pour zoomer » était écrit sans être programmé.
+- **Plein écran au téléphone** (contre 07.1, « zone 320 de haut ») : fond sombre, l'image sur
+  toute la hauteur (535 px à 393), le cadre sur toute la largeur (369 × 123), les réglages en
+  pied. Au-delà du téléphone, la scène reste dans la page (560 × 320).
+- **Cadrage automatique** : l'image est lue une fois (fond = 80ᵉ centile de luminance, encre =
+  ce qui s'en écarte) ; le cadre se pose sur le tracé avec sa marge. Double toucher ou
+  « Recadrer automatiquement » y revient.
+- **Gestes** : glisser, **pincer** (deux pointeurs, autour de leur milieu), molette au bureau.
+- **Le fond est effacé** : le PNG ne garde que le tracé, qui se pose sur la case verte de
+  l'attestation au lieu d'y faire un rectangle de papier. Le cadre le montre sur blanc.
+  (« Ni seuil de contraste » de 07.1 tombe : le seuil est automatique, sans commande.)
+
+**Fiche d'un rôle** — 2 200 px au téléphone, sept rangées « lecture », une carte qui affichait
+`kind === 'system'`, une note ambre de 250 signes. Désormais : héro (porteurs, vues x/10,
+actions x/14, connexion en une phrase ; « ne se supprime pas » dans le surtitre), **Qui le
+porte** en tête (liste bornée), **Ce qu'il ouvre** en pastilles (cochables en modification),
+**Ce qu'il permet** avec les refus dans la même carte, **Où il s'applique** avec l'héritage.
+Au téléphone les actes passent dans le ⋮ ; en modification, le pied « Annuler · Enregistrer »
+prend la place de la barre du bas (régime de 17.2). Au bureau, deux colonnes 7 | 5.
+
+**Page d'un groupe** (`/rbac/groups/:id`, contre l'arbitrage « un groupe n'a pas de fiche : une
+feuille suffit ») — héro (portée « Pays : France », membres, rôles, droits en plus), **Ses
+membres**, **Ce qu'il ajoute** (le rôle, qui ouvre sa fiche), **Où il s'applique**. « Ajouter ou
+retirer des membres » : une liste à cocher, un seul enregistrement pour plusieurs changements.
+**Correctif** : porteurs et membres se comptent désormais sur l'affectation (enregistrée, sinon
+déduite du compte) — une personne ajoutée depuis l'écran n'apparaissait jamais, l'ajout écrivant
+l'affectation et le compte lisant `rbacGroupIds`.
+
+**Amortissement (14.1)** — un aperçu dessine la courbe de valeur du plan par défaut, avec sa
+phrase (« Il perd 33,3 % de son prix chaque année ; il ne vaut plus rien au bout de 3 ans ») ;
+la méthode se choisit sur deux cartes à courbe ; durée et résiduel se règlent au pas
+(`components/ui/Stepper`, nouveau) au lieu de champs de 96 px sans unité ; les types paraissent
+sous leur nom français, ceux qui prennent le défaut d'abord, et ouvrent leur fiche. Le renvoi
+« La devise et l'année fiscale sont ailleurs » tombe. **Écart signalé à l'écran** : le calcul du
+parc reste linéaire quelle que soit la méthode (`calculateLinearDepreciation`) ; choisir le
+dégressif affiche « Les valeurs du parc se calculent encore en linéaire ».
+`lib/financial.echeancierAmortissement` ne sert que l'aperçu.
+
+Mesuré : ajout d'un membre (1 → 2, la liste suit), modification d'un rôle au téléphone (2/10 →
+3/10 vues), pincement 2,7× → 5,4× ; balayage 4 comptes × 22 pages × 2 largeurs : 0 panne.
+
+### Finances : six postes au bureau (25/09)
+
+Demande : *« réduire le nombre de lignes de Les postes à 6 »*. `POSTES_MONTRES` passe de 8 à 6 :
+la carte montre les six postes les plus entamés, puis « Voir les N postes » ; le téléphone en
+garde trois. Vérifié avec 13 postes : « les 6 plus entamés sur 13 », pied « Voir les 13 postes ».
+
+### Les noms longs tiennent une ligne (25/09, second arbitrage)
+
+Demande : *« il faut tronquer les noms d'équipement trop longs, exemple
+Togo-AP55C-A400474CC7A47E7-NEW-BAT, en version mobile comme desktop, pour que les lignes soient
+harmonisées et pas certaines plus hautes que d'autres »*. **Contre la règle du matin** (« deux
+lignes avant l'ellipse ») : `lib/nomLong` pose désormais `NOM_SUR_UNE_LIGNE` (`block min-w-0
+truncate`) sur les mêmes titres — `ListRow`, `FactRow`, `ActSheet`, tuiles de modèles, rangées
+« Équipements détenus », tâches, file « À traiter », carte d'écart, demande. Le nom entier reste
+en infobulle et sur la fiche. `DataTable` perd son option `wrap` : Code, Modèle (Actifs) et Fait
+(Historique) reviennent à une ligne coupée. L'identifiant de droite d'une rangée (`ListRow`, vue
+en cartes) se coupe aussi, borné à la moitié de la ligne : il écrasait l'état et sortait de la
+carte.
+
+Mesuré avec `Togo-AP55C-A400474CC7A47E7-NEW-BAT`, un nom de 80 signes et un code de 58 sans
+séparateur : rangées toutes à 72 px au téléphone, 68 en cartes (768 et 1440), 48 en tableau ;
+aucun débordement.
+
+### Noms longs sur les pages, photos jointes, tablette (25/09, fin de journée)
+
+**Noms longs, suite** (*« les noms sont toujours trop longs dans les listes sur la version
+mobile »*). Relevé à 393 sur quatorze écrans, noms injectés dans le parc, le journal et les
+demandes : seule la liste « Derniers événements » de l'accueil passait encore à la ligne (quatre
+lignes pour « Vous avez ajouté … »). Elle tient une ligne, comme l'historique d'une fiche. Hors
+listes : une valeur de référence qui est une chaîne (modèle, numéro de série) se coupe sur une
+ligne — l'infobulle la montre, le bouton copie la valeur entière — et le sujet d'un héro
+s'arrête à **deux lignes**.
+
+**Photos jointes** (*« on n'a pas de miniature de la photo qu'on importe dans certains
+formulaires, comme Déclarer un incident ; le projet crée des icônes, qui disparaissent au
+clic »*). Le champ ne gardait que le nom du fichier : une icône d'appareil photo par photo, et un
+toucher la retirait. Nouveau `components/ui/PhotosJointes` + `usePhotosJointes` : la miniature
+réelle (56), un toucher l'ouvre en grand sur fond sombre avec « Retirer la photo », la croix du
+coin la retire ; les adresses locales sont libérées au retrait et à la fermeture. Posé sur
+« Déclarer un incident » et « Réceptionner le retour » ; l'acte enregistre toujours les noms.
+
+**Tablette** (*« la version tablette est loin d'être convenable ; le menu latéral devrait exister
+en mode rétracté uniquement »*).
+- La barre latérale n'existe que **repliée sous 1280** (`MEDIA.bureau`, nouveau) : déployée,
+  elle prenait 240 px d'un iPad en paysage (1024 à 1194). Elle ne se déploie qu'au bureau.
+- `MEDIA.twoColumn` passe de **1280 à 1100** : le seuil supposait la barre déployée
+  (1280 − 240) ; avec la barre repliée, 1100 − 64 donnent la même largeur. À 1180, les fiches
+  (équipement, personne, type, site, rôle, groupe), les panneaux (Tâches, Inventaire physique),
+  les tableaux (Actifs, Historique) et l'accueil prennent leur mise en page de bureau ; ils
+  restaient sur une colonne étirée sur 1 000 px. Sous 1100 (iPad en portrait, 1024), la
+  colonne unique reste.
+- **Reste** : Finances et quelques grilles suivent les classes `large:` (1200), pas
+  `twoColumn` ; entre 1100 et 1199 elles gardent leur forme en colonne.
+
+Mesuré : barre de 64 à 820, 1024, 1133 et 1180, contenu de 756 à 1 116 px, aucun débordement ni
+erreur sur vingt écrans par taille.
+
+### Tablette au doigt : rien ne se révèle au survol (25/09)
+
+Relevé en émulant une vraie tablette (écran tactile, `hover: none`) à 1180 × 820 : depuis le
+passage de `twoColumn` à 1100, les Actifs et l'Équipe s'ouvraient en **tableau** sur un iPad en
+paysage, avec **28 et 11 commandes invisibles** (case de sélection, ⋮ de rangée, révélées au
+survol seulement) et 17 et 14 cibles sous 40 px. Corrigé : `useListView` n'ouvre le tableau par
+défaut qu'**à la souris** (`MEDIA.hoverCapable`) — au doigt, les cartes ; le tableau reste au
+choix — et `DataTable`, sans survol, affiche en permanence la case et les actes. Remesuré : 0
+commande cachée, 0 cible trop petite sur Actifs, Équipe et Historique.
+
+### Format tablette, lot P1 : le rail à mots, deux colonnes dès 1 000, filtres et feuilles (25/09)
+
+Appliqué à la demande (*« applique le P1 »*) de la proposition « format tablette » publiée le même
+jour (revue mesurée au doigt, lignes directrices Material 3 et iPadOS). Trois lots.
+
+**P1a — le rail porte ses mots.** Sous 1 280, la barre repliée n'était que des glyphes de 20 dans
+64 px, et leurs noms des infobulles qu'un doigt ne fait jamais paraître. Sur tablette, la barre
+devient le rail de Material : **80 px, le glyphe de 24 dans un creux de 56 × 32, le mot en 12 sur
+16 dessous**, et **sept cases au plus**. Un compte de sept destinations ou moins les voit toutes ;
+au-delà, les quatre principales, puis l'inventaire physique et les finances, et « Plus », qui
+ouvre le reste **à droite du rail** (nouveau `placement="right"` du `Menu` flottant), par groupes
+séparés d'un filet ; la case « Plus » s'allume quand on est sur l'une de ses pages. Le menu du
+compte s'ouvre lui aussi à droite du rail, au lieu de le couvrir. **Écart assumé contre 00.3 et
+l'arbitrage du 22/09** : 00.3 dessine le rail à 88 avec le mot en 11, le 22/09 avait retiré le
+mot (noms coupés à 64 px). À 80 px et 12 px, les sept mots tiennent sur une ligne ; au rail,
+l'inventaire physique porte le libellé du registre, « Inventaire ». Le **bureau replié** (≥ 1 280,
+à la souris) garde les glyphes seuls et leurs infobulles.
+
+**P1b — deux colonnes dès 1 000.** `MEDIA.twoColumn` passe de 1 100 à **1 000** : l'iPad de 1 024
+en paysage (944 px à côté du rail) prend enfin les fiches à deux colonnes, les panneaux à deux
+niveaux et l'accueil en grille. Un écran Tailwind **`deux:`** (1 000) suit le même seuil pour ce
+qui attendait `large:` (1 200) : Finances (tuiles, histogramme, postes), l'index des Paramètres et
+l'amortissement, les formulaires à double mesure (`COLONNES_FORMULAIRE`, `MESURE_DOUBLE`, le bouton
+d'enregistrement), les ajouts d'équipement et de personne, l'import de référentiels.
+
+**P1c — filtres et feuilles.** `BottomSheet` reçoit un **emploi** : `acte` (défaut) ou `filtre`. Une
+feuille de filtre monte du bas au téléphone ; **de 600 à 839, du bas encore mais 640 de large au
+plus** ; **dès 840, en panneau de 360 à droite, sur toute la hauteur et sur un voile de 12 %**,
+pour que la liste filtrée reste lisible. Son pied (« Tout effacer · Voir les N », marqué
+`data-pied`) descend au bas du panneau et y reste. Les huit feuilles de filtre sont passées
+(Actifs, Équipe, Tâches, Catalogue, Historique, Dépenses, relevé d'inventaire, périmètre de la
+campagne). Les feuilles d'acte — `BottomSheet` en emploi `acte` et `ActSheet` — restent centrées
+au-delà du téléphone mais **ne dépassent plus 640 px de haut** (la feuille de formulaire
+d'Apple) : « Remettre l'équipement » montait à 90 % d'un iPad debout.
+
+Mesuré (émulation tactile à 768 × 1024, 820 × 1180, 1024 × 768, 1180 × 820 ; souris à 1 440) :
+rail de 80, sept cases de 62 px, aucun mot coupé ; « Plus » à 8 px du rail ; filtre de 640 × 507
+en bas à 768 et 820, panneau de 360 × hauteur de fenêtre dès 1 024, pied à 12 px du bas ; feuille
+d'acte de 560 × 640 au plus ; formulaires sur deux colonnes dès 1 024, une à 820 ; aucun
+débordement horizontal.
+
+Le rail selon le compte : super admin et admin — six cases et « Plus » (Catalogue, Emplacements,
+Historique, Rapports, Accès) ; manager — sept destinations, toutes au rail, sans « Plus » ;
+employé — quatre cases, « Mon historique » sur deux lignes. Balayage des quatre comptes à 393,
+768, 1 024 et 1 440 sur vingt-deux écrans : aucune panne.
+
+### Format tablette, lot P2 : liste et fiche dès 840, un panneau tenu, la densité suit le pointeur (25/09)
+
+Appliqué à la demande (*« applique le P2 »*). Trois lots.
+
+**P2a — la liste et la fiche côte à côte, dès 840.** Actifs, Équipe et Historique posent, en
+cartes, **la liste fixe de 360 px à gauche et la fiche dans le reste** (`ListTemplate
+listeEtFiche`) ; toucher une rangée ouvre l'objet à droite, la rangée ouverte garde le creux
+`--inset-2`. La fiche est **la page elle-même** (`EquipmentDetailsPage`, `UserDetailsPage`) rendue
+dans le panneau (`PanneauDeFiche`, `FicheEnPanneauContext`) : mêmes cartes, mêmes gestes ;
+`DetailTemplate` y pose un en-tête sans retour — le nom en titre de feuille, « Ouvrir en pleine
+page », le ⋮ — et une seule colonne. Pour l'Historique, le fait s'y lit dans une carte
+(`FactSheet enPanneau`), et le tableau du journal exige désormais une souris. **L'objet ouvert est
+dans l'adresse** (`?ouvert=ID`, `useObjetOuvert`) : un rechargement, un lien, le retour depuis la
+pleine page le retrouvent ; sous 840 — un iPad qu'on tourne —, la liste passe la main à la page
+de l'objet (ou à la feuille du fait), et le retour ramène à la liste sans rebondir. Changer
+d'objet n'est pas un pas du chemin parcouru. Au tableau, la rangée ouvre la page, comme avant ;
+au bureau à la souris, le tableau reste le défaut et rien ne change. **Tâches** ouvre son panneau
+dès 840 (au lieu de 1 000), avec la file à 360 sous 1 280 ; au-delà, les douzièmes de 03.3.
+
+**P2b — un panneau tenu.** De 600 à 999, et dans le panneau d'une liste, **le héro met ses chiffres
+en ligne** sous un filet au lieu de tuiles de 70 px : le héro d'un actif passe de 439 à 358 px à
+768. Les cartes d'une fiche vont **par deux** dès que leur colonne fait 680 px (requête de
+conteneur, pas de fenêtre) : Référence à côté de Garantie, Réglages à côté de Modèles ; la fin de
+page (l'historique) garde la largeur. **Écart avec la proposition** : à 768 (colonne de 640), la
+paire laissait 312 px à la carte de référence et coupait le numéro de série ; le seuil est posé à
+680, la paire vaut donc dès 820 (iPad Air, Pro 11) et 768 garde une colonne. À 820, un numéro de
+série de 13 signes perd encore 8 px (coupé sur une ligne, copiable en entier). La colonne de 720 de
+la proposition ne se pose pas : avec le rail de 80, le contenu fait au plus 711 px sous 840. Ligne
+la plus longue mesurée : 41 à 48 signes (104 avant, à 768).
+
+**P2c — la densité suit le pointeur.** Une variante Tailwind **`doigt:`** (fenêtre ≥ 840 tenue
+sans souris, `pointer: coarse`) rend leurs 48 px aux gestes de 40 du chrome du bureau : boutons
+d'en-tête et d'outils, tri, bascule Cartes / Tableau, recherche, filtre, carré d'icône, rangées de
+la barre latérale. Repliée au doigt au-delà de 1 280, la barre devient le rail à mots (une
+infobulle ne paraît jamais sous le doigt). Mesuré à 1 366 × 1 024 au doigt (iPad 13") : **aucune
+cible sous 44 px** sur sept écrans (12 à 19 par écran avant) ; à 1 440 à la souris, rien ne change
+(rangées de 40, glyphes seuls repliée).
+
+### Format tablette, lot P3 : les largeurs libres et le clavier (25/09)
+
+Appliqué à la demande (*« applique le P3 »*).
+
+**Les largeurs d'iPadOS 26.** Les fenêtres s'y redimensionnent librement : le produit a été
+balayé à **500, 600, 744, 820, 840, 1 024, 1 133, 1 180, 1 280 et 1 376 px**, au doigt, sur
+vingt-quatre écrans (listes, fiches, finances, réglages, formulaires, tâches). Rien ne déborde,
+rien ne casse. La navigation bascule où elle doit : barre du bas sous 600, rail à mots de 600 à
+1 279, barre déployable dès 1 280 ; la liste et la fiche dès 840. Le relevé mesure la **zone de
+frappe réelle** (la couronne `::before` comprise) contre 44 px. Trois lacunes, corrigées :
+- **la variante `doigt:` commençait à 840** : le rail (600–839) porte déjà le chrome du bureau, et
+  « Filtrer » et le tri y restaient à 40 au doigt. Elle vaut dès 600 ; le téléphone ne change pas ;
+- **les pastilles** (`FacetChip`) n'avaient aucune couronne, au téléphone comme ailleurs : elles
+  reçoivent `touch-target` (48 de frappe, rien de visible), et la bande du bureau ses 48 visibles ;
+- **le chiffre cliquable d'une carte** (`Figure`, « 14 actifs » de l'accueil, 65 × 28) reçoit la
+  couronne. « Choisir » (59 × 35) et l'ⓘ de la campagne (18 × 18) avaient déjà la leur.
+
+**⌘K (Ctrl+K) pour chercher.** Le curseur va dans la recherche de la page (`ListTemplate` la
+marque `data-recherche-de-page`), ou dans celle de la feuille ouverte — le choix d'un
+bénéficiaire ; sur une page sans recherche, Actifs s'ouvre, le curseur dans son champ. Au bureau,
+à la souris, le champ vide porte la marque « ⌘K » (« Ctrl K » hors Mac) en encre tertiaire, qui
+s'efface au focus.
+
+**Échap pour fermer — une chose à la fois, la plus proche.** Les feuilles, dialogues, menus et
+aperçus le traitaient déjà. S'y ajoutent : le viseur de scan (la saisie manuelle d'abord), la
+**fiche ouverte à côté d'une liste**, la tâche ouverte dans le panneau de Tâches, et la
+**sélection groupée**. La page ne ferme rien tant qu'un calque est ouvert (`lib/clavier.ts`).
+Dans la recherche, Échap vide le champ, puis rend la main à la page.
+
+**Relevé en passant — un acte engagé depuis la fiche d'un panneau.** « Attribuer » dans la fiche
+ouverte à côté d'Actifs posait la **page** de l'actif sous la feuille, et la refermer y restait :
+la liste était perdue. L'adresse de l'acte garde maintenant l'objet ouvert (`ouvert=`) : la liste
+et sa fiche restent sous la feuille, et la refermer y ramène. La coque retenait aussi, dans un
+rendu intermédiaire, l'adresse de l'acte comme « écran précédent » ; elle ne retient plus une
+adresse d'acte.
+
+Mesuré au banc : quatorze vérifications clavier sur quatorze (⌘K et Ctrl+K, depuis une liste,
+depuis Finances, dans une feuille ; Échap sur la recherche, une feuille puis la fiche, un acte,
+la sélection, une tâche).
+
+### Le mouvement : ouvertures, fermetures, passages (26/09)
+
+Demandé : *« améliore les animations et les transitions — les ouvertures, fermetures, etc. »*.
+
+**Ce qu'on a relevé.** Les feuilles ne glissaient que de **16 px** (`slide-in-from-bottom-4`) : elles
+apparaissaient en fondu au lieu de monter du bord. **Trois classes employées n'existaient pas** —
+`slide-in-from-bottom` (la feuille « Plus » du téléphone, `Modal`), `slide-in-from-left-4` (le
+panneau de gauche), `medium:zoom-in-95` (une classe CSS écrite à la main ne prend pas de variante) :
+ces surfaces ne bougeaient pas. **Les durées `duration-short4` · `duration-medium2` ne réglaient
+que les transitions**, pas les animations : le menu s'ouvrait en 300 ms au lieu de 200. Et **la
+moitié des surfaces se démontaient à la fermeture** : feuilles d'acte, confirmations, menus, feuille
+« Plus », aperçus de photo, feuille de demande — elles disparaissaient d'un coup.
+
+**Sept rôles de mouvement** (`index.css`, « Le mouvement du produit »), sur les jetons de Material 3 —
+entrer décélère sur 250 à 400 ms, sortir accélère sur 100 à 200 ms :
+- `mvt-feuille-*` — la feuille du bas **monte du bord de l'écran** (400 ms) et y redescend (200) ;
+- `mvt-dialogue-*` — le dialogue centré se pose (fondu, 97 %, 8 px ; 250) et s'efface (150) ;
+- `mvt-panneau-*` — le panneau latéral glisse de son bord (400) et y retourne (200) ;
+- `mvt-voile-*` — le voile suit sa surface ; `mvt-menu-*` — le menu se déplie depuis son ancre (200)
+  et s'efface (100) ; `mvt-contenu` — un contenu en remplace un autre (fondu, 6 px) ; `mvt-barre`.
+
+**Toute surface part comme elle est venue.** `usePresence` garde une surface montée le temps de sa
+sortie (filet de sécurité à 400 ms) ; `useDerniereValeur` garde son contenu quand l'appelant la
+montait sur `{acte && …}`. Posés sur `BottomSheet`, `ActSheet`, `ConfirmationSheet`, `SideSheet`,
+`Modal`, `Menu`, la feuille « Plus », `ImagePreview`, `PhotosJointes` ; les feuilles d'acte de la
+coque, de la fiche, des tâches et de l'approbation restent montées et reçoivent `open`. Une feuille
+d'acte se remet à zéro à **l'ouverture** — remise à la fermeture, elle sautait d'étape en partant.
+Tirée vers le bas puis lâchée, une feuille **repart de là où le doigt l'a laissée** (elle remontait
+d'un coup avant de redescendre). Pendant sa sortie, elle ne retient plus le doigt.
+
+**Le passage d'une page à l'autre** (`useTransitionDePage`, API Web Animations, sans remonter la
+page) : **fondu** d'une destination à l'autre (200 ms) ; **de la droite** en descendant d'un cran,
+**de la gauche** en remontant (300 ms, 24 px). Une feuille ouverte sur une page ne change pas la
+page : rien ne bouge. Un formulaire plein écran (`data-plein-ecran`) garde sa propre entrée — il
+monte du bord au téléphone — et termine l'animation de ses ancêtres, qui le cadreraient sinon.
+Les entrées propres de `PageContainer` (500 ms) et de Finances, qui s'y seraient ajoutées, tombent.
+
+**Les petits mouvements.** La fiche qui en remplace une autre dans le panneau d'une liste, la tâche
+ouverte dans Tâches : fondu. La barre latérale se replie en glissant (250 ms). Une rangée de liste
+s'éclaire sous le doigt, jusqu'aux bords de sa carte. La barre de la sélection groupée monte du bas.
+
+**Réduire les animations** : rien ne bouge (la règle globale ramène tout à 1 ms), et les surfaces
+se ferment quand même. Mesuré au banc (`document.getAnimations()`) : 29 vérifications sur 29 —
+téléphone, tablette, bureau, mouvement réduit —, un formulaire plein écran calé sur la fenêtre à
+chaque image de son entrée, et les quatorze vérifications clavier du P3 toujours vraies.
+
+### Revue du texte et de l'espacement, trois formats (26/09)
+
+Demandé : *« revue spacing, police, typographie des versions mobile, tablette et desktop »*, puis
+*« fais des recherches en ligne pour t'inspirer des meilleures applications »*. Relevé mesuré de
+24 écrans à 393, 820 et 1 024 au doigt et 1 440 à la souris (fonte, taille, interligne, graisse de
+chaque texte ; retrait, gouttière et écart de chaque carte), comparé à Material 3, Apple, Primer,
+Atlassian, Polaris, Carbon, Fluent 2 et aux règles d'Inter. Proposition publiée :
+https://claude.ai/artifact/FurEuKeEgkY2AcZXVQDGsu
+
+**Conforme aux références** : corps 16/24 au téléphone et 14/20 au bureau, tablette au doigt sur
+l'échelle du téléphone (l'iPad reprend celle de l'iPhone), gouttières 16 · 25 · 31 · 40, écart de
+16 entre cartes, rangées 72/68, lignes de 41 à 48 signes, graisses 400 · 500 · 600 ; 89 à 91 % des
+textes dans l'échelle.
+
+**Corrigé** : les en-têtes du tableau des lignes du budget sortaient en 700 (un `th` natif n'hérite
+pas de la graisse de sa rangée) → 500 ; les initiales des « Derniers événements » tenaient 13 dans une
+vignette de 40 → la taille de rangée de toutes les autres vignettes.
+
+**En attente d'arbitrage** (lots de la proposition) : un seul retrait de carte (16 au téléphone,
+20 dès 600 — aujourd'hui 16 et 20 mêlés dans chaque format) ; les phrases écrites en 12 (13 au
+téléphone, 19 au bureau) au texte secondaire ; les interlignes hors échelle (12/18, 14/21, tuiles
+22/26) ; le chrome de la tablette au doigt aux tailles du téléphone ; titre de page 28/34 ;
+approche d'Inter et montants d'affichage à 40/48.
+
+**Décidé et appliqué** (*« décide pour moi »*, 26/09) :
+- **Retrait des cartes : 16 partout**, et non 20 dès la tablette comme proposé d'abord. Le bureau a
+  choisi le 22/09 la densité des outils de travail (texte en 14) ; Primer et Material posent 16 à
+  toutes les tailles ; toutes les rangées sont calées sur 16 (rangée cochée ou ouverte jusqu'aux
+  bords, filets pleine largeur). Dix-sept cartes à 20 ramenées à 16 (Accès, fiche d'un modèle,
+  campagne, Rapports, Finances, amortissement, imports) ; dans les Accès, les `RuleGroup` perdent
+  leur `px-5` et leurs rangées pleine largeur (`-mx-5` → `-mx-4`) — leur pied de note, calé sur 16,
+  restait décalé de 4 px. Le héro sombre et les panneaux qui reprennent une feuille gardent 20.
+- **Les phrases au secondaire** (`text-ts-sub`, 14 puis 13 au bureau) : sous-lignes et notes de
+  `RuleGroup` (écart assumé contre 14.1, qui les dessine en 12 — elles passent à la ligne plutôt que
+  de serrer la valeur), note du héro, notes du Catalogue et de l'accueil, `Notice`, notes des
+  sous-écrans de Réglages, de l'import et d'une dépense. Le 12 reste aux étiquettes, dates, comptes,
+  surtitres et légendes de figure.
+- **Interlignes** remis dans l'échelle (lien de pied de carte, rangées de l'accueil, chiffres de la
+  bande en 22/28, « depuis N jours »). Piège relevé : `cn()` retire `leading-*` quand une taille de
+  texte suit dans les classes d'un bouton — poser l'interligne après la taille.
+- **Chrome de la tablette au doigt** aux tailles du téléphone (`doigt:text-ts-*`) : boutons d'en-tête
+  15, pastilles et menus de filtre 15, tri et compte 14, rangées de la barre latérale 14, recherche
+  **16** (sous 16, Safari agrandit la page au focus).
+- **Titre de page 28/34** au doigt (`--tk-ts-page-line`), 24/32 au bureau
+  (`--tk-ts-page-line-bureau`, et `.page-title`).
+- **Grands montants 44 → 40/48**. L'approche d'Inter n'est pas touchée.
+
+Remesuré : 92 à 94 % des textes dans l'échelle (91 avant), cartes à 16 sur les quatre formats,
+phrases en 12 de 13 à 7 au téléphone et de 19 à 8 au bureau (légendes seulement), aucune graisse
+700 ; balayage des quatre comptes sans panne.
+
+### Le mouvement, seconde vague : la page s'assemble, les mesures se remplissent (26/09)
+
+Demandé : *« encore plus de fluidité et plus d'animations, mobile, tablette et desktop »*.
+Toujours sur les jetons de Material 3, et rien ne bouge sous « Réduire les animations ».
+
+- **La page s'assemble à son arrivée** (`useEntree`, fenêtre de 900 ms) : les rangées d'une liste
+  (`data-rangee` sur `ListRow`, `SelectableRow`, les rangées de l'Historique et les `tr` de
+  `DataTable`) et les cartes d'une fiche, de l'accueil, de Finances, des Réglages, des Rapports et
+  de la campagne entrent en cascade — fondu et 6 px, 25 ms d'écart, les douze premières. Une rangée
+  montée ensuite (au défilement, par un filtre) arrive sans cascade. Dans le panneau d'une liste, la
+  fiche garde son seul fondu.
+- **Les chiffres comptent** (`ChiffreAnime`) : la bande de l'accueil (`Figure`), les tuiles de
+  Finances, les grands nombres de l'accueil, de la campagne, des Dépenses et des Lignes du budget —
+  de 0 à leur valeur en 700 ms, puis de l'ancienne à la nouvelle quand elle change. Seuls les entiers
+  comptent ; la largeur finale est réservée (rien ne bouge autour) ; le lecteur d'écran lit la valeur
+  finale.
+- **Les jauges se remplissent** (`mvt-jauge`, 20 barres, `ProportionRow` compris) depuis la gauche,
+  et glissent quand leur valeur change ; **l'histogramme** de Finances monte mois après mois.
+- **La navigation répond** : le creux de la destination choisie se déploie dans le rail ; l'icône
+  choisie de la barre du bas rebondit.
+- **Les petits contrôles** : la coche d'une case arrive avec un rebond, le chevron d'un menu de
+  filtre pivote à l'ouverture, pastilles et bascule Cartes / Tableau changent de couleur en fondu ;
+  les faits dépliés de l'Historique arrivent en fondu.
+- **Le défilement reste où il est** : feuilles, feuille d'acte, confirmation, panneau latéral,
+  « Plus » et panneau d'une liste ne propagent plus leur défilement à la page (`overscroll-contain`).
+
+Relevé en passant : l'avance d'un compte pouvait être négative une image (horodatage antérieur au
+départ) — un chiffre passait par « −3 » ; bornée. Mesuré (`document.getAnimations()`) : 19
+vérifications sur 19 aux trois formats et en mouvement réduit ; 1 277 images de chiffres sans valeur
+négative.
+
+### Tâches au bureau, refondue : la file dit ce qui presse et se traite sans la quitter (26/09)
+
+Proposée le 26/09 (relevé mesuré au banc, maquette, six lots), acceptée telle quelle (*« okay go »*),
+avec les réponses recommandées aux trois questions : retard en ambre à 3 jours et en rouge à 7, liste
+fixe de 400, « ce qui presse d'abord » par défaut.
+
+- **« À faire » = ce que vous pouvez faire, et un seul décompte.** La file est construite une fois
+  (`features/tasks/lib/file.ts`, `useFileDeTaches`) ; la page, l'accueil, la barre latérale et la
+  barre du bas la lisent. La règle est `approvalAttendLActeur` (nouvelle, dans `businessRules`) : le
+  manager du bénéficiaire pour une validation, l'informatique pour une remise, le bénéficiaire pour
+  une réception. Le super administrateur est l'informatique et le manager de ceux qu'il encadre ; ce
+  qu'il peut forcer passe dans « À suivre », avec ses gestes, écrits « à sa place ». Relevé avant :
+  super administrateur, barre 9, onglet 17, 8 tâches lui revenant ; après : 8 partout, Manager 3 = 3,
+  Admin 8 = 8, Employé 1 = 1.
+- **« À suivre » nomme qui a la main** : « chez Jane Manager », « chez l'informatique », « réception à
+  confirmer » — depuis la dernière transition, pas depuis le dépôt.
+- **La file dit ce qui presse** : groupes « En retard · 7 jours et plus », « Cette semaine »,
+  « Aujourd'hui », l'urgence signalée en tête de chacun ; l'âge en ambre dès 3 jours, en rouge dès 7 ;
+  la marque « Urgent » ; au bureau, la nature écrite sur la rangée. Deux filtres rapides, « Urgentes »
+  et « En retard », avec leur compte. L'ordre a trois crans (ce qui presse, les plus anciennes, les
+  plus récentes). Le téléphone prend les groupes et les couleurs ; la nature y reste à la vignette.
+- **Liste de 400 dès 1 200** (360 en deçà), la tâche prend le reste — à toutes les largeurs du bureau.
+- **Le panneau de décision** (`PanneauDeTache`) : la nature et l'urgence, l'objet et pour qui, le
+  motif, **trois faits** (coût estimé et reste de la ligne « Matériel IT » pour qui lit la finance ;
+  stock au site du bénéficiaire et ailleurs, ou l'unité proposée pour une dotation ; ce que la personne
+  détient de pareil et depuis combien d'années), **l'unité à remettre** choisie sur place, **le
+  parcours** (partagé avec 06.5, `lib/parcours.ts`), et un pied qui reste en bas : **un seul acte
+  appuyé**, « Refuser » en second. Sous 520 de panneau, les trois faits deviennent une carte à trois
+  lignes.
+- **Refuser s'écrit dans le pied** : motifs courants en puces (selon l'étape), texte libre, motif
+  obligatoire (le champ le dit), ⌘/Ctrl + Entrée pour refuser, Échap pour se reprendre.
+- **La file s'enchaîne** : la tâche ouverte vit dans l'adresse (`?ouvert=`), la première s'ouvre à
+  l'arrivée, et quand elle quitte la file (décidée, filtrée, changement d'onglet) celle qui prend sa
+  place s'ouvre. Seul Échap laisse le panneau vide.
+- **Valider et refuser se défont au lieu de s'attester** : la décision n'est écrite qu'au bout de
+  cinq secondes ; sa tâche quitte la file et un bandeau propose « Annuler » (Z). Quitter la page ou la
+  fenêtre écrit ce qui attendait. Le bandeau est **à part du snackbar**, dont la file d'attente aurait
+  pu montrer « Annuler » après l'écriture.
+- **La remise depuis le panneau** ouvre la feuille de remise avec la demande, la personne **et
+  l'unité choisie** ; `ouvert=` suit : la file reste dessous et on y revient.
+- **Le clavier** : J/K, A (l'acte), R (refuser), Entrée (la demande), X (cocher), Z (se reprendre),
+  « ? » (l'aide), marqués dans le pied sous un pointeur fin. **Valider en lot** : une case au survol
+  de la vignette ; « Valider les N » quand la sélection ne compte que des validations de même étape.
+
+**Arbitrages contre les planches, à reporter :**
+
+- **17.4** — au bureau, valider et refuser une demande **ne demandent plus le code personnel** : cinq
+  secondes pour se reprendre à la place. Au téléphone rien ne change (06.5 et la feuille d'acte). La
+  remise et la réception gardent leur attestation.
+- **17.5** — le bandeau « Annuler » dure 5 s et vit hors du snackbar (4 s, non négociable).
+- **03.3** — la file de 400 remplace les douzièmes au bureau ; l'ordre par défaut devient « ce qui
+  presse d'abord » ; la nature revient écrite sur la rangée du bureau (la passe du 02/09 l'avait
+  confiée à la seule couleur).
+- **03.1** — l'accueil lit la file entière : la remise y prend l'ambre, la réparation l'orange.
+- **06.5** — le parcours ne marque « en attente » que l'étape courante, et nomme le manager.
+
+Relevé en passant : les remises et retours d'objets revenaient à « tout rôle sauf l'utilisateur » —
+un manager y trouvait des remises qu'il ne pouvait pas faire, et jamais la réception de son propre
+objet ; ils reviennent à qui gère l'inventaire, dans son périmètre (`filterEquipment`).
+
+Mesuré au banc riche : 30 vérifications sur 30 (quatre comptes, bureau, tablette, téléphone) — dont
+badge = onglet = accueil, J/K, A puis Z, écriture à 5 s, refus sans motif puis avec, onglet suivi,
+Échap, lot, remise sur la file ; la ligne d'outils tient à 1 440 (champ de 280, « Ce qui presse »).
+
+#### Tâches au bureau : alignée sur la maquette de la proposition (26/09, seconde passe)
+
+Relevé de l'utilisateur : *« la page n'est pas 100 % fidèle à la page proposée »*. Comparée
+propriété par propriété à la maquette (`.mq` de la proposition), puis reprise :
+
+- **En-tête** : les trois partitions en **onglets segmentés à côté du titre** (`Onglets`, nouvelle
+  primitive), sans ligne de compte. `ListTemplate` reçoit `titreAnnexe` et `outilsBureau`.
+- **Ligne d'outils** : champ de 300 × 36, puces de 32 « Toutes · Urgentes · En retard » avec leur
+  compte, « Ce qui presse d'abord » à droite ; le menu Nature quitte le bureau (la nature est écrite
+  sur la rangée et se cherche par son nom).
+- **Rangée** : vignette de 36 (12 en 600), titre 14/20 en 500 et la nature en puce, sous-ligne d'une
+  ligne « personne · motif » ou « personne, par … », âge « 0 j », « Urgent » en 11/16 600 ; au
+  bureau la remise garde le bleu de la vignette ; la rangée ouverte prend le creux et un filet court.
+  « À suivre » : « ⏸ chez Jane Manager depuis 15 j », et « Relancer » en ambre à la place de l'âge.
+- **Groupes et couleurs tels que dessinés** : « En retard · plus de 7 jours » (au-delà de 7), la
+  semaine en ambre, le jour même en gris. La maquette et la question de la proposition divergeaient
+  (« ambre dès 3 jours ») : le dessin l'emporte. Les âges comptent depuis **le dépôt** de la demande,
+  comme la maquette.
+- **Panneau** : titre Archivo 600 20/28 tout à l'encre ; « demandée hier par … · validée par … »
+  (l'auteur de la validation lu dans le journal, jamais supposé) ; faits à 15/20 en 600 ;
+  unités « LPT-HQ-07 · Bureau Paris · reçue le 12/09 » ; **frise du parcours** à points
+  (`etapesDeLaFrise`, auteurs et heures du journal) ; pied à gestes de 40 sans icône, « J K tâche
+  suivante · ↵ détail » (l'indication « détail » est cliquable ; au doigt, la porte reste écrite).
+- **Bandeau** : surface inversée, message en 14, « Annuler » en jaune 600 ; plus d'icône ni de jauge.
+
+Écarts qui restent, et pourquoi : le ⏸ est en graisse *regular* (I2 réserve *fill* à l'onglet
+actif) ; les rayons de 6 de la maquette prennent 4 (le registre ne connaît que 2, 4 et 8) ; l'ordre
+dans un groupe suit la règle « urgence, puis la plus ancienne » là où la maquette rangeait « Cette
+semaine » dans l'ordre des données. Mesuré : 30 vérifications de gestes sur 30, largeurs 30 relevés
+sans défaut, DS et sonde `cn()` propres.
+
+### La sélection groupée au bureau (26/09)
+
+Demandé : *« corrige la mise en forme lorsqu'on fait une sélection dans une liste »*. 17.2 est
+dessinée au téléphone, et le bureau la prenait telle quelle : une barre sombre remplaçait tout
+l'en-tête (titre compris, la liste remontait de 64), un pied **pleine fenêtre** passait sous la
+barre latérale et étirait « Exporter » sur 1 348 px ; dans Tâches, le panneau se retirait et la
+liste sautait de 400 à 1 008 px en changeant d'alignement.
+
+- **Dès 600 (rail et bureau), le titre reste** ; la ligne d'outils cède la place à
+  `SelectionBarBureau` — dans les marges de la page, à la hauteur de la ligne (40, 48 au doigt) :
+  la croix, « 2 sur 14 », « Tout » / « Aucun », puis les gestes **à leur largeur** (32, 40 au
+  doigt) et le ⋮, qui s'ouvre alors vers le bas (`BulkOverflow` lit `DansLaBarreDeSelection`).
+- **Plus de pied au bureau** : `BulkActionBar` ne vit plus qu'au téléphone.
+- **Le panneau d'une liste reste** et résume : « 2 dans la sélection — les gestes de la barre
+  s'appliquent à chacun. Échap pour en sortir. » La liste ne bouge plus.
+- Le Catalogue, qui compose son en-tête lui-même, prend la même barre (600–839 : au-delà, il est
+  en cartes et ne sélectionne pas).
+- Le téléphone ne change pas : barre sombre en haut, pied en bas (17.2).
+
+**Arbitrage contre 17.2, à reporter** : au bureau, la sélection ne remplace plus l'en-tête et le
+panneau ne se retire plus. Mesuré : Actifs (tableau), Tâches, Équipe au bureau, Actifs et
+Catalogue à 768 au doigt, téléphone — 14 vérifications sur 14 (la première rangée ne bouge pas,
+« Exporter » à 77 px, ⋮ sous la barre, Échap sort) ; gestes de Tâches 30/30, clavier 14/14,
+mouvement 17/17.
