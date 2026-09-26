@@ -1313,6 +1313,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * 06/09 : résidus dans « À traiter », dans « Tâches » et dans « Équipements ».
      */
     const empreintesRef = useRef<Record<string, Map<string, string>>>({});
+    /**
+     * **Les empreintes se posent dès la lecture** (26/09). Elles n'étaient remplies qu'à la
+     * première écriture : juste après l'hydratation, chaque collection se comparait à une
+     * carte vide, tout paraissait modifié, et **chaque ouverture de l'application réécrivait
+     * la base entière** — ~1 000 écritures par visite, le quota quotidien du plan gratuit
+     * (20 000) épuisé en une vingtaine de visites. L'hydratation grave donc l'empreinte de ce
+     * qu'elle vient de lire, calculée sur la valeur exacte que la persistance comparera.
+     *
+     * `documentsIsolesRef` fait de même pour les documents isolés (`meta/settings`,
+     * `meta/locations`, `meta/serviceManagers`) : réécrits à chaque changement d'état,
+     * hydratation comprise, sans comparaison.
+     */
+    const documentsIsolesRef = useRef<Record<string, string>>({});
 
     useEffect(() => {
         usersRef.current = users;
@@ -1425,84 +1438,123 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                  * sait les reconnaître — c'est le même test que celui qui les empêche
                  * désormais de partir.
                  */
+                /* Chaque valeur lue grave son empreinte avant d'entrer dans l'état : la
+                   persistance la retrouvera identique, et n'écrira rien (voir
+                   `empreintesRef`). */
+                const graver = <T extends object>(
+                    cle: string,
+                    items: readonly T[],
+                    getId?: (item: T) => string | undefined,
+                ) => {
+                    empreintesRef.current[cle] = documentsModifies(
+                        items,
+                        new Map(),
+                        getId,
+                    ).empreintes;
+                };
+
                 if (firebaseUsers.length > 0) {
-                    setUsers(
-                        firebaseUsers
-                            .filter((user) => !isDemoSeedUser((user as User).id))
-                            .map((user) => normalizeUserRecord(user as User, user as User)),
-                    );
+                    const lus = firebaseUsers
+                        .filter((user) => !isDemoSeedUser((user as User).id))
+                        .map((user) => normalizeUserRecord(user as User, user as User));
+                    graver('users', lus);
+                    setUsers(lus);
                 }
 
                 if (firebaseEquipment.length > 0) {
-                    setEquipment(
-                        firebaseEquipment
-                            .filter((item) => !isDemoSeedEquipment((item as Equipment).id))
-                            .map((item) =>
-                                normalizeEquipmentRecord(item as Equipment, item as Equipment),
-                            ),
-                    );
+                    const lus = firebaseEquipment
+                        .filter((item) => !isDemoSeedEquipment((item as Equipment).id))
+                        .map((item) =>
+                            normalizeEquipmentRecord(item as Equipment, item as Equipment),
+                        );
+                    graver('equipment', lus);
+                    setEquipment(lus);
                 }
 
                 if (firebaseDetectedDevices.length > 0) {
+                    graver('detectedDevices', firebaseDetectedDevices);
                     setDetectedDevices(firebaseDetectedDevices);
                 }
 
                 if (firebaseCategories.length > 0) {
-                    setCategories(
-                        firebaseCategories.map((category) =>
-                            deserializeCategory(category, seededCategoryFamiliesRef.current),
-                        ),
+                    const lues = firebaseCategories.map((category) =>
+                        deserializeCategory(category, seededCategoryFamiliesRef.current),
                     );
+                    graver(
+                        'categories',
+                        lues.map((category) => serializeCategory(category)),
+                    );
+                    setCategories(lues);
                 }
 
                 if (firebaseModels.length > 0) {
+                    graver('models', firebaseModels);
                     setModels(firebaseModels);
                 }
 
                 if (firebaseApprovals.length > 0) {
-                    setApprovals(
-                        mergePersistedApprovalsWithSeed(
-                            firebaseApprovals.filter(
-                                (approval) => !estDemandeSansSujet(approval as Approval),
-                            ),
+                    const lues = mergePersistedApprovalsWithSeed(
+                        firebaseApprovals.filter(
+                            (approval) => !estDemandeSansSujet(approval as Approval),
                         ),
                     );
+                    graver(
+                        'approvals',
+                        lues.filter((approval) => !estDemandeSansSujet(approval)),
+                    );
+                    setApprovals(lues);
                 }
 
                 if (firebaseEvents.length > 0) {
+                    graver('events', firebaseEvents);
                     setEvents(firebaseEvents);
                 }
 
                 if (firebaseSettings) {
-                    setSettings({ ...DEFAULT_SETTINGS, ...firebaseSettings, currency: 'XOF' });
+                    const lus = { ...DEFAULT_SETTINGS, ...firebaseSettings, currency: 'XOF' };
+                    documentsIsolesRef.current.settings = JSON.stringify(lus);
+                    setSettings(lus);
                 }
 
                 if (firebaseLocations) {
-                    setLocationData(normalizeLocationData(firebaseLocations));
+                    const lus = normalizeLocationData(firebaseLocations);
+                    documentsIsolesRef.current.locations = JSON.stringify(lus);
+                    setLocationData(lus);
                 }
 
                 if (firebaseServiceManagers) {
+                    documentsIsolesRef.current.serviceManagers =
+                        JSON.stringify(firebaseServiceManagers);
                     setServiceManagers(firebaseServiceManagers);
                 }
 
                 if (firebaseRbacRoles.length > 0) {
-                    setRbacRoles(mergePersistedRbacRoles(firebaseRbacRoles));
+                    const lus = mergePersistedRbacRoles(firebaseRbacRoles);
+                    graver('rbacRoles', lus);
+                    setRbacRoles(lus);
                 }
 
                 if (firebaseRbacGroups.length > 0) {
-                    setRbacGroups(mergePersistedRbacGroups(firebaseRbacGroups));
+                    const lus = mergePersistedRbacGroups(firebaseRbacGroups);
+                    graver('rbacGroups', lus);
+                    setRbacGroups(lus);
                 }
 
                 if (firebaseRbacWorkflows.length > 0) {
-                    setRbacWorkflows(mergePersistedRbacWorkflows(firebaseRbacWorkflows));
+                    const lus = mergePersistedRbacWorkflows(firebaseRbacWorkflows);
+                    graver('rbacWorkflows', lus);
+                    setRbacWorkflows(lus);
                 }
 
                 if (firebaseRbacAssignments.length > 0) {
                     const referenceUsers =
                         firebaseUsers.length > 0 ? firebaseUsers : usersRef.current;
-                    setRbacAssignments(
-                        mergePersistedRbacAssignments(firebaseRbacAssignments, referenceUsers),
+                    const lues = mergePersistedRbacAssignments(
+                        firebaseRbacAssignments,
+                        referenceUsers,
                     );
+                    graver('rbacAssignments', lues, (assignment) => assignment.userId);
+                    setRbacAssignments(lues);
                 }
             } catch (error) {
                 /*
@@ -1650,11 +1702,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        void saveCollectionDocs(
-            firestore,
-            'categories',
+        const suivi = empreintesRef.current['categories'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(
             categories.map((category) => serializeCategory(category)),
+            suivi,
         );
+        empreintesRef.current['categories'] = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'categories', aEcrire);
     }, [categories]);
 
     useEffect(() => {
@@ -1698,6 +1752,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
+        const empreinte = JSON.stringify(settings);
+        if (documentsIsolesRef.current.settings === empreinte) return;
+        documentsIsolesRef.current.settings = empreinte;
         void saveSingleDoc(firestore, 'meta', 'settings', settings);
     }, [settings]);
 
@@ -1706,6 +1763,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
+        const empreinte = JSON.stringify(locationData);
+        if (documentsIsolesRef.current.locations === empreinte) return;
+        documentsIsolesRef.current.locations = empreinte;
         void saveSingleDoc(firestore, 'meta', 'locations', locationData);
     }, [locationData]);
 
@@ -1714,6 +1774,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
+        const empreinte = JSON.stringify(serviceManagers);
+        if (documentsIsolesRef.current.serviceManagers === empreinte) return;
+        documentsIsolesRef.current.serviceManagers = empreinte;
         void saveSingleDoc(firestore, 'meta', 'serviceManagers', serviceManagers);
     }, [serviceManagers]);
 
@@ -1758,12 +1821,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         /* Une affectation d'accès est nommée par la personne : `UserAccessAssignment`
            n'a pas de champ `id`. Sans ce troisième argument, l'écriture demandait un
            document sans nom et Firestore faisait tomber l'application. */
-        void saveCollectionDocs(
-            firestore,
-            'rbacAssignments',
-            rbacAssignments,
-            (assignment: UserAccessAssignment) => assignment.userId,
-        );
+        const parPersonne = (assignment: UserAccessAssignment) => assignment.userId;
+        const suivi = empreintesRef.current['rbacAssignments'] ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(rbacAssignments, suivi, parPersonne);
+        empreintesRef.current['rbacAssignments'] = empreintes;
+        if (aEcrire.length > 0) {
+            void saveCollectionDocs(firestore, 'rbacAssignments', aEcrire, parPersonne);
+        }
     }, [rbacAssignments]);
 
     useEffect(() => {
@@ -4357,7 +4421,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         ),
                     );
                     setUsers((prev) =>
-                        prev.map((user) => (user.site === oldName ? { ...user, site: newName } : user)),
+                        prev.map((user) =>
+                            user.site === oldName ? { ...user, site: newName } : user,
+                        ),
                     );
                 } else if (type === 'local') {
                     setEquipment((prev) =>

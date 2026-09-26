@@ -10,17 +10,14 @@ import React, {
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { mockFinanceBudgets, mockFinanceExpenses } from '../data/mockFinanceData';
-import {
-    FinanceBudget,
-    FinanceExpense,
-    FinanceExpenseInsertResult,
-} from '../types';
+import { FinanceBudget, FinanceExpense, FinanceExpenseInsertResult } from '../types';
 import { canManageFinanceByRole } from '../lib/businessRules';
 import { getBudgetCategoryByExpenseType } from '../lib/financial';
 import { deleteExpenseSourceFile } from '../lib/financeFileStorage';
 import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
 import {
+    documentsModifies,
     loadCollectionDocs,
     saveCollectionDocs,
 } from '../lib/firestorePersistence';
@@ -206,6 +203,14 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     const firebaseHydratedRef = useRef(false);
+    /**
+     * **L'empreinte de ce qui est dans Firestore** (26/09) — comme dans `DataContext` : les
+     * dépenses et les budgets étaient réécrits en entier à chaque changement, hydratation
+     * comprise, donc à chaque ouverture de l'application. Seuls les documents modifiés partent.
+     */
+    const empreintesRef = useRef<Record<string, Map<string, string>>>({});
+    const budgetsNommes = (budgets: FinanceBudget[]) =>
+        budgets.map((budget) => ({ id: String(budget.year), ...budget }));
 
     useEffect(() => {
         if (!FIREBASE_BACKEND_ENABLED) {
@@ -241,16 +246,23 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
 
                 if (firebaseExpenses.length > 0) {
+                    empreintesRef.current.financeExpenses = documentsModifies(
+                        firebaseExpenses,
+                        new Map(),
+                    ).empreintes;
                     setFinanceExpenses(firebaseExpenses);
                 }
 
                 if (firebaseBudgets.length > 0) {
-                    setFinanceBudgets(
-                        firebaseBudgets.map((budget) => ({
-                            ...budget,
-                            year: Number(budget.id) || budget.year,
-                        })),
-                    );
+                    const lus = firebaseBudgets.map((budget) => ({
+                        ...budget,
+                        year: Number(budget.id) || budget.year,
+                    }));
+                    empreintesRef.current.financeBudgets = documentsModifies(
+                        budgetsNommes(lus),
+                        new Map(),
+                    ).empreintes;
+                    setFinanceBudgets(lus);
                 }
             } catch (error) {
                 console.error('[FinanceDataContext] Firebase hydration failed', error);
@@ -280,7 +292,10 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
         }
 
-        void saveCollectionDocs(firestore, 'financeExpenses', financeExpenses);
+        const suivi = empreintesRef.current.financeExpenses ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(financeExpenses, suivi);
+        empreintesRef.current.financeExpenses = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'financeExpenses', aEcrire);
     }, [financeExpenses]);
 
     useEffect(() => {
@@ -288,14 +303,10 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return;
         }
 
-        void saveCollectionDocs(
-            firestore,
-            'financeBudgets',
-            financeBudgets.map((budget) => ({
-                id: String(budget.year),
-                ...budget,
-            })),
-        );
+        const suivi = empreintesRef.current.financeBudgets ?? new Map<string, string>();
+        const { aEcrire, empreintes } = documentsModifies(budgetsNommes(financeBudgets), suivi);
+        empreintesRef.current.financeBudgets = empreintes;
+        if (aEcrire.length > 0) void saveCollectionDocs(firestore, 'financeBudgets', aEcrire);
     }, [financeBudgets]);
 
     const addFinanceExpense = useCallback(
