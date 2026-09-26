@@ -42,8 +42,12 @@ plus de la connexion Microsoft.
 
 > ⚠️ **Par défaut, l'application se branche sur le projet Firebase de production**
 > (`src/lib/firebase.ts`), qui porte les données réelles du parc. En local, un geste qui écrit —
-> valider, remettre, supprimer — écrit dans cette base. Pour essayer sans risque, pointez les
-> variables `VITE_FIREBASE_*` sur un projet de test (voir ci-dessous).
+> valider, remettre, supprimer — écrit dans cette base. Pour essayer sans risque, lancez-la
+> Firestore coupé — elle travaille alors sur le jeu de démonstration :
+>
+> ```bash
+> VITE_FIREBASE_DISABLED=true npm run dev
+> ```
 
 ### Variables d'environnement
 
@@ -52,6 +56,7 @@ Dans `.env.local` (jamais commité). Toutes sont facultatives.
 | Variable | Rôle |
 | --- | --- |
 | `VITE_FIREBASE_API_KEY`, `…_AUTH_DOMAIN`, `…_PROJECT_ID`, `…_STORAGE_BUCKET`, `…_MESSAGING_SENDER_ID`, `…_APP_ID`, `…_MEASUREMENT_ID` | Le projet Firebase (Firestore). À défaut, celui de production |
+| `VITE_FIREBASE_DISABLED` | `true` coupe Firestore : le jeu de démonstration, le même à chaque chargement (c'est ainsi que tourne la régression visuelle) |
 | `VITE_ENABLE_DEMO_LOGIN` | `true` ouvre les comptes de démonstration hors développement (c'est le cas de la version en ligne) |
 | `VITE_ENABLE_MOCK_AUTH_BACKEND` | `true` simule le service d'authentification hors développement |
 | `VITE_AUTH_API_BASE_URL` | L'API d'authentification et de check-in (par défaut `http://localhost:8787` en développement) |

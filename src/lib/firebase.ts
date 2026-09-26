@@ -47,7 +47,16 @@ export function isFirebaseConfigured(): boolean {
     );
 }
 
-export const firebaseApp: FirebaseApp | null = isFirebaseConfigured()
+/**
+ * **Couper Firestore** (26/09) — `VITE_FIREBASE_DISABLED=true`. Sans lui, faute de variables,
+ * l'application se branche sur le projet de production : un essai en local, ou la régression
+ * visuelle de la CI, lisait et pouvait écrire les données réelles du parc. Coupé, `firestore`
+ * vaut `null` et les contextes de données retombent sur le jeu de démonstration, le même à
+ * chaque chargement.
+ */
+export const FIREBASE_DISABLED = import.meta.env.VITE_FIREBASE_DISABLED === 'true';
+
+export const firebaseApp: FirebaseApp | null = !FIREBASE_DISABLED && isFirebaseConfigured()
     ? getApps().length > 0
         ? getApp()
         : initializeApp(firebaseConfig)

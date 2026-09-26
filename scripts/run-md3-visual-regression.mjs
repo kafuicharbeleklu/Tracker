@@ -121,7 +121,9 @@ const startDevServer = () => {
   const child = spawn(process.execPath, [VITE_BIN, '--host', HOST, '--port', String(PORT)], {
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: process.env,
+    // Firestore coupé : les captures reposent sur le jeu de démonstration, identique à chaque
+    // run, et la CI ne lit ni n'écrit jamais la base de production (26/09).
+    env: { ...process.env, VITE_FIREBASE_DISABLED: 'true' },
   });
 
   child.stdout.on('data', (chunk) => {
@@ -165,23 +167,23 @@ const loginWithDemoAccount = async (page) => {
   const emailField = () => page.locator('input[type="email"]').first();
   const isLoginVisible = async () => (await emailField().count()) > 0;
 
-  const emailInput = emailField();
-
-  if ((await emailInput.count()) > 0) {
-    await emailInput.fill('alice.admin@tracker.app');
-    await page.locator('input[type="password"]').first().fill('demo-password');
-    await page.getByRole('button', { name: /Se connecter/i }).click();
-    await page.waitForTimeout(1300);
-  }
-
-  if (await isLoginVisible()) {
-    const demoAccountButton = page.getByRole('button', { name: /Connexion démo:/i }).first();
-    if ((await demoAccountButton.count()) > 0) {
-      await demoAccountButton.click();
-      await page.getByRole('button', { name: /Se connecter/i }).click();
-      await page.waitForTimeout(1300);
-    }
-  }
+  /*
+   * Le compte de démonstration du super administrateur, par le bouton de l'écran de connexion :
+   * il remplit l'identifiant et le mot de passe, « Se connecter » valide. On vise l'attribut, pas
+   * sa typographie : la sonde cherchait « Connexion démo: » et l'écran écrit « Connexion démo : »
+   * (espace avant les deux-points) — elle ne trouvait plus rien, et chaque PR échouait (26/09).
+   */
+  const demoAccountButton = page
+    .locator('[aria-label^="Connexion démo"][aria-label$="Super admin"]:visible')
+    .first();
+  await demoAccountButton.waitFor({ state: 'visible', timeout: 30000 });
+  await demoAccountButton.click();
+  await page.locator('button[type="submit"]:visible').first().click();
+  await page
+    .waitForFunction(() => !document.querySelector('input[type="email"]'), undefined, {
+      timeout: 30000,
+    })
+    .catch(() => {});
 
   if (await isLoginVisible()) {
     throw new Error('Demo login failed before visual capture.');
@@ -322,11 +324,14 @@ const run = async () => {
       context.setDefaultNavigationTimeout(180000);
       // Remote images (avatars, equipment photos) load nondeterministically: block them so
       // the UI always renders its local fallbacks. CDN fonts/styles are still allowed.
+      // Ceinture et bretelles : même si Firestore était rebranché, aucune requête n'atteindrait
+      // la base de production depuis la suite visuelle.
       await context.route(
         '**/*',
         (route) =>
-          route.request().resourceType() === 'image'
-          && !route.request().url().startsWith(BASE_URL)
+          (route.request().resourceType() === 'image'
+            && !route.request().url().startsWith(BASE_URL))
+          || /firestore\.googleapis\.com/.test(route.request().url())
             ? route.abort()
             : route.continue()
       );
