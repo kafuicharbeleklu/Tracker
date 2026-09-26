@@ -43,3 +43,8 @@ docs/.tmp/
 *.njsproj
 *.sln
 *.sw?
+
+# Sauvegardes de Firestore (données personnelles réelles) — jamais dans Git
+backups/
+# Le générateur de simulation compilé (scripts/simulation/charger.mjs)
+scripts/simulation/.jeu.mjs

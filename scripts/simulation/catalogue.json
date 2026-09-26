@@ -1,0 +1,1040 @@
+{
+ "_origine": "Catalogue Firestore du 26/09/2026 (types et modèles de matériel, sans donnée personnelle)",
+ "categories": [
+  {
+   "iconName": "AccessPoint",
+   "name": "AccessPoint",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 7
+   },
+   "description": "",
+   "id": "accesspoint",
+   "family": "Impression et réseau",
+   "assignable": false
+  },
+  {
+   "iconName": "Desktop",
+   "name": "Desktop",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "desktop",
+   "family": "Informatique",
+   "assignable": true
+  },
+  {
+   "iconName": "DockingStation",
+   "name": "DockingStation",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "dockingstation",
+   "family": "Périphériques",
+   "assignable": true
+  },
+  {
+   "iconName": "Firewall",
+   "name": "Firewall",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 7
+   },
+   "description": "",
+   "id": "firewall",
+   "family": "Impression et réseau",
+   "assignable": false
+  },
+  {
+   "iconName": "Laptop",
+   "name": "Laptop",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 3
+   },
+   "description": "",
+   "id": "laptop",
+   "family": "Informatique",
+   "assignable": true
+  },
+  {
+   "iconName": "Monitor",
+   "name": "Monitor",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "monitor",
+   "family": "Périphériques",
+   "assignable": true
+  },
+  {
+   "iconName": "NetworkDevice",
+   "name": "NetworkDevice",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 7
+   },
+   "description": "",
+   "id": "networkdevice",
+   "family": "Impression et réseau",
+   "assignable": false
+  },
+  {
+   "iconName": "Smartphone",
+   "name": "Phone",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 3
+   },
+   "description": "",
+   "id": "phone",
+   "family": "Périphériques",
+   "assignable": true
+  },
+  {
+   "iconName": "Printer",
+   "name": "Printer",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "printer",
+   "family": "Impression et réseau",
+   "assignable": false
+  },
+  {
+   "iconName": "Projector",
+   "name": "Projector",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "projector",
+   "family": "Mobilier et divers",
+   "assignable": false
+  },
+  {
+   "iconName": "Server",
+   "name": "Server",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 5
+   },
+   "description": "",
+   "id": "server",
+   "family": "Informatique",
+   "assignable": false
+  },
+  {
+   "iconName": "Switch",
+   "name": "Switch",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 7
+   },
+   "description": "",
+   "id": "switch",
+   "family": "Impression et réseau",
+   "assignable": false
+  },
+  {
+   "iconName": "Tablet",
+   "name": "Tablet",
+   "defaultDepreciation": {
+    "method": "linear",
+    "salvageValuePercent": 0,
+    "years": 3
+   },
+   "description": "",
+   "id": "tablet",
+   "family": "Périphériques",
+   "assignable": true
+  }
+ ],
+ "models": [
+  {
+   "image": "",
+   "specs": "",
+   "name": "AP55C",
+   "id": "accesspoint-sophos-ap55c",
+   "type": "AccessPoint",
+   "brand": "SOPHOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "APX320X",
+   "id": "accesspoint-sophos-apx320x",
+   "type": "AccessPoint",
+   "brand": "SOPHOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "APX530",
+   "id": "accesspoint-sophos-apx530",
+   "type": "AccessPoint",
+   "brand": "SOPHOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "280 G1 MT",
+   "id": "desktop-hp-280-g1-mt",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "500B MicroTower",
+   "id": "desktop-hp-500b-microtower",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "500BMT",
+   "id": "desktop-hp-500bmt",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Desktop Pro 300 G6",
+   "id": "desktop-hp-desktop-pro-300-g6",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Pro 3400 SERIES MT",
+   "id": "desktop-hp-pro-3400-series-mt",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Pro 3500 SERIES MT",
+   "id": "desktop-hp-pro-3500-series-mt",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Pro Tower 290 G9",
+   "id": "desktop-hp-pro-tower-290-g9",
+   "type": "Desktop",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "M900",
+   "id": "desktop-lenovo-m900",
+   "type": "Desktop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Station Accueil 2",
+   "id": "dockingstation-lenovo-station-accueil-2",
+   "type": "DockingStation",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "70G",
+   "id": "firewall-fortinet-70g",
+   "type": "Firewall",
+   "brand": "FORTINET"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Interco 7",
+   "id": "firewall-hikvision-interco-7",
+   "type": "Firewall",
+   "brand": "hikvision"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "SG 210 rev.1",
+   "id": "firewall-sophos-sg-210-rev-1",
+   "type": "Firewall",
+   "brand": "SOPHOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "E14 Gen 5",
+   "id": "laptop-lenovo-e14-gen-5",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "E14 Gen 6",
+   "id": "laptop-lenovo-e14-gen-6",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "E14 Gen 7",
+   "id": "laptop-lenovo-e14-gen-7",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "E570",
+   "id": "laptop-lenovo-e570",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T14 Gen 2",
+   "id": "laptop-lenovo-t14-gen-2",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T14 Gen 3",
+   "id": "laptop-lenovo-t14-gen-3",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T14 Gen 4",
+   "id": "laptop-lenovo-t14-gen-4",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T14s",
+   "id": "laptop-lenovo-t14s",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T420",
+   "id": "laptop-lenovo-t420",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T430",
+   "id": "laptop-lenovo-t430",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T440",
+   "id": "laptop-lenovo-t440",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T450",
+   "id": "laptop-lenovo-t450",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T460",
+   "id": "laptop-lenovo-t460",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T460s",
+   "id": "laptop-lenovo-t460s",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T470s",
+   "id": "laptop-lenovo-t470s",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T490",
+   "id": "laptop-lenovo-t490",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "T60",
+   "id": "laptop-lenovo-t60",
+   "type": "Laptop",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "SATELLITE C660-1GL",
+   "id": "laptop-toshiba-satellite-c660-1gl",
+   "type": "Laptop",
+   "brand": "Toshiba"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Ecrans 2",
+   "id": "monitor-ecrans-2",
+   "type": "Monitor"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "24y Display",
+   "id": "monitor-hp-24y-display",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "527 sf",
+   "id": "monitor-hp-527-sf",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "LV2011",
+   "id": "monitor-hp-lv2011",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "P22v G4 FHD",
+   "id": "monitor-hp-p22v-g4-fhd",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "P22v G5 FHD",
+   "id": "monitor-hp-p22v-g5-fhd",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "S2031a",
+   "id": "monitor-hp-s2031a",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "S2231a",
+   "id": "monitor-hp-s2231a",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "W2072a",
+   "id": "monitor-hp-w2072a",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Z24nf Ge 23.8",
+   "id": "monitor-hp-z24nf-ge-23-8",
+   "type": "Monitor",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "MP-112/2FXS/3AC",
+   "id": "networkdevice-audio-codes-mp-112-2fxs-3ac",
+   "type": "NetworkDevice",
+   "brand": "Audio Codes"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Fortigate 61E",
+   "id": "networkdevice-fortinet-fortigate-61e",
+   "type": "NetworkDevice",
+   "brand": "Fortinet"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "MDM3310",
+   "id": "networkdevice-newtec-mdm3310",
+   "type": "NetworkDevice",
+   "brand": "Newtec"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "ACM7004",
+   "id": "networkdevice-opengear-acm7004",
+   "type": "NetworkDevice",
+   "brand": "Opengear"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "105DS",
+   "id": "phone-nokia-105ds",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 42",
+   "id": "phone-nokia-phone-42",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 47",
+   "id": "phone-nokia-phone-47",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 55",
+   "id": "phone-nokia-phone-55",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 56",
+   "id": "phone-nokia-phone-56",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 57",
+   "id": "phone-nokia-phone-57",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 58",
+   "id": "phone-nokia-phone-58",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 59",
+   "id": "phone-nokia-phone-59",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 60",
+   "id": "phone-nokia-phone-60",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 61",
+   "id": "phone-nokia-phone-61",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 62",
+   "id": "phone-nokia-phone-62",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 67",
+   "id": "phone-nokia-phone-67",
+   "type": "Phone",
+   "brand": "NOKIA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 35",
+   "id": "phone-phone-35",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 36",
+   "id": "phone-phone-36",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 37",
+   "id": "phone-phone-37",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 38",
+   "id": "phone-phone-38",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 39",
+   "id": "phone-phone-39",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 40",
+   "id": "phone-phone-40",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 41",
+   "id": "phone-phone-41",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 43",
+   "id": "phone-phone-43",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 44",
+   "id": "phone-phone-44",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 45",
+   "id": "phone-phone-45",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 48",
+   "id": "phone-phone-48",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 51",
+   "id": "phone-phone-51",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 52",
+   "id": "phone-phone-52",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 66",
+   "id": "phone-phone-66",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 68",
+   "id": "phone-phone-68",
+   "type": "Phone"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A13",
+   "id": "phone-samsung-a12-a13",
+   "type": "Phone",
+   "brand": "SAMSUNG A12"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 54",
+   "id": "phone-samsung-a12-phone-54",
+   "type": "Phone",
+   "brand": "SAMSUNG A12"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A13",
+   "id": "phone-samsung-a13",
+   "type": "Phone",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A14",
+   "id": "phone-samsung-a14",
+   "type": "Phone",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A15",
+   "id": "phone-samsung-a15",
+   "type": "Phone",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A16",
+   "id": "phone-samsung-a16",
+   "type": "Phone",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "A21s",
+   "id": "phone-samsung-a21s",
+   "type": "Phone",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "105DS",
+   "id": "phone-xiaomi-hyperos-105ds",
+   "type": "Phone",
+   "brand": "Xiaomi HyperOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 63",
+   "id": "phone-xiaomi-hyperos-phone-63",
+   "type": "Phone",
+   "brand": "Xiaomi HyperOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Phone 65",
+   "id": "phone-xiaomi-hyperos-phone-65",
+   "type": "Phone",
+   "brand": "Xiaomi HyperOS"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "IR 2630",
+   "id": "printer-canon-ir-2630",
+   "type": "Printer",
+   "brand": "CANON"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "IR Advance C350i",
+   "id": "printer-canon-ir-advance-c350i",
+   "type": "Printer",
+   "brand": "CANON"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Color LaserJet Pro MFP M177fw",
+   "id": "printer-hp-color-laserjet-pro-mfp-m177fw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Color Laserjet pro MFP M477fnw",
+   "id": "printer-hp-color-laserjet-pro-mfp-m477fnw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Color Laserjet pro MFP M479 fdw",
+   "id": "printer-hp-color-laserjet-pro-mfp-m479-fdw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Laserjet 600",
+   "id": "printer-hp-laserjet-600",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Laserjet pro M426dw",
+   "id": "printer-hp-laserjet-pro-m426dw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Laserjet pro MFP M225 dw",
+   "id": "printer-hp-laserjet-pro-mfp-m225-dw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Laserjet pro MFP M425 dw",
+   "id": "printer-hp-laserjet-pro-mfp-m425-dw",
+   "type": "Printer",
+   "brand": "HP"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "H719B",
+   "id": "projector-epson-h719b",
+   "type": "Projector",
+   "brand": "EPSON"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "H839B",
+   "id": "projector-epson-h839b",
+   "type": "Projector",
+   "brand": "EPSON"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "SR630",
+   "id": "server-lenovo-sr630",
+   "type": "Server",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "SR630 V3",
+   "id": "server-lenovo-sr630-v3",
+   "type": "Server",
+   "brand": "Lenovo"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "FreePBX Phone System 60",
+   "id": "server-sangora-freepbx-phone-system-60",
+   "type": "Server",
+   "brand": "SANGORA"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "DS213",
+   "id": "server-synlogy-ds213",
+   "type": "Server",
+   "brand": "Synlogy"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "DS720",
+   "id": "server-synlogy-ds720",
+   "type": "Server",
+   "brand": "Synlogy"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "2900 Series",
+   "id": "switch-cisco-2900-series",
+   "type": "Switch",
+   "brand": "Cisco"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "Switch 7",
+   "id": "switch-cisco-switch-7",
+   "type": "Switch",
+   "brand": "Cisco"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "DES1016R+",
+   "id": "switch-d-link-des1016r",
+   "type": "Switch",
+   "brand": "D-LINK"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "S5720-36C-E1",
+   "id": "switch-huawei-s5720-36c-e1",
+   "type": "Switch",
+   "brand": "HUAWEI"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "CR326-24G-2S+RM",
+   "id": "switch-mikrotik-cr326-24g-2s-rm",
+   "type": "Switch",
+   "brand": "MIKROTIK"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "FNSW-2401 (V8)",
+   "id": "switch-planet-fnsw-2401-v8",
+   "type": "Switch",
+   "brand": "PLANET"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "TL-SF1016DS",
+   "id": "switch-tp-link-tl-sf1016ds",
+   "type": "Switch",
+   "brand": "TP-LINK"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "iPAD Air2",
+   "id": "tablet-apple-ipad-air2",
+   "type": "Tablet",
+   "brand": "APPLE"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "GALAXY Tab S2",
+   "id": "tablet-samsung-galaxy-tab-s2",
+   "type": "Tablet",
+   "brand": "SAMSUNG"
+  },
+  {
+   "image": "",
+   "specs": "",
+   "name": "GALAXY Tab S6 Lite",
+   "id": "tablet-samsung-galaxy-tab-s6-lite",
+   "type": "Tablet",
+   "brand": "SAMSUNG"
+  }
+ ]
+}
