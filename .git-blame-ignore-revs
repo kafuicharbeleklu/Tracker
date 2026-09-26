@@ -1,0 +1,6 @@
+# Commits de forme pure, que `git blame` doit traverser pour trouver l'auteur réel d'une
+# ligne. GitHub lit ce fichier de lui-même ; en local :
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# chore(depot): fins de ligne LF pour tout le texte (.gitattributes) — 26/09
+f3cfeb6b7e6c0d3c4425e9913480afe65df2fe97
