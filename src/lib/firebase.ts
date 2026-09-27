@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 
 type FirebaseEnv = {
     apiKey: string;
@@ -54,7 +54,27 @@ export function isFirebaseConfigured(): boolean {
  * vaut `null` et les contextes de données retombent sur le jeu de démonstration, le même à
  * chaque chargement.
  */
-export const FIREBASE_DISABLED = import.meta.env.VITE_FIREBASE_DISABLED === 'true';
+/**
+ * **Un émulateur local**, en développement (27/09) — `VITE_FIRESTORE_EMULATEUR=127.0.0.1:8085`.
+ * Les lectures et les écritures y sont gratuites et n'atteignent jamais la base réelle.
+ */
+export const FIRESTORE_EMULATEUR = import.meta.env.DEV
+    ? import.meta.env.VITE_FIRESTORE_EMULATEUR?.trim() || null
+    : null;
+
+/**
+ * **En développement, la base de production est coupée par défaut** (27/09). Chaque
+ * chargement lit toute la base ; le serveur de développement recharge la page à chaque
+ * modification, React en mode strict double la lecture, et chaque navigateur de test repart
+ * de zéro. Le quota gratuit (50 000 lectures par jour) partait ainsi dans les outils, pas
+ * dans l'usage : les erreurs « quota dépassé » des 06, 09 et 22/09 sont nées de sessions de
+ * capture. Pour travailler quand même sur la base réelle : `VITE_FIREBASE_EN_DEV=true`.
+ */
+export const FIREBASE_DISABLED =
+    import.meta.env.VITE_FIREBASE_DISABLED === 'true' ||
+    (import.meta.env.DEV &&
+        !FIRESTORE_EMULATEUR &&
+        import.meta.env.VITE_FIREBASE_EN_DEV !== 'true');
 
 export const firebaseApp: FirebaseApp | null = !FIREBASE_DISABLED && isFirebaseConfigured()
     ? getApps().length > 0
@@ -62,7 +82,16 @@ export const firebaseApp: FirebaseApp | null = !FIREBASE_DISABLED && isFirebaseC
         : initializeApp(firebaseConfig)
     : null;
 
-export const firestore: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
+const brancher = (app: FirebaseApp): Firestore => {
+    const db = getFirestore(app);
+    if (FIRESTORE_EMULATEUR) {
+        const [hote, port] = FIRESTORE_EMULATEUR.split(':');
+        connectFirestoreEmulator(db, hote, Number(port) || 8085);
+    }
+    return db;
+};
+
+export const firestore: Firestore | null = firebaseApp ? brancher(firebaseApp) : null;
 
 let analyticsInstance: Analytics | null = null;
 

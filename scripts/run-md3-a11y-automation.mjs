@@ -52,7 +52,9 @@ const startDevServer = () => {
   const child = spawn(process.execPath, [viteBin, '--host', HOST, '--port', String(PORT)], {
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: process.env,
+    // Firestore coupé (27/09) : l'audit repose sur le jeu de démonstration et ne consomme
+    // jamais le quota de la base réelle — chaque navigateur de l'audit la relisait en entier.
+    env: { ...process.env, VITE_FIREBASE_DISABLED: 'true' },
   });
 
   child.stdout.on('data', (chunk) => {
