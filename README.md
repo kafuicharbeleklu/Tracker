@@ -103,6 +103,7 @@ Dans `.env.local` (jamais commité). Toutes sont facultatives.
 | `npm run lint:ds` | `lint`, `ds:check`, `check:encoding`, `check:cn-merge` et `check:tokens`, d'affilée |
 | `npm run format` | Prettier sur `src/` |
 | `npm run qa:visual:auto`, `qa:devices:auto`, `qa:a11y:auto` | Régression visuelle, audit multi-appareils, accessibilité (Playwright) |
+| `npm run qa:e2e` | Les gestes de bout en bout : Tâches (file, enchaînement, annuler, clavier, lot), la sélection groupée, ⌘K et Échap. Serveur à part, Firestore coupé ; `-- taches` pour une seule suite |
 | `npm run backend:agent` | L'API de check-in des postes et d'authentification (voir [`backend/README.md`](backend/README.md)) |
 | `npm run import:inventory` | Import de l'inventaire depuis un classeur Excel |
 
@@ -157,7 +158,7 @@ L'interface ne nomme jamais un pays : Neemba est présent dans plusieurs.
 
 | Flux | Quand | Ce qu'il fait |
 | --- | --- | --- |
-| MD3 Compliance | chaque push sur `main`, chaque PR | `ds:check`, encodage, construction ; régression visuelle sur les PR |
+| MD3 Compliance | chaque push sur `main`, chaque PR | `ds:check`, encodage, construction ; régression visuelle et gestes de bout en bout sur les PR |
 | Deploy GitHub Pages | chaque push sur `main` | construit et **met en ligne** la version publique |
 
 Tout ce qui arrive sur `main` est donc publié dans les minutes qui suivent.

@@ -20,7 +20,8 @@
     "qa:a11y:auto": "node scripts/run-md3-a11y-automation.mjs",
     "qa:devices:auto": "node scripts/run-md3-multidevice-audit.mjs",
     "qa:visual:auto": "node scripts/run-md3-visual-regression.mjs",
-    "qa:visual:update": "node scripts/run-md3-visual-regression.mjs --update"
+    "qa:visual:update": "node scripts/run-md3-visual-regression.mjs --update",
+    "qa:e2e": "node scripts/e2e/lancer.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.2.0",
