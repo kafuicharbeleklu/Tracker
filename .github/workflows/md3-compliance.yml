@@ -69,3 +69,38 @@ jobs:
             docs/md3-visual-regression-results-*.md
             docs/md3-visual-regression-results-*.json
             docs/md3-visual-current/**
+
+  # Les gestes de bout en bout (27/09) : Tâches (file, enchaînement, annuler, clavier, lot),
+  # la sélection groupée au bureau et au doigt, ⌘K et Échap. Serveur à part, Firestore coupé,
+  # une file de seize demandes injectée — la base n'est jamais lue ni écrite.
+  e2e-gestes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e gestures
+        run: npm run qa:e2e
+
+      - name: Upload e2e captures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-gestes-${{ github.run_id }}
+          path: docs/.tmp/e2e/**
+          if-no-files-found: ignore
