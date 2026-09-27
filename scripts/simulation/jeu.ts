@@ -601,7 +601,9 @@ export const construireJeu = ({ maintenant, nomsInterdits = new Set() }: Options
         const actif: Equipment = {
             id,
             name: `${cleCompteur}-${String(numero).padStart(2, '0')}`,
-            assetId: `NT-${achat.slice(0, 4)}-${String(10_000 + numeroActif).slice(-5)}`,
+            /* Le format que le scan d'inventaire reconnaît comme code d'actif (`auditQr`) : un
+               autre code y serait lu comme un numéro de série, et ne retrouverait rien. */
+            assetId: `ASSET-${10_000 + numeroActif}`,
             type,
             /* Le nom du modèle **seul** : la fiche d'un modèle rassemble ses unités par ce nom. */
             model: modele.name,
