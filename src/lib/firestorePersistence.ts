@@ -12,6 +12,7 @@ import {
     where,
     type DocumentData,
     type Firestore,
+    type SnapshotMetadata,
 } from 'firebase/firestore';
 import { ecrireCache, lireCache } from './cacheLocal';
 import { FIRESTORE_EMULATEUR } from './firebase';
@@ -56,6 +57,28 @@ function stripUndefined<T>(value: T): T {
  */
 export const CHAMP_MAJ = '_maj';
 
+/**
+ * **La pierre tombale d'un document supprimé** (27/09). Effacer le document ne suffirait pas :
+ * les navigateurs ne relisent que ce qui a changé (`_maj`), et un document absent n'a pas
+ * changé — l'objet supprimé resterait dans leur cache. On le remplace donc par une trace datée,
+ * que chaque lecture retire.
+ */
+export const CHAMP_SUPPRIME = '_supprime';
+
+const estSupprime = (data: DocumentData) => data[CHAMP_SUPPRIME] === true;
+
+/**
+ * **Jamais de lecture hors ligne dans l'état ni dans le cache** (27/09). Quand Firestore ne
+ * répond pas, le SDK rend ce qu'il a en cache local — vide, ou périmé — en le marquant
+ * `fromCache`. Graver cela, c'était montrer une base vide et la garder en cache sept jours.
+ */
+const duServeur = <T extends { metadata: SnapshotMetadata }>(instantane: T): T => {
+    if (instantane.metadata.fromCache) {
+        throw new Error('Firestore ne répond pas : lecture hors ligne écartée.');
+    }
+    return instantane;
+};
+
 type Repere = { s: number; ns: number };
 
 const retirerMaj = (data: DocumentData): { donnees: DocumentData; maj: Repere | null } => {
@@ -89,7 +112,7 @@ let generation: Promise<string> | null = null;
 
 const lireGeneration = (db: Firestore): Promise<string> => {
     generation ??= getDoc(doc(db, 'meta', 'synchro')).then(
-        (instantane) => String(instantane.data()?.generation ?? ''),
+        (instantane) => String(duServeur(instantane).data()?.generation ?? ''),
         (erreur: unknown) => {
             generation = null;
             throw erreur;
@@ -127,14 +150,15 @@ const lireEnEntier = async <T extends object>(
 ): Promise<Array<T & { id: string }>> => {
     const [generationActuelle, instantane] = await Promise.all([
         lireGeneration(db),
-        getDocs(collection(db, nom)),
+        getDocs(collection(db, nom)).then(duServeur),
     ]);
     let repere: Repere | null = null;
-    const docs: Array<[string, DocumentData]> = instantane.docs.map((document) => {
+    const docs: Array<[string, DocumentData]> = [];
+    for (const document of instantane.docs) {
         const { donnees, maj } = retirerMaj(document.data());
         repere = plusRecent(repere, maj);
-        return [document.id, donnees];
-    });
+        if (!estSupprime(donnees)) docs.push([document.id, donnees]);
+    }
     const entree: EntreeDeCache = {
         generation: generationActuelle,
         completLe: Date.now(),
@@ -146,11 +170,9 @@ const lireEnEntier = async <T extends object>(
 };
 
 /**
- * Le cache de la collection, complété de ce qui a changé depuis sa dernière lecture ; `null`
- * quand il n'y a pas de cache valable (absent, d'une autre génération, trop ancien).
- *
- * Il n'y a pas de suppression à suivre : l'application n'efface aucun document de Firestore.
- * Le jour où elle le fera, un document effacé devra laisser une trace datée (`_maj`).
+ * Le cache de la collection, complété de ce qui a changé depuis sa dernière lecture — les
+ * suppressions comprises (`CHAMP_SUPPRIME`) ; `null` quand il n'y a pas de cache valable
+ * (absent, d'une autre génération, trop ancien).
  */
 const lireDepuisCache = async <T extends object>(
     db: Firestore,
@@ -171,14 +193,17 @@ const lireDepuisCache = async <T extends object>(
     const depuis = cache.repere
         ? new Timestamp(cache.repere.s, cache.repere.ns)
         : new Timestamp(0, 0);
-    const changes = await getDocs(query(collection(db, nom), where(CHAMP_MAJ, '>', depuis)));
+    const changes = duServeur(
+        await getDocs(query(collection(db, nom), where(CHAMP_MAJ, '>', depuis))),
+    );
     if (changes.empty) return enDocuments<T>(cache.docs);
 
     const parId = new Map(cache.docs);
     let repere = cache.repere;
     for (const document of changes.docs) {
         const { donnees, maj } = retirerMaj(document.data());
-        parId.set(document.id, donnees);
+        if (estSupprime(donnees)) parId.delete(document.id);
+        else parId.set(document.id, donnees);
         repere = plusRecent(repere, maj);
     }
     const docs = [...parId].sort(parIdentifiant);
@@ -224,7 +249,7 @@ export async function chargerJournal<T extends object>(
 
     const journal = collection(db, 'events');
     const [derniers, campagnes] = await Promise.all([
-        getDocs(query(journal, orderBy('timestamp', 'desc'), limit(recents))),
+        getDocs(query(journal, orderBy('timestamp', 'desc'), limit(recents))).then(duServeur),
         getDocs(
             query(
                 journal,
@@ -232,11 +257,12 @@ export async function chargerJournal<T extends object>(
                 /* « ` » suit « _ » : la borne ferme le préfixe. */
                 where('metadata.source', '<', 'audit`'),
             ),
-        ),
+        ).then(duServeur),
     ]);
     const parId = new Map<string, DocumentData>();
     for (const document of [...derniers.docs, ...campagnes.docs]) {
-        parId.set(document.id, retirerMaj(document.data()).donnees);
+        const { donnees } = retirerMaj(document.data());
+        if (!estSupprime(donnees)) parId.set(document.id, donnees);
     }
     return { docs: enDocuments<T>([...parId].sort(parIdentifiant)), complet: false };
 }
@@ -244,6 +270,75 @@ export async function chargerJournal<T extends object>(
 /** Le journal entier, au serveur ; il entre alors dans le cache. */
 export const chargerJournalComplet = <T extends object>(db: Firestore) =>
     lireEnEntier<T>(db, 'events');
+
+/**
+ * **Les écritures, suivies une à une** (27/09). Elles partaient sans que personne n'attende
+ * leur issue : l'empreinte les tenait pour faites, un refus ne se voyait qu'en console, et le
+ * geste disparaissait au rechargement suivant. Chaque écriture est désormais comptée tant
+ * qu'elle n'est pas confirmée — le SDK la retente seul quand le réseau ou le quota manquent,
+ * et la garde dans le navigateur d'une ouverture à l'autre (voir `lib/firebase.ts`) — et un
+ * refus définitif est compté à part. `ecouterEcritures` permet de le dire à l'écran.
+ */
+export interface EtatDesEcritures {
+    /** Les écritures envoyées et pas encore confirmées par la base. */
+    enAttente: number;
+    /** Les écritures refusées pour de bon depuis l'ouverture (droits, document invalide…). */
+    refus: number;
+}
+
+const etatDesEcritures: EtatDesEcritures = { enAttente: 0, refus: 0 };
+const abonnes = new Set<(etat: EtatDesEcritures) => void>();
+const publier = () => abonnes.forEach((abonne) => abonne({ ...etatDesEcritures }));
+
+export const ecouterEcritures = (abonne: (etat: EtatDesEcritures) => void): (() => void) => {
+    abonnes.add(abonne);
+    abonne({ ...etatDesEcritures });
+    return () => {
+        abonnes.delete(abonne);
+    };
+};
+
+/**
+ * Compte une écriture jusqu'à son issue ; ne rejette jamais. Elle reçoit l'écriture **à
+ * lancer** : le SDK valide les données à l'appel, et une valeur qu'il refuse lève tout de
+ * suite — ce refus-là doit être compté comme les autres, pas échapper au suivi.
+ */
+export const suivreEcriture = async (
+    quoi: string,
+    ecrire: () => Promise<unknown>,
+): Promise<void> => {
+    etatDesEcritures.enAttente += 1;
+    publier();
+    try {
+        await ecrire();
+    } catch (erreur) {
+        etatDesEcritures.refus += 1;
+        console.error(`[firestore] écriture refusée : ${quoi}`, erreur);
+    } finally {
+        etatDesEcritures.enAttente -= 1;
+        publier();
+    }
+};
+
+/** Supprime des documents en posant leur pierre tombale (voir `CHAMP_SUPPRIME`). */
+export async function supprimerDocuments(
+    db: Firestore,
+    nom: string,
+    ids: readonly string[],
+): Promise<void> {
+    await Promise.all(
+        ids
+            .filter((id) => id.length > 0)
+            .map((id) =>
+                suivreEcriture(`${nom}/${id}`, () =>
+                    setDoc(doc(db, nom, id), {
+                        [CHAMP_SUPPRIME]: true,
+                        [CHAMP_MAJ]: serverTimestamp(),
+                    }),
+                ),
+            ),
+    );
+}
 
 export async function saveCollectionDocs<T extends object>(
     db: Firestore,
@@ -267,15 +362,20 @@ export async function saveCollectionDocs<T extends object>(
         );
     }
 
+    /*
+     * **Le document entier, sans fusion** (27/09). Avec `merge: true`, un champ vidé dans
+     * l'application (`repair: undefined` à la clôture d'une réparation, `reservedFor` à la
+     * libération d'un objet) disparaissait de l'écriture et gardait donc son ancienne valeur
+     * en base : au rechargement, la réparation close revenait. L'état de l'application porte
+     * le document complet — lu tel quel, normalisé sans rien retirer —, il s'écrit tel quel.
+     */
     await Promise.all(
         nommables.map(({ id, item }) =>
-            setDoc(
-                doc(db, collectionName, id),
-                {
+            suivreEcriture(`${collectionName}/${id}`, () =>
+                setDoc(doc(db, collectionName, id), {
                     ...(stripUndefined(item) as Record<string, unknown>),
                     [CHAMP_MAJ]: serverTimestamp(),
-                },
-                { merge: true },
+                }),
             ),
         ),
     );
@@ -319,9 +419,13 @@ export async function saveSingleDoc<T extends object>(
     documentId: string,
     data: T,
 ): Promise<void> {
-    await setDoc(
-        doc(db, collectionName, documentId),
-        { ...(stripUndefined(data) as Record<string, unknown>), [CHAMP_MAJ]: serverTimestamp() },
-        { merge: true },
+    /* Sans fusion, comme les collections : un pays, un site ou un responsable de service
+       retiré de l'objet l'est aussi du document — avec `merge: true`, un site supprimé
+       revenait au rechargement, et un site renommé y figurait sous ses deux noms. */
+    await suivreEcriture(`${collectionName}/${documentId}`, () =>
+        setDoc(doc(db, collectionName, documentId), {
+            ...(stripUndefined(data) as Record<string, unknown>),
+            [CHAMP_MAJ]: serverTimestamp(),
+        }),
     );
 }

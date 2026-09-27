@@ -20,6 +20,7 @@ import {
     documentsModifies,
     chargerCollection,
     saveCollectionDocs,
+    supprimerDocuments,
 } from '../lib/firestorePersistence';
 import { EffectiveAccessProfile } from '../types/rbac';
 
@@ -626,6 +627,10 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             const now = new Date().toISOString();
             setFinanceExpenses((prev) => prev.filter((expense) => expense.id !== id));
+            /* La suppression s'écrit (27/09) : sinon la dépense revenait au rechargement. */
+            if (firestore && chargeesRef.current.has('financeExpenses')) {
+                void supprimerDocuments(firestore, 'financeExpenses', [id]);
+            }
             setFinanceBudgets((prev) => adjustBudgetWithExpense(prev, existingExpense, -1, now));
 
             logEvent({

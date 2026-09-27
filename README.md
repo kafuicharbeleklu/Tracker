@@ -65,6 +65,18 @@ mécanismes gardent l'application loin de ces plafonds :
   ceux des campagnes d'inventaire ; un écran qui a besoin de tout l'historique appelle
   `useJournalComplet`.
 
+Trois règles d'écriture (`src/lib/firestorePersistence.ts`) :
+
+- **Un document s'écrit en entier**, sans fusion : un champ vidé dans l'application (une réparation
+  close, un objet libéré) l'est aussi en base.
+- **Une suppression laisse une pierre tombale** (`_supprime`, datée par `_maj`) : les lectures la
+  retirent, et chaque cache l'apprend à la visite suivante.
+- **Chaque écriture est suivie.** Le SDK garde dans le navigateur celles qui ne sont pas encore
+  confirmées (cache persistant) et les renvoie, même après un rechargement ; au-delà de huit
+  secondes d'attente, ou si la base refuse, le snackbar le dit.
+
+La session de démonstration se garde dans l'onglet : recharger ne déconnecte plus.
+
 **Tout script qui écrit dans Firestore** doit finir par `annoncerNouvelleGeneration(db, motif)`
 (`scripts/lib/generation.mjs`) : il écrit sans `_maj`, et sans cette annonce les navigateurs ne
 verraient jamais ses documents. Une retouche faite à la main dans la console Firebase n'est vue qu'à

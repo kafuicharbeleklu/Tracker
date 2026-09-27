@@ -1,6 +1,13 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
-import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
+import {
+    connectFirestoreEmulator,
+    getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
+    type Firestore,
+} from 'firebase/firestore';
 
 type FirebaseEnv = {
     apiKey: string;
@@ -82,11 +89,32 @@ export const firebaseApp: FirebaseApp | null = !FIREBASE_DISABLED && isFirebaseC
         : initializeApp(firebaseConfig)
     : null;
 
+/**
+ * **Les écritures survivent à la page** (27/09). Le cache persistant du SDK garde dans le
+ * navigateur la file des écritures non confirmées : un onglet rechargé ou fermé pendant une
+ * coupure — réseau, quota épuisé — les renvoie à sa prochaine ouverture au lieu de les perdre.
+ * Plusieurs onglets partagent la même file. Déjà initialisé (rechargement à chaud du module),
+ * on reprend l'instance existante.
+ */
+const ouvrir = (app: FirebaseApp): Firestore => {
+    try {
+        return initializeFirestore(app, {
+            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        });
+    } catch {
+        return getFirestore(app);
+    }
+};
+
 const brancher = (app: FirebaseApp): Firestore => {
-    const db = getFirestore(app);
+    const db = ouvrir(app);
     if (FIRESTORE_EMULATEUR) {
         const [hote, port] = FIRESTORE_EMULATEUR.split(':');
-        connectFirestoreEmulator(db, hote, Number(port) || 8085);
+        try {
+            connectFirestoreEmulator(db, hote, Number(port) || 8085);
+        } catch {
+            /* Déjà branchée : l'instance reprise après un rechargement à chaud. */
+        }
     }
     return db;
 };

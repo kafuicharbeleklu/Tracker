@@ -45,6 +45,7 @@ import {
 } from '../data/mockData';
 import { CATEGORY_ICONS } from '../constants/categoryIcons';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
 import {
@@ -52,9 +53,13 @@ import {
     chargerJournal,
     chargerJournalComplet,
     documentsModifies,
+    ecouterEcritures,
     saveCollectionDocs,
     saveSingleDoc,
+    suivreEcriture,
+    supprimerDocuments,
 } from '../lib/firestorePersistence';
+import { waitForPendingWrites } from 'firebase/firestore';
 import { DEMO_RESEED_DISABLED, isDemoSeedEquipment, isDemoSeedUser } from '../lib/demoSeed';
 import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
 import { setImportLimitMb } from '../lib/fileImport';
@@ -313,6 +318,8 @@ const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 const DELAI_HYDRATATION_MS = 12_000;
 /** Les derniers événements lus à l'ouverture, quand le journal n'est pas en cache. */
 const JOURNAL_RECENT = 100;
+/** Une écriture en attente au-delà de ce délai se dit à l'écran. */
+const ATTENTE_AVANT_AVIS_MS = 8_000;
 
 /**
  * L'empreinte de ce qu'on vient de lire, calculée sur la valeur exacte qui entre dans l'état :
@@ -941,6 +948,7 @@ const mergePersistedRbacAssignments = (
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser, patchCurrentUser } = useAuth();
+    const { showToast } = useToast();
     /*
      * **Deux temps de lecture** (27/09) : les comptes d'abord, pour l'écran de connexion ; le
      * reste quand la session s'ouvre. `isHydrating` couvre l'un puis l'autre.
@@ -1355,6 +1363,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const comptesLusRef = useRef<User[]>([]);
     const lectureLanceeRef = useRef(false);
     const journalDemandeRef = useRef(false);
+
+    /**
+     * **Une suppression s'écrit** (27/09). Retirer un objet de l'état ne l'effaçait que de
+     * l'écran : aucun document n'était jamais supprimé de Firestore, et l'objet revenait au
+     * rechargement. La collection doit avoir été lue — sinon il n'y a rien à effacer ici.
+     */
+    const effacerDuMagasin = useCallback((nom: string, ids: string[]) => {
+        if (!firestore || !chargeesRef.current.has(nom)) return;
+        void supprimerDocuments(firestore, nom, ids);
+    }, []);
     /**
      * **L'empreinte de ce qui est déjà dans Firestore**, une carte par collection.
      * Sans elle, chaque changement d'état réécrivait la collection entière : un objet
@@ -1645,6 +1663,59 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         void lireLeReste();
     }, [sessionOuverte]);
+
+    /*
+     * **Une écriture qui n'aboutit pas se dit** (27/09). Elles partaient sans témoin : un refus
+     * ne se voyait qu'en console, et le geste disparaissait au rechargement suivant. En attente
+     * au-delà de huit secondes (réseau coupé, quota épuisé), le snackbar le dit une fois, puis
+     * confirme quand tout est parti ; le SDK retente seul et garde la file d'une ouverture à
+     * l'autre. Refusée pour de bon, il le dit, avec de quoi recharger.
+     */
+    useEffect(() => {
+        if (!firestore) return;
+        /* Les écritures laissées en suspens par une ouverture précédente comptent aussi. */
+        void suivreEcriture('reprise des écritures en suspens', () =>
+            waitForPendingWrites(firestore),
+        );
+        let refusVus = 0;
+        let averti = false;
+        let minuteur: ReturnType<typeof setTimeout> | undefined;
+        const arreter = ecouterEcritures(({ enAttente, refus }) => {
+            if (refus > refusVus) {
+                refusVus = refus;
+                showToast(
+                    'La base a refusé un enregistrement : rechargez pour revoir l’état réel.',
+                    'error',
+                    {
+                        label: 'Recharger',
+                        onClick: () => window.location.reload(),
+                    },
+                );
+            }
+            if (enAttente > 0 && !averti && !minuteur) {
+                minuteur = setTimeout(() => {
+                    minuteur = undefined;
+                    averti = true;
+                    showToast(
+                        'Enregistrement en attente : il partira dès que la base répondra.',
+                        'warning',
+                    );
+                }, ATTENTE_AVANT_AVIS_MS);
+            }
+            if (enAttente === 0) {
+                clearTimeout(minuteur);
+                minuteur = undefined;
+                if (averti) {
+                    averti = false;
+                    showToast('Modifications enregistrées.', 'success');
+                }
+            }
+        });
+        return () => {
+            arreter();
+            clearTimeout(minuteur);
+        };
+    }, [showToast]);
 
     /**
      * **Le journal entier, à la demande** (27/09) — `useJournalComplet`. Lu une fois, il entre
@@ -2108,6 +2179,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setRbacRoles((prev) => prev.filter((entry) => entry.id !== roleId));
+            effacerDuMagasin('rbacRoles', [roleId]);
 
             logEvent({
                 type: 'DELETE',
@@ -2128,7 +2200,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return { allowed: true };
         },
-        [canManageRbacConfig, currentUser, logEvent, rbacAssignments, rbacGroups, rbacRoles],
+        [
+            canManageRbacConfig,
+            currentUser,
+            logEvent,
+            rbacAssignments,
+            rbacGroups,
+            rbacRoles,
+            effacerDuMagasin,
+        ],
     );
 
     const upsertRbacGroup = useCallback(
@@ -2199,6 +2279,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setRbacGroups((prev) => prev.filter((entry) => entry.id !== groupId));
+            effacerDuMagasin('rbacGroups', [groupId]);
 
             logEvent({
                 type: 'DELETE',
@@ -2219,7 +2300,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return { allowed: true };
         },
-        [canManageRbacConfig, currentUser, logEvent, rbacAssignments, rbacGroups],
+        [canManageRbacConfig, currentUser, logEvent, rbacAssignments, rbacGroups, effacerDuMagasin],
     );
 
     const upsertRbacWorkflow = useCallback(
@@ -2281,6 +2362,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setRbacWorkflows((prev) => prev.filter((entry) => entry.id !== workflowId));
+            effacerDuMagasin('rbacWorkflows', [workflowId]);
 
             logEvent({
                 type: 'DELETE',
@@ -2301,7 +2383,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return { allowed: true };
         },
-        [canManageRbacConfig, currentUser, logEvent, rbacWorkflows],
+        [canManageRbacConfig, currentUser, logEvent, rbacWorkflows, effacerDuMagasin],
     );
 
     const upsertUserRbacAssignment = useCallback(
@@ -2984,6 +3066,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setUsers((prev) => prev.filter((u) => u.id !== id));
+            effacerDuMagasin('users', [id]);
 
             logEvent({
                 type: 'DELETE',
@@ -2999,7 +3082,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             return { allowed: true };
         },
-        [users, equipment, approvals, currentUser, logEvent],
+        [users, equipment, approvals, currentUser, logEvent, effacerDuMagasin],
     );
 
     const addEquipment = useCallback(
@@ -3199,6 +3282,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!decision.allowed) return false;
 
             setEquipment((prev) => prev.filter((e) => e.id !== id));
+            effacerDuMagasin('equipment', [id]);
             logEvent({
                 type: 'DELETE',
                 actorId: currentUser?.id || 'system',
@@ -3227,7 +3311,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             return true;
         },
-        [equipment, currentUser, logEvent],
+        [equipment, currentUser, logEvent, effacerDuMagasin],
     );
 
     /**
@@ -4577,15 +4661,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     }, []);
-    const deleteCategory = useCallback((id: string) => {
-        const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
-        if (!permissionDecision.allowed) {
-            return false;
-        }
+    const deleteCategory = useCallback(
+        (id: string) => {
+            const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
+            if (!permissionDecision.allowed) {
+                return false;
+            }
 
-        setCategories((prev) => prev.filter((c) => c.id !== id));
-        return true;
-    }, []);
+            setCategories((prev) => prev.filter((c) => c.id !== id));
+            effacerDuMagasin('categories', [id]);
+            return true;
+        },
+        [effacerDuMagasin],
+    );
     const addModel = useCallback((modelData: Omit<Model, 'id'>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
@@ -4603,15 +4691,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setModels((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
     }, []);
-    const deleteModel = useCallback((id: string) => {
-        const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
-        if (!permissionDecision.allowed) {
-            return false;
-        }
+    const deleteModel = useCallback(
+        (id: string) => {
+            const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
+            if (!permissionDecision.allowed) {
+                return false;
+            }
 
-        setModels((prev) => prev.filter((m) => m.id !== id));
-        return true;
-    }, []);
+            setModels((prev) => prev.filter((m) => m.id !== id));
+            effacerDuMagasin('models', [id]);
+            return true;
+        },
+        [effacerDuMagasin],
+    );
 
     const contextValue = useMemo(
         () => ({
