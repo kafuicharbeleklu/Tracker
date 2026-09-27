@@ -5651,7 +5651,8 @@ fixe de 400, « ce qui presse d'abord » par défaut.
 
 - **17.4** — au bureau, valider et refuser une demande **ne demandent plus le code personnel** : cinq
   secondes pour se reprendre à la place. Au téléphone rien ne change (06.5 et la feuille d'acte). La
-  remise et la réception gardent leur attestation.
+  remise et la réception gardent leur attestation. **Validé par le commanditaire le 27/09** (« 4 —
+  oui vas-y ») : l'écart n'est plus en attente, il est tranché ; 17.4 est à reporter.
 - **17.5** — le bandeau « Annuler » dure 5 s et vit hors du snackbar (4 s, non négociable).
 - **03.3** — la file de 400 remplace les douzièmes au bureau ; l'ordre par défaut devient « ce qui
   presse d'abord » ; la nature revient écrite sur la rangée du bureau (la passe du 02/09 l'avait
