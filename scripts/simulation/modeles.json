@@ -1,0 +1,59 @@
+[
+    { "id": "m-lpt-lat5440", "type": "Laptop", "brand": "Dell", "name": "Latitude 5440", "specs": "Intel Core i5-1345U · 16 Go · SSD 512 Go · 14\" FHD" },
+    { "id": "m-lpt-lat7440", "type": "Laptop", "brand": "Dell", "name": "Latitude 7440", "specs": "Intel Core i7-1365U · 16 Go · SSD 512 Go · 14\" FHD+" },
+    { "id": "m-lpt-eb840", "type": "Laptop", "brand": "HP", "name": "EliteBook 840 G10", "specs": "Intel Core i7-1355U · 32 Go · SSD 1 To · 14\" WUXGA" },
+    { "id": "m-lpt-pb450", "type": "Laptop", "brand": "HP", "name": "ProBook 450 G10", "specs": "Intel Core i5-1335U · 8 Go · SSD 256 Go · 15,6\" FHD" },
+    { "id": "m-lpt-t14", "type": "Laptop", "brand": "Lenovo", "name": "ThinkPad T14 Gen 4", "specs": "AMD Ryzen 7 PRO 7840U · 16 Go · SSD 512 Go · 14\" WUXGA" },
+    { "id": "m-lpt-e14", "type": "Laptop", "brand": "Lenovo", "name": "ThinkPad E14 Gen 5", "specs": "Intel Core i5-1335U · 16 Go · SSD 512 Go · 14\" WUXGA" },
+    { "id": "m-lpt-mba", "type": "Laptop", "brand": "Apple", "name": "MacBook Air 13 M2", "specs": "Apple M2 · 16 Go · SSD 512 Go · 13,6\" Liquid Retina" },
+
+    { "id": "m-dsk-opt7010", "type": "Desktop", "brand": "Dell", "name": "OptiPlex 7010 Tour", "specs": "Intel Core i5-13500 · 16 Go · SSD 512 Go" },
+    { "id": "m-dsk-pro400", "type": "Desktop", "brand": "HP", "name": "Pro Tower 400 G9", "specs": "Intel Core i5-12500 · 8 Go · SSD 256 Go" },
+    { "id": "m-dsk-m70q", "type": "Desktop", "brand": "Lenovo", "name": "ThinkCentre M70q Gen 4", "specs": "Intel Core i5-13400T · 16 Go · SSD 512 Go · format mini" },
+
+    { "id": "m-scr-p2423d", "type": "Monitor", "brand": "Dell", "name": "P2423D", "specs": "24\" QHD IPS · USB-C non · pied réglable" },
+    { "id": "m-scr-u2724d", "type": "Monitor", "brand": "Dell", "name": "UltraSharp U2724D", "specs": "27\" QHD IPS Black · USB-C 90 W" },
+    { "id": "m-scr-e24g5", "type": "Monitor", "brand": "HP", "name": "E24 G5", "specs": "23,8\" FHD IPS · DisplayPort, HDMI" },
+    { "id": "m-scr-t24i", "type": "Monitor", "brand": "Lenovo", "name": "ThinkVision T24i-30", "specs": "23,8\" FHD IPS · pied réglable en hauteur" },
+    { "id": "m-scr-s27c", "type": "Monitor", "brand": "Samsung", "name": "ViewFinity S27C650", "specs": "27\" QHD · USB-C 90 W · hub USB" },
+
+    { "id": "m-tel-a55", "type": "Phone", "brand": "Samsung", "name": "Galaxy A55", "specs": "128 Go · double SIM · Android 14" },
+    { "id": "m-tel-s24", "type": "Phone", "brand": "Samsung", "name": "Galaxy S24", "specs": "256 Go · eSIM · Android 14" },
+    { "id": "m-tel-ip15", "type": "Phone", "brand": "Apple", "name": "iPhone 15", "specs": "128 Go · eSIM · iOS 17" },
+    { "id": "m-tel-ip13", "type": "Phone", "brand": "Apple", "name": "iPhone 13", "specs": "128 Go · iOS 17" },
+    { "id": "m-tel-camon", "type": "Phone", "brand": "Tecno", "name": "Camon 20 Pro", "specs": "256 Go · double SIM · Android 13" },
+    { "id": "m-tel-g42", "type": "Phone", "brand": "Nokia", "name": "G42 5G", "specs": "128 Go · double SIM · Android 13" },
+
+    { "id": "m-tab-ipad10", "type": "Tablet", "brand": "Apple", "name": "iPad 10e génération", "specs": "10,9\" · 64 Go · Wi-Fi + Cellular" },
+    { "id": "m-tab-s9fe", "type": "Tablet", "brand": "Samsung", "name": "Galaxy Tab S9 FE", "specs": "10,9\" · 128 Go · stylet S Pen" },
+    { "id": "m-tab-m10", "type": "Tablet", "brand": "Lenovo", "name": "Tab M10 Plus Gen 3", "specs": "10,6\" · 64 Go · Wi-Fi" },
+
+    { "id": "m-dck-wd19s", "type": "DockingStation", "brand": "Dell", "name": "WD19S", "specs": "USB-C · 130 W · 2 écrans" },
+    { "id": "m-dck-hpg5", "type": "DockingStation", "brand": "HP", "name": "USB-C Dock G5", "specs": "USB-C · 100 W · 3 écrans" },
+    { "id": "m-dck-tpu", "type": "DockingStation", "brand": "Lenovo", "name": "ThinkPad Universal USB-C Dock", "specs": "USB-C · 90 W · 2 écrans" },
+
+    { "id": "m-srv-r650", "type": "Server", "brand": "Dell", "name": "PowerEdge R650", "specs": "2 × Xeon Silver 4314 · 128 Go · 4 × SSD 960 Go · rack 1U" },
+    { "id": "m-srv-dl380", "type": "Server", "brand": "HPE", "name": "ProLiant DL380 Gen10 Plus", "specs": "2 × Xeon Gold 5318Y · 256 Go · rack 2U" },
+    { "id": "m-srv-t350", "type": "Server", "brand": "Dell", "name": "PowerEdge T350", "specs": "Xeon E-2336 · 32 Go · 4 × HDD 2 To · tour" },
+
+    { "id": "m-sw-c9200", "type": "Switch", "brand": "Cisco", "name": "Catalyst 9200L-24P", "specs": "24 ports PoE+ · 4 × SFP+ 10G" },
+    { "id": "m-sw-2930f", "type": "Switch", "brand": "HPE Aruba", "name": "2930F-48G", "specs": "48 ports gigabit · 4 × SFP+" },
+    { "id": "m-sw-cbs350", "type": "Switch", "brand": "Cisco", "name": "CBS350-24T", "specs": "24 ports gigabit · administrable" },
+
+    { "id": "m-fw-xgs2100", "type": "Firewall", "brand": "Sophos", "name": "XGS 2100", "specs": "Débit pare-feu 30 Gbit/s · licence Xstream" },
+    { "id": "m-fw-60f", "type": "Firewall", "brand": "Fortinet", "name": "FortiGate 60F", "specs": "Débit pare-feu 10 Gbit/s · SD-WAN" },
+
+    { "id": "m-ap-u6pro", "type": "AccessPoint", "brand": "Ubiquiti", "name": "UniFi U6 Pro", "specs": "Wi-Fi 6 · PoE · plafond" },
+    { "id": "m-ap-apx", "type": "AccessPoint", "brand": "Sophos", "name": "APX 530", "specs": "Wi-Fi 5 Wave 2 · PoE+" },
+    { "id": "m-ap-mr36", "type": "AccessPoint", "brand": "Cisco Meraki", "name": "MR36", "specs": "Wi-Fi 6 · gestion cloud" },
+
+    { "id": "m-net-isr", "type": "NetworkDevice", "brand": "Cisco", "name": "ISR 1111-8P", "specs": "Routeur d'agence · 8 ports · VPN" },
+    { "id": "m-net-ups", "type": "NetworkDevice", "brand": "APC", "name": "Smart-UPS 1500 VA", "specs": "Onduleur rack 2U · autonomie 12 min" },
+
+    { "id": "m-prt-m404", "type": "Printer", "brand": "HP", "name": "LaserJet Pro M404dn", "specs": "Laser monochrome · recto verso · réseau" },
+    { "id": "m-prt-mf455", "type": "Printer", "brand": "Canon", "name": "i-SENSYS MF455dw", "specs": "Laser monochrome multifonction · Wi-Fi" },
+    { "id": "m-prt-imc3000", "type": "Printer", "brand": "Ricoh", "name": "IM C3000", "specs": "Copieur couleur A3 · 30 pages/min" },
+
+    { "id": "m-prj-fh52", "type": "Projector", "brand": "Epson", "name": "EB-FH52", "specs": "Full HD · 4 000 lumens · Wi-Fi" },
+    { "id": "m-prj-mw560", "type": "Projector", "brand": "BenQ", "name": "MW560", "specs": "WXGA · 4 000 lumens" }
+]

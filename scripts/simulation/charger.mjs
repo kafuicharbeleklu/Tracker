@@ -61,18 +61,29 @@ const chargerGenerateur = async () => {
     return import(`${pathToFileURL(sortie).href}?v=${Date.now()}`);
 };
 
-/** Les noms réels à ne jamais reproduire : la base actuelle et la dernière sauvegarde. */
+/** Une personne d'une simulation précédente : ses adresses sont en `.test`. */
+const deSimulation = (personne) => /@[a-z-]+\.test$/i.test(personne?.email ?? '');
+
+/**
+ * Les noms réels à ne jamais reproduire : la base actuelle et les sauvegardes — sauf les
+ * personnes d'une simulation déjà chargée, qui ne sont pas réelles (sans cette exception, le
+ * rechargement refusait ses propres comptes de démonstration).
+ */
 const nomsReels = async () => {
     const noms = new Set();
     const actuels = await db.collection('users').get();
-    actuels.docs.forEach((doc) => noms.add(sansAccent(doc.data().name)));
+    actuels.docs.forEach((doc) => {
+        if (!deSimulation(doc.data())) noms.add(sansAccent(doc.data().name));
+    });
     const dossier = path.join(projectRoot, 'backups');
     const sauvegardes = fs.existsSync(dossier)
         ? fs.readdirSync(dossier).filter((f) => f.startsWith(`firestore-${serviceAccount.project_id}-`))
         : [];
     for (const fichier of sauvegardes) {
         const contenu = JSON.parse(fs.readFileSync(path.join(dossier, fichier), 'utf8'));
-        for (const doc of contenu.collections?.users ?? []) noms.add(sansAccent(doc.data?.name));
+        for (const doc of contenu.collections?.users ?? []) {
+            if (!deSimulation(doc.data)) noms.add(sansAccent(doc.data?.name));
+        }
     }
     return { noms, sauvegardes };
 };
@@ -104,7 +115,11 @@ const verifier = (jeu) => {
         if (actives.has(d.status) && d.assignedEquipmentId) reclames.add(d.assignedEquipmentId);
     }
     for (const { data: o } of jeu.equipment) {
-        if (o.status === 'En attente' && actives.has(o.assignmentStatus) && !reclames.has(o.id)) {
+        /* Un objet réparé qui revient à son porteur attend sa réception sans demande : c'est ce
+           que produit la réception d'une réparation (`advanceRepair`), et l'application ne le
+           libère pas. */
+        const rendApresReparation = o.assignmentStatus === 'PENDING_DELIVERY' && o.repairHistory?.[0]?.returnedAt;
+        if (o.status === 'En attente' && actives.has(o.assignmentStatus) && !reclames.has(o.id) && !rendApresReparation) {
             erreurs.push(`objet ${o.id} : en attente sans demande (l'application le libérerait)`);
         }
     }
@@ -112,7 +127,7 @@ const verifier = (jeu) => {
 };
 
 const main = async () => {
-    const { construireJeu } = await chargerGenerateur();
+    const { construireJeu, PIN_DE_SIMULATION } = await chargerGenerateur();
     const { noms, sauvegardes } = await nomsReels();
     const jeu = construireJeu({ maintenant: new Date(), nomsInterdits: noms });
 
@@ -153,7 +168,9 @@ const main = async () => {
         process.exit(1);
     }
 
-    /* Les réglages : ceux de la base, ou à défaut ceux de la dernière sauvegarde. */
+    /* Les réglages : ceux de la base, ou à défaut ceux de la dernière sauvegarde — et, posé
+       par-dessus, ce que la simulation règle elle-même (collecte active, seuil de devis,
+       périodicité d'inventaire). Le reste de la configuration est conservé. */
     const enBase = await db.collection('meta').doc('settings').get();
     let reglages = enBase.exists ? enBase.data() : null;
     if (!reglages) {
@@ -162,6 +179,9 @@ const main = async () => {
         reglages = contenu.collections?.meta?.find((doc) => doc.id === 'settings')?.data ?? null;
         if (reglages) console.log(`Réglages repris de la sauvegarde ${derniere}.`);
     }
+    const reglagesDuJeu = jeu.meta?.find((doc) => doc.id === 'settings')?.data ?? {};
+    reglages = { ...(reglages ?? {}), ...reglagesDuJeu };
+    jeu.meta = (jeu.meta ?? []).filter((doc) => doc.id !== 'settings');
 
     console.log('\nVidage…');
     for (const reference of existantes) await db.recursiveDelete(reference);
@@ -180,7 +200,7 @@ const main = async () => {
             ecrire(db.collection(collection).doc(doc.id), JSON.parse(JSON.stringify(doc.data)));
         }
     }
-    if (reglages) ecrire(db.collection('meta').doc('settings'), reglages);
+    ecrire(db.collection('meta').doc('settings'), reglages);
     await ecrivain.close();
 
     if (bilan.echecs > 0) {
@@ -198,10 +218,10 @@ const main = async () => {
     for (const collection of [...Object.keys(jeu)]) {
         const n = (await db.collection(collection).count().get()).data().count;
         /* `meta` porte en plus les réglages et l'annonce de génération (`synchro`). */
-        const attendu =
-            jeu[collection].length + (collection === 'meta' ? 1 + (reglages ? 1 : 0) : 0);
+        const attendu = jeu[collection].length + (collection === 'meta' ? 2 : 0);
         console.log(`  ${n === attendu ? '✓' : '✗'} ${collection.padEnd(22)} ${n} / ${attendu}`);
     }
+    console.log(`\nCode PIN des comptes de démonstration (et de la plupart des autres) : ${PIN_DE_SIMULATION}`);
 };
 
 main().catch((erreur) => {
