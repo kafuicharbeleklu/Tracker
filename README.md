@@ -77,6 +77,12 @@ Trois règles d'écriture (`src/lib/firestorePersistence.ts`) :
 
 La session de démonstration se garde dans l'onglet : recharger ne déconnecte plus.
 
+**Les règles de sécurité** vivent dans `firestore.rules` (à coller dans la console Firebase,
+Firestore → Règles). L'application n'utilisant pas l'authentification Firebase, elles ne ferment
+pas la lecture : elles limitent l'écriture aux quatorze collections de l'application, interdisent
+toute suppression et toute réécriture du journal. L'émulateur les applique
+(`firebase emulators:start --only firestore`, configuration dans `firebase.json`).
+
 **Tout script qui écrit dans Firestore** doit finir par `annoncerNouvelleGeneration(db, motif)`
 (`scripts/lib/generation.mjs`) : il écrit sans `_maj`, et sans cette annonce les navigateurs ne
 verraient jamais ses documents. Une retouche faite à la main dans la console Firebase n'est vue qu'à

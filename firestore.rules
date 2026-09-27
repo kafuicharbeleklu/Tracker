@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// Les règles de Firestore pour le Tracker — à coller dans la console Firebase
+// (Firestore → Règles), ou `firebase deploy --only firestore:rules`.
+//
+// **Étape 1 (27/09) : resserrer sans rien changer à l'application.** Elle ne passe pas par
+// l'authentification Firebase : pour Firestore, chaque visiteur est anonyme, et une règle
+// « connecté seulement » la bloquerait net. Ces règles ne ferment donc pas la lecture ; elles
+// retirent ce qu'aucun geste de l'application ne demande :
+//
+// - toute collection hors des quatorze qu'elle lit et écrit ;
+// - toute suppression — depuis le 27/09, l'application n'efface rien : elle pose une pierre
+//   tombale (`_supprime`), qui est une écriture ;
+// - toute réécriture du journal (`events`) — un fait s'ajoute, il ne se corrige pas ;
+// - dans `meta`, tout document autre que les trois réglages qu'elle écrit (`synchro`,
+//   l'annonce de génération, n'est écrit que par les scripts).
+//
+// Les scripts d'administration (`scripts/*.mjs`) passent par le SDK d'administration : ces
+// règles ne s'appliquent pas à eux.
+//
+// La lecture reste ouverte à qui connaît la configuration du site, codes PIN compris :
+// l'étape 2 (App Check) et l'étape 3 (authentification rattachée à Microsoft, PIN chiffrés)
+// sont à faire avant d'y remettre de vraies données.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function collectionDeLApplication(nom) {
+      return nom in [
+        'users', 'equipment', 'detectedDevices', 'categories', 'models', 'approvals',
+        'rbacRoles', 'rbacGroups', 'rbacWorkflows', 'rbacAssignments',
+        'financeExpenses', 'financeBudgets'
+      ];
+    }
+
+    // Les collections de données : lues et écrites, jamais supprimées.
+    match /{nom}/{id} {
+      allow read: if collectionDeLApplication(nom);
+      allow create, update: if collectionDeLApplication(nom);
+      allow delete: if false;
+    }
+
+    // Le journal : lu, complété — jamais réécrit ni effacé.
+    match /events/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['type', 'timestamp', 'description']);
+      allow update, delete: if false;
+    }
+
+    // Les réglages : trois documents écrits par l'application ; `synchro` est lu seulement.
+    match /meta/{id} {
+      allow read: if true;
+      allow create, update: if id in ['settings', 'locations', 'serviceManagers'];
+      allow delete: if false;
+    }
+  }
+}
