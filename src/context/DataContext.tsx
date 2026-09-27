@@ -48,9 +48,10 @@ import { useAuth } from './AuthContext';
 import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
 import {
+    chargerCollection,
+    chargerJournal,
+    chargerJournalComplet,
     documentsModifies,
-    loadCollectionDocs,
-    loadSingleDoc,
     saveCollectionDocs,
     saveSingleDoc,
 } from '../lib/firestorePersistence';
@@ -161,6 +162,13 @@ interface DataContextType {
      * qu'on se pose dans un couloir sans réseau.
      */
     derniereLecture: string | null;
+    /**
+     * **Le journal est-il entier ?** (27/09) Sans cache local, l'ouverture n'en lit que les
+     * derniers événements et ceux des campagnes d'inventaire ; un écran qui a besoin de tout
+     * l'historique le demande (`useJournalComplet`).
+     */
+    journalComplet: boolean;
+    demanderJournalComplet: () => void;
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
@@ -300,6 +308,34 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
+
+/** Passé ce délai sans réponse du magasin, l'écran le dit (voir `remoteUnavailable`). */
+const DELAI_HYDRATATION_MS = 12_000;
+/** Les derniers événements lus à l'ouverture, quand le journal n'est pas en cache. */
+const JOURNAL_RECENT = 100;
+
+/**
+ * L'empreinte de ce qu'on vient de lire, calculée sur la valeur exacte qui entre dans l'état :
+ * la persistance la retrouvera identique, et n'écrira rien (voir `empreintesRef`).
+ */
+const graverEmpreintes = <T extends object>(
+    empreintes: Record<string, Map<string, string>>,
+    cle: string,
+    items: readonly T[],
+    getId?: (item: T) => string | undefined,
+) => {
+    empreintes[cle] = documentsModifies(items, new Map(), getId).empreintes;
+};
+
+/**
+ * Le journal lu, plus ce qui a été noté ici avant qu'il arrive : la connexion écrit son
+ * événement avant la lecture du journal, et sans cette fusion il disparaissait de l'écran
+ * comme du magasin.
+ */
+const fusionnerJournal = (lus: HistoryEvent[], locaux: HistoryEvent[]): HistoryEvent[] => {
+    const connus = new Set(lus.map((event) => event.id));
+    return [...locaux.filter((event) => !connus.has(event.id)), ...lus];
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
     currency: 'XOF',
@@ -905,7 +941,15 @@ const mergePersistedRbacAssignments = (
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser, patchCurrentUser } = useAuth();
-    const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
+    /*
+     * **Deux temps de lecture** (27/09) : les comptes d'abord, pour l'écran de connexion ; le
+     * reste quand la session s'ouvre. `isHydrating` couvre l'un puis l'autre.
+     */
+    const [comptesEnCours, setComptesEnCours] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
+    const [donneesChargees, setDonneesChargees] = useState<boolean>(!FIREBASE_BACKEND_ENABLED);
+    const sessionOuverte = Boolean(currentUser);
+    const isHydrating = comptesEnCours || (sessionOuverte && !donneesChargees);
+    const [journalComplet, setJournalComplet] = useState<boolean>(!FIREBASE_BACKEND_ENABLED);
     /** Le magasin distant n'a pas répondu : ce qui est à l'écran est local (voir plus bas). */
     const [remoteUnavailable, setRemoteUnavailable] = useState(false);
     /** Voir `derniereLecture` au contrat : posée à la fin de chaque hydratation. */
@@ -1302,7 +1346,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const usersRef = useRef(users);
-    const firebaseHydratedRef = useRef(false);
+    /**
+     * **Les collections déjà lues** (27/09). La persistance n'écrit une collection qu'après
+     * l'avoir lue : avant, elle comparerait l'état de départ, vide, à des empreintes vides.
+     */
+    const chargeesRef = useRef<Set<string>>(new Set());
+    /** Les comptes tels que lus, démonstration comprise : la fusion des accès les lit. */
+    const comptesLusRef = useRef<User[]>([]);
+    const lectureLanceeRef = useRef(false);
+    const journalDemandeRef = useRef(false);
     /**
      * **L'empreinte de ce qui est déjà dans Firestore**, une carte par collection.
      * Sans elle, chaque changement d'état réécrivait la collection entière : un objet
@@ -1368,12 +1420,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ].forEach((key) => localStorage.removeItem(key));
     }, []);
 
+    /*
+     * **Premier temps : les comptes** (27/09). Chaque visite lisait toute la base avant même la
+     * connexion — ~1 000 lectures, pour une personne qui n'irait peut-être pas plus loin que cet
+     * écran, et pour tout robot de passage sur le site public. L'écran de connexion n'a besoin
+     * que des comptes : les raccourcis, l'adresse reconnue, l'invitation.
+     */
     useEffect(() => {
-        if (!firestore) {
-            firebaseHydratedRef.current = true;
-            setIsHydrating(false);
-            return;
-        }
+        if (!firestore) return;
 
         let cancelled = false;
 
@@ -1384,48 +1438,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          * locales sans jamais l'apprendre — et sans jamais le dire. Passé ce délai, on
          * déclare le magasin muet ; s'il répond plus tard, la déclaration est levée.
          */
-        const DELAI_HYDRATATION_MS = 12_000;
         const minuteur = setTimeout(() => {
             if (!cancelled) setRemoteUnavailable(true);
         }, DELAI_HYDRATATION_MS);
 
-        const hydrateFromFirebase = async () => {
+        const lireLesComptes = async () => {
             try {
-                const [
-                    firebaseUsers,
-                    firebaseEquipment,
-                    firebaseDetectedDevices,
-                    firebaseCategories,
-                    firebaseModels,
-                    firebaseApprovals,
-                    firebaseEvents,
-                    firebaseSettings,
-                    firebaseLocations,
-                    firebaseServiceManagers,
-                    firebaseRbacRoles,
-                    firebaseRbacGroups,
-                    firebaseRbacWorkflows,
-                    firebaseRbacAssignments,
-                ] = await Promise.all([
-                    loadCollectionDocs<User>(firestore, 'users'),
-                    loadCollectionDocs<Equipment>(firestore, 'equipment'),
-                    loadCollectionDocs<DetectedDevice>(firestore, 'detectedDevices'),
-                    loadCollectionDocs<SerializableCategory>(firestore, 'categories'),
-                    loadCollectionDocs<Model>(firestore, 'models'),
-                    loadCollectionDocs<Approval>(firestore, 'approvals'),
-                    loadCollectionDocs<HistoryEvent>(firestore, 'events'),
-                    loadSingleDoc<AppSettings>(firestore, 'meta', 'settings'),
-                    loadSingleDoc<LocationData>(firestore, 'meta', 'locations'),
-                    loadSingleDoc<Record<string, string>>(firestore, 'meta', 'serviceManagers'),
-                    loadCollectionDocs<RbacRole>(firestore, 'rbacRoles'),
-                    loadCollectionDocs<RbacGroup>(firestore, 'rbacGroups'),
-                    loadCollectionDocs<WorkflowDefinition>(firestore, 'rbacWorkflows'),
-                    loadCollectionDocs<UserAccessAssignment>(firestore, 'rbacAssignments'),
-                ]);
-
-                if (cancelled) {
-                    return;
-                }
+                const comptes = await chargerCollection<User>(firestore, 'users');
+                if (cancelled) return;
 
                 /* Le magasin a répondu : la déclaration de repli est levée. */
                 setRemoteUnavailable(false);
@@ -1438,90 +1458,146 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                  * sait les reconnaître — c'est le même test que celui qui les empêche
                  * désormais de partir.
                  */
-                /* Chaque valeur lue grave son empreinte avant d'entrer dans l'état : la
-                   persistance la retrouvera identique, et n'écrira rien (voir
-                   `empreintesRef`). */
+                comptesLusRef.current = comptes;
+                const lus = comptes
+                    .filter((user) => !isDemoSeedUser(user.id))
+                    .map((user) => normalizeUserRecord(user, user));
+                graverEmpreintes(empreintesRef.current, 'users', lus);
+                chargeesRef.current.add('users');
+                if (comptes.length > 0) setUsers(lus);
+            } catch (error) {
+                /*
+                 * **Un magasin qui ne répond pas doit se dire.** L'application garde
+                 * alors ses données de démonstration — c'est le bon repli, elle reste
+                 * utilisable — mais elle le taisait : on lisait un inventaire de
+                 * démonstration en croyant lire celui de Neemba Togo, et les deux
+                 * paraissaient mélangés. Le cas n'est pas théorique : le quota
+                 * quotidien de Firestore s'épuise, et tout s'arrête net.
+                 */
+                console.error('[DataContext] Lecture des comptes impossible', error);
+                if (!cancelled) setRemoteUnavailable(true);
+            } finally {
+                clearTimeout(minuteur);
+                if (!cancelled) {
+                    setComptesEnCours(false);
+                    setDerniereLecture(new Date().toISOString());
+                }
+            }
+        };
+
+        void lireLesComptes();
+
+        return () => {
+            clearTimeout(minuteur);
+            cancelled = true;
+        };
+    }, []);
+
+    /*
+     * **Second temps : le reste, à l'ouverture de la session** (27/09). Chaque collection ne
+     * relit que ce qui a changé depuis la visite précédente (`chargerCollection`), et le journal
+     * n'arrive entier que si un écran le demande (`chargerJournal`).
+     */
+    useEffect(() => {
+        if (!firestore || !sessionOuverte || lectureLanceeRef.current) return;
+        lectureLanceeRef.current = true;
+
+        const minuteur = setTimeout(() => setRemoteUnavailable(true), DELAI_HYDRATATION_MS);
+
+        const lireLeReste = async () => {
+            try {
+                const [
+                    firebaseEquipment,
+                    firebaseDetectedDevices,
+                    firebaseCategories,
+                    firebaseModels,
+                    firebaseApprovals,
+                    journal,
+                    meta,
+                    firebaseRbacRoles,
+                    firebaseRbacGroups,
+                    firebaseRbacWorkflows,
+                    firebaseRbacAssignments,
+                ] = await Promise.all([
+                    chargerCollection<Equipment>(firestore, 'equipment'),
+                    chargerCollection<DetectedDevice>(firestore, 'detectedDevices'),
+                    chargerCollection<SerializableCategory>(firestore, 'categories'),
+                    chargerCollection<Model>(firestore, 'models'),
+                    chargerCollection<Approval>(firestore, 'approvals'),
+                    chargerJournal<HistoryEvent>(firestore, JOURNAL_RECENT),
+                    chargerCollection<Record<string, unknown>>(firestore, 'meta'),
+                    chargerCollection<RbacRole>(firestore, 'rbacRoles'),
+                    chargerCollection<RbacGroup>(firestore, 'rbacGroups'),
+                    chargerCollection<WorkflowDefinition>(firestore, 'rbacWorkflows'),
+                    chargerCollection<UserAccessAssignment>(firestore, 'rbacAssignments'),
+                ]);
+
+                setRemoteUnavailable(false);
+
+                /* Chaque collection lue grave son empreinte et se déclare lue — même vide :
+                   une collection neuve doit pouvoir recevoir son premier document. */
                 const graver = <T extends object>(
                     cle: string,
                     items: readonly T[],
                     getId?: (item: T) => string | undefined,
                 ) => {
-                    empreintesRef.current[cle] = documentsModifies(
-                        items,
-                        new Map(),
-                        getId,
-                    ).empreintes;
+                    graverEmpreintes(empreintesRef.current, cle, items, getId);
+                    chargeesRef.current.add(cle);
                 };
 
-                if (firebaseUsers.length > 0) {
-                    const lus = firebaseUsers
-                        .filter((user) => !isDemoSeedUser((user as User).id))
-                        .map((user) => normalizeUserRecord(user as User, user as User));
-                    graver('users', lus);
-                    setUsers(lus);
-                }
+                const equipementsLus = firebaseEquipment
+                    .filter((item) => !isDemoSeedEquipment(item.id))
+                    .map((item) => normalizeEquipmentRecord(item, item));
+                graver('equipment', equipementsLus);
+                if (firebaseEquipment.length > 0) setEquipment(equipementsLus);
 
-                if (firebaseEquipment.length > 0) {
-                    const lus = firebaseEquipment
-                        .filter((item) => !isDemoSeedEquipment((item as Equipment).id))
-                        .map((item) =>
-                            normalizeEquipmentRecord(item as Equipment, item as Equipment),
-                        );
-                    graver('equipment', lus);
-                    setEquipment(lus);
-                }
+                graver('detectedDevices', firebaseDetectedDevices);
+                if (firebaseDetectedDevices.length > 0) setDetectedDevices(firebaseDetectedDevices);
 
-                if (firebaseDetectedDevices.length > 0) {
-                    graver('detectedDevices', firebaseDetectedDevices);
-                    setDetectedDevices(firebaseDetectedDevices);
-                }
+                const categoriesLues = firebaseCategories.map((category) =>
+                    deserializeCategory(category, seededCategoryFamiliesRef.current),
+                );
+                graver(
+                    'categories',
+                    categoriesLues.map((category) => serializeCategory(category)),
+                );
+                if (firebaseCategories.length > 0) setCategories(categoriesLues);
 
-                if (firebaseCategories.length > 0) {
-                    const lues = firebaseCategories.map((category) =>
-                        deserializeCategory(category, seededCategoryFamiliesRef.current),
-                    );
-                    graver(
-                        'categories',
-                        lues.map((category) => serializeCategory(category)),
-                    );
-                    setCategories(lues);
-                }
+                graver('models', firebaseModels);
+                if (firebaseModels.length > 0) setModels(firebaseModels);
 
-                if (firebaseModels.length > 0) {
-                    graver('models', firebaseModels);
-                    setModels(firebaseModels);
-                }
+                const demandesLues = mergePersistedApprovalsWithSeed(
+                    firebaseApprovals.filter((approval) => !estDemandeSansSujet(approval)),
+                );
+                graver(
+                    'approvals',
+                    demandesLues.filter((approval) => !estDemandeSansSujet(approval)),
+                );
+                if (firebaseApprovals.length > 0) setApprovals(demandesLues);
 
-                if (firebaseApprovals.length > 0) {
-                    const lues = mergePersistedApprovalsWithSeed(
-                        firebaseApprovals.filter(
-                            (approval) => !estDemandeSansSujet(approval as Approval),
-                        ),
-                    );
-                    graver(
-                        'approvals',
-                        lues.filter((approval) => !estDemandeSansSujet(approval)),
-                    );
-                    setApprovals(lues);
-                }
+                graver('events', journal.docs);
+                setEvents((prev) => fusionnerJournal(journal.docs, prev));
+                setJournalComplet(journal.complet);
 
-                if (firebaseEvents.length > 0) {
-                    graver('events', firebaseEvents);
-                    setEvents(firebaseEvents);
-                }
-
+                /* `meta` : un document par réglage — l'identifiant n'entre pas dans l'état. */
+                const metaParNom = new Map(meta.map(({ id, ...donnees }) => [id, donnees]));
+                chargeesRef.current.add('meta');
+                const firebaseSettings = metaParNom.get('settings') as
+                    Partial<AppSettings> | undefined;
                 if (firebaseSettings) {
                     const lus = { ...DEFAULT_SETTINGS, ...firebaseSettings, currency: 'XOF' };
                     documentsIsolesRef.current.settings = JSON.stringify(lus);
                     setSettings(lus);
                 }
-
+                const firebaseLocations = metaParNom.get('locations') as
+                    Partial<LocationData> | undefined;
                 if (firebaseLocations) {
                     const lus = normalizeLocationData(firebaseLocations);
                     documentsIsolesRef.current.locations = JSON.stringify(lus);
                     setLocationData(lus);
                 }
-
+                const firebaseServiceManagers = metaParNom.get('serviceManagers') as
+                    Record<string, string> | undefined;
                 if (firebaseServiceManagers) {
                     documentsIsolesRef.current.serviceManagers =
                         JSON.stringify(firebaseServiceManagers);
@@ -1532,55 +1608,66 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const lus = mergePersistedRbacRoles(firebaseRbacRoles);
                     graver('rbacRoles', lus);
                     setRbacRoles(lus);
-                }
+                } else graver('rbacRoles', []);
 
                 if (firebaseRbacGroups.length > 0) {
                     const lus = mergePersistedRbacGroups(firebaseRbacGroups);
                     graver('rbacGroups', lus);
                     setRbacGroups(lus);
-                }
+                } else graver('rbacGroups', []);
 
                 if (firebaseRbacWorkflows.length > 0) {
                     const lus = mergePersistedRbacWorkflows(firebaseRbacWorkflows);
                     graver('rbacWorkflows', lus);
                     setRbacWorkflows(lus);
-                }
+                } else graver('rbacWorkflows', []);
 
+                const parPersonne = (assignment: UserAccessAssignment) => assignment.userId;
                 if (firebaseRbacAssignments.length > 0) {
                     const referenceUsers =
-                        firebaseUsers.length > 0 ? firebaseUsers : usersRef.current;
+                        comptesLusRef.current.length > 0 ? comptesLusRef.current : usersRef.current;
                     const lues = mergePersistedRbacAssignments(
                         firebaseRbacAssignments,
                         referenceUsers,
                     );
-                    graver('rbacAssignments', lues, (assignment) => assignment.userId);
+                    graver('rbacAssignments', lues, parPersonne);
                     setRbacAssignments(lues);
-                }
+                } else graver('rbacAssignments', [], parPersonne);
             } catch (error) {
-                /*
-                 * **Un magasin qui ne répond pas doit se dire.** L'application garde
-                 * alors ses données de démonstration — c'est le bon repli, elle reste
-                 * utilisable — mais elle le taisait : on lisait un inventaire de
-                 * démonstration en croyant lire celui de Neemba Togo, et les deux
-                 * paraissaient mélangés. Le cas n'est pas théorique : le quota
-                 * quotidien de Firestore s'épuise, et tout s'arrête net.
-                 */
                 console.error('[DataContext] Hydratation Firebase impossible', error);
                 setRemoteUnavailable(true);
             } finally {
                 clearTimeout(minuteur);
-                firebaseHydratedRef.current = true;
-                setIsHydrating(false);
+                setDonneesChargees(true);
                 setDerniereLecture(new Date().toISOString());
             }
         };
 
-        hydrateFromFirebase();
+        void lireLeReste();
+    }, [sessionOuverte]);
 
-        return () => {
-            clearTimeout(minuteur);
-            cancelled = true;
-        };
+    /**
+     * **Le journal entier, à la demande** (27/09) — `useJournalComplet`. Lu une fois, il entre
+     * dans le cache : les ouvertures suivantes le complètent sans le relire.
+     */
+    const demanderJournalComplet = useCallback(() => {
+        if (!firestore || journalDemandeRef.current || !chargeesRef.current.has('events')) return;
+        journalDemandeRef.current = true;
+        chargerJournalComplet<HistoryEvent>(firestore).then(
+            (lus) => {
+                /* Les empreintes du magasin, puis celles de ce qui a été écrit ici depuis. */
+                empreintesRef.current.events = new Map([
+                    ...documentsModifies(lus, new Map()).empreintes,
+                    ...(empreintesRef.current.events ?? new Map<string, string>()),
+                ]);
+                setEvents((prev) => fusionnerJournal(lus, prev));
+                setJournalComplet(true);
+            },
+            (erreur: unknown) => {
+                journalDemandeRef.current = false;
+                console.error('[DataContext] Lecture du journal complet impossible', erreur);
+            },
+        );
     }, []);
 
     // Save to localStorage
@@ -1651,7 +1738,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [rbacAssignments]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('users')) {
             return;
         }
 
@@ -1673,7 +1760,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [users]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('equipment')) {
             return;
         }
 
@@ -1687,7 +1774,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [equipment]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('detectedDevices')) {
             return;
         }
 
@@ -1698,7 +1785,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [detectedDevices]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('categories')) {
             return;
         }
 
@@ -1712,7 +1799,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [categories]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('models')) {
             return;
         }
 
@@ -1723,7 +1810,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [models]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('approvals')) {
             return;
         }
 
@@ -1737,7 +1824,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [approvals]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('events')) {
             return;
         }
 
@@ -1748,7 +1835,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [events]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('meta')) {
             return;
         }
 
@@ -1759,7 +1846,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [settings]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('meta')) {
             return;
         }
 
@@ -1770,7 +1857,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [locationData]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('meta')) {
             return;
         }
 
@@ -1781,7 +1868,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [serviceManagers]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('rbacRoles')) {
             return;
         }
 
@@ -1792,7 +1879,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [rbacRoles]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('rbacGroups')) {
             return;
         }
 
@@ -1803,7 +1890,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [rbacGroups]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('rbacWorkflows')) {
             return;
         }
 
@@ -1814,7 +1901,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [rbacWorkflows]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('rbacAssignments')) {
             return;
         }
 
@@ -4532,6 +4619,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isHydrating,
             remoteUnavailable,
             derniereLecture,
+            journalComplet,
+            demanderJournalComplet,
             equipment,
             detectedDevices,
             categories,
@@ -4595,6 +4684,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isHydrating,
             remoteUnavailable,
             derniereLecture,
+            journalComplet,
+            demanderJournalComplet,
             equipment,
             detectedDevices,
             categories,

@@ -10,6 +10,7 @@ import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import {
     formatCurrency,
     formatNumber,
@@ -135,6 +136,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
     onRelancer,
 }) => {
     const { approvals, equipment, users, settings, events } = useData();
+    useJournalComplet();
     const { financeBudgets } = useFinanceData();
     const { user: currentUser, permissions } = useAccessControl();
 

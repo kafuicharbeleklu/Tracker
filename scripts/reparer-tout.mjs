@@ -5,6 +5,7 @@ import process from 'process';
 import { fileURLToPath } from 'url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 
 /**
  * REMETTRE FIRESTORE D'APLOMB — une commande, dans l'ordre.
@@ -136,7 +137,9 @@ async function run() {
         console.log(`  ${nom.padEnd(18)} ${String(instantane.size).padStart(4)} documents`);
     }
 
-    console.log('\nFait. Videz le stockage local du navigateur pour relire la base.');
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'réparation complète');
+    console.log('\nFait. Chaque navigateur relira la base à sa prochaine ouverture.');
 }
 
 run().catch((error) => {

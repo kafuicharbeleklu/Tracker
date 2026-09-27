@@ -17,6 +17,7 @@ import SelectField from '../../../components/ui/SelectField';
 import { GLOSSARY } from '../../../constants/glossary';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 
 type FormChangeEvent =
     | React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -31,6 +32,7 @@ interface AddUserPageProps {
 const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) => {
     const { showToast } = useToast();
     const { addUser, updateUser, users, events, locationData, serviceManagers } = useData();
+    useJournalComplet();
     const { role: currentRole, user: currentUser } = useAccessControl();
     const currentUserId = currentUser?.id;
     const currentUserName = currentUser?.name;

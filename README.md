@@ -40,14 +40,36 @@ npm run dev            # http://localhost:3000
 En développement, l'écran de connexion propose les **comptes de démonstration** (un par rôle) en
 plus de la connexion Microsoft.
 
-> ⚠️ **Par défaut, l'application se branche sur le projet Firebase de production**
-> (`src/lib/firebase.ts`), qui porte les données réelles du parc. En local, un geste qui écrit —
-> valider, remettre, supprimer — écrit dans cette base. Pour essayer sans risque, lancez-la
-> Firestore coupé — elle travaille alors sur le jeu de démonstration :
->
-> ```bash
-> VITE_FIREBASE_DISABLED=true npm run dev
-> ```
+**En développement, la base de production est coupée par défaut** : `npm run dev` travaille sur le
+jeu de démonstration et n'envoie aucune requête à Firebase. Deux façons d'avoir de vraies données :
+
+```bash
+VITE_FIRESTORE_EMULATEUR=127.0.0.1:8085 npm run dev   # un émulateur Firestore local, gratuit
+VITE_FIREBASE_EN_DEV=true npm run dev                  # la base de production — elle compte au quota
+```
+
+> ⚠️ Avec `VITE_FIREBASE_EN_DEV=true`, un geste qui écrit — valider, remettre — écrit dans les
+> données réelles du parc, et chaque rechargement du serveur consomme du quota.
+
+### Données et quota Firestore
+
+Le projet est sur le forfait gratuit : 50 000 lectures et 20 000 écritures par jour. Trois
+mécanismes gardent l'application loin de ces plafonds :
+
+- **Deux temps de lecture.** L'écran de connexion ne lit que les comptes ; le reste se lit à
+  l'ouverture de la session (`src/context/DataContext.tsx`).
+- **Un cache dans le navigateur** (`src/lib/cacheLocal.ts`, IndexedDB). Chaque écriture de
+  l'application pose l'heure du serveur (`_maj`) ; une ouverture ne relit que ce qui a changé depuis
+  la précédente, soit environ une lecture par collection (`chargerCollection`).
+- **Le journal par morceaux.** Sans cache, l'ouverture n'en lit que les 100 derniers événements et
+  ceux des campagnes d'inventaire ; un écran qui a besoin de tout l'historique appelle
+  `useJournalComplet`.
+
+**Tout script qui écrit dans Firestore** doit finir par `annoncerNouvelleGeneration(db, motif)`
+(`scripts/lib/generation.mjs`) : il écrit sans `_maj`, et sans cette annonce les navigateurs ne
+verraient jamais ses documents. Une retouche faite à la main dans la console Firebase n'est vue qu'à
+l'expiration des caches (7 jours), ou tout de suite après `node scripts/annoncer-generation.mjs
+"motif"`.
 
 ### Variables d'environnement
 
@@ -56,7 +78,9 @@ Dans `.env.local` (jamais commité). Toutes sont facultatives.
 | Variable | Rôle |
 | --- | --- |
 | `VITE_FIREBASE_API_KEY`, `…_AUTH_DOMAIN`, `…_PROJECT_ID`, `…_STORAGE_BUCKET`, `…_MESSAGING_SENDER_ID`, `…_APP_ID`, `…_MEASUREMENT_ID` | Le projet Firebase (Firestore). À défaut, celui de production |
-| `VITE_FIREBASE_DISABLED` | `true` coupe Firestore : le jeu de démonstration, le même à chaque chargement (c'est ainsi que tourne la régression visuelle) |
+| `VITE_FIREBASE_DISABLED` | `true` coupe Firestore partout, version en ligne comprise : le jeu de démonstration, le même à chaque chargement |
+| `VITE_FIREBASE_EN_DEV` | `true` : en développement, se brancher quand même sur le projet configuré (par défaut, coupé) |
+| `VITE_FIRESTORE_EMULATEUR` | En développement, `hôte:port` d'un émulateur Firestore local (`firebase emulators:start --only firestore`) |
 | `VITE_ENABLE_DEMO_LOGIN` | `true` ouvre les comptes de démonstration hors développement (c'est le cas de la version en ligne) |
 | `VITE_ENABLE_MOCK_AUTH_BACKEND` | `true` simule le service d'authentification hors développement |
 | `VITE_AUTH_API_BASE_URL` | L'API d'authentification et de check-in (par défaut `http://localhost:8787` en développement) |

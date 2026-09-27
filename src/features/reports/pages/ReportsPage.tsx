@@ -14,6 +14,7 @@ import { GLOSSARY } from '../../../constants/glossary';
 import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -75,6 +76,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
     const isCompact = useMediaQuery(MEDIA.compact);
     const { showToast } = useToast();
     const { equipment, users, events } = useData();
+    useJournalComplet();
     const { permissions } = useAccessControl();
     const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '');
     /**

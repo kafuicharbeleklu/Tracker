@@ -24,6 +24,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { build } from 'esbuild';
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from '../lib/generation.mjs';
 import { ecrivainSurveille, sonderEcriture } from '../lib/sonde-ecriture.mjs';
 
 const ici = path.dirname(fileURLToPath(import.meta.url));
@@ -190,10 +191,15 @@ const main = async () => {
         process.exit(1);
     }
 
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'chargement de la simulation');
+
     console.log(`\n${envoyes} documents écrits. Contrôle :`);
     for (const collection of [...Object.keys(jeu)]) {
         const n = (await db.collection(collection).count().get()).data().count;
-        const attendu = jeu[collection].length + (collection === 'meta' && reglages ? 1 : 0);
+        /* `meta` porte en plus les réglages et l'annonce de génération (`synchro`). */
+        const attendu =
+            jeu[collection].length + (collection === 'meta' ? 1 + (reglages ? 1 : 0) : 0);
         console.log(`  ${n === attendu ? '✓' : '✗'} ${collection.padEnd(22)} ${n} / ${attendu}`);
     }
 };

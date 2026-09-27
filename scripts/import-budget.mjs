@@ -4,6 +4,7 @@ import process from 'process';
 import { fileURLToPath } from 'url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 import XLSX from 'xlsx';
 
 /**
@@ -150,6 +151,8 @@ async function run() {
 
     const db = firestoreAdmin();
     await db.collection('financeBudgets').doc(String(EXERCICE)).set(budget, { merge: false });
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'import du budget');
     console.log(`\nExercice ${EXERCICE} enregistré.`);
 }
 

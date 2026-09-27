@@ -4,6 +4,7 @@ import process from 'process';
 import { fileURLToPath } from 'url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,6 +121,8 @@ async function run() {
         console.log(`meta/${docId}: deleted`);
     }
 
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'nettoyage des données de test');
     console.log(`Cleanup finished. Deleted ${deletedCount} document(s) from test collections.`);
 }
 

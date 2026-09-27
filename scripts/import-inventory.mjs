@@ -4,6 +4,7 @@ import process from 'process';
 import { fileURLToPath } from 'url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 import XLSX from 'xlsx';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -689,6 +690,9 @@ async function run() {
 
     console.log('Importing locations...');
     await db.collection('meta').doc('locations').set(stripUndefined(locationData), { merge: true });
+
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'import de l’inventaire');
 
     console.log(`Done. Imported ${users.length} users and ${equipment.length} equipment items.`);
 }

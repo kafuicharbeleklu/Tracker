@@ -13,8 +13,13 @@ import { cert } from 'firebase-admin/app';
 
 export const sonderEcriture = async (serviceAccount) => {
     try {
-        const { access_token: jeton } = await cert(serviceAccount).getAccessToken();
-        const base = `https://firestore.googleapis.com/v1/projects/${serviceAccount.project_id}/databases/(default)/documents`;
+        /* Sous l'émulateur, la sonde le vise lui aussi : une répétition ne touche jamais la
+           base réelle. */
+        const emulateur = process.env.FIRESTORE_EMULATOR_HOST;
+        const jeton = emulateur
+            ? 'owner'
+            : (await cert(serviceAccount).getAccessToken()).access_token;
+        const base = `${emulateur ? `http://${emulateur}` : 'https://firestore.googleapis.com'}/v1/projects/${serviceAccount.project_id}/databases/(default)/documents`;
         const entetes = { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' };
         const ecriture = await fetch(`${base}/meta/_sonde_ecriture`, {
             method: 'PATCH',

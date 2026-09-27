@@ -18,7 +18,7 @@ import { getPersistedValue } from '../lib/persistence';
 import { firestore } from '../lib/firebase';
 import {
     documentsModifies,
-    loadCollectionDocs,
+    chargerCollection,
     saveCollectionDocs,
 } from '../lib/firestorePersistence';
 import { EffectiveAccessProfile } from '../types/rbac';
@@ -160,7 +160,11 @@ const adjustBudgetWithExpense = (
 export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
     const { logEvent, getEffectiveAccessForUser } = useData();
-    const [isHydrating, setIsHydrating] = useState<boolean>(FIREBASE_BACKEND_ENABLED);
+    /* Les finances se lisent à l'ouverture de la session, pas avant (27/09) : l'écran de
+       connexion n'en a pas besoin. */
+    const [financesChargees, setFinancesChargees] = useState<boolean>(!FIREBASE_BACKEND_ENABLED);
+    const sessionOuverte = Boolean(currentUser);
+    const isHydrating = sessionOuverte && !financesChargees;
 
     // Accès RBAC effectif (même moteur que l'UI) pour les gardes de mutation finance — via ref (lint-safe).
     const currentUserAccessRef = useRef<EffectiveAccessProfile | null>(null);
@@ -202,7 +206,9 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     });
 
-    const firebaseHydratedRef = useRef(false);
+    /** Les collections déjà lues : la persistance n'écrit qu'après avoir lu. */
+    const chargeesRef = useRef<Set<string>>(new Set());
+    const lectureLanceeRef = useRef(false);
     /**
      * **L'empreinte de ce qui est dans Firestore** (26/09) — comme dans `DataContext` : les
      * dépenses et les budgets étaient réécrits en entier à chaque changement, hydratation
@@ -226,58 +232,42 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, []);
 
     useEffect(() => {
-        if (!firestore) {
-            firebaseHydratedRef.current = true;
-            setIsHydrating(false);
-            return;
-        }
-
-        let cancelled = false;
+        if (!firestore || !sessionOuverte || lectureLanceeRef.current) return;
+        lectureLanceeRef.current = true;
 
         const hydrateFromFirebase = async () => {
             try {
                 const [firebaseExpenses, firebaseBudgets] = await Promise.all([
-                    loadCollectionDocs<FinanceExpense>(firestore, 'financeExpenses'),
-                    loadCollectionDocs<FinanceBudget>(firestore, 'financeBudgets'),
+                    chargerCollection<FinanceExpense>(firestore, 'financeExpenses'),
+                    chargerCollection<FinanceBudget>(firestore, 'financeBudgets'),
                 ]);
 
-                if (cancelled) {
-                    return;
-                }
+                empreintesRef.current.financeExpenses = documentsModifies(
+                    firebaseExpenses,
+                    new Map(),
+                ).empreintes;
+                chargeesRef.current.add('financeExpenses');
+                if (firebaseExpenses.length > 0) setFinanceExpenses(firebaseExpenses);
 
-                if (firebaseExpenses.length > 0) {
-                    empreintesRef.current.financeExpenses = documentsModifies(
-                        firebaseExpenses,
-                        new Map(),
-                    ).empreintes;
-                    setFinanceExpenses(firebaseExpenses);
-                }
-
-                if (firebaseBudgets.length > 0) {
-                    const lus = firebaseBudgets.map((budget) => ({
-                        ...budget,
-                        year: Number(budget.id) || budget.year,
-                    }));
-                    empreintesRef.current.financeBudgets = documentsModifies(
-                        budgetsNommes(lus),
-                        new Map(),
-                    ).empreintes;
-                    setFinanceBudgets(lus);
-                }
+                const lus = firebaseBudgets.map((budget) => ({
+                    ...budget,
+                    year: Number(budget.id) || budget.year,
+                }));
+                empreintesRef.current.financeBudgets = documentsModifies(
+                    budgetsNommes(lus),
+                    new Map(),
+                ).empreintes;
+                chargeesRef.current.add('financeBudgets');
+                if (firebaseBudgets.length > 0) setFinanceBudgets(lus);
             } catch (error) {
                 console.error('[FinanceDataContext] Firebase hydration failed', error);
             } finally {
-                firebaseHydratedRef.current = true;
-                setIsHydrating(false);
+                setFinancesChargees(true);
             }
         };
 
-        hydrateFromFirebase();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+        void hydrateFromFirebase();
+    }, [sessionOuverte]);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.financeExpenses.current, JSON.stringify(financeExpenses));
@@ -288,7 +278,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [financeBudgets]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('financeExpenses')) {
             return;
         }
 
@@ -299,7 +289,7 @@ export const FinanceDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }, [financeExpenses]);
 
     useEffect(() => {
-        if (!firestore || !firebaseHydratedRef.current) {
+        if (!firestore || !chargeesRef.current.has('financeBudgets')) {
             return;
         }
 

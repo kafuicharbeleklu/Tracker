@@ -22,6 +22,7 @@ import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useHistory } from '../../../hooks/useHistory';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -161,6 +162,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     onOpenUser,
 }) => {
     const { events, equipment, approvals, users, settings } = useData();
+    useJournalComplet();
     const { user: moi, permissions } = useAccessControl();
     const { filterEvents } = useHistory();
     const { showToast } = useToast();

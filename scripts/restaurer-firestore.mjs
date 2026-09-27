@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import { cert, initializeApp } from 'firebase-admin/app';
 import { GeoPoint, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { ecrivainSurveille, sonderEcriture } from './lib/sonde-ecriture.mjs';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [fichier] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -112,10 +113,15 @@ const main = async () => {
         console.error('Relancer la restauration une fois la cause levée ; la sauvegarde reste intacte.');
         process.exit(1);
     }
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    await annoncerNouvelleGeneration(db, 'restauration d’une sauvegarde');
 
     console.log(`\n${ecrits} documents restaurés. Contrôle :`);
-    for (const [id, attendu] of Object.entries(sauvegarde.resume)) {
+    const avaitSynchro = sauvegarde.collections.meta?.some((document) => document.id === 'synchro');
+    for (const [id, enSauvegarde] of Object.entries(sauvegarde.resume)) {
         const n = (await db.collection(id).count().get()).data().count;
+        /* L'annonce de génération ajoute `meta/synchro` quand la sauvegarde ne l'avait pas. */
+        const attendu = id === 'meta' && !avaitSynchro ? enSauvegarde + 1 : enSauvegarde;
         console.log(`  ${n === attendu ? '✓' : '✗'} ${id.padEnd(24)} ${n} / ${attendu}`);
     }
 };

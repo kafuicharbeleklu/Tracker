@@ -30,6 +30,7 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import { avecObjetOuvert } from '../../../hooks/useObjetOuvert';
 import type { AppUser, Equipment, HistoryEvent, ViewType } from '../../../types';
 
@@ -174,6 +175,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         rbacGroups,
         getEffectiveAccessForUser,
     } = useData();
+    useJournalComplet();
     const { permissions, user: currentUser } = useAccessControl();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();

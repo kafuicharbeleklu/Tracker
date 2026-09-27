@@ -4,6 +4,7 @@ import process from 'process';
 import { fileURLToPath } from 'url';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { annoncerNouvelleGeneration } from './lib/generation.mjs';
 
 /**
  * RÉPARER LES DONNÉES DE FIRESTORE — remettre le tableur au poste de vérité.
@@ -130,6 +131,9 @@ async function run() {
             console.log(`${nom.padEnd(18)} — refusé : ${error.code} ${error.message}`);
         }
     }
+
+    /* Les navigateurs gardent la base en cache : ils doivent tout relire. */
+    if (applique) await annoncerNouvelleGeneration(db, 'réparation des données');
 
     console.log('');
     console.log(

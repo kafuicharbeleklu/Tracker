@@ -21,6 +21,7 @@ import type { RepairCase } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { avecObjetOuvert } from '../../../hooks/useObjetOuvert';
 
@@ -140,6 +141,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         settings,
         models,
     } = useData();
+    useJournalComplet();
     const { showToast } = useToast();
     const { permissions, user: currentUser } = useAccessControl();
     const { navigate: allerA } = useAppNavigation();
