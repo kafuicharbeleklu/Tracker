@@ -47,17 +47,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * **La session de démonstration survit au rechargement** (27/09). Elle ne vivait qu'en
+ * mémoire : rafraîchir la page, c'était revenir à l'écran de connexion et perdre l'écran où
+ * l'on était. Elle se garde désormais dans l'onglet (`sessionStorage`), le temps qu'il reste
+ * ouvert ; la déconnexion l'efface. Une session Microsoft, elle, se reprend déjà par MSAL.
+ */
+const CLE_SESSION_DEMO = 'tracker_session_demo';
+
+const lireSessionDemo = (): User | null => {
+    if (!DEMO_LOGIN_ENABLED) return null;
+    try {
+        const brut = sessionStorage.getItem(CLE_SESSION_DEMO);
+        return brut ? (JSON.parse(brut) as User) : null;
+    } catch {
+        return null;
+    }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { instance, accounts } = useMsal();
     const { showToast } = useToast();
 
     // State
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(lireSessionDemo);
     const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
     const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [authSource, setAuthSource] = useState<'msal' | 'demo' | null>(null);
+    const [authSource, setAuthSource] = useState<'msal' | 'demo' | null>(() =>
+        lireSessionDemo() ? 'demo' : null,
+    );
+
+    /* La copie de l'onglet suit la session : ouverte, mise à jour (code posé), fermée. */
+    useEffect(() => {
+        try {
+            if (authSource === 'demo' && currentUser) {
+                sessionStorage.setItem(CLE_SESSION_DEMO, JSON.stringify(currentUser));
+            } else {
+                sessionStorage.removeItem(CLE_SESSION_DEMO);
+            }
+        } catch {
+            /* Stockage refusé : la session reste en mémoire, comme avant. */
+        }
+    }, [authSource, currentUser]);
 
     /**
      * CORE AUTH VERIFICATION LOGIC (Level 2)
