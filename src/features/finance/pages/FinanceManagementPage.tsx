@@ -20,7 +20,7 @@ import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
-import { formatNumber } from '../../../lib/financial';
+import { exerciceParDefaut, formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -94,13 +94,13 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
 
     /* L'exercice demandé par l'adresse (`/finance?annee=2025`, depuis « Exercices »), sinon
-       le plus récent. */
+       celui de l'année (`exerciceParDefaut`). */
     const [selectedYear, setSelectedYear] = useState<number>(() => {
         const requete = window.location.hash.split('?')[1];
         const annee = requete ? Number(new URLSearchParams(requete).get('annee')) : NaN;
         return Number.isInteger(annee) && annee > 1900
             ? annee
-            : financeBudgets[0]?.year || new Date().getFullYear();
+            : (exerciceParDefaut(financeBudgets) ?? new Date().getFullYear());
     });
     /** 15.1, colonne 3 — l'écran « Exercices », où l'on change d'année et en ouvre une. */
     const ouvrirLesExercices = () => {
@@ -110,7 +110,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     useEffect(() => {
         if (financeBudgets.length === 0) return;
         if (!financeBudgets.some((budget) => budget.year === selectedYear)) {
-            setSelectedYear(financeBudgets[0].year);
+            setSelectedYear(exerciceParDefaut(financeBudgets) ?? financeBudgets[0].year);
         }
     }, [financeBudgets, selectedYear]);
 

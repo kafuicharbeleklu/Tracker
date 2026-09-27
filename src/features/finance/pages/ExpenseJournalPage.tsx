@@ -14,7 +14,7 @@ import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
-import { formatNumber } from '../../../lib/financial';
+import { exerciceParDefaut, formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import type { FinanceExpense, FinanceExpenseType } from '../../../types';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -115,13 +115,13 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
     const compact = useMediaQuery(MEDIA.compact);
 
     const [exerciseYear, setExerciseYear] = useState<number>(
-        () => financeBudgets[0]?.year || new Date().getFullYear(),
+        () => exerciceParDefaut(financeBudgets) ?? new Date().getFullYear(),
     );
 
     useEffect(() => {
         if (financeBudgets.length === 0) return;
         if (!financeBudgets.some((budget) => budget.year === exerciseYear)) {
-            setExerciseYear(financeBudgets[0].year);
+            setExerciseYear(exerciceParDefaut(financeBudgets) ?? financeBudgets[0].year);
         }
     }, [financeBudgets, exerciseYear]);
 

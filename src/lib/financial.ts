@@ -2,7 +2,7 @@
  * Utility functions for Financial Calculations with Inheritance Support
  */
 
-import type { FinanceExpenseType } from '../types';
+import type { FinanceBudget, FinanceExpenseType } from '../types';
 
 // Taux de change fixes pour conversion explicite (pas appliquée automatiquement à l'affichage)
 const EXCHANGE_RATES: Record<string, number> = {
@@ -280,3 +280,16 @@ export const getBudgetCategoryByExpenseType = (type: FinanceExpenseType): string
     if (type === 'Cloud') return 'Cloud Infrastructure';
     return 'Maintenance & Services';
 };
+
+/**
+ * **L'exercice qu'on ouvre par défaut** (27/09) : celui de l'année en cours, sinon le premier
+ * exercice en cours qui a des lignes, sinon le premier. Les pages prenaient le premier de la
+ * liste — et les exercices arrivent de la base par identifiant, « 2025 » avant « 2026 » :
+ * Finances s'ouvrait sur l'exercice clos.
+ */
+export const exerciceParDefaut = (budgets: readonly FinanceBudget[]): number | undefined =>
+    (
+        budgets.find((budget) => budget.year === new Date().getFullYear()) ??
+        budgets.find((budget) => budget.status === 'En cours' && budget.items.length > 0) ??
+        budgets[0]
+    )?.year;
