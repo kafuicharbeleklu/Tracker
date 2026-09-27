@@ -131,6 +131,8 @@ interface EntreeDeCache {
     generation: string;
     /** L'instant de la dernière lecture complète. */
     completLe: number;
+    /** L'instant de la dernière lecture réussie au serveur, complète ou non. */
+    luLe?: number;
     /** Le `_maj` le plus récent déjà lu : la prochaine ouverture lit au-delà. */
     repere: Repere | null;
     docs: Array<[string, DocumentData]>;
@@ -162,6 +164,7 @@ const lireEnEntier = async <T extends object>(
     const entree: EntreeDeCache = {
         generation: generationActuelle,
         completLe: Date.now(),
+        luLe: Date.now(),
         repere,
         docs,
     };
@@ -196,7 +199,13 @@ const lireDepuisCache = async <T extends object>(
     const changes = duServeur(
         await getDocs(query(collection(db, nom), where(CHAMP_MAJ, '>', depuis))),
     );
-    if (changes.empty) return enDocuments<T>(cache.docs);
+    if (changes.empty) {
+        await ecrireCache(cleDeCache(db, nom), {
+            ...cache,
+            luLe: Date.now(),
+        } satisfies EntreeDeCache);
+        return enDocuments<T>(cache.docs);
+    }
 
     const parId = new Map(cache.docs);
     let repere = cache.repere;
@@ -207,8 +216,42 @@ const lireDepuisCache = async <T extends object>(
         repere = plusRecent(repere, maj);
     }
     const docs = [...parId].sort(parIdentifiant);
-    await ecrireCache(cleDeCache(db, nom), { ...cache, repere, docs } satisfies EntreeDeCache);
+    await ecrireCache(cleDeCache(db, nom), {
+        ...cache,
+        repere,
+        docs,
+        luLe: Date.now(),
+    } satisfies EntreeDeCache);
     return enDocuments<T>(docs);
+};
+
+/**
+ * **Quand la base ne répond pas, la dernière visite** (27/09). Quota de lectures épuisé,
+ * réseau coupé : l'application s'ouvrait vide, alors que le navigateur gardait la base de la
+ * visite précédente. Elle la montre désormais — quelle qu'en soit la génération ou l'âge —,
+ * et `lectureDeSecours` retient l'heure de la plus ancienne collection servie ainsi : c'est
+ * l'heure que l'écran annonce. Les écritures, elles, attendent dans la file du SDK et
+ * partent au retour de la base. Sans cache (première visite sur cet appareil), l'erreur passe.
+ */
+let lectureDeSecours: number | null = null;
+
+/** L'heure des données servies depuis le cache faute de serveur ; `null` si tout est frais. */
+export const lectureHorsLigne = (): number | null => lectureDeSecours;
+
+const depuisLeCacheSeul = async <T extends object>(
+    db: Firestore,
+    nom: string,
+    erreur: unknown,
+): Promise<Array<T & { id: string }>> => {
+    const cache = await lireCache<EntreeDeCache>(cleDeCache(db, nom));
+    if (!cache) throw erreur;
+    const luLe = cache.luLe ?? cache.completLe;
+    lectureDeSecours = Math.min(lectureDeSecours ?? luLe, luLe);
+    console.warn(
+        `[firestore] « ${nom} » : la base ne répond pas, cache de la dernière visite.`,
+        erreur,
+    );
+    return enDocuments<T>(cache.docs);
 };
 
 /**
@@ -225,7 +268,11 @@ export async function chargerCollection<T extends object>(
     db: Firestore,
     nom: string,
 ): Promise<Array<T & { id: string }>> {
-    return (await lireDepuisCache<T>(db, nom)) ?? lireEnEntier<T>(db, nom);
+    try {
+        return (await lireDepuisCache<T>(db, nom)) ?? (await lireEnEntier<T>(db, nom));
+    } catch (erreur) {
+        return depuisLeCacheSeul<T>(db, nom, erreur);
+    }
 }
 
 /** Les sources des événements de campagne d'inventaire : `audit_scan`, `audit_finalize`… */
@@ -244,6 +291,23 @@ export async function chargerJournal<T extends object>(
     db: Firestore,
     recents: number,
 ): Promise<{ docs: Array<T & { id: string }>; complet: boolean }> {
+    try {
+        return await lireLeJournal<T>(db, recents);
+    } catch (erreur) {
+        /* Un journal en cache est entier ; sans cache, l'ouverture se passe du journal plutôt
+           que de tout perdre — les autres collections ont peut-être le leur. */
+        try {
+            return { docs: await depuisLeCacheSeul<T>(db, 'events', erreur), complet: true };
+        } catch {
+            return { docs: [], complet: false };
+        }
+    }
+}
+
+const lireLeJournal = async <T extends object>(
+    db: Firestore,
+    recents: number,
+): Promise<{ docs: Array<T & { id: string }>; complet: boolean }> => {
     const enCache = await lireDepuisCache<T>(db, 'events');
     if (enCache) return { docs: enCache, complet: true };
 
@@ -265,7 +329,7 @@ export async function chargerJournal<T extends object>(
         if (!estSupprime(donnees)) parId.set(document.id, donnees);
     }
     return { docs: enDocuments<T>([...parId].sort(parIdentifiant)), complet: false };
-}
+};
 
 /** Le journal entier, au serveur ; il entre alors dans le cache. */
 export const chargerJournalComplet = <T extends object>(db: Firestore) =>

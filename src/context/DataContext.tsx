@@ -54,6 +54,7 @@ import {
     chargerJournalComplet,
     documentsModifies,
     ecouterEcritures,
+    lectureHorsLigne,
     saveCollectionDocs,
     saveSingleDoc,
     suivreEcriture,
@@ -318,6 +319,12 @@ const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 const DELAI_HYDRATATION_MS = 12_000;
 /** Les derniers événements lus à l'ouverture, quand le journal n'est pas en cache. */
 const JOURNAL_RECENT = 100;
+/**
+ * L'heure de la dernière lecture : celle du serveur, ou — quand la base ne répond pas et que
+ * l'écran montre la visite précédente — celle du cache (`lectureHorsLigne`).
+ */
+const heureDeLecture = () => new Date(lectureHorsLigne() ?? Date.now()).toISOString();
+
 /** Une écriture en attente au-delà de ce délai se dit à l'écran. */
 const ATTENTE_AVANT_AVIS_MS = 8_000;
 
@@ -1465,8 +1472,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const comptes = await chargerCollection<User>(firestore, 'users');
                 if (cancelled) return;
 
-                /* Le magasin a répondu : la déclaration de repli est levée. */
-                setRemoteUnavailable(false);
+                /* Le magasin a répondu — ou, muet, le cache de la visite précédente. */
+                setRemoteUnavailable(lectureHorsLigne() !== null);
 
                 /*
                  * **Les lignes de démonstration ne remontent pas du magasin.** Elles y
@@ -1498,7 +1505,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 clearTimeout(minuteur);
                 if (!cancelled) {
                     setComptesEnCours(false);
-                    setDerniereLecture(new Date().toISOString());
+                    setDerniereLecture(heureDeLecture());
                 }
             }
         };
@@ -1550,7 +1557,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     chargerCollection<UserAccessAssignment>(firestore, 'rbacAssignments'),
                 ]);
 
-                setRemoteUnavailable(false);
+                /* La base muette, l'écran montre la visite précédente : il le dit, une fois. */
+                const horsLigne = lectureHorsLigne() !== null;
+                setRemoteUnavailable(horsLigne);
+                if (horsLigne) {
+                    showToast(
+                        'La base ne répond pas : données de votre dernière visite. Vos gestes partiront à son retour.',
+                        'warning',
+                    );
+                }
 
                 /* Chaque collection lue grave son empreinte et se déclare lue — même vide :
                    une collection neuve doit pouvoir recevoir son premier document. */
@@ -1657,12 +1672,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } finally {
                 clearTimeout(minuteur);
                 setDonneesChargees(true);
-                setDerniereLecture(new Date().toISOString());
+                setDerniereLecture(heureDeLecture());
             }
         };
 
         void lireLeReste();
-    }, [sessionOuverte]);
+    }, [sessionOuverte, showToast]);
 
     /*
      * **Une écriture qui n'aboutit pas se dit** (27/09). Elles partaient sans témoin : un refus
