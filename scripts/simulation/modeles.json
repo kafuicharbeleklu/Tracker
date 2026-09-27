@@ -55,5 +55,8 @@
     { "id": "m-prt-imc3000", "type": "Printer", "brand": "Ricoh", "name": "IM C3000", "specs": "Copieur couleur A3 · 30 pages/min" },
 
     { "id": "m-prj-fh52", "type": "Projector", "brand": "Epson", "name": "EB-FH52", "specs": "Full HD · 4 000 lumens · Wi-Fi" },
-    { "id": "m-prj-mw560", "type": "Projector", "brand": "BenQ", "name": "MW560", "specs": "WXGA · 4 000 lumens" }
+    { "id": "m-prj-mw560", "type": "Projector", "brand": "BenQ", "name": "MW560", "specs": "WXGA · 4 000 lumens" },
+
+    { "id": "m-lpt-lat5430", "type": "Laptop", "brand": "Dell", "name": "Latitude 5430", "specs": "Intel Core i5-1245U · 16 Go · SSD 256 Go · 14\" FHD", "sansUnite": true },
+    { "id": "m-tel-a34", "type": "Phone", "brand": "Samsung", "name": "Galaxy A34", "specs": "128 Go · double SIM · Android 13", "sansUnite": true }
 ]

@@ -194,6 +194,8 @@ interface ModeleCatalogue {
     type: string;
     brand: string;
     specs: string;
+    /** Un modèle encore au catalogue mais sans unité au parc : « Supprimer le modèle » s'y essaie. */
+    sansUnite?: boolean;
 }
 
 const CODE_DU_TYPE: Record<string, string> = {
@@ -577,7 +579,8 @@ export const construireJeu = ({ maintenant, nomsInterdits = new Set() }: Options
     // ----- Le matériel --------------------------------------------------------------------------
 
     const modeles = modelesDuCatalogue as ModeleCatalogue[];
-    const modelesDuType = (type: string) => modeles.filter((modele) => modele.type === type);
+    const modelesDuType = (type: string) =>
+        modeles.filter((modele) => modele.type === type && !modele.sansUnite);
     const actifsParc: Equipment[] = [];
     const compteurs = new Map<string, number>();
     let numeroActif = 1;
@@ -1637,7 +1640,7 @@ export const construireJeu = ({ maintenant, nomsInterdits = new Set() }: Options
     // ----- Le catalogue, les emplacements, les réglages ------------------------------------------
 
     const categories = catalogue.categories as { id: string }[];
-    const modelesAvecCompte = modeles.map((modele) => ({
+    const modelesAvecCompte = modeles.map(({ sansUnite: _sansUnite, ...modele }) => ({
         ...modele,
         image: '',
         count: actifsParc.filter((a) => a.model === modele.name && a.type === modele.type).length,
