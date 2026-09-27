@@ -3662,13 +3662,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
 
                 const wasUpdated = Object.keys(updates).length > 0;
+                const portee = {
+                    source: 'audit_scan',
+                    scannedAt,
+                    scopeCountry: scopedCountry,
+                    scopeSite: scopedSite,
+                    scopeLocal: scopedHorsLocal ? '' : scopedLocal,
+                };
                 if (wasUpdated) {
-                    updateEquipment(existing.id, updates, {
-                        source: 'audit_scan',
-                        scannedAt,
-                        scopeCountry: scopedCountry,
-                        scopeSite: scopedSite,
-                        scopeLocal: scopedHorsLocal ? '' : scopedLocal,
+                    updateEquipment(existing.id, updates, portee);
+                } else {
+                    /* **Un comptage est un fait, même quand il ne change rien** (27/09). Un
+                       objet retrouvé tel quel n'écrivait aucun événement : la vue
+                       d'ensemble ne le comptait pas, et « Reprendre la campagne » repartait
+                       de zéro. Le fait s'écrit seul — l'objet, lui, n'est pas réécrit. */
+                    logEvent({
+                        type: 'UPDATE',
+                        actorId: currentUser?.id || 'system',
+                        actorName: currentUser?.name || 'Système',
+                        actorRole: currentUser?.role || 'SuperAdmin',
+                        targetType: 'EQUIPMENT',
+                        targetId: existing.id,
+                        targetName: existing.name,
+                        description: 'Retrouvé à l’inventaire',
+                        metadata: {
+                            ...portee,
+                            ...(existing.site ? { location: existing.site } : {}),
+                            fromStatus: existing.status,
+                            toStatus: existing.status,
+                        },
+                        isSystem: false,
+                        isSensitive: false,
                     });
                 }
 

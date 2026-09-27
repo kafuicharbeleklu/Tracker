@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { moisDepuis } from '../placeAudit';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     ArrowLeft,
@@ -235,6 +236,8 @@ const EXCEPTION_TONE: Record<ListRowStatus['tone'], string> = {
 const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChange }) => {
     const {
         equipment,
+        events,
+        settings,
         upsertEquipmentFromAuditScan,
         removeEquipmentFromServiceAfterAudit,
         updateEquipment,
@@ -280,6 +283,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     /** Le relevé fige aussi les absences justifiées : elles ne sont pas des manquants. */
     const [horsSiteSnapshot, setHorsSiteSnapshot] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
+    /** Après un abandon, la campagne repart de zéro : les comptages d'avant ne comptent plus. */
+    const [repartDepuis, setRepartDepuis] = useState<string | null>(null);
 
     /**
      * **Le périmètre n'est pas un choix de cet écran.** La planche 16.2 ne dessine
@@ -318,6 +323,45 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return (item.local || '').trim().toLowerCase() === selectedLocal.trim().toLowerCase();
         });
     }, [equipment, selectedCountry, selectedSite, selectedLocal, selectedHorsLocal]);
+
+    /**
+     * **Reprendre, c'est retrouver ce qui a déjà été compté** (27/09). La campagne s'ouvrait
+     * toujours à zéro : ses comptages ne vivaient qu'en mémoire, et « Reprendre la
+     * campagne » — depuis la vue d'ensemble, qui les montrait pourtant — recommençait tout.
+     * Elle repart désormais des comptages du journal sur ce périmètre, **dans la périodicité
+     * d'inventaire** : un lieu compté il y a six semaines s'ouvre complet, un lieu compté
+     * il y a quatorze mois ouvre une nouvelle campagne. Pour chaque objet, le dernier.
+     */
+    const comptesDeLaPeriode = useMemo(() => {
+        const texte = (valeur: unknown) =>
+            (typeof valeur === 'string' ? valeur : '').trim().toLowerCase();
+        const periode = settings.inventoryPeriodMonths || 12;
+        const duPerimetre = new Set(scopedEquipment.map((item) => item.id));
+        const vus = new Map<string, string>();
+        for (const event of events) {
+            const metadata = event.metadata;
+            if (metadata?.source !== 'audit_scan' || !duPerimetre.has(event.targetId)) continue;
+            if (texte(metadata.scopeCountry) !== texte(selectedCountry)) continue;
+            if (texte(metadata.scopeSite) !== texte(selectedSite)) continue;
+            if (selectedHorsLocal && texte(metadata.scopeLocal)) continue;
+            if (selectedLocal && texte(metadata.scopeLocal) !== texte(selectedLocal)) continue;
+            if (repartDepuis && event.timestamp <= repartDepuis) continue;
+            const mois = moisDepuis(event.timestamp);
+            if (mois === null || mois >= periode) continue;
+            const dernier = vus.get(event.targetId);
+            if (!dernier || event.timestamp > dernier) vus.set(event.targetId, event.timestamp);
+        }
+        return vus;
+    }, [
+        events,
+        settings.inventoryPeriodMonths,
+        scopedEquipment,
+        selectedCountry,
+        selectedSite,
+        selectedLocal,
+        selectedHorsLocal,
+        repartDepuis,
+    ]);
 
     const sessionStarted = Boolean(auditStartedAt);
     const baselineSourceIds = useMemo(
@@ -465,15 +509,22 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const startAuditSession = () => {
         if (sessionStarted || !scopeIsReady) return;
         const ids = scopedEquipment.map((item) => item.id);
+        const dejaComptes = [...comptesDeLaPeriode.entries()];
         setBaselineIds(ids);
-        setFoundIds([]);
-        setFoundAt({});
+        setFoundIds(dejaComptes.map(([id]) => id));
+        setFoundAt(Object.fromEntries(dejaComptes));
         setMissingIds([]);
         setExceptionEntries([]);
         setScanHits([]);
         setAuditFinalized(false);
         setFinalizedAt(null);
-        setAuditStartedAt(new Date().toISOString());
+        /* Une campagne reprise a commencé à son premier comptage. */
+        setAuditStartedAt(
+            dejaComptes.reduce(
+                (premier, [, quand]) => (quand < premier ? quand : premier),
+                new Date().toISOString(),
+            ),
+        );
         setActiveTab('todo');
     };
 
@@ -518,6 +569,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { label: 'Actifs modifiés', value: 'aucun' },
             ],
             onConfirm: () => {
+                setRepartDepuis(new Date().toISOString());
                 resetAuditSession();
                 showToast('Relevé abandonné. Le périmètre est de nouveau modifiable.', 'info');
             },
