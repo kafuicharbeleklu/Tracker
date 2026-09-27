@@ -12,8 +12,9 @@ rules_version = '2';
 // - toute suppression — depuis le 27/09, l'application n'efface rien : elle pose une pierre
 //   tombale (`_supprime`), qui est une écriture ;
 // - toute réécriture du journal (`events`) — un fait s'ajoute, il ne se corrige pas ;
-// - dans `meta`, tout document autre que les trois réglages qu'elle écrit (`synchro`,
-//   l'annonce de génération, n'est écrit que par les scripts).
+// - dans `meta`, tout document autre que les trois réglages qu'elle écrit (`settings`,
+//   `locations`, `serviceManagers`) ; `synchro`, l'annonce de génération, n'est écrit que par
+//   les scripts.
 //
 // Les scripts d'administration (`scripts/*.mjs`) passent par le SDK d'administration : ces
 // règles ne s'appliquent pas à eux.

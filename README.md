@@ -107,6 +107,28 @@ Dans `.env.local` (jamais commité). Toutes sont facultatives.
 | `VITE_DEMO_TEMP_PIN`, `VITE_DEMO_TEMP_PASSWORD` | Code et mot de passe provisoires des comptes créés en démonstration |
 | `VITE_DISABLE_DEMO_RESEED` | En développement sans base distante : `true` empêche le jeu de démonstration de se ré-semer (pour tester les listes vides) |
 
+### La base de simulation
+
+Firestore porte aujourd'hui une **organisation fictive** (`scripts/simulation/`) : 66 personnes sur six
+sites, 279 objets dans tous les états, des demandes à chaque étape, des campagnes d'inventaire, trois
+exercices budgétaires. Les quatre raccourcis de l'écran de connexion — Afi Lawson (Super admin),
+Komlan Agbeko (Admin), Sandrine Kpodar (Manager), Yawo Amouzou (Utilisateur) — ont le code PIN
+**123456**, comme la plupart des comptes.
+
+```bash
+node scripts/sauvegarder-firestore.mjs                      # copie de la base dans backups/ (non commité)
+node scripts/simulation/charger.mjs                         # aperçu : ce qui serait supprimé et écrit
+node scripts/simulation/charger.mjs --confirmer             # vide la base, charge le jeu, annonce une génération
+node scripts/restaurer-firestore.mjs backups/<fichier>.json --confirmer   # retour arrière
+```
+
+Ces scripts demandent la clé du compte de service (`tracker-c801e-firebase-adminsdk-*.json` à la racine,
+jamais commitée). Un chargement coûte environ 1 600 écritures, autant de suppressions et de lectures :
+sur le forfait gratuit, pas plus de quelques-uns par jour. Pour vérifier l'application, préférer
+l'émulateur (`firebase emulators:start --only firestore`, puis `FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`
+devant la commande) : chaque navigateur neuf ouvert sur le site publié relit toute la base
+(~1 700 lectures), et une trentaine suffisent à épuiser le quota du jour.
+
 ## Scripts
 
 | Commande | Ce qu'elle fait |
