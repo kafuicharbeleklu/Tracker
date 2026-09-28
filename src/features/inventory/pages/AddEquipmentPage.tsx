@@ -33,6 +33,7 @@ import {
     TINT_CLASS,
 } from '../../../components/ui/FormParts';
 import FilePicker from '../../../components/ui/FilePicker';
+import { useScanPossible } from '../../../hooks/useScanPossible';
 import ListRow from '../../../components/ui/ListRow';
 
 interface AddEquipmentPageProps {
@@ -150,6 +151,8 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
     const [isModelSheetOpen, setIsModelSheetOpen] = useState(false);
     const [modelQuery, setModelQuery] = useState('');
     const [isScanning, setIsScanning] = useState(false);
+    /* « Scanner » le numéro de série : pas à la souris (27/09) — on le tape. */
+    const scanPossible = useScanPossible();
     const [scanHit, setScanHit] = useState<ScanHit | null>(null);
     const invoiceInput = useRef<HTMLInputElement>(null);
     const warrantyInput = useRef<HTMLInputElement>(null);
@@ -443,21 +446,25 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                     error={erreursChamp.serialNumber}
                                     containerClassName="flex-1 min-w-0"
                                 />
-                                {/* `.act` de la planche : une pastille sur encart, pas un
+                                {scanPossible && (
+                                    <>
+                                        {/* `.act` de la planche : une pastille sur encart, pas un
                                     bouton plein — le seul geste appuyé de l'écran est
                                     « Enregistrer ». */}
-                                <Button
-                                    type="button"
-                                    variant="text"
-                                    onClick={() => {
-                                        setScanHit(null);
-                                        setIsScanning(true);
-                                    }}
-                                    icon={<Icon glyph={Scan} size={18} />}
-                                    className="bg-surface-container text-on-surface hover:bg-surface-container-high text-ts-control h-12 shrink-0 rounded-md px-3.5 font-medium"
-                                >
-                                    Scanner
-                                </Button>
+                                        <Button
+                                            type="button"
+                                            variant="text"
+                                            onClick={() => {
+                                                setScanHit(null);
+                                                setIsScanning(true);
+                                            }}
+                                            icon={<Icon glyph={Scan} size={18} />}
+                                            className="bg-surface-container text-on-surface hover:bg-surface-container-high text-ts-control h-12 shrink-0 rounded-md px-3.5 font-medium"
+                                        >
+                                            Scanner
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         </div>
 

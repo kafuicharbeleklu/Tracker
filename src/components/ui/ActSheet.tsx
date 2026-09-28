@@ -9,6 +9,7 @@ import Attestation, { type AttestationMethod } from './Attestation';
 import { signatureService } from '../../services/signatureService';
 import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useScanPossible } from '../../hooks/useScanPossible';
 import { usePresence } from '../../hooks/usePresence';
 import { MEDIA } from '../../constants/breakpoints';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
@@ -178,6 +179,8 @@ const ActSheet: React.FC<ActSheetProps> = ({
         mesure de 560, sans poignée, avec l'ombre du dialogue (00.5). Elle s'étirait
         sur les 1 280 px du bureau (13/09). */
     const compact = useMediaQuery(MEDIA.compact);
+    /* Le bouton de scan à côté de la recherche : pas à la souris (27/09). */
+    const scanPossible = useScanPossible();
     /* La feuille reste le temps de redescendre (26/09) : elle disparaissait d'un coup. */
     const { monte, sortant, finDeSortie } = usePresence(open);
     const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
@@ -411,7 +414,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                                     className="text-on-surface placeholder:text-text-tertiary text-ts-body leading-ts-body min-w-0 flex-1 bg-transparent outline-none"
                                 />
                             </label>
-                            {picker.onScan && (
+                            {picker.onScan && scanPossible && (
                                 <button
                                     type="button"
                                     onClick={picker.onScan}

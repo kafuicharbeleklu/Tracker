@@ -32,6 +32,7 @@ import { useListView } from '../../../hooks/useListView';
 import { passerALaPage, useListeEtFiche } from '../../../hooks/useListeEtFiche';
 import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useScanPossible } from '../../../hooks/useScanPossible';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { MEDIA } from '../../../constants/breakpoints';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
@@ -272,6 +273,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const { navigate } = useAppNavigation();
 
     const isManager = permissions.canManageInventory;
+    /* « Scanner l'étiquette » n'est offert qu'à un appareil qu'on tient (27/09). */
+    const scanPossible = useScanPossible();
 
     const accessibleEquipment = useMemo(
         () => filterEquipment(equipment, users),
@@ -1025,16 +1028,21 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                               /* Les trois chemins de la feuille, en menu ancré au bureau. */
                               pathsTitle: 'Nouvel équipement',
                               paths: [
-                                  {
-                                      id: 'scan',
-                                      label: 'Scanner l’étiquette',
-                                      description: 'le code et le type sont lus sur l’objet',
-                                      glyph: Scan,
-                                      onSelect: () => {
-                                          setIsScanning(true);
-                                          setScanHit(null);
-                                      },
-                                  },
+                                  ...(scanPossible
+                                      ? [
+                                            {
+                                                id: 'scan',
+                                                label: 'Scanner l’étiquette',
+                                                description:
+                                                    'le code et le type sont lus sur l’objet',
+                                                glyph: Scan,
+                                                onSelect: () => {
+                                                    setIsScanning(true);
+                                                    setScanHit(null);
+                                                },
+                                            },
+                                        ]
+                                      : []),
                                   {
                                       id: 'saisir',
                                       label: 'Saisir la fiche',
@@ -1366,16 +1374,18 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     title="Nouvel équipement"
                 >
                     <div className="-mx-5 flex flex-col">
-                        <AddRoute
-                            glyph={Scan}
-                            title="Scanner l’étiquette"
-                            detail="le code et le type sont lus sur l’objet"
-                            onClick={() => {
-                                setIsAddSheetOpen(false);
-                                setIsScanning(true);
-                                setScanHit(null);
-                            }}
-                        />
+                        {scanPossible && (
+                            <AddRoute
+                                glyph={Scan}
+                                title="Scanner l’étiquette"
+                                detail="le code et le type sont lus sur l’objet"
+                                onClick={() => {
+                                    setIsAddSheetOpen(false);
+                                    setIsScanning(true);
+                                    setScanHit(null);
+                                }}
+                            />
+                        )}
                         <AddRoute
                             glyph={Keyboard}
                             title="Saisir la fiche"
