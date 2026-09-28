@@ -1,6 +1,12 @@
-import { Cloud, Key, ShoppingBag, Stack, Wrench } from '@phosphor-icons/react';
+import { Cloud, Desktop, Key, ShoppingBag, Stack, Wrench } from '@phosphor-icons/react';
 
-import { FinanceExpense, FinanceExpenseStatus, FinanceExpenseType } from '../../../types';
+import { getBudgetCategoryByExpenseType } from '../../../lib/financial';
+import {
+    FinanceBudgetItem,
+    FinanceExpense,
+    FinanceExpenseStatus,
+    FinanceExpenseType,
+} from '../../../types';
 
 /**
  * Le vocabulaire d'une dépense — **écrit une fois pour les deux écrans**.
@@ -54,6 +60,48 @@ export const getExpenseTypeGlyph = (type: FinanceExpenseType) => {
     if (type === 'License') return Key;
     if (type === 'Maintenance') return Wrench;
     return Stack;
+};
+
+/**
+ * **Le glyphe d'un poste** (27/09) — un par ligne de budget, pas un par nature : la
+ * maintenance et le service s'imputent sur le même poste, ils portent la même clé. Le
+ * journal du bureau le met en tête de rangée, à la place des deux lettres du fournisseur
+ * (« L— » pour Lenovo — distributeur…, « R& » pour Réseaux & Co).
+ */
+export const getPosteGlyph = (type: FinanceExpenseType) => {
+    if (type === 'Purchase') return Desktop;
+    if (type === 'License') return Key;
+    if (type === 'Cloud') return Cloud;
+    return Wrench;
+};
+
+/**
+ * **Le poste d'une dépense** — la ligne dont elle consomme l'enveloppe. Le produit impute
+ * par nature et par elle seule (`getBudgetCategoryByExpenseType`) : c'est la règle qui fait
+ * monter le `spent` du poste à l'enregistrement. Le poste qu'on affiche est donc celui qui
+ * a compté la dépense, pas une ligne devinée par ressemblance de libellé.
+ */
+export const posteDeLaDepense = (
+    expense: Pick<FinanceExpense, 'type'>,
+    items: readonly FinanceBudgetItem[],
+): FinanceBudgetItem | null =>
+    items.find((item) => item.category === getBudgetCategoryByExpenseType(expense.type)) ?? null;
+
+/** Le justificatif d'une dépense — **trois états, pas deux** (27/09). */
+export type EtatDuJustificatif = 'joint' | 'manquant' | 'facultatif';
+
+export const aUnJustificatif = (expense: FinanceExpense): boolean =>
+    Boolean(expense.sourceFileName || expense.sourceFileId || expense.sourceFileUrl);
+
+/**
+ * Joint, manquant — ou **facultatif** : une dépense récurrente se justifie par son contrat,
+ * pas par une pièce chaque mois. Sans ce troisième état, la vue « Sans justificatif »
+ * comptait les 17 abonnements de l'exercice, dix-sept fausses alertes pour quatre vraies
+ * (arbitrage du 27/09 ; Qonto et Pennylane font de même).
+ */
+export const etatDuJustificatif = (expense: FinanceExpense): EtatDuJustificatif => {
+    if (aUnJustificatif(expense)) return 'joint';
+    return expense.status === 'Recurring' ? 'facultatif' : 'manquant';
 };
 
 export const formatExpenseDate = (value: string): string => {

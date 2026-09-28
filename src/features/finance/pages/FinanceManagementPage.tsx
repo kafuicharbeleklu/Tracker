@@ -37,6 +37,7 @@ import { useAccessControl } from '../../../hooks/useAccessControl';
 import NatureBadge from '../components/NatureBadge';
 import { useEntree } from '../../../hooks/useEntree';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import PartDesPostes from '../components/PartDesPostes';
 
 interface FinanceManagementPageProps {
     onViewChange: (view: ViewType) => void;
@@ -740,85 +741,102 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                           qu'elle existait. Les deux rangées la nomment et la comptent.
                           Au bureau, `.dsk .card` — `4 20 8`, comme la carte des postes.
                         */}
-                            <section className="rounded-card bg-surface deux:order-none deux:col-span-4 deux:row-start-1 deux:pt-1 deux:pb-2 order-1 px-4 py-2">
-                                <div className="flex min-h-12 items-center pt-2 pb-1">
-                                    <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
-                                        Aller à
-                                    </h3>
-                                </div>
-                                {[
-                                    {
-                                        id: 'lignes',
-                                        glyph: Calculator,
-                                        titre: 'Les lignes du budget',
-                                        detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
-                                        aller: ouvrirLesLignes,
-                                        bureauSeul: false,
-                                    },
-                                    {
-                                        id: 'depenses',
-                                        glyph: ListBullets,
-                                        titre: 'Les dépenses',
-                                        /* La date de la dernière écriture vivait dans la bande sombre ; elle
+                            {/* La colonne de droite : où aller, puis **la part de chaque poste** (27/09) — les
+                                types de dépense et leur part de l'enveloppe (`PartDesPostes`). Elle
+                                occupe la place que « Aller à » laissait vide à côté de
+                                l'histogramme. Au bureau seulement. */}
+                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 order-1 flex flex-col gap-4">
+                                <section className="rounded-card bg-surface deux:pt-1 deux:pb-2 px-4 py-2">
+                                    <div className="flex min-h-12 items-center pt-2 pb-1">
+                                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                            Aller à
+                                        </h3>
+                                    </div>
+                                    {[
+                                        {
+                                            id: 'lignes',
+                                            glyph: Calculator,
+                                            titre: 'Les lignes du budget',
+                                            detail: `${currentBudget.items.length} ligne${currentBudget.items.length > 1 ? 's' : ''} · ${formatNumber(budgetStats.totalAllocated, settings.compactNotation)} affectés`,
+                                            aller: ouvrirLesLignes,
+                                            bureauSeul: false,
+                                        },
+                                        {
+                                            id: 'depenses',
+                                            glyph: ListBullets,
+                                            titre: 'Les dépenses',
+                                            /* La date de la dernière écriture vivait dans la bande sombre ; elle
                                                revient ici, à côté du journal qu'elle date. */
-                                        detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''}${derniereDepense ? ` · dernière le ${derniereDepense}` : ''}`,
-                                        aller: () => onViewChange('finance_expenses'),
-                                        bureauSeul: false,
-                                    },
-                                    {
-                                        /* **Trois destinations au bureau** (15.1) : les
+                                            detail: `${financeExpenses.length} écriture${financeExpenses.length > 1 ? 's' : ''}${derniereDepense ? ` · dernière le ${derniereDepense}` : ''}`,
+                                            aller: () => onViewChange('finance_expenses'),
+                                            bureauSeul: false,
+                                        },
+                                        {
+                                            /* **Trois destinations au bureau** (15.1) : les
                                                rapports s'y ajoutent. Au téléphone la carte n'en
                                                porte que deux — la planche les compte ainsi, et
                                                « Plus » y mène déjà. */
-                                        id: 'rapports',
-                                        glyph: Export,
-                                        titre: 'Les rapports',
-                                        detail: '4 exports fixes',
-                                        aller: () => onViewChange('reports'),
-                                        bureauSeul: true,
-                                    },
-                                ].map((rangee, index) => (
-                                    /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
-                                    <div
-                                        key={rangee.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={rangee.aller}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                rangee.aller();
-                                            }
-                                        }}
-                                        className={cn(
-                                            'min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                                            rangee.bureauSeul ? 'deux:flex hidden' : 'flex',
-                                            /* `.dsk .lrow` — **pas de filet au bureau**, un
+                                            id: 'rapports',
+                                            glyph: Export,
+                                            titre: 'Les rapports',
+                                            detail: '4 exports fixes',
+                                            aller: () => onViewChange('reports'),
+                                            bureauSeul: true,
+                                        },
+                                    ].map((rangee, index) => (
+                                        /* `.lrow` — 64 de haut, gouttière 12, un filet entre deux. */
+                                        <div
+                                            key={rangee.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={rangee.aller}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    rangee.aller();
+                                                }
+                                            }}
+                                            className={cn(
+                                                'min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left',
+                                                rangee.bureauSeul ? 'deux:flex hidden' : 'flex',
+                                                /* `.dsk .lrow` — **pas de filet au bureau**, un
                                                    fond au survol à rayon 4, rentré de 8. */
-                                            'deux:hover:bg-surface-container deux:-mx-2 deux:rounded-[4px] deux:px-2',
-                                            index > 0 &&
-                                                'border-outline-variant deux:border-t-0 border-t',
-                                        )}
-                                    >
-                                        <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
-                                            <Icon glyph={rangee.glyph} size={20} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
-                                                {rangee.titre}
+                                                'deux:hover:bg-surface-container deux:-mx-2 deux:rounded-[4px] deux:px-2',
+                                                index > 0 &&
+                                                    'border-outline-variant deux:border-t-0 border-t',
+                                            )}
+                                        >
+                                            <span className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]">
+                                                <Icon glyph={rangee.glyph} size={20} />
                                             </span>
-                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                                {rangee.detail}
+                                            <span className="min-w-0 flex-1">
+                                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                                    {rangee.titre}
+                                                </span>
+                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                    {rangee.detail}
+                                                </span>
                                             </span>
+                                            <Icon
+                                                glyph={CaretRight}
+                                                size={20}
+                                                className="text-text-tertiary shrink-0"
+                                            />
+                                        </div>
+                                    ))}
+                                </section>
+                                <section className="rounded-card bg-surface expanded:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
+                                    <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
+                                        <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                            Par poste
+                                        </h3>
+                                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
+                                            part de l’enveloppe
                                         </span>
-                                        <Icon
-                                            glyph={CaretRight}
-                                            size={20}
-                                            className="text-text-tertiary shrink-0"
-                                        />
                                     </div>
-                                ))}
-                            </section>
+                                    <PartDesPostes postes={currentBudget.items} max={4} />
+                                </section>
+                            </div>
 
                             {/*
                               **« EXERCICES » — la carte de droite du bureau** (15.1) : *« la

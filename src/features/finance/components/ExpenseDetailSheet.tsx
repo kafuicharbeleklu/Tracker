@@ -4,34 +4,22 @@ import { Receipt, Warning } from '@phosphor-icons/react';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
-import InputField from '../../../components/ui/InputField';
-import Modal from '../../../components/ui/Modal';
-import SelectField from '../../../components/ui/SelectField';
 import SideSheet from '../../../components/ui/SideSheet';
-import { TextArea } from '../../../components/ui/TextArea';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
-import { useToast } from '../../../context/ToastContext';
-import { parseAmountString } from '../../../lib/expenseExtraction';
 import { formatCurrency } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
-import {
-    FinanceBudgetItem,
-    FinanceExpense,
-    FinanceExpenseStatus,
-    FinanceExpenseType,
-} from '../../../types';
+import { FinanceBudgetItem } from '../../../types';
 import { useExpenseActions } from '../hooks/useExpenseActions';
 import {
-    EXPENSE_STATUS_OPTIONS,
     EXPENSE_TYPE_LABELS,
-    EXPENSE_TYPE_OPTIONS,
     formatExpenseAmount,
     formatExpenseDate,
     getExpenseStatusLabel,
     getExpenseStatusVariant,
-    toExpenseDisplayTitle,
+    posteDeLaDepense,
 } from '../lib/expensePresentation';
+import ExpenseEditModal from './ExpenseEditModal';
 
 interface ExpenseDetailSheetProps {
     /** L'identifiant de la dépense ouverte, `null` quand le panneau est fermé. */
@@ -40,16 +28,6 @@ interface ExpenseDetailSheetProps {
     /** Les postes de l'exercice, pour dire sur lequel la dépense s'impute. */
     budgetItems: FinanceBudgetItem[];
 }
-
-const emptyForm = () => ({
-    date: new Date().toISOString().split('T')[0],
-    supplier: '',
-    amount: '',
-    type: 'Purchase',
-    status: 'Paid',
-    description: '',
-    invoiceNumber: '',
-});
 
 /**
  * Le détail d'une dépense — **colonne 2 de la planche 15.1**, en panneau latéral.
@@ -69,172 +47,27 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
     budgetItems,
 }) => {
     const { settings } = useData();
-    const { financeExpenses, updateFinanceExpense } = useFinanceData();
-    const { showToast } = useToast();
+    const { financeExpenses } = useFinanceData();
     const { requestExpenseDeletion, previewSourceFile, downloadSourceFile } = useExpenseActions();
 
     const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-    const [expenseForm, setExpenseForm] = useState(emptyForm);
 
     const expense = useMemo(
         () => (expenseId ? (financeExpenses.find((item) => item.id === expenseId) ?? null) : null),
         [financeExpenses, expenseId],
     );
 
-    const editingExpense = useMemo(
-        () =>
-            editingExpenseId
-                ? (financeExpenses.find((item) => item.id === editingExpenseId) ?? null)
-                : null,
-        [financeExpenses, editingExpenseId],
+    const closeExpenseEditor = () => setEditingExpenseId(null);
+
+    /* Le poste qui a compté la dépense — la règle d'imputation, pas une ressemblance. */
+    const matchingBudgetItem = useMemo(
+        () => (expense ? posteDeLaDepense(expense, budgetItems) : null),
+        [budgetItems, expense],
     );
-
-    const openExpenseEditor = (target: FinanceExpense) => {
-        setEditingExpenseId(target.id);
-        setExpenseForm({
-            date: target.date,
-            supplier: target.supplier,
-            amount: target.amount.toFixed(2).replace('.', ','),
-            type: target.type,
-            status: target.status,
-            description: target.description,
-            invoiceNumber: target.invoiceNumber || '',
-        });
-    };
-
-    const closeExpenseEditor = () => {
-        setEditingExpenseId(null);
-        setExpenseForm(emptyForm());
-    };
-
-    const handleExpenseFormChange = (field: keyof ReturnType<typeof emptyForm>, value: string) => {
-        setExpenseForm((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleExpenseUpdate = () => {
-        if (!editingExpense) return;
-
-        const normalizedAmount = parseAmountString(expenseForm.amount);
-        if (!normalizedAmount || normalizedAmount <= 0) {
-            showToast('Le montant doit être supérieur à zéro.', 'error');
-            return;
-        }
-
-        if (!expenseForm.supplier.trim()) {
-            showToast('Le fournisseur est obligatoire.', 'error');
-            return;
-        }
-
-        const isUpdated = updateFinanceExpense(editingExpense.id, {
-            date: expenseForm.date,
-            supplier: expenseForm.supplier.trim(),
-            amount: normalizedAmount,
-            type: expenseForm.type as FinanceExpenseType,
-            status: expenseForm.status as FinanceExpenseStatus,
-            description: expenseForm.description.trim() || `Facture ${expenseForm.supplier.trim()}`,
-            invoiceNumber: expenseForm.invoiceNumber.trim() || undefined,
-        });
-
-        if (!isUpdated) {
-            showToast('Modification refusée : doublon ou donnée invalide.', 'error');
-            return;
-        }
-
-        showToast('Dépense mise à jour avec succès.', 'success');
-        closeExpenseEditor();
-    };
-
-    const matchingBudgetItem = useMemo(() => {
-        if (!expense) return null;
-        return (
-            budgetItems.find(
-                (item) =>
-                    item.type === expense.type ||
-                    item.category
-                        .toLowerCase()
-                        .includes(EXPENSE_TYPE_LABELS[expense.type].toLowerCase()),
-            ) ?? null
-        );
-    }, [budgetItems, expense]);
 
     return (
         <>
-            <Modal
-                isOpen={!!editingExpense}
-                onClose={closeExpenseEditor}
-                title={
-                    editingExpense
-                        ? `Modifier · ${toExpenseDisplayTitle(editingExpense)}`
-                        : 'Modifier la dépense'
-                }
-                maxWidth="max-w-2xl"
-                footer={
-                    <>
-                        <Button variant="outlined" onClick={closeExpenseEditor}>
-                            Annuler
-                        </Button>
-                        <Button variant="filled" onClick={handleExpenseUpdate}>
-                            Enregistrer
-                        </Button>
-                    </>
-                }
-            >
-                <div className="medium:grid-cols-2 grid grid-cols-1 gap-4">
-                    <InputField
-                        label="Fournisseur"
-                        value={expenseForm.supplier}
-                        onChange={(event) =>
-                            handleExpenseFormChange('supplier', event.target.value)
-                        }
-                        required
-                    />
-                    <InputField
-                        label="Date"
-                        type="date"
-                        value={expenseForm.date}
-                        onChange={(event) => handleExpenseFormChange('date', event.target.value)}
-                        required
-                    />
-                    <InputField
-                        label="Montant"
-                        value={expenseForm.amount}
-                        onChange={(event) => handleExpenseFormChange('amount', event.target.value)}
-                        supportingText="Format accepté: 1.000.000,00"
-                        required
-                    />
-                    <InputField
-                        label="Référence facture"
-                        value={expenseForm.invoiceNumber}
-                        onChange={(event) =>
-                            handleExpenseFormChange('invoiceNumber', event.target.value)
-                        }
-                    />
-                    <SelectField
-                        name="expense-type-edit"
-                        label="Type"
-                        value={expenseForm.type}
-                        onChange={(event) => handleExpenseFormChange('type', event.target.value)}
-                        options={EXPENSE_TYPE_OPTIONS}
-                    />
-                    <SelectField
-                        name="expense-status-edit"
-                        label="Statut"
-                        value={expenseForm.status}
-                        onChange={(event) => handleExpenseFormChange('status', event.target.value)}
-                        options={EXPENSE_STATUS_OPTIONS}
-                    />
-                </div>
-                <div className="mt-4">
-                    <TextArea
-                        label="Description"
-                        value={expenseForm.description}
-                        onChange={(event) =>
-                            handleExpenseFormChange('description', event.target.value)
-                        }
-                        rows={4}
-                    />
-                </div>
-            </Modal>
+            <ExpenseEditModal expenseId={editingExpenseId} onClose={closeExpenseEditor} />
 
             <SideSheet
                 open={!!expense}
@@ -245,7 +78,10 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
                 footer={
                     expense ? (
                         <div className="flex w-full items-center justify-end gap-3">
-                            <Button variant="outlined" onClick={() => openExpenseEditor(expense)}>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setEditingExpenseId(expense.id)}
+                            >
                                 Modifier
                             </Button>
                             <Button
