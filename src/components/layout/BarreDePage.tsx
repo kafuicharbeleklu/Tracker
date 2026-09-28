@@ -21,6 +21,11 @@ import { cn } from '../../lib/utils';
  */
 interface BarreDePageProps {
     title: React.ReactNode;
+    /**
+     * Une ligne sous le titre — le lieu et l'état d'une campagne (28/09). Le titre descend
+     * alors à 22 sur 28 : deux lignes dans la rangée de 48, sans grandir la barre.
+     */
+    subtitle?: React.ReactNode;
     onBack?: () => void;
     /** Le libellé du retour, quand « Retour » ne dit pas où l'on va. */
     backLabel?: string;
@@ -33,6 +38,7 @@ interface BarreDePageProps {
 
 const BarreDePage: React.FC<BarreDePageProps> = ({
     title,
+    subtitle,
     onBack,
     backLabel = 'Retour',
     actions,
@@ -57,9 +63,20 @@ const BarreDePage: React.FC<BarreDePageProps> = ({
                     <Icon glyph={ArrowLeft} size={24} />
                 </Button>
             )}
-            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
-                {title}
-            </h1>
+            {subtitle ? (
+                <div className="min-w-0 flex-1">
+                    <h1 className="font-brand text-on-surface truncate text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                        {title}
+                    </h1>
+                    <p className="text-on-surface-variant truncate text-[0.75rem] leading-4">
+                        {subtitle}
+                    </p>
+                </div>
+            ) : (
+                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
+                    {title}
+                </h1>
+            )}
             {actions && <div className="-mr-3 flex shrink-0 items-center">{actions}</div>}
         </div>
         {children}

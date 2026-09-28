@@ -4287,7 +4287,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         reason: 'Corriger une fiche demande le droit de gérer l’inventaire.',
                     };
                 }
-                applyEquipmentWrite(equipmentId, corrections, { ...portee, corrige: true });
+                /* Ce qui a changé, de quoi à quoi : la campagne le relit (« Corrigé pendant le
+                   comptage »), et le responsable le relit avant de valider. */
+                const champs = (
+                    [
+                        ['user', 'Détenteur', item.user?.name, corrections.user?.name],
+                        ['department', 'Service', item.department, corrections.department],
+                        ['local', 'Local', item.local, corrections.local],
+                    ] as const
+                )
+                    .filter(([cle]) => cle in corrections)
+                    .map(([, champ, de, a]) => ({ champ, de: de || '', a: a || '' }));
+                applyEquipmentWrite(equipmentId, corrections, {
+                    ...portee,
+                    corrige: true,
+                    champs,
+                });
                 return { allowed: true };
             }
 
