@@ -1,23 +1,24 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { moisDepuis } from '../placeAudit';
+import { identifiantsDe, lireLaCampagne } from '../campagne';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     ArrowLeft,
     ArrowsLeftRight,
     ArrowUUpLeft,
-    CaretRight,
+    Check,
     CheckCircle,
     CircleDashed,
-    CircleHalf,
-    ClockCountdown,
     DotsThreeVertical,
     Export,
     Hourglass,
     Info,
     Funnel,
     LockSimple,
+    MagnifyingGlass,
     MapPin,
     Package,
+    PencilSimple,
     PlusCircle,
     QrCode,
     Question,
@@ -31,26 +32,40 @@ import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
 import FacetChip from '../../../components/ui/FacetChip';
-import FilterButton from '../../../components/ui/FilterButton';
 import SearchField from '../../../components/ui/SearchField';
-import BottomSheet from '../../../components/ui/BottomSheet';
 import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
-import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
-import FactRow from '../../../components/ui/FactRow';
+import { SelectionBox } from '../../../components/ui/SelectableRow';
+import { useSelection } from '../../../hooks/useSelection';
+import FicheDeComptage from '../components/FicheDeComptage';
+import TuilesDeCampagne, { type TuileDeCampagne } from '../components/TuilesDeCampagne';
+import EtapesDeCampagne from '../components/EtapesDeCampagne';
+import ActiviteDeCampagne, { type FaitDeCampagne } from '../components/ActiviteDeCampagne';
+import RangeeDeCampagne from '../components/RangeeDeCampagne';
 import type { ListRowStatus } from '../../../components/ui/ListRow';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useScanPossible } from '../../../hooks/useScanPossible';
+import { useEntree } from '../../../hooks/useEntree';
 import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
+import Modal from '../../../components/ui/Modal';
+import { TextArea } from '../../../components/ui/TextArea';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
 import { AUDIT_SCOPE_PREF_KEY } from '../../../lib/auditScope';
 import { buildCsvLine } from '../../../lib/csv';
-import { AuditScanPayload, AuditScanResult, Equipment, ViewType } from '../../../types';
+import {
+    AuditScanPayload,
+    AuditScanResult,
+    Equipment,
+    HistoryEvent,
+    ViewType,
+} from '../../../types';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU } from '../../../lib/regimeBureau';
@@ -76,7 +91,7 @@ interface AuditDetailsPageProps {
  * manquant »*. Le compter manquant accusait le porteur d'une perte que la fiche
  * expliquait déjà.
  */
-type AuditTab = 'todo' | 'scanned' | 'missing' | 'horsSite';
+type AuditTab = 'todo' | 'scanned' | 'missing' | 'corrigees';
 
 /**
  * Ce qu'on a décidé d'un écart. `null` = pas encore tranché, et c'est ce qui
@@ -169,6 +184,60 @@ const formatSince = (value?: string): string => {
     return `il y a ${Math.floor(hours / 24)} j`;
 };
 
+/** « aujourd’hui à 08:12 », « hier à 17:40 », « le 12/09 à 09:05 » — l'heure d'une étape. */
+const formatQuand = (value?: string | null): string => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const jour = new Date(date);
+    jour.setHours(0, 0, 0, 0);
+    const aujourdhui = new Date();
+    aujourdhui.setHours(0, 0, 0, 0);
+    const ecart = Math.round((aujourdhui.getTime() - jour.getTime()) / 86400000);
+    if (ecart === 0) return `aujourd’hui à ${heure}`;
+    if (ecart === 1) return `hier à ${heure}`;
+    return `le ${date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} à ${heure}`;
+};
+
+/** Les étapes et les faits de la campagne qui paraissent dans son activité. */
+const SOURCES_DE_CAMPAGNE = new Set([
+    'audit_scan',
+    'audit_scan_alignment',
+    'audit_cloture',
+    'audit_renvoi',
+    'audit_validation',
+]);
+
+/** Une correction de fiche, telle que le journal la garde (28/09). */
+interface ChampCorrige {
+    champ: string;
+    de: string;
+    a: string;
+}
+
+const champsCorriges = (event: HistoryEvent): ChampCorrige[] => {
+    const champs = event.metadata?.champs;
+    if (Array.isArray(champs)) {
+        return champs.filter(
+            (champ): champ is ChampCorrige =>
+                Boolean(champ) && typeof (champ as ChampCorrige).champ === 'string',
+        );
+    }
+    /* Avant le 28/09, le journal ne gardait que le détenteur. */
+    const avant = event.metadata?.previousUser;
+    const apres = event.metadata?.beneficiaryName;
+    return typeof avant === 'string' || typeof apres === 'string'
+        ? [
+              {
+                  champ: 'Détenteur',
+                  de: typeof avant === 'string' ? avant : '',
+                  a: typeof apres === 'string' ? apres : '',
+              },
+          ]
+        : [];
+};
+
 /**
  * La marque d'une carte d'écart — **pictogramme et mot** (I3). Elle remplace la
  * pastille peinte qui disait la nature d'un écart par sa seule couleur de fond ;
@@ -193,6 +262,35 @@ const EXCEPTION_TONE: Record<ListRowStatus['tone'], string> = {
     refused: 'text-[var(--tk-color-st-rouge)]',
     muted: 'text-[var(--tk-color-st-gris)]',
 };
+
+/** La pastille d'état de la campagne : son fond, son point, son encre (28/09). */
+const PASTILLE_ETAT = {
+    bleu: {
+        fond: 'bg-tint-bleu text-on-tint-bleu',
+        point: 'bg-[var(--tk-color-st-bleu)]',
+        encre: 'text-on-tint-bleu',
+    },
+    ambre: {
+        fond: 'bg-tint-ambre text-on-tint-ambre',
+        point: 'bg-[var(--tk-color-st-ambre)]',
+        encre: 'text-on-tint-ambre',
+    },
+    vert: {
+        fond: 'bg-tint-vert text-on-tint-vert',
+        point: 'bg-[var(--tk-color-st-vert)]',
+        encre: 'text-on-tint-vert',
+    },
+    orange: {
+        fond: 'bg-tint-orange text-on-tint-orange',
+        point: 'bg-[var(--tk-color-st-orange)]',
+        encre: 'text-on-tint-orange',
+    },
+    neutre: {
+        fond: 'bg-surface-container text-on-surface-variant',
+        point: 'bg-[var(--tk-color-st-gris)]',
+        encre: 'text-on-surface-variant',
+    },
+} as const;
 
 /**
  * Détail campagne — **porté sur la planche 16.2**.
@@ -239,10 +337,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         events,
         settings,
         upsertEquipmentFromAuditScan,
-        removeEquipmentFromServiceAfterAudit,
         updateEquipment,
         deleteEquipment,
+        consignerCampagne,
+        enregistrerComptage,
+        users,
+        locationData,
     } = useData();
+    /* Compter et clôturer : `audit.scan` ; valider, renvoyer : `audit.manage` (27/09). */
+    const { permissions } = useAccessControl();
+    const peutCompter = permissions.canScanAudit || permissions.canManageInventory;
+    const peutValider = permissions.canManageAudit;
+    /* Corriger une fiche pendant le comptage : le droit de gérer l'inventaire. */
+    const peutCorriger = permissions.canManageInventory;
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const { navigateToItem } = useAppNavigation();
@@ -261,9 +368,22 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * qui enregistre un scan : la recherche ne fait que chercher.
      */
     const [recherche, setRecherche] = useState('');
-    const [filtreOuvert, setFiltreOuvert] = useState(false);
+    /** Au téléphone, la recherche s'ouvre à la loupe : la bande porte la jauge et les puces. */
+    const [rechercheOuverte, setRechercheOuverte] = useState(false);
+    /** La carte des écarts, dans la colonne de droite — la tuile « Écarts » y mène. */
+    const carteDesEcarts = useRef<HTMLElement>(null);
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
+    /** La fiche de comptage ouverte — pour compter un actif, ou corriger un retrouvé. */
+    const [ficheOuverte, setFicheOuverte] = useState<{
+        id: string;
+        mode: 'compter' | 'corriger';
+    } | null>(null);
+    /** La validation d'un lot : plusieurs actifs retrouvés d'un geste. */
+    const selection = useSelection();
+    /** Le renvoi d'une campagne clôturée : son motif est demandé, il sera lu par l'opérateur. */
+    const [renvoiOuvert, setRenvoiOuvert] = useState(false);
+    const [motifDeRenvoi, setMotifDeRenvoi] = useState('');
     /**
      * **Les deux niveaux côte à côte, à partir de 1280** — 16.2, colonne bureau : *« la
      * campagne à gauche (7/12), les écarts à droite (5/12) : les cartes de décision
@@ -271,20 +391,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * les yeux, c'est elle qui tient lieu d'alerte »*.
      */
     const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
+    /** La caméra sur un appareil qu'on tient (téléphone, tablette), la saisie à la souris. */
+    const scanPossible = useScanPossible();
     const [scanRawValue, setScanRawValue] = useState('');
     const [scanHits, setScanHits] = useState<ScanHit[]>([]);
     const [auditStartedAt, setAuditStartedAt] = useState<string | null>(null);
-    const [auditFinalized, setAuditFinalized] = useState(false);
-    const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
     const [baselineIds, setBaselineIds] = useState<string[]>([]);
-    const [foundIds, setFoundIds] = useState<string[]>([]);
-    const [foundAt, setFoundAt] = useState<Record<string, string>>({});
-    const [missingIds, setMissingIds] = useState<string[]>([]);
-    /** Le relevé fige aussi les absences justifiées : elles ne sont pas des manquants. */
-    const [horsSiteSnapshot, setHorsSiteSnapshot] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
-    /** Après un abandon, la campagne repart de zéro : les comptages d'avant ne comptent plus. */
-    const [repartDepuis, setRepartDepuis] = useState<string | null>(null);
 
     /**
      * **Le périmètre n'est pas un choix de cet écran.** La planche 16.2 ne dessine
@@ -332,6 +445,45 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * d'inventaire** : un lieu compté il y a six semaines s'ouvre complet, un lieu compté
      * il y a quatorze mois ouvre une nouvelle campagne. Pour chaque objet, le dernier.
      */
+    /**
+     * **L'état de la campagne, lu dans le journal** (27/09) — en cours, clôturée en attente
+     * d'un responsable, ou validée. Il vivait dans la mémoire de l'écran : un rechargement
+     * rouvrait une campagne close, et la clôture ne laissait aucune trace.
+     */
+    const campagne = useMemo(
+        () =>
+            lireLaCampagne(
+                events,
+                {
+                    country: selectedCountry,
+                    site: selectedSite,
+                    local: selectedLocal,
+                    horsLocal: selectedHorsLocal,
+                },
+                settings.inventoryPeriodMonths || 12,
+            ),
+        [
+            events,
+            selectedCountry,
+            selectedSite,
+            selectedLocal,
+            selectedHorsLocal,
+            settings.inventoryPeriodMonths,
+        ],
+    );
+    /** Après un abandon ou une relance, les comptages d'avant ne comptent plus. */
+    const repartDepuis = campagne.depuis;
+    const auditFinalized = campagne.etat !== 'en_cours';
+    /** Le relevé de la clôture : les manquants et les absences justifiées, figés. */
+    const missingIds = useMemo(
+        () => identifiantsDe(campagne.cloture, 'missingIds') ?? [],
+        [campagne.cloture],
+    );
+    const horsSiteSnapshot = useMemo(
+        () => identifiantsDe(campagne.cloture, 'horsSiteIds') ?? [],
+        [campagne.cloture],
+    );
+
     const comptesDeLaPeriode = useMemo(() => {
         const texte = (valeur: unknown) =>
             (typeof valeur === 'string' ? valeur : '').trim().toLowerCase();
@@ -363,11 +515,53 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         repartDepuis,
     ]);
 
+    /**
+     * **Ce qui s'est passé sur ce lieu, depuis le début de la campagne** (28/09) — comptages,
+     * rattachements, clôture, renvoi, validation. La colonne de droite en tire son activité,
+     * les étapes leur premier comptage, et la clôture sa part de scans et de saisies.
+     */
+    const faitsDuLieu = useMemo(() => {
+        const texte = (valeur: unknown) =>
+            (typeof valeur === 'string' ? valeur : '').trim().toLowerCase();
+        const periode = settings.inventoryPeriodMonths || 12;
+        return events
+            .filter((event) => {
+                const metadata = event.metadata;
+                const source = metadata?.source;
+                if (typeof source !== 'string' || !SOURCES_DE_CAMPAGNE.has(source)) return false;
+                if (texte(metadata?.scopeCountry) !== texte(selectedCountry)) return false;
+                if (texte(metadata?.scopeSite) !== texte(selectedSite)) return false;
+                if (selectedHorsLocal && texte(metadata?.scopeLocal)) return false;
+                if (selectedLocal && texte(metadata?.scopeLocal) !== texte(selectedLocal))
+                    return false;
+                if (repartDepuis && event.timestamp <= repartDepuis) return false;
+                const mois = moisDepuis(event.timestamp);
+                return mois !== null && mois < periode;
+            })
+            .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    }, [
+        events,
+        settings.inventoryPeriodMonths,
+        selectedCountry,
+        selectedSite,
+        selectedLocal,
+        selectedHorsLocal,
+        repartDepuis,
+    ]);
+
     const sessionStarted = Boolean(auditStartedAt);
+    /* Une campagne clôturée garde sa ligne de base : après la validation, les manquants ont
+       quitté le lieu et ne seraient plus dans le périmètre. */
     const baselineSourceIds = useMemo(
-        () => (sessionStarted ? baselineIds : scopedEquipment.map((item) => item.id)),
-        [baselineIds, scopedEquipment, sessionStarted],
+        () =>
+            identifiantsDe(campagne.cloture, 'baselineIds') ??
+            (sessionStarted ? baselineIds : scopedEquipment.map((item) => item.id)),
+        [baselineIds, campagne.cloture, scopedEquipment, sessionStarted],
     );
+    /* **Les retrouvés sont les comptages du journal** — scan ou validation à la main, par
+       n'importe qui, sur n'importe quel appareil : la liste ne dépend plus de cet écran. */
+    const foundAt = useMemo(() => Object.fromEntries(comptesDeLaPeriode), [comptesDeLaPeriode]);
+    const foundIds = useMemo(() => [...comptesDeLaPeriode.keys()], [comptesDeLaPeriode]);
 
     const baselineEquipment = useMemo(() => {
         const byId = new Map(equipment.map((item) => [item.id, item]));
@@ -489,12 +683,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     const resetAuditSession = () => {
         setAuditStartedAt(null);
-        setAuditFinalized(false);
-        setFinalizedAt(null);
         setBaselineIds([]);
-        setFoundIds([]);
-        setFoundAt({});
-        setMissingIds([]);
         setExceptionEntries([]);
         setScanHits([]);
         setActiveTab('todo');
@@ -511,13 +700,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const ids = scopedEquipment.map((item) => item.id);
         const dejaComptes = [...comptesDeLaPeriode.entries()];
         setBaselineIds(ids);
-        setFoundIds(dejaComptes.map(([id]) => id));
-        setFoundAt(Object.fromEntries(dejaComptes));
-        setMissingIds([]);
         setExceptionEntries([]);
         setScanHits([]);
-        setAuditFinalized(false);
-        setFinalizedAt(null);
         /* Une campagne reprise a commencé à son premier comptage. */
         setAuditStartedAt(
             dejaComptes.reduce(
@@ -539,11 +723,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * cours » devant une liste vide.
      */
     useEffect(() => {
-        if (sessionStarted || auditFinalized) return;
+        if (sessionStarted) return;
         if (!scopeIsReady || scopedEquipment.length === 0) return;
         startAuditSession();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
+    }, [scopeIsReady, scopedEquipment.length, sessionStarted]);
 
     /**
      * Abandonner le relevé — l'ancien « Réinitialiser », rendu à sa nature. Il jette
@@ -569,38 +753,291 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { label: 'Actifs modifiés', value: 'aucun' },
             ],
             onConfirm: () => {
-                setRepartDepuis(new Date().toISOString());
+                const decision = consignerCampagne('abandon', currentScope, {
+                    found: sessionFound,
+                });
+                if (!decision.allowed) {
+                    showToast(decision.reason || 'Abandon refusé.', 'error');
+                    return;
+                }
                 resetAuditSession();
                 showToast('Relevé abandonné. Le périmètre est de nouveau modifiable.', 'info');
             },
         });
     };
 
+    /**
+     * **Clôturer, c'est remettre le relevé à un responsable** (27/09). La clôture écrivait
+     * aussitôt les manquants, sans relecture ni trace de qui l'avait décidée. Elle fige
+     * maintenant le relevé au journal (qui, quand, la ligne de base, les retrouvés, les
+     * manquants, les absences justifiées) ; les manquants ne s'écrivent qu'à la validation.
+     */
     const finalizeAuditSession = (missingSnapshot: Equipment[], horsSite: string[] = []) => {
-        const closedAt = new Date().toISOString();
-        setAuditFinalized(true);
-        setFinalizedAt(closedAt);
-        setMissingIds(missingSnapshot.map((item) => item.id));
-        setHorsSiteSnapshot(horsSite);
-
-        if (missingSnapshot.length === 0) {
-            showToast('Campagne clôturée : tout le parc a été retrouvé.', 'success');
-            setActiveTab('scanned');
+        const decision = consignerCampagne('cloture', currentScope, {
+            baselineIds: baselineSourceIds,
+            missingIds: missingSnapshot.map((item) => item.id),
+            horsSiteIds: horsSite,
+            total: sessionTotal,
+            found: sessionFound,
+            missing: missingSnapshot.length,
+            ecarts: sessionExceptions,
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Clôture refusée.', 'error');
             return;
         }
+        showToast(
+            peutValider
+                ? 'Campagne clôturée : il reste à la valider.'
+                : 'Campagne clôturée : un responsable d’inventaire doit la valider.',
+            'success',
+        );
+        setActiveTab(missingSnapshot.length > 0 ? 'missing' : 'scanned');
+    };
 
-        let flaggedAsMissing = 0;
-        missingSnapshot.forEach((item) => {
-            if (removeEquipmentFromServiceAfterAudit(item.id, currentScope)) {
-                flaggedAsMissing += 1;
+    /** Les fiches corrigées pendant le comptage — ce que le responsable relit avant de valider. */
+    const fichesCorrigees = useMemo(() => {
+        const base = new Set(baselineSourceIds);
+        return events.filter(
+            (event) =>
+                event.metadata?.source === 'audit_scan' &&
+                Boolean(event.metadata?.corrige) &&
+                base.has(event.targetId) &&
+                (!repartDepuis || event.timestamp > repartDepuis) &&
+                (moisDepuis(event.timestamp) ?? Infinity) < (settings.inventoryPeriodMonths || 12),
+        );
+    }, [baselineSourceIds, events, repartDepuis, settings.inventoryPeriodMonths]);
+
+    /** Les fiches corrigées, une fois chacune : la dernière correction de chaque actif. */
+    const correctionsParActif = useMemo(() => {
+        const dernieres = new Map<string, HistoryEvent>();
+        for (const event of fichesCorrigees) {
+            const avant = dernieres.get(event.targetId);
+            if (!avant || event.timestamp > avant.timestamp) dernieres.set(event.targetId, event);
+        }
+        return dernieres;
+    }, [fichesCorrigees]);
+    const itemsCorriges = useMemo(
+        () => baselineEquipment.filter((item) => correctionsParActif.has(item.id)),
+        [baselineEquipment, correctionsParActif],
+    );
+
+    /** Les comptages des actifs attendus — le premier dit quand la campagne a commencé. */
+    const comptagesAttendus = useMemo(() => {
+        const base = new Set(baselineSourceIds);
+        return faitsDuLieu.filter(
+            (event) => event.metadata?.source === 'audit_scan' && base.has(event.targetId),
+        );
+    }, [baselineSourceIds, faitsDuLieu]);
+    const premierComptage = comptagesAttendus.at(-1);
+    /** Retrouvés à la main (« Retrouvé », la fiche, le lot) plutôt qu'au scan. */
+    const comptesALaMain = useMemo(
+        () =>
+            new Set(
+                comptagesAttendus
+                    .filter((event) => event.metadata?.methode === 'manuel')
+                    .map((event) => event.targetId),
+            ).size,
+        [comptagesAttendus],
+    );
+
+    /**
+     * **L'activité** (28/09) — les six derniers faits du lieu, avec qui et quand : un
+     * comptage, une fiche corrigée (de quoi à quoi), un objet trouvé hors de son lieu, une
+     * étape de la campagne.
+     */
+    const faitsDActivite = useMemo((): FaitDeCampagne[] => {
+        const base = new Set(baselineSourceIds);
+        const parId = new Map(equipment.map((item) => [item.id, item]));
+        const prenom = (nom?: string) => (nom || '').split(' ')[0] || 'quelqu’un';
+        return faitsDuLieu.slice(0, 6).map((event) => {
+            const item = parId.get(event.targetId);
+            const nom = item?.model || item?.name || event.targetName || 'Actif';
+            const quand = `${prenom(event.actorName)} · ${formatSince(event.timestamp)}`;
+            const metadata = event.metadata ?? {};
+            switch (metadata.source) {
+                case 'audit_cloture':
+                    return {
+                        id: event.id,
+                        ton: 'bleu',
+                        titre: 'Campagne clôturée',
+                        detail: `${String(metadata.found ?? '')} sur ${String(metadata.total ?? '')}`,
+                        quand,
+                    };
+                case 'audit_renvoi':
+                    return {
+                        id: event.id,
+                        ton: 'orange',
+                        titre: 'Renvoyée',
+                        detail: `« ${String(metadata.reason ?? '')} »`,
+                        quand,
+                    };
+                case 'audit_validation':
+                    return {
+                        id: event.id,
+                        ton: 'vert',
+                        titre: 'Inventaire validé',
+                        detail: '',
+                        quand,
+                    };
+                case 'audit_scan_alignment':
+                    return { id: event.id, ton: 'bleu', titre: nom, detail: 'rattaché ici', quand };
+                default: {
+                    if (!base.has(event.targetId)) {
+                        return {
+                            id: event.id,
+                            ton: 'orange',
+                            titre: item?.assetId || nom,
+                            detail: 'scanné, non attendu ici',
+                            quand,
+                        };
+                    }
+                    if (metadata.corrige) {
+                        const champs = champsCorriges(event);
+                        return {
+                            id: event.id,
+                            ton: 'ambre',
+                            titre: nom,
+                            detail: champs.length
+                                ? `retrouvé, ${champs
+                                      .map(
+                                          (champ) =>
+                                              `${champ.champ.toLowerCase()} corrigé : ${champ.de || 'aucun'} → ${champ.a || 'aucun'}`,
+                                      )
+                                      .join(', ')}`
+                                : 'retrouvé, fiche corrigée',
+                            quand,
+                        };
+                    }
+                    return {
+                        id: event.id,
+                        ton: 'vert',
+                        titre: nom,
+                        detail: metadata.methode === 'manuel' ? 'retrouvé à la main' : 'retrouvé',
+                        quand,
+                    };
+                }
             }
         });
+    }, [baselineSourceIds, equipment, faitsDuLieu]);
 
-        showToast(
-            `Campagne clôturée : ${flaggedAsMissing} actif(s) marqué(s) manquant(s).`,
-            'warning',
-        );
-        setActiveTab('missing');
+    /**
+     * **Valider** (27/09) — le responsable relit le relevé que l'opérateur a clôturé. Le
+     * relevé devient définitif et ce qu'il annonçait s'applique : les jamais vus passent
+     * manquants et quittent le lieu.
+     */
+    const validerLaCampagne = () => {
+        const manquants = missingIds.length;
+        requestConfirmation({
+            title: `Valider l’inventaire de ${selectedPlace} ?`,
+            message:
+                manquants > 0 ? (
+                    <>
+                        Le relevé devient définitif : <strong>{manquants} actif(s)</strong>{' '}
+                        passeront manquants et quitteront le lieu. Ils restent au parc, avec leur
+                        historique.
+                    </>
+                ) : (
+                    <>Le relevé devient définitif : tout le parc attendu a été retrouvé.</>
+                ),
+            tone: manquants > 0 ? 'destructive' : 'neutral',
+            irreversible: manquants > 0,
+            confirmText: 'Valider',
+            cancelText: 'Relire encore',
+            details: [
+                { icon: CheckCircle, label: 'Retrouvés', value: sessionFound },
+                { icon: Question, label: 'Passent manquants', value: manquants },
+                ...(itemsCorriges.length > 0
+                    ? [
+                          {
+                              icon: PencilSimple,
+                              label: 'Fiches corrigées pendant le comptage',
+                              value: itemsCorriges.length,
+                          },
+                      ]
+                    : []),
+            ],
+            onConfirm: () => {
+                const decision = consignerCampagne('validation', currentScope, {
+                    missingIds,
+                    clotureId: campagne.cloture?.id,
+                    found: sessionFound,
+                    missing: manquants,
+                });
+                showToast(
+                    decision.allowed
+                        ? 'Inventaire validé.'
+                        : decision.reason || 'Validation refusée.',
+                    decision.allowed ? 'success' : 'error',
+                );
+            },
+        });
+    };
+
+    /** **Renvoyer** — le relevé revient à l'opérateur, avec le motif ; le comptage reprend. */
+    const renvoyerLaCampagne = () => {
+        const motif = motifDeRenvoi.trim();
+        if (!motif) {
+            showToast('Dites ce qu’il faut revoir.', 'warning');
+            return;
+        }
+        const decision = consignerCampagne('renvoi', currentScope, {
+            reason: motif,
+            clotureId: campagne.cloture?.id,
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Renvoi refusé.', 'error');
+            return;
+        }
+        setRenvoiOuvert(false);
+        setMotifDeRenvoi('');
+        setActiveTab('todo');
+        showToast('Campagne renvoyée : le comptage reprend.', 'info');
+    };
+
+    /** Après une campagne validée, en ouvrir une nouvelle sur le même lieu. */
+    const relancerLaCampagne = () => {
+        const decision = consignerCampagne('relance', currentScope);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Relance refusée.', 'error');
+            return;
+        }
+        resetAuditSession();
+        showToast('Nouvelle campagne ouverte.', 'success');
+    };
+
+    /**
+     * **Compter à la main** (27/09) — le même fait qu'un scan (`audit_scan`), sans caméra ni
+     * code : on voit l'actif, on le valide. Avec des corrections, la fiche est réécrite dans
+     * le même geste.
+     */
+    const compterALaMain = (id: string, corrections?: Partial<Equipment>, note = '') => {
+        const decision = enregistrerComptage(id, currentScope, corrections, note);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Comptage refusé.', 'error');
+            return false;
+        }
+        return true;
+    };
+
+    const retrouveEnUnGeste = (item: Equipment) => {
+        if (compterALaMain(item.id)) {
+            showToast(`${item.model || item.name} : retrouvé.`, 'success');
+        }
+    };
+
+    const validerLaSelection = () => {
+        let comptes = 0;
+        for (const id of selection.selectedIds) {
+            if (compterALaMain(id)) comptes += 1;
+        }
+        selection.exit();
+        if (comptes > 0) {
+            showToast(
+                `${comptes} actif${comptes > 1 ? 's' : ''} validé${comptes > 1 ? 's' : ''} comme retrouvé${comptes > 1 ? 's' : ''}.`,
+                'success',
+            );
+        }
     };
 
     const registerScanHit = (
@@ -647,15 +1084,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const scannedCode =
             parsed.payload.assetId || parsed.payload.serialNumber || parsed.payload.hostname || '—';
 
-        if (
-            result.equipmentId &&
-            result.placeMatches &&
-            baselineSourceIds.includes(result.equipmentId)
-        ) {
-            const equipmentId = result.equipmentId;
-            setFoundIds((prev) => (prev.includes(equipmentId) ? prev : [...prev, equipmentId]));
-            setFoundAt((prev) => ({ ...prev, [equipmentId]: new Date().toISOString() }));
-        }
+        /* Le comptage est au journal (`audit_scan`) : la liste des retrouvés le lit de là. */
 
         if (result.resolution !== 'found_in_place') {
             const entry: LocalExceptionEntry = {
@@ -713,7 +1142,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 `${pendingExceptions.length} écart(s) à trancher avant de pouvoir clôturer.`,
                 'warning',
             );
-            setVueEcarts(true);
+            /* Au bureau, les écarts sont dans la colonne de droite ; au téléphone, un écran. */
+            if (enDeuxNiveaux) {
+                carteDesEcarts.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                setVueEcarts(true);
+            }
             return;
         }
 
@@ -731,13 +1165,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Clôturer l'audit de ${selectedPlace} ?`,
             message: (
                 <>
+                    Le relevé est figé et remis à un responsable d’inventaire. À la validation,{' '}
                     <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
-                    marqués manquants et retirés du lieu. Ils restent au parc, avec tout leur
-                    historique, et réapparaîtront s'ils sont scannés ailleurs.
+                    marqués manquants et retirés du lieu ; s’il renvoie la campagne, le comptage
+                    reprend.
                 </>
             ),
-            tone: 'destructive',
-            irreversible: true,
             confirmText: 'Clôturer',
             cancelText: 'Annuler',
             // Les trois lignes de la planche, et pas une de plus : chacune est une
@@ -748,7 +1181,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { icon: CheckCircle, label: 'Retrouvés, inchangés', value: sessionFound },
                 {
                     icon: Question,
-                    label: 'Marqués manquants, retirés du lieu',
+                    label: 'Manquants, à la validation',
                     value: missingSnapshot.length,
                 },
                 {
@@ -978,7 +1411,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * encore ne sont pas des manquants absents. Une seule phrase pour quatre nouvelles
      * opposées apprenait quelque chose de faux trois fois sur quatre.
      */
-    const renderEmptyList = (scope: AuditTab | 'exceptions') => {
+    const renderEmptyList = (scope: AuditTab | 'horsSite' | 'exceptions') => {
         /* **Des vides de carte** (25/09) : ils vivent dans la carte des rangées, et la forme
            héritée (`EmptyState`, carré de 56 et titre de 16 en 700) n'était plus celle
            d'aucun autre écran. Le vert dit ce qui est en ordre. */
@@ -1003,7 +1436,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     glyph={CheckCircle}
                     tone="positive"
                     title="Tout est retrouvé"
-                    description={`Les ${sessionFound} actifs attendus ont été scannés. La campagne peut être clôturée.`}
+                    description={`Les ${sessionFound} actifs attendus ont été comptés. La campagne peut être clôturée.`}
                 />
             );
         }
@@ -1012,13 +1445,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return (
                 <CardEmptyState
                     glyph={QrCode}
-                    title="Aucun scan pour l'instant"
-                    description="Les actifs retrouvés apparaîtront ici, du plus récent au plus ancien."
+                    title="Aucun comptage pour l'instant"
+                    description="Les actifs retrouvés, scannés ou validés à la main, apparaîtront ici du plus récent au plus ancien."
                 />
             );
         }
 
-        if (scope === 'missing') {
+        if (scope === 'missing' || scope === 'horsSite') {
             return auditFinalized ? (
                 <CardEmptyState
                     glyph={CheckCircle}
@@ -1031,6 +1464,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     glyph={Hourglass}
                     title="Les manquants viennent à la clôture"
                     description="Tant que la campagne tourne, un actif non vu est simplement à scanner."
+                />
+            );
+        }
+
+        if (scope === 'corrigees') {
+            return (
+                <CardEmptyState
+                    glyph={PencilSimple}
+                    title="Aucune fiche corrigée"
+                    description="Une fiche corrigée pendant le comptage paraîtra ici : le responsable la relit avant de valider."
                 />
             );
         }
@@ -1056,23 +1499,26 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         );
     };
 
+    type ModeDeRangee = 'todo' | 'scanned' | 'missing' | 'horsSite' | 'corrigees';
+
     /**
-     * La rangée de campagne — **la rangée de 04.1, marque à droite**.
+     * La rangée de campagne — **le modèle en titre, la marque à droite**.
      *
      * L'écran portait ici un tableau à cinq colonnes avec sa ligne d'en-têtes : nom,
      * asset, hostname, détenteur, résultat, statut. Six faits pour choisir un objet à
      * aller chercher dans un local, alors que la question tient en trois — *quel code*,
      * *quel objet chez qui*, *vu ou pas*.
      *
-     * Ce que la marque dit change avec la puce, et c'est tout ce qui change : à scanner
-     * en attente, l'**heure** pour un retrouvé — dans une campagne, ce qui compte est
-     * quand l'objet a été vu, pas son statut au parc —, et le mot « manquant » après la
-     * clôture. Le statut de l'objet n'apparaît nulle part : c'est justement ce que
-     * l'audit est en train de vérifier.
+     * **Refonte du 28/09.** Au bureau, le crayon ouvre la fiche et « Retrouvé » compte
+     * l'actif d'un geste. Au téléphone, **toucher la rangée ouvre la fiche** et le rond ✓
+     * compte l'actif : la cible du pouce est la rangée entière, et le geste rapide reste à
+     * droite. Après la clôture, les jamais vus portent « passera manquant » — ce que la
+     * validation va écrire, lu avant qu'elle l'écrive.
      */
     const renderEquipmentRows = (
         toutes: Equipment[],
-        mode: 'todo' | 'scanned' | 'missing' | 'horsSite',
+        mode: ModeDeRangee,
+        modeDe: (item: Equipment) => ModeDeRangee = () => mode,
     ) => {
         if (toutes.length === 0) return renderEmptyList(mode);
         const rows = parRecherche(toutes);
@@ -1090,67 +1536,184 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 />
             );
 
-        /* **Le modèle en titre, la teinte dit l'état** (25/09). La rangée ouvrait sur le
-           code (« ASSET-10001 ») et coupait ce qu'on cherche vraiment dans un local — le
-           modèle et le porteur ; « à scanner » se répétait sur chaque ligne alors que la
-           puce active le dit déjà. À droite ne reste que ce qui change : l'heure d'un
-           retrouvé, « manquant » après la clôture, « hors site ». */
         const TEINTE_MODE = {
             todo: undefined,
             scanned: 'vert',
             missing: 'orange',
             horsSite: 'ambre',
+            corrigees: 'ambre',
         } as const;
         return rows.map((item) => {
+            const modeRangee = modeDe(item);
+            /* Compter, sélectionner, corriger : pendant la campagne seulement. */
+            const comptable = modeRangee === 'todo' && peutCompter && !auditFinalized;
+            const corrigeable =
+                (modeRangee === 'scanned' || modeRangee === 'corrigees') &&
+                peutCorriger &&
+                !auditFinalized;
             const holder =
-                mode === 'missing' && item.status === 'En réparation'
+                modeRangee === 'missing' && item.status === 'En réparation'
                     ? 'était en réparation'
                     : item.user?.name || 'non attribué';
-            const droite =
-                mode === 'scanned'
-                    ? {
-                          glyph: CheckCircle,
-                          texte: formatSince(foundAt[item.id]),
-                          ton: 'text-[var(--tk-color-st-vert)]',
-                      }
-                    : mode === 'missing'
-                      ? {
-                            glyph: Question,
-                            texte: 'manquant',
-                            ton: 'text-[var(--tk-color-st-orange)]',
+            const titre = item.model || item.name;
+            /* Au bureau, le local suit le porteur : on y lit où l'objet est attendu. */
+            const sousTitre = [
+                item.assetId,
+                holder,
+                comptable && enDeuxNiveaux ? item.local : undefined,
+                modeRangee === 'missing' && enDeuxNiveaux
+                    ? 'jamais scanné pendant la campagne'
+                    : undefined,
+            ]
+                .filter(Boolean)
+                .join(' · ');
+
+            /* **Le lot** : en sélection, la rangée entière coche l'actif. */
+            if (comptable && selection.isActive) {
+                const coche = selection.isSelected(item.id);
+                return (
+                    <Button
+                        key={item.id}
+                        variant="text"
+                        layout="card"
+                        aria-pressed={coche}
+                        onClick={() => selection.toggle(item.id)}
+                        className="border-outline-variant hover:bg-surface-container deux:-mx-5 deux:w-[calc(100%+2.5rem)] deux:px-5 -mx-4 flex min-h-16 w-[calc(100%+2rem)] items-center gap-3 rounded-none border-t px-4 py-2 text-left font-normal whitespace-normal first:border-t-0 active:scale-100"
+                    >
+                        <SelectionBox selected={coche} />
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface text-ts-body leading-ts-body deux:font-medium block truncate">
+                                {titre}
+                            </span>
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                {sousTitre}
+                            </span>
+                        </span>
+                    </Button>
+                );
+            }
+
+            const etiquette = (texte: string, teinte: 'orange' | 'ambre') => (
+                <span
+                    className={cn(
+                        'shrink-0 rounded-sm px-2 text-[0.75rem] leading-6 font-semibold whitespace-nowrap',
+                        teinte === 'orange'
+                            ? 'bg-tint-orange text-on-tint-orange'
+                            : 'bg-tint-ambre text-on-tint-ambre',
+                    )}
+                >
+                    {texte}
+                </span>
+            );
+            const marque =
+                modeRangee === 'scanned' ? (
+                    /* L'heure remplace le statut : ce qui compte est quand l'objet a été vu. */
+                    <span className="text-ts-sub leading-ts-sub flex shrink-0 items-center gap-1.5 font-medium whitespace-nowrap text-[var(--tk-color-st-vert)]">
+                        <Icon glyph={CheckCircle} size={18} />
+                        {formatSince(foundAt[item.id])}
+                    </span>
+                ) : modeRangee === 'corrigees' ? (
+                    /* Le crayon est déjà le geste de la rangée : la marque dit quand. */
+                    <span className="text-ts-sub leading-ts-sub text-on-tint-ambre shrink-0 font-medium whitespace-nowrap">
+                        corrigée {formatSince(correctionsParActif.get(item.id)?.timestamp)}
+                    </span>
+                ) : modeRangee === 'missing' ? (
+                    etiquette(
+                        campagne.etat === 'validee' ? 'manquant' : 'passera manquant',
+                        'orange',
+                    )
+                ) : modeRangee === 'horsSite' ? (
+                    etiquette('hors site, justifié', 'ambre')
+                ) : null;
+
+            if (enDeuxNiveaux) {
+                const crayon = (libelle: string, ficheMode: 'compter' | 'corriger') => (
+                    <Button
+                        variant="text"
+                        iconOnly
+                        size="sm"
+                        aria-label={`${libelle} — ${titre}`}
+                        onClick={() => setFicheOuverte({ id: item.id, mode: ficheMode })}
+                        /* La rangée survolée est déjà grise : le crayon fonce d'un cran. */
+                        className="text-text-secondary hover:bg-surface-muted-strong hover:text-on-surface h-9 w-9"
+                    >
+                        <Icon glyph={PencilSimple} size={20} />
+                    </Button>
+                );
+                return (
+                    <RangeeDeCampagne
+                        key={item.id}
+                        glyph={getCategoryGlyph(item.type)}
+                        tint={TEINTE_MODE[modeRangee]}
+                        titre={titre}
+                        sousTitre={sousTitre}
+                        /* Au bureau aussi, cliquer la rangée ouvre sa fiche : le crayon le dit. */
+                        onOuvrir={
+                            comptable || corrigeable
+                                ? () =>
+                                      setFicheOuverte({
+                                          id: item.id,
+                                          mode: comptable ? 'compter' : 'corriger',
+                                      })
+                                : undefined
                         }
-                      : mode === 'horsSite'
-                        ? {
-                              glyph: Wrench,
-                              texte: 'hors site',
-                              ton: 'text-[var(--tk-color-on-tint-ambre)]',
-                          }
-                        : null;
+                        libelleOuvrir={comptable ? 'Vérifier la fiche' : 'Corriger la fiche'}
+                        fin={
+                            comptable ? (
+                                <span className="flex shrink-0 items-center gap-1">
+                                    {crayon('Vérifier la fiche', 'compter')}
+                                    <Button
+                                        variant="outlined"
+                                        size="sm"
+                                        onClick={() => retrouveEnUnGeste(item)}
+                                        className="hover:bg-surface hover:border-on-surface-variant active:bg-surface-container-high h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                    >
+                                        <Icon glyph={Check} size={18} />
+                                        Retrouvé
+                                    </Button>
+                                </span>
+                            ) : marque || corrigeable ? (
+                                <span className="flex shrink-0 items-center gap-1">
+                                    {marque}
+                                    {corrigeable && crayon('Corriger la fiche', 'corriger')}
+                                </span>
+                            ) : undefined
+                        }
+                    />
+                );
+            }
+
             return (
-                <FactRow
+                <RangeeDeCampagne
                     key={item.id}
                     glyph={getCategoryGlyph(item.type)}
-                    tint={TEINTE_MODE[mode]}
-                    title={item.model || item.name}
-                    subtitle={[item.assetId, holder].filter(Boolean).join(' · ')}
-                    trailing={
-                        droite ? (
-                            <span
-                                className={cn(
-                                    'text-ts-sub leading-ts-sub flex shrink-0 items-center gap-1.5 font-medium whitespace-nowrap',
-                                    droite.ton,
-                                )}
+                    tint={TEINTE_MODE[modeRangee]}
+                    titre={titre}
+                    sousTitre={sousTitre}
+                    onOuvrir={
+                        comptable || corrigeable
+                            ? () =>
+                                  setFicheOuverte({
+                                      id: item.id,
+                                      mode: comptable ? 'compter' : 'corriger',
+                                  })
+                            : undefined
+                    }
+                    libelleOuvrir={comptable ? 'Vérifier la fiche' : 'Corriger la fiche'}
+                    fin={
+                        comptable ? (
+                            <Button
+                                variant="text"
+                                iconOnly
+                                aria-label={`Retrouvé — ${titre}`}
+                                onClick={() => retrouveEnUnGeste(item)}
+                                className="bg-tint-vert text-on-tint-vert h-11 max-h-11 min-h-11 w-11 max-w-11 min-w-11 shrink-0 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--tk-color-st-vert)_35%,var(--tk-color-surface))] hover:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_22%,var(--tk-color-surface))] active:scale-[0.92] active:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_32%,var(--tk-color-surface))]"
                             >
-                                <Icon glyph={droite.glyph} size={18} />
-                                {droite.texte}
-                            </span>
-                        ) : enDeuxNiveaux && item.local ? (
-                            /* **Le local en bout de rangée, au bureau** — 16.2 : on y lit
-                             *où* l'objet est attendu quand on parcourt un site entier. */
-                            <span className="text-text-muted text-ts-sub leading-ts-sub shrink-0 whitespace-nowrap">
-                                {item.local}
-                            </span>
-                        ) : undefined
+                                <Icon glyph={Check} size={20} />
+                            </Button>
+                        ) : (
+                            (marque ?? undefined)
+                        )
                     }
                 />
             );
@@ -1158,59 +1721,105 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     };
 
     /**
-     * Le titre de la liste — ce qu'on regarde, et combien il en reste sur combien.
-     * « Les 7 qui restent à trouver » n'est pas « Les 34 retrouvés » : la même liste
-     * lue dans deux sens n'a pas le même emploi, et le dire évite de compter les
-     * rangées pour savoir où l'on est.
+     * **Ce que la liste montre** — la tuile choisie au bureau, la puce au téléphone. « À
+     * scanner » n'existe plus après la clôture, « Jamais vus » pas avant : l'onglet retenu
+     * suit l'état de la campagne sans qu'on ait à le reprendre.
      */
-    const legendeDeLaPuce = () => {
-        if (activeTab === 'todo') {
-            return {
-                title: `Les ${todoItems.length} qui restent à trouver`,
-                count: `${todoItems.length} sur ${sessionTotal}`,
-            };
-        }
-        if (activeTab === 'scanned') {
-            return {
-                title: `Les ${scannedItems.length} retrouvés, du plus récent`,
-                count: `${scannedItems.length} sur ${sessionTotal}`,
-            };
-        }
-        return {
-            title: auditFinalized
-                ? `Les ${missingItems.length} jamais retrouvés`
-                : 'Les manquants, après la clôture',
-            count: `${missingItems.length} sur ${sessionTotal}`,
-        };
+    const ongletAffiche: AuditTab = auditFinalized
+        ? activeTab === 'todo'
+            ? missingItems.length + horsSiteItems.length > 0
+                ? 'missing'
+                : 'scanned'
+            : activeTab
+        : activeTab === 'missing'
+          ? 'todo'
+          : activeTab;
+    /* L'arrivée : les cartes de la colonne entrent en cascade ; les rangées aussi, et de
+       nouveau quand on change de liste. */
+    const entreePage = useEntree();
+    const entreeListe = useEntree(ongletAffiche);
+    const choisir = (onglet: AuditTab) => {
+        setActiveTab(onglet);
+        if (selection.isActive) selection.exit();
     };
-
-    const listCaption = () => {
-        const legende = legendeDeLaPuce();
-        /* Une recherche posée : le compte dit combien elle retient sur la puce, comme
-           « 6 des 17 » sur les autres listes. */
-        if (!recherche.trim()) return legende;
-        const liste =
-            activeTab === 'todo'
-                ? todoItems
-                : activeTab === 'scanned'
-                  ? scannedItems
-                  : activeTab === 'horsSite'
-                    ? horsSiteItems
-                    : missingItems;
-        return { ...legende, count: `${parRecherche(liste).length} des ${liste.length}` };
+    /** Les retrouvés, du plus récent au plus ancien. */
+    const retrouvesRecents = useMemo(
+        () =>
+            [...scannedItems].sort((a, b) =>
+                (foundAt[b.id] || '').localeCompare(foundAt[a.id] || ''),
+            ),
+        [foundAt, scannedItems],
+    );
+    const horsSiteSet = useMemo(
+        () => new Set(horsSiteItems.map((item) => item.id)),
+        [horsSiteItems],
+    );
+    const listeAffichee =
+        ongletAffiche === 'todo'
+            ? todoItems
+            : ongletAffiche === 'scanned'
+              ? retrouvesRecents
+              : ongletAffiche === 'corrigees'
+                ? itemsCorriges
+                : [...missingItems, ...horsSiteItems];
+    const TITRE_DE_LISTE: Record<AuditTab, string> = {
+        todo: 'À scanner',
+        scanned: 'Retrouvés',
+        missing: 'Jamais vus',
+        corrigees: 'Fiches corrigées',
     };
+    const compteDeListe = recherche.trim()
+        ? `${parRecherche(listeAffichee).length} des ${listeAffichee.length}`
+        : `${listeAffichee.length} sur ${sessionTotal}`;
+    const rangeesDeLaListe = renderEquipmentRows(listeAffichee, ongletAffiche, (item) =>
+        ongletAffiche === 'missing' && horsSiteSet.has(item.id) ? 'horsSite' : ongletAffiche,
+    );
+    /** « Sélectionner plusieurs » : pendant la campagne, sur ce qui reste à scanner. */
+    const selectionPossible =
+        ongletAffiche === 'todo' && peutCompter && !auditFinalized && todoItems.length > 0;
+    const listeCorrigeable =
+        (ongletAffiche === 'scanned' || ongletAffiche === 'corrigees') &&
+        peutCorriger &&
+        !auditFinalized &&
+        listeAffichee.length > 0;
 
-    /**
-     * **Deux onglets, trois puces** — planche 16.2.
-     *
-     * Trois des quatre onglets d'origine montraient **la même liste à trois moments** :
-     * un actif est *à scanner*, puis *retrouvé*, et *manquant* seulement si la campagne
-     * se clôture sans lui. Ce ne sont pas trois sujets, ce sont **trois états d'un même
-     * sujet** — donc un onglet et trois puces. L'écart, lui, est un autre sujet : un
-     * objet que le lieu n'attendait pas.
-     *
-     * Les puces filtrent le même parc ; l'onglet change de sujet.
-     */
+    /* Les indices de la planche : ils ne paraissent que quand ils s'appliquent. Une
+       explication permanente devient du décor. */
+    const indicesDeLaListe = (
+        <>
+            {ongletAffiche === 'todo' &&
+                todoItems.some((item) => item.status === 'En réparation') && (
+                    <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                        <strong className="text-on-surface font-medium">
+                            L'actif en réparation reste à scanner.
+                        </strong>{' '}
+                        Il est attendu dans le lieu : c'est le relevé qui dit s'il y est, pas son
+                        statut. À la clôture, ne pas l'avoir vu ne le rendra pas manquant — son
+                        absence est justifiée.
+                    </p>
+                )}
+            {ongletAffiche === 'missing' && horsSiteItems.length > 0 && (
+                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                    <strong className="text-on-surface font-medium">
+                        Hors site : ni retrouvés, ni manquants.
+                    </strong>{' '}
+                    Ces actifs sont chez le réparateur : leur absence du lieu s'explique, et la
+                    validation ne les accuse pas.
+                </p>
+            )}
+            {ongletAffiche === 'missing' && auditFinalized && assignedMissingCount > 0 && (
+                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
+                    <strong className="text-on-surface font-medium">
+                        {assignedMissingCount} des {missingItems.length} jamais vus sont attribués.
+                    </strong>{' '}
+                    Leur porteur reste responsable : le manquant devrait ouvrir une tâche chez lui,
+                    et il ne s'efface pas avec la campagne. La file ne le fait pas encore — dette
+                    D3.
+                </p>
+            )}
+        </>
+    );
+
     /** « 2 rattachés, 1 écarté » — ce que la carte tranchée dit d'elle-même. */
     const repartitionDesEcarts = useMemo(() => {
         const compte = { attached: 0, left: 0, kept: 0, discarded: 0 };
@@ -1219,7 +1828,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         });
         const morceaux: string[] = [];
         if (compte.attached > 0)
-            morceaux.push(`${compte.attached} rattaché${compte.attached > 1 ? 's' : ''}`);
+            morceaux.push(`${compte.attached} rattaché${compte.attached > 1 ? 's' : ''} ici`);
         if (compte.kept > 0) morceaux.push(`${compte.kept} complété${compte.kept > 1 ? 's' : ''}`);
         if (compte.left > 0)
             morceaux.push(`${compte.left} laissé${compte.left > 1 ? 's' : ''} là-bas`);
@@ -1229,231 +1838,163 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     }, [exceptionEntries]);
 
     /**
-     * `.tens` — **la carte de tension.** L'écart est une file de décisions, pas une vue :
-     * trois objets trouvés ici sans y être attendus, contre quarante et un à parcourir.
-     * Il prend donc la place où l'œil va — une carte ambre en tête du parc, qui ouvre les
-     * cartes de décision — et **il n'existe pas quand il n'y a rien à trancher**.
-     *
-     * Il était un onglet, à côté du parc. 17.8 a retiré le slot du corpus le 06/09 :
-     * *« là où une partition exclusive existe, elle est en chips dans la feuille de
-     * filtre »* — et ici l'écart n'est même pas une partition du parc, c'est un autre
-     * sujet. La planche le dessine en carte, et l'écran des écarts a son propre retour.
+     * **L'état de la campagne, en pastille** (28/09) — à côté du lieu au bureau, en encre
+     * dans la ligne du lieu au téléphone. Le mot, pas la seule couleur (I3) : « en cours »
+     * bleu, « clôturée · à valider » ambre, « validée » vert, « renvoyée » orange.
      */
-    const carteDeTension =
-        sessionExceptions === 0 ? null : (
-            <button
-                type="button"
-                onClick={() => setVueEcarts(true)}
-                className={cn(
-                    'flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-3 text-left',
-                    closureBlocked
-                        ? 'bg-tint-ambre text-on-tint-ambre'
-                        : /* `.tens.done` — la surface seule : la planche n'y met pas
-                             d'ombre, et l'écart tranché n'est plus une alerte. */
-                          'bg-surface text-on-surface',
-                )}
-            >
-                <span
-                    className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
-                        closureBlocked
-                            ? 'bg-white/55 text-[color:inherit]'
-                            : 'bg-tint-vert text-on-tint-vert',
-                    )}
-                >
-                    <Icon glyph={closureBlocked ? ArrowsLeftRight : CheckCircle} size={20} />
-                </span>
-                <span className="min-w-0 flex-1">
-                    <span className="text-ts-body leading-ts-body block truncate">
-                        {closureBlocked
-                            ? `${pendingExceptions.length} objet${pendingExceptions.length > 1 ? 's' : ''} non attendu${pendingExceptions.length > 1 ? 's' : ''} ici`
-                            : `${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
-                    </span>
-                    <span
-                        className={cn(
-                            'text-ts-sub leading-ts-sub block truncate',
-                            closureBlocked ? 'opacity-80' : 'text-on-surface-variant',
-                        )}
-                    >
-                        {closureBlocked ? 'à trancher avant de clôturer' : repartitionDesEcarts}
-                    </span>
-                </span>
-                {closureBlocked ? (
-                    /* `.go` — le geste de la carte est **sombre**, pas jaune : le jaune de
-                       l'écran est pris par le scan, et ceci mène à une décision. */
-                    <span className="bg-inverse-surface text-inverse-on-surface text-ts-control flex h-10 shrink-0 items-center rounded-sm px-3.5 font-medium">
-                        Trancher
-                    </span>
-                ) : (
-                    <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
-                )}
-            </button>
-        );
+    const etatAffiche = useMemo((): {
+        long: string;
+        court: string;
+        teinte: keyof typeof PASTILLE_ETAT;
+    } => {
+        if (campagne.etat === 'validee')
+            return { long: 'Validée', court: 'validée', teinte: 'vert' };
+        if (campagne.etat === 'cloturee')
+            return { long: 'Clôturée · à valider', court: 'clôturée, à valider', teinte: 'ambre' };
+        if (campagne.renvoi)
+            return { long: 'Renvoyée · à recompter', court: 'renvoyée', teinte: 'orange' };
+        if (scopeIsReady && scopedEquipment.length === 0)
+            return { long: 'Rien à auditer', court: 'rien à auditer', teinte: 'neutre' };
+        return { long: 'En cours', court: 'en cours', teinte: 'bleu' };
+    }, [campagne.etat, campagne.renvoi, scopeIsReady, scopedEquipment.length]);
+
+    /** « Campus Dakar · Sénégal · lancée aujourd’hui à 08:12 · dernier comptage il y a 3 min ». */
+    const sousTitreDeCampagne = [
+        lieuDansLeSite ? selectedSite : null,
+        selectedCountry,
+        ...(campagne.validation
+            ? [
+                  `validée par ${campagne.validation.actorName} ${formatQuand(campagne.validation.timestamp)}`,
+              ]
+            : campagne.cloture
+              ? [
+                    `clôturée par ${campagne.cloture.actorName} ${formatQuand(campagne.cloture.timestamp)}`,
+                ]
+              : [
+                    premierComptage
+                        ? `lancée ${formatQuand(premierComptage.timestamp)}`
+                        : 'aucun comptage encore',
+                    lastScanAt ? `dernier comptage ${formatSince(lastScanAt)}` : null,
+                ]),
+    ]
+        .filter(Boolean)
+        .join(' · ');
+
+    /** Le nombre d'écarts de la campagne : ceux de la clôture, sinon ceux de la séance. */
+    const ecartsDeLaCampagne =
+        typeof campagne.cloture?.metadata?.ecarts === 'number'
+            ? (campagne.cloture.metadata.ecarts as number)
+            : sessionExceptions;
 
     /**
-     * Les trois moments du même parc — et il n'y en a que deux sur une campagne
-     * clôturée : « plus de scan, plus de puce à scanner, une seule sortie ». La puce
-     * « Manquants » reste visible pendant la campagne, à zéro : c'est le même fait,
-     * montré au bon moment (C1).
+     * **Les quatre tuiles** (28/09) — le héros éclaté. Chacune compte une chose et, quand
+     * elle a une liste, la montre : la tuile choisie est cerclée et la liste dessous prend
+     * son nom. Pendant la campagne : retrouvés, à scanner, écarts, fiches corrigées ; après
+     * la clôture, « À scanner » cède la place aux jamais vus.
      */
-    const partitions = (
-        [
-            ...(auditFinalized
-                ? []
-                : [['todo', 'À scanner', todoItems.length, CircleDashed] as const]),
-            ['scanned', 'Retrouvés', scannedItems.length, CheckCircle],
-            ['missing', 'Manquants', missingItems.length, Question],
-            /* La quatrième puce n'a de sujet qu'après la clôture, et seulement
-               s'il y a eu une absence justifiée à mettre à part. */
-            ...(auditFinalized && horsSiteItems.length > 0
-                ? [['horsSite', 'Hors site, justifié', horsSiteItems.length, Wrench] as const]
-                : []),
-        ] as ReadonlyArray<readonly [AuditTab, string, number, PhosphorGlyph]>
-    ).map(([id, label, count]) => ({ id, label, count }));
-
-    /** La puce d'arrivée : « À scanner » tant que la campagne tourne, « Manquants » après. */
-    const partitionParDefaut: AuditTab = auditFinalized ? 'missing' : 'todo';
-
-    /**
-     * **Les puces vivent dans la bande fixe, plus sous le héro** (25/09, contre 16.2 qui
-     * les pose dans le corps). La règle de toutes les listes — 17.8 : *« un filtre posé
-     * dans la page disparaît au premier défilement, et la liste devient un sous-ensemble
-     * sans étiquette »* — et R11 : au bureau elles montent sur la ligne d'outils, à côté
-     * de la recherche ; au téléphone elles sont dans la feuille de filtre, et la ligne
-     * de compte, fixe elle aussi, dit ce qu'on regarde. Même ordre, même geste que
-     * Tâches.
-     *
-     * `.chip` de 16.2 — **36 de haut, 14 sur 20, sans pictogramme** : « À scanner » n'a
-     * pas besoin d'un cercle pointillé pour se comprendre.
-     */
-    const pucesDuBureau = (
-        <div className="flex min-w-0 [scrollbar-width:none] items-center gap-3 overflow-x-auto">
-            {partitions.map((partition) => (
-                <FacetChip
-                    key={partition.id}
-                    dense
-                    label={partition.label}
-                    count={partition.count}
-                    selected={activeTab === partition.id}
-                    onClick={() => setActiveTab(partition.id)}
-                />
-            ))}
-        </div>
-    );
-
-    /**
-     * C4 — **l'état dans le voile, en pictogramme et en mot.** Les trois glyphes sont
-     * ceux que 16.1 a fixés pour la même donnée : `clock-countdown` ambre pour ce qui
-     * est à lancer, `circle-half` bleu pour ce qui tourne, `check-circle` vert pour ce
-     * qui est complet — et `circle-dashed` neutre quand il n'y a rien à auditer.
-     */
-    const heroStatus = useMemo(() => {
-        if (auditFinalized) {
-            return { icon: CheckCircle, label: 'clôturée', tone: 'positive' as const };
-        }
-        if (sessionStarted) {
-            return { icon: CircleHalf, label: 'en cours', tone: 'info' as const };
-        }
-        if (scopeIsReady && scopedEquipment.length === 0) {
-            /* V4 : `circle-dashed` **neutre** — « rien à auditer » est un état de
-               donnée, pas une alerte de campagne. */
-            return { icon: CircleDashed, label: 'rien à auditer' };
-        }
-        return { icon: ClockCountdown, label: 'à lancer', tone: 'pending' as const };
-    }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
-
-    /**
-     * Trois qualifiants, et **le manquant n'y est pas tant que la campagne tourne** :
-     * un chiffre qui vaudra zéro jusqu'à la dernière seconde n'est pas un qualifiant.
-     * Il prend la place des écarts à la clôture, quand ils sont tous tranchés.
-     */
-    const heroMetrics: DetailMetrics = useMemo(() => {
-        if (auditFinalized) {
-            return [
-                { value: sessionTotal, label: 'attendus' },
-                { value: sessionFound, label: 'retrouvés' },
-                { value: missingItems.length, label: 'manquants' },
-            ];
-        }
-        return [
-            { value: sessionTotal, label: 'attendus' },
-            { value: sessionFound, label: 'retrouvés' },
-            { value: sessionExceptions, label: 'écarts' },
-        ];
-    }, [auditFinalized, missingItems.length, sessionExceptions, sessionFound, sessionTotal]);
-
-    /**
-     * Les faits qui situent la campagne — **quand elle a commencé, et où en est le
-     * relevé**. R3 fixe leur place après les qualifiants et cette place ne se
-     * renégocie pas par écran : la planche les dessine au-dessus, le registre les met
-     * en dessous, et c'est le registre qui décide de la hiérarchie du héro.
-     */
-    /**
-     * **La ligne d'état, et la ligne de portée** — l'ordre de la planche, qui est
-     * aussi celui de R3 : l'état, *puis le fait qui situe*, puis le sujet, puis les
-     * qualifiants. Ces deux phrases descendaient sous les métriques, dans deux blocs
-     * à filet et à pictogramme : le voile faisait deux fois sa hauteur pour dire la
-     * même chose, et le sujet se retrouvait au milieu au lieu d'être en tête.
-     */
-    const heroStatusDetail = auditFinalized
-        ? `par vous, ${formatSince(finalizedAt || undefined)}`
-        : sessionStarted
-          ? `démarrée ${formatSince(auditStartedAt || undefined)}`
-          : undefined;
-
-    const heroSubtitle = auditFinalized
-        ? `Campagne du ${formatDateTime(finalizedAt || undefined)}`
-        : sessionStarted
-          ? `${lieuDansLeSite ? `${selectedSite} · périmètre` : 'Périmètre'} figé au démarrage${
-                lastScanAt ? ` · dernier scan ${formatSince(lastScanAt)}` : ' · aucun scan'
-            }`
-          : scopeIsReady
-            ? `${selectedSite} · ${selectedCountry}`
-            : undefined;
-
-    /**
-     * La couverture, en barre puis en clair — « 34 sur 41 · 83 % ». C'est le seul
-     * endroit où elle vit : la carte de progression qui la redisait sous le héro est
-     * tombée avec les tuiles (corollaire R3).
-     */
-    const heroGauge = sessionStarted ? (
-        <>
-            {/* `.prog` de 16.2 — **6 de haut, rayon 2**, sur le voile blanc à 12 %.
-                Elle portait le rayon plein : une jauge de campagne n'est pas une pilule,
-                et les quatre autres du produit (15.1, 16.1, 02.2) sont carrées. */}
-            <span
-                aria-hidden="true"
-                className="block h-1.5 overflow-hidden rounded-xs bg-white/[0.12]"
-            >
-                {/* La jauge prend l'encre de la surface inversée, pas une couleur
-                    d'état : elle mesure une avancée, elle ne qualifie rien. Le vert
-                    disait « tout va bien » à 12 % de relevé. */}
-                <span
-                    className="bg-inverse-on-surface mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]"
-                    style={{ width: `${progressPercentage}%` }}
-                />
-            </span>
-            {/* `.pk` — 12 sur 16 en encre estompée, comme la ligne de lecture de 16.1
-                et de 15.1. Elle prenait le corps de la page, 14 sur 21 : une mesure qui
-                n'est sur aucune marche, et deux points de plus que la clé des tuiles
-                juste au-dessus. */}
-            <span className="mt-2 block text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
-                {sessionFound} sur {sessionTotal} · {progressPercentage} %
-                {auditFinalized &&
-                    sessionExceptions > 0 &&
-                    ` · ${resolvedExceptions} écart${resolvedExceptions > 1 ? 's' : ''} tranché${resolvedExceptions > 1 ? 's' : ''}`}
-            </span>
-        </>
-    ) : undefined;
+    const tuiles: TuileDeCampagne[] = [
+        {
+            id: 'scanned',
+            glyph: CheckCircle,
+            teinte: 'vert',
+            label: 'Retrouvés',
+            valeur: sessionFound,
+            suffixe: `sur ${sessionTotal} · ${progressPercentage} %`,
+            progression: progressPercentage,
+            choisie: ongletAffiche === 'scanned',
+            onClick: () => choisir('scanned'),
+        },
+        auditFinalized
+            ? {
+                  id: 'missing',
+                  glyph: Question,
+                  teinte: 'orange',
+                  label: 'Jamais vus',
+                  valeur: missingItems.length,
+                  alerte: campagne.etat === 'cloturee' && missingItems.length > 0,
+                  detail: [
+                      missingItems.length === 0
+                          ? 'aucun manquant'
+                          : campagne.etat === 'cloturee'
+                            ? 'passeront manquants à la validation'
+                            : 'passés manquants',
+                      horsSiteItems.length > 0
+                          ? `${horsSiteItems.length} hors site, justifié${horsSiteItems.length > 1 ? 's' : ''}`
+                          : null,
+                  ]
+                      .filter(Boolean)
+                      .join(' · '),
+                  choisie: ongletAffiche === 'missing',
+                  onClick: () => choisir('missing'),
+              }
+            : {
+                  id: 'todo',
+                  glyph: CircleDashed,
+                  teinte: 'bleu',
+                  label: 'À scanner',
+                  valeur: todoItems.length,
+                  detail:
+                      sessionTotal === 0
+                          ? 'rien à compter ici'
+                          : todoItems.length > 0
+                            ? 'restent à trouver'
+                            : 'tout est retrouvé',
+                  choisie: ongletAffiche === 'todo',
+                  onClick: () => choisir('todo'),
+              },
+        {
+            id: 'ecarts',
+            glyph: ArrowsLeftRight,
+            teinte: !auditFinalized && pendingExceptions.length > 0 ? 'orange' : 'neutre',
+            label: 'Écarts',
+            valeur: ecartsDeLaCampagne,
+            alerte: !auditFinalized && pendingExceptions.length > 0,
+            detail:
+                !auditFinalized && pendingExceptions.length > 0
+                    ? 'à trancher avant la clôture'
+                    : ecartsDeLaCampagne === 0
+                      ? auditFinalized
+                          ? 'aucun'
+                          : 'aucun pour l’instant'
+                      : sessionExceptions > 0
+                        ? `tranché${sessionExceptions > 1 ? 's' : ''} : ${repartitionDesEcarts}`
+                        : `tranché${ecartsDeLaCampagne > 1 ? 's' : ''} avant la clôture`,
+            onClick:
+                exceptionsDisplay.length > 0
+                    ? () =>
+                          carteDesEcarts.current?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'nearest',
+                          })
+                    : undefined,
+        },
+        {
+            id: 'corrigees',
+            glyph: PencilSimple,
+            teinte: 'ambre',
+            label: 'Fiches corrigées',
+            valeur: itemsCorriges.length,
+            detail:
+                itemsCorriges.length === 0
+                    ? auditFinalized
+                        ? 'aucune'
+                        : 'aucune pour l’instant'
+                    : campagne.etat === 'cloturee'
+                      ? 'à relire avant de valider'
+                      : campagne.etat === 'validee'
+                        ? 'gardées à la validation'
+                        : 'relues par le responsable à la validation',
+            choisie: ongletAffiche === 'corrigees',
+            onClick: itemsCorriges.length > 0 ? () => choisir('corrigees') : undefined,
+        },
+    ];
 
     /**
      * Le ⋮ de la barre — **l'ordre de la planche** : exporter, clôturer, abandonner.
      *
      * *« Le ⋮ s'ouvre au tap : Exporter, Abandonner ; Clôturer n'y entre qu'une fois les
-     * écarts tranchés. »* La clôture vivait en pied de contenu, en second bouton, avec un
-     * bandeau à sa place quand un écart bloquait. Deux formes pour un même acte selon
-     * qu'il est possible ou non : la planche n'en garde qu'une, et **l'entrée disparaît**
-     * — c'est la carte de tension, en tête du parc, qui dit ce qui manque pour l'obtenir.
+     * écarts tranchés. »* Au bureau, la clôture paraît aussi dans les étapes, au moment où
+     * tout est retrouvé : c'est là que la question se pose.
      */
     const overflowItems: MenuItem[] = useMemo(() => {
         const items: MenuItem[] = [];
@@ -1466,21 +2007,30 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 onSelect: exportRelevé,
             });
         }
-        if (sessionStarted && !auditFinalized && !closureBlocked) {
+        if (sessionStarted && !auditFinalized && !closureBlocked && peutCompter) {
             items.push({
                 id: 'finalize-session',
                 label: 'Clôturer la campagne',
-                description: 'les jamais scannés passent manquants ; sans retour',
+                description: 'le relevé est remis à un responsable, qui le valide',
                 icon: 'lock',
                 destructive: true,
                 onSelect: handleFinalizeAudit,
             });
         }
-        if (sessionStarted && !auditFinalized) {
+        if (campagne.etat === 'validee' && peutCompter) {
+            items.push({
+                id: 'relance',
+                label: 'Lancer une nouvelle campagne',
+                description: 'le lieu se recompte depuis zéro',
+                icon: 'restart_alt',
+                onSelect: relancerLaCampagne,
+            });
+        }
+        if (sessionStarted && !auditFinalized && peutCompter) {
             items.push({
                 id: 'abandon-session',
                 label: 'Abandonner la campagne',
-                description: 'jette les scans en cours ; aucun actif modifié',
+                description: 'jette les comptages en cours ; aucun actif modifié',
                 icon: 'restart_alt',
                 destructive: true,
                 onSelect: abandonAuditSession,
@@ -1495,6 +2045,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         sessionFound,
         sessionExceptions,
         selectedPlace,
+        campagne.etat,
+        peutCompter,
     ]);
 
     /* Au bureau, l'export a son bouton nommé dans l'en-tête : le laisser aussi dans le
@@ -1503,12 +2055,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         ? overflowItems.filter((item) => item.id !== 'export-releve')
         : overflowItems;
 
-    /**
-     * Le héro **ne porte aucun geste** : la planche les pose en pied de contenu, en
-     * pleine largeur, parce qu'on les atteint avec le pouce en tenant l'appareil d'une
-     * main dans un local. Et l'identité — « Campagne d'audit · service · site » — vit
-     * dans la barre du haut, pas dans le voile : le voile porte le sujet, une fois.
-     */
     /** La vue globale : c'est là que se choisit le lieu, et nulle part ailleurs. */
     const backToOverview = () => {
         if (typeof onViewChange === 'function') {
@@ -1518,122 +2064,512 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         onBack();
     };
 
-    const hero = (
-        <DetailHero
-            /* `.ty` — l'état est dans le surtitre, pas en pastille : « Inventaire
-               physique · en cours ». La planche ne dessine pas de badge ici. */
-            label={`Inventaire physique · ${heroStatus.label}`}
-            subject={lieuDansLeSite || selectedSite || 'Périmètre à choisir'}
-            metrics={heroMetrics}
-            metricsStyle="boxes"
-            statusDetail={heroStatusDetail}
-            subtitle={heroSubtitle}
-            gauge={heroGauge}
-            /* Au bureau le geste tient sa mesure : 16.2 le pose à côté du sujet, pas
-               en barre sous la jauge. */
-            actionsInline={enDeuxNiveaux}
-            /* `.hact` — **le scan est le geste du héro**, et le seul jaune de l'écran.
-               Il vivait en pied de contenu, sous quarante rangées : dans un local, on
-               tient l'appareil d'une main et on scanne — ce geste-là ne se cherche pas.
-               Une campagne clôturée n'en a plus : la barre du haut porte l'export. */
-            /* **Pas de scan au bureau** — 17.11 : *« le geste de la caméra reste au
-               téléphone ; au bureau, le héro dit “Saisir un code” »*. Le geste ne
-               disparaît pas, il change de porte : la même saisie, celle qui accepte
-               aussi le contenu d'un QR, sans passer par une caméra qu'un poste fixe
-               n'a pas. */
-            /* Au téléphone, « Scanner » quitte le héro pour un bouton flottant (25/09) :
-               on parcourt la liste, l'appareil à la main, et le geste reste sous le pouce
-               au lieu de disparaître avec le héro au premier défilement. */
-            actions={
-                sessionStarted && !auditFinalized && enDeuxNiveaux ? (
-                    <Button
-                        variant="filled"
-                        onClick={() => (enDeuxNiveaux ? setManualOpen(true) : setScanOpen(true))}
-                        icon={<Icon glyph={QrCode} size={20} />}
+    /**
+     * **Le bandeau de la campagne, au téléphone** (27/09) — clôturée et en attente d'un
+     * responsable, validée, ou renvoyée avec son motif. Le responsable y trouve ses deux
+     * gestes. Au bureau, les étapes de la colonne de droite le remplacent (28/09).
+     */
+    const bandeauDeCampagne =
+        campagne.etat === 'cloturee' && campagne.cloture ? (
+            <section className="flex flex-col gap-3 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-3 text-[var(--tk-color-on-tint-ambre)]">
+                <p className="text-ts-sub leading-ts-sub flex items-start gap-2">
+                    <Icon glyph={Hourglass} size={18} className="mt-px shrink-0" />
+                    <span>
+                        <b className="font-semibold">
+                            Clôturée par {campagne.cloture.actorName},{' '}
+                            {formatSince(campagne.cloture.timestamp)}.
+                        </b>{' '}
+                        {peutValider
+                            ? 'Relisez le relevé, puis validez-le ou renvoyez-le.'
+                            : 'Un responsable d’inventaire doit la valider.'}
+                        {itemsCorriges.length > 0 &&
+                            ` ${itemsCorriges.length} fiche${itemsCorriges.length > 1 ? 's' : ''} corrigée${itemsCorriges.length > 1 ? 's' : ''} pendant le comptage.`}
+                    </span>
+                </p>
+                {peutValider && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            variant="outlined"
+                            onClick={() => setRenvoiOuvert(true)}
+                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                        >
+                            <Icon glyph={ArrowUUpLeft} size={18} />
+                            Renvoyer
+                        </Button>
+                        <Button
+                            variant="filled"
+                            onClick={validerLaCampagne}
+                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                        >
+                            <Icon glyph={CheckCircle} size={18} />
+                            Valider l’inventaire
+                        </Button>
+                    </div>
+                )}
+            </section>
+        ) : campagne.etat === 'validee' && campagne.validation ? (
+            <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-vert)] px-4 py-3 text-[var(--tk-color-on-tint-vert)]">
+                <Icon glyph={CheckCircle} size={18} className="mt-px shrink-0" />
+                <span>
+                    <b className="font-semibold">
+                        Validée par {campagne.validation.actorName},{' '}
+                        {formatSince(campagne.validation.timestamp)}.
+                    </b>{' '}
+                    Le relevé est définitif.
+                </span>
+            </p>
+        ) : campagne.renvoi ? (
+            <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-orange)] px-4 py-3 text-[var(--tk-color-on-tint-orange)]">
+                <Icon glyph={ArrowUUpLeft} size={18} className="mt-px shrink-0" />
+                <span>
+                    <b className="font-semibold">
+                        Renvoyée par {campagne.renvoi.actorName},{' '}
+                        {formatSince(campagne.renvoi.timestamp)} :
+                    </b>{' '}
+                    « {String(campagne.renvoi.metadata?.reason ?? '')} »
+                </span>
+            </p>
+        ) : null;
+
+    type EcartAffiche = (typeof exceptionsDisplay)[number];
+    const faitsDeLEcart = (entry: EcartAffiche) => ({
+        name:
+            entry.equipment?.model ||
+            entry.result.equipmentName ||
+            entry.payload.machineName ||
+            entry.payload.hostname ||
+            'Machine inconnue',
+        code:
+            entry.payload.assetId ||
+            entry.payload.serialNumber ||
+            entry.equipment?.assetId ||
+            'code inconnu',
+        isOutOfService: entry.result.resolution === 'found_out_of_place',
+        /* Où la fiche dit que l'actif vit — **un lieu**, pas un service : c'est ce qu'on
+           compare à l'endroit où on l'a trouvé (16.1). */
+        registeredAt: entry.equipment
+            ? [entry.equipment.local, entry.equipment.site].filter(Boolean).join(' · ')
+            : '',
+    });
+
+    /**
+     * **L'écart, en carte de colonne** (28/09) — au bureau, il tient dans la colonne de
+     * droite : le code et le modèle, le fait en une ligne, les deux réponses de même poids.
+     * Tranché, il dit la décision et se défait jusqu'à la clôture.
+     */
+    const renderEcartCompact = (entry: EcartAffiche) => {
+        const { name, code, isOutOfService, registeredAt } = faitsDeLEcart(entry);
+        const decision = entry.resolved
+            ? entry.decision === 'attached'
+                ? `Rattaché ici ${formatSince(entry.decidedAt)}`
+                : entry.decision === 'left'
+                  ? `Laissé à ${registeredAt || 'son lieu d’origine'}`
+                  : entry.decision === 'kept'
+                    ? 'Fiche gardée, à compléter'
+                    : 'Fiche écartée du parc'
+            : isOutOfService
+              ? `Scanné ici, attendu ${registeredAt ? `à ${registeredAt}` : 'ailleurs'}`
+              : 'Code inconnu du parc : la fiche a été créée du seul code lu';
+        return (
+            <div
+                key={entry.id}
+                className={cn(
+                    'rounded-card px-3 py-3',
+                    entry.resolved
+                        ? 'bg-surface-container'
+                        : 'border-tint-orange border bg-[color-mix(in_srgb,var(--tk-color-tint-orange)_45%,var(--tk-color-surface))]',
+                )}
+            >
+                <p
+                    title={infobulle(`${name} · ${code}`)}
+                    className="text-on-surface truncate text-[0.875rem] leading-5 font-medium"
+                >
+                    {name} · {code}
+                </p>
+                <p className="text-text-secondary mt-0.5 flex items-center gap-1.5 text-[0.75rem] leading-4">
+                    {entry.resolved && (
+                        <Icon
+                            glyph={CheckCircle}
+                            size={18}
+                            className="-my-px shrink-0 text-[var(--tk-color-st-vert)]"
+                        />
+                    )}
+                    <span className="min-w-0">{decision}</span>
+                </p>
+                {!entry.resolved ? (
+                    /* Deux réponses de même poids ; dans une colonne étroite (tablette), elles
+                       passent l'une sous l'autre au lieu de déborder de leur bouton. */
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                        <Button
+                            variant="outlined"
+                            size="sm"
+                            onClick={() =>
+                                isOutOfService
+                                    ? leaveException(entry.id)
+                                    : discardException(entry.id, entry.equipment)
+                            }
+                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
+                        >
+                            {isOutOfService ? 'Il reste là-bas' : 'Écarter'}
+                        </Button>
+                        <Button
+                            variant="tonal"
+                            size="sm"
+                            disabled={!entry.equipment}
+                            onClick={() =>
+                                isOutOfService
+                                    ? attachException(entry.id, entry.equipment)
+                                    : completeException(entry.id, entry.equipment)
+                            }
+                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
+                        >
+                            {isOutOfService ? 'Rattacher ici' : 'Compléter la fiche'}
+                        </Button>
+                    </div>
+                ) : (
+                    !auditFinalized && (
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => undoException(entry.id)}
+                            icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                            className="text-on-surface-variant mt-1 -ml-1 h-8 min-h-8 px-1 text-[0.75rem]"
+                        >
+                            Annuler la décision
+                        </Button>
+                    )
+                )}
+            </div>
+        );
+    };
+
+    /** L'écart en carte pleine — l'écran « Écarts » du téléphone. */
+    const renderCarteDEcart = (entry: EcartAffiche) => {
+        const { name, code, isOutOfService, registeredAt } = faitsDeLEcart(entry);
+        return (
+            <section
+                key={entry.id}
+                /* `.ec` de 16.2 — **16 / 20**, sans ombre. */
+                className="rounded-card bg-surface px-4 py-4"
+            >
+                <div className="flex items-center gap-3">
+                    {/* La pastille de nature à gauche : elle dit d'un coup d'œil de quel
+                        genre d'écart il s'agit avant même de lire le code. */}
+                    <span
+                        className={cn(
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                            isOutOfService
+                                ? 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-st-orange)]'
+                                : 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-st-bleu)]',
+                        )}
                     >
-                        {enDeuxNiveaux ? 'Saisir un code' : 'Scanner'}
-                    </Button>
-                ) : undefined
-            }
-        />
+                        <Icon glyph={isOutOfService ? ArrowsLeftRight : Question} size={20} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p
+                            title={infobulle(code)}
+                            className={cn(
+                                'font-brand text-on-surface text-ts-body font-semibold tracking-[-0.01em]',
+                                NOM_SUR_UNE_LIGNE,
+                            )}
+                        >
+                            {code}
+                        </p>
+                        <p className="text-body-small text-text-secondary truncate">
+                            {name} · scanné {formatSince(entry.timestamp)}
+                        </p>
+                    </div>
+                    {entry.resolved ? (
+                        <ExceptionMark icon={CheckCircle} label="tranché" tone="positive" />
+                    ) : isOutOfService ? (
+                        <ExceptionMark icon={ArrowsLeftRight} label="hors lieu" tone="attention" />
+                    ) : (
+                        <ExceptionMark icon={PlusCircle} label="nouveau" tone="info" />
+                    )}
+                </div>
+
+                {/* Le fait, avant les gestes — sur le creux que la planche lui donne : c'est
+                    le relevé sur lequel on va trancher. */}
+                <p className="bg-surface-container text-body-small text-on-surface mt-3 rounded-sm px-3 py-2.5">
+                    {entry.resolved ? (
+                        entry.decision === 'attached' ? (
+                            <>
+                                Rattaché à <strong className="font-medium">{selectedPlace}</strong>{' '}
+                                {formatSince(entry.decidedAt)}. L'actif compte désormais parmi les
+                                retrouvés.
+                            </>
+                        ) : entry.decision === 'left' ? (
+                            <>
+                                Laissé à son lieu d'origine{' '}
+                                {registeredAt ? (
+                                    <>
+                                        — <strong className="font-medium">{registeredAt}</strong>
+                                    </>
+                                ) : null}
+                                . Il était de passage ici.
+                            </>
+                        ) : entry.decision === 'kept' ? (
+                            <>
+                                Fiche gardée et ouverte pour être complétée{' '}
+                                {formatSince(entry.decidedAt)}. Elle est rattachée au périmètre de
+                                la campagne.
+                            </>
+                        ) : (
+                            <>Fiche écartée et retirée du parc. Le code pourra être rescanné.</>
+                        )
+                    ) : isOutOfService ? (
+                        <>
+                            Cet actif est enregistré sur{' '}
+                            <strong className="font-medium">
+                                {registeredAt || 'un autre lieu'}
+                            </strong>
+                            . Il a été trouvé dans{' '}
+                            <strong className="font-medium">{selectedPlace}</strong>. Vit-il ici ?
+                        </>
+                    ) : (
+                        <>
+                            Aucune fiche ne portait ce code. Le scan a lu{' '}
+                            <strong className="font-medium">{name}</strong> sur l'étiquette — le
+                            reste de la fiche est à saisir. Faut-il la garder ?
+                        </>
+                    )}
+                </p>
+
+                {/* `.acts .btn{flex:1}` — les deux réponses pèsent le même poids : on ne
+                    suggère pas laquelle prendre, on demande laquelle est vraie. */}
+                {!entry.resolved && (
+                    <div className="mt-3 flex items-center gap-2.5">
+                        <Button
+                            variant="outlined"
+                            onClick={() =>
+                                isOutOfService
+                                    ? leaveException(entry.id)
+                                    : discardException(entry.id, entry.equipment)
+                            }
+                            className="flex-1"
+                        >
+                            {isOutOfService ? 'Il reste là-bas' : 'Écarter'}
+                        </Button>
+                        <Button
+                            variant="tonal"
+                            onClick={() =>
+                                isOutOfService
+                                    ? attachException(entry.id, entry.equipment)
+                                    : completeException(entry.id, entry.equipment)
+                            }
+                            disabled={!entry.equipment}
+                            className="flex-1"
+                        >
+                            {isOutOfService ? 'Rattacher ici' : 'Compléter la fiche'}
+                        </Button>
+                    </div>
+                )}
+
+                {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
+                    réellement. */}
+                {!entry.resolved && (
+                    <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
+                        <Icon glyph={Info} size={18} className="mt-px shrink-0" />
+                        <span>
+                            {isOutOfService
+                                ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
+                                : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
+                        </span>
+                    </p>
+                )}
+                {entry.resolved &&
+                    (auditFinalized ? (
+                        <p className="text-label-small text-on-surface-variant mt-2.5">
+                            La campagne est clôturée : la décision est figée.
+                        </p>
+                    ) : (
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => undoException(entry.id)}
+                            icon={<Icon glyph={ArrowUUpLeft} size={18} />}
+                            className="text-label-small text-on-surface-variant mt-2 min-h-0 px-0"
+                        >
+                            {entry.decision === 'attached'
+                                ? 'Annuler ce rattachement'
+                                : 'Annuler cette décision'}{' '}
+                            — possible jusqu'à la clôture
+                        </Button>
+                    ))}
+            </section>
+        );
+    };
+
+    /**
+     * **Les puces du téléphone** (28/09) — dans la bande fixe, sous la jauge : ce qu'on
+     * regarde, et combien. « Écarts » n'est pas une partition du parc : sa puce, orange
+     * tant qu'une décision attend, mène à l'écran des écarts.
+     */
+    const pucesDuTelephone: { id: AuditTab; label: string; count: number }[] = [
+        ...(auditFinalized
+            ? [
+                  {
+                      id: 'missing' as const,
+                      label: 'Jamais vus',
+                      count: missingItems.length + horsSiteItems.length,
+                  },
+              ]
+            : [{ id: 'todo' as const, label: 'À scanner', count: todoItems.length }]),
+        { id: 'scanned', label: 'Retrouvés', count: scannedItems.length },
+        ...(itemsCorriges.length > 0
+            ? [{ id: 'corrigees' as const, label: 'Corrigées', count: itemsCorriges.length }]
+            : []),
+    ];
+
+    /** Les fiches corrigées, pour la colonne de la campagne clôturée — de quoi à quoi. */
+    const correctionsARelire = itemsCorriges
+        .map((item) => ({ item, event: correctionsParActif.get(item.id) }))
+        .filter((entree): entree is { item: Equipment; event: HistoryEvent } =>
+            Boolean(entree.event),
+        )
+        .sort((a, b) => b.event.timestamp.localeCompare(a.event.timestamp));
+
+    const enteteDeListe = (
+        <div className="border-outline-variant flex min-h-16 shrink-0 items-center gap-3 border-b px-5 py-3">
+            <h2 className="text-on-surface text-[1rem] leading-6 font-semibold whitespace-nowrap">
+                {TITRE_DE_LISTE[ongletAffiche]}
+            </h2>
+            <span className="text-text-secondary text-[0.8125rem] leading-[1.125rem] whitespace-nowrap tabular-nums">
+                {selection.isActive
+                    ? `${selection.count} sélectionné${selection.count > 1 ? 's' : ''} sur ${todoItems.length}`
+                    : compteDeListe}
+            </span>
+            <div className="ml-auto flex min-w-0 items-center gap-2">
+                {selection.isActive ? (
+                    <>
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => selection.selectAll(todoItems.map((item) => item.id))}
+                            className="text-on-surface h-9 min-h-9 px-2.5 text-[0.8125rem]"
+                        >
+                            Tout
+                        </Button>
+                        <Button
+                            variant="text"
+                            size="sm"
+                            onClick={selection.exit}
+                            className="text-on-surface h-9 min-h-9 px-2.5 text-[0.8125rem]"
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            variant="filled"
+                            size="sm"
+                            disabled={selection.count === 0}
+                            onClick={validerLaSelection}
+                            className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                        >
+                            <Icon glyph={Check} size={18} />
+                            Valider comme retrouvés
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <SearchField
+                            dense
+                            value={recherche}
+                            onChange={setRecherche}
+                            placeholder="Modèle, code, porteur"
+                            className="w-[240px] min-w-[9rem] shrink"
+                        />
+                        {selectionPossible && (
+                            <Button
+                                variant="text"
+                                size="sm"
+                                onClick={() => selection.enter()}
+                                className="text-on-surface h-9 min-h-9 shrink-0 px-2.5 text-[0.8125rem]"
+                            >
+                                Sélectionner plusieurs
+                            </Button>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
     );
 
-    /**
-     * Le pied d'acte — **l'ordre de la planche, et le jaune une seule fois**.
-     *
-     * Le scan est le geste jaune de l'écran, en pleine largeur. La clôture le précède
-     * en second rang, et elle n'apparaît **pas du tout** tant qu'un écart attend : à sa
-     * place, le bandeau qui dit ce qui manque. Un bouton grisé aurait redit la même
-     * chose en donnant à croire qu'on peut cliquer. Sur une campagne clôturée il ne
-     * reste que l'export, en neutre : plus rien à engager.
-     *
-     * **Et rien du tout avant le premier scan** : C3 veut *« une campagne ouverte n'a
-     * plus de bouton de démarrage »*. Le « Lancer la campagne » qui restait ici était
-     * le second exemplaire du geste que 16.1 porte déjà sur sa rangée — donc un même
-     * acte à deux endroits, et un écran qui s'ouvrait en attendant qu'on répète ce
-     * qu'on venait de dire. Le seul cas où le pied est vide est celui du service qui
-     * n'attend aucun actif : il n'y a rien à engager, et la liste le dit.
-     */
-    /**
-     * **Le pied d'acte n'existe plus** — 16.2 ne dessine aucun `.pfoot`. Ses trois
-     * contenus sont retournés là où la planche les pose : le **scan** dans le héro
-     * (`.hact`, le seul jaune), la **clôture** dans le ⋮ une fois les écarts tranchés,
-     * et le bandeau « n écarts à trancher » remplacé par la **carte de tension**, en
-     * tête du parc, qui dit la même chose *et* mène à l'endroit où trancher. L'export
-     * d'une campagne close est dans la barre du haut.
-     */
-
     return (
-        /* **Le canevas derrière les cartes.** `surface-container-low` vaut exactement
-           `surface` dans les jetons du produit : la page se peignait donc de la couleur
-           de ses propres cartes, et seule une ombre — qu'aucune planche ne déclare — les
-           détachait. `.phone` de 16.2 est sur le canevas, `.card` sur la surface. */
+        /* **Le canevas derrière les cartes.** `.phone` de 16.2 est sur le canevas, `.card`
+           sur la surface. */
         <div className="bg-background flex h-full flex-col">
-            {/* `.tbar` — **une barre de 56, la même à toutes les largeurs** : retour,
-                l'identité de l'écran, le débordement. Les onglets « Vue globale / Détails »
-                en sont partis avec 17.8 (*« aucun onglet dans le corpus »*) : le retour dit
-                déjà d'où l'on vient, et il le disait mieux qu'un onglet qui restait allumé.
-
-                Le titre est **« Campagne »**, pas « Campagne d'audit · Salle serveur · Togo » :
-                le héro porte le sujet et sa portée, juste dessous. La barre les redisait en
-                11 px, sous le titre — deux fois le même fait, dont une fois trop petit. */}
             {enDeuxNiveaux ? (
                 /*
-                  `.dhead.fiche` de 17.11 — **le lieu devient le titre de la page**, son
-                  fil dessous, l'export en acte nommé et le ⋮ pour le reste. Sans filet :
-                  le chrome du bureau n'en pose pas sous l'en-tête.
+                  **L'en-tête de la campagne** (28/09) — le lieu en titre, son état en
+                  pastille à côté, et dessous où il est et où en est le comptage. Les gestes
+                  à droite : exporter, « Saisir un code » (le seul jaune, pendant la
+                  campagne), et le ⋮ pour le reste.
                 */
-                <div className="px-page flex flex-col gap-2 pt-5">
-                    <div className="flex min-h-[52px] items-center gap-2">
+                <header className="px-page flex shrink-0 items-start justify-between gap-6 pt-[26px] pb-5">
+                    <div className="flex min-w-0 items-start gap-1.5">
                         <Button
                             variant="text"
                             iconOnly
                             onClick={onBack}
-                            aria-label="Retour"
-                            className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                            aria-label="Retour à l’inventaire"
+                            className="text-on-surface hover:bg-surface-container doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
                         >
                             <Icon glyph={ArrowLeft} size={20} />
                         </Button>
-                        <div className="min-w-0 flex-1">
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
-                                {selectedSite || 'Campagne'}
-                            </h1>
-                            <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-4">
-                                Inventaire physique ›{' '}
-                                {lieuDansLeSite ? `${lieuDansLeSite.toLowerCase()} · ` : ''}
-                                {heroStatus.label}
-                            </span>
+                        <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-10 font-semibold tracking-[-0.02em]">
+                                    {lieuDansLeSite || selectedSite || 'Campagne'}
+                                </h1>
+                                {scopeIsReady && (
+                                    <span
+                                        className={cn(
+                                            'inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap',
+                                            PASTILLE_ETAT[etatAffiche.teinte].fond,
+                                        )}
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className={cn(
+                                                'h-[7px] w-[7px] rounded-full',
+                                                PASTILLE_ETAT[etatAffiche.teinte].point,
+                                            )}
+                                        />
+                                        {etatAffiche.long}
+                                    </span>
+                                )}
+                            </div>
+                            {scopeIsReady && (
+                                <p className="text-text-secondary truncate text-[0.8125rem] leading-[1.125rem]">
+                                    {sousTitreDeCampagne}
+                                </p>
+                            )}
                         </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
                         {sessionStarted && (
-                            /* `.hbtn.g` — l'export est un acte nommé au bureau ; il quitte
-                               donc le ⋮, où il ferait doublon. */
                             <Button
                                 variant="outlined"
                                 onClick={exportRelevé}
                                 icon={<Icon glyph={Export} size={20} />}
-                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md px-3 text-[0.875rem] font-medium shadow-none"
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md px-3.5 text-[0.875rem] font-medium shadow-none"
                             >
-                                Exporter
+                                {auditFinalized ? 'Exporter le relevé' : 'Exporter'}
+                            </Button>
+                        )}
+                        {/* **Pas de scan à la souris** — 17.11 : le geste de la caméra reste
+                            à l'appareil qu'on tient ; à la souris, « Saisir un code », la même
+                            saisie. Une tablette en paysage garde sa caméra (27/09). */}
+                        {sessionStarted && !auditFinalized && peutCompter && (
+                            <Button
+                                variant="filled"
+                                onClick={() =>
+                                    scanPossible ? setScanOpen(true) : setManualOpen(true)
+                                }
+                                icon={<Icon glyph={QrCode} size={20} />}
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-4 pl-3.5 text-[0.875rem] font-semibold"
+                            >
+                                {scanPossible ? 'Scanner' : 'Saisir un code'}
                             </Button>
                         )}
                         {overflowAffiche.length > 0 && (
@@ -1645,7 +2581,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         variant="text"
                                         iconOnly
                                         aria-label="Autres actes"
-                                        className="text-on-surface-variant hover:bg-surface-container hover:text-on-surface doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
+                                        className="text-on-surface hover:bg-surface-container doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
                                     >
                                         <Icon glyph={DotsThreeVertical} size={20} />
                                     </Button>
@@ -1653,92 +2589,157 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             />
                         )}
                     </div>
-                    {/* `.tools` de 17.11 — la recherche à 320, puis les puces (25/09). */}
-                    {scopeIsReady && (
-                        <div className="flex flex-wrap items-center gap-3 pb-1">
-                            <SearchField
-                                dense
-                                value={recherche}
-                                onChange={setRecherche}
-                                placeholder="Modèle, code, porteur"
-                                className="w-[320px] max-w-full"
-                            />
-                            {pucesDuBureau}
-                        </div>
-                    )}
-                </div>
+                </header>
             ) : (
-                /* **Fixe, comme l'en-tête de toute liste** (17.8, 25/09) : il porte
-                   désormais la recherche, l'entonnoir et la ligne de compte, qui ne
-                   partent pas au premier défilement. */
+                /* **Fixe, comme l'en-tête de toute liste** (17.8, 25/09) : le lieu, son état,
+                   la jauge et les puces ne partent pas au premier défilement. */
                 <div className="bg-surface border-outline-variant sticky top-0 z-20 border-b">
-                    {/* La barre commune du téléphone (24/09), dans la mesure de lecture. */}
                     <Reading>
                         <BarreDePage
                             className="border-b-0"
-                            title={vueEcarts ? 'Écarts' : 'Campagne'}
-                            onBack={vueEcarts ? () => setVueEcarts(false) : onBack}
-                            /* `.srch` puis `.ord` — la bande de toutes les listes (25/09) : la
-                               recherche et l'entonnoir, puis ce qu'on regarde et combien. Les
-                               puces sont dans la feuille (R11). */
-                            actions={
-                                <>
-                                    {auditFinalized ? (
-                                        <Button
-                                            variant="text"
-                                            iconOnly
-                                            onClick={exportRelevé}
-                                            aria-label="Exporter le relevé"
+                            title={
+                                vueEcarts ? 'Écarts' : lieuDansLeSite || selectedSite || 'Campagne'
+                            }
+                            subtitle={
+                                vueEcarts || !scopeIsReady ? undefined : (
+                                    <>
+                                        {lieuDansLeSite ? selectedSite : selectedCountry} ·{' '}
+                                        <span
+                                            className={cn(
+                                                'font-semibold',
+                                                PASTILLE_ETAT[etatAffiche.teinte].encre,
+                                            )}
                                         >
-                                            <Icon glyph={Export} size="geste" />
-                                        </Button>
-                                    ) : (
-                                        !vueEcarts &&
-                                        overflowItems.length > 0 && (
-                                            <Menu
-                                                align="end"
-                                                items={overflowItems}
-                                                trigger={
-                                                    <Button
-                                                        variant="text"
-                                                        iconOnly
-                                                        aria-label="Autres actes"
-                                                    >
-                                                        <Icon
-                                                            glyph={DotsThreeVertical}
-                                                            size="geste"
-                                                        />
-                                                    </Button>
-                                                }
-                                            />
-                                        )
-                                    )}
-                                </>
+                                            {etatAffiche.court}
+                                        </span>
+                                    </>
+                                )
+                            }
+                            onBack={vueEcarts ? () => setVueEcarts(false) : onBack}
+                            backLabel={vueEcarts ? 'Retour à la campagne' : 'Retour à l’inventaire'}
+                            actions={
+                                !vueEcarts && (
+                                    <>
+                                        {scopeIsReady && sessionTotal > 0 && (
+                                            <Button
+                                                variant="text"
+                                                iconOnly
+                                                aria-label="Chercher un actif"
+                                                aria-pressed={rechercheOuverte}
+                                                onClick={() => {
+                                                    if (rechercheOuverte) setRecherche('');
+                                                    setRechercheOuverte(!rechercheOuverte);
+                                                }}
+                                            >
+                                                <Icon glyph={MagnifyingGlass} size="geste" />
+                                            </Button>
+                                        )}
+                                        {auditFinalized ? (
+                                            <Button
+                                                variant="text"
+                                                iconOnly
+                                                onClick={exportRelevé}
+                                                aria-label="Exporter le relevé"
+                                            >
+                                                <Icon glyph={Export} size="geste" />
+                                            </Button>
+                                        ) : (
+                                            overflowItems.length > 0 && (
+                                                <Menu
+                                                    align="end"
+                                                    items={overflowItems}
+                                                    trigger={
+                                                        <Button
+                                                            variant="text"
+                                                            iconOnly
+                                                            aria-label="Autres actes"
+                                                        >
+                                                            <Icon
+                                                                glyph={DotsThreeVertical}
+                                                                size="geste"
+                                                            />
+                                                        </Button>
+                                                    }
+                                                />
+                                            )
+                                        )}
+                                    </>
+                                )
                             }
                         >
-                            {scopeIsReady && !vueEcarts && (
+                            {scopeIsReady && !vueEcarts && sessionTotal > 0 && (
                                 <>
-                                    <div className="flex items-center gap-2">
+                                    {/* La jauge : combien sont retrouvés, sur combien. */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-baseline justify-between gap-3">
+                                            <span className="text-[0.875rem] leading-5">
+                                                <b className="font-brand text-on-surface text-[1.125rem] font-semibold tabular-nums">
+                                                    {sessionFound}
+                                                </b>{' '}
+                                                <span className="text-text-secondary">
+                                                    sur {sessionTotal} retrouvé
+                                                    {sessionFound > 1 ? 's' : ''}
+                                                </span>
+                                            </span>
+                                            <span className="text-on-tint-vert text-[0.8125rem] leading-[1.125rem] font-semibold tabular-nums">
+                                                {progressPercentage} %
+                                            </span>
+                                        </div>
+                                        <span
+                                            aria-hidden="true"
+                                            className="bg-surface-muted-strong block h-1.5 overflow-hidden rounded-full"
+                                        >
+                                            <span
+                                                className="mvt-jauge duration-medium2 ease-emphasized block h-full rounded-full bg-[var(--tk-color-st-vert)] transition-[width]"
+                                                style={{ width: `${progressPercentage}%` }}
+                                            />
+                                        </span>
+                                    </div>
+                                    <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4">
+                                        {pucesDuTelephone.map((puce) => (
+                                            <FacetChip
+                                                compact
+                                                key={puce.id}
+                                                label={puce.label}
+                                                count={puce.count}
+                                                selected={ongletAffiche === puce.id}
+                                                onClick={() => choisir(puce.id)}
+                                                className={cn(
+                                                    'border',
+                                                    ongletAffiche === puce.id
+                                                        ? 'border-inverse-surface'
+                                                        : 'border-outline-variant bg-surface hover:bg-surface-container',
+                                                )}
+                                            />
+                                        ))}
+                                        {sessionExceptions > 0 && (
+                                            <Button
+                                                variant="text"
+                                                onClick={() => setVueEcarts(true)}
+                                                className={cn(
+                                                    'text-ts-sub leading-ts-sub h-9 max-h-9 min-h-9 shrink-0 gap-1.5 rounded-md border px-3 font-medium',
+                                                    pendingExceptions.length > 0
+                                                        ? 'border-tint-orange text-on-tint-orange hover:bg-tint-orange active:bg-tint-orange bg-[color-mix(in_srgb,var(--tk-color-tint-orange)_45%,var(--tk-color-surface))]'
+                                                        : 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container',
+                                                )}
+                                            >
+                                                Écarts
+                                                <b className="font-bold tabular-nums">
+                                                    {pendingExceptions.length > 0
+                                                        ? pendingExceptions.length
+                                                        : sessionExceptions}
+                                                </b>
+                                            </Button>
+                                        )}
+                                    </div>
+                                    {rechercheOuverte && (
                                         <SearchField
                                             value={recherche}
                                             onChange={setRecherche}
                                             placeholder="Modèle, code, porteur"
-                                            className="flex-1"
+                                            className="w-full"
                                         />
-                                        <FilterButton
-                                            label="Choisir ce qu'on regarde"
-                                            count={activeTab !== partitionParDefaut ? 1 : 0}
-                                            onClick={() => setFiltreOuvert(true)}
-                                        />
-                                    </div>
-                                    <div className="text-on-surface-variant flex items-center justify-between gap-3 px-1 text-[0.75rem] leading-4">
-                                        <span className="min-w-0 truncate">
-                                            {listCaption().title}
-                                        </span>
-                                        <span className="shrink-0 tabular-nums">
-                                            {listCaption().count}
-                                        </span>
-                                    </div>
+                                    )}
                                 </>
                             )}
                         </BarreDePage>
@@ -1746,42 +2747,28 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 </div>
             )}
 
-            {/* Plus de FAB, donc plus de dégagement bas à réserver : le pied d'acte est
-                dans le flux, en fin de contenu. */}
-            {/* **La mesure de lecture du système — 960 px** (§2.43). L'écran s'étirait
-                sur toute la fenêtre alors que la vue globale d'où l'on vient s'arrête à
-                960 : on ouvrait un service et la page changeait de largeur sous le
-                doigt. Une largeur, une seule, et le reste est de la marge. */}
-            {/* **Le corps défile, l'en-tête reste** (23/09) : au bureau, chaque zone
-                défile pour son compte — on tranche un écart à droite sans perdre la
-                rangée qu'on vient de scanner à gauche. */}
-            <div
-                className={cn(
-                    'overflow-y-auto',
-                    CADRE_BUREAU,
-                    'expanded:flex-1',
-                    enDeuxNiveaux && 'expanded:overflow-hidden',
-                )}
-            >
-                {/* **Deux zones au bureau** — 7 douzièmes pour la campagne, 5 pour les
-                    écarts (16.2). En deçà de 1280, la mesure de lecture reprend : une
-                    colonne de 960, et les écarts derrière leur carte de tension. */}
+            {/* **Le corps défile, l'en-tête reste** (23/09). Au bureau, les tuiles restent en
+                haut et chaque zone défile pour son compte : la liste à gauche, la campagne
+                à droite. */}
+            <div className={cn('overflow-y-auto', CADRE_BUREAU, 'expanded:flex-1')}>
                 <div
                     className={cn(
-                        'p-page-sm medium:p-page w-full',
+                        'w-full',
                         enDeuxNiveaux
-                            ? 'flex h-full min-h-0 items-stretch gap-4'
-                            : 'mx-auto max-w-[960px] space-y-4',
+                            ? cn(
+                                  'px-page flex h-full min-h-0 flex-col gap-5',
+                                  /* Sans lieu, l'état d'écran garde sa marge du bas ; avec un
+                                     lieu, c'est l'espaceur sous la grille qui la porte. */
+                                  !scopeIsReady && 'pb-6',
+                              )
+                            : 'px-page-sm medium:px-page mx-auto max-w-[960px] space-y-2.5 pt-3 pb-4',
                         /* La place du bouton « Scanner » flottant, sous la dernière rangée. */
                         !enDeuxNiveaux && sessionStarted && !auditFinalized && 'pb-28',
                     )}
                 >
                     {!scopeIsReady ? (
-                        /* **Une campagne sans service n'est pas une campagne.** L'écran
-                       n'ouvre plus trois sélecteurs pour s'en composer une : il renvoie
-                       à la liste qui les porte déjà, avec ses statuts et ses comptes. */
-                        /* L'écran entier est l'état : la forme d'écran (17.1), et une porte qui
-                           mène ailleurs — ce n'est pas un doublon. */
+                        /* **Une campagne sans lieu n'est pas une campagne.** L'écran renvoie à
+                           la liste qui les porte déjà, avec ses statuts et ses comptes. */
                         <ScreenState
                             icon={MapPin}
                             title="Aucune campagne ouverte"
@@ -1792,480 +2779,293 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 </Button>
                             }
                         />
-                    ) : (
+                    ) : enDeuxNiveaux ? (
                         <>
-                            {/* **Le parc et les écarts sont deux écrans**, pas deux onglets :
-                                la carte de tension mène à l'un, son retour ramène à l'autre. */}
-                            {(!vueEcarts || enDeuxNiveaux) && (
-                                <div
+                            <TuilesDeCampagne tuiles={tuiles} />
+                            <div
+                                className={cn(
+                                    'grid flex-1 grid-cols-12 grid-rows-[minmax(0,1fr)] gap-4',
+                                    /* **La hauteur que la colonne de droite demande** (28/09) :
+                                       sur un écran bas (1024 × 768, portable de 1366 × 657),
+                                       elle recoupait ses cartes. En deçà de ce minimum, c'est
+                                       la page qui défile, et chaque carte reste entière. */
+                                    campagne.etat === 'cloturee'
+                                        ? 'large:min-h-[38rem] min-h-[42rem]'
+                                        : exceptionsDisplay.length > 0
+                                          ? 'min-h-[39rem]'
+                                          : 'min-h-[26rem]',
+                                )}
+                            >
+                                <section
+                                    aria-label={`Les actifs — ${TITRE_DE_LISTE[ongletAffiche].toLowerCase()}`}
+                                    className="rounded-card bg-surface col-span-8 flex min-h-0 flex-col overflow-hidden"
+                                >
+                                    {enteteDeListe}
+                                    <div
+                                        className={cn(
+                                            'min-h-0 flex-1 overflow-y-auto px-5 pb-2',
+                                            entreeListe && 'mvt-cascade',
+                                        )}
+                                    >
+                                        {rangeesDeLaListe}
+                                        {indicesDeLaListe}
+                                    </div>
+                                </section>
+                                <aside
+                                    aria-label="La campagne"
                                     className={cn(
-                                        'space-y-4',
-                                        enDeuxNiveaux &&
-                                            'min-h-0 min-w-0 shrink grow-[7] basis-0 overflow-y-auto',
+                                        /* Les étapes gardent leur hauteur ; les écarts et l'activité
+                                           se partagent le reste et défilent **dans** leur carte :
+                                           la colonne coupait ses cartes au bas de l'écran (relevé
+                                           du 28/09). Son propre défilement ne sert plus que de
+                                           repli, sur une fenêtre très basse. */
+                                        'col-span-4 flex min-h-0 flex-col gap-4 overflow-y-auto',
+                                        entreePage && 'mvt-cascade-cartes',
                                     )}
                                 >
-                                    {hero}
+                                    <EtapesDeCampagne
+                                        etat={campagne.etat}
+                                        lancee={
+                                            premierComptage
+                                                ? `${premierComptage.actorName} · ${formatQuand(premierComptage.timestamp)}`
+                                                : undefined
+                                        }
+                                        total={sessionTotal}
+                                        retrouves={sessionFound}
+                                        scannes={Math.max(0, sessionFound - comptesALaMain)}
+                                        manuels={comptesALaMain}
+                                        ecartsATrancher={pendingExceptions.length}
+                                        manquants={missingItems.length}
+                                        corrigees={itemsCorriges.length}
+                                        premiereCorrigee={
+                                            itemsCorriges.length === 1
+                                                ? itemsCorriges[0].model || itemsCorriges[0].name
+                                                : undefined
+                                        }
+                                        cloture={
+                                            campagne.cloture && {
+                                                acteur: campagne.cloture.actorName,
+                                                quand: formatQuand(campagne.cloture.timestamp),
+                                            }
+                                        }
+                                        validation={
+                                            campagne.validation && {
+                                                acteur: campagne.validation.actorName,
+                                                quand: formatQuand(campagne.validation.timestamp),
+                                            }
+                                        }
+                                        renvoi={
+                                            campagne.renvoi && {
+                                                acteur: campagne.renvoi.actorName,
+                                                quand: formatQuand(campagne.renvoi.timestamp),
+                                                motif: String(
+                                                    campagne.renvoi.metadata?.reason ?? '',
+                                                ),
+                                            }
+                                        }
+                                        peutCloturer={
+                                            sessionStarted &&
+                                            peutCompter &&
+                                            !closureBlocked &&
+                                            sessionTotal > 0 &&
+                                            todoItems.length === 0
+                                        }
+                                        peutValider={peutValider}
+                                        onCloturer={handleFinalizeAudit}
+                                        onValider={validerLaCampagne}
+                                        onRenvoyer={() => setRenvoiOuvert(true)}
+                                        className="shrink-0"
+                                    />
 
-                                    {/* La carte de tension **n'existe pas au bureau** : elle
-                                        mène aux écarts, et les écarts sont déjà à droite.
-                                        Une alerte qui pointe vers ce qu'on regarde est du
-                                        décor. */}
-                                    {!enDeuxNiveaux && carteDeTension}
-
-                                    {/* La légende de liste : le sujet à gauche, le compte à
-                                        droite — au bureau, en tête de colonne, comme « Écarts »
-                                        en face. Au téléphone elle est dans la bande fixe. */}
-                                    {enDeuxNiveaux && (
-                                        <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
-                                            <p className="text-text-secondary">
-                                                {listCaption().title}
-                                            </p>
-                                            <p className="text-text-muted shrink-0 tabular-nums">
-                                                {listCaption().count}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* `.card` de 16.2 — surface, rayon 8, **4 / 16**, et
-                                        pas d'ombre : aucune planche n'en déclare sur une
-                                        carte de rangées. */}
-                                    <section className="rounded-card bg-surface px-4 py-1">
-                                        {activeTab === 'todo' &&
-                                            renderEquipmentRows(todoItems, 'todo')}
-                                        {activeTab === 'scanned' &&
-                                            renderEquipmentRows(scannedItems, 'scanned')}
-                                        {activeTab === 'missing' &&
-                                            renderEquipmentRows(missingItems, 'missing')}
-                                        {activeTab === 'horsSite' &&
-                                            renderEquipmentRows(horsSiteItems, 'horsSite')}
-
-                                        {/* Les indices de la planche : ils ne paraissent que quand ils
-                                s'appliquent. Une explication permanente devient du décor. */}
-                                        {activeTab === 'todo' &&
-                                            todoItems.some(
-                                                (item) => item.status === 'En réparation',
-                                            ) && (
-                                                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
-                                                    <strong className="text-on-surface font-medium">
-                                                        L'actif en réparation reste à scanner.
-                                                    </strong>{' '}
-                                                    Il est attendu dans le lieu : c'est le relevé
-                                                    qui dit s'il y est, pas son statut. À la
-                                                    clôture, ne pas l'avoir vu ne le rendra pas
-                                                    manquant — son absence est justifiée.
-                                                </p>
-                                            )}
-                                        {activeTab === 'scanned' && scannedItems.length > 0 && (
-                                            <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
-                                                L'heure remplace le statut : dans une campagne, ce
-                                                qui compte est{' '}
-                                                <strong className="text-on-surface font-medium">
-                                                    quand l'objet a été vu
-                                                </strong>
-                                                .
-                                            </p>
-                                        )}
-                                        {activeTab === 'horsSite' && horsSiteItems.length > 0 && (
-                                            <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
-                                                <strong className="text-on-surface font-medium">
-                                                    Ni retrouvés, ni manquants.
-                                                </strong>{' '}
-                                                Ces actifs sont chez le réparateur : leur absence du
-                                                lieu s'explique, et la clôture ne les accuse pas.
-                                            </p>
-                                        )}
-                                        {activeTab === 'missing' &&
-                                            auditFinalized &&
-                                            assignedMissingCount > 0 && (
-                                                <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
-                                                    <strong className="text-on-surface font-medium">
-                                                        {assignedMissingCount} des{' '}
-                                                        {missingItems.length} manquants sont
-                                                        attribués.
-                                                    </strong>{' '}
-                                                    Leur porteur reste responsable : le manquant
-                                                    devrait ouvrir une tâche chez lui, et il ne
-                                                    s'efface pas avec la campagne. La file ne le
-                                                    fait pas encore — dette D3.
-                                                </p>
-                                            )}
-                                    </section>
-                                </div>
-                            )}
-
-                            {/* L'écart est le seul objet propre à cet écran : une **carte à décision**.
-                    Chaque écart porte son fait — où l'objet est enregistré, ou pourquoi il est
-                    inconnu — **avant** ses gestes. Un écart sans son fait ne se tranche pas, il
-                    se devine. Et le geste principal est sombre, pas jaune : le jaune est pris
-                    par le scan, et ceci est une décision de ligne, pas l'acte de l'écran. */}
-                            {(vueEcarts || enDeuxNiveaux) && (
-                                <div
-                                    className={cn(
-                                        enDeuxNiveaux
-                                            ? /* Une colonne `flex` : la carte des écarts, même
-                                                 vide, prend la hauteur qui reste. */
-                                              'flex min-h-0 min-w-0 shrink grow-[5] basis-0 flex-col gap-3 overflow-y-auto'
-                                            : 'space-y-3',
-                                    )}
-                                >
-                                    {enDeuxNiveaux ? (
-                                        /* `.panh` — au bureau, les écarts sont une colonne,
-                                           pas un écran : elle porte son nom et son reste à
-                                           faire, comme une file. */
-                                        <div className="flex min-h-10 items-center gap-3 px-1">
-                                            <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet min-w-0 flex-1 font-semibold tracking-[-0.015em]">
-                                                Écarts
-                                            </h2>
-                                            <span className="text-on-surface-variant shrink-0 text-[0.8125rem] leading-4 tabular-nums">
-                                                {pendingExceptions.length > 0
-                                                    ? `${pendingExceptions.length} à trancher`
-                                                    : 'aucun à trancher'}
-                                                {sessionExceptions - pendingExceptions.length > 0
-                                                    ? ` · ${sessionExceptions - pendingExceptions.length} tranché${sessionExceptions - pendingExceptions.length > 1 ? 's' : ''}`
-                                                    : ''}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        /* La légende de l'onglet écarts : combien de décisions, et d'où elles viennent. */
-                                        <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
-                                            <p className="text-text-secondary">
-                                                {pendingExceptions.length > 0
-                                                    ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
-                                                    : sessionExceptions > 0
-                                                      ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
-                                                      : 'Aucun écart'}
-                                            </p>
-                                            <p className="text-text-muted shrink-0">
-                                                scannés hors attendus
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {exceptionsDisplay.length === 0 ? (
-                                        enDeuxNiveaux ? (
-                                            /* **Au bureau, le vide des écarts tient sa
-                                                 colonne** (23/09) : il flottait sur le
-                                                 canevas, collé sous le titre, 500 px de
-                                                 vide dessous. Une carte à la hauteur de la
-                                                 zone ; avant le premier scan, elle dit ce
-                                                 qu'elle recevra plutôt qu'un « aucun »
-                                                 qui ne mesure encore rien. */
-                                            <div className="rounded-card bg-surface flex min-h-60 flex-1 flex-col">
-                                                <CardEmptyState
-                                                    glyph={CheckCircle}
-                                                    tone={lastScanAt ? 'positive' : 'neutral'}
-                                                    title={
-                                                        lastScanAt
-                                                            ? 'Aucun écart'
-                                                            : 'Pas encore d’écart à trancher'
-                                                    }
-                                                    description={
-                                                        lastScanAt
-                                                            ? 'Tout ce qui a été scanné était attendu dans ce lieu.'
-                                                            : 'Un code scanné qui n’était pas attendu ici paraîtra dans cette colonne, avec son fait et ses gestes.'
-                                                    }
-                                                />
-                                            </div>
-                                        ) : (
-                                            /* Le vide d'un onglet n'est pas une carte : la
-                                                 carte est ce qui porte un écart. */
-                                            renderEmptyList('exceptions')
-                                        )
-                                    ) : (
-                                        exceptionsDisplay.map((entry) => {
-                                            const name =
-                                                entry.result.equipmentName ||
-                                                entry.payload.machineName ||
-                                                entry.payload.hostname ||
-                                                'Machine inconnue';
-                                            const code =
-                                                entry.payload.assetId ||
-                                                entry.payload.serialNumber ||
-                                                entry.equipment?.assetId ||
-                                                'code inconnu';
-                                            const isOutOfService =
-                                                entry.result.resolution === 'found_out_of_place';
-                                            /* Où la fiche dit que l'actif vit —
-                                                 **un lieu**, pas un service : c'est ce
-                                                 qu'on compare à l'endroit où on l'a
-                                                 trouvé (16.1). */
-                                            const registeredAt = entry.equipment
-                                                ? [entry.equipment.local, entry.equipment.site]
-                                                      .filter(Boolean)
-                                                      .join(' · ')
-                                                : '';
-
-                                            return (
-                                                <section
-                                                    key={entry.id}
-                                                    /* `.ec` de 16.2 — **16 / 20**, sans ombre. */
-                                                    className="rounded-card bg-surface px-4 py-4"
+                                    {exceptionsDisplay.length > 0 && (
+                                        <section
+                                            ref={carteDesEcarts}
+                                            aria-label="Les écarts"
+                                            className="rounded-card bg-surface flex min-h-[13.5rem] shrink flex-col gap-2.5 px-[18px] py-4"
+                                        >
+                                            <div className="flex shrink-0 items-baseline justify-between gap-3">
+                                                <h2 className="text-on-surface text-[1rem] leading-6 font-semibold">
+                                                    Écarts
+                                                </h2>
+                                                <span
+                                                    className={cn(
+                                                        'text-[0.75rem] leading-4 font-semibold tabular-nums',
+                                                        pendingExceptions.length > 0
+                                                            ? 'text-on-tint-orange'
+                                                            : 'text-text-secondary',
+                                                    )}
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        {/* La pastille de nature à gauche, comme le « pin » de la
-                                                planche : elle dit d'un coup d'œil de quel genre d'écart
-                                                il s'agit avant même de lire le code. */}
-                                                        <span
-                                                            className={cn(
-                                                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                                                                isOutOfService
-                                                                    ? 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-st-orange)]'
-                                                                    : 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-st-bleu)]',
-                                                            )}
-                                                        >
-                                                            <Icon
-                                                                glyph={
-                                                                    isOutOfService
-                                                                        ? ArrowsLeftRight
-                                                                        : Question
-                                                                }
-                                                                size={20}
-                                                            />
-                                                        </span>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p
-                                                                title={infobulle(code)}
-                                                                className={cn(
-                                                                    'font-brand text-on-surface text-ts-body font-semibold tracking-[-0.01em]',
-                                                                    NOM_SUR_UNE_LIGNE,
-                                                                )}
-                                                            >
-                                                                {code}
-                                                            </p>
-                                                            <p className="text-body-small text-text-secondary truncate">
-                                                                {name} · scanné{' '}
-                                                                {formatSince(entry.timestamp)}
-                                                            </p>
-                                                        </div>
-                                                        {entry.resolved ? (
-                                                            <ExceptionMark
-                                                                icon={CheckCircle}
-                                                                label="tranché"
-                                                                tone="positive"
-                                                            />
-                                                        ) : isOutOfService ? (
-                                                            <ExceptionMark
-                                                                icon={ArrowsLeftRight}
-                                                                label="hors lieu"
-                                                                tone="attention"
-                                                            />
-                                                        ) : (
-                                                            <ExceptionMark
-                                                                icon={PlusCircle}
-                                                                label="nouveau"
-                                                                tone="info"
-                                                            />
-                                                        )}
-                                                    </div>
-
-                                                    {/* Le fait, avant les gestes — et sur le creux que la
-                                            planche lui donne : ce n'est pas la suite de la carte,
-                                            c'est le relevé sur lequel on va trancher. */}
-                                                    <p className="bg-surface-container text-body-small text-on-surface mt-3 rounded-sm px-3 py-2.5">
-                                                        {entry.resolved ? (
-                                                            entry.decision === 'attached' ? (
-                                                                <>
-                                                                    Rattaché à{' '}
-                                                                    <strong className="font-medium">
-                                                                        {selectedPlace}
-                                                                    </strong>{' '}
-                                                                    {formatSince(entry.decidedAt)}.
-                                                                    L'actif compte désormais parmi
-                                                                    les retrouvés.
-                                                                </>
-                                                            ) : entry.decision === 'left' ? (
-                                                                <>
-                                                                    Laissé à son lieu d'origine{' '}
-                                                                    {registeredAt ? (
-                                                                        <>
-                                                                            —{' '}
-                                                                            <strong className="font-medium">
-                                                                                {registeredAt}
-                                                                            </strong>
-                                                                        </>
-                                                                    ) : null}
-                                                                    . Il était de passage ici.
-                                                                </>
-                                                            ) : entry.decision === 'kept' ? (
-                                                                <>
-                                                                    Fiche gardée et ouverte pour
-                                                                    être complétée{' '}
-                                                                    {formatSince(entry.decidedAt)}.
-                                                                    Elle est rattachée au périmètre
-                                                                    de la campagne.
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    Fiche écartée et retirée du
-                                                                    parc. Le code pourra être
-                                                                    rescanné.
-                                                                </>
-                                                            )
-                                                        ) : isOutOfService ? (
-                                                            <>
-                                                                Cet actif est enregistré sur{' '}
-                                                                <strong className="font-medium">
-                                                                    {registeredAt ||
-                                                                        'un autre lieu'}
-                                                                </strong>
-                                                                . Il a été trouvé dans{' '}
-                                                                <strong className="font-medium">
-                                                                    {selectedPlace}
-                                                                </strong>
-                                                                . Vit-il ici ?
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                Aucune fiche ne portait ce code. Le
-                                                                scan a lu{' '}
-                                                                <strong className="font-medium">
-                                                                    {name}
-                                                                </strong>{' '}
-                                                                sur l'étiquette — le reste de la
-                                                                fiche est à saisir. Faut-il la
-                                                                garder ?
-                                                            </>
-                                                        )}
-                                                    </p>
-
-                                                    {/* `.acts .btn{flex:1}` — les deux réponses pèsent le
-                                            même poids et prennent la même largeur : on ne
-                                            suggère pas laquelle prendre, on demande laquelle
-                                            est vraie. Le second est sombre, pas jaune — le
-                                            jaune de l'écran est pris par le scan, et ceci est
-                                            une décision de ligne, pas l'acte de l'écran. */}
-                                                    {!entry.resolved && (
-                                                        <div className="mt-3 flex items-center gap-2.5">
-                                                            {isOutOfService ? (
-                                                                <>
-                                                                    <Button
-                                                                        variant="outlined"
-                                                                        onClick={() =>
-                                                                            leaveException(entry.id)
-                                                                        }
-                                                                        className="flex-1"
-                                                                    >
-                                                                        Il reste là-bas
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="tonal"
-                                                                        onClick={() =>
-                                                                            attachException(
-                                                                                entry.id,
-                                                                                entry.equipment,
-                                                                            )
-                                                                        }
-                                                                        disabled={!entry.equipment}
-                                                                        className="flex-1"
-                                                                    >
-                                                                        Rattacher ici
-                                                                    </Button>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Button
-                                                                        variant="outlined"
-                                                                        onClick={() =>
-                                                                            discardException(
-                                                                                entry.id,
-                                                                                entry.equipment,
-                                                                            )
-                                                                        }
-                                                                        className="flex-1"
-                                                                    >
-                                                                        Écarter
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="tonal"
-                                                                        onClick={() =>
-                                                                            completeException(
-                                                                                entry.id,
-                                                                                entry.equipment,
-                                                                            )
-                                                                        }
-                                                                        disabled={!entry.equipment}
-                                                                        className="flex-1"
-                                                                    >
-                                                                        Compléter la fiche
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
-                                            réellement. Le pictogramme la distingue du fait au-dessus. */}
-                                                    {!entry.resolved && (
-                                                        <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
-                                                            <Icon
-                                                                glyph={Info}
-                                                                size={18}
-                                                                className="mt-px shrink-0"
-                                                            />
-                                                            <span>
-                                                                {isOutOfService
-                                                                    ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
-                                                                    : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
-                                                            </span>
-                                                        </p>
-                                                    )}
-                                                    {entry.resolved &&
-                                                        (auditFinalized ? (
-                                                            <p className="text-label-small text-on-surface-variant mt-2.5">
-                                                                La campagne est clôturée : la
-                                                                décision est figée.
-                                                            </p>
-                                                        ) : (
-                                                            <Button
-                                                                variant="text"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    undoException(entry.id)
-                                                                }
-                                                                icon={
-                                                                    <Icon
-                                                                        glyph={ArrowUUpLeft}
-                                                                        size={18}
-                                                                    />
-                                                                }
-                                                                className="text-label-small text-on-surface-variant mt-2 min-h-0 px-0"
-                                                            >
-                                                                {entry.decision === 'attached'
-                                                                    ? 'Annuler ce rattachement'
-                                                                    : 'Annuler cette décision'}{' '}
-                                                                — possible jusqu'à la clôture
-                                                            </Button>
-                                                        ))}
-                                                </section>
-                                            );
-                                        })
-                                    )}
-
-                                    {/* `.warn` — au bureau, la clôture ne se cherche pas :
-                                        la colonne dit ce qui la retient et où elle
-                                        s'ouvrira. Au téléphone, c'est la carte de tension
-                                        qui porte cette phrase, en tête du parc. */}
-                                    {enDeuxNiveaux &&
-                                        !auditFinalized &&
-                                        pendingExceptions.length > 0 && (
-                                            <div className="bg-tint-ambre text-on-tint-ambre text-ts-sub leading-ts-sub flex gap-3 rounded-md px-4 py-3">
-                                                <Icon
-                                                    glyph={LockSimple}
-                                                    size={18}
-                                                    className="mt-px shrink-0"
-                                                />
-                                                <span>
-                                                    <b className="font-medium">Clôturer</b>{' '}
-                                                    s'ouvrira dans le ⋮ une fois{' '}
-                                                    {pendingExceptions.length > 1
-                                                        ? `les ${pendingExceptions.length} écarts tranchés`
-                                                        : "l'écart tranché"}
-                                                    .
+                                                    {pendingExceptions.length > 0
+                                                        ? `${pendingExceptions.length} à trancher`
+                                                        : `${sessionExceptions} tranché${sessionExceptions > 1 ? 's' : ''}`}
                                                 </span>
                                             </div>
-                                        )}
+                                            <div className="-mr-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-2">
+                                                {exceptionsDisplay.map(renderEcartCompact)}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {campagne.etat === 'cloturee' &&
+                                    correctionsARelire.length > 0 ? (
+                                        <section
+                                            aria-label="Les fiches corrigées"
+                                            className="rounded-card bg-surface flex min-h-[8rem] flex-1 flex-col px-[18px] py-4"
+                                        >
+                                            <h2 className="text-on-surface mb-2.5 shrink-0 text-[1rem] leading-6 font-semibold">
+                                                Corrigé pendant le comptage
+                                            </h2>
+                                            <ul className="-mr-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-2">
+                                                {correctionsARelire.map(({ item, event }) => {
+                                                    const note = event.metadata?.note;
+                                                    return (
+                                                        <li
+                                                            key={item.id}
+                                                            className="flex gap-2.5 text-[0.8125rem] leading-[1.1875rem]"
+                                                        >
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--tk-color-st-ambre)]"
+                                                            />
+                                                            <span className="min-w-0">
+                                                                <b className="text-on-surface font-medium">
+                                                                    {item.model || item.name}
+                                                                </b>{' '}
+                                                                · {item.assetId}
+                                                                {champsCorriges(event).map(
+                                                                    (champ) => (
+                                                                        <span
+                                                                            key={champ.champ}
+                                                                            className="block"
+                                                                        >
+                                                                            <span className="text-text-secondary">
+                                                                                {champ.champ} :{' '}
+                                                                            </span>
+                                                                            <s className="text-text-secondary">
+                                                                                {champ.de ||
+                                                                                    'aucun'}
+                                                                            </s>{' '}
+                                                                            → {champ.a || 'aucun'}
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                                <span className="text-text-secondary block">
+                                                                    {event.actorName} ·{' '}
+                                                                    {formatQuand(event.timestamp)}
+                                                                    {typeof note === 'string' &&
+                                                                    note
+                                                                        ? ` · « ${note} »`
+                                                                        : ''}
+                                                                </span>
+                                                            </span>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </section>
+                                    ) : (
+                                        <ActiviteDeCampagne
+                                            faits={faitsDActivite}
+                                            className="min-h-[6.5rem] flex-1"
+                                        />
+                                    )}
+                                </aside>
+                            </div>
+                            {/* La marge du bas, en élément : quand la grille dépasse (écran
+                                bas), un `padding` du conteneur ne se compte pas dans le
+                                défilement, et la dernière carte touchait le bord. */}
+                            <div aria-hidden="true" className="h-1 shrink-0" />
+                        </>
+                    ) : vueEcarts ? (
+                        /* **Le parc et les écarts sont deux écrans** au téléphone : la puce
+                           « Écarts » mène à l'un, son retour ramène à l'autre. */
+                        <div className="space-y-3">
+                            <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
+                                <p className="text-text-secondary">
+                                    {pendingExceptions.length > 0
+                                        ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
+                                        : sessionExceptions > 0
+                                          ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
+                                          : 'Aucun écart'}
+                                </p>
+                                <p className="text-text-muted shrink-0">scannés hors attendus</p>
+                            </div>
+                            {exceptionsDisplay.length === 0
+                                ? renderEmptyList('exceptions')
+                                : exceptionsDisplay.map(renderCarteDEcart)}
+                        </div>
+                    ) : (
+                        <>
+                            {bandeauDeCampagne}
+
+                            {/* **Valider un lot** (27/09) : on entre en sélection, on coche ce
+                                qu'on voit, on valide d'un geste. */}
+                            {selection.isActive && selectionPossible ? (
+                                <div className="bg-inverse-surface text-inverse-on-surface sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-md px-3 py-2">
+                                    <span className="text-ts-sub leading-ts-sub min-w-0 flex-1 font-medium tabular-nums">
+                                        {selection.count} sélectionné
+                                        {selection.count > 1 ? 's' : ''} sur {todoItems.length}
+                                    </span>
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        onClick={() =>
+                                            selection.selectAll(todoItems.map((item) => item.id))
+                                        }
+                                        className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                    >
+                                        Tout
+                                    </Button>
+                                    <Button
+                                        variant="text"
+                                        size="sm"
+                                        onClick={selection.exit}
+                                        className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                    >
+                                        Annuler
+                                    </Button>
+                                    <Button
+                                        variant="filled"
+                                        size="sm"
+                                        disabled={selection.count === 0}
+                                        onClick={validerLaSelection}
+                                        className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                    >
+                                        <Icon glyph={Check} size={18} />
+                                        Valider comme retrouvés
+                                    </Button>
                                 </div>
+                            ) : (
+                                (selectionPossible || listeCorrigeable) && (
+                                    <div className="text-text-secondary flex min-h-9 items-center justify-between gap-3 px-0.5 text-[0.75rem] leading-4">
+                                        <span className="min-w-0">
+                                            {ongletAffiche === 'todo'
+                                                ? 'Touchez un actif pour vérifier sa fiche'
+                                                : 'Touchez un actif pour corriger sa fiche'}
+                                        </span>
+                                        {selectionPossible && (
+                                            <Button
+                                                variant="text"
+                                                size="sm"
+                                                onClick={() => selection.enter()}
+                                                className="text-on-surface -mr-2 h-9 min-h-9 shrink-0 px-2 text-[0.8125rem]"
+                                            >
+                                                Sélectionner
+                                            </Button>
+                                        )}
+                                    </div>
+                                )
                             )}
+
+                            <section
+                                className={cn(
+                                    'rounded-card bg-surface overflow-hidden px-4 py-0.5',
+                                    entreeListe && 'mvt-cascade',
+                                )}
+                            >
+                                {rangeesDeLaListe}
+                                {indicesDeLaListe}
+                            </section>
                         </>
                     )}
                 </div>
@@ -2289,15 +3089,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             {/* **« Scanner », bouton flottant étendu, au téléphone** (25/09) — l'ancrage des
                 gestes flottants (17.6, 76 px du bas), le mot à côté du glyphe : c'est le
                 geste de la page, et il se nomme. */}
-            {!enDeuxNiveaux && sessionStarted && !auditFinalized && !scanOpen && (
-                <FabContainer description="Scanner">
+            {!enDeuxNiveaux && sessionStarted && !auditFinalized && peutCompter && !scanOpen && (
+                <FabContainer description={scanPossible ? 'Scanner' : 'Saisir un code'}>
                     <Button
                         variant="filled"
-                        onClick={() => setScanOpen(true)}
+                        onClick={() => (scanPossible ? setScanOpen(true) : setManualOpen(true))}
                         icon={<Icon glyph={QrCode} size={24} />}
                         className="h-14 min-h-14 gap-2.5 rounded-xl px-5 text-[1rem] font-medium shadow-[0_6px_16px_rgba(10,25,29,0.24)]"
                     >
-                        Scanner
+                        {scanPossible ? 'Scanner' : 'Saisir un code'}
                     </Button>
                 </FabContainer>
             )}
@@ -2316,51 +3116,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     />
                 </div>
             )}
-
-            {/* La feuille de filtre — les partitions en puces, jamais en onglets (R11). */}
-            <BottomSheet
-                open={filtreOuvert}
-                onClose={() => setFiltreOuvert(false)}
-                title="Filtrer"
-                emploi="filtre"
-            >
-                <div className="flex flex-col pb-0">
-                    <p className="text-on-surface-variant pb-2 text-[0.75rem] leading-4 font-medium">
-                        Ce qu'on regarde
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {partitions.map((partition) => (
-                            <FacetChip
-                                compact
-                                key={partition.id}
-                                label={partition.label}
-                                count={partition.count}
-                                selected={activeTab === partition.id}
-                                onClick={() => setActiveTab(partition.id)}
-                            />
-                        ))}
-                    </div>
-                    <div
-                        data-pied
-                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
-                    >
-                        <Button
-                            variant="tonal"
-                            className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
-                            onClick={() => setActiveTab(partitionParDefaut)}
-                        >
-                            Tout effacer
-                        </Button>
-                        <Button
-                            variant="filled"
-                            className="justify-center"
-                            onClick={() => setFiltreOuvert(false)}
-                        >
-                            Voir les {partitions.find((p) => p.id === activeTab)?.count ?? 0}
-                        </Button>
-                    </div>
-                </div>
-            </BottomSheet>
 
             <SideSheet
                 open={manualOpen}
@@ -2385,6 +3140,59 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     </div>
                 </div>
             </SideSheet>
+
+            {ficheOuverte &&
+                (() => {
+                    const item = equipment.find((entry) => entry.id === ficheOuverte.id);
+                    if (!item) return null;
+                    return (
+                        <FicheDeComptage
+                            key={item.id}
+                            equipement={item}
+                            mode={ficheOuverte.mode}
+                            utilisateurs={users}
+                            services={locationData?.services?.[selectedSite] ?? []}
+                            locaux={locationData?.locals?.[selectedSite] ?? []}
+                            peutCorriger={peutCorriger}
+                            onFermer={() => setFicheOuverte(null)}
+                            onValider={(corrections, note) => {
+                                if (!compterALaMain(item.id, corrections, note)) return;
+                                setFicheOuverte(null);
+                                showToast(
+                                    corrections
+                                        ? `${item.model || item.name} : fiche corrigée${ficheOuverte.mode === 'compter' ? ', retrouvé' : ''}.`
+                                        : `${item.model || item.name} : retrouvé.`,
+                                    'success',
+                                );
+                            }}
+                        />
+                    );
+                })()}
+
+            {/* Le renvoi — son motif est ce que l'opérateur lira en reprenant le comptage. */}
+            <Modal
+                isOpen={renvoiOuvert}
+                onClose={() => setRenvoiOuvert(false)}
+                title={`Renvoyer l’inventaire de ${selectedPlace}`}
+                footer={
+                    <>
+                        <Button variant="outlined" onClick={() => setRenvoiOuvert(false)}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={renvoyerLaCampagne}>
+                            Renvoyer
+                        </Button>
+                    </>
+                }
+            >
+                <TextArea
+                    label="Ce qu’il faut revoir"
+                    value={motifDeRenvoi}
+                    onChange={(event) => setMotifDeRenvoi(event.target.value)}
+                    rows={4}
+                    placeholder="Recompter le bureau 204 : trois écrans n’y ont pas été vus."
+                />
+            </Modal>
         </div>
     );
 };

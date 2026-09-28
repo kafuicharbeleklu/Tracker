@@ -15,6 +15,7 @@ import {
     STATUS_LABELS,
 } from '../placeAudit';
 import { rememberAuditScope } from '../../../lib/auditScope';
+import { lireLaCampagne } from '../campagne';
 import { AuditOverview } from './AuditOverview';
 
 interface AuditOverviewContainerProps {
@@ -28,6 +29,8 @@ const STATUS_OPTIONS = [
     { value: ALL_VALUE, label: 'Tous' },
     { value: 'A lancer', label: STATUS_LABELS['A lancer'] },
     { value: 'En cours', label: STATUS_LABELS['En cours'] },
+    { value: 'A valider', label: STATUS_LABELS['A valider'] },
+    { value: 'Validee', label: STATUS_LABELS.Validee },
     { value: 'Complet', label: STATUS_LABELS.Complet },
     { value: 'A planifier', label: STATUS_LABELS['A planifier'] },
 ];
@@ -86,7 +89,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
 }) => {
     const { showToast } = useToast();
     const { navigateToView } = useAppNavigation();
-    const { locationData, equipment, events } = useData();
+    const { locationData, equipment, events, settings } = useData();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCountry, setSelectedCountry] = useState<string>(ALL_VALUE);
@@ -212,8 +215,17 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
                     ),
             );
 
+            /* **La campagne, lue au journal** (27/09) : après un abandon ou une relance, les
+               comptages d'avant ne comptent plus ; clôturée, elle attend un responsable. */
+            const campagne = lireLaCampagne(
+                events,
+                { country, site, local, horsLocal },
+                settings.inventoryPeriodMonths || 12,
+            );
             const scanEvents = scopedAuditEvents.filter(
-                ({ metadata }) => readString(metadata?.source) === 'audit_scan',
+                ({ event, metadata }) =>
+                    readString(metadata?.source) === 'audit_scan' &&
+                    (!campagne.depuis || event.timestamp > campagne.depuis),
             );
             const alignEvents = scopedAuditEvents.filter(
                 ({ metadata }) => readString(metadata?.source) === 'audit_scan_alignment',
@@ -250,13 +262,15 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
                     : null;
 
             let status: PlaceAuditRow['status'] = 'A planifier';
-            if (expected > 0 && found >= expected) status = 'Complet';
+            if (campagne.etat === 'validee') status = 'Validee';
+            else if (campagne.etat === 'cloturee') status = 'A valider';
+            else if (expected > 0 && found >= expected) status = 'Complet';
             else if (expected > 0 && found > 0) status = 'En cours';
             else if (expected > 0) status = 'A lancer';
 
             return { expected, found, missing, exceptions, progress, lastScanAt, status };
         },
-        [auditEvents, equipment],
+        [auditEvents, equipment, events, settings.inventoryPeriodMonths],
     );
 
     /**
@@ -288,7 +302,14 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
             }, null);
 
             let status: PlaceAuditRow['status'] = 'A planifier';
-            if (expected > 0 && found >= expected) status = 'Complet';
+            if (morceaux.some((m) => m.status === 'A valider')) status = 'A valider';
+            else if (
+                morceaux.length > 0 &&
+                morceaux.every((m) => m.status === 'Validee' || m.status === 'A planifier') &&
+                morceaux.some((m) => m.status === 'Validee')
+            )
+                status = 'Validee';
+            else if (expected > 0 && found >= expected) status = 'Complet';
             else if (found > 0) status = 'En cours';
             else if (expected > 0) status = 'A lancer';
 

@@ -37,7 +37,8 @@ export interface PlaceAuditRow {
     exceptions: number;
     progress: number;
     lastScanAt: string | null;
-    status: 'A lancer' | 'En cours' | 'Complet' | 'A planifier';
+    /** `A valider` et `Validee` (27/09) : la campagne clôturée attend un responsable, ou il l'a validée. */
+    status: 'A lancer' | 'En cours' | 'A valider' | 'Validee' | 'Complet' | 'A planifier';
 }
 
 /** Valeur sentinelle « aucun filtre » des selects de périmètre. */
@@ -98,7 +99,13 @@ export const moisDepuis = (value: string | null): number | null => {
 };
 
 export const enRetard = (row: PlaceAuditRow, periodeMois: number): boolean => {
-    if (row.expected === 0 || row.status === 'En cours' || periodeMois <= 0) return false;
+    if (
+        row.expected === 0 ||
+        row.status === 'En cours' ||
+        row.status === 'A valider' ||
+        periodeMois <= 0
+    )
+        return false;
     const mois = moisDepuis(row.lastScanAt);
     return mois === null || mois >= periodeMois;
 };
@@ -107,6 +114,8 @@ export const enRetard = (row: PlaceAuditRow, periodeMois: number): boolean => {
 export const STATUS_LABELS: Record<PlaceAuditRow['status'], string> = {
     'A lancer': 'À lancer',
     'En cours': 'En cours',
+    'A valider': 'À valider',
+    Validee: 'Validée',
     Complet: 'Complet',
     'A planifier': 'Rien à inventorier',
 };
@@ -119,9 +128,11 @@ export const STATUS_LABELS: Record<PlaceAuditRow['status'], string> = {
  */
 const RANG: Record<PlaceAuditRow['status'], number> = {
     'En cours': 0,
-    'A lancer': 1,
-    Complet: 2,
-    'A planifier': 3,
+    'A valider': 1,
+    'A lancer': 2,
+    Complet: 3,
+    Validee: 3,
+    'A planifier': 4,
 };
 
 export const compareByProgress = (a: PlaceAuditRow, b: PlaceAuditRow): number => {
