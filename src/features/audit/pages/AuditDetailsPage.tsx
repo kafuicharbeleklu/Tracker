@@ -2755,7 +2755,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     className={cn(
                         'w-full',
                         enDeuxNiveaux
-                            ? 'px-page flex h-full min-h-0 flex-col gap-5'
+                            ? cn(
+                                  'px-page flex h-full min-h-0 flex-col gap-5',
+                                  /* Sans lieu, l'état d'écran garde sa marge du bas ; avec un
+                                     lieu, c'est l'espaceur sous la grille qui la porte. */
+                                  !scopeIsReady && 'pb-6',
+                              )
                             : 'px-page-sm medium:px-page mx-auto max-w-[960px] space-y-2.5 pt-3 pb-4',
                         /* La place du bouton « Scanner » flottant, sous la dernière rangée. */
                         !enDeuxNiveaux && sessionStarted && !auditFinalized && 'pb-28',
