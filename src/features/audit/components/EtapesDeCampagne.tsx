@@ -32,6 +32,7 @@ interface EtapesDeCampagneProps {
     onCloturer?: () => void;
     onValider?: () => void;
     onRenvoyer?: () => void;
+    className?: string;
 }
 
 const Pastille: React.FC<{ etat: EtatDEtape }> = ({ etat }) =>
@@ -123,6 +124,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
     onCloturer,
     onValider,
     onRenvoyer,
+    className,
 }) => {
     const comptage = `${retrouves} sur ${total}${
         scannes + manuels > 0 && etat !== 'en_cours'
@@ -130,7 +132,10 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
             : ''
     }`;
     return (
-        <section aria-label="La campagne" className="bg-surface rounded-xl px-[18px] py-4">
+        <section
+            aria-label="La campagne"
+            className={cn('bg-surface rounded-xl px-[18px] py-4', className)}
+        >
             <h2 className="text-on-surface mb-3 text-[1rem] leading-6 font-semibold">
                 La campagne
             </h2>
@@ -138,10 +143,11 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                 <Etape
                     etat="fait"
                     titre="Lancée"
-                    detail={[
-                        lancee ?? 'aucun comptage encore',
-                        `${total} attendu${total > 1 ? 's' : ''}`,
-                    ].join(' · ')}
+                    detail={
+                        lancee
+                            ? `${lancee} · ${total} attendu${total > 1 ? 's' : ''}`
+                            : `${total} attendu${total > 1 ? 's' : ''}, premier comptage à faire`
+                    }
                 />
                 <Etape
                     etat={etat === 'en_cours' ? 'en_cours' : 'fait'}
@@ -240,11 +246,13 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                         </ul>
                     </div>
                     {peutValider && (
-                        <div className="mt-3.5 flex gap-2">
+                        /* Dans une colonne étroite (1024), les deux gestes passent l'un sous
+                           l'autre : « Valider l'inventaire » débordait de son bouton. */
+                        <div className="mt-3.5 flex flex-wrap gap-2">
                             <Button
                                 variant="outlined"
                                 onClick={onRenvoyer}
-                                className="h-10 min-h-10 flex-1 gap-1.5 px-3 text-[0.875rem]"
+                                className="h-10 min-h-10 min-w-[7rem] flex-1 gap-1.5 px-3 text-[0.875rem]"
                             >
                                 <Icon glyph={ArrowUUpLeft} size={18} />
                                 Renvoyer
@@ -252,7 +260,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                             <Button
                                 variant="filled"
                                 onClick={onValider}
-                                className="h-10 min-h-10 flex-[1.4] gap-1.5 px-3 text-[0.875rem]"
+                                className="h-10 min-h-10 min-w-[10.5rem] flex-[1.4] gap-1.5 px-3 text-[0.875rem]"
                             >
                                 <Icon glyph={CheckCircle} size={18} />
                                 Valider l’inventaire

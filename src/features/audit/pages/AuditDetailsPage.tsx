@@ -50,6 +50,7 @@ import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useScanPossible } from '../../../hooks/useScanPossible';
+import { useEntree } from '../../../hooks/useEntree';
 import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
 import Modal from '../../../components/ui/Modal';
@@ -1633,7 +1634,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         size="sm"
                         aria-label={`${libelle} — ${titre}`}
                         onClick={() => setFicheOuverte({ id: item.id, mode: ficheMode })}
-                        className="text-text-secondary h-9 w-9"
+                        /* La rangée survolée est déjà grise : le crayon fonce d'un cran. */
+                        className="text-text-secondary hover:bg-surface-muted-strong hover:text-on-surface h-9 w-9"
                     >
                         <Icon glyph={PencilSimple} size={20} />
                     </Button>
@@ -1645,6 +1647,17 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         tint={TEINTE_MODE[modeRangee]}
                         titre={titre}
                         sousTitre={sousTitre}
+                        /* Au bureau aussi, cliquer la rangée ouvre sa fiche : le crayon le dit. */
+                        onOuvrir={
+                            comptable || corrigeable
+                                ? () =>
+                                      setFicheOuverte({
+                                          id: item.id,
+                                          mode: comptable ? 'compter' : 'corriger',
+                                      })
+                                : undefined
+                        }
+                        libelleOuvrir={comptable ? 'Vérifier la fiche' : 'Corriger la fiche'}
                         fin={
                             comptable ? (
                                 <span className="flex shrink-0 items-center gap-1">
@@ -1653,7 +1666,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         variant="outlined"
                                         size="sm"
                                         onClick={() => retrouveEnUnGeste(item)}
-                                        className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                        className="hover:bg-surface hover:border-on-surface-variant active:bg-surface-container-high h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
                                     >
                                         <Icon glyph={Check} size={18} />
                                         Retrouvé
@@ -1694,7 +1707,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 iconOnly
                                 aria-label={`Retrouvé — ${titre}`}
                                 onClick={() => retrouveEnUnGeste(item)}
-                                className="bg-tint-vert text-on-tint-vert hover:bg-tint-vert h-11 max-h-11 min-h-11 w-11 max-w-11 min-w-11 shrink-0 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--tk-color-st-vert)_35%,var(--tk-color-surface))]"
+                                className="bg-tint-vert text-on-tint-vert h-11 max-h-11 min-h-11 w-11 max-w-11 min-w-11 shrink-0 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--tk-color-st-vert)_35%,var(--tk-color-surface))] hover:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_22%,var(--tk-color-surface))] active:scale-[0.92] active:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_32%,var(--tk-color-surface))]"
                             >
                                 <Icon glyph={Check} size={20} />
                             </Button>
@@ -1721,6 +1734,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         : activeTab === 'missing'
           ? 'todo'
           : activeTab;
+    /* L'arrivée : les cartes de la colonne entrent en cascade ; les rangées aussi, et de
+       nouveau quand on change de liste. */
+    const entreePage = useEntree();
+    const entreeListe = useEntree(ongletAffiche);
     const choisir = (onglet: AuditTab) => {
         setActiveTab(onglet);
         if (selection.isActive) selection.exit();
@@ -2180,7 +2197,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <span className="min-w-0">{decision}</span>
                 </p>
                 {!entry.resolved ? (
-                    <div className="mt-2.5 flex gap-2">
+                    /* Deux réponses de même poids ; dans une colonne étroite (tablette), elles
+                       passent l'une sous l'autre au lieu de déborder de leur bouton. */
+                    <div className="mt-2.5 flex flex-wrap gap-2">
                         <Button
                             variant="outlined"
                             size="sm"
@@ -2189,7 +2208,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     ? leaveException(entry.id)
                                     : discardException(entry.id, entry.equipment)
                             }
-                            className="h-[34px] min-h-[34px] flex-1 justify-center px-2 text-[0.8125rem]"
+                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
                         >
                             {isOutOfService ? 'Il reste là-bas' : 'Écarter'}
                         </Button>
@@ -2202,7 +2221,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     ? attachException(entry.id, entry.equipment)
                                     : completeException(entry.id, entry.equipment)
                             }
-                            className="bg-inverse-surface text-inverse-on-surface h-[34px] min-h-[34px] flex-1 justify-center px-2 text-[0.8125rem] hover:opacity-90"
+                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
                         >
                             {isOutOfService ? 'Rattacher ici' : 'Compléter la fiche'}
                         </Button>
@@ -2457,7 +2476,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             value={recherche}
                             onChange={setRecherche}
                             placeholder="Modèle, code, porteur"
-                            className="w-[240px] max-w-full"
+                            className="w-[240px] min-w-[9rem] shrink"
                         />
                         {selectionPossible && (
                             <Button
@@ -2700,7 +2719,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                 className={cn(
                                                     'text-ts-sub leading-ts-sub h-9 max-h-9 min-h-9 shrink-0 gap-1.5 rounded-md border px-3 font-medium',
                                                     pendingExceptions.length > 0
-                                                        ? 'border-tint-orange text-on-tint-orange hover:bg-tint-orange bg-[color-mix(in_srgb,var(--tk-color-tint-orange)_45%,var(--tk-color-surface))]'
+                                                        ? 'border-tint-orange text-on-tint-orange hover:bg-tint-orange active:bg-tint-orange bg-[color-mix(in_srgb,var(--tk-color-tint-orange)_45%,var(--tk-color-surface))]'
                                                         : 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container',
                                                 )}
                                             >
@@ -2736,7 +2755,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     className={cn(
                         'w-full',
                         enDeuxNiveaux
-                            ? 'px-page flex h-full min-h-0 flex-col gap-5 pb-6'
+                            ? 'px-page flex h-full min-h-0 flex-col gap-5'
                             : 'px-page-sm medium:px-page mx-auto max-w-[960px] space-y-2.5 pt-3 pb-4',
                         /* La place du bouton « Scanner » flottant, sous la dernière rangée. */
                         !enDeuxNiveaux && sessionStarted && !auditFinalized && 'pb-28',
@@ -2758,20 +2777,46 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     ) : enDeuxNiveaux ? (
                         <>
                             <TuilesDeCampagne tuiles={tuiles} />
-                            <div className="grid min-h-[24rem] flex-1 grid-cols-12 grid-rows-[minmax(0,1fr)] gap-4">
+                            <div
+                                className={cn(
+                                    'grid flex-1 grid-cols-12 grid-rows-[minmax(0,1fr)] gap-4',
+                                    /* **La hauteur que la colonne de droite demande** (28/09) :
+                                       sur un écran bas (1024 × 768, portable de 1366 × 657),
+                                       elle recoupait ses cartes. En deçà de ce minimum, c'est
+                                       la page qui défile, et chaque carte reste entière. */
+                                    campagne.etat === 'cloturee'
+                                        ? 'large:min-h-[38rem] min-h-[42rem]'
+                                        : exceptionsDisplay.length > 0
+                                          ? 'min-h-[39rem]'
+                                          : 'min-h-[26rem]',
+                                )}
+                            >
                                 <section
                                     aria-label={`Les actifs — ${TITRE_DE_LISTE[ongletAffiche].toLowerCase()}`}
                                     className="rounded-card bg-surface col-span-8 flex min-h-0 flex-col overflow-hidden"
                                 >
                                     {enteteDeListe}
-                                    <div className="min-h-0 flex-1 overflow-y-auto px-5">
+                                    <div
+                                        className={cn(
+                                            'min-h-0 flex-1 overflow-y-auto px-5 pb-2',
+                                            entreeListe && 'mvt-cascade',
+                                        )}
+                                    >
                                         {rangeesDeLaListe}
                                         {indicesDeLaListe}
                                     </div>
                                 </section>
                                 <aside
                                     aria-label="La campagne"
-                                    className="col-span-4 flex min-h-0 flex-col gap-4 overflow-y-auto [&>*]:shrink-0"
+                                    className={cn(
+                                        /* Les étapes gardent leur hauteur ; les écarts et l'activité
+                                           se partagent le reste et défilent **dans** leur carte :
+                                           la colonne coupait ses cartes au bas de l'écran (relevé
+                                           du 28/09). Son propre défilement ne sert plus que de
+                                           repli, sur une fenêtre très basse. */
+                                        'col-span-4 flex min-h-0 flex-col gap-4 overflow-y-auto',
+                                        entreePage && 'mvt-cascade-cartes',
+                                    )}
                                 >
                                     <EtapesDeCampagne
                                         etat={campagne.etat}
@@ -2824,15 +2869,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         onCloturer={handleFinalizeAudit}
                                         onValider={validerLaCampagne}
                                         onRenvoyer={() => setRenvoiOuvert(true)}
+                                        className="shrink-0"
                                     />
 
                                     {exceptionsDisplay.length > 0 && (
                                         <section
                                             ref={carteDesEcarts}
                                             aria-label="Les écarts"
-                                            className="rounded-card bg-surface flex flex-col gap-2.5 px-[18px] py-4"
+                                            className="rounded-card bg-surface flex min-h-[13.5rem] shrink flex-col gap-2.5 px-[18px] py-4"
                                         >
-                                            <div className="flex items-baseline justify-between gap-3">
+                                            <div className="flex shrink-0 items-baseline justify-between gap-3">
                                                 <h2 className="text-on-surface text-[1rem] leading-6 font-semibold">
                                                     Écarts
                                                 </h2>
@@ -2849,7 +2895,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                         : `${sessionExceptions} tranché${sessionExceptions > 1 ? 's' : ''}`}
                                                 </span>
                                             </div>
-                                            {exceptionsDisplay.map(renderEcartCompact)}
+                                            <div className="-mr-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-2">
+                                                {exceptionsDisplay.map(renderEcartCompact)}
+                                            </div>
                                         </section>
                                     )}
 
@@ -2857,12 +2905,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     correctionsARelire.length > 0 ? (
                                         <section
                                             aria-label="Les fiches corrigées"
-                                            className="rounded-card bg-surface flex-1 px-[18px] py-4"
+                                            className="rounded-card bg-surface flex min-h-[8rem] flex-1 flex-col px-[18px] py-4"
                                         >
-                                            <h2 className="text-on-surface mb-2.5 text-[1rem] leading-6 font-semibold">
+                                            <h2 className="text-on-surface mb-2.5 shrink-0 text-[1rem] leading-6 font-semibold">
                                                 Corrigé pendant le comptage
                                             </h2>
-                                            <ul className="flex flex-col gap-3">
+                                            <ul className="-mr-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-2">
                                                 {correctionsARelire.map(({ item, event }) => {
                                                     const note = event.metadata?.note;
                                                     return (
@@ -2913,11 +2961,15 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     ) : (
                                         <ActiviteDeCampagne
                                             faits={faitsDActivite}
-                                            className="flex-1"
+                                            className="min-h-[6.5rem] flex-1"
                                         />
                                     )}
                                 </aside>
                             </div>
+                            {/* La marge du bas, en élément : quand la grille dépasse (écran
+                                bas), un `padding` du conteneur ne se compte pas dans le
+                                défilement, et la dernière carte touchait le bord. */}
+                            <div aria-hidden="true" className="h-1 shrink-0" />
                         </>
                     ) : vueEcarts ? (
                         /* **Le parc et les écarts sont deux écrans** au téléphone : la puce
@@ -3000,7 +3052,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 )
                             )}
 
-                            <section className="rounded-card bg-surface px-4 py-0.5">
+                            <section
+                                className={cn(
+                                    'rounded-card bg-surface overflow-hidden px-4 py-0.5',
+                                    entreeListe && 'mvt-cascade',
+                                )}
+                            >
                                 {rangeesDeLaListe}
                                 {indicesDeLaListe}
                             </section>

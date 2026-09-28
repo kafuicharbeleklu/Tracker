@@ -28,7 +28,7 @@ const ActiviteDeCampagne: React.FC<{ faits: FaitDeCampagne[]; className?: string
 }) => (
     <section
         aria-label="L’activité de la campagne"
-        className={cn('bg-surface rounded-xl px-[18px] py-4', className)}
+        className={cn('bg-surface flex flex-col rounded-xl px-[18px] py-4', className)}
     >
         <h2 className="text-on-surface mb-2 text-[1rem] leading-6 font-semibold">Activité</h2>
         {faits.length === 0 ? (
@@ -36,7 +36,9 @@ const ActiviteDeCampagne: React.FC<{ faits: FaitDeCampagne[]; className?: string
                 Rien encore : le premier comptage paraîtra ici.
             </p>
         ) : (
-            <ul className="flex flex-col gap-2.5 text-[0.8125rem] leading-[1.125rem]">
+            /* La liste défile **dans** la carte : la colonne ne coupe plus une carte en deux
+               au bas de l'écran (relevé du 28/09). */
+            <ul className="-mr-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-2 text-[0.8125rem] leading-[1.125rem]">
                 {faits.map((fait) => (
                     <li key={fait.id} className="flex gap-2.5">
                         <span
@@ -46,10 +48,16 @@ const ActiviteDeCampagne: React.FC<{ faits: FaitDeCampagne[]; className?: string
                                 POINT[fait.ton],
                             )}
                         />
+                        {/* Le fait, puis qui et quand, sur sa propre ligne : collé au bout
+                            de la phrase, « · Afi · il y a 3 min » se coupait n'importe où. */}
                         <span className="min-w-0">
-                            <b className="text-on-surface font-medium">{fait.titre}</b>{' '}
-                            <span className="text-on-surface">{fait.detail}</span>{' '}
-                            <span className="text-text-secondary">· {fait.quand}</span>
+                            <span className="text-on-surface block">
+                                <b className="font-medium">{fait.titre}</b>
+                                {fait.detail && ` ${fait.detail}`}
+                            </span>
+                            <span className="text-text-secondary block text-[0.75rem] leading-4">
+                                {fait.quand}
+                            </span>
                         </span>
                     </li>
                 ))}

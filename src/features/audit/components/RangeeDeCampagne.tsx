@@ -12,7 +12,7 @@ interface RangeeDeCampagneProps {
     tint?: Tint;
     titre: string;
     sousTitre?: string;
-    /** Toucher le corps de la rangée ouvre la fiche — au téléphone. */
+    /** Toucher ou cliquer le corps de la rangée ouvre la fiche. */
     onOuvrir?: () => void;
     libelleOuvrir?: string;
     /** Les gestes et la marque de droite. */
@@ -20,10 +20,16 @@ interface RangeeDeCampagneProps {
 }
 
 /**
- * **La rangée d'une campagne** (28/09). Au téléphone, **le corps ouvre la fiche** et le
- * rond ✓ compte l'actif d'un geste : deux cibles côte à côte, que `FactRow` ne sait pas
- * porter — sa rangée entière est un seul bouton, et un bouton ne peut pas en contenir un
- * autre. Au bureau, la rangée ne s'ouvre pas : le crayon et « Retrouvé » sont à droite.
+ * **La rangée d'une campagne** (28/09). **Le corps ouvre la fiche** et, à droite, les gestes
+ * rapides (le rond ✓ au téléphone ; le crayon et « Retrouvé » au bureau) : deux cibles côte
+ * à côte, que `FactRow` ne sait pas porter — sa rangée entière est un seul bouton, et un
+ * bouton ne peut pas en contenir un autre.
+ *
+ * **Le survol et l'appui couvrent la rangée d'un bord à l'autre de la carte** (relevé de
+ * l'utilisateur, 28/09 : *« ni d'état d'action hover »*) — la forme des rangées cliquables
+ * du produit (`ActionCard`, la fiche d'un utilisateur) : le creux `surface-container`, et
+ * deux ombres latérales de la même teinte qui le prolongent sur la marge de la carte, sans
+ * toucher aux filets qui restent rentrés. Une rangée qui ne s'ouvre pas ne réagit pas.
  */
 const RangeeDeCampagne: React.FC<RangeeDeCampagneProps> = ({
     glyph,
@@ -64,14 +70,21 @@ const RangeeDeCampagne: React.FC<RangeeDeCampagneProps> = ({
         </>
     );
     return (
-        <div className="border-outline-variant deux:gap-3.5 flex min-h-16 items-center gap-3 border-t first:border-t-0">
+        <div
+            data-rangee=""
+            className={cn(
+                'border-outline-variant deux:gap-3.5 flex min-h-16 items-center gap-3 border-t first:border-t-0',
+                onOuvrir &&
+                    'duration-short4 ease-emphasized hover:bg-surface-container active:bg-surface-container-high deux:hover:shadow-[-20px_0_0_var(--tk-color-surface-container),20px_0_0_var(--tk-color-surface-container)] deux:active:shadow-[-20px_0_0_var(--tk-color-surface-container-high),20px_0_0_var(--tk-color-surface-container-high)] transition-[background-color,box-shadow] hover:shadow-[-16px_0_0_var(--tk-color-surface-container),16px_0_0_var(--tk-color-surface-container)] active:shadow-[-16px_0_0_var(--tk-color-surface-container-high),16px_0_0_var(--tk-color-surface-container-high)]',
+            )}
+        >
             {onOuvrir ? (
                 <Button
                     variant="text"
                     layout="card"
                     aria-label={libelleOuvrir ? `${libelleOuvrir} — ${titre}` : undefined}
                     onClick={onOuvrir}
-                    className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-none px-0 py-2.5 text-left font-normal whitespace-normal hover:bg-transparent active:scale-100"
+                    className="deux:gap-3.5 flex min-h-16 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-none px-0 py-2.5 text-left font-normal whitespace-normal hover:bg-transparent active:scale-100"
                 >
                     {corps}
                 </Button>
