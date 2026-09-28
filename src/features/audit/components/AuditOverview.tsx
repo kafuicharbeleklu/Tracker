@@ -353,6 +353,8 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     const TEINTE_STATUT: Record<PlaceAuditRow['status'], string> = {
         'A lancer': 'bg-[var(--tk-color-st-ambre)]',
         'En cours': 'bg-[var(--tk-color-st-bleu)]',
+        'A valider': 'bg-[var(--tk-color-st-orange)]',
+        Validee: 'bg-[var(--tk-color-st-vert)]',
         Complet: 'bg-[var(--tk-color-st-vert)]',
         'A planifier': '',
     };

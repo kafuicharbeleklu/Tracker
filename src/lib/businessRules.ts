@@ -38,6 +38,25 @@ export const canManageInventoryByRole = (
 ): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.inventoryManage, 'Inventaire');
 
+/**
+ * **Compter un inventaire** (27/09) — scanner ou valider un actif retrouvé, clôturer une
+ * campagne. Le comptage passait par le droit de gérer l'inventaire : le Manager et l'Employé,
+ * qui ont `audit.scan`, voyaient chacun de leurs comptages refusés. Corriger une fiche pendant
+ * le comptage reste, lui, un geste de gestion (`canManageInventoryByRole`).
+ */
+export const canScanAuditByRole = (access?: EffectiveAccessProfile | null): BusinessRuleDecision =>
+    buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.auditScan, 'Inventaire physique');
+
+/** **Valider ou renvoyer une campagne clôturée** (27/09) — le responsable d'inventaire. */
+export const canManageAuditByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
+    buildPermissionGuardDecision(
+        access,
+        RBAC_PERMISSIONS.actions.auditManage,
+        'Inventaire physique',
+    );
+
 export const canManageFinanceByRole = (
     access?: EffectiveAccessProfile | null,
 ): BusinessRuleDecision =>

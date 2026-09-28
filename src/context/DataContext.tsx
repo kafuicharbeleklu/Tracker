@@ -85,11 +85,13 @@ import {
     BusinessRuleDecision,
     canDeleteEquipmentByBusinessRule,
     canDeleteUserByBusinessRule,
+    canManageAuditByRole,
     canManageFinanceByRole,
     canManageInventoryByRole,
     canManageLocationsByRole,
     canManageSystemByRole,
     canManageUsersByRole,
+    canScanAuditByRole,
     canTransitionApprovalStatus,
     canUpdateUserByBusinessRule,
     getEquipmentUpdatesForApprovalStatus,
@@ -112,6 +114,16 @@ import {
  * niveau de l'arbre des emplacements.
  */
 export type LocationKind = 'country' | 'site' | 'local' | 'service';
+
+/** Le périmètre d'une campagne d'inventaire : un site, un local, ou le site hors local. */
+export interface PerimetreDeCampagne {
+    country: string;
+    site: string;
+    local?: string;
+    horsLocal?: boolean;
+}
+
+export type EtapeDeCampagne = 'cloture' | 'validation' | 'renvoi' | 'abandon' | 'relance';
 
 interface LocationData {
     countries: string[];
@@ -256,6 +268,28 @@ interface DataContextType {
         equipmentId: string,
         scope: { country: string; site: string; local?: string; horsLocal?: boolean },
     ) => boolean;
+    /**
+     * **Un actif retrouvé, validé à la main** (27/09) — sans scan : la même trace qu'un scan
+     * (`audit_scan`, `methode: 'manuel'`). Avec des corrections (le détenteur, le service, le
+     * local ont changé depuis la dernière campagne), la fiche est réécrite dans le même geste.
+     */
+    enregistrerComptage: (
+        equipmentId: string,
+        scope: PerimetreDeCampagne,
+        corrections?: Partial<Equipment>,
+        note?: string,
+    ) => BusinessRuleDecision;
+    /**
+     * **Les étapes d'une campagne, au journal** (27/09) : clôturée, validée, renvoyée,
+     * abandonnée, relancée. La campagne n'avait pas d'existence propre : sa clôture ne
+     * s'écrivait nulle part, et un rechargement la rouvrait. La validation applique ce que
+     * la clôture annonçait (les manquants).
+     */
+    consignerCampagne: (
+        etape: EtapeDeCampagne,
+        scope: PerimetreDeCampagne,
+        details?: Record<string, unknown>,
+    ) => BusinessRuleDecision;
     updateApproval: (
         id: string,
         status: ApprovalStatus,
@@ -3575,12 +3609,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             payload: AuditScanPayload,
             scope: { country: string; site: string; local?: string; horsLocal?: boolean },
         ): AuditScanResult => {
-            const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
-            if (!permissionDecision.allowed) {
+            /* **Compter n'est pas gérer** (27/09) : un scan qui retrouve un actif se compte
+               avec `audit.scan` ; réécrire sa fiche ou en créer une reste un geste de gestion. */
+            const gestion = canManageInventoryByRole(currentUserAccessRef.current);
+            const comptage = canScanAuditByRole(currentUserAccessRef.current);
+            if (!gestion.allowed && !comptage.allowed) {
                 return {
                     ok: false,
-                    message:
-                        permissionDecision.reason || 'Action refusée: permissions insuffisantes.',
+                    message: gestion.reason || 'Action refusée: permissions insuffisantes.',
                 };
             }
 
@@ -3676,7 +3712,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     };
                 }
 
-                const wasUpdated = Object.keys(updates).length > 0;
+                /* Sans le droit de gestion, le scan compte l'actif sans réécrire sa fiche. */
+                const wasUpdated = gestion.allowed && Object.keys(updates).length > 0;
                 const portee = {
                     source: 'audit_scan',
                     scannedAt,
@@ -3736,6 +3773,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     message: placeMatches
                         ? `Machine retrouvée dans le bon lieu (${lieuAttendu}).`
                         : `Machine détectée mais enregistrée ailleurs (${existingLocal || existing.site || 'lieu non défini'}).`,
+                };
+            }
+
+            if (!gestion.allowed) {
+                return {
+                    ok: false,
+                    message:
+                        'Code inconnu du parc : seul un gestionnaire d’inventaire peut en créer la fiche.',
                 };
             }
 
@@ -4208,6 +4253,148 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         },
         [equipment, updateEquipment],
+    );
+
+    const enregistrerComptage = useCallback(
+        (
+            equipmentId: string,
+            scope: PerimetreDeCampagne,
+            corrections?: Partial<Equipment>,
+            note?: string,
+        ): BusinessRuleDecision => {
+            const acces = currentUserAccessRef.current;
+            const gestion = canManageInventoryByRole(acces);
+            const comptage = canScanAuditByRole(acces);
+            if (!gestion.allowed && !comptage.allowed) return comptage;
+
+            const item = equipment.find((entry) => entry.id === equipmentId);
+            if (!item) return { allowed: false, reason: 'Actif introuvable.' };
+
+            const portee = {
+                source: 'audit_scan',
+                methode: 'manuel',
+                scannedAt: new Date().toISOString(),
+                scopeCountry: scope.country,
+                scopeSite: scope.site,
+                scopeLocal: scope.horsLocal ? '' : scope.local || '',
+                ...(note?.trim() ? { note: note.trim() } : {}),
+            };
+
+            if (corrections && Object.keys(corrections).length > 0) {
+                if (!gestion.allowed) {
+                    return {
+                        allowed: false,
+                        reason: 'Corriger une fiche demande le droit de gérer l’inventaire.',
+                    };
+                }
+                applyEquipmentWrite(equipmentId, corrections, { ...portee, corrige: true });
+                return { allowed: true };
+            }
+
+            logEvent({
+                type: 'UPDATE',
+                actorId: currentUser?.id || 'system',
+                actorName: currentUser?.name || 'Système',
+                actorRole: currentUser?.role || 'SuperAdmin',
+                targetType: 'EQUIPMENT',
+                targetId: item.id,
+                targetName: item.name,
+                description: 'Retrouvé à l’inventaire',
+                metadata: { ...portee, fromStatus: item.status, toStatus: item.status },
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { allowed: true };
+        },
+        [applyEquipmentWrite, currentUser, equipment, logEvent],
+    );
+
+    const consignerCampagne = useCallback(
+        (
+            etape: EtapeDeCampagne,
+            scope: PerimetreDeCampagne,
+            details: Record<string, unknown> = {},
+        ): BusinessRuleDecision => {
+            const acces = currentUserAccessRef.current;
+            /* Clôturer, abandonner, relancer : qui compte. Valider, renvoyer : le responsable. */
+            const decision =
+                etape === 'validation' || etape === 'renvoi'
+                    ? canManageAuditByRole(acces)
+                    : canScanAuditByRole(acces).allowed
+                      ? { allowed: true }
+                      : canManageInventoryByRole(acces);
+            if (!decision.allowed) return decision;
+
+            const lieu = scope.horsLocal ? `${scope.site} — hors local` : scope.local || scope.site;
+
+            /* La validation applique ce que la clôture a relevé : chaque actif jamais vu sort
+               du lieu où on l'attendait et passe manquant. Le responsable n'a pas forcément
+               le droit de gérer l'inventaire : la validation est son geste, elle écrit. */
+            if (etape === 'validation') {
+                const manquants = Array.isArray(details.missingIds)
+                    ? (details.missingIds as unknown[]).filter(
+                          (id): id is string => typeof id === 'string',
+                      )
+                    : [];
+                const jour = new Date().toLocaleDateString('fr-FR');
+                for (const id of manquants) {
+                    const item = equipment.find((entry) => entry.id === id);
+                    if (!item || item.status === 'Manquant') continue;
+                    const noteDeManque = `Audit: non retrouvé dans ${lieu} (${scope.site}, ${scope.country}) — campagne validée le ${jour}. Requalification IT requise.`;
+                    applyEquipmentWrite(
+                        id,
+                        {
+                            local: undefined,
+                            status: 'Manquant',
+                            notes: item.notes ? `${item.notes}\n${noteDeManque}` : noteDeManque,
+                        },
+                        {
+                            source: 'audit_finalize',
+                            reason: 'missing_in_place',
+                            scopeCountry: scope.country,
+                            scopeSite: scope.site,
+                            scopeLocal: scope.horsLocal ? '' : scope.local || '',
+                        },
+                    );
+                }
+            }
+
+            const libelles: Record<EtapeDeCampagne, string> = {
+                cloture: 'Campagne d’inventaire clôturée',
+                validation: 'Campagne d’inventaire validée',
+                renvoi: 'Campagne d’inventaire renvoyée pour correction',
+                abandon: 'Campagne d’inventaire abandonnée',
+                relance: 'Nouvelle campagne d’inventaire',
+            };
+            logEvent({
+                type: 'UPDATE',
+                actorId: currentUser?.id || 'system',
+                actorName: currentUser?.name || 'Système',
+                actorRole: currentUser?.role || 'SuperAdmin',
+                targetType: 'LOCATION',
+                targetId: [
+                    scope.country,
+                    scope.site,
+                    scope.horsLocal ? '(hors local)' : scope.local || '',
+                ]
+                    .join(' / ')
+                    .replace(/ \/ $/, ''),
+                targetName: lieu,
+                description: libelles[etape],
+                metadata: {
+                    ...details,
+                    source: `audit_${etape}`,
+                    scopeCountry: scope.country,
+                    scopeSite: scope.site,
+                    scopeLocal: scope.horsLocal ? '' : scope.local || '',
+                    horsLocal: Boolean(scope.horsLocal),
+                },
+                isSystem: false,
+                isSensitive: false,
+            });
+            return { allowed: true };
+        },
+        [applyEquipmentWrite, currentUser, equipment, logEvent],
     );
 
     const updateApproval = useCallback(
@@ -4784,6 +4971,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             promoteDetectedDeviceToInventory,
             markDetectedDeviceAsIgnored,
             removeEquipmentFromServiceAfterAudit,
+            enregistrerComptage,
+            consignerCampagne,
             updateApproval,
             confirmEquipmentReception,
             remindApproval,
@@ -4849,6 +5038,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             promoteDetectedDeviceToInventory,
             markDetectedDeviceAsIgnored,
             removeEquipmentFromServiceAfterAudit,
+            enregistrerComptage,
+            consignerCampagne,
             updateApproval,
             confirmEquipmentReception,
             remindApproval,

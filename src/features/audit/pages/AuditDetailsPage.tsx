@@ -1,11 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { moisDepuis } from '../placeAudit';
+import { identifiantsDe, lireLaCampagne } from '../campagne';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import {
     ArrowLeft,
     ArrowsLeftRight,
     ArrowUUpLeft,
     CaretRight,
+    Check,
     CheckCircle,
     CircleDashed,
     CircleHalf,
@@ -18,6 +20,7 @@ import {
     LockSimple,
     MapPin,
     Package,
+    PencilSimple,
     PlusCircle,
     QrCode,
     Question,
@@ -39,13 +42,19 @@ import CardEmptyState from '../../../components/ui/CardEmptyState';
 import DetailHero, { type DetailMetrics } from '../../../components/ui/DetailHero';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import FactRow from '../../../components/ui/FactRow';
+import { SelectionBox } from '../../../components/ui/SelectableRow';
+import { useSelection } from '../../../hooks/useSelection';
+import FicheDeComptage from '../components/FicheDeComptage';
 import type { ListRowStatus } from '../../../components/ui/ListRow';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
+import Modal from '../../../components/ui/Modal';
+import { TextArea } from '../../../components/ui/TextArea';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
 import { AUDIT_SCOPE_PREF_KEY } from '../../../lib/auditScope';
@@ -239,10 +248,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         events,
         settings,
         upsertEquipmentFromAuditScan,
-        removeEquipmentFromServiceAfterAudit,
         updateEquipment,
         deleteEquipment,
+        consignerCampagne,
+        enregistrerComptage,
+        users,
+        locationData,
     } = useData();
+    /* Compter et clôturer : `audit.scan` ; valider, renvoyer : `audit.manage` (27/09). */
+    const { permissions } = useAccessControl();
+    const peutCompter = permissions.canScanAudit || permissions.canManageInventory;
+    const peutValider = permissions.canManageAudit;
+    /* Corriger une fiche pendant le comptage : le droit de gérer l'inventaire. */
+    const peutCorriger = permissions.canManageInventory;
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const { navigateToItem } = useAppNavigation();
@@ -264,6 +282,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [filtreOuvert, setFiltreOuvert] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
+    /** La fiche de comptage ouverte — pour compter un actif, ou corriger un retrouvé. */
+    const [ficheOuverte, setFicheOuverte] = useState<{
+        id: string;
+        mode: 'compter' | 'corriger';
+    } | null>(null);
+    /** La validation d'un lot : plusieurs actifs retrouvés d'un geste. */
+    const selection = useSelection();
+    /** Le renvoi d'une campagne clôturée : son motif est demandé, il sera lu par l'opérateur. */
+    const [renvoiOuvert, setRenvoiOuvert] = useState(false);
+    const [motifDeRenvoi, setMotifDeRenvoi] = useState('');
     /**
      * **Les deux niveaux côte à côte, à partir de 1280** — 16.2, colonne bureau : *« la
      * campagne à gauche (7/12), les écarts à droite (5/12) : les cartes de décision
@@ -274,17 +302,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [scanRawValue, setScanRawValue] = useState('');
     const [scanHits, setScanHits] = useState<ScanHit[]>([]);
     const [auditStartedAt, setAuditStartedAt] = useState<string | null>(null);
-    const [auditFinalized, setAuditFinalized] = useState(false);
-    const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
     const [baselineIds, setBaselineIds] = useState<string[]>([]);
-    const [foundIds, setFoundIds] = useState<string[]>([]);
-    const [foundAt, setFoundAt] = useState<Record<string, string>>({});
-    const [missingIds, setMissingIds] = useState<string[]>([]);
-    /** Le relevé fige aussi les absences justifiées : elles ne sont pas des manquants. */
-    const [horsSiteSnapshot, setHorsSiteSnapshot] = useState<string[]>([]);
     const [exceptionEntries, setExceptionEntries] = useState<LocalExceptionEntry[]>([]);
-    /** Après un abandon, la campagne repart de zéro : les comptages d'avant ne comptent plus. */
-    const [repartDepuis, setRepartDepuis] = useState<string | null>(null);
 
     /**
      * **Le périmètre n'est pas un choix de cet écran.** La planche 16.2 ne dessine
@@ -332,6 +351,46 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * d'inventaire** : un lieu compté il y a six semaines s'ouvre complet, un lieu compté
      * il y a quatorze mois ouvre une nouvelle campagne. Pour chaque objet, le dernier.
      */
+    /**
+     * **L'état de la campagne, lu dans le journal** (27/09) — en cours, clôturée en attente
+     * d'un responsable, ou validée. Il vivait dans la mémoire de l'écran : un rechargement
+     * rouvrait une campagne close, et la clôture ne laissait aucune trace.
+     */
+    const campagne = useMemo(
+        () =>
+            lireLaCampagne(
+                events,
+                {
+                    country: selectedCountry,
+                    site: selectedSite,
+                    local: selectedLocal,
+                    horsLocal: selectedHorsLocal,
+                },
+                settings.inventoryPeriodMonths || 12,
+            ),
+        [
+            events,
+            selectedCountry,
+            selectedSite,
+            selectedLocal,
+            selectedHorsLocal,
+            settings.inventoryPeriodMonths,
+        ],
+    );
+    /** Après un abandon ou une relance, les comptages d'avant ne comptent plus. */
+    const repartDepuis = campagne.depuis;
+    const auditFinalized = campagne.etat !== 'en_cours';
+    const finalizedAt = campagne.cloture?.timestamp ?? null;
+    /** Le relevé de la clôture : les manquants et les absences justifiées, figés. */
+    const missingIds = useMemo(
+        () => identifiantsDe(campagne.cloture, 'missingIds') ?? [],
+        [campagne.cloture],
+    );
+    const horsSiteSnapshot = useMemo(
+        () => identifiantsDe(campagne.cloture, 'horsSiteIds') ?? [],
+        [campagne.cloture],
+    );
+
     const comptesDeLaPeriode = useMemo(() => {
         const texte = (valeur: unknown) =>
             (typeof valeur === 'string' ? valeur : '').trim().toLowerCase();
@@ -364,10 +423,18 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     ]);
 
     const sessionStarted = Boolean(auditStartedAt);
+    /* Une campagne clôturée garde sa ligne de base : après la validation, les manquants ont
+       quitté le lieu et ne seraient plus dans le périmètre. */
     const baselineSourceIds = useMemo(
-        () => (sessionStarted ? baselineIds : scopedEquipment.map((item) => item.id)),
-        [baselineIds, scopedEquipment, sessionStarted],
+        () =>
+            identifiantsDe(campagne.cloture, 'baselineIds') ??
+            (sessionStarted ? baselineIds : scopedEquipment.map((item) => item.id)),
+        [baselineIds, campagne.cloture, scopedEquipment, sessionStarted],
     );
+    /* **Les retrouvés sont les comptages du journal** — scan ou validation à la main, par
+       n'importe qui, sur n'importe quel appareil : la liste ne dépend plus de cet écran. */
+    const foundAt = useMemo(() => Object.fromEntries(comptesDeLaPeriode), [comptesDeLaPeriode]);
+    const foundIds = useMemo(() => [...comptesDeLaPeriode.keys()], [comptesDeLaPeriode]);
 
     const baselineEquipment = useMemo(() => {
         const byId = new Map(equipment.map((item) => [item.id, item]));
@@ -489,12 +556,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
 
     const resetAuditSession = () => {
         setAuditStartedAt(null);
-        setAuditFinalized(false);
-        setFinalizedAt(null);
         setBaselineIds([]);
-        setFoundIds([]);
-        setFoundAt({});
-        setMissingIds([]);
         setExceptionEntries([]);
         setScanHits([]);
         setActiveTab('todo');
@@ -511,13 +573,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const ids = scopedEquipment.map((item) => item.id);
         const dejaComptes = [...comptesDeLaPeriode.entries()];
         setBaselineIds(ids);
-        setFoundIds(dejaComptes.map(([id]) => id));
-        setFoundAt(Object.fromEntries(dejaComptes));
-        setMissingIds([]);
         setExceptionEntries([]);
         setScanHits([]);
-        setAuditFinalized(false);
-        setFinalizedAt(null);
         /* Une campagne reprise a commencé à son premier comptage. */
         setAuditStartedAt(
             dejaComptes.reduce(
@@ -539,11 +596,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * cours » devant une liste vide.
      */
     useEffect(() => {
-        if (sessionStarted || auditFinalized) return;
+        if (sessionStarted) return;
         if (!scopeIsReady || scopedEquipment.length === 0) return;
         startAuditSession();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
+    }, [scopeIsReady, scopedEquipment.length, sessionStarted]);
 
     /**
      * Abandonner le relevé — l'ancien « Réinitialiser », rendu à sa nature. Il jette
@@ -569,38 +626,178 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { label: 'Actifs modifiés', value: 'aucun' },
             ],
             onConfirm: () => {
-                setRepartDepuis(new Date().toISOString());
+                const decision = consignerCampagne('abandon', currentScope, {
+                    found: sessionFound,
+                });
+                if (!decision.allowed) {
+                    showToast(decision.reason || 'Abandon refusé.', 'error');
+                    return;
+                }
                 resetAuditSession();
                 showToast('Relevé abandonné. Le périmètre est de nouveau modifiable.', 'info');
             },
         });
     };
 
+    /**
+     * **Clôturer, c'est remettre le relevé à un responsable** (27/09). La clôture écrivait
+     * aussitôt les manquants, sans relecture ni trace de qui l'avait décidée. Elle fige
+     * maintenant le relevé au journal (qui, quand, la ligne de base, les retrouvés, les
+     * manquants, les absences justifiées) ; les manquants ne s'écrivent qu'à la validation.
+     */
     const finalizeAuditSession = (missingSnapshot: Equipment[], horsSite: string[] = []) => {
-        const closedAt = new Date().toISOString();
-        setAuditFinalized(true);
-        setFinalizedAt(closedAt);
-        setMissingIds(missingSnapshot.map((item) => item.id));
-        setHorsSiteSnapshot(horsSite);
-
-        if (missingSnapshot.length === 0) {
-            showToast('Campagne clôturée : tout le parc a été retrouvé.', 'success');
-            setActiveTab('scanned');
+        const decision = consignerCampagne('cloture', currentScope, {
+            baselineIds: baselineSourceIds,
+            missingIds: missingSnapshot.map((item) => item.id),
+            horsSiteIds: horsSite,
+            total: sessionTotal,
+            found: sessionFound,
+            missing: missingSnapshot.length,
+            ecarts: sessionExceptions,
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Clôture refusée.', 'error');
             return;
         }
-
-        let flaggedAsMissing = 0;
-        missingSnapshot.forEach((item) => {
-            if (removeEquipmentFromServiceAfterAudit(item.id, currentScope)) {
-                flaggedAsMissing += 1;
-            }
-        });
-
         showToast(
-            `Campagne clôturée : ${flaggedAsMissing} actif(s) marqué(s) manquant(s).`,
-            'warning',
+            peutValider
+                ? 'Campagne clôturée : il reste à la valider.'
+                : 'Campagne clôturée : un responsable d’inventaire doit la valider.',
+            'success',
         );
-        setActiveTab('missing');
+        setActiveTab(missingSnapshot.length > 0 ? 'missing' : 'scanned');
+    };
+
+    /** Les fiches corrigées pendant le comptage — ce que le responsable relit avant de valider. */
+    const fichesCorrigees = useMemo(() => {
+        const base = new Set(baselineSourceIds);
+        return events.filter(
+            (event) =>
+                event.metadata?.source === 'audit_scan' &&
+                Boolean(event.metadata?.corrige) &&
+                base.has(event.targetId) &&
+                (!repartDepuis || event.timestamp > repartDepuis) &&
+                (moisDepuis(event.timestamp) ?? Infinity) < (settings.inventoryPeriodMonths || 12),
+        );
+    }, [baselineSourceIds, events, repartDepuis, settings.inventoryPeriodMonths]);
+
+    /**
+     * **Valider** (27/09) — le responsable relit le relevé que l'opérateur a clôturé. Le
+     * relevé devient définitif et ce qu'il annonçait s'applique : les jamais vus passent
+     * manquants et quittent le lieu.
+     */
+    const validerLaCampagne = () => {
+        const manquants = missingIds.length;
+        requestConfirmation({
+            title: `Valider l’inventaire de ${selectedPlace} ?`,
+            message:
+                manquants > 0 ? (
+                    <>
+                        Le relevé devient définitif : <strong>{manquants} actif(s)</strong>{' '}
+                        passeront manquants et quitteront le lieu. Ils restent au parc, avec leur
+                        historique.
+                    </>
+                ) : (
+                    <>Le relevé devient définitif : tout le parc attendu a été retrouvé.</>
+                ),
+            tone: manquants > 0 ? 'destructive' : 'neutral',
+            irreversible: manquants > 0,
+            confirmText: 'Valider',
+            cancelText: 'Relire encore',
+            details: [
+                { icon: CheckCircle, label: 'Retrouvés', value: sessionFound },
+                { icon: Question, label: 'Passent manquants', value: manquants },
+                ...(fichesCorrigees.length > 0
+                    ? [
+                          {
+                              icon: PencilSimple,
+                              label: 'Fiches corrigées pendant le comptage',
+                              value: fichesCorrigees.length,
+                          },
+                      ]
+                    : []),
+            ],
+            onConfirm: () => {
+                const decision = consignerCampagne('validation', currentScope, {
+                    missingIds,
+                    clotureId: campagne.cloture?.id,
+                    found: sessionFound,
+                    missing: manquants,
+                });
+                showToast(
+                    decision.allowed
+                        ? 'Inventaire validé.'
+                        : decision.reason || 'Validation refusée.',
+                    decision.allowed ? 'success' : 'error',
+                );
+            },
+        });
+    };
+
+    /** **Renvoyer** — le relevé revient à l'opérateur, avec le motif ; le comptage reprend. */
+    const renvoyerLaCampagne = () => {
+        const motif = motifDeRenvoi.trim();
+        if (!motif) {
+            showToast('Dites ce qu’il faut revoir.', 'warning');
+            return;
+        }
+        const decision = consignerCampagne('renvoi', currentScope, {
+            reason: motif,
+            clotureId: campagne.cloture?.id,
+        });
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Renvoi refusé.', 'error');
+            return;
+        }
+        setRenvoiOuvert(false);
+        setMotifDeRenvoi('');
+        setActiveTab('todo');
+        showToast('Campagne renvoyée : le comptage reprend.', 'info');
+    };
+
+    /** Après une campagne validée, en ouvrir une nouvelle sur le même lieu. */
+    const relancerLaCampagne = () => {
+        const decision = consignerCampagne('relance', currentScope);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Relance refusée.', 'error');
+            return;
+        }
+        resetAuditSession();
+        showToast('Nouvelle campagne ouverte.', 'success');
+    };
+
+    /**
+     * **Compter à la main** (27/09) — le même fait qu'un scan (`audit_scan`), sans caméra ni
+     * code : on voit l'actif, on le valide. Avec des corrections, la fiche est réécrite dans
+     * le même geste.
+     */
+    const compterALaMain = (id: string, corrections?: Partial<Equipment>, note = '') => {
+        const decision = enregistrerComptage(id, currentScope, corrections, note);
+        if (!decision.allowed) {
+            showToast(decision.reason || 'Comptage refusé.', 'error');
+            return false;
+        }
+        return true;
+    };
+
+    const retrouveEnUnGeste = (item: Equipment) => {
+        if (compterALaMain(item.id)) {
+            showToast(`${item.model || item.name} : retrouvé.`, 'success');
+        }
+    };
+
+    const validerLaSelection = () => {
+        let comptes = 0;
+        for (const id of selection.selectedIds) {
+            if (compterALaMain(id)) comptes += 1;
+        }
+        selection.exit();
+        if (comptes > 0) {
+            showToast(
+                `${comptes} actif${comptes > 1 ? 's' : ''} validé${comptes > 1 ? 's' : ''} comme retrouvé${comptes > 1 ? 's' : ''}.`,
+                'success',
+            );
+        }
     };
 
     const registerScanHit = (
@@ -647,15 +844,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const scannedCode =
             parsed.payload.assetId || parsed.payload.serialNumber || parsed.payload.hostname || '—';
 
-        if (
-            result.equipmentId &&
-            result.placeMatches &&
-            baselineSourceIds.includes(result.equipmentId)
-        ) {
-            const equipmentId = result.equipmentId;
-            setFoundIds((prev) => (prev.includes(equipmentId) ? prev : [...prev, equipmentId]));
-            setFoundAt((prev) => ({ ...prev, [equipmentId]: new Date().toISOString() }));
-        }
+        /* Le comptage est au journal (`audit_scan`) : la liste des retrouvés le lit de là. */
 
         if (result.resolution !== 'found_in_place') {
             const entry: LocalExceptionEntry = {
@@ -731,13 +920,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Clôturer l'audit de ${selectedPlace} ?`,
             message: (
                 <>
+                    Le relevé est figé et remis à un responsable d’inventaire. À la validation,{' '}
                     <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
-                    marqués manquants et retirés du lieu. Ils restent au parc, avec tout leur
-                    historique, et réapparaîtront s'ils sont scannés ailleurs.
+                    marqués manquants et retirés du lieu ; s’il renvoie la campagne, le comptage
+                    reprend.
                 </>
             ),
-            tone: 'destructive',
-            irreversible: true,
             confirmText: 'Clôturer',
             cancelText: 'Annuler',
             // Les trois lignes de la planche, et pas une de plus : chacune est une
@@ -748,7 +936,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 { icon: CheckCircle, label: 'Retrouvés, inchangés', value: sessionFound },
                 {
                     icon: Question,
-                    label: 'Marqués manquants, retirés du lieu',
+                    label: 'Manquants, à la validation',
                     value: missingSnapshot.length,
                 },
                 {
@@ -1101,11 +1289,49 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             missing: 'orange',
             horsSite: 'ambre',
         } as const;
+        /* Compter, sélectionner, corriger : pendant la campagne seulement. */
+        const comptable = mode === 'todo' && peutCompter && !auditFinalized;
+        const corrigeable = mode === 'scanned' && peutCorriger && !auditFinalized;
         return rows.map((item) => {
             const holder =
                 mode === 'missing' && item.status === 'En réparation'
                     ? 'était en réparation'
                     : item.user?.name || 'non attribué';
+            const titre = item.model || item.name;
+            /* Au bureau, le local suit le porteur : on y lit où l'objet est attendu. */
+            const sousTitre = [
+                item.assetId,
+                holder,
+                comptable && enDeuxNiveaux ? item.local : undefined,
+            ]
+                .filter(Boolean)
+                .join(' · ');
+
+            /* **Le lot** : en sélection, la rangée entière coche l'actif. */
+            if (comptable && selection.isActive) {
+                const coche = selection.isSelected(item.id);
+                return (
+                    <Button
+                        key={item.id}
+                        variant="text"
+                        layout="card"
+                        aria-pressed={coche}
+                        onClick={() => selection.toggle(item.id)}
+                        className="border-outline-variant hover:bg-surface-container -mx-4 flex min-h-16 w-[calc(100%+2rem)] items-center gap-3 rounded-none border-t px-4 py-2 text-left font-normal whitespace-normal first:border-t-0 active:scale-100"
+                    >
+                        <SelectionBox selected={coche} />
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                {titre}
+                            </span>
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                {sousTitre}
+                            </span>
+                        </span>
+                    </Button>
+                );
+            }
+
             const droite =
                 mode === 'scanned'
                     ? {
@@ -1126,23 +1352,53 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                               ton: 'text-[var(--tk-color-on-tint-ambre)]',
                           }
                         : null;
+            const crayon = (libelle: string, ficheMode: 'compter' | 'corriger') => (
+                <Button
+                    variant="text"
+                    iconOnly
+                    size="sm"
+                    aria-label={`${libelle} — ${titre}`}
+                    onClick={() => setFicheOuverte({ id: item.id, mode: ficheMode })}
+                    className="text-text-secondary h-10 w-10"
+                >
+                    <Icon glyph={PencilSimple} size={20} />
+                </Button>
+            );
             return (
                 <FactRow
                     key={item.id}
                     glyph={getCategoryGlyph(item.type)}
                     tint={TEINTE_MODE[mode]}
-                    title={item.model || item.name}
-                    subtitle={[item.assetId, holder].filter(Boolean).join(' · ')}
+                    title={titre}
+                    subtitle={sousTitre}
                     trailing={
-                        droite ? (
-                            <span
-                                className={cn(
-                                    'text-ts-sub leading-ts-sub flex shrink-0 items-center gap-1.5 font-medium whitespace-nowrap',
-                                    droite.ton,
-                                )}
-                            >
-                                <Icon glyph={droite.glyph} size={18} />
-                                {droite.texte}
+                        comptable ? (
+                            /* **Valider à la main** : « Retrouvé » d'un geste ; le crayon
+                               ouvre la fiche, pour la corriger si elle a changé. */
+                            <span className="flex shrink-0 items-center gap-1">
+                                {crayon('Vérifier la fiche', 'compter')}
+                                <Button
+                                    variant="outlined"
+                                    size="sm"
+                                    onClick={() => retrouveEnUnGeste(item)}
+                                    className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                >
+                                    <Icon glyph={Check} size={18} />
+                                    Retrouvé
+                                </Button>
+                            </span>
+                        ) : droite ? (
+                            <span className="flex shrink-0 items-center gap-1">
+                                <span
+                                    className={cn(
+                                        'text-ts-sub leading-ts-sub flex shrink-0 items-center gap-1.5 font-medium whitespace-nowrap',
+                                        droite.ton,
+                                    )}
+                                >
+                                    <Icon glyph={droite.glyph} size={18} />
+                                    {droite.texte}
+                                </span>
+                                {corrigeable && crayon('Corriger la fiche', 'corriger')}
                             </span>
                         ) : enDeuxNiveaux && item.local ? (
                             /* **Le local en bout de rangée, au bureau** — 16.2 : on y lit
@@ -1348,8 +1604,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * qui est complet — et `circle-dashed` neutre quand il n'y a rien à auditer.
      */
     const heroStatus = useMemo(() => {
-        if (auditFinalized) {
-            return { icon: CheckCircle, label: 'clôturée', tone: 'positive' as const };
+        if (campagne.etat === 'validee') {
+            return { icon: CheckCircle, label: 'validée', tone: 'positive' as const };
+        }
+        if (campagne.etat === 'cloturee') {
+            return { icon: Hourglass, label: 'clôturée, à valider', tone: 'pending' as const };
         }
         if (sessionStarted) {
             return { icon: CircleHalf, label: 'en cours', tone: 'info' as const };
@@ -1360,7 +1619,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             return { icon: CircleDashed, label: 'rien à auditer' };
         }
         return { icon: ClockCountdown, label: 'à lancer', tone: 'pending' as const };
-    }, [auditFinalized, scopeIsReady, scopedEquipment.length, sessionStarted]);
+    }, [campagne.etat, scopeIsReady, scopedEquipment.length, sessionStarted]);
 
     /**
      * Trois qualifiants, et **le manquant n'y est pas tant que la campagne tourne** :
@@ -1395,11 +1654,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * à filet et à pictogramme : le voile faisait deux fois sa hauteur pour dire la
      * même chose, et le sujet se retrouvait au milieu au lieu d'être en tête.
      */
-    const heroStatusDetail = auditFinalized
-        ? `par vous, ${formatSince(finalizedAt || undefined)}`
-        : sessionStarted
-          ? `démarrée ${formatSince(auditStartedAt || undefined)}`
-          : undefined;
+    const heroStatusDetail = campagne.validation
+        ? `par ${campagne.validation.actorName}, ${formatSince(campagne.validation.timestamp)}`
+        : auditFinalized
+          ? `par ${campagne.cloture?.actorName ?? 'vous'}, ${formatSince(finalizedAt || undefined)}`
+          : sessionStarted
+            ? `démarrée ${formatSince(auditStartedAt || undefined)}`
+            : undefined;
 
     const heroSubtitle = auditFinalized
         ? `Campagne du ${formatDateTime(finalizedAt || undefined)}`
@@ -1466,17 +1727,26 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 onSelect: exportRelevé,
             });
         }
-        if (sessionStarted && !auditFinalized && !closureBlocked) {
+        if (sessionStarted && !auditFinalized && !closureBlocked && peutCompter) {
             items.push({
                 id: 'finalize-session',
                 label: 'Clôturer la campagne',
-                description: 'les jamais scannés passent manquants ; sans retour',
+                description: 'le relevé est remis à un responsable, qui le valide',
                 icon: 'lock',
                 destructive: true,
                 onSelect: handleFinalizeAudit,
             });
         }
-        if (sessionStarted && !auditFinalized) {
+        if (campagne.etat === 'validee' && peutCompter) {
+            items.push({
+                id: 'relance',
+                label: 'Lancer une nouvelle campagne',
+                description: 'le lieu se recompte depuis zéro',
+                icon: 'restart_alt',
+                onSelect: relancerLaCampagne,
+            });
+        }
+        if (sessionStarted && !auditFinalized && peutCompter) {
             items.push({
                 id: 'abandon-session',
                 label: 'Abandonner la campagne',
@@ -1495,6 +1765,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         sessionFound,
         sessionExceptions,
         selectedPlace,
+        campagne.etat,
+        peutCompter,
     ]);
 
     /* Au bureau, l'export a son bouton nommé dans l'en-tête : le laisser aussi dans le
@@ -1517,6 +1789,72 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         }
         onBack();
     };
+
+    /**
+     * **Le bandeau de la campagne** (27/09) — clôturée et en attente d'un responsable,
+     * validée, ou renvoyée avec son motif. Le responsable y trouve ses deux gestes.
+     */
+    const bandeauDeCampagne =
+        campagne.etat === 'cloturee' && campagne.cloture ? (
+            <section className="flex flex-col gap-3 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-3 text-[var(--tk-color-on-tint-ambre)]">
+                <p className="text-ts-sub leading-ts-sub flex items-start gap-2">
+                    <Icon glyph={Hourglass} size={18} className="mt-px shrink-0" />
+                    <span>
+                        <b className="font-semibold">
+                            Clôturée par {campagne.cloture.actorName},{' '}
+                            {formatSince(campagne.cloture.timestamp)}.
+                        </b>{' '}
+                        {peutValider
+                            ? 'Relisez le relevé, puis validez-le ou renvoyez-le.'
+                            : 'Un responsable d’inventaire doit la valider.'}
+                        {fichesCorrigees.length > 0 &&
+                            ` ${fichesCorrigees.length} fiche${fichesCorrigees.length > 1 ? 's' : ''} corrigée${fichesCorrigees.length > 1 ? 's' : ''} pendant le comptage.`}
+                    </span>
+                </p>
+                {peutValider && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            variant="outlined"
+                            onClick={() => setRenvoiOuvert(true)}
+                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                        >
+                            <Icon glyph={ArrowUUpLeft} size={18} />
+                            Renvoyer
+                        </Button>
+                        <Button
+                            variant="filled"
+                            onClick={validerLaCampagne}
+                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                        >
+                            <Icon glyph={CheckCircle} size={18} />
+                            Valider l’inventaire
+                        </Button>
+                    </div>
+                )}
+            </section>
+        ) : campagne.etat === 'validee' && campagne.validation ? (
+            <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-vert)] px-4 py-3 text-[var(--tk-color-on-tint-vert)]">
+                <Icon glyph={CheckCircle} size={18} className="mt-px shrink-0" />
+                <span>
+                    <b className="font-semibold">
+                        Validée par {campagne.validation.actorName},{' '}
+                        {formatSince(campagne.validation.timestamp)}.
+                    </b>{' '}
+                    Le relevé est définitif.
+                </span>
+            </p>
+        ) : campagne.renvoi ? (
+            <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-orange)] px-4 py-3 text-[var(--tk-color-on-tint-orange)]">
+                <Icon glyph={ArrowUUpLeft} size={18} className="mt-px shrink-0" />
+                <span>
+                    <b className="font-semibold">
+                        Renvoyée par {campagne.renvoi.actorName},{' '}
+                        {formatSince(campagne.renvoi.timestamp)} :
+                    </b>{' '}
+                    « {String(campagne.renvoi.metadata?.reason ?? '')} »
+                </span>
+            </p>
+        ) : null;
 
     const hero = (
         <DetailHero
@@ -1812,6 +2150,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         décor. */}
                                     {!enDeuxNiveaux && carteDeTension}
 
+                                    {bandeauDeCampagne}
+
                                     {/* La légende de liste : le sujet à gauche, le compte à
                                         droite — au bureau, en tête de colonne, comme « Écarts »
                                         en face. Au téléphone elle est dans la bande fixe. */}
@@ -1829,6 +2169,63 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     {/* `.card` de 16.2 — surface, rayon 8, **4 / 16**, et
                                         pas d'ombre : aucune planche n'en déclare sur une
                                         carte de rangées. */}
+                                    {/* **Valider un lot** (27/09) : on entre en sélection, on coche
+                                        ce qu'on voit, on valide d'un geste. */}
+                                    {activeTab === 'todo' &&
+                                        peutCompter &&
+                                        !auditFinalized &&
+                                        todoItems.length > 0 &&
+                                        (selection.isActive ? (
+                                            <div className="bg-inverse-surface text-inverse-on-surface sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-md px-3 py-2">
+                                                <span className="text-ts-sub leading-ts-sub min-w-0 flex-1 font-medium tabular-nums">
+                                                    {selection.count} sélectionné
+                                                    {selection.count > 1 ? 's' : ''} sur{' '}
+                                                    {todoItems.length}
+                                                </span>
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        selection.selectAll(
+                                                            todoItems.map((item) => item.id),
+                                                        )
+                                                    }
+                                                    className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                                >
+                                                    Tout
+                                                </Button>
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    onClick={selection.exit}
+                                                    className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                                >
+                                                    Annuler
+                                                </Button>
+                                                <Button
+                                                    variant="filled"
+                                                    size="sm"
+                                                    disabled={selection.count === 0}
+                                                    onClick={validerLaSelection}
+                                                    className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                                >
+                                                    <Icon glyph={Check} size={18} />
+                                                    Valider comme retrouvés
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="-mb-2 flex justify-end">
+                                                <Button
+                                                    variant="text"
+                                                    size="sm"
+                                                    onClick={() => selection.enter()}
+                                                    className="text-on-surface h-9 min-h-9 px-2 text-[0.8125rem]"
+                                                >
+                                                    Sélectionner plusieurs
+                                                </Button>
+                                            </div>
+                                        ))}
+
                                     <section className="rounded-card bg-surface px-4 py-1">
                                         {activeTab === 'todo' &&
                                             renderEquipmentRows(todoItems, 'todo')}
@@ -2385,6 +2782,59 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     </div>
                 </div>
             </SideSheet>
+
+            {ficheOuverte &&
+                (() => {
+                    const item = equipment.find((entry) => entry.id === ficheOuverte.id);
+                    if (!item) return null;
+                    return (
+                        <FicheDeComptage
+                            key={item.id}
+                            equipement={item}
+                            mode={ficheOuverte.mode}
+                            utilisateurs={users}
+                            services={locationData?.services?.[selectedSite] ?? []}
+                            locaux={locationData?.locals?.[selectedSite] ?? []}
+                            peutCorriger={peutCorriger}
+                            onFermer={() => setFicheOuverte(null)}
+                            onValider={(corrections, note) => {
+                                if (!compterALaMain(item.id, corrections, note)) return;
+                                setFicheOuverte(null);
+                                showToast(
+                                    corrections
+                                        ? `${item.model || item.name} : fiche corrigée${ficheOuverte.mode === 'compter' ? ', retrouvé' : ''}.`
+                                        : `${item.model || item.name} : retrouvé.`,
+                                    'success',
+                                );
+                            }}
+                        />
+                    );
+                })()}
+
+            {/* Le renvoi — son motif est ce que l'opérateur lira en reprenant le comptage. */}
+            <Modal
+                isOpen={renvoiOuvert}
+                onClose={() => setRenvoiOuvert(false)}
+                title={`Renvoyer l’inventaire de ${selectedPlace}`}
+                footer={
+                    <>
+                        <Button variant="outlined" onClick={() => setRenvoiOuvert(false)}>
+                            Annuler
+                        </Button>
+                        <Button variant="filled" onClick={renvoyerLaCampagne}>
+                            Renvoyer
+                        </Button>
+                    </>
+                }
+            >
+                <TextArea
+                    label="Ce qu’il faut revoir"
+                    value={motifDeRenvoi}
+                    onChange={(event) => setMotifDeRenvoi(event.target.value)}
+                    rows={4}
+                    placeholder="Recompter le bureau 204 : trois écrans n’y ont pas été vus."
+                />
+            </Modal>
         </div>
     );
 };
